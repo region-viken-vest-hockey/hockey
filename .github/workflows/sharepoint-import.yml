@@ -13,8 +13,11 @@ permissions:
   contents: write
   issues: write
 
+# Only one debounced activity snapshot may be imported at a time. This also
+# cancels an older importer that was dispatched before the router's final
+# newest-issue check.
 concurrency:
-  group: sharepoint-activities-${{ inputs.issue_number }}
+  group: sharepoint-activities-import
   cancel-in-progress: true
 
 env:
@@ -237,6 +240,26 @@ jobs:
           PAGES_URL="https://${OWNER}.github.io/${REPO}/latest/activities/"
           gh issue comment "$ISSUE_NUMBER" --repo "$GH_REPO" --body "✅ Aktivitetsdata er validert og publisert. Endret: ${FILE_CHANGED:-false}. Version: ${VERSION:-ukjent}. DriveItemId: ${DRIVE_ITEM_ID:-ukjent}. SHA-256: ${FILE_SHA256:-ukjent}. Publisert HTML: $PAGES_URL."
           gh issue close "$ISSUE_NUMBER" --repo "$GH_REPO" --reason completed
+
+      - name: "Lukk tidligere sync-issues etter vellykket nyeste kjøring"
+        if: env.IMPORT_RESULT == 'success' && env.PUBLISH_RESULT == 'success'
+        run: |
+          # Issue numbers are monotonically increasing, so this cannot close
+          # an issue created after the one that was actually imported.
+          gh api --paginate --slurp \
+            "repos/$GH_REPO/issues?state=open&per_page=100" \
+            | jq -r --argjson current "$ISSUE_NUMBER" '
+                add[]
+                | select(.pull_request == null)
+                | select(.title == "sharepoint-sync: activities")
+                | select(["OWNER", "MEMBER", "COLLABORATOR"] | index(.author_association) != null)
+                | select(.number < $current)
+                | .number
+              ' \
+            | while read -r previous_issue; do
+                [ -n "$previous_issue" ] || continue
+                gh issue close "$previous_issue" --repo "$GH_REPO" --reason "not planned" || true
+              done
 
       - name: "Kommenter ved feil"
         if: env.IMPORT_RESULT != 'success' || env.PUBLISH_RESULT != 'success'

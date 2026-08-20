@@ -13,8 +13,10 @@ permissions:
   contents: write
   issues: write
 
+# The router debounces Power Automate bursts; serialize the actual import too
+# so an older manually-dispatched run cannot overwrite the newest snapshot.
 concurrency:
-  group: sharepoint-registrations-${{ inputs.issue_number }}
+  group: sharepoint-registrations-import
   cancel-in-progress: true
 
 env:
@@ -218,6 +220,24 @@ jobs:
         run: |
           gh issue comment "$ISSUE_NUMBER" --repo "$GH_REPO" --body "✅ Påmeldingsdata er validert og publisert. Lag: ${TEAM_COUNT:-0}. Endret: ${FILE_CHANGED:-false}. SHA-256: ${FILE_SHA256:-ukjent}."
           gh issue close "$ISSUE_NUMBER" --repo "$GH_REPO" --reason completed
+
+      - name: "Lukk tidligere sync-issues etter vellykket nyeste kjøring"
+        if: env.IMPORT_RESULT == 'success' && env.PUBLISH_RESULT == 'success'
+        run: |
+          gh api --paginate --slurp \
+            "repos/$GH_REPO/issues?state=open&per_page=100" \
+            | jq -r --argjson current "$ISSUE_NUMBER" '
+                add[]
+                | select(.pull_request == null)
+                | select(.title == "sharepoint-sync: registrations")
+                | select(["OWNER", "MEMBER", "COLLABORATOR"] | index(.author_association) != null)
+                | select(.number < $current)
+                | .number
+              ' \
+            | while read -r previous_issue; do
+                [ -n "$previous_issue" ] || continue
+                gh issue close "$previous_issue" --repo "$GH_REPO" --reason "not planned" || true
+              done
 
       - name: "Kommenter ved feil"
         if: env.IMPORT_RESULT != 'success' || env.PUBLISH_RESULT != 'success'

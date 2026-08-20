@@ -104,21 +104,27 @@ Valideringsregler:
 
 ### Hva skjer etter at issuen er opprettet
 
-1. **GitHub Actions** ``.github/workflows/sharepoint-import.yml`` trigges av
-   ``issues: [opened]``.
-2. Kun issues med tittel ``sharepoint-sync: activities`` kjøres.
-3. Workflowen:
+1. **GitHub Actions** ``.github/workflows/sharepoint-sync-router.yml`` trigges av
+   ``issues: [opened, reopened]``.
+2. Kun issues med en støttet tittel og betrodd forfatter behandles.
+3. Routeren venter **5 minutter** etter siste issue. Nye issues i ventetiden
+   kansellerer den forrige router-kjøringen. Etter ventetiden velges den nyeste
+   åpne issuen for samme synkroniseringstype, og routeren dispatcher riktig
+   import-workflow med dette issue-nummeret.
+4. Import-workflowen:
    - Parser og validerer issue-body.
    - Validerer ``content_json``-kontrakten (``schemaVersion``, ``worksheet``, ``values``).
    - Serialiserer deterministisk og sammenligner SHA-256 med eksisterende kanonisk fil.
    - **Hvis endret:** committer til ``inputs/activities/activities.json``.
    - **Hvis uendret:** ingen commit.
-   - Kommenterer og lukker issuen.
-4. **Ved endret commit:** workflowen kaller ``activity-publish.yml`` via
+   - Kommenterer og lukker den nyeste issuen.
+   - Etter vellykket import og publisering lukkes alle eldre åpne sync-issues
+     som erstattet den nyeste. Ved feil forblir issues åpne med diagnose.
+5. **Ved endret commit:** workflowen kaller ``activity-publish.yml`` via
    ``workflow_call``, som regenererer og publiserer aktivitetskalenderen.
    Dette er deterministisk og avhenger ikke av at ``GITHUB_TOKEN``-pushes
    trigger nye workflows.
-5. **Ved feil:** issuen forblir åpen med en diagnosekommentar og lenke til
+6. **Ved feil:** issuen forblir åpen med en diagnosekommentar og lenke til
    Actions-run. Ingen repository-filer endres.
 
 ### Håndtering av SharePoint-filer som slettes og gjenskapes
@@ -177,8 +183,11 @@ automatisk og:
 
 ## Samtidighet og idempotens
 
-- **Import-workflowen** har egen `concurrency`-gruppe (`sharepoint-import`).
-  Dette forhindrer samtidige importer.
+- **Routeren** bruker én concurrency-gruppe per synkroniseringstype og
+  ``cancel-in-progress: true``. Dette er debounce-mekanismen for Power
+  Automate-bursts.
+- **Import-workflowene** bruker én felles concurrency-gruppe per
+  synkroniseringstype, slik at eldre kjøringer ikke overskriver nyeste snapshot.
 - **Publiseringsworkflowene** deler `concurrency`-gruppe
   (`routine-publish`). Dette serialiserer alle rutinepubliseringer og
   forhindrer samtidige skrivinger til `gh-pages`.

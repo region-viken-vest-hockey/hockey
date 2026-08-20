@@ -8,11 +8,16 @@ on:
 
 permissions:
   actions: write
-  issues: read
+  issues: write
 
+# Power Automate can open one issue for every AutoSave/file modification. Keep
+# only the final issue in a burst and let that issue start the importer.
 concurrency:
-  group: sharepoint-sync-router-${{ github.event.issue.number }}
+  group: sharepoint-sync-router-${{ github.event.issue.title }}
   cancel-in-progress: true
+
+env:
+  DEBOUNCE_SECONDS: "120"
 
 jobs:
   route:
@@ -31,7 +36,10 @@ jobs:
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       ISSUE_TITLE: ${{ github.event.issue.title }}
     steps:
-      - name: "Start matching sync workflow"
+      - name: "Vent til endringene har roet seg"
+        run: sleep "$DEBOUNCE_SECONDS"
+
+      - name: "Start matching sync workflow for newest issue"
         run: |
           case "$ISSUE_TITLE" in
             "sharepoint-sync: registrations")
@@ -46,9 +54,30 @@ jobs:
               ;;
           esac
 
+          # The router run is cancelled when another issue arrives during the
+          # delay. Query again as a race-safe final check, because a new issue
+          # can arrive just before dispatch.
+          LATEST_ISSUE="$({
+            gh api --paginate --slurp \
+              "repos/$GH_REPO/issues?state=open&per_page=100" \
+              | jq -r --arg title "$ISSUE_TITLE" '
+                add
+                | map(select(.pull_request == null)
+                    | select(.title == $title)
+                    | select(["OWNER", "MEMBER", "COLLABORATOR"] | index(.author_association) != null))
+                | sort_by(.created_at, .number)
+                | last.number // empty
+              '
+          })"
+
+          if [ -z "$LATEST_ISSUE" ]; then
+            echo "No open trusted sync issue found for $ISSUE_TITLE" >&2
+            exit 1
+          fi
+
           gh workflow run "$WORKFLOW" \
             --repo "$GH_REPO" \
             --ref main \
-            -f issue_number="$ISSUE_NUMBER"
+            -f issue_number="$LATEST_ISSUE"
 
-          echo "Dispatched $WORKFLOW for issue #$ISSUE_NUMBER"
+          echo "Dispatched $WORKFLOW for newest issue #$LATEST_ISSUE (after debounce)"

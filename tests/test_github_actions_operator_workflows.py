@@ -18,6 +18,7 @@ WORKFLOW_FILES = {
     "activity-publish": WORKFLOWS / "activity-publish.yml",
     "registration-publish": WORKFLOWS / "registration-publish.yml",
     "sharepoint-import": WORKFLOWS / "sharepoint-import.yml",
+    "sharepoint-router": WORKFLOWS / "sharepoint-sync-router.yml",
 }
 
 
@@ -281,13 +282,43 @@ def test_workflows_delegate_to_canonical_cli_instead_of_reimplementing_policy():
 # ---------------------------------------------------------------------------
 
 
-def test_sharepoint_import_triggered_by_issues():
+def test_sharepoint_sync_router_debounces_and_dispatches_newest_issue():
+    workflow = WORKFLOWS_PARSED["sharepoint-router"]
+
+    on_block = workflow.data.get("on", workflow.data.get(True, {}))
+    assert on_block["issues"]["types"] == ["opened", "reopened"]
+    assert workflow.data["permissions"] == {"actions": "write", "issues": "write"}
+    assert "DEBOUNCE_SECONDS" in workflow.text
+    assert 'sleep "$DEBOUNCE_SECONDS"' in workflow.text
+    assert "gh api --paginate --slurp" in workflow.text
+    assert 'sort_by(.created_at, .number)' in workflow.text
+    assert "newest issue" in workflow.text
+    assert "gh workflow run \"$WORKFLOW\"" in workflow.text
+
+
+def test_sharepoint_import_is_serialized_across_issue_numbers():
+    workflow = WORKFLOWS_PARSED["sharepoint-import"]
+
+    group = workflow.data.get("concurrency", {})
+    assert group.get("group") == "sharepoint-activities-import"
+    assert group.get("cancel-in-progress") is True
+
+
+def test_sharepoint_import_triggered_by_dispatch_after_router():
     workflow = WORKFLOWS_PARSED["sharepoint-import"]
 
     on_block = workflow.data.get("on", workflow.data.get(True, {}))
-    assert "issues" in on_block, "Import workflow must trigger on issues"
-    issues_block = on_block["issues"]
-    assert "opened" in issues_block.get("types", [])
+    assert set(on_block) == {"workflow_dispatch"}
+    assert "issue_number" in workflow.inputs
+
+
+def test_sharepoint_import_closes_previous_issues_only_after_success():
+    workflow = WORKFLOWS_PARSED["sharepoint-import"]
+
+    text = workflow.text
+    assert 'if: env.IMPORT_RESULT == \'success\' && env.PUBLISH_RESULT == \'success\'' in text
+    assert 'select(.number < $current)' in text
+    assert 'gh issue close "$previous_issue"' in text
 
 
 def test_sharepoint_import_has_least_privilege_permissions():
@@ -416,6 +447,6 @@ def test_sharepoint_import_leaves_issue_open_on_failure():
 def test_sharepoint_import_has_concurrency_group():
     workflow = WORKFLOWS_PARSED["sharepoint-import"]
 
-    assert "sharepoint-import" in workflow.text
     group = workflow.data.get("concurrency", {})
-    assert group.get("group") == "sharepoint-import-${{ github.ref }}"
+    assert group.get("group") == "sharepoint-activities-import"
+    assert group.get("cancel-in-progress") is True
