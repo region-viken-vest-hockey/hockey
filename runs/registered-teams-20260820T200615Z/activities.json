@@ -1,0 +1,491 @@
+{
+  "activities": [
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-01-05",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS JU16",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-01-26",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS U15",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-02-07",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling U14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-02-09",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling JU14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-02-15",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS JU16",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U13"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-02-21",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling U13",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-02-24",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS U15",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-03-10",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling U14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-03-28",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS JU16",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-03-31",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS U15",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-05-09",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling U14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-05-15",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling JU14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U13"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-05-31",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling U13",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-06-15",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "IA",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-07-15",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "IA",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-08-15",
+      "description": null,
+      "location": "Tønsberg",
+      "raw_category": null,
+      "title": "RS JU16",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-08-15",
+      "description": null,
+      "location": "Tønsberg",
+      "raw_category": null,
+      "title": "S.Utvikling U14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-08-22",
+      "description": null,
+      "location": "Sandefjord",
+      "raw_category": null,
+      "title": "RS U15",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-09-06",
+      "description": null,
+      "location": "Ringerike",
+      "raw_category": null,
+      "title": "S.Utvikling JU14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U13"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-09-06",
+      "description": null,
+      "location": "Ringerike",
+      "raw_category": null,
+      "title": "S.Utvikling U13",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-09-30",
+      "description": null,
+      "location": "Sandefjord",
+      "raw_category": null,
+      "title": "RS JU16",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-10-10",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS U15",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U13"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-10-20",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling U13",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-10-31",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling U14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-11-15",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling U14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU14"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-11-30",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling JU14",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-12-10",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS JU16",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-12-15",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS U15",
+      "type": "regionslagssamling",
+      "url": null
+    }
+  ],
+  "category_vocabulary": [
+    {
+      "code": "SU",
+      "description": "Regional spillerutviklingssamling eller tilsvarende utviklingsaktivitet.",
+      "id": "spillerutviklingssamling",
+      "label": "Spillerutviklingssamling"
+    },
+    {
+      "code": "RS",
+      "description": "Samling for regionslag eller regionslagskandidater.",
+      "id": "regionslagssamling",
+      "label": "Regionslagssamling"
+    },
+    {
+      "code": "RM",
+      "description": "Regionsmesterskap eller sluttspillaktivitet.",
+      "id": "regionsmesterskap",
+      "label": "Regionsmesterskap"
+    },
+    {
+      "code": "RT",
+      "description": "Regionsturnering for en eller flere aldersgrupper.",
+      "id": "regionsturnering",
+      "label": "Regionsturnering"
+    },
+    {
+      "code": "AN",
+      "description": "Annen publisert aktivitet som ikke er en av hovedkategoriene.",
+      "id": "annet",
+      "label": "Annen aktivitet"
+    },
+    {
+      "code": "?",
+      "description": "Fallback brukt når en eksplisitt kategori ikke finnes i vokabularet.",
+      "id": "unknown",
+      "label": "Ukjent aktivitetstype"
+    }
+  ],
+  "generated_at": "2026-08-03T11:29:49Z",
+  "schema_version": 2,
+  "validation_warnings": [
+    {
+      "field": "title",
+      "message": "Mangler tittel/aktivitet; raden hoppes over.",
+      "raw_value": "",
+      "row": 22,
+      "sheet": "Årshjul"
+    },
+    {
+      "field": "title",
+      "message": "Mangler tittel/aktivitet; raden hoppes over.",
+      "raw_value": "",
+      "row": 23,
+      "sheet": "Årshjul"
+    },
+    {
+      "field": "title",
+      "message": "Mangler tittel/aktivitet; raden hoppes over.",
+      "raw_value": "",
+      "row": 24,
+      "sheet": "Årshjul"
+    },
+    {
+      "field": "title",
+      "message": "Mangler tittel/aktivitet; raden hoppes over.",
+      "raw_value": "",
+      "row": 25,
+      "sheet": "Årshjul"
+    }
+  ],
+  "year": 2026
+}
