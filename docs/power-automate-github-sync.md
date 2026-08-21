@@ -107,10 +107,11 @@ Valideringsregler:
 1. **GitHub Actions** ``.github/workflows/sharepoint-sync-router.yml`` trigges av
    ``issues: [opened, reopened]``.
 2. Kun issues med en støttet tittel og betrodd forfatter behandles.
-3. Routeren venter **5 minutter** etter siste issue. Nye issues i ventetiden
-   kansellerer den forrige router-kjøringen. Etter ventetiden velges den nyeste
-   åpne issuen for samme synkroniseringstype, og routeren dispatcher riktig
-   import-workflow med dette issue-nummeret.
+3. Routeren venter **30 sekunder** etter siste issue. Concurrency-gruppen
+   tillater bare én kjørende og én ventende router-kjøring; et nytt issue
+   kansellerer den kjørende ventingen og erstatter eventuell ventende kjøring.
+   Etter ventetiden velges den nyeste åpne issuen for samme synkroniseringstype,
+   og routeren dispatcher riktig import-workflow med dette issue-nummeret.
 4. Import-workflowen:
    - Parser og validerer issue-body.
    - Validerer ``content_json``-kontrakten (``schemaVersion``, ``worksheet``, ``values``).
@@ -184,8 +185,10 @@ automatisk og:
 ## Samtidighet og idempotens
 
 - **Routeren** bruker én concurrency-gruppe per synkroniseringstype og
-  ``cancel-in-progress: true``. Dette er debounce-mekanismen for Power
-  Automate-bursts.
+  ``cancel-in-progress: true``. GitHub holder maksimalt én kjørende og én
+  ventende kjøring i gruppen, så dette er debounce-mekanismen for Power
+  Automate-bursts. Routerens jobb-timeout er lengre enn selve ventetiden for å
+  ta høyde for runner-oppstart og kø.
 - **Import-workflowene** bruker én felles concurrency-gruppe per
   synkroniseringstype, slik at eldre kjøringer ikke overskriver nyeste snapshot.
 - **Publiseringsworkflowene** deler `concurrency`-gruppe

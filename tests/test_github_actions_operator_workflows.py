@@ -290,6 +290,9 @@ def test_sharepoint_sync_router_debounces_and_dispatches_newest_issue():
     assert workflow.data["permissions"] == {"actions": "write", "issues": "write"}
     assert "DEBOUNCE_SECONDS" in workflow.text
     assert 'sleep "$DEBOUNCE_SECONDS"' in workflow.text
+    assert workflow.data["concurrency"]["cancel-in-progress"] is True
+    debounce_seconds = int(workflow.data["env"]["DEBOUNCE_SECONDS"])
+    assert workflow.data["jobs"]["route"]["timeout-minutes"] > debounce_seconds / 60
     assert "gh api --paginate --slurp" in workflow.text
     assert 'sort_by(.created_at, .number)' in workflow.text
     assert "newest issue" in workflow.text

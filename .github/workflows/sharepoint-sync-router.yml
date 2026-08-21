@@ -12,12 +12,14 @@ permissions:
 
 # Power Automate can open one issue for every AutoSave/file modification. Keep
 # only the final issue in a burst and let that issue start the importer.
+# GitHub allows one running and one pending run per group; a new event cancels
+# the sleeping run and replaces any pending run.
 concurrency:
   group: sharepoint-sync-router-${{ github.event.issue.title }}
   cancel-in-progress: true
 
 env:
-  DEBOUNCE_SECONDS: "120"
+  DEBOUNCE_SECONDS: "30"
 
 jobs:
   route:
@@ -29,7 +31,8 @@ jobs:
         && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
       }}
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    # The timeout includes runner startup and queue overhead, not just sleep.
+    timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
