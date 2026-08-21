@@ -230,7 +230,8 @@ jobs:
                 add[]
                 | select(.pull_request == null)
                 | select(.title == "sharepoint-sync: registrations")
-                | select(["OWNER", "MEMBER", "COLLABORATOR"] | index(.author_association) != null)
+                | select(.author_association as $association
+                    | ["OWNER", "MEMBER", "COLLABORATOR"] | index($association) != null)
                 | select(.number < $current)
                 | .number
               ' \

@@ -67,7 +67,8 @@ jobs:
                 add
                 | map(select(.pull_request == null)
                     | select(.title == $title)
-                    | select(["OWNER", "MEMBER", "COLLABORATOR"] | index(.author_association) != null))
+                    | select(.author_association as $association
+                        | ["OWNER", "MEMBER", "COLLABORATOR"] | index($association) != null))
                 | sort_by(.created_at, .number)
                 | last.number // empty
               '
