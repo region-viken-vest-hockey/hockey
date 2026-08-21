@@ -19,6 +19,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from tournament_scheduler.html.templates import REGISTERED_TEAMS
+
 from .activity_publish import copy_latest_snapshot
 
 PUBLIC_COLUMNS: tuple[str, ...] = ("club", "label", "age_group")
@@ -233,160 +235,17 @@ def render_registered_teams_html(payload: dict[str, Any]) -> str:
         content = '<section class="empty-state"><h2>Ingen lag er registrert ennå</h2><p>Oversikten oppdateres når påmeldinger er godkjent.</p></section>'
         empty_hidden = ""
 
-    return f"""<!doctype html>
-<html lang="nb">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light">
-<title>Påmeldte lag</title>
-<style>
-  :root {{ --page:#f5f7fa; --surface:#fff; --ink:#172536; --muted:#64748b; --line:#dbe3ec; --accent:#0d5fa8; --accent-soft:#eaf3fb; --focus:#1d76c5; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; }}
-  * {{ box-sizing:border-box; }}
-  body {{ margin:0; background:var(--page); color:var(--ink); line-height:1.45; }}
-  .wrap {{ width:min(820px,100%); margin:0 auto; padding:clamp(18px,4vw,40px); }}
-  header {{ margin-bottom:18px; }}
-  .eyebrow {{ margin:0 0 4px; color:var(--accent); font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }}
-  h1 {{ margin:0; font-size:clamp(30px,6vw,46px); line-height:1.05; letter-spacing:-.035em; }}
-  .intro {{ margin:10px 0 0; max-width:680px; color:var(--muted); font-size:16px; }}
-  .updated {{ display:flex; flex-wrap:wrap; gap:5px 14px; align-items:center; margin:14px 0 0; color:var(--muted); font-size:14px; }}
-  .updated strong {{ color:var(--ink); }}
-  .toolbar {{ position:sticky; top:0; z-index:5; margin:0 0 14px; padding:10px 0; background:linear-gradient(var(--page) 74%,rgba(245,247,250,0)); }}
-  .search {{ position:relative; }}
-  .search svg {{ position:absolute; left:14px; top:50%; width:20px; height:20px; transform:translateY(-50%); color:var(--muted); pointer-events:none; }}
-  .search input {{ width:100%; min-height:46px; padding:11px 46px 11px 44px; border:1px solid #bcc9d6; border-radius:10px; background:var(--surface); color:var(--ink); font:inherit; box-shadow:0 2px 8px rgba(15,23,42,.05); }}
-  .search input:focus {{ outline:3px solid rgba(29,118,197,.22); border-color:var(--focus); }}
-  .clear {{ position:absolute; right:8px; top:50%; min-width:34px; min-height:34px; transform:translateY(-50%); border:0; border-radius:8px; background:transparent; color:var(--muted); font-size:22px; cursor:pointer; }}
-  .clear:hover {{ background:#eef2f6; color:var(--ink); }}
-  .results-meta {{ margin:6px 2px 0; color:var(--muted); font-size:13px; }}
-  main {{ overflow:hidden; border:1px solid var(--line); border-radius:12px; background:var(--surface); box-shadow:0 6px 18px rgba(15,23,42,.05); }}
-  .club {{ padding:16px 18px 17px; }}
-  .club + .club {{ border-top:1px solid var(--line); }}
-  .club-heading {{ display:flex; justify-content:space-between; gap:14px; align-items:baseline; margin-bottom:8px; }}
-  .club h2 {{ margin:0; font-size:20px; letter-spacing:-.015em; }}
-  .club-heading span {{ color:var(--muted); font-size:13px; white-space:nowrap; }}
-  .club ul {{ display:grid; gap:5px; margin:0; padding:0; list-style:none; }}
-  .club li {{ display:grid; grid-template-columns:52px minmax(0,1fr); gap:10px; align-items:baseline; min-height:28px; }}
-  .age-badge {{ display:inline-flex; justify-content:center; align-items:center; min-width:44px; padding:3px 7px; border-radius:999px; background:var(--accent-soft); color:#084d87; font-size:12px; font-weight:800; line-height:1.4; }}
-  .team-name {{ min-width:0; overflow-wrap:anywhere; }}
-  .no-results,.empty-state {{ margin:0; padding:34px 20px; text-align:center; color:var(--muted); }}
-  .empty-state h2 {{ margin:0 0 6px; color:var(--ink); font-size:20px; }}
-  .empty-state p {{ margin:0; }}
-  footer {{ margin-top:16px; color:var(--muted); font-size:13px; }}
-  footer a {{ color:var(--accent); }}
-  [hidden] {{ display:none!important; }}
-  body.is-embed {{ background:transparent; }}
-  .is-embed .wrap {{ width:100%; max-width:none; padding:0; }}
-  .is-embed header {{ margin:0 0 12px; }}
-  .is-embed header > :not(.updated) {{ display:none; }}
-  .is-embed .updated {{ margin:0; }}
-  .is-embed .toolbar {{ position:static; margin:0 0 12px; padding:0; background:transparent; }}
-  .is-embed main {{ border:0; border-radius:0; background:transparent; box-shadow:none; }}
-  .is-embed footer {{ display:none; }}
-  @media (max-width:520px) {{
-    .wrap {{ padding:18px 12px 28px; }}
-    .is-embed .wrap {{ padding:0; }}
-    .club {{ padding:14px 13px 15px; }}
-    .club-heading {{ align-items:flex-start; }}
-    .club li {{ grid-template-columns:48px minmax(0,1fr); gap:8px; }}
-  }}
-  @media (prefers-reduced-motion:reduce) {{ * {{ scroll-behavior:auto!important; }} }}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <p class="eyebrow">RVV Hockey</p>
-    <h1>Påmeldte lag</h1>
-    <p class="intro">Lag som meldes på via påmeldingsskjemaet, blir publisert her etter automatisk kontroll. Dersom påmeldingen ikke kan behandles automatisk, blir den kontrollert manuelt først.</p>
-    <p class="updated"><span><strong>{total_teams}</strong> registrerte lag</span><span>Sist oppdatert: <time datetime="{_e(generated_raw)}">{_e(generated_at)}</time></span></p>
-  </header>
-  <div class="toolbar">
-    <label class="search" for="team-search">
-      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-      <input id="team-search" type="search" inputmode="search" autocomplete="off" placeholder="Søk etter klubb, lag eller aldersgruppe" aria-describedby="results-meta">
-      <button class="clear" id="clear-search" type="button" aria-label="Tøm søk" hidden>×</button>
-    </label>
-    <p class="results-meta" id="results-meta" aria-live="polite"></p>
-  </div>
-  <main id="club-list">{content}{empty_hidden}</main>
-  <footer>Oversikten oppdateres automatisk når godkjente påmeldinger behandles. <a href="pameldte-lag.json">Åpne offentlig JSON</a>.</footer>
-</div>
-<script>
-(() => {{
-  const HEIGHT_MESSAGE_NAMESPACE = 'rvv.registered-teams';
-  const HEIGHT_MESSAGE_TYPE = 'rvv-registered-teams-height';
-  const HEIGHT_MESSAGE_SCHEMA_VERSION = 1;
-  const DEFAULT_IFRAME_ID = 'rvv-registered-teams-frame';
-  const ALLOWED_PARENT_ORIGINS = ['https://www.rvvhockey.no','https://rvvhockey.no'];
-  const MIN_EMBED_HEIGHT = 240;
-  const MAX_EMBED_HEIGHT = 6000;
-  const body = document.body;
-  const embedded = window.self !== window.top;
-  if (embedded) body.classList.add('is-embed');
-
-  const iframeId = () => new URLSearchParams(window.location.search).get('frame') || DEFAULT_IFRAME_ID;
-  const parentTargetOrigin = () => {{
-    try {{ const origin = document.referrer ? new URL(document.referrer).origin : ''; if (ALLOWED_PARENT_ORIGINS.includes(origin)) return origin; }} catch (error) {{}}
-    try {{ const origin = Array.from(window.location.ancestorOrigins || []).find(item => ALLOWED_PARENT_ORIGINS.includes(item)); if (origin) return origin; }} catch (error) {{}}
-    return window.location.origin;
-  }};
-  const announceHeight = reason => {{
-    if (!embedded) return;
-    requestAnimationFrame(() => {{
-      const height = Math.max(MIN_EMBED_HEIGHT, Math.min(MAX_EMBED_HEIGHT, Math.ceil(Math.max(document.documentElement.scrollHeight, document.body.scrollHeight))));
-      window.parent.postMessage({{ type:HEIGHT_MESSAGE_TYPE, namespace:HEIGHT_MESSAGE_NAMESPACE, schema_version:HEIGHT_MESSAGE_SCHEMA_VERSION, iframe_id:iframeId(), height, reason:reason || 'layout', source_path:window.location.pathname }}, parentTargetOrigin());
-    }});
-  }};
-
-  const input = document.getElementById('team-search');
-  const clearButton = document.getElementById('clear-search');
-  const clubs = Array.from(document.querySelectorAll('.club'));
-  const noResults = document.getElementById('no-results');
-  const resultsMeta = document.getElementById('results-meta');
-  if (input && clubs.length) {{
-    const normalize = value => value.toLocaleLowerCase('nb-NO').trim();
-    const allTeams = clubs.reduce((count, club) => count + club.querySelectorAll('.team').length, 0);
-    const render = () => {{
-      const query = normalize(input.value);
-      let visibleClubs = 0;
-      let visibleTeams = 0;
-      clubs.forEach(club => {{
-        const clubMatch = Boolean(query) && normalize(club.dataset.clubSearch || '').includes(query);
-        const teams = Array.from(club.querySelectorAll('.team'));
-        let clubVisibleTeams = 0;
-        teams.forEach(team => {{
-          const teamMatch = !query || clubMatch || normalize(team.dataset.search || '').includes(query);
-          team.hidden = !teamMatch;
-          if (teamMatch) {{ clubVisibleTeams += 1; visibleTeams += 1; }}
-        }});
-        const showClub = !query || clubMatch || clubVisibleTeams > 0;
-        club.hidden = !showClub;
-        const count = club.querySelector('.club-count');
-        if (count) count.textContent = query ? `${{clubVisibleTeams}} av ${{teams.length}} lag` : `${{teams.length}} lag`;
-        if (showClub) visibleClubs += 1;
-      }});
-      clearButton.hidden = !query;
-      if (noResults) noResults.hidden = visibleTeams !== 0;
-      resultsMeta.textContent = query
-        ? `${{visibleTeams}} av ${{allTeams}} lag i ${{visibleClubs}} av ${{clubs.length}} klubber vises`
-        : `${{allTeams}} lag i ${{clubs.length}} klubber`;
-      announceHeight('filter');
-    }};
-    input.addEventListener('input', render);
-    clearButton.addEventListener('click', () => {{ input.value=''; input.focus(); render(); }});
-    render();
-  }} else {{
-    announceHeight('initial');
-  }}
-  if ('ResizeObserver' in window) new ResizeObserver(() => announceHeight('resize-observer')).observe(document.documentElement);
-  window.addEventListener('load', () => announceHeight('load'));
-  window.addEventListener('resize', () => announceHeight('window-resize'));
-}})();
-</script>
-</body>
-</html>
-"""
+    template = REGISTERED_TEAMS
+    replacements = {
+        "@@TOTAL_TEAMS@@": str(total_teams),
+        "@@GENERATED_RAW@@": _e(generated_raw),
+        "@@GENERATED_AT@@": _e(generated_at),
+        "@@CONTENT@@": content,
+        "@@EMPTY_HIDDEN@@": empty_hidden,
+    }
+    for marker, value in replacements.items():
+        template = template.replace(marker, value)
+    return template
 
 
 def _build_public_payload(

@@ -50,3 +50,6 @@ markers = [
 
 [tool.setuptools.packages.find]
 include = ["tournament_scheduler*"]
+
+[tool.setuptools.package-data]
+"tournament_scheduler.html.templates" = ["*.html", "*.css", "*.js"]

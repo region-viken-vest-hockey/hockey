@@ -1,6 +1,6 @@
-"""HTML template fragments for the season plan exporter.
+"""HTML templates used by the season exporter and public viewers.
 
-Each fragment is a standalone file loaded at import time.
+Each template is a standalone file loaded at import time.
 """
 
 from pathlib import Path
@@ -34,8 +34,15 @@ CLUB_DASHBOARD = _load("club_dashboard.html")
 REVIEW_SUMMARY = _load("review_summary.html")
 REPORT_OVERVIEW = _load("report_overview.html")
 
-# Full page template (embeds all sections)
+# Full page templates
 PAGE_TEMPLATE = _load("page_template.html")
+NOT_STARTED = _load("not_started.html")
+ACTIVITY_VIEWER = _load("activity_viewer.html")
+CALENDAR_VIEWER = _load("calendar_viewer.html")
+INPUT_VIEWER = _load("input_viewer.html")
+REGISTERED_TEAMS = _load("registered_teams.html")
+PAGES_ROOT_INDEX = _load("pages_root_index.html")
+PAGES_EMPTY_INDEX = _load("pages_empty_index.html")
 
 # JavaScript for interactivity
 JAVASCRIPT = _load("script.js")

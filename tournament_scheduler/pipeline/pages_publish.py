@@ -42,6 +42,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from tournament_scheduler.html.templates import PAGES_EMPTY_INDEX, PAGES_ROOT_INDEX
+
 from .capability_result import CapabilityResult
 
 _GIT_TIMEOUT_SECONDS = 120
@@ -49,19 +51,6 @@ _GIT_TIMEOUT_SECONDS = 120
 # These assets are published independently from the season-plan bundle.
 # A season-plan publish must never delete them from /latest/.
 _PRESERVED_LATEST_PATHS = ("activities", "activities.json", "registered-teams")
-
-_ROOT_INDEX_HTML = """<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=latest/">
-<title>RVV Miniputt season plan</title>
-</head>
-<body>
-<p>Redirecting to the <a href="latest/">latest published season plan</a>.</p>
-</body>
-</html>
-"""
 
 
 class PagesPublishError(RuntimeError):
@@ -174,14 +163,11 @@ def _copy_bundle(
         if season_html.exists():
             shutil.copyfile(season_html, index_path)
         else:
-            index_path.write_text(
-                "<!doctype html><title>Season plan</title><p>Ingen HTML-eksport funnet.</p>",
-                encoding="utf-8",
-            )
+            index_path.write_text(PAGES_EMPTY_INDEX, encoding="utf-8")
 
 
 def _write_root_index(branch_root: Path) -> None:
-    (branch_root / "index.html").write_text(_ROOT_INDEX_HTML, encoding="utf-8")
+    (branch_root / "index.html").write_text(PAGES_ROOT_INDEX, encoding="utf-8")
     (branch_root / ".nojekyll").write_text("", encoding="utf-8")
 
 
@@ -250,7 +236,7 @@ def _planned_bundle_contents(export_dir: Path) -> dict[str, bytes]:
             contents["index.html"] = contents["season_plan.html"]
         else:
             contents["index.html"] = (
-                b"<!doctype html><title>Season plan</title><p>Ingen HTML-eksport funnet.</p>"
+                PAGES_EMPTY_INDEX.encode("utf-8")
             )
     return contents
 

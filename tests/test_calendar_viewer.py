@@ -59,7 +59,9 @@ class TestCalendarViewer:
         assert "<meta name=\"viewport\"" in html
         assert "<div class=\"icon\">🏒</div>" in html
         assert "input.xlsx" not in html
-        assert "Når lagene er registrert" in html
+        assert "Ikke begynt: sesongplanleggingen er ikke startet ennå." in html
+        assert "ingen lag er registrert" not in html
+        assert "Sesongplanen publiseres når planleggingsarbeidet er ferdig." in html
 
     def test_generate_html_keeps_long_club_names_visible(self, tmp_path):
         source_name = "Sandefjord Penguins and Development Academy for Long Calendar Names"
