@@ -98,11 +98,11 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         club="Tønsberg",
         arena="Tonsberghallen",
         kind=CalendarSourceKind.OUTLOOK,
-        source="https://www.bookup.no/utleie/Index/860",
+        source="https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
         skip=False,
         note=(
-            "BookUp SPA -- the Pi-driven ScraperAgent navigates the "
-            "JS-rendered booking widget to extract ice hall bookings."
+            "BookUp SPA -- full Tønsberg ishall availability is behind "
+            "BookUp login and requires BOOKUP_EMAIL/BOOKUP_PASSWORD."
         ),
     ),
     "Frisk Asker": ClubCalendarSource(

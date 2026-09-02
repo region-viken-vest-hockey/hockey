@@ -22,10 +22,12 @@ PUBLIC_TARGETS = [
     "operator-run",
     "operator-run-force",
     "run",
+    "run-dotenvx",
     "status",
     "logs",
     "calendars",
     "calendars-refresh",
+    "calendars-refresh-dotenvx",
     "sources-status",
     "questions",
     "questions-all",
@@ -83,6 +85,24 @@ def _read_calls(log_path: Path) -> list[list[str]]:
     if not log_path.exists():
         return []
     return [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
+
+
+def _fake_dotenvx(tmp_path: Path) -> tuple[Path, Path]:
+    log_path = tmp_path / "dotenvx-calls.jsonl"
+    script = tmp_path / "fake-dotenvx.py"
+    script.write_text(
+        """#!/usr/bin/env python3
+import json
+import os
+import sys
+with open(os.environ['DOTENVX_CALL_LOG'], 'a', encoding='utf-8') as handle:
+    handle.write(json.dumps(sys.argv[1:], ensure_ascii=False) + '\\n')
+sys.exit(0)
+""",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+    return script, log_path
 
 
 class TestMakefileOperatorInterface:
@@ -146,6 +166,54 @@ class TestMakefileOperatorInterface:
 
         assert result.returncode == 0, result.stderr
         assert _read_calls(log_path)[-1] == ["logs", "list", "--count", "3"]
+
+    def test_dotenvx_targets_wrap_rvv_cli_with_env_file(self, tmp_path):
+        fake_rvv, rvv_log_path = _fake_cli(tmp_path)
+        fake_dotenvx, dotenvx_log_path = _fake_dotenvx(tmp_path)
+        env_file = tmp_path / ".env.bookup"
+        env_file.write_text("BOOKUP_EMAIL=encrypted-placeholder\n", encoding="utf-8")
+        env = {"CALL_LOG": str(rvv_log_path), "DOTENVX_CALL_LOG": str(dotenvx_log_path)}
+
+        result = _run_make(
+            "run-dotenvx",
+            f"RVV={fake_rvv}",
+            f"DOTENVX={fake_dotenvx}",
+            f"DOTENVX_ENV_FILE={env_file}",
+            "ARGS=--resume-from 2",
+            env=env,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert _read_calls(dotenvx_log_path)[-1] == [
+            "run",
+            "-f",
+            str(env_file),
+            "--",
+            str(fake_rvv),
+            "run",
+            "--resume-from",
+            "2",
+        ]
+        assert _read_calls(rvv_log_path) == []
+
+        result = _run_make(
+            "calendars-refresh-dotenvx",
+            f"RVV={fake_rvv}",
+            f"DOTENVX={fake_dotenvx}",
+            f"DOTENVX_ENV_FILE={env_file}",
+            env=env,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert _read_calls(dotenvx_log_path)[-1] == [
+            "run",
+            "-f",
+            str(env_file),
+            "--",
+            str(fake_rvv),
+            "calendars",
+            "--refresh",
+        ]
 
     def test_human_answer_preserves_spaces_and_shell_characters(self, tmp_path):
         fake, log_path = _fake_cli(tmp_path)
@@ -273,10 +341,12 @@ class TestMakefileOperatorInterface:
             "make operator-run",
             "make operator-run-force",
             "make run",
+            "make run-dotenvx",
             "make status",
             "make logs",
             "make calendars",
             "make calendars-refresh",
+            "make calendars-refresh-dotenvx",
             "make sources-status",
             "make questions",
             "make questions-all",

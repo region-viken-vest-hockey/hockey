@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
+from tournament_scheduler.pipeline.scraper_forumbooking import _parse_forumbooking_schedule
 from tournament_scheduler.pipeline.stage2_scraping import (
     SOURCE_GOOGLE,
     SOURCE_ICAL,
@@ -258,6 +259,9 @@ class TestParallelExecution:
         ), patch(
             "tournament_scheduler.pipeline.stage2_scraping._run_ical_scraper",
             return_value=[_make_event("iCal")],
+        ), patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_forumbooking_scraper",
+            return_value=([_make_event("Forumbooking")], "<html>"),
         ):
             result = run(
                 cfg, state,
@@ -1058,7 +1062,7 @@ class TestStrategyBasedDispatch:
             {
                 "name": "Tønsberg",
                 "type": SOURCE_OUTLOOK,
-                "url": "https://www.bookup.no/utleie/Index/860",
+                "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
             },
         ])
 
@@ -1079,6 +1083,53 @@ class TestStrategyBasedDispatch:
         src = result["sources"][0]
         assert src["event_count"] == 1
         assert src["blocked"] is False
+
+    def test_forumbooking_strategy_routes_to_forumbooking_scraper(self, tmp_path):
+        """Jar uses the Forumbooking parser instead of the generic browser fallback."""
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources([
+            {
+                "name": "Jar",
+                "type": SOURCE_OUTLOOK,
+                "url": "https://www.forumbooking.no/schema.aspx?obj=2&schema=Jarhallen%20(ishall)&kalender=true&safarifix=true",
+            },
+        ])
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_forumbooking_scraper",
+            return_value=([_make_event("Forumbooking")], ""),
+        ) as mock_forumbooking, patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_outlook_scraper",
+            side_effect=AssertionError("generic browser scraper must not be called for forumbooking source"),
+        ):
+            result = run(
+                cfg,
+                state,
+                datetime(2025, 9, 1),
+                datetime(2025, 12, 1),
+                strict=False,
+            )
+
+        mock_forumbooking.assert_called_once()
+        src = result["sources"][0]
+        assert src["event_count"] == 1
+        assert src["events"][0]["name"] == "Forumbooking"
+
+    def test_forumbooking_parser_uses_element_date_time_and_customer(self):
+        events = _parse_forumbooking_schedule(
+            """
+            <div id="cphHuvud_div_2_20260906_13713" class="bokning"
+              onmouseover="Tip('&lt;div&gt;Time: Søndag 06.09.2026 09:30-11:00&lt;br /&gt;Customer: Jar Hockey&lt;br /&gt;Anmerkning: U10&lt;/div&gt;')">
+              <span><font>Jar Hockey<br />09:30-11:00</font></span>
+            </div>
+            """
+        )
+
+        assert len(events) == 1
+        assert events[0].date == "06.09.2026"
+        assert events[0].datetime == datetime(2026, 9, 6, 9, 30)
+        assert events[0].duration_hours == 1.5
+        assert events[0].name == "Jar Hockey - U10"
 
     def test_styled_calendar_strategy_routes_to_styledcalendar_scraper(self, tmp_path):
         """A source whose strategy has CalendarEngine.STYLED_CALENDAR calls _run_styledcalendar_scraper."""

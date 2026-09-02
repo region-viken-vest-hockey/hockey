@@ -120,7 +120,14 @@ For those sources, set the credentials expected by the configured strategy, typi
 - `BOOKUP_EMAIL`
 - `BOOKUP_PASSWORD`
 
-With credentials in place, Stage 2 can scrape the source and cache the events.
+With credentials in place, Stage 2 can scrape the source and cache the events. Locally, prefer the dotenvx-backed Make targets so credentials are loaded from the encrypted `.env.bookup` file instead of being passed on the command line:
+
+```bash
+make run-dotenvx ARGS='--resume-from 2'
+make calendars-refresh-dotenvx
+```
+
+`DOTENVX_ENV_FILE=/path/to/file` can point the Make targets at a different dotenvx file. Keep `.env.keys` local and out of git.
 
 ### Sparse event-count warnings
 
@@ -211,6 +218,7 @@ Pi-only features remain the interactive guide and extension-managed tool wrapper
 | Forced goal-oriented run | `make operator-run-force` | `scripts/rvv-miniputt operator run --force` |
 | Status and logs | `make status`, `make logs` | `scripts/rvv-miniputt status`, `scripts/rvv-miniputt logs list` |
 | Calendar reports | `make calendars`, `make calendars-refresh` | `scripts/rvv-miniputt calendars`, `scripts/rvv-miniputt calendars --refresh` |
+| Calendar refresh with dotenvx credentials | `make calendars-refresh-dotenvx` | `dotenvx run -f .env.bookup -- scripts/rvv-miniputt calendars --refresh` |
 | Påmeldte lag page | `make registered-teams CSV=downloads/Miniputt-26-27.csv` | `scripts/rvv-miniputt registered-teams --csv downloads/Miniputt-26-27.csv` |
 | Publish Påmeldte lag | `make registered-teams-publish CSV=downloads/Miniputt-26-27.csv CONFIRM_PUBLIC=1` | `scripts/rvv-miniputt registered-teams --csv downloads/Miniputt-26-27.csv --publish --confirm-public` |
 | Source health | `make sources-status` | `scripts/rvv-miniputt sources status` |

@@ -139,17 +139,24 @@ STRATEGIES: dict[str, ScraperStrategy] = {
     ),
     "Tønsberg": ScraperStrategy(
         engine=CalendarEngine.BOOKUP_SPA,
-        url="https://www.bookup.no/utleie/Index/860",
+        url="https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
         has_iframe=True,
         date_param="",
         month_selector=".fc-next-button",
         event_pattern="FullCalendar timeGrid fc-bgevent bookings in iframe",
         initial_navigation=[
-            {"cmd": "goto", "url": "https://www.bookup.no/utleie/Index/860", "wait_ms": 3000},
+            {"cmd": "goto", "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book", "wait_ms": 3000},
+            {"cmd": "click", "selector": "a:has-text('logge inn')", "wait_ms": 3000},
+            {"cmd": "type", "selector": "#email", "text": "${BOOKUP_EMAIL}", "wait_ms": 1000},
+            {"cmd": "click", "selector": "button:has-text('Fortsett')", "wait_ms": 3000},
+            {"cmd": "type", "selector": "#password", "text": "${BOOKUP_PASSWORD}", "wait_ms": 1000},
+            {"cmd": "click", "selector": "button:has-text('Fortsett')", "wait_ms": 5000},
+            {"cmd": "goto", "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book", "wait_ms": 3000},
             {"cmd": "click", "selector": "text=Se tilgjengelighet", "wait_ms": 5000},
         ],
+        credential_env_vars=["BOOKUP_EMAIL", "BOOKUP_PASSWORD"],
         direct_scraper=True,
-        note="Bookup SPA med FullCalendar timeGrid i iframe. Ingen innlogging nødvendig.",
+        note="Bookup SPA — Tønsberg ishall krever BOOKUP_EMAIL/BOOKUP_PASSWORD for full kalender.",
     ),
     "Sandefjord Penguins": ScraperStrategy(
         engine=CalendarEngine.BOOKUP_SPA,
@@ -163,6 +170,9 @@ STRATEGIES: dict[str, ScraperStrategy] = {
             {"cmd": "click", "selector": "a:has-text('logge inn')", "wait_ms": 3000},
             {"cmd": "type", "selector": "#email", "text": "${BOOKUP_EMAIL}", "wait_ms": 1000},
             {"cmd": "click", "selector": "button:has-text('Fortsett')", "wait_ms": 3000},
+            {"cmd": "type", "selector": "#password", "text": "${BOOKUP_PASSWORD}", "wait_ms": 1000},
+            {"cmd": "click", "selector": "button:has-text('Fortsett')", "wait_ms": 5000},
+            {"cmd": "goto", "url": "https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen___/view:item/id:4497/part:/place:3907:SANDEFJORD/q:sandefjord/r:31/mod:book", "wait_ms": 3000},
             {"cmd": "click", "selector": "text=Se tilgjengelighet", "wait_ms": 5000},
         ],
         credential_env_vars=["BOOKUP_EMAIL", "BOOKUP_PASSWORD"],
@@ -173,9 +183,10 @@ STRATEGIES: dict[str, ScraperStrategy] = {
         engine=CalendarEngine.FORUMBOOKING,
         url="https://www.forumbooking.no/schema.aspx?obj=2&schema=Jarhallen%20(ishall)&kalender=true&safarifix=true",
         has_iframe=False,
-        month_selector="",
-        event_pattern="",
-        note="Forumbooking HTML schema viewer. Pi's model navigates the JS booking widget.",
+        month_selector="#lbnNext",
+        event_pattern="Forumbooking weekly schedule div.bokning elements with YYYYMMDD ids and tooltip time/customer text",
+        direct_scraper=True,
+        note="Forumbooking HTML schema viewer scraped directly week-by-week.",
     ),
     "Holmen": ScraperStrategy(
         engine=CalendarEngine.SPORTELLO,
@@ -234,7 +245,7 @@ def get_deterministic_scraper_type(strategy: ScraperStrategy) -> str | None:
     * ``BOOKUP_SPA``               → ``"bookup"``
     * ``OUTLOOK_IFRAME``           → ``"browser"``
     * ``DATE_PARAM``               → ``"browser"``
-    * ``FORUMBOOKING``             → ``"browser"``
+    * ``FORUMBOOKING``             → ``"forumbooking"``
     * ``SPORTELLO``                → ``"sportello"``
     * ``TEAMUP_ICAL``              → ``"ical"``
     * ``GENERIC_ICAL``             → ``"ical"``
@@ -247,7 +258,7 @@ def get_deterministic_scraper_type(strategy: ScraperStrategy) -> str | None:
         CalendarEngine.BOOKUP_SPA: "bookup",
         CalendarEngine.OUTLOOK_IFRAME: "browser",
         CalendarEngine.DATE_PARAM: "browser",
-        CalendarEngine.FORUMBOOKING: "browser",
+        CalendarEngine.FORUMBOOKING: "forumbooking",
         CalendarEngine.SPORTELLO: "sportello",
         CalendarEngine.TEAMUP_ICAL: "ical",
         CalendarEngine.GENERIC_ICAL: "ical",

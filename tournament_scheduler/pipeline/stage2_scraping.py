@@ -47,6 +47,7 @@ from .scraper_constants import (
 from .scraper_bookup import _run_bookup_scraper, _bookup_navigate_to_date, _parse_bookup_timegrid
 from .scraper_credentialed import _credentialed_scrape_months, _run_credentialed_bookup_or_outlook, _try_credentialed_scrape
 from .scraper_event_helpers import _events_to_dicts, _group_events_by_club
+from .scraper_forumbooking import _run_forumbooking_scraper
 from .scraper_ical import _run_ical_scraper
 from .scraper_outlook import _run_outlook_scraper, _parse_date_param_calendar, _parse_outlook_calendar
 from .scraper_recovery import _blocked_sources_warning, _empty_sources_warning, _recovery_hint_for_source
@@ -162,7 +163,7 @@ def _apply_event_count_expectations(
     start_date: datetime,
     end_date: datetime,
 ) -> list[dict[str, Any]]:
-    """Attach per-source expectation metadata and return sparse-source warnings."""
+    """Attach per-source expectation metadata and return source-shape warnings."""
     expected_min = _expected_min_events(config, start_date, end_date)
     age_groups = _active_age_groups(config)
     weekend_days = _count_weekend_days(start_date, end_date)
@@ -178,6 +179,12 @@ def _apply_event_count_expectations(
                 f"{source.get('name', 'ukjent kilde')}: {actual} hendelser funnet, "
                 f"forventet minst ca. {expected_min} for perioden."
             )
+        elif status == "ok" and not source.get("blocked"):
+            message = _suspicious_event_shape_message(source, weekend_days=weekend_days)
+            if message:
+                status = "suspicious"
+
+        if message:
             warnings.append({
                 "name": source.get("name", "ukjent kilde"),
                 "event_count": actual,
@@ -192,12 +199,76 @@ def _apply_event_count_expectations(
             "expected_min_events": expected_min,
             "age_group_count": len(age_groups),
             "weekend_days": weekend_days,
-            "basis": "weekend_days/4 scaled by active age-group count",
+            "basis": "weekend_days/4 scaled by active age-group count plus source-shape sanity checks",
         }
         if message:
             source["event_expectation"]["message"] = message
 
     return warnings
+
+
+def _suspicious_event_shape_message(source: dict[str, Any], *, weekend_days: int) -> str:
+    """Return a warning for event shapes that look like scraper artifacts."""
+    source_type = str(source.get("type", "")).lower()
+    if source_type in _ICAL_SOURCE_TYPES:
+        return ""
+
+    events = source.get("events") or []
+    actual = int(source.get("event_count") or len(events))
+    if actual < 20 or not isinstance(events, list):
+        return ""
+
+    dates: list[date] = []
+    midnight_count = 0
+    generic_booked_count = 0
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        raw_datetime = str(event.get("datetime") or "")
+        raw_date = str(event.get("date") or "")
+        parsed_dt: datetime | None = None
+        try:
+            if "T" in raw_datetime:
+                parsed_dt = datetime.fromisoformat(raw_datetime.replace("Z", "+00:00"))
+            elif raw_date:
+                parsed_dt = datetime.strptime(raw_date, "%d.%m.%Y")
+        except ValueError:
+            parsed_dt = None
+        if parsed_dt:
+            dates.append(parsed_dt.date())
+            if parsed_dt.hour == 0 and parsed_dt.minute == 0:
+                midnight_count += 1
+        name = str(event.get("name") or "").strip().lower()
+        if name in {"booket", "booking"}:
+            generic_booked_count += 1
+
+    if not dates:
+        return ""
+
+    distinct_dates = len(set(dates))
+    first_day_count = sum(1 for parsed_date in dates if parsed_date.day == 1)
+    weekend_count = sum(1 for parsed_date in dates if parsed_date.weekday() >= 5)
+    generic_ratio = generic_booked_count / actual
+    midnight_ratio = midnight_count / actual
+    first_day_ratio = first_day_count / actual
+
+    name = source.get("name", "ukjent kilde")
+    if generic_ratio >= 0.9 and midnight_ratio >= 0.9:
+        return (
+            f"{name}: {actual} hendelser funnet, men nesten alle heter 'Booket' "
+            "og ligger kl. 00:00; kalenderen ser ut til å mangle innloggede detaljer."
+        )
+    if distinct_dates <= 8 and first_day_ratio >= 0.8:
+        return (
+            f"{name}: {actual} hendelser funnet, men bare {distinct_dates} datoer "
+            "og de fleste ligger på den 1. i måneden; dette ligner en datoparsingsfeil."
+        )
+    if weekend_days >= 20 and weekend_count < 4:
+        return (
+            f"{name}: {actual} hendelser funnet, men bare {weekend_count} helgehendelser; "
+            "kontroller at full arena-/helgekalender ble lest."
+        )
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -484,6 +555,7 @@ def _scrape_source(
     * ``"styledcalendar"`` (e.g. Bærum/Jutul) — calls ``_run_styledcalendar_scraper``
     * ``"sportello"``     (e.g. Holmen) — calls ``_run_sportello_scraper``
     * ``"bookup"``         (e.g. Tønsberg, Sandefjord) — calls ``_run_bookup_scraper``
+    * ``"forumbooking"``   (e.g. Jar) — calls ``_run_forumbooking_scraper``
     * sources not in ``STRATEGIES`` fall back to ``source_type``-based routing:
 
       * ``outlook`` / ``html`` — Playwright Outlook-iframe scraper
@@ -526,12 +598,27 @@ def _scrape_source(
         _strategy = get_strategy(name)
         _scraper_type = get_deterministic_scraper_type(_strategy) if _strategy is not None else None
 
-        if _scraper_type == "styledcalendar":
+        # BookUp sources can expose a tiny public placeholder calendar while the
+        # useful arena schedule is behind login. Prefer the credentialed path
+        # when a strategy declares credentials; fall back to public scraping if
+        # credentials are unavailable or the login scrape finds nothing.
+        if _strategy is not None and requires_credentials(_strategy):
+            events, _cred_error = _try_credentialed_scrape(
+                name, url, start_date, end_date, calendar_cache
+            )
+            if events:
+                result["credentialed"] = True
+
+        if events:
+            pass
+        elif _scraper_type == "styledcalendar":
             events, _ = _run_styledcalendar_scraper(name, start_date, end_date)
         elif _scraper_type == "sportello":
             events, _ = _run_sportello_scraper(url, name, start_date, end_date)
         elif _scraper_type == "bookup":
             events, _ = _run_bookup_scraper(url, name, start_date, end_date)
+        elif _scraper_type == "forumbooking":
+            events, _ = _run_forumbooking_scraper(url, name, start_date, end_date)
         elif source_type in _BROWSER_SOURCE_TYPES:
             events, _ = _run_outlook_scraper(url, name, start_date, end_date, calendar_cache)
         elif source_type in _ICAL_SOURCE_TYPES:

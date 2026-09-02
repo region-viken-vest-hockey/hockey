@@ -104,7 +104,10 @@ Calendar source definitions belong in `Kilder`. Before planning:
 make sources-status
 make calendars
 make calendars-refresh  # when a forced refresh is required
+make calendars-refresh-dotenvx  # forced refresh with BookUp credentials from .env.bookup
 ```
+
+For BookUp calendars that require credentials, keep secrets out of the command line and run through dotenvx with the encrypted `.env.bookup` file. The dotenvx private key file (`.env.keys`) must stay local and ignored by git.
 
 A source returning very few events may not be technically blocked but can still be untrustworthy. Investigate sparse-event warnings before approval.
 
@@ -243,11 +246,13 @@ Generation and publication must remain separate.
 | Show available operations | `make help` |
 | Install locked dependencies | `make install` |
 | Run canonical checks | `make check` |
+| Verify dependency lock | `make dependency-lock` |
 | Full resumable operator run | `make operator-run` |
 | Force complete rerun | `make operator-run-force` |
 | Raw four-stage run | `make run ARGS='--input input.xlsx'` |
+| Raw run with dotenvx credentials | `make run-dotenvx ARGS='--input input.xlsx'` |
 | Inspect status/logs | `make status`, `make logs` |
-| Inspect/refresh calendars | `make calendars`, `make calendars-refresh` |
+| Inspect/refresh calendars | `make calendars`, `make calendars-refresh`, `make calendars-refresh-dotenvx` |
 | Inspect source health | `make sources-status` |
 | List/answer questions | `make questions`, `make answer ID=<id> ANSWER='<answer>'` |
 | Preview publication | `make publish-preview` |
