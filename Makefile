@@ -19,11 +19,13 @@ PACKAGE_BACKEND_SH ?= $(ROOT_DIR)/scripts/package-desktop-backend.sh
 PACKAGE_BACKEND_PS1 ?= $(ROOT_DIR)/scripts/package-desktop-backend.ps1
 NPM ?= npm
 POWERSHELL ?= powershell
+DOTENVX ?= $(ROOT_DIR)/node_modules/.bin/dotenvx
+DOTENVX_ENV_FILE ?= $(ROOT_DIR)/.env.bookup
 
-export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CSV ARGS
+export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CSV ARGS DOTENVX_ENV_FILE
 
 PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-report \
-	operator-run operator-run-force run status logs calendars calendars-refresh sources-status \
+	operator-run operator-run-force run run-dotenvx status logs calendars calendars-refresh calendars-refresh-dotenvx sources-status \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
 	publish-preview publish verify-publish publish-history rollback \
@@ -48,10 +50,12 @@ help:
 	@echo "  make operator-run [ARGS='...']     scripts/rvv-miniputt operator run"
 	@echo "  make operator-run-force            operator run --force"
 	@echo "  make run [ARGS='...']              scripts/rvv-miniputt run"
+	@echo "  make run-dotenvx [ARGS='...']      dotenvx run -f .env.bookup -- scripts/rvv-miniputt run"
 	@echo "  make status [ARGS='...']           scripts/rvv-miniputt status"
 	@echo "  make logs [ARGS='...']             scripts/rvv-miniputt logs list"
 	@echo "  make calendars [ARGS='...']        scripts/rvv-miniputt calendars"
 	@echo "  make calendars-refresh             calendars --refresh"
+	@echo "  make calendars-refresh-dotenvx     dotenvx calendars --refresh using .env.bookup"
 	@echo "  make sources-status [ARGS='...']   sources status"
 	@echo "  make aktivitetskalender [ARGS='...']"
 	@echo "                                      Regenerate activities/ from Årshjul workbook"
@@ -114,6 +118,11 @@ operator-run-force:
 run:
 	@cd "$(ROOT_DIR)" && "$(RVV)" run $(ARGS)
 
+run-dotenvx:
+	@if [ ! -x "$(DOTENVX)" ]; then echo "ERROR: dotenvx not found at $(DOTENVX). Run npm install." >&2; exit 2; fi
+	@if [ ! -f "$(DOTENVX_ENV_FILE)" ]; then echo "ERROR: dotenvx env file not found: $(DOTENVX_ENV_FILE)" >&2; exit 2; fi
+	@cd "$(ROOT_DIR)" && "$(DOTENVX)" run -f "$(DOTENVX_ENV_FILE)" -- "$(RVV)" run $(ARGS)
+
 status:
 	@cd "$(ROOT_DIR)" && "$(RVV)" status $(ARGS)
 
@@ -125,6 +134,11 @@ calendars:
 
 calendars-refresh:
 	@cd "$(ROOT_DIR)" && "$(RVV)" calendars --refresh $(ARGS)
+
+calendars-refresh-dotenvx:
+	@if [ ! -x "$(DOTENVX)" ]; then echo "ERROR: dotenvx not found at $(DOTENVX). Run npm install." >&2; exit 2; fi
+	@if [ ! -f "$(DOTENVX_ENV_FILE)" ]; then echo "ERROR: dotenvx env file not found: $(DOTENVX_ENV_FILE)" >&2; exit 2; fi
+	@cd "$(ROOT_DIR)" && "$(DOTENVX)" run -f "$(DOTENVX_ENV_FILE)" -- "$(RVV)" calendars --refresh $(ARGS)
 
 sources-status:
 	@cd "$(ROOT_DIR)" && "$(RVV)" sources status $(ARGS)
