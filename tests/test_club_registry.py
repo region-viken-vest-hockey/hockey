@@ -52,6 +52,10 @@ class TestClubRegistry:
             assert entry.club == club
             assert entry.arena  # every entry records a home arena
 
+    def test_get_club_normalizes_sandefjord_aliases(self):
+        assert get_club("Sandefjord").club == "Sandefjord Penguins"
+        assert get_club("Sandefjord Penguins Ishockeyklubb").club == "Sandefjord Penguins"
+
     def test_get_club_raises_helpful_error_for_unknown_club(self):
         with pytest.raises(KeyError):
             get_club("Not A Real Club")

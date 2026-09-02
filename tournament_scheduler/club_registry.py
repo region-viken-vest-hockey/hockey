@@ -125,7 +125,7 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         club="Sandefjord Penguins",
         arena="Sandefjord ishall",
         kind=CalendarSourceKind.OUTLOOK,
-        source="https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen",
+        source="https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen___/view:item/id:4497/part:/place:3907:SANDEFJORD/q:sandefjord/r:31/mod:book",
         skip=False,
         note=(
             "BookUp SPA -- the Pi-driven ScraperAgent navigates the "
@@ -268,6 +268,7 @@ def arenas_for_date_search(host_club: str) -> List[ClubCalendarSource]:
 # Short-name aliases that some config files use instead of the full registry name
 _CLUB_ALIASES: Dict[str, str] = {
     "Sandefjord": "Sandefjord Penguins",
+    "Sandefjord Penguins Ishockeyklubb": "Sandefjord Penguins",
 }
 
 
