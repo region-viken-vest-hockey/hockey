@@ -149,8 +149,8 @@ class TestRunStage2:
         ])
 
         with patch(
-            "tournament_scheduler.pipeline.stage2_scraping._run_bookup_scraper",
-            return_value=([], ""),
+            "tournament_scheduler.pipeline.stage2_scraping._try_credentialed_scrape",
+            return_value=([], "Kilden krever manuell innlogging"),
         ):
             result = run(
                 cfg, state,
@@ -161,13 +161,14 @@ class TestRunStage2:
 
         assert state.is_done(StageName.SCRAPING)
         assert not state.is_failed(StageName.SCRAPING)
-        assert result["blocked"] == []
-        assert result["empty_sources"] == ["Sandefjord Penguins"]
-        assert "tomme kilder" in result["warning"].lower()
+        assert result["blocked"] == ["Sandefjord Penguins"]
+        assert result["empty_sources"] == []
+        assert "delvise resultater" in result["warning"].lower()
         src = result["sources"][0]
-        assert src.get("empty_calendar") is True
-        assert "BOOKUP_EMAIL" not in src
-        assert "BOOKUP_PASSWORD" not in src
+        assert src["blocked"] is True
+        assert src["llm_fallback"] is True
+        assert "BOOKUP_EMAIL" not in src.get("scraper_error", "")
+        assert "BOOKUP_PASSWORD" not in src.get("scraper_error", "")
 
     def test_outlook_source_with_events_passes(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
@@ -1054,10 +1055,9 @@ class TestHarnessGate:
 class TestStrategyBasedDispatch:
     """_scrape_source dispatches to the correct scraper via get_deterministic_scraper_type."""
 
-    def test_bookup_spa_strategy_routes_to_bookup_scraper(self, tmp_path):
-        """A source whose strategy has CalendarEngine.BOOKUP_SPA calls _run_bookup_scraper."""
+    def test_bookup_spa_strategy_uses_credentialed_scraper_when_required(self, tmp_path):
+        """Tønsberg requires login, so Stage 2 must not accept the public placeholder calendar."""
         state = PipelineState(tmp_path / "pipeline")
-        # "Tønsberg" is registered with CalendarEngine.BOOKUP_SPA in STRATEGIES
         cfg = _make_config_with_sources([
             {
                 "name": "Tønsberg",
@@ -1067,11 +1067,11 @@ class TestStrategyBasedDispatch:
         ])
 
         with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._try_credentialed_scrape",
+            return_value=([_make_event("Innlogget BookUp")], ""),
+        ) as mock_credentialed, patch(
             "tournament_scheduler.pipeline.stage2_scraping._run_bookup_scraper",
-            return_value=([_make_event("Booking")], ""),
-        ) as mock_bookup, patch(
-            "tournament_scheduler.pipeline.stage2_scraping._run_styledcalendar_scraper",
-            side_effect=AssertionError("styledcalendar must not be called for bookup source"),
+            side_effect=AssertionError("public BookUp scraper must not be used for credentialed sources"),
         ):
             result = run(
                 cfg, state,
@@ -1079,9 +1079,10 @@ class TestStrategyBasedDispatch:
                 strict=False,
             )
 
-        mock_bookup.assert_called_once()
+        mock_credentialed.assert_called_once()
         src = result["sources"][0]
         assert src["event_count"] == 1
+        assert src["credentialed"] is True
         assert src["blocked"] is False
 
     def test_forumbooking_strategy_routes_to_forumbooking_scraper(self, tmp_path):

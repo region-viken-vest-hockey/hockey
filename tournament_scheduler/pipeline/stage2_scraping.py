@@ -589,6 +589,7 @@ def _scrape_source(
     events: list[CalendarEvent] = []
     scraper_error: str = ""
     deterministic_raised: bool = False
+    credentialed_required: bool = False
 
     try:
         # Dispatch is driven by the CalendarEngine declared in scraper_strategies.
@@ -599,17 +600,28 @@ def _scrape_source(
         _scraper_type = get_deterministic_scraper_type(_strategy) if _strategy is not None else None
 
         # BookUp sources can expose a tiny public placeholder calendar while the
-        # useful arena schedule is behind login. Prefer the credentialed path
-        # when a strategy declares credentials; fall back to public scraping if
-        # credentials are unavailable or the login scrape finds nothing.
-        if _strategy is not None and requires_credentials(_strategy):
+        # useful arena schedule is behind login. If credentials are declared,
+        # the public scrape is not trustworthy enough to use as fallback: a
+        # failed login must surface as blocked/manual-recovery-needed instead
+        # of silently accepting a handful of generic "Booket" entries.
+        credentialed_required = _strategy is not None and requires_credentials(_strategy)
+        if credentialed_required:
             events, _cred_error = _try_credentialed_scrape(
                 name, url, start_date, end_date, calendar_cache
             )
             if events:
                 result["credentialed"] = True
+            else:
+                scraper_error = _cred_error or (
+                    f"Kilden '{name}' krever innlogging, men innlogget skraping "
+                    "ga ingen kalenderhendelser. Manuell innlogging eller "
+                    "recovery-inject kan være nødvendig."
+                )
+                deterministic_raised = True
 
         if events:
+            pass
+        elif credentialed_required:
             pass
         elif _scraper_type == "styledcalendar":
             events, _ = _run_styledcalendar_scraper(name, start_date, end_date)
@@ -665,8 +677,10 @@ def _scrape_source(
             result["block_reason"] = f"{block_reason} {recovery_hint}".strip()
             result["recovery_hint"] = recovery_hint
 
-            # Mark for LLM fallback if the source has a strategy that needs it
-            if strategy and needs_llm_agent(strategy):
+            # Mark for browser/LLM recovery when the source is either known to
+            # need the LLM agent or it requires a login that deterministic
+            # scraping could not complete (for example MFA/manual approval).
+            if strategy and (needs_llm_agent(strategy) or credentialed_required):
                 result["llm_fallback"] = True
                 result["llm_strategy"] = {
                     "engine": strategy.engine.value,
