@@ -270,7 +270,7 @@ class TestRunStage4:
         # The report must present the plan as usable-but-needs-manual-followup.
         report_html = Path(files["html_report"]).read_text(encoding="utf-8")
         assert "MÅ SJEKKES" in report_html
-        assert "Manuell istidplanlegging" in report_html
+        assert "Manuell istidsplanlegging" in report_html
 
     def test_produces_excel_file(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")

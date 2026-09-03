@@ -172,6 +172,18 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "kategori": "Hard krav",
         },
         {
+            "regel": "Klubber uten skrapet kalender får sin andel hjemmeturneringer — merket for manuell istidsbooking",
+            "forklaring": (
+                "Når en klubbs kalenderkilde ikke kan skrapes (blokkert/feilet), får klubben likevel sin "
+                "forholdsmessige andel hjemmeturneringer i planen. Siden starttiden ikke kan verifiseres mot "
+                "den ekte ishall-kalenderen, merkes disse turneringene (manual_booking_reason) og listes i "
+                "«Må planlegges manuelt»-visningen (manual_schedule.html) — istiden må bookes/verifiseres for hånd. "
+                "Klubbene utelates fra hjemmebanebelastningsavviket (siden grunnlaget mangler), men teller fullt "
+                "ut i selve planen."
+            ),
+            "kategori": "Automatisk avgjørelse",
+        },
+        {
             "regel": "Round-robin: alle mot alle innen turneringen",
             "forklaring": (
                 "Innenfor hver turnering spiller alle inviterte lag mot hverandre nøyaktig én gang (round-robin). "

@@ -386,7 +386,7 @@ After a successful run:
 - `export/calendars.html` — interactive calendar viewer
 - `export/season_plan.html` — season plan HTML
 - `export/season_plan_report.html` — diagnostics/fairness report HTML
-- `export/manual_schedule.html` — “Må planlegges manuelt” view listing tournaments whose arena/sequence collision must be booked by hand (only present when collisions remain)
+- `export/manual_schedule.html` — “Må planlegges manuelt” view listing hall time that must be booked/verified by hand: tournaments with an arena/sequence collision **and** tournaments hosted by clubs whose calendar could not be scraped (they still get their share, but the istid is provisional). Only present when such items exist
 - `export/input.html` — read-only "Påmeldte lag" overview of registered clubs/teams from the Lag sheet
 - `export/season_plan.xlsx` — season plan Excel
 - `.pipeline/logs/run-<date>.jsonl` — structured run log
