@@ -343,7 +343,6 @@ Follow [`docs/ownership-and-handover.md`](docs/ownership-and-handover.md). Recov
 | `export/` | Generated review/export output |
 | `registered-teams/` | Standalone registered-team review artifacts |
 | `docs/` | Detailed architecture, input, pipeline, security, and handover documentation |
-| `apps/desktop/` | Experimental supervisor UI; not a separate planner |
 | `.claude/`, `.opencode/`, `.codex/`, `.pi/` | Thin harness-specific adapters over canonical commands |
 
 ## Installation

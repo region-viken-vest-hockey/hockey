@@ -11,7 +11,6 @@ FORBIDDEN_IMPORTS = {
     "rich",
     "subprocess",
     "tournament_scheduler.cli",
-    "tournament_scheduler.desktop_server",
 }
 
 

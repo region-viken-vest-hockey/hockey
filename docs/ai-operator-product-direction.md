@@ -6,7 +6,7 @@ RVV Miniputt will be designed primarily as an **AI-operated season-planning syst
 
 The primary user is a human supervisor working through an LLM harness such as Codex, Claude Code, OpenCode, Pi, or another capable agent environment. The human provides goals, domain judgment, credentials when necessary, and final approval. The AI operator owns the mechanical workflow. Routine operation should use club-controlled ownership and recovery paths rather than personal accounts; see the [ownership and handover guide](ownership-and-handover.md).
 
-This does not rule out a future non-technical desktop product. It means the near-term architecture and product decisions should optimize for reliable agent operation first.
+This does not rule out a future non-technical supervisor interface. It means the near-term architecture and product decisions should optimize for reliable agent operation first.
 
 ## Product promise
 
@@ -199,7 +199,7 @@ Harness-specific adapters should remain thin. Business logic belongs in the Pyth
 4. Make candidate generation and score comparison reproducible and explainable.
 5. Add a human escalation and approval mechanism.
 6. Simplify the README around the AI-operator workflow.
-7. Treat the desktop app as an optional supervisor surface over the same APIs.
+7. Treat any future non-technical UI as an optional supervisor surface over the same APIs.
 
 ## Non-goals for the first iteration
 

@@ -19,10 +19,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-desktop = [
-    "keyring>=25.0",
-    "pyinstaller>=6.0",
-]
 test = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
@@ -31,7 +27,6 @@ test = [
 
 [project.scripts]
 rvv-miniputt = "tournament_scheduler.cli.rvv_cli:main"
-rvv-miniputt-desktop-backend = "tournament_scheduler.desktop_server:main"
 
 [tool.pytest.ini_options]
 timeout = 30
