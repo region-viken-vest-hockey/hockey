@@ -129,6 +129,8 @@ jobs:
             --export-dir "$EXPORT_DIR" \
             --run-id "$RUN_ID" \
             --dry-run \
+            --extra-public-file season_plan_audit.json \
+            --extra-public-file season_plan_hosting_audit.csv \
             --json \
             2>&1 | tee "$WORK_DIR/github-actions/publish-preview.json"
           python - <<'PY'
@@ -163,6 +165,8 @@ jobs:
             --export-dir "$EXPORT_DIR" \
             --run-id "$RUN_ID" \
             --confirm-public \
+            --extra-public-file season_plan_audit.json \
+            --extra-public-file season_plan_hosting_audit.csv \
             --json \
             $verify_flag \
             2>&1 | tee "$WORK_DIR/github-actions/publish-result.json"
