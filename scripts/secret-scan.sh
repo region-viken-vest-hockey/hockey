@@ -6,7 +6,7 @@ set -eu
 # every future run permanently red. GitHub/remote history can be audited
 # separately when intentionally investigating old commits.
 if command -v gitleaks >/dev/null 2>&1; then
-  exec gitleaks detect --source . --no-git --config .gitleaks.toml --redact
+  exec gitleaks detect --source . --no-git --config .gitleaks.toml --redact --verbose
 fi
 
 if command -v docker >/dev/null 2>&1; then
@@ -15,6 +15,7 @@ if command -v docker >/dev/null 2>&1; then
     --no-git \
     --config=/repo/.gitleaks.toml \
     --redact \
+    --verbose \
     --no-banner
 fi
 
