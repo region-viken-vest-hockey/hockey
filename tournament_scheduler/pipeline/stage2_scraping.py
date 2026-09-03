@@ -45,6 +45,7 @@ from .scraper_constants import (
     _BROWSER_SOURCE_TYPES, _ICAL_SOURCE_TYPES,
 )
 from .scraper_bookup import _run_bookup_scraper, _bookup_navigate_to_date, _parse_bookup_timegrid
+from .scraper_brp_exigo import _run_brp_exigo_scraper
 from .scraper_credentialed import _credentialed_scrape_months, _run_credentialed_bookup_or_outlook, _try_credentialed_scrape
 from .scraper_event_helpers import _events_to_dicts, _group_events_by_club
 from .scraper_forumbooking import _run_forumbooking_scraper
@@ -556,6 +557,7 @@ def _scrape_source(
     * ``"sportello"``     (e.g. Holmen) — calls ``_run_sportello_scraper``
     * ``"bookup"``         (e.g. Tønsberg, Sandefjord) — calls ``_run_bookup_scraper``
     * ``"forumbooking"``   (e.g. Jar) — calls ``_run_forumbooking_scraper``
+    * ``"brp_exigo"``      (e.g. Skien) — calls ``_run_brp_exigo_scraper``
     * sources not in ``STRATEGIES`` fall back to ``source_type``-based routing:
 
       * ``outlook`` / ``html`` — Playwright Outlook-iframe scraper
@@ -596,7 +598,7 @@ def _scrape_source(
         # get_deterministic_scraper_type() returns a string token for sources
         # registered in STRATEGIES, or None for sources that only appear in
         # the generic _BROWSER_SOURCE_TYPES / _ICAL_SOURCE_TYPES fallbacks.
-        _strategy = get_strategy(name)
+        _strategy = None if source_type in _ICAL_SOURCE_TYPES else get_strategy(name)
         _scraper_type = get_deterministic_scraper_type(_strategy) if _strategy is not None else None
 
         # BookUp sources can expose a tiny public placeholder calendar while the
@@ -631,6 +633,8 @@ def _scrape_source(
             events, _ = _run_bookup_scraper(url, name, start_date, end_date)
         elif _scraper_type == "forumbooking":
             events, _ = _run_forumbooking_scraper(url, name, start_date, end_date)
+        elif _scraper_type == "brp_exigo":
+            events, _ = _run_brp_exigo_scraper(url, name, start_date, end_date)
         elif source_type in _BROWSER_SOURCE_TYPES:
             events, _ = _run_outlook_scraper(url, name, start_date, end_date, calendar_cache)
         elif source_type in _ICAL_SOURCE_TYPES:

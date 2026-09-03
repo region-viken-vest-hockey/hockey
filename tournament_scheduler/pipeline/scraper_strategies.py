@@ -126,9 +126,9 @@ STRATEGIES: dict[str, ScraperStrategy] = {
         url="https://skienfritidspark.brp.exigo.no/ishallen",
         date_param="date",
         month_selector="",
-        event_pattern="Time ranges (HH:MM-HH:MM) in visible text",
+        event_pattern="BRP/Exigo Next.js page with embedded daily events JSON and ?date=YYYY-MM-DD navigation",
         direct_scraper=True,
-        note="Next.js app with ?date=YYYY-MM-DD navigation.",
+        note="BRP/Exigo daily booking page. Scrape each day because the page does not expose a full month at once.",
     ),
     "Ringerike": ScraperStrategy(
         engine=CalendarEngine.TEAMUP_ICAL,
@@ -244,7 +244,7 @@ def get_deterministic_scraper_type(strategy: ScraperStrategy) -> str | None:
     * ``STYLED_CALENDAR``          → ``"styledcalendar"``
     * ``BOOKUP_SPA``               → ``"bookup"``
     * ``OUTLOOK_IFRAME``           → ``"browser"``
-    * ``DATE_PARAM``               → ``"browser"``
+    * ``DATE_PARAM``               → ``"brp_exigo"``
     * ``FORUMBOOKING``             → ``"forumbooking"``
     * ``SPORTELLO``                → ``"sportello"``
     * ``TEAMUP_ICAL``              → ``"ical"``
@@ -257,7 +257,7 @@ def get_deterministic_scraper_type(strategy: ScraperStrategy) -> str | None:
         CalendarEngine.STYLED_CALENDAR: "styledcalendar",
         CalendarEngine.BOOKUP_SPA: "bookup",
         CalendarEngine.OUTLOOK_IFRAME: "browser",
-        CalendarEngine.DATE_PARAM: "browser",
+        CalendarEngine.DATE_PARAM: "brp_exigo",
         CalendarEngine.FORUMBOOKING: "forumbooking",
         CalendarEngine.SPORTELLO: "sportello",
         CalendarEngine.TEAMUP_ICAL: "ical",

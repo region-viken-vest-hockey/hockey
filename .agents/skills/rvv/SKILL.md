@@ -136,7 +136,7 @@ The LLM evaluates the page content, decides what to click or navigate to, and ca
 
 If these are not set, the pipeline prompts interactively during scraping. Without them, Sandefjord scraping will fail.
 
-**Tønsberg** also uses BookUp but does *not* require login — the "Se tilgjengelighet" button is publicly accessible.
+**Tønsberg** also uses BookUp and the public "Se tilgjengelighet" view may show only sparse/generic placeholder bookings. Treat the full Tønsberg ishall calendar as credentialed: use `BOOKUP_EMAIL`/`BOOKUP_PASSWORD`, and expect manual/MFA recovery if credentialed scraping still returns zero events.
 
 ### All clubs
 
@@ -144,12 +144,12 @@ If these are not set, the pipeline prompts interactively during scraping. Withou
 |---|---|---|---|
 | Kongsberg (ishall) | Outlook iframe | Deterministic | Works without LLM |
 | Kongsberg (ballhall) | Outlook iframe | Deterministic | Works without LLM |
-| Skien | Date param (brp.exigo.no) | Deterministic | `?date=YYYY-MM-DD` |
+| Skien | BRP/Exigo date param (brp.exigo.no) | Deterministic | Daily `?date=YYYY-MM-DD` pages with embedded booking JSON |
 | Ringerike | Teamup iCal | Deterministic | Pure iCal feed |
 | Frisk Asker | Teamup iCal | Deterministic | iCal feed |
-| Tønsberg | BookUp SPA | Deterministic + LLM | Public availability view |
+| Tønsberg | BookUp SPA | Credentialed / manual recovery | Full calendar is behind BookUp login; public view can be sparse/generic |
 | **Sandefjord Penguins** | **BookUp SPA** | **LLM-driven** | **Requires `BOOKUP_EMAIL` + `BOOKUP_PASSWORD`** |
-| Jar | Forumbooking | LLM-driven | HTML schema viewer with JS navigation |
+| Jar | Forumbooking | Deterministic | Weekly HTML schema viewer parsed via `div.bokning` ids/tooltips |
 | Holmen | Sportello | Deterministic | Public GraphQL API on the Sportello SPA |
 | Jutul / Bærum ishall | StyledCalendar | LLM-driven | JS widget |
 

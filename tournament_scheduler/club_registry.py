@@ -16,28 +16,14 @@ Each entry records:
     pipeline can simply filter them out and continue working for the clubs
     with known sources.
 
-Known/working sources today: Kongsberg, Skien, Ringerike (Teamup iCal export).
+Known/working deterministic sources today include Ringerike/Frisk Asker
+(Teamup iCal), Kongsberg (Outlook iframe), Holmen (Sportello GraphQL), Jar
+(Forumbooking weekly HTML), Skien (BRP/Exigo daily Next.js payload), and Jutul
+(StyledCalendar widget).
 
-Registered but not yet scrapeable live (kind is known but the feed needs more
-work — see notes on each entry):
-  - Jutul: baerumishall.no/kalender/ embeds a StyledCalendar JS widget with no
-    discoverable .ics/iCal export.
-  - Jar: Forumbooking's ical.aspx export returns only an empty placeholder
-    VEVENT regardless of date-range params.
-  - Frisk Asker: friskaskerhockey.no ("Aktivitetskalender") is a JS-rendered
-    Sportality/s8y SPA with no static calendar markup or export API found;
-    varnerarena.no is blocked by a WAF page.
-  - Holmen: holmenhockey.no links to a Sportello booking widget
-    (kalender.sportello.no/booking/11055) whose public GraphQL API is now
-    scraped deterministically.
-
-The remaining JS-rendered widgets (Jutul, Jar, Frisk Asker) still need either
-a discovered platform-specific export API or a Playwright-based scraper for
-their booking widgets — analogous to Kongsberg's OUTLOOK integration but for
-different platforms/markup.
-
-Still missing URLs entirely (no calendar/booking system identified at all):
-Tønsberg, Sandefjord Penguins.
+BookUp sources for Tønsberg and Sandefjord have known URLs but require
+BOOKUP_EMAIL/BOOKUP_PASSWORD and may still need manual/MFA recovery before the
+full private booking calendar can be trusted.
 """
 
 from dataclasses import dataclass

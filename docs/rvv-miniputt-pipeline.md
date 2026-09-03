@@ -114,7 +114,8 @@ That flow is scriptable and does not require a live browser controller.
 
 ### BookUp credentials
 
-Some BookUp calendars require authentication before scraping works.
+Some BookUp calendars require authentication before scraping works. Tønsberg and Sandefjord should be treated as credentialed sources; the public BookUp availability view can return sparse generic `Booket` placeholders that are not safe for planning.
+
 For those sources, set the credentials expected by the configured strategy, typically:
 
 - `BOOKUP_EMAIL`
@@ -127,7 +128,11 @@ make run-dotenvx ARGS='--resume-from 2'
 make calendars-refresh-dotenvx
 ```
 
-`DOTENVX_ENV_FILE=/path/to/file` can point the Make targets at a different dotenvx file. Keep `.env.keys` local and out of git.
+`DOTENVX_ENV_FILE=/path/to/file` can point the Make targets at a different dotenvx file. Keep `.env.keys` local and out of git. If BookUp requires MFA/manual approval, use the recovery flow (`recovery-targets` → manual scrape/export → `recovery-inject` → `scrape-merge`) instead of accepting the placeholder public scrape.
+
+### Skien BRP/Exigo calendar
+
+Skien uses the public BRP/Exigo daily booking page at `https://skienfritidspark.brp.exigo.no/ishallen`, linked from `https://skienfritidspark.no/aktiviteter/haller-og-utleie/ishallen`. The page exposes one day at a time through `?date=YYYY-MM-DD`, so Stage 2 walks each day in the season and parses the embedded booking JSON. Sampling only the first day of each month is a scraper bug and should be treated as suspicious.
 
 ### Sparse event-count warnings
 

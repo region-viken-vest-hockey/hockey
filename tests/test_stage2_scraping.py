@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
+from tournament_scheduler.pipeline.scraper_brp_exigo import _parse_brp_exigo_day
 from tournament_scheduler.pipeline.scraper_forumbooking import _parse_forumbooking_schedule
 from tournament_scheduler.pipeline.stage2_scraping import (
     SOURCE_GOOGLE,
@@ -263,6 +264,9 @@ class TestParallelExecution:
         ), patch(
             "tournament_scheduler.pipeline.stage2_scraping._run_forumbooking_scraper",
             return_value=([_make_event("Forumbooking")], "<html>"),
+        ), patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_brp_exigo_scraper",
+            return_value=([_make_event("BRP")], "<html>"),
         ):
             result = run(
                 cfg, state,
@@ -1131,6 +1135,52 @@ class TestStrategyBasedDispatch:
         assert events[0].datetime == datetime(2026, 9, 6, 9, 30)
         assert events[0].duration_hours == 1.5
         assert events[0].name == "Jar Hockey - U10"
+
+    def test_brp_exigo_strategy_routes_to_daily_scraper(self, tmp_path):
+        """Skien uses the BRP/Exigo day walker, not the generic month sampler."""
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources([
+            {
+                "name": "Skien",
+                "type": SOURCE_OUTLOOK,
+                "url": "https://skienfritidspark.brp.exigo.no/ishallen",
+            },
+        ])
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_brp_exigo_scraper",
+            return_value=([_make_event("BRP/Exigo")], ""),
+        ) as mock_brp, patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_outlook_scraper",
+            side_effect=AssertionError("generic browser scraper must not be called for Skien"),
+        ):
+            result = run(
+                cfg,
+                state,
+                datetime(2025, 9, 1),
+                datetime(2025, 12, 1),
+                strict=False,
+            )
+
+        mock_brp.assert_called_once()
+        src = result["sources"][0]
+        assert src["event_count"] == 1
+        assert src["events"][0]["name"] == "BRP/Exigo"
+
+    def test_brp_exigo_parser_uses_embedded_event_json_date_time_and_resource(self):
+        events = _parse_brp_exigo_day(
+            r'''
+            <script>self.__next_f.push([1,"f:[\"$\",\"$L11\",null,{\"resources\":[{\"id\":362,\"name\":\"Ishockey - bane 1\",\"type\":\"OTHER\",\"externalDescription\":null}],\"events\":[{\"id\":\"1\",\"title\":\"Skien fritidspark KF\",\"start\":\"2026-09-05T07:00:00.000Z\",\"end\":\"2026-09-05T17:00:00.000Z\",\"resources\":[],\"resourceId\":362,\"orderId\":1131048,\"message\":\"\",\"minutesFromStart\":540,\"minutesDuration\":600,\"timeRange\":\"09:00-19:00\",\"continues\":false}],\"date\":\"$D2026-09-05T00:00:00.000Z\"}]"])</script>
+            ''',
+            datetime(2026, 9, 5),
+        )
+
+        assert len(events) == 1
+        assert events[0].date == "05.09.2026"
+        assert events[0].datetime == datetime(2026, 9, 5, 9, 0)
+        assert events[0].duration_hours == 10.0
+        assert events[0].location == "Ishockey - bane 1"
+        assert events[0].name == "Skien fritidspark KF 09:00-19:00"
 
     def test_styled_calendar_strategy_routes_to_styledcalendar_scraper(self, tmp_path):
         """A source whose strategy has CalendarEngine.STYLED_CALENDAR calls _run_styledcalendar_scraper."""
