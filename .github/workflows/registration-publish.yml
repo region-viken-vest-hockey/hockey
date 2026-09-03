@@ -70,6 +70,9 @@ jobs:
           pip install -r requirements.txt
           pip install -e .
 
+      - name: "Valider at CSV er autoritativ SharePoint-snapshot"
+        run: python scripts/check-registration-snapshot.py
+
       - name: "Valider påmeldingsdata og skriv fingeravtrykk"
         run: |
           mkdir -p "$WORK_DIR/github-actions"
