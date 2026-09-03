@@ -12,6 +12,8 @@ The repository has one operational implementation, not one per interface:
 - executable workflow: `scripts/rvv-miniputt` + `tournament_scheduler/`
 - harness adapters: thin UI/browser integrations only
 
+For account ownership, volunteer handover, access review, and emergency recovery, see [`ownership-and-handover.md`](ownership-and-handover.md).
+
 ## Product promise
 
 > Give RVV Miniputt the season inputs and ask it to produce the best trustworthy season plan. The operator validates inputs, gathers calendar data, resolves recoverable problems, generates and evaluates plans, exports the result, and involves the human only for genuine judgment or authorization.
