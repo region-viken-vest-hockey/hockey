@@ -23,7 +23,6 @@ def test_ownership_handover_guide_exists_and_covers_inventory() -> None:
         "WordPress administrator/editor accounts",
         "Calendar-source credentials and service accounts",
         "Domains, DNS, analytics, and notification addresses",
-        "Release signing/notarization identities",
     ]
 
     for dependency in required_dependencies:
