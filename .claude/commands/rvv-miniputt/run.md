@@ -42,9 +42,13 @@ Stop and ask the user if any of the above look wrong before continuing.
 
 ### Stage 2 — Scraping
 
+BookUp sources (Tønsberg, Sandefjord Penguins) need `BOOKUP_EMAIL`/`BOOKUP_PASSWORD`. These are stored encrypted in `.env.bookup` and only decrypted through `dotenvx` — unlike Pi slash commands, Claude invokes the python module directly, so it does **not** get these auto-loaded. Always wrap the Stage 2 call:
+
 ```bash
-python3 -m tournament_scheduler.pipeline.stage2_scraping [--work-dir .pipeline] [--force-refresh] [--non-strict] [--allow-missing-sources]
+./node_modules/.bin/dotenvx run -f .env.bookup -- python3 -m tournament_scheduler.pipeline.stage2_scraping [--work-dir .pipeline] [--force-refresh] [--non-strict] [--allow-missing-sources]
 ```
+
+(See the `run-dotenvx` / `calendars-refresh-dotenvx` Makefile targets for the equivalent CLI-wrapped invocations.)
 
 After success, read `.pipeline/stage2_scraping.json` and verify:
 - `sources` list contains scraped events for the expected clubs
