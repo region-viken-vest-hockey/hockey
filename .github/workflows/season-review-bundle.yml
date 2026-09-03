@@ -182,6 +182,8 @@ jobs:
           scripts/rvv-miniputt operator publish \
             --work-dir "$WORK_DIR" \
             --dry-run \
+            --extra-public-file season_plan_audit.json \
+            --extra-public-file season_plan_hosting_audit.csv \
             --json \
             2>&1 | tee "$WORK_DIR/github-actions/publish-preview.json"
           status=${PIPESTATUS[0]}
