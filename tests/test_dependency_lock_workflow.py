@@ -27,8 +27,8 @@ def test_committed_lock_has_exact_versions_hashes_and_expected_groups():
     assert "--hash=sha256:" in lock
     assert "requests==" in lock
     assert "pytest==" in lock
-    assert "keyring==" in lock
-    assert "pyinstaller==" in lock
+    assert "keyring==" not in lock
+    assert "pyinstaller==" not in lock
     assert not re.search(r"^[a-zA-Z0-9_.-]+>=", lock, re.MULTILINE)
 
 
@@ -46,19 +46,13 @@ def test_refresh_script_keeps_pyproject_canonical_and_all_extras_locked():
     assert "Deterministic installs must use requirements.lock" in requirements
 
 
-def test_operator_install_and_packaging_install_from_lock_without_resolving_deps():
+def test_operator_install_uses_lock_without_resolving_dependencies():
     install = _read("scripts/install.sh")
-    package_sh = _read("scripts/package-desktop-backend.sh")
-    package_ps1 = _read("scripts/package-desktop-backend.ps1")
 
-    for text in [install, package_sh, package_ps1]:
-        assert "requirements.lock" in text
-        assert "--require-hashes" in text
-        assert "--no-deps" in text
-
+    assert "requirements.lock" in install
+    assert "--require-hashes" in install
+    assert "--no-deps" in install
     assert "pip install -r requirements.txt" not in install
-    assert "pip install --upgrade pyinstaller keyring" not in package_sh
-    assert "pip install --upgrade pyinstaller keyring" not in package_ps1
 
 
 def test_ci_installs_locked_dependencies_and_has_lock_freshness_job():
@@ -70,8 +64,8 @@ def test_ci_installs_locked_dependencies_and_has_lock_freshness_job():
     assert "cache-dependency-path:" in ci
     assert "pip install --require-hashes -r requirements.lock" in ci
     assert "pip install --no-deps -e ." in ci
-    assert "pip install -r requirements.txt" not in ci
-    assert "pip install -e '.[test]'" not in ci
+    assert "desktop-backend" not in ci
+    assert "desktop-packaging" not in ci
 
 
 def test_check_and_make_expose_dependency_lock_verification():
@@ -90,7 +84,7 @@ def test_check_and_make_expose_dependency_lock_verification():
     assert "dependency-lock" in dependency_body
 
 
-def test_docs_describe_locked_operator_ci_and_desktop_handling():
+def test_docs_describe_locked_operator_and_ci_handling():
     docs = _read("README.md") + "\n" + _read("docs/ci.md")
 
     for phrase in [
@@ -99,7 +93,7 @@ def test_docs_describe_locked_operator_ci_and_desktop_handling():
         "--no-deps",
         "canonical direct dependency declaration",
         "all optional dependency groups",
-        "desktop packaging tools",
         "Playwright browser binaries",
     ]:
         assert phrase in docs
+    assert "desktop packaging tools" not in docs

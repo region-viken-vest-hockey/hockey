@@ -1,72 +1,86 @@
-# RVV Miniputt application architecture
+# Application architecture
 
-This document records the migration direction for GitHub issue #44: adapters such
-as CLI, desktop HTTP, Pi/Claude harness commands, and GitHub Actions should call
-small typed application use cases instead of each reimplementing operator policy.
+This document defines the dependency boundary between the RVV Miniputt application layer and its command/harness adapters.
+
+## Layers
+
+```text
+Humans / agent harnesses / GitHub Actions
+                |
+                v
+transport adapters (CLI, Pi, Claude, Codex, ChatGPT, OpenCode)
+                |
+                v
+tournament_scheduler.application
+                |
+                v
+domain + pipeline capabilities
+                |
+                v
+infrastructure implementations (filesystem, git/Pages, network, browser)
+```
+
+The repository CLI and harness integrations should be consumers of application/domain capabilities, not alternate owners of business policy.
 
 ## Dependency rules
 
-The intended dependency direction is:
+1. **Application modules must not import transport layers.** `tournament_scheduler.application` must not import CLI modules, terminal rendering libraries, subprocess orchestration, or harness code.
+2. Transport adapters may depend on the application layer and format its results for their environment.
+3. Shared RVV policy belongs in `.agents/skills/rvv/`; executable policy belongs in Python. Harness command files should not contain independent Stage 1–4 algorithms, source-readiness exceptions, fairness thresholds, or recovery rules.
+4. Browser-capable adapters may perform navigation that the core cannot, but recovered data must flow back into the shared cache/recovery path and Python must make the final readiness decision.
+5. External/public mutations stay behind explicit application/CLI authorization gates.
 
-```text
-interfaces/adapters (CLI, desktop HTTP, harnesses, GitHub Actions)
-        ↓
-application use cases and DTOs
-        ↓
-domain policy + injectable ports
-        ↓
-infrastructure implementations (filesystem, git/Pages, network, keyring)
-```
+The application layer can use domain and pipeline modules while the migration remains incremental, but new use cases should prefer explicit application services/results over transport-specific control flow.
 
-Rules for the current slice:
+## Why this boundary exists
 
-1. `tournament_scheduler.application` may import domain/pipeline modules while
-   the migration is incremental, but it must not import transport/rendering
-   modules.
-2. Application modules must not import `tournament_scheduler.cli`,
-   `tournament_scheduler.desktop_server`, `rich`, or `subprocess`.
-3. Application functions return typed DTOs/results, not Rich console output,
-   HTTP responses, process exit codes, or argparse namespaces.
-4. Adapters own parsing, rendering, and exit-code mapping only. They should not
-   decide persistence policy or duplicate operator-state rules.
-5. New cross-adapter behavior should start as an application use case, then be
-   wired into adapters.
+Without it, every interface gradually becomes a second implementation: one command decides whether a calendar is acceptable, another copies fairness policy, and a third invents different recovery semantics. That makes correctness depend on which harness the operator happened to use.
 
-A lightweight architecture test enforces the forbidden imports above. When the
-application layer grows, add ports/tests before moving code that currently needs
-real filesystem, git, source retrieval, or secret-store access.
+The intended model is the opposite: one deterministic implementation with multiple thin interfaces.
 
-## Current migrated slice
+## Shared RVV operating layer
 
-`rvv-miniputt operator questions|answer|promote|health` now goes through
-`tournament_scheduler.application.operator_state`:
+For season planning and scraping, `.agents/skills/rvv/SKILL.md` and `.agents/skills/rvv/RUNBOOK.md` are the shared agent-facing contract. `scripts/rvv-miniputt` is the portable executable entry point.
 
-- `list_operator_questions(work_dir, include_all=False)`
-- `record_operator_answer(work_dir, question_id, answer, decided_by=None)`
-- `promote_operator_question(work_dir, question_id, scope, scope_key="", decided_by=None)`
-- `check_operator_health(work_dir)`
+Pi can add live progress and browser recovery; other harnesses can add capabilities unique to their environment. Those integrations are adapters only.
 
-The CLI still owns Norwegian text rendering and JSON serialization. The
-application layer owns the typed in-process contract over existing durable
-`RunManifest`/escalation state.
+## Structured results
+
+Application operations should expose enough structured state for adapters to render without reparsing human console prose. Depending on the use case this may include:
+
+- status/summary
+- evidence/provenance
+- generated artifacts
+- warnings/problems
+- suggested actions
+- whether a human decision is required
+
+Stage checkpoints and the operator run manifest are part of this evidence surface.
 
 ## Example: adding a new command/use case
 
-Suppose volunteers need a browser and CLI command for "show publication status":
+Suppose we want to add a command that summarizes current operator health.
 
-1. Add DTOs such as `PublicationStatus` to `tournament_scheduler.application.dto`
-   or a dedicated application DTO module.
-2. Add `inspect_publication_status(request: PublicationStatusRequest) ->
-   PublicationStatus` under `tournament_scheduler.application`.
-3. Keep filesystem/git/network operations behind explicit parameters or ports so
-   the use case can be tested without a terminal, HTTP server, Git remote, or
-   real network.
-4. Wire `rvv-miniputt operator publish-status` to parse arguments, call the use
-   case, render Rich output or JSON, and map the result to an exit code.
-5. Wire desktop/harness/GitHub Actions adapters to the same use case rather than
-   shelling out to the CLI.
-6. Add one application test for the use case and one adapter test for argument
-   parsing/rendering.
+1. Put the domain/application behavior in `tournament_scheduler.application` or the appropriate canonical Python capability.
+2. Return structured data without terminal styling.
+3. Add a CLI adapter that parses arguments, calls the application behavior, and renders the result.
+4. If Pi/Claude/Codex need the operation, have their adapters invoke the same repository command/capability instead of reimplementing it.
+5. Add tests at the application boundary and thin adapter tests where useful.
 
-This keeps user-facing transports thin and makes future migrations possible in
-small, independently testable slices.
+The existing family `rvv-miniputt operator questions|answer|promote|health` illustrates the intended direction: the command surface delegates to shared operator state and capabilities rather than owning a separate workflow.
+
+## Browser recovery example
+
+A harness discovers events for a browser-only source:
+
+1. recover the events with the harness-specific browser capability
+2. inject them through the shared recovery/cache mechanism
+3. normalize/merge shared state where needed
+4. rerun Python Stage 2
+5. continue only if Python reports the checkpoint as planning-ready
+
+The adapter never decides that a particular missing club is acceptable on its own.
+
+## Testing the boundary
+
+`tests/test_application_architecture.py` statically checks that application modules do not import known transport dependencies. RVV-specific tests separately enforce the shared runbook/thin-adapter and Stage 2 readiness contracts.
