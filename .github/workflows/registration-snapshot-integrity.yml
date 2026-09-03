@@ -1,0 +1,39 @@
+name: "Påmeldinger: SharePoint snapshot-integritet"
+
+on:
+  pull_request:
+    paths:
+      - "inputs/registrations/registered-teams.csv"
+      - "inputs/registrations/source-state.json"
+      - "scripts/check-registration-snapshot.py"
+      - ".github/workflows/sharepoint-registrations-import.yml"
+      - ".github/workflows/registration-snapshot-integrity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "inputs/registrations/registered-teams.csv"
+      - "inputs/registrations/source-state.json"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-registration-snapshot:
+    name: "Avvis gammel eller håndredigert påmeldingssnapshot"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "Hent kode og historikk"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Valider snapshot"
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$BASE_REF" ] && [ "$BASE_REF" != "0000000000000000000000000000000000000000" ]; then
+            python scripts/check-registration-snapshot.py --base-ref "$BASE_REF"
+          else
+            python scripts/check-registration-snapshot.py
+          fi
