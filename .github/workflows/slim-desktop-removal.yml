@@ -1,0 +1,120 @@
+name: Slim desktop removal
+
+on:
+  push:
+    branches: [chatgpt/remove-desktop-update-rvv-skill]
+    paths: [.github/workflows/slim-desktop-removal.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  slim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/remove-desktop-update-rvv-skill
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Remove desktop surface except workflow files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, shutil
+
+          def remove_lines(path, terms):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              p.write_text(''.join(line for line in text.splitlines(True) if not any(t in line for t in terms)), encoding='utf-8')
+
+          for target in [
+              'apps/desktop', 'tournament_scheduler/desktop_server.py',
+              'scripts/package-desktop-backend.sh', 'scripts/package-desktop-backend.ps1',
+              'scripts/package-desktop-local.sh', 'tests/test_desktop_packaging.py',
+              'tests/test_desktop_server_escalation.py', 'docs/desktop-app.md',
+          ]:
+              p = Path(target)
+              if p.is_dir(): shutil.rmtree(p)
+              elif p.exists(): p.unlink()
+
+          p = Path('pyproject.toml'); text = p.read_text(encoding='utf-8')
+          text = re.sub(r'\[project\.optional-dependencies\]\ndesktop = \[\n(?:.*\n)*?\]\n', '[project.optional-dependencies]\n', text, count=1)
+          text = text.replace('rvv-miniputt-desktop-backend = "tournament_scheduler.desktop_server:main"\n', '')
+          p.write_text(text, encoding='utf-8')
+
+          p = Path('Makefile'); text = p.read_text(encoding='utf-8')
+          for line in ['PACKAGE_BACKEND_SH ?= $(ROOT_DIR)/scripts/package-desktop-backend.sh\n','PACKAGE_BACKEND_PS1 ?= $(ROOT_DIR)/scripts/package-desktop-backend.ps1\n','NPM ?= npm\n','POWERSHELL ?= powershell\n']:
+              text = text.replace(line, '')
+          text = text.replace('\tdesktop-start desktop-clean build-mac build-windows build-linux release-dry-run release','\trelease-dry-run release')
+          text = text.replace('\t@echo "Desktop, cleanup, and guarded release:"\n','\t@echo "Guarded release:"\n')
+          for line in ['\t@echo "  make desktop-start                 Start desktop supervisor prototype"\n','\t@echo "  make desktop-clean                 Bounded desktop build cleanup"\n','\t@echo "  make build-mac                     Build macOS .dmg/.zip"\n','\t@echo "  make build-windows                 Build Windows installer"\n','\t@echo "  make build-linux                   Build Linux AppImage"\n']:
+              text = text.replace(line, '')
+          text = text.replace('\t@echo "release, and cleanup paths retain explicit target-specific safeguards."','\t@echo "release paths retain explicit target-specific safeguards."')
+          text = re.sub(r'\ndesktop-start:\n.*?(?=\nrelease-dry-run:)', '\n', text, flags=re.S)
+          p.write_text(text, encoding='utf-8')
+
+          p = Path('scripts/check'); text = p.read_text(encoding='utf-8')
+          text = text.replace('  desktop-backend    desktop backend API smoke test\n','').replace('  desktop-packaging  desktop packaging config validation\n','')
+          text = re.sub(r'\n    desktop-backend\)\n.*?      ;;','',text,count=1,flags=re.S)
+          text = re.sub(r'\n    desktop-packaging\)\n.*?      ;;','',text,count=1,flags=re.S)
+          text = text.replace('local phases=(dependency-lock quick operator reproducibility cli-smoke desktop-backend desktop-packaging rules-report)','local phases=(dependency-lock quick operator reproducibility cli-smoke rules-report)')
+          p.write_text(text, encoding='utf-8')
+
+          p = Path('scripts/release'); text = p.read_text(encoding='utf-8')
+          text = text.replace('desktop_version=$(read_version apps/desktop/package.json version)\n','')
+          text = re.sub(r'if \[\[ "\$desktop_version" != "\$VERSION" \]\]; then\n  echo "ERROR: apps/desktop/package.json version \$desktop_version does not match \$TAG" >&2\n  exit 2\nfi\n','',text,count=1)
+          p.write_text(text, encoding='utf-8')
+
+          remove_lines('tests/test_makefile_operator_interface.py',['"desktop-start",','"desktop-clean",','"build-mac",','"build-windows",','"build-linux",'])
+          p = Path('tests/test_makefile_operator_interface.py'); text = p.read_text(encoding='utf-8')
+          text = text.replace('["dependency-lock", "quick", "operator", "reproducibility", "cli-smoke", "desktop-backend", "desktop-packaging"]','["dependency-lock", "quick", "operator", "reproducibility", "cli-smoke"]')
+          p.write_text(text, encoding='utf-8')
+
+          p = Path('tests/test_dependency_lock_workflow.py'); text = p.read_text(encoding='utf-8')
+          text = text.replace('    assert "keyring==" in lock\n','    assert "keyring==" not in lock\n').replace('    assert "pyinstaller==" in lock\n','    assert "pyinstaller==" not in lock\n')
+          text = re.sub(r'def test_operator_install_and_packaging_install_from_lock_without_resolving_deps\(\):\n.*?\n\ndef test_ci_installs_locked_dependencies_and_has_lock_freshness_job','''def test_operator_install_uses_lock_without_resolving_deps():\n    install = _read("scripts/install.sh")\n    assert "requirements.lock" in install\n    assert "--require-hashes" in install\n    assert "--no-deps" in install\n    assert "pip install -r requirements.txt" not in install\n\n\ndef test_ci_installs_locked_dependencies_and_has_lock_freshness_job''',text,count=1,flags=re.S)
+          text = text.replace('def test_docs_describe_locked_operator_ci_and_desktop_handling():','def test_docs_describe_locked_operator_and_ci_handling():').replace('        "desktop packaging tools",\n','')
+          p.write_text(text, encoding='utf-8')
+
+          p = Path('tests/test_application_architecture.py'); p.write_text(p.read_text(encoding='utf-8').replace('    "tournament_scheduler.desktop_server",\n',''), encoding='utf-8')
+          p = Path('tests/test_ownership_handover_doc.py'); p.write_text(p.read_text(encoding='utf-8').replace('        "Release signing/notarization identities",\n',''), encoding='utf-8')
+          remove_lines('README.md',['| `apps/desktop/` |'])
+
+          p = Path('docs/rvv-miniputt-pipeline.md'); text = '\n'.join(line for line in p.read_text(encoding='utf-8').splitlines() if not line.startswith('| Desktop app |')) + '\n'; p.write_text(text, encoding='utf-8')
+          p = Path('docs/application-architecture.md'); p.write_text(p.read_text(encoding='utf-8').replace('as CLI, desktop HTTP, Pi/Claude harness commands, and GitHub Actions should call','as CLI, Pi/Claude harness commands, and GitHub Actions should call'), encoding='utf-8')
+          p = Path('docs/ownership-and-handover.md'); p.write_text('\n'.join(line for line in p.read_text(encoding='utf-8').splitlines() if 'Release signing/notarization identities' not in line) + '\n', encoding='utf-8')
+
+          p = Path('docs/ci.md'); text = p.read_text(encoding='utf-8')
+          text = text.replace('evidence of test/reproducibility/packaging health','evidence of test/reproducibility health')
+          text = '\n'.join(line for line in text.splitlines() if 'Desktop backend API smoke test' not in line and 'Desktop packaging config validation' not in line) + '\n'
+          text = re.sub(r'The refresh script uses pip-tools and generates the lock with all optional dependency groups, so test dependencies and desktop packaging tools \(`keyring`, `PyInstaller`, and their transitives\) are pinned alongside runtime dependencies\. Platform/browser assets that are not Python packages, such as Playwright Chromium binaries and Electron/npm dependencies, remain managed by their existing installers/lockfiles\.','The refresh script uses pip-tools and generates the lock with all optional dependency groups, so test dependencies are pinned alongside runtime dependencies. Platform/browser assets that are not Python packages, such as Playwright Chromium binaries, remain managed by their existing installers.',text)
+          text = re.sub(r'- \*\*`\.github/workflows/desktop-build\.yml`\*\* — manual \(`workflow_dispatch`\) or\n  on a push touching desktop-relevant paths; builds a real unsigned macOS\n  app via `electron-builder`\. Slow \(full Electron \+ PyInstaller build\) and\n  consumes meaningfully more Actions minutes, hence optional\.\n','',text)
+          p.write_text(text, encoding='utf-8')
+
+          p = Path('docs/ai-operator-product-direction.md'); text = p.read_text(encoding='utf-8')
+          text = text.replace('This does not rule out a future non-technical desktop product. It means the near-term architecture and product decisions should optimize for reliable agent operation first.','This does not rule out a future non-technical supervisor interface. It means the near-term architecture and product decisions should optimize for reliable agent operation first.')
+          text = text.replace('7. Treat the desktop app as an optional supervisor surface over the same APIs.','7. Treat any future non-technical UI as an optional supervisor surface over the same APIs.')
+          p.write_text(text, encoding='utf-8')
+
+          p = Path('docs/ai-operator-roadmap.md'); text = p.read_text(encoding='utf-8')
+          text = re.sub(r'\n## 7\. Reposition the desktop app as an optional supervisor console\n.*?(?=\n## Suggested delivery order)','',text,count=1,flags=re.S)
+          text = text.replace('7. Desktop supervisor console.\n','').replace('Items three through five make it trustworthy. Items six and seven clarify and broaden the user experience after the core workflow is stable.','Items three through five make it trustworthy. Item six clarifies the user experience after the core workflow is stable.').replace('Once items 1-7 above landed,','Once items 1-6 above landed,').replace(' and `tests/test_desktop_server_escalation.py`','')
+          text = re.sub(r'; desktop API:\n`GET /questions\?all=1`, `POST /questions/promote`','',text)
+          p.write_text(text, encoding='utf-8')
+          PY
+
+          python -m venv /tmp/rvv-pip-tools
+          /tmp/rvv-pip-tools/bin/python -m pip install --quiet --upgrade 'pip<26' 'pip-tools==7.6.0'
+          rm -f requirements.lock
+          PIP_COMPILE_BIN=/tmp/rvv-pip-tools/bin/pip-compile scripts/refresh-python-lock.sh >/dev/null
+
+          git config user.name 'ChatGPT migration split'
+          git config user.email 'noreply@openai.com'
+          git add -A ':!.github/workflows'
+          git commit -m 'Remove retired desktop application'
+          git push origin HEAD:chatgpt/remove-desktop-update-rvv-skill
