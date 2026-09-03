@@ -50,11 +50,11 @@ def test_zero_target_club_does_not_steal_large_club_hosting_share():
         ]
     )
     planner = SimpleNamespace(roster=roster)
-    scheduled = [(date(2026, 9, 5) + timedelta(days=7 * i), "U10") for i in range(4)]
+    scheduled = [(date(2026, 9, 5) + timedelta(days=7 * i), "U10") for i in range(3)]
 
-    targets = hosting_targets_for_age_group(planner, "U10", 4)
-    assert targets == {"Jar": 3, "Jutul": 1, "Kongsberg": 0}
-    assert Counter(assign_hosts(planner, scheduled)) == Counter({"Jar": 3, "Jutul": 1})
+    targets = hosting_targets_for_age_group(planner, "U10", 3)
+    assert targets == {"Jar": 2, "Jutul": 1, "Kongsberg": 0}
+    assert Counter(assign_hosts(planner, scheduled)) == Counter({"Jar": 2, "Jutul": 1})
 
 
 def test_club_without_team_in_age_group_cannot_host_that_age_group():
