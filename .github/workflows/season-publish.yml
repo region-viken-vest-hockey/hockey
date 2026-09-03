@@ -40,6 +40,7 @@ env:
   PYTHON_VERSION: "3.12"
   DOWNLOAD_DIR: .github-approved-bundle
   WORK_DIR: .github-approved-bundle/.pipeline/github-review
+  REGISTRATIONS_PATH: inputs/registrations/registered-teams.csv
 
 jobs:
   publish-approved-bundle:
@@ -85,6 +86,35 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -e '.[test]'
+
+      - name: "Valider gjeldende SharePoint-snapshot"
+        run: python scripts/check-registration-snapshot.py
+
+      - name: "Avvis vurderingspakke bygget med gammel påmeldingssnapshot"
+        env:
+          EXPORT_DIR: ${{ inputs.export_dir }}
+        run: |
+          test -f "$EXPORT_DIR/season_plan_audit.json"
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          registrations = Path(os.environ["REGISTRATIONS_PATH"])
+          audit_path = Path(os.environ["EXPORT_DIR"]) / "season_plan_audit.json"
+          audit = json.loads(audit_path.read_text(encoding="utf-8"))
+          expected = str(audit.get("registrations_sha256", "")).strip()
+          current = hashlib.sha256(registrations.read_bytes()).hexdigest()
+          if not expected:
+              raise SystemExit("Vurderingspakken mangler registrations_sha256; generer en ny vurderingspakke.")
+          if expected != current:
+              raise SystemExit(
+                  "Påmeldte lag er endret etter vurderingen. "
+                  f"Pakke={expected}, gjeldende={current}. Generer og godkjenn planen på nytt."
+              )
+          print(f"Registration snapshot matches approved review bundle: {current}")
+          PY
 
       - name: "Forhåndsvis samme offentlige bunt og kontroller fingeravtrykk"
         env:
