@@ -158,9 +158,9 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
                     "andel hjemmeturneringer. Istiden må planlegges manuelt i "
                     "«Må planlegges manuelt»-visningen."
                 ),
-                # Kept for compatibility with existing renderers/CLI. Nothing
-                # is excluded anymore; missing calendars are manual placement.
-                "excluded_clubs": [],
+                # Legacy key retained for existing consumers; these clubs are
+                # no longer excluded from the actual fairness calculation.
+                "excluded_clubs": missing_calendar_clubs,
                 "manual_calendar_clubs": missing_calendar_clubs,
             }
         )
