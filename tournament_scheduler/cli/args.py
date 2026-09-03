@@ -1239,4 +1239,71 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print candidates as JSON instead of a human-readable comparison",
     )
 
+    # plan — harness-neutral candidate verification/scoring (issue #257)
+    plan = sub.add_parser(
+        "plan",
+        help="Deterministically verify/score a Stage 3 candidate plan, independent of SeasonPlanner",
+    )
+    plan_sub = plan.add_subparsers(dest="plan_command", title="plan commands")
+
+    plan_verify = plan_sub.add_parser(
+        "verify",
+        help="Check a candidate plan against hard planning requirements",
+    )
+    plan_verify.add_argument(
+        "candidate",
+        help="Path to a candidate.json, or a Stage 3 checkpoint file containing a 'plan' key",
+    )
+    plan_verify.add_argument(
+        "--problem",
+        default=None,
+        help="Path to a planning_problem.json for full hard-constraint checks "
+        "(registered teams, calendar validity, participation targets, manual restrictions). "
+        "Without it, only self-consistency checks run.",
+    )
+    plan_verify.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the verification result as JSON instead of a human-readable report",
+    )
+
+    plan_score = plan_sub.add_parser(
+        "score",
+        help="Compute deterministic quality metrics for a candidate plan",
+    )
+    plan_score.add_argument(
+        "candidate",
+        help="Path to a candidate.json, or a Stage 3 checkpoint file containing a 'plan' key",
+    )
+    plan_score.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the score report as JSON instead of a human-readable summary",
+    )
+
+    plan_problem = plan_sub.add_parser(
+        "problem",
+        help="Emit a normalized planning_problem.json from the Stage 1/2 checkpoints",
+    )
+    plan_problem.add_argument(
+        "--work-dir",
+        default=".pipeline",
+        help="Pipeline work directory (default: .pipeline)",
+    )
+    plan_problem.add_argument(
+        "--start-date",
+        default=None,
+        help="Season start date (YYYY-MM-DD); defaults to the Stage 3 checkpoint's plan window",
+    )
+    plan_problem.add_argument(
+        "--end-date",
+        default=None,
+        help="Season end date (YYYY-MM-DD); defaults to the Stage 3 checkpoint's plan window",
+    )
+    plan_problem.add_argument(
+        "--output",
+        default=None,
+        help="Write the planning_problem.json to this path instead of stdout",
+    )
+
     return parser
