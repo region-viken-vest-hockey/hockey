@@ -15,7 +15,7 @@ This skill is the shared policy layer for the RVV Miniputt pipeline. Read [`RUNB
 
 When policy and a harness command disagree, the shared runbook and Python implementation win. Fix the adapter rather than duplicating the rule.
 
-## Harness-neutral entry point
+## Non-Pi / cross-harness usage
 
 Use the repository CLI outside Pi:
 
