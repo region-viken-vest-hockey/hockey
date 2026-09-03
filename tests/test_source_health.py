@@ -114,6 +114,37 @@ class TestComputeSourceHealth:
         assert result.status == "warning"
         assert any("duplikater" in p for p in result.problems)
 
+    def test_parallel_rink_bookings_are_not_duplicate_warnings(self, tmp_path):
+        events = [
+            {
+                "date": "05.09.2026",
+                "datetime": "2026-09-05T09:00:00",
+                "name": "Skien fritidspark KF 09:00-19:00",
+                "location": "Ishockey - bane 1",
+            },
+            {
+                "date": "05.09.2026",
+                "datetime": "2026-09-05T09:00:00",
+                "name": "Skien fritidspark KF 09:00-19:00",
+                "location": "Ishockey - bane 2",
+            },
+        ]
+        _write_scraping_checkpoint(
+            tmp_path,
+            [{
+                "name": "Skien",
+                "event_count": 2,
+                "blocked": False,
+                "events": events,
+                "event_expectation": {"status": "ok"},
+            }],
+        )
+
+        result = compute_source_health(str(tmp_path))[0]
+
+        assert result.status == "ok"
+        assert not any("duplikater" in p for p in result.problems)
+
     def test_stale_cache_beyond_ttl_is_warning(self, tmp_path):
         cache = ScrapedDataCache(work_dir=str(tmp_path))
         cache.write({"sources": {"Tonsberg": {"name": "Tonsberg", "event_count": 5, "scrape_timestamp": "2020-01-01T00:00:00", "events": []}}})

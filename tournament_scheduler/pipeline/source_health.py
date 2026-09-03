@@ -60,11 +60,21 @@ def _format_age(seconds: float | None) -> str:
 
 
 def _duplicate_ratio(events: list[dict[str, Any]]) -> float:
-    """Fraction of *events* that share (date, name) with another entry."""
+    """Fraction of *events* that share the same date/time/name/location key.
+
+    Multi-surface arenas can legitimately have the same booking title and time
+    on two rinks. Include location/resource identity so those parallel bookings
+    are not flagged as duplicate scraper output.
+    """
     if not events:
         return 0.0
     keys = [
-        (str(e.get("date") or e.get("start") or ""), str(e.get("name") or e.get("title") or ""))
+        (
+            str(e.get("date") or e.get("start") or ""),
+            str(e.get("datetime") or e.get("start") or ""),
+            str(e.get("name") or e.get("title") or ""),
+            str(e.get("location") or e.get("resource") or e.get("resourceId") or ""),
+        )
         for e in events
         if isinstance(e, dict)
     ]
@@ -186,9 +196,9 @@ def _source_health_result(
                 "— mulig utfall eller endret sidestruktur."
             )
             suggested_actions.append("Kjør 'rvv-miniputt calendars --refresh' eller sjekk kilden manuelt.")
-        elif expectation_status == "low":
+        elif expectation_status in {"low", "suspicious"}:
             status = "warning"
-            problems.append(str(expectation.get("message") or "Færre hendelser enn forventet for perioden."))
+            problems.append(str(expectation.get("message") or "Kildens kalenderdata ser mistenkelig ut for perioden."))
 
         dup_ratio = _duplicate_ratio(source.get("events") or cache_entry.get("events") or [])
         if dup_ratio > _DUPLICATE_RATIO_WARNING_THRESHOLD:
