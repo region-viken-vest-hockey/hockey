@@ -1,60 +1,29 @@
 ---
 name: "RVV Miniputt: Scrape LLM"
-description: "Scrape a single club's calendar with LLM-guided browser navigation"
+description: "Use Claude browser capability for one RVV recovery target, then return control to Python"
 category: RVV
 ---
 
-Scrape a single club's calendar using LLM-guided browser navigation. Use this for sources that are blocked by deterministic scraping (BookUp SPA, Forumbooking, Sportello, StyledCalendar).
+Read `.agents/skills/rvv/SKILL.md` and `.agents/skills/rvv/RUNBOOK.md` first. They define the shared recovery and BookUp boundaries.
 
-## Rules
-
-- Never run `/rvv-miniputt ...` as a shell command.
-- Use the harness-neutral repo entrypoint:
+Use the repository recovery command for the requested source:
 
 ```bash
 scripts/rvv-miniputt scrape-llm --club "<name>" <user-args>
 ```
 
-- Fallback if the launcher is unavailable:
+This command is capability-gated. If Claude has browser automation available, use it only to recover source data that the deterministic path could not obtain. Do not copy source-readiness policy or maintain a separate list of acceptable missing sources here.
+
+For BookUp/Tønsberg/Sandefjord, normal Lima execution must reuse the saved Playwright auth state under `.pipeline/auth/`. Do not start a new credential/Vipps/SMS flow inside Lima. If the state is absent or expired, follow the macOS-host recovery procedure in the shared runbook.
+
+If browser recovery produces event JSON, return it through the shared recovery bridge, for example:
 
 ```bash
-python3 -m tournament_scheduler.cli.rvv_cli scrape-llm --club "<name>" <user-args>
+cat recovered-events.json | scripts/rvv-miniputt recovery-inject --source "<name>"
+scripts/rvv-miniputt scrape-merge
+scripts/rvv-miniputt run --resume-from 2
 ```
 
-- The portable CLI still needs browser automation to actually scrape.
-  - Pi: available through the extension tool / slash-command path.
-  - Browser-enabled harnesses: only when they provide their own Playwright/browser controller.
-  - Plain terminal or CI: unsupported for live browser navigation; use `scripts/rvv-miniputt recovery-targets` to list blocked sources, recover the event JSON with WebFetch or your own script, then pipe it into `python3 -m tournament_scheduler.cli.rvv_cli recovery-inject --source "<navn>"` and finish with `scripts/rvv-miniputt scrape-merge`.
-- `--club` is required. Must match a source that has an LLM scraper strategy (e.g. `Jar`, `Holmen`, `Jutul`, `Tønsberg`, `Sandefjord`).
-- Results are cached to `.pipeline/cache/scraped_data.json` by default (`--cache-results` is on).
-- After scraping, suggest running `/rvv-miniputt:run --resume-from 3` to replan with the new data.
+The final command deliberately resumes from **Stage 2**, not Stage 3. Python must re-evaluate the complete checkpoint and decide whether planning may continue.
 
-## When to use
-
-Run this after stage 2 reports blocked sources:
-```
-⚠ Jar — blocked
-⚠ Holmen — blocked
-```
-Then scrape each blocked source with this command before resuming from stage 3.
-
-**Sandefjord requires credentials** — set `BOOKUP_EMAIL` and `BOOKUP_PASSWORD` in the environment before running.
-
-## Flags
-
-```
---club <name>           Source name (required)
---work-dir <path>       Pipeline work directory (default: .pipeline)
---export-dir <path>     Export directory for debug screenshots (default: export)
---endpoint <url>        LLM API endpoint (default: http://host.lima.internal:1234)
---model <name>          LLM model name (default: qwen2.5-32b-instruct)
---max-iterations <N>    Max browser interaction cycles (default: 20)
---cache-results         Cache scraped events (default: true)
---debug-screenshots     Save PNG screenshots at each step to export/debug-screenshots/
-```
-
-## Examples
-
-- `scripts/rvv-miniputt scrape-llm --club Jar`
-- `scripts/rvv-miniputt scrape-llm --club Holmen --max-iterations 30`
-- `scripts/rvv-miniputt scrape-llm --club Sandefjord --debug-screenshots`
+If the harness cannot perform browser navigation, report the recovery target and use `scripts/rvv-miniputt recovery-targets` rather than pretending the source was resolved.
