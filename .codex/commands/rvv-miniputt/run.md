@@ -1,28 +1,15 @@
-Run the RVV Miniputt pipeline from this repository.
+# RVV Miniputt: Run
 
-Rules:
-- Never run `/rvv-miniputt ...` as a shell command.
-- Use `scripts/rvv-miniputt run <user-args>`.
-- If that fails because the launcher is unavailable, retry with `python3 -m tournament_scheduler.cli.rvv_cli run <user-args>`.
-- Report the actual command used and summarize the result.
-- Do not reimplement the pipeline by calling `tournament_scheduler.pipeline.stageN_*` modules directly.
-- If stage 2 reports blocked sources, use the scrape-llm command per blocked club, then resume with `--resume-from 3`.
+Read `.agents/skills/rvv/SKILL.md` and `.agents/skills/rvv/RUNBOOK.md` first. They are the canonical shared operating instructions.
 
-Flags:
-```
---input <path>              Input workbook (default: input.xlsx)
---work-dir <path>           Pipeline work directory (default: .pipeline)
---resume-from <N>           Resume from stage N or alias (1-4, config, scraping, planning, export)
---export-dir <path>         Export directory (default: export)
---log-level <level>         info | verbose (default: info)
---force-refresh             Clear calendar cache before stage 2
---non-strict                Continue on blocked sources or warnings
---allow-missing-sources     Treat blocked sources as operator-approved and keep partial results
---timestamped-export        Write exports to a timestamped subfolder
+Run the workflow through the repository CLI:
+
+```bash
+scripts/rvv-miniputt run
 ```
 
-Examples:
-- `scripts/rvv-miniputt run`
-- `scripts/rvv-miniputt run --resume-from 2 --log-level verbose`
-- `scripts/rvv-miniputt run --non-strict --allow-missing-sources`
-- `scripts/rvv-miniputt run --force-refresh`
+Forward any user-supplied run options to that command. Do not invoke Stage 1–4 modules individually and do not duplicate source gating, BookUp authentication/MFA behavior, fairness thresholds, recovery policy, or checkpoint semantics in this harness wrapper.
+
+Use the harness only for capabilities unique to it. If browser recovery produces events, return them to the shared cache/recovery path and rerun Python Stage 2; Python owns the decision to continue planning. Headless Lima runs should reuse the saved BookUp Playwright state from `.pipeline/auth/` rather than starting a new credential/MFA flow.
+
+For diagnosis, inspect `scripts/rvv-miniputt status`, `scripts/rvv-miniputt sources status`, or the canonical `.pipeline/stage*.json` checkpoints as described in the shared runbook.
