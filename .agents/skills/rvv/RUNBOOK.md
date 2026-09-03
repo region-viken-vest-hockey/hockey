@@ -51,7 +51,7 @@ Every other unexpected unresolved calendar source remains blocking unless a huma
 
 ## Recovery contract
 
-Recovery is an attempt to improve Stage 2 data, not a second implementation of Stage 2 validity.
+Recovery is an attempt to improve Stage 2 data, not a second implementation of Stage 2 validity. Python—not Pi—owns the final Stage 2 readiness decision.
 
 1. Run deterministic Python scraping first.
 2. Inspect the Stage 2 checkpoint/recovery targets.
