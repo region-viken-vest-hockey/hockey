@@ -18,6 +18,8 @@ export function parseRunArgs(args: unknown): RunArgs {
     else if (t === "--force-refresh") result.force_refresh = true;
     else if (t === "--non-strict") result.non_strict = true;
     else if (t === "--allow-missing-sources") result.allow_missing_sources = true;
+    else if (t === "--manual-bookup-login") result.manual_bookup_login = true;
+    else if (t === "--manual-bookup-login-timeout" && i + 1 < tokens.length) result.manual_bookup_login_timeout = parseInt(tokens[++i], 10);
     else if (t === "--no-timestamped-export") result.timestamped_export = false;
     else if (t === "--iterations" && i + 1 < tokens.length) result.iterations = parseInt(tokens[++i], 10);
   }
@@ -67,6 +69,8 @@ export function parseScrapeArgs(args: unknown): ScrapeArgs {
     const t = tokens[i];
     if (t === "--club" && i + 1 < tokens.length) result.club = tokens[++i];
     else if (t === "--work-dir" && i + 1 < tokens.length) result.work_dir = tokens[++i];
+    else if (t === "--manual-bookup-login") result.manual_bookup_login = true;
+    else if (t === "--manual-bookup-login-timeout" && i + 1 < tokens.length) result.manual_bookup_login_timeout = parseInt(tokens[++i], 10);
   }
   return result;
 }

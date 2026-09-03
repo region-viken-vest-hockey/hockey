@@ -8,6 +8,7 @@ and writes three output files:
 - ``<export_dir>/season_plan.csv``    — flat game CSV + ``_overview.csv`` via :class:`CsvExporter`
 - ``<export_dir>/season_plan.html``   — interactive HTML overview via :class:`~tournament_scheduler.html.html_exporter.HtmlExporter`
 - ``<export_dir>/season_plan_report.html``   — companion diagnostics report with fairness / travel / hosting summaries
+- ``<export_dir>/manual_schedule.html``   — “Må planlegges manuelt” view listing hall time that must be booked/verified by hand: tournaments that could not be placed without an arena/sequence collision, plus tournaments hosted by clubs whose calendar could not be scraped (provisional start times). Only written when such items exist; they no longer block the export
 - ``<export_dir>/season_plan_spond_games.xlsx`` — printable tournament-by-tournament schedule attachment for Spond
 - ``<export_dir>/review_packets/`` — per-club approval folders with review workbook, Spond import, schedule attachment, and response template
 
@@ -16,6 +17,7 @@ File paths are written to the Stage 4 checkpoint.
 
 from __future__ import annotations
 
+import html as _html
 import logging
 import os
 import re
@@ -26,12 +28,14 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ..models import Game, Roster, SeasonPlan, Team, Tournament
+from ..models import SeasonPlan
 from ..arena_conflicts import find_arena_interval_collisions
 from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter
 from ..csv.csv_exporter import CsvExporter
 from ..html.html_exporter import HtmlExporter
+from ..html.data_computation import ICON_BAR_CHART, ICON_CALENDAR, ICON_CLIPBOARD, ICON_USERS, ICON_WARNING, fmt_date, season_label
+from ..html.templates import STYLES_CSS
 from ..review.review_packet_exporter import ReviewPacketExporter
 from ..spond.spond_exporter import SpondExporter
 from .stage1_config import load_effective_config
@@ -93,6 +97,9 @@ def _resolve_build_timestamp(build_timestamp: str | int | float | datetime | Non
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=timezone.utc)
     return moment.astimezone(timezone.utc).replace(microsecond=0)
+
+
+MANUAL_SCHEDULE_FILENAME = "manual_schedule.html"
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +239,180 @@ def _write_not_started_exports(primary_export_path: Path, basename: str, message
     return output_files
 
 
+def _manual_schedule_html(
+    plan: SeasonPlan,
+    *,
+    manual_entries: list[dict[str, str]] | None = None,
+    generated_at: str = "",
+    input_path: str = "",
+    date_range: str = "",
+    source_count: int = 0,
+    event_count: int = 0,
+    blocked: list[str] | None = None,
+    scrape_age: str = "",
+    calendars_href: str = "",
+    season_plan_href: str = "",
+    report_href: str = "",
+    input_href: str = "",
+) -> str:
+    """Render the dedicated “Må planlegges manuelt” page.
+
+    Lists everything that cannot be treated as auto-confirmed hall time:
+
+    - tournaments that ended up with a same-arena/sequence overflow collision
+      during host/time assignment (the auto-planner already tried to shift
+      them; hall time must be booked by hand or the plan re-run), and
+    - tournaments hosted by clubs whose calendar source could not be scraped
+      (they still receive their share of home tournaments, but the assigned
+      start time is provisional — the istid must be booked/verified manually).
+
+    Each entry carries a ``type`` (Grunn) so the arena scheduler can see why
+    it must act.
+    """
+    from ..html.data_computation import canonical_rvv_club_name
+
+    entries = sorted(
+        list(manual_entries or []),
+        key=lambda c: (c.get("date", ""), c.get("arena", ""), c.get("tournament_id", "")),
+    )
+    rows: list[str] = []
+    for idx, c in enumerate(entries, start=1):
+        arena = str(c.get("arena", "") or "")
+        raw_host = str(c.get("host_club", "") or "")
+        host = canonical_rvv_club_name(raw_host) if raw_host else ""
+        if not host or host == "-":
+            host = raw_host or arena or "?"
+        tournament_id = str(c.get("tournament_id", "") or "")
+        age_group = str(c.get("age_group", "") or "")
+        date_val = str(c.get("date", "") or "")
+        interval = str(c.get("interval", "") or "")
+        if not interval and date_val:
+            try:
+                from datetime import date as _date
+                interval = fmt_date(_date.fromisoformat(date_val)) or date_val
+            except ValueError:
+                interval = date_val
+        entry_type = str(c.get("type", "") or "Arena-/tidskollisjon")
+        conflict_id = str(c.get("conflicting_tournament_id", "") or "")
+        conflict_ag = str(c.get("conflicting_age_group", "") or "")
+        conflict_interval = str(c.get("conflicting_interval", "") or "")
+        detail = str(c.get("message", "") or "")
+        if not detail:
+            detail = f"{interval} kolliderer med {conflict_interval}" if conflict_interval else interval
+        conflict_cell = " ".join(part for part in (conflict_id, conflict_ag, conflict_interval) if part) or "-"
+        rows.append(
+            "<tr>"
+            f"<td class=\"numeric-cell\">{idx}</td>"
+            f"<td>{_html.escape(tournament_id)}</td>"
+            f"<td>{_html.escape(date_val)}</td>"
+            f"<td><strong>{_html.escape(age_group)}</strong></td>"
+            f"<td>{_html.escape(host)}</td>"
+            f"<td>{_html.escape(arena)}</td>"
+            f"<td>{_html.escape(interval)}</td>"
+            f"<td>{_html.escape(entry_type)}</td>"
+            f"<td>{_html.escape(conflict_cell)}</td>"
+            f"<td>{_html.escape(detail)}</td>"
+            "</tr>"
+        )
+    if not rows:
+        rows.append('<tr><td colspan=\"10\" class=\"empty-cell\">Ingen turneringer trenger manuell planlegging.</td></tr>')
+
+    rows_html = "".join(rows)
+
+    def _nav_link(href: str, label: str, icon: str, active: bool = False) -> str:
+        cls = "active" if active else ""
+        return f'<a href="{_html.escape(href)}" class="{cls}"><span class="nav-icon">{icon}</span> {_html.escape(label)}</a>'
+
+    calendar_nav = _nav_link(calendars_href, "Skrapede kalendere", ICON_CALENDAR) if calendars_href else ""
+    season_plan_nav = (
+        _nav_link(season_plan_href, "Sesongplan", ICON_CLIPBOARD) if season_plan_href else ""
+    )
+    report_nav = _nav_link(report_href, "Rapport", ICON_BAR_CHART) if report_href else ""
+    input_nav = _nav_link(input_href, "Påmeldte lag", ICON_USERS) if input_href else ""
+
+    scrape_meta_parts: list[str] = []
+    if source_count:
+        scrape_meta_parts.append(f"{source_count} kilder")
+    if event_count:
+        scrape_meta_parts.append(f"{event_count} hendelser")
+    if scrape_age:
+        scrape_meta_parts.append(f"Data: {scrape_age}")
+    scrape_meta = " &middot; ".join(scrape_meta_parts)
+    if scrape_meta:
+        scrape_meta = f'<span class="meta-nav">{scrape_meta}</span>'
+
+    subtitle = "RVV Hockey &mdash; manuelt behov"
+    if season_label(plan):
+        subtitle = f"{_html.escape(season_label(plan))} &mdash; manuelt behov"
+
+    extra_note = ""
+    if blocked:
+        names = ", ".join(str(item) for item in blocked)
+        extra_note = (
+            '<div class="report-action report-action--warn"><strong>Datagrunnlag</strong>'
+            f"<p>{_html.escape(names)} var utilgjengelig under skraping; husk å følge opp manuelt.</p></div>"
+        )
+
+    hidden_parts: list[str] = []
+    if date_range:
+        hidden_parts.append(f"Periode: {date_range}")
+    if generated_at:
+        hidden_parts.append(f"Generert: {generated_at}")
+    if input_path:
+        hidden_parts.append(f"Input: {input_path}")
+
+    return """<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Må planlegges manuelt — RVV Hockey</title>
+<style>
+""" + STYLES_CSS + """
+</style>
+</head>
+<body>
+<script>if (window.self !== window.top) { document.documentElement.classList.add('rvv-embedded'); }</script>
+<div class="navbar">
+  <span class="brand">RVV Miniputt</span>
+  """ + calendar_nav + season_plan_nav + report_nav + input_nav + scrape_meta + """
+</div>
+<div class="app">
+  <header class="header-main">
+    <div class="header-icon">""" + ICON_WARNING + """</div>
+    <div class="header-text"><h1>Må planlegges manuelt</h1><p>""" + subtitle + """</p></div>
+  </header>
+  <div class="report-overview" id="reportOverview">
+    <div class="report-hero report-hero--warn">
+      <div>
+        <p class="eyebrow">Istidsplanlegging</p>
+        <h2>Turneringer som må settes inn i ishall-kalenderen manuelt</h2>
+        <p class="report-hero-note">""" + str(len(entries)) + """ turnering(er) krever manuell istidsplanlegging: enten fordi auto-planen ikke fant en kollisjonsfri plass, eller fordi vertsklubbens kalender ikke kunne skrapes (da er starttiden foreløpig og må bookes/verifiseres for hånd). Turneringene ligger i sesongplanen, men istiden er ikke endelig før den er booket.</p>
+      </div>
+      <span class="report-status-pill report-status-pill--warn">MANUELL OPPFØLGING · """ + str(len(entries)) + """ stk</span>
+    </div>
+    <section class="report-section report-section--priority" id="priorityActions">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Viktigst først</p>
+          <h2>Hvem må gjøre hva?</h2>
+        </div>
+        <p class="section-note">Kontakt vertsklubbens ishall-/timeansvarlige for disse datoene.</p>
+      </div>
+      <div class="report-action-list">
+        """ + extra_note + """
+      </div>
+    </section>
+    <div class="table-wrap"><table class="report-table"><thead><tr>
+      <th>#</th><th>Turnering</th><th>Dato</th><th>Aldersgruppe</th><th>Vert</th><th>Arena</th><th>Intervall</th><th>Grunn</th><th>Konflikt med</th><th>Detaljer</th>
+    </tr></thead><tbody>""" + rows_html + """</tbody></table></div>
+    <p class="report-hidden-context" aria-hidden="true">""" + _html.escape(" · ".join(hidden_parts)) + """</p>
+  </div>
+</div>
+</body>
+</html>
+"""
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -323,21 +504,60 @@ def run(
 
     round_length_for_age_group: dict[str, int] = dict(effective_config.get("round_length_minutes", {}))
     derived_collisions = find_arena_interval_collisions(plan.tournaments, round_length_for_age_group)
-    hard_collisions = derived_collisions or list(plan.arena_day_collisions or [])
-    if hard_collisions:
-        plan.arena_day_collisions = hard_collisions
-        first = hard_collisions[0]
-        detail = first.get("message") if isinstance(first, dict) else str(first)
-        reason = f"Hard scheduling conflict blocks export: {detail}"
-        state.write_stage(
-            StageName.EXPORT,
-            {"errors": [reason], "arena_day_collisions": hard_collisions},
-            status=StageStatus.FAILED,
+    stored_collisions = derived_collisions or list(plan.arena_day_collisions or [])
+    # Enrich planner-stored collision dicts with the host club from the plan
+    # (they may omit it) so the manual view can name who must act.
+    host_by_tournament_id = {
+        tournament.id: tournament.host_club for tournament in plan.tournaments if tournament.host_club
+    }
+    collision_entries: list[dict[str, str]] = []
+    for collision in stored_collisions:
+        item = dict(collision)
+        if not item.get("host_club"):
+            item["host_club"] = host_by_tournament_id.get(str(item.get("tournament_id", "")))
+        item["type"] = item.get("type", "Arena-/tidskollisjon")
+        collision_entries.append(item)
+    # Clubs whose calendar source could not be scraped still receive their
+    # proportional share of home tournaments; those tournaments are marked on
+    # the plan (Tournament.manual_booking_reason) because the auto-assigned
+    # start time cannot be validated against the real hall calendar — the istid
+    # must be booked/verified by hand. Surface them in the same manual view.
+    manual_host_entries: list[dict[str, str]] = []
+    for tournament in plan.tournaments:
+        if not tournament.manual_booking_reason:
+            continue
+        interval = tournament.start_time or tournament.date.isoformat()
+        manual_host_entries.append(
+            {
+                "type": "Kalender utilgjengelig — istid må bookes manuelt",
+                "date": tournament.date.isoformat(),
+                "arena": tournament.arena,
+                "host_club": tournament.host_club or "",
+                "age_group": tournament.age_group,
+                "tournament_id": tournament.id,
+                "interval": interval,
+                "conflicting_tournament_id": "",
+                "conflicting_age_group": "",
+                "conflicting_interval": "",
+                "message": tournament.manual_booking_reason,
+            }
         )
-        if strict:
-            raise Stage4Error(reason)
-        return {"errors": [reason], "arena_day_collisions": hard_collisions}
-
+    manual_entries = collision_entries + manual_host_entries
+    if collision_entries:
+        plan.arena_day_collisions = collision_entries
+        first = collision_entries[0]
+        detail = first.get("message") if isinstance(first, dict) else str(first)
+        logger.warning(
+            "%d arena-/dagskollisjon(er) krever manuell oppfølging (eksport fortsetter): %s",
+            len(collision_entries),
+            detail,
+        )
+    if manual_host_entries:
+        logger.warning(
+            "%d turnering(er) hos klubb(er) uten tilgjengelig kalender er merket for manuell istidsbooking: %s",
+            len(manual_host_entries),
+            ", ".join(sorted({str(e.get("host_club", "")) for e in manual_host_entries})),
+        )
     configured_age_groups = list(dict.fromkeys(effective_config.get("age_groups", [])))
     if not configured_age_groups and not effective_config.get("age_groups_from_input", False):
         configured_age_groups = sorted({t.age_group for t in plan.tournaments})
@@ -376,112 +596,118 @@ def run(
     except Exception as exc:  # noqa: BLE001
         errors.append(f"CSV-eksport feilet: {exc}")
 
-    # --- HTML ---
+    # --- HTML export + manual-schedule view ---
+    # Shared metadata is prepared up front so both the season-plan/report pages and
+    # the manual-schedule view (written when collisions or calendar-less hosts
+    # remain) can use it.
+    html_path = str(primary_export_path / f"{basename}.html")
+    pipeline_meta: dict[str, Any] = {
+        "generated_at": generated_at,
+        "input_path": input_path,
+        "input_file": Path(input_path).name,
+    }
+    meta: dict[str, Any] | None = None
+    _scrape_cache_data: dict[str, Any] = {}
+    _calendars_path: str | None = None
+    _input_html_path: str | None = None
+    try:
+        _progress("Samler pipeline-metadata for rapporten")
+        scraping_envelope = state.read_envelope(StageName.SCRAPING)
+    except Exception as exc:
+        logger.warning("Kunne ikke lese scraping-checkpoint for rapporten: %s", exc)
+        scraping_envelope = None
+    scraping_ckpt = scraping_envelope.get("data", {}) if scraping_envelope else None
+    if scraping_ckpt and isinstance(scraping_ckpt, dict):
+        # read_envelope() returns the full wrapper so updated_at is accessible at top level
+        sources = scraping_ckpt.get("sources", [])
+        pipeline_meta["source_count"] = len(sources)
+        pipeline_meta["total_events"] = sum(s.get("event_count", 0) for s in sources)
+        pipeline_meta["blocked"] = scraping_ckpt.get("blocked", [])
+        pipeline_meta["date_range"] = (
+            f"{effective_config.get('start_date', '')} &ndash; {effective_config.get('end_date', '')}"
+        )
+        pipeline_meta["age_groups"] = configured_age_groups
+        updated = scraping_envelope.get("updated_at", "") if scraping_envelope else ""
+        if updated:
+            pipeline_meta["scrape_updated_at"] = updated
+            from datetime import datetime as _dt, timezone as _tz
+            try:
+                delta = _dt.now(tz=_tz.utc) - _dt.fromisoformat(updated)
+                if delta.total_seconds() < 3600:
+                    pipeline_meta["scrape_age"] = f"{int(delta.total_seconds() // 60)}m siden"
+                elif delta.days < 1:
+                    pipeline_meta["scrape_age"] = f"{int(delta.total_seconds() // 3600)}t siden"
+                else:
+                    pipeline_meta["scrape_age"] = f"{delta.days}d siden"
+            except Exception as exc:
+                logger.warning(
+                    "Kunne ikke tolke updated_at='%s' i scraping-checkpoint: %s",
+                    updated,
+                    exc,
+                )
+    # Scrape metadata from cache for navbar
+    try:
+        from .cache_manager import ScrapedDataCache
+        _scrape_cache_data = ScrapedDataCache(state.work_dir).read()
+        meta = _scrape_cache_data.get("_meta")
+    except Exception as exc:
+        logger.warning("Kunne ikke lese scrape-cache for rapporten: %s", exc)
+    # --- Input viewer (input.html) — public overview of registered clubs/teams ---
+    # Generated before the calendar viewer so calendars.html's navbar can link to it.
+    # Only the whitelisted "Lag" worksheet is read (see input_workbook.PUBLIC_SHEET_WHITELIST).
+    # Only generated when Stage 1 actually recorded an input workbook path that exists on
+    # disk — deliberately not the "input.xlsx" fallback default used for cosmetic display
+    # elsewhere in this function, so callers that skip Stage 1 (e.g. most stage4 tests, or
+    # a plan built directly) never accidentally pick up an unrelated input.xlsx from cwd.
+    _configured_input_path = effective_config.get("input_path")
+    if _configured_input_path and os.path.exists(_configured_input_path):
+        try:
+            _progress("Genererer oversikt over påmeldte lag")
+            _generate_input_html(
+                input_path=_configured_input_path,
+                export_dir=str(primary_export_path),
+            )
+            _input_html_path = str(primary_export_path / "input.html")
+            output_files["input_html"] = _input_html_path
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Input-visning feilet: {exc}")
+
+        try:
+            start_year = None
+            start_date_value = effective_config.get("start_date")
+            if isinstance(start_date_value, str) and len(start_date_value) >= 4:
+                start_year = int(start_date_value[:4])
+            _progress("Genererer aktivitetskalender")
+            activity_files = _generate_activity_artifacts(
+                input_path=_configured_input_path,
+                export_dir=str(primary_export_path),
+                default_year=start_year,
+                generated_at=generated_at,
+            )
+            if activity_files:
+                output_files.update(activity_files)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Aktivitetskalender feilet: {exc}")
+    # --- Calendar viewer (calendars.html) ---
+    # Generate before HtmlExporter so calendars_path can be passed in and the navbar can link to it.
+    # Only generate when scrape data exists — without it the file would be empty and the navbar link would be broken.
+    # total_events/source_count are top-level keys in the cache, not inside _meta.
+    if _scrape_cache_data.get("total_events", 0) > 0 or _scrape_cache_data.get("source_count", 0) > 0:
+        try:
+            _progress("Genererer kalenderoversikt")
+            _generate_calendars_html(
+                work_dir=str(state.work_dir),
+                export_dir=str(primary_export_path),
+            )
+            _calendars_path = str(primary_export_path / "calendars.html")
+            output_files["calendars_html"] = _calendars_path
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Kalendervisning feilet: {exc}")
+
+    # --- Main HTML pages (season_plan.html + season_plan_report.html) ---
+    _manual_schedule_path: str | None = None
     try:
         _progress("Genererer HTML-rapport")
-        html_path = str(primary_export_path / f"{basename}.html")
-        # Collect pipeline metadata for metrics section
-        pipeline_meta: dict[str, Any] = {
-            "generated_at": generated_at,
-            "input_path": input_path,
-            "input_file": Path(input_path).name,
-        }
-        try:
-            scraping_envelope = state.read_envelope(StageName.SCRAPING)
-        except Exception as exc:
-            logger.warning("Kunne ikke lese scraping-checkpoint for rapporten: %s", exc)
-            scraping_envelope = None
-        scraping_ckpt = scraping_envelope.get("data", {}) if scraping_envelope else None
-        if scraping_ckpt and isinstance(scraping_ckpt, dict):
-            # read_envelope() returns the full wrapper so updated_at is accessible at top level
-            sources = scraping_ckpt.get("sources", [])
-            pipeline_meta["source_count"] = len(sources)
-            pipeline_meta["total_events"] = sum(s.get("event_count", 0) for s in sources)
-            pipeline_meta["blocked"] = scraping_ckpt.get("blocked", [])
-            pipeline_meta["date_range"] = (
-                f"{effective_config.get('start_date', '')} &ndash; {effective_config.get('end_date', '')}"
-            )
-            pipeline_meta["age_groups"] = configured_age_groups
-            updated = scraping_envelope.get("updated_at", "") if scraping_envelope else ""
-            if updated:
-                pipeline_meta["scrape_updated_at"] = updated
-                from datetime import datetime as _dt, timezone as _tz
-                try:
-                    delta = _dt.now(tz=_tz.utc) - _dt.fromisoformat(updated)
-                    if delta.total_seconds() < 3600:
-                        pipeline_meta["scrape_age"] = f"{int(delta.total_seconds() // 60)}m siden"
-                    elif delta.days < 1:
-                        pipeline_meta["scrape_age"] = f"{int(delta.total_seconds() // 3600)}t siden"
-                    else:
-                        pipeline_meta["scrape_age"] = f"{delta.days}d siden"
-                except Exception as exc:
-                    logger.warning(
-                        "Kunne ikke tolke updated_at='%s' i scraping-checkpoint: %s",
-                        updated,
-                        exc,
-                    )
-        # Scrape metadata from cache for navbar
-        meta = None
-        _scrape_cache_data: dict[str, Any] = {}
-        try:
-            from .cache_manager import ScrapedDataCache
-            _scrape_cache_data = ScrapedDataCache(state.work_dir).read()
-            meta = _scrape_cache_data.get("_meta")
-        except Exception as exc:
-            logger.warning("Kunne ikke lese scrape-cache for rapporten: %s", exc)
-        # --- Input viewer (input.html) — public overview of registered clubs/teams ---
-        # Generated before the calendar viewer so calendars.html's navbar can link to it.
-        # Only the whitelisted "Lag" worksheet is read (see input_workbook.PUBLIC_SHEET_WHITELIST).
-        # Only generated when Stage 1 actually recorded an input workbook path that exists on
-        # disk — deliberately not the "input.xlsx" fallback default used for cosmetic display
-        # elsewhere in this function, so callers that skip Stage 1 (e.g. most stage4 tests, or
-        # a plan built directly) never accidentally pick up an unrelated input.xlsx from cwd.
-        _configured_input_path = effective_config.get("input_path")
-        _input_html_path: str | None = None
-        if _configured_input_path and os.path.exists(_configured_input_path):
-            try:
-                _progress("Genererer oversikt over påmeldte lag")
-                _generate_input_html(
-                    input_path=_configured_input_path,
-                    export_dir=str(primary_export_path),
-                )
-                _input_html_path = str(primary_export_path / "input.html")
-                output_files["input_html"] = _input_html_path
-            except Exception as exc:  # noqa: BLE001
-                errors.append(f"Input-visning feilet: {exc}")
-
-            try:
-                start_year = None
-                start_date_value = effective_config.get("start_date")
-                if isinstance(start_date_value, str) and len(start_date_value) >= 4:
-                    start_year = int(start_date_value[:4])
-                _progress("Genererer aktivitetskalender")
-                activity_files = _generate_activity_artifacts(
-                    input_path=_configured_input_path,
-                    export_dir=str(primary_export_path),
-                    default_year=start_year,
-                    generated_at=generated_at,
-                )
-                if activity_files:
-                    output_files.update(activity_files)
-            except Exception as exc:  # noqa: BLE001
-                errors.append(f"Aktivitetskalender feilet: {exc}")
-        # --- Calendar viewer (calendars.html) ---
-        # Generate before HtmlExporter so calendars_path can be passed in and the navbar can link to it.
-        # Only generate when scrape data exists — without it the file would be empty and the navbar link would be broken.
-        # total_events/source_count are top-level keys in the cache, not inside _meta.
-        _calendars_path: str | None = None
-        if _scrape_cache_data.get("total_events", 0) > 0 or _scrape_cache_data.get("source_count", 0) > 0:
-            try:
-                _progress("Genererer kalenderoversikt")
-                _generate_calendars_html(
-                    work_dir=str(state.work_dir),
-                    export_dir=str(primary_export_path),
-                )
-                _calendars_path = str(primary_export_path / "calendars.html")
-                output_files["calendars_html"] = _calendars_path
-            except Exception as exc:  # noqa: BLE001
-                errors.append(f"Kalendervisning feilet: {exc}")
         HtmlExporter().export(
             plan,
             html_path,
@@ -496,6 +722,56 @@ def run(
         output_files["html_report"] = str(Path(html_path).with_name(f"{Path(html_path).stem}_report{Path(html_path).suffix}"))
     except Exception as exc:  # noqa: BLE001
         errors.append(f"HTML-eksport feilet: {exc}")
+
+    # --- Manual-schedule view (manual_schedule.html) ---
+    # Anything that cannot be treated as auto-confirmed hall time goes here:
+    # arena/sequence collisions that could not be placed, plus tournaments
+    # hosted by clubs whose calendar could not be scraped (provisional istid).
+    if manual_entries and not errors:
+        try:
+            _progress("Genererer manuell-oppfølgingsvisning")
+            _manual_path = primary_export_path / MANUAL_SCHEDULE_FILENAME
+            manual_html = _manual_schedule_html(
+                plan,
+                manual_entries=manual_entries,
+                generated_at=generated_at,
+                input_path=input_path,
+                date_range=str(pipeline_meta.get("date_range", "")),
+                source_count=int(pipeline_meta.get("source_count", 0)),
+                event_count=int(pipeline_meta.get("total_events", 0)),
+                blocked=pipeline_meta.get("blocked", []),
+                scrape_age=str(pipeline_meta.get("scrape_age", "")),
+                calendars_href="calendars.html" if (_calendars_path and os.path.exists(_calendars_path)) else "",
+                season_plan_href="season_plan.html",
+                report_href="season_plan_report.html",
+                input_href="input.html" if (_input_html_path and os.path.exists(_input_html_path)) else "",
+            )
+            _manual_path.write_text(manual_html, encoding="utf-8")
+            _manual_schedule_path = str(_manual_path)
+            output_files["manual_schedule"] = _manual_schedule_path
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Manuell-oppfølgingsvisning feilet: {exc}")
+
+    # Re-export the season_plan/report pages when the manual view was written so
+    # their navbars pick up the manual-schedule link (the manual page links back).
+    if _manual_schedule_path and not errors:
+        try:
+            _progress("Genererer HTML-rapport med manuell-lenke")
+            HtmlExporter().export(
+                plan,
+                html_path,
+                meta=meta,
+                output_files=output_files,
+                pipeline_meta=pipeline_meta,
+                age_groups=configured_age_groups,
+                calendars_path=_calendars_path,
+                input_html_path=_input_html_path,
+                manual_schedule_path=_manual_schedule_path,
+            )
+            output_files["html"] = html_path
+            output_files["html_report"] = str(Path(html_path).with_name(f"{Path(html_path).stem}_report{Path(html_path).suffix}"))
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"HTML-eksport (manuell-oppfølgingsvisning) feilet: {exc}")
 
     # --- Spond ---
     try:
@@ -543,6 +819,8 @@ def run(
         "input_path": input_path,
         "output_files": output_files,
         "errors": errors,
+        "arena_day_collisions": list(plan.arena_day_collisions or []),
+        "manual_booking_count": len(manual_host_entries),
     }
 
     if errors and strict:

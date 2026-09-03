@@ -48,6 +48,8 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
             d["preferanse_vekt"] = t.preferanse_vekt
         if t.scoring_weight_term != 0.0:
             d["scoring_weight_term"] = t.scoring_weight_term
+        if t.manual_booking_reason:
+            d["manual_booking_reason"] = t.manual_booking_reason
         return d
 
     # Compute per-team tournament participation counts from the tournament list
@@ -257,6 +259,7 @@ def _tournament_from_dict(data: dict[str, Any]) -> Tournament:
         start_time=data.get("start_time"),
         preferanse_vekt=float(data.get("preferanse_vekt", 0.0)),
         scoring_weight_term=float(data.get("scoring_weight_term", 0.0)),
+        manual_booking_reason=data.get("manual_booking_reason"),
     )
 
 

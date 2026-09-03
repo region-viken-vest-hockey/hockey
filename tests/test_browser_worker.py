@@ -134,6 +134,27 @@ class TestDefenseInDepth:
         assert "[REDACTED]" in result
 
 
+class TestBrowserLaunchMode:
+    def test_manual_bookup_login_launches_headed_browser(self, monkeypatch):
+        monkeypatch.setenv("RVV_BOOKUP_MANUAL_LOGIN", "1")
+        page = MagicMock()
+        browser = MagicMock()
+        browser.new_page.return_value = page
+        chromium = MagicMock()
+        chromium.launch.return_value = browser
+        playwright = MagicMock()
+        playwright.chromium = chromium
+        manager = MagicMock()
+        manager.__enter__.return_value = playwright
+
+        with patch("playwright.sync_api.sync_playwright", return_value=manager):
+            worker = BrowserWorker()
+            worker.start()
+
+        chromium.launch.assert_called_once_with(headless=False)
+        page.set_default_timeout.assert_called_once_with(15_000)
+
+
 class TestCmdGotoRetry:
     """Tests for cmd_goto retry timeout behavior."""
 

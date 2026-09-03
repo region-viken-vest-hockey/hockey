@@ -2,8 +2,8 @@
 Browser worker — long-lived Playwright process commanded via stdin/stdout JSON.
 
 The extension launches this as a child process and sends one JSON command per
-line on stdin. Each command is executed against a persistent headless Chromium
-page, and the result is written as one JSON line on stdout.
+line on stdin. Each command is executed against a persistent Chromium page (headless by default;
+headed when `RVV_BOOKUP_MANUAL_LOGIN=1`), and the result is written as one JSON line on stdout.
 
 Commands
 -------
@@ -21,6 +21,9 @@ Commands
 
   {"cmd":"screenshot"}
       Return a base64-encoded PNG of the current viewport.
+
+  {"cmd":"snapshot"}
+      Return the current sanitized page snapshot without taking an action.
 
   {"cmd":"exit"}
       Clean shutdown.
@@ -132,7 +135,7 @@ def _redact_credentials(text: str) -> str:
 
 
 class BrowserWorker:
-    """Manages a headless Chromium page and executes commands against it."""
+    """Manages a Chromium page and executes commands against it."""
 
     def __init__(self) -> None:
         self._page = None
@@ -147,7 +150,10 @@ class BrowserWorker:
 
         self._playwright = sync_playwright()
         p = self._playwright.__enter__()
-        self._browser = p.chromium.launch(headless=True)
+        headed = os.environ.get("RVV_BOOKUP_MANUAL_LOGIN", "").strip().lower() in {
+            "1", "true", "yes", "y", "on"
+        }
+        self._browser = p.chromium.launch(headless=not headed)
         self._page = self._browser.new_page()
         self._page.set_default_timeout(15_000)
 
@@ -284,6 +290,12 @@ class BrowserWorker:
     # ------------------------------------------------------------------
     # Command handlers
     # ------------------------------------------------------------------
+
+    def cmd_snapshot(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Return the current page snapshot without navigating or clicking."""
+        self.start()
+        snap = self._snapshot()
+        return {"ok": True, **snap}
 
     def cmd_goto(self, params: dict[str, Any]) -> dict[str, Any]:
         self.start()
@@ -655,6 +667,8 @@ def main() -> None:
                 resp = worker.cmd_eval(params)
             elif cmd == "screenshot":
                 resp = worker.cmd_screenshot(params)
+            elif cmd == "snapshot":
+                resp = worker.cmd_snapshot(params)
             elif cmd == "type":
                 resp = worker.cmd_type(params)
             elif cmd == "exit":

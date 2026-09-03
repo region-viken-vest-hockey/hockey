@@ -17,6 +17,7 @@ import {
   StageCancelledError,
 } from "./pipeline-helpers";
 import { buildRunSummaryText } from "./log-inspector";
+import { loadBookupEnvFromDotenvx } from "./dotenvx-helpers";
 import type { ProgressEvent } from "./types";
 
 export interface PipelineRunResult {
@@ -125,6 +126,10 @@ export async function runPipeline(rawArgs: unknown, ctx: ExtensionContext, onPro
   lines.push(`Arbeidskatalog: ${workDir}`);
   lines.push(`Input: ${inputPath}`);
   if (resumeFrom > 1) lines.push(`Gjenopptar fra: Trinn ${resumeFrom}`);
+  if (params.manual_bookup_login) {
+    const timeout = typeof params.manual_bookup_login_timeout === "number" ? params.manual_bookup_login_timeout : 300;
+    lines.push(`BookUp manuell innlogging: aktiv (timeout ${timeout}s)`);
+  }
   lines.push("");
   writeRunLogFile(timestampedExportDir, logger.getRunId(), logStart, "running", lines);
 
@@ -220,8 +225,16 @@ export async function runPipeline(rawArgs: unknown, ctx: ExtensionContext, onPro
     let stage2ok = true;
     let stage2error = "";
     try {
+      const loadedBookupEnv = await loadBookupEnvFromDotenvx(cwdPath);
+      if (loadedBookupEnv.length > 0) {
+        flushLine(`BookUp credentials loaded from dotenvx (${loadedBookupEnv.join(", ")})`);
+      }
       const stage2Args = [...baseArgs, "--non-strict"];
       if (params.force_refresh) stage2Args.push("--force-refresh");
+      if (params.manual_bookup_login) stage2Args.push("--manual-bookup-login");
+      if (typeof params.manual_bookup_login_timeout === "number" && Number.isFinite(params.manual_bookup_login_timeout)) {
+        stage2Args.push("--manual-bookup-login-timeout", String(params.manual_bookup_login_timeout));
+      }
       const { stdout, stderr } = await runStage(
         cwdPath,
         "tournament_scheduler.pipeline.stage2_scraping",
@@ -271,7 +284,13 @@ export async function runPipeline(rawArgs: unknown, ctx: ExtensionContext, onPro
     if (blocked.length > 0) {
       flushLine(`\nTrinn 2 utvidet: Skraper ${blocked.length} blokkerte kilder med Pi...`);
       onProgress?.({ stage: "scraping-extended", status: "start", message: `Utvidet skraping: ${blocked.length} blokkerte kilder` });
+      const previousManualBookupLogin = process.env.RVV_BOOKUP_MANUAL_LOGIN;
+      const previousManualBookupLoginTimeout = process.env.RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT;
       try {
+        if (params.manual_bookup_login) process.env.RVV_BOOKUP_MANUAL_LOGIN = "1";
+        if (typeof params.manual_bookup_login_timeout === "number" && Number.isFinite(params.manual_bookup_login_timeout)) {
+          process.env.RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT = String(params.manual_bookup_login_timeout);
+        }
         const { ScraperAgent } = await import("./scraper-agent");
         const agent = new ScraperAgent(
           ctx,
@@ -311,6 +330,8 @@ export async function runPipeline(rawArgs: unknown, ctx: ExtensionContext, onPro
             flushLine(`  ${name}: ingen strategi — hopper over`);
             continue;
           }
+
+          await loadBookupEnvFromDotenvx(cwdPath);
 
           // Credential pre-flight: prompt for missing env vars
           const credEnvVars = (strat.credential_env_vars as string[]) ?? [];
@@ -380,6 +401,11 @@ export async function runPipeline(rawArgs: unknown, ctx: ExtensionContext, onPro
         const msg = agentErr instanceof Error ? agentErr.message : String(agentErr);
         lines.push(`ScraperAgent feilet: ${msg}\n`);
         onProgress?.({ stage: "scraping-extended", status: "error", message: `Utvidet skraping feilet: ${msg}` });
+      } finally {
+        if (previousManualBookupLogin === undefined) delete process.env.RVV_BOOKUP_MANUAL_LOGIN;
+        else process.env.RVV_BOOKUP_MANUAL_LOGIN = previousManualBookupLogin;
+        if (previousManualBookupLoginTimeout === undefined) delete process.env.RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT;
+        else process.env.RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT = previousManualBookupLoginTimeout;
       }
     }
 

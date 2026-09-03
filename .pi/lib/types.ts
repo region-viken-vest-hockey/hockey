@@ -11,6 +11,8 @@ export interface RunArgs {
   force_refresh?: boolean;
   non_strict?: boolean;
   allow_missing_sources?: boolean;
+  manual_bookup_login?: boolean;
+  manual_bookup_login_timeout?: number;
   timestamped_export?: boolean;
   iterations?: number;
 }
@@ -27,6 +29,8 @@ export interface CalendarsArgs {
 export interface ScrapeArgs {
   club?: string;
   work_dir?: string;
+  manual_bookup_login?: boolean;
+  manual_bookup_login_timeout?: number;
 }
 
 export interface ScrapeLlmArgs {

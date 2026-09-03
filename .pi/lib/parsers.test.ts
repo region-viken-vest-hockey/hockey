@@ -52,4 +52,11 @@ describe("Parser Functions", () => {
     expect(parseStatusArgs(["--work-dir", ".pipeline"])).toEqual({ work_dir: ".pipeline" });
     expect(parseRunArgs(["--log-level", "verbose"])).toEqual({ log_level: "verbose" });
   });
+
+  test("parseRunArgs handles manual BookUp login flags", () => {
+    expect(parseRunArgs("--manual-bookup-login --manual-bookup-login-timeout 600")).toEqual({
+      manual_bookup_login: true,
+      manual_bookup_login_timeout: 600,
+    });
+  });
 });

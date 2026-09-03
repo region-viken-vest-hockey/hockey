@@ -3,12 +3,15 @@
 Provides :func:`_try_credentialed_scrape` as the entry point, which checks
 environment-variable credentials and delegates to
 :func:`_run_credentialed_bookup_or_outlook` for the Playwright-based login
-flow.
+flow. Set ``RVV_BOOKUP_MANUAL_LOGIN=1`` to open a visible BookUp browser and
+pause for Vipps/SMS MFA when running interactively.
 """
 
 from __future__ import annotations
 
 import os
+import sys
+import time
 from datetime import datetime
 from typing import Any
 
@@ -17,6 +20,95 @@ from ..utils.calendar_cache import CalendarCache
 from .scraper_bookup import _parse_bookup_timegrid
 from .scraper_outlook import _parse_date_param_calendar, _parse_outlook_calendar
 from .scraper_strategies import get_strategy, requires_credentials
+
+
+MANUAL_BOOKUP_LOGIN_ENV = "RVV_BOOKUP_MANUAL_LOGIN"
+MANUAL_BOOKUP_LOGIN_TIMEOUT_ENV = "RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT"
+DEFAULT_MANUAL_BOOKUP_LOGIN_TIMEOUT_SECONDS = 300
+
+
+def _env_truthy(name: str) -> bool:
+    """Return whether *name* is set to a human-friendly truthy value."""
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _manual_bookup_login_enabled() -> bool:
+    """Whether BookUp scraping should open a visible browser and wait for MFA."""
+    return _env_truthy(MANUAL_BOOKUP_LOGIN_ENV) or _env_truthy("BOOKUP_MANUAL_LOGIN")
+
+
+def _manual_bookup_login_timeout_seconds() -> int:
+    """Return the bounded post-login verification wait for manual MFA flow."""
+    raw = os.environ.get(MANUAL_BOOKUP_LOGIN_TIMEOUT_ENV, "").strip()
+    if not raw:
+        return DEFAULT_MANUAL_BOOKUP_LOGIN_TIMEOUT_SECONDS
+    try:
+        return max(15, int(raw))
+    except ValueError:
+        return DEFAULT_MANUAL_BOOKUP_LOGIN_TIMEOUT_SECONDS
+
+
+def _emit_manual_login_status(message: str) -> None:
+    """Print a live status line that Pi's pipeline runner surfaces as progress."""
+    print(f"[heartbeat] {message}", flush=True)
+
+
+def _bookup_calendar_ready(page: Any) -> bool:
+    """Best-effort check that the BookUp page has passed login/MFA."""
+    selectors = (
+        "text=Se tilgjengelighet",
+        ".fc-view-harness",
+        ".fc-timegrid",
+        ".fc-event",
+        ".fc-bgevent",
+    )
+    frames = [page, *list(getattr(page, "frames", []) or [])]
+    for frame in frames:
+        for selector in selectors:
+            try:
+                locator = frame.locator(selector)
+                if locator.count() > 0:
+                    return True
+            except Exception:
+                continue
+    return False
+
+
+def _wait_for_manual_bookup_login(
+    page: Any,
+    source_name: str,
+    timeout_seconds: int | None = None,
+) -> tuple[bool, str]:
+    """Pause a visible BookUp browser so the operator can complete Vipps/SMS MFA.
+
+    In a normal terminal we can wait for Enter. Pi's Stage 2 subprocess does
+    not have stdin attached, so it must return a blocked source quickly; the Pi
+    ScraperAgent then performs the same headed-browser pause via ``ctx.ui``.
+    """
+    timeout = timeout_seconds or _manual_bookup_login_timeout_seconds()
+    if not sys.stdin.isatty():
+        return False, (
+            f"Manuell BookUp-innlogging/MFA for '{source_name}' krever interaktiv stdin. "
+            "I Pi: la kilden bli blokkert og bruk den utvidede ScraperAgent-pauseringen, "
+            "eller kjør kommandoen i en terminal med --manual-bookup-login."
+        )
+
+    _emit_manual_login_status(
+        f"{source_name}: venter på manuell BookUp-innlogging/MFA i synlig nettleser. "
+        "Fullfør Vipps/SMS og trykk Enter her."
+    )
+    try:
+        input(f"{source_name}: fullfør BookUp/Vipps/SMS i nettleseren og trykk Enter for å fortsette... ")
+    except EOFError:
+        return False, f"Manuell BookUp-innlogging/MFA for '{source_name}' manglet interaktiv stdin."
+
+    deadline = time.time() + min(timeout, 30)
+    while time.time() < deadline:
+        if _bookup_calendar_ready(page):
+            break
+        time.sleep(1)
+    _emit_manual_login_status(f"{source_name}: fortsetter etter manuell BookUp-innlogging")
+    return True, ""
 
 
 def _try_credentialed_scrape(
@@ -90,6 +182,7 @@ def _run_credentialed_bookup_or_outlook(
 
     events: list[CalendarEvent] = []
     raw_html: str = ""
+    error_message: str = ""
     norwegian_months = OutlookCalendarScraper(cache).norwegian_months
 
     start_month = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -100,9 +193,16 @@ def _run_credentialed_bookup_or_outlook(
         + 1
     )
 
+    is_bookup = (
+        getattr(strategy, 'engine', None) is not None
+        and getattr(strategy.engine, 'value', '') == 'bookup_spa'
+    )
+    manual_login_requested = is_bookup and _manual_bookup_login_enabled()
+    manual_login = manual_login_requested and sys.stdin.isatty()
+
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=not manual_login)
             page = browser.new_page()
 
             # Navigate to the calendar URL
@@ -120,7 +220,20 @@ def _run_credentialed_bookup_or_outlook(
                 selector = Template(selector_tmpl).safe_substitute(creds)
                 text = Template(text_tmpl).safe_substitute(creds) if text_tmpl else ""
 
-                if cmd == "click" and selector:
+                if cmd == "manual_login":
+                    if manual_login_requested:
+                        ok, manual_error = _wait_for_manual_bookup_login(
+                            page,
+                            name,
+                            timeout_seconds=int(
+                                step.get("timeout_s") or _manual_bookup_login_timeout_seconds()
+                            ),
+                        )
+                        if not ok:
+                            browser.close()
+                            return [], manual_error
+                    continue
+                elif cmd == "click" and selector:
                     try:
                         el = page.locator(selector)
                         if el.count() > 0:
@@ -140,7 +253,6 @@ def _run_credentialed_bookup_or_outlook(
                 page.wait_for_timeout(wait_ms)
 
             # Now run the appropriate scraping loop based on engine
-            is_bookup = getattr(strategy, 'engine', None) is not None and getattr(strategy.engine, 'value', '') == 'bookup_spa'
             if is_bookup:
                 # BookUp SPA: find the app.html iframe and extract FullCalendar events
                 page.wait_for_timeout(5_000)  # Wait for post-login redirect
@@ -177,8 +289,8 @@ def _run_credentialed_bookup_or_outlook(
                 )
 
             browser.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        error_message = f"Credentialed Playwright-feil for '{name}': {exc}"
 
     # Deduplicate
     seen: set[tuple[str, str]] = set()
@@ -189,7 +301,7 @@ def _run_credentialed_bookup_or_outlook(
             seen.add(key)
             unique.append(ev)
 
-    return unique, raw_html
+    return unique, error_message or raw_html
 
 
 def _credentialed_scrape_months(

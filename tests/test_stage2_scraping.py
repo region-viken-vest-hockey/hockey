@@ -8,6 +8,10 @@ import pytest
 from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
 from tournament_scheduler.pipeline.scraper_brp_exigo import _parse_brp_exigo_day
 from tournament_scheduler.pipeline.scraper_forumbooking import _parse_forumbooking_schedule
+from tournament_scheduler.pipeline.scraper_credentialed import (
+    _manual_bookup_login_enabled,
+    _wait_for_manual_bookup_login,
+)
 from tournament_scheduler.pipeline.stage2_scraping import (
     SOURCE_GOOGLE,
     SOURCE_ICAL,
@@ -38,6 +42,19 @@ def _make_config_with_sources(sources):
         "teams": [{"club": "Kongsberg", "label": "Kongsberg U10", "age_group": "U10"}],
         "sources": sources,
     }
+
+
+class TestManualBookupLogin:
+    def test_manual_bookup_login_env_flag_is_truthy(self, monkeypatch):
+        monkeypatch.setenv("RVV_BOOKUP_MANUAL_LOGIN", "yes")
+        assert _manual_bookup_login_enabled() is True
+
+    def test_manual_bookup_login_requires_interactive_stdin(self, monkeypatch):
+        monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+        ok, message = _wait_for_manual_bookup_login(MagicMock(), "Tønsberg", timeout_seconds=15)
+
+        assert ok is False
+        assert "interaktiv stdin" in message
 
 
 class TestRunStage2:

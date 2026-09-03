@@ -7,6 +7,7 @@ import { parseStatusArgs, parseLogsArgs, parseCalendarsArgs, parseScrapeArgs, pa
 import { runPipeline, type PipelineRunResult } from "../lib/pipeline-runner";
 import { interactiveGuide } from "../lib/interactive-guide";
 import { LOG_LEVELS } from "../lib/types";
+import { loadBookupEnvFromDotenvx } from "../lib/dotenvx-helpers";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 const DEFAULT_PUBLISH_PLANNER_ITERATIONS = 1;
@@ -54,6 +55,10 @@ function buildScrapeCommandArgs(rawArgs: unknown, cwd: string): string[] {
   const args = ["scrape"];
   if (params.club) args.push("--club", params.club);
   args.push("--work-dir", resolve(cwd, params.work_dir ?? ".pipeline"));
+  if (params.manual_bookup_login) args.push("--manual-bookup-login");
+  if (typeof params.manual_bookup_login_timeout === "number" && Number.isFinite(params.manual_bookup_login_timeout)) {
+    args.push("--manual-bookup-login-timeout", String(params.manual_bookup_login_timeout));
+  }
   return args;
 }
 
@@ -77,6 +82,7 @@ async function runRepoCli(commandArgs: string[], ctx: ExtensionContext, timeout 
   const python = resolve(ctx.cwd, "venv", "bin", "python3");
   const exe = existsSync(python) ? python : "python3";
   try {
+    await loadBookupEnvFromDotenvx(ctx.cwd);
     const { execFile } = await import("node:child_process");
     const { promisify } = await import("node:util");
     const execFileAsync = promisify(execFile);
@@ -338,7 +344,7 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
     ],
     parameters: Type.Object({
       args: Type.Optional(Type.String({
-        description: "Same flags as '/rvv-miniputt run', e.g. '--resume-from 2 --log-level verbose'",
+        description: "Same flags as '/rvv-miniputt run', e.g. '--resume-from 2 --log-level verbose --manual-bookup-login'",
       })),
     }),
     async execute(_toolCallId, params, _signal, onUpdate, ctx) {
@@ -448,7 +454,9 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
       })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const result = await runRepoCli(buildScrapeCommandArgs(params.args ?? "", ctx.cwd), ctx, 120_000);
+      const parsed = parseScrapeArgs(params.args ?? "");
+      const timeout = parsed.manual_bookup_login ? 900_000 : 120_000;
+      const result = await runRepoCli(buildScrapeCommandArgs(params.args ?? "", ctx.cwd), ctx, timeout);
       return { content: [{ type: "text", text: result.text }], details: result };
     },
   });

@@ -70,7 +70,8 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "regel": f"Buffer mellom turneringer i samme hall-dag: {planner.ARENA_DAY_SEQUENCE_BUFFER_MINUTES} min",
             "forklaring": (
                 f"Når flere turneringer havner i samme arena samme dag, legges det inn {planner.ARENA_DAY_SEQUENCE_BUFFER_MINUTES} minutter buffer mellom starttidene. "
-                "Dersom sekvensen ikke får plass innen siste gyldige starttid, registreres dette som en hard arenakollisjon i stedet for å klemme starttiden tilbake."
+                "Dersom sekvensen ikke får plass innen siste gyldige starttid, registreres dette som en hard arenakollisjon i stedet for å klemme starttiden tilbake. "
+                "Turneringen havner da i «Må planlegges manuelt»-visningen (manual_schedule.html) for manuell istidsplanlegging."
             ),
             "kategori": "Konfigurasjonsstandard",
         },
@@ -164,7 +165,9 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "forklaring": (
                 "Hver turnering reserverer et fullt dato-/tidsintervall i arenaen, inkludert setup-/byttebuffer per runde og intervaller som går over midnatt. "
                 "Senere plasseringer sjekkes mot både skrapede hallbookinger og turneringer som allerede er lagt inn i planen. "
-                "Enhver overlappende intervallkollisjon i samme arena er en hard feil i fairness-gaten og blokkerer eksport/publisering."
+                "Enhver overlappende intervallkollisjon i samme arena rapporteres i fairness-gaten og i den dedikerte "
+                "«Må planlegges manuelt»-visningen (manual_schedule.html). Eksporten fullføres likevel — ishall-kalenderen "
+                "bookes uansett manuelt — og kollisjonene må løses av vertsklubben før turneringen er endelig."
             ),
             "kategori": "Hard krav",
         },
@@ -232,7 +235,9 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "regel": "Arena-intervallkollisjoner",
             "forklaring": (
                 "Kjører en hard validering av fullstendige start-/sluttintervaller i samme arena, ikke bare datoantall; "
-                f"{len(getattr(planner, '_arena_day_collisions', []))} tilfelle(r) er registrert i denne planen."
+                f"{len(getattr(planner, '_arena_day_collisions', []))} tilfelle(r) er registrert i denne planen. "
+                "Kollisjoner blokkerer ikke lenger eksporten: de listes i «Må planlegges manuelt»-visningen "
+                "(manual_schedule.html) og må bookes manuelt."
             ),
             "kategori": "Hard krav",
         },

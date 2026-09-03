@@ -857,14 +857,26 @@ def _run_stage2(
     stage failed in non-strict mode (pipeline continues but ``run_failed``
     should be set).
     """
+    import os
+
     from ..llm_judge import get_judge_if_headless
     from ..pipeline.stage2_scraping import run as stage2_run
     from ..pipeline.state import StageName
 
     allow_missing_sources = getattr(args, "allow_missing_sources", False)
+    if getattr(args, "manual_bookup_login", False):
+        os.environ["RVV_BOOKUP_MANUAL_LOGIN"] = "1"
+    timeout = getattr(args, "manual_bookup_login_timeout", None)
+    if timeout is not None:
+        os.environ["RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT"] = str(timeout)
 
     if resume_from <= 2:
         _console.print("[bold]Stage 2:[/bold] Skraping...")
+        if getattr(args, "manual_bookup_login", False):
+            _console.print(
+                "  [cyan]ℹ[/cyan] BookUp manuell innlogging er aktiv — "
+                "fullfør Vipps/SMS i nettleseren når den åpnes."
+            )
         if getattr(args, "force_refresh", False):
             try:
                 _force_refresh_stage2_inputs(args.work_dir)
@@ -2082,6 +2094,20 @@ def _cmd_scrape(args: argparse.Namespace) -> int:
         for s in sources:
             _console.print(f"  [cyan]{s.get('name', '?')}[/cyan] ({s.get('type', '?')})")
         return 1
+
+    if getattr(args, "manual_bookup_login", False):
+        import os
+
+        os.environ["RVV_BOOKUP_MANUAL_LOGIN"] = "1"
+        _console.print(
+            "[cyan]ℹ[/cyan] BookUp manuell innlogging er aktiv — "
+            "fullfør Vipps/SMS i nettleseren når den åpnes."
+        )
+    timeout = getattr(args, "manual_bookup_login_timeout", None)
+    if timeout is not None:
+        import os
+
+        os.environ["RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT"] = str(timeout)
 
     _console.print(
         f"[bold]Skraper:[/bold] {source_cfg['name']} "

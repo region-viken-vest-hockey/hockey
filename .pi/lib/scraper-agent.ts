@@ -22,11 +22,12 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 // ---------------------------------------------------------------------------
 
 export interface NavigationStep {
-  cmd: "click" | "goto" | "type" | "wait" | "extract";
+  cmd: "click" | "goto" | "type" | "wait" | "extract" | "manual_login";
   selector?: string;
   text?: string;
   url?: string;
   wait_ms?: number;
+  timeout_s?: number;
   iframe?: boolean;
   strategy?: string;
 }
@@ -281,6 +282,11 @@ function extractJSON(text: string): Record<string, unknown> | null {
 // Action dispatch
 // ---------------------------------------------------------------------------
 
+function isManualBookupLoginEnabled(): boolean {
+  return [process.env.RVV_BOOKUP_MANUAL_LOGIN, process.env.BOOKUP_MANUAL_LOGIN]
+    .some((value) => ["1", "true", "yes", "y", "on"].includes(String(value ?? "").trim().toLowerCase()));
+}
+
 function parseAction(data: Record<string, unknown>): LLMAction | null {
   const action = String(data.action ?? "");
   if (!["click", "goto", "extract", "done", "wait", "scroll"].includes(action)) {
@@ -436,7 +442,14 @@ export class ScraperAgent {
       const step = navSteps[si];
       const wait_ms = step.wait_ms ?? 1500;
       try {
-        if (step.cmd === "click") {
+        if (step.cmd === "manual_login") {
+          if (isManualBookupLoginEnabled()) {
+            const message = step.text || "Fullfør eventuell Vipps/SMS-MFA i nettleseren.";
+            this.onActivity?.("Venter på manuell BookUp-innlogging/MFA");
+            await this.ctx.ui.input(`${message}\n\nTrykk Enter her når BookUp-kalenderen er synlig.`, "");
+            snap = await this.send({ cmd: "snapshot" });
+          }
+        } else if (step.cmd === "click") {
           snap = await this.send({
             cmd: "click",
             selector: step.selector ?? "",

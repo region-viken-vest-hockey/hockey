@@ -149,6 +149,11 @@ class Tournament:
     start_time: Optional[str] = None  # HH:MM string, e.g. "09:00"
     preferanse_vekt: float = 0.0  # subjective preference weight (0.0 = neutral, >0 preferred, <0 avoid)
     scoring_weight_term: float = 0.0  # capped subjective weight term actually applied during scoring
+    # Non-empty when this tournament is hosted by a club whose calendar source
+    # could not be scraped (blocked/failed), so the assigned start time is a
+    # provisional placeholder: hall time must be booked/verified by hand. The
+    # tournament still counts towards the club's normal share of tournaments.
+    manual_booking_reason: Optional[str] = None
 
     def duration_minutes(self, round_length: int) -> int:
         """Return the total tournament play time in minutes.

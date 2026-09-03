@@ -1841,6 +1841,52 @@ class TestProportionalHosting:
         assert "Sandefjord" in missing_note["detail"]
         assert planner.hosting_warnings == []
 
+    def test_missing_calendar_host_clubs_still_get_share_and_are_marked_manual(self):
+        """Clubs whose calendar could not be scraped should still receive their
+        share of home tournaments — but every such tournament must be marked so
+        it is listed for manual hall booking (auto times cannot be verified)."""
+        start = datetime(2026, 10, 1)
+        end = datetime(2026, 12, 31)
+        clubs = ["Jar", "Sandefjord", "Holmen", "Kongsberg"]
+        roster = _build_roster(clubs, ["U10", "U11", "U7"], teams_per_club_per_age_group=2)
+        club_arenas = {club: f"{club}hallen" for club in clubs}
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(all_weekend_dates(start, end)),
+            roster=roster,
+            club_arenas=club_arenas,
+            parallel_games_for_age_group={"U10": 3, "U11": 2, "U7": 4},
+            # Sandefjord has no scraped calendar data; the others do.
+            events_by_club={"Jar": [], "Holmen": [], "Kongsberg": []},
+        )
+        plan = planner.build_plan(start, end)
+        assert len(plan.tournaments) >= 3
+        hosts = {t.host_club for t in plan.tournaments}
+        assert "Sandefjord" in hosts, "no-calendar club should still receive a share of hosting"
+        manual = [t for t in plan.tournaments if t.manual_booking_reason]
+        assert manual
+        assert all(t.host_club == "Sandefjord" for t in manual)
+        assert "Sandefjord" in manual[0].manual_booking_reason
+        non_manual = [t for t in plan.tournaments if not t.manual_booking_reason]
+        assert all(t.host_club != "Sandefjord" for t in non_manual)
+
+    def test_all_calendars_available_means_no_manual_booking_marks(self):
+        """When every club has calendar data, no tournament is flagged manual."""
+        start = datetime(2026, 10, 1)
+        end = datetime(2026, 12, 31)
+        clubs = ["Jar", "Holmen", "Kongsberg"]
+        roster = _build_roster(clubs, ["U10"])
+        club_arenas = {club: f"{club}hallen" for club in clubs}
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(all_weekend_dates(start, end)),
+            roster=roster,
+            club_arenas=club_arenas,
+            parallel_games_for_age_group={"U10": 3},
+            events_by_club={club: [] for club in clubs},
+        )
+        plan = planner.build_plan(start, end)
+        assert plan.tournaments
+        assert all(not t.manual_booking_reason for t in plan.tournaments)
+
     def test_joint_club_team_uses_constituent_calendar_for_hosting(self):
         """A joint team like "Jar/Jutul" has no calendar of its own — it should
         fall back to whichever constituent club has scraped data, not be

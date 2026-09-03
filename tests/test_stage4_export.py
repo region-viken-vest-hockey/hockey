@@ -164,6 +164,14 @@ class TestDictToPlan:
         assert t.games[0].round_number == 3
         assert plan.manual_adjustments["locked_dates"] == ["2025-10-05"]
 
+    def test_round_trips_manual_booking_reason(self):
+        plan_dict = _make_plan_dict()["plan"]
+        plan_dict["tournaments"][0]["manual_booking_reason"] = "Kalender utilgjengelig for Tønsberg — istid må bookes manuelt."
+        plan = _dict_to_plan(plan_dict)
+        assert plan.tournaments[0].manual_booking_reason == (
+            "Kalender utilgjengelig for Tønsberg — istid må bookes manuelt."
+        )
+
     def test_round_trips_arena_day_collisions(self):
         plan_dict = _make_plan_dict()["plan"]
         plan_dict["arena_day_collisions"] = [
@@ -217,7 +225,10 @@ class TestDictToPlan:
 
 
 class TestRunStage4:
-    def test_blocks_export_when_final_plan_has_arena_interval_overlap(self, tmp_path):
+    def test_export_warns_and_lists_colliding_tournaments_instead_of_blocking(self, tmp_path):
+        """Arena/sequence collisions no longer block the full export: they are
+        surfaced as a warning, recorded in the checkpoint, and listed in a
+        dedicated manual-schedule view (manual_schedule.html)."""
         state = PipelineState(tmp_path / "pipeline")
         state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
         plan_checkpoint = _make_plan_dict()
@@ -232,21 +243,34 @@ class TestRunStage4:
             }
         )
 
-        with pytest.raises(Stage4Error, match="Hard scheduling conflict blocks export") as exc_info:
-            run(
-                plan_checkpoint,
-                state,
-                export_dir=str(tmp_path / "export"),
-                timestamped_export=False,
-            )
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
 
-        message = str(exc_info.value)
-        assert "Kongsberghallen" in message
-        assert "U10" in message
-        assert "2025-10-05 09:00" in message
-        envelope = state.read_envelope(StageName.EXPORT)
-        assert envelope["status"] == StageStatus.FAILED.value
-        assert envelope["data"]["arena_day_collisions"][0]["arena"] == "Kongsberghallen"
+        files = result.get("output_files", {})
+        assert "excel" in files
+        assert "html" in files
+        assert "html_report" in files
+        assert "manual_schedule" in files
+        assert Path(files["manual_schedule"]).exists()
+        assert result["arena_day_collisions"], "checkpoint should record remaining collisions"
+        assert "Kongsberghallen" in result["arena_day_collisions"][0]["message"]
+
+        manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
+        assert "Må planlegges manuelt" in manual_html
+        assert "Kongsberghallen" in manual_html
+
+        # The season-plan page must link to the manual view in its navbar.
+        html = Path(files["html"]).read_text(encoding="utf-8")
+        assert 'href="manual_schedule.html"' in html
+
+        # The report must present the plan as usable-but-needs-manual-followup.
+        report_html = Path(files["html_report"]).read_text(encoding="utf-8")
+        assert "MÅ SJEKKES" in report_html
+        assert "Manuell istidplanlegging" in report_html
 
     def test_produces_excel_file(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
@@ -898,6 +922,39 @@ class TestRunStage4:
         # The fairness detail string must appear for fail status
         assert "Fairness-avvik: Hjemmebanebelastning" in report_html
         assert "Kritisk skjevfordeling hjemme." in report_html
+
+    def test_manual_schedule_view_lists_calendarless_host_tournaments(self, tmp_path):
+        """Tournaments hosted by a club whose calendar could not be scraped are
+        listed in the manual-schedule view (provisional hall time), and the
+        report flags the plan as needing manual follow-up."""
+        state = PipelineState(tmp_path / "pipeline")
+        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        plan_checkpoint = _make_plan_dict()
+        first = plan_checkpoint["plan"]["tournaments"][0]
+        first["id"] = "tnsb001"
+        first["host_club"] = "Tønsberg"
+        first["arena"] = "Tønsberghallen"
+        first["manual_booking_reason"] = "Kalender utilgjengelig for Tønsberg — istid må bookes manuelt."
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        assert result["manual_booking_count"] == 1
+        files = result.get("output_files", {})
+        manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
+        assert "Kalender utilgjengelig" in manual_html
+        assert "Tønsberg" in manual_html
+        assert "tnsb001" in manual_html
+        html = Path(files["html"]).read_text(encoding="utf-8")
+        assert 'href="manual_schedule.html"' in html
+        assert "MÅ BOOKES MANUELT" in html
+        report_html = Path(files["html_report"]).read_text(encoding="utf-8")
+        assert "MÅ SJEKKES" in report_html
+        assert "Manuell istidsplanlegging" in report_html
 
     def test_calendars_html_generated_when_scrape_cache_populated(self, tmp_path):
         """stage4 should write calendars.html when the scrape cache contains events and link it in the navbar."""

@@ -310,6 +310,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Treat blocked sources as an operator-approved skip and keep partial results",
     )
     run.add_argument(
+        "--manual-bookup-login",
+        action="store_true",
+        help="Open BookUp in a visible browser and wait for manual Vipps/SMS MFA during Stage 2",
+    )
+    run.add_argument(
+        "--manual-bookup-login-timeout",
+        type=int,
+        default=None,
+        metavar="SECONDS",
+        help="Maximum seconds to wait for manual BookUp MFA/login (default: 300)",
+    )
+    run.add_argument(
         "--no-timestamped-export",
         dest="timestamped_export",
         action="store_false",
@@ -403,6 +415,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--allow-missing-sources",
         action="store_true",
         help="Treat blocked sources as an operator-approved skip and keep partial results",
+    )
+    op_run.add_argument(
+        "--manual-bookup-login",
+        action="store_true",
+        help="Open BookUp in a visible browser and wait for manual Vipps/SMS MFA during Stage 2",
+    )
+    op_run.add_argument(
+        "--manual-bookup-login-timeout",
+        type=int,
+        default=None,
+        metavar="SECONDS",
+        help="Maximum seconds to wait for manual BookUp MFA/login (default: 300)",
     )
     op_run.add_argument(
         "--no-timestamped-export",
@@ -849,6 +873,18 @@ def build_parser() -> argparse.ArgumentParser:
     scrape.add_argument(
         "--work-dir", default=".pipeline",
         help="Pipeline work directory (default: .pipeline)",
+    )
+    scrape.add_argument(
+        "--manual-bookup-login",
+        action="store_true",
+        help="For BookUp sources, use a visible browser and wait for manual Vipps/SMS MFA",
+    )
+    scrape.add_argument(
+        "--manual-bookup-login-timeout",
+        type=int,
+        default=None,
+        metavar="SECONDS",
+        help="Maximum seconds to wait for manual BookUp MFA/login (default: 300)",
     )
 
     # scrape-llm — capability-gated LLM browser guidance for blocked sources

@@ -51,6 +51,7 @@ DEFAULT_ALLOWED_FILENAMES: frozenset[str] = frozenset(
     {
         "season_plan.html",
         "season_plan_report.html",
+        "manual_schedule.html",
         "calendars.html",
         "input.html",
         "season_plan.ics",

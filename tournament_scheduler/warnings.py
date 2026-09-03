@@ -421,7 +421,12 @@ def hosting_fairness_breakdown(planner, plan: SeasonPlan) -> Dict[str, object]:
     else:
         detail = "Ingen data om hjemmeturneringer å vurdere."
     if missing_calendar_clubs:
-        detail += f" Kalenderdata mangler for: {', '.join(missing_calendar_clubs)}; disse klubbene er utelatt fra belastningsvurderingen."
+        detail += (
+            f" Kalenderdata mangler for: {', '.join(missing_calendar_clubs)}; "
+            "disse klubbene er utelatt fra avviksberegningen, men får likevel sin "
+            "forholdsmessige andel hjemmeturneringer — de er merket for manuell "
+            "istidsbooking i «Må planlegges manuelt»-visningen."
+        )
     if max_deviation_capacity_explained:
         detail += (
             " Avviket skyldes trolig arenakapasitet, ikke planleggingslogikken: "

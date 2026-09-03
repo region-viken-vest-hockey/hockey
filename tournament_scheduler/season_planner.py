@@ -69,6 +69,7 @@ from tournament_scheduler.rules_report import rules_report as _rules_report
 from tournament_scheduler.scheduler import TournamentScheduler
 from tournament_scheduler.utils.slot_finder import matchday_duration_minutes
 from tournament_scheduler.warnings import (
+    _club_calendar_available,
     compute_game_counts as _compute_game_counts,
     hosting_fairness_breakdown as _hosting_fairness_breakdown,
     scan_club_load_warnings as _scan_club_load_warnings,
@@ -385,6 +386,18 @@ class SeasonPlanner:
             games = self.generate_round_robin_games(participants, parallel_games)
             self._record_opponent_history(games)
 
+            # A club without scraped calendar data can still host its fair share
+            # of tournaments — the assigned start time is just a provisional
+            # placeholder because the planner cannot validate hall availability.
+            # Mark it so the club knows the istid must be booked by hand (see
+            # the "Må planlegges manuelt" export view).
+            manual_booking_reason: Optional[str] = None
+            if not _club_calendar_available(final_host_club, self.available_calendar_clubs):
+                manual_booking_reason = (
+                    f"Kalender utilgjengelig for {final_host_club} — "
+                    "istid må bookes/verifiseres manuelt."
+                )
+
             ag_weight = self.preferanse_vekt_by_age_group.get(age_group, 0.0)
             date_pref_total = sum(
                 p.vekt for p in self.date_preferences if p.fra <= tournament_date <= p.til
@@ -399,6 +412,7 @@ class SeasonPlanner:
                 start_time=start_time,
                 preferanse_vekt=ag_weight,
                 scoring_weight_term=ag_weight + date_pref_total,
+                manual_booking_reason=manual_booking_reason,
             )
             plan.tournaments.append(tournament)
             reservation = self._reservation_event_for_tournament(tournament)

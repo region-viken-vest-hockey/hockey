@@ -95,6 +95,7 @@ class HtmlExporter:
         age_groups: list[str] | None = None,
         calendars_path: str | None = None,
         input_html_path: str | None = None,
+        manual_schedule_path: str | None = None,
     ) -> str:
         """Write an interactive HTML overview to *path*, return the path.
 
@@ -114,6 +115,8 @@ class HtmlExporter:
         input_html_path: Absolute path to the generated input.html file (public overview of
             registered clubs/teams). When provided and the file exists, a navbar link to
             input.html is included.
+        manual_schedule_path: Absolute path to the generated manual_schedule.html file. When
+            provided and the file exists, a navbar link to the manual scheduling view is included.
         """
         tournaments_json = self._plan_to_json(plan, round_length_for_age_group)
 
@@ -241,6 +244,7 @@ class HtmlExporter:
         # calendars_path is passed by stage4_export after generating the file, before calling export().
         calendars_href = "calendars.html" if (calendars_path and os.path.exists(calendars_path)) else ""
         input_href = "input.html" if (input_html_path and os.path.exists(input_html_path)) else ""
+        manual_href = "manual_schedule.html" if (manual_schedule_path and os.path.exists(manual_schedule_path)) else ""
         season_plan_href = "season_plan.html"
         report_href = "season_plan_report.html"
 
@@ -287,6 +291,10 @@ class HtmlExporter:
                 "$INPUT_NAV_ITEM$": (
                     f'<a href="{input_href}" class="{"active" if active_page == "input" else ""}"><span class="nav-icon">{ICON_USERS}</span> Påmeldte lag</a>'
                     if input_href else ""
+                ),
+                "$MANUAL_NAV_ITEM$": (
+                    f'<a href="{manual_href}" class="{"active" if active_page == "manual" else ""}"><span class="nav-icon">{ICON_WARNING}</span> Må planlegges manuelt</a>'
+                    if manual_href else ""
                 ),
                 "$CALENDARS_ACTIVE$": "active" if active_page == "calendars" else "",
                 "$SEASON_PLAN_ACTIVE$": "active" if active_page == "season" else "",
@@ -448,15 +456,33 @@ class HtmlExporter:
         if not team_game_counts:
             hard_blockers.append("Planen har ingen lagdata å vise.")
         arena_day_collisions = getattr(plan, "arena_day_collisions", None) or []
-        if arena_day_collisions:
-            hard_blockers.append(f"{len(arena_day_collisions)} arena-/dagskollisjon(er) må løses først.")
+        # Tournaments hosted by clubs whose calendar could not be scraped are
+        # provisional (start time must be booked/verified by hand) and are listed
+        # in the manual-schedule view together with arena collisions.
+        manual_host_count = sum(
+            1
+            for t in plan.tournaments
+            if not t.cancelled and getattr(t, "manual_booking_reason", None)
+        )
+        manual_total = len(arena_day_collisions) + manual_host_count
 
-        overall_status = "fail" if hard_blockers else "pass"
+        overall_status = "fail" if hard_blockers else ("warn" if manual_total else "pass")
         status_labels = {"pass": "KAN BRUKES", "warn": "MÅ SJEKKES", "fail": "BLOKKER"}
 
         actions: list[tuple[str, str, str]] = []
         for blocker in hard_blockers:
             actions.append(("fail", "Blokkerende feil", blocker))
+        if manual_total:
+            reasons = []
+            if arena_day_collisions:
+                reasons.append(f"{len(arena_day_collisions)} kollisjon(er)")
+            if manual_host_count:
+                reasons.append(f"{manual_host_count} med utilgjengelig kalender")
+            actions.append((
+                "warn",
+                "Manuell istidsplanlegging",
+                f"{manual_total} turnering(er) trenger manuell oppfølging av istid ({', '.join(reasons)}). Se egen visning 'Må planlegges manuelt'.",
+            ))
         if blocked:
             actions.append(("warn", "Datagrunnlag", f"{len(blocked)} kalenderkilde(r) er blokkert: {', '.join(blocked)}."))
         if missing_hosts:
@@ -468,12 +494,15 @@ class HtmlExporter:
             actions.append(("pass", "Ingen blokkeringer", "Fairness og småskjevheter ligger under detaljer og stopper ikke bruk."))
 
         _tournament_count = len(active_tournaments)
-        answer = "Ja — planen kan brukes" if not hard_blockers else "Nei — planen bør stoppes"
-        note = (
-            "Ingen blokkeringer."
-            if not hard_blockers
-            else "Løs blokkeringene under før utsending."
-        )
+        if hard_blockers:
+            answer = "Nei — planen bør stoppes"
+            note = "Løs blokkeringene under før utsending."
+        elif manual_total:
+            answer = "Ja — men noen istider må avklares manuelt"
+            note = "Komplett eksport er laget; bruk manuell-visningen til å følge opp klubb/arena før endelig utsending."
+        else:
+            answer = "Ja — planen kan brukes"
+            note = "Ingen blokkeringer."
 
         def _format_generated_at(value: str) -> str:
             if not value:
@@ -693,6 +722,8 @@ class HtmlExporter:
             if t.cancelled:
                 entry["cx"] = True
                 entry["cr"] = t.cancellation_reason or ""
+            if t.manual_booking_reason:
+                entry["mb"] = t.manual_booking_reason
             data.append(entry)
         return json.dumps(data, ensure_ascii=False)
 

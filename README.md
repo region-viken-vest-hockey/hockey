@@ -107,7 +107,7 @@ make calendars-refresh  # when a forced refresh is required
 make calendars-refresh-dotenvx  # forced refresh with BookUp credentials from .env.bookup
 ```
 
-For BookUp calendars that require credentials, keep secrets out of the command line and run through dotenvx with the encrypted `.env.bookup` file. The dotenvx private key file (`.env.keys`) must stay local and ignored by git.
+For BookUp calendars that require credentials, keep secrets out of the command line and run through dotenvx with the encrypted `.env.bookup` file. Pi slash commands also auto-load missing BookUp credentials from `DOTENVX_ENV_FILE` (default `.env.bookup`) before prompting. The dotenvx private key file (`.env.keys`) must stay local and ignored by git. If Tønsberg/Sandefjord trigger Vipps or SMS MFA, re-run Stage 2 with `--manual-bookup-login` so a visible browser pauses for the operator to finish login.
 
 A source returning very few events may not be technically blocked but can still be untrustworthy. Investigate sparse-event warnings before approval.
 

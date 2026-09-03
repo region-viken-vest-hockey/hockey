@@ -534,20 +534,38 @@ def _execute_publish_pages(
     planning_checkpoint = state.read_stage(StageName.PLANNING) or {}
     plan_dict = planning_checkpoint.get("plan") if isinstance(planning_checkpoint, dict) else None
     hard_collisions = []
+    manual_host_count = 0
     if isinstance(plan_dict, dict):
         hard_collisions = list(plan_dict.get("arena_day_collisions") or [])
-    if hard_collisions:
-        first = hard_collisions[0]
-        detail = first.get("message") if isinstance(first, dict) else str(first)
-        return CapabilityResult.failed(
-            f"Publisering blokkert: hard scheduling conflict remains ({detail})",
-            capability="pages_publish",
-            problems=["Planen har arena-overlapp og kan ikke publiseres offentlig."],
-            evidence=[
-                f"arena_day_collisions={len(hard_collisions)}",
-                f"first_conflict={detail}",
-            ],
+        for tournament in plan_dict.get("tournaments") or []:
+            if isinstance(tournament, dict) and tournament.get("manual_booking_reason"):
+                manual_host_count += 1
+
+    collision_warning: str | None = None
+    if hard_collisions or manual_host_count:
+        parts: list[str] = []
+        if hard_collisions:
+            parts.append(f"{len(hard_collisions)} arena-/dagskollisjon(er)")
+        if manual_host_count:
+            parts.append(f"{manual_host_count} turnering(er) hos klubb uten skrapet kalender")
+        collision_warning = (
+            f"{' og '.join(parts)} krever manuell istidsplanlegging og ligger i "
+            "'Må planlegges manuelt'-visningen (manual_schedule.html). De er en del av "
+            "planen, men må bookes manuelt av vertsklubben før de er endelige."
         )
+
+    def _with_collision_warning(result: "CapabilityResult") -> "CapabilityResult":
+        """Attach collision/manual-booking context without hard-blocking."""
+        if collision_warning:
+            result.problems = [collision_warning] + list(result.problems)
+            result.evidence = list(result.evidence) + [
+                f"arena_day_collisions={len(hard_collisions)}",
+                f"manual_booking_hosts={manual_host_count}",
+            ]
+            if result.status == "ok":
+                result.summary = f"{result.summary} Merk: {collision_warning}"
+                result.status = "warning"
+        return result
 
     # A raw Stage 4 export may contain rosters, contact info, or internal
     # notes (Spond exports, review_packets/) that must never reach a
@@ -597,7 +615,7 @@ def _execute_publish_pages(
 
     if dry_run:
         diff = _raise_preview_question()
-        return CapabilityResult.ok(
+        return _with_collision_warning(CapabilityResult.ok(
             f"Forhåndsvisning av publisering til '{branch}' — ingen publisering utført "
             f"(+{len(diff['add'])} ~{len(diff['update'])} -{len(diff['remove'])} under /latest/).",
             capability="pages_publish",
@@ -607,7 +625,7 @@ def _execute_publish_pages(
                 f"question_id={question.id}",
             ],
             artifacts=list(bundle_result.artifacts),
-        )
+        ))
 
     approved_now = confirm_public
     if not approved_now:
@@ -618,16 +636,16 @@ def _execute_publish_pages(
             if _is_publication_approved_answer(existing.get("answer") or ""):
                 approved_now = True
             else:
-                return CapabilityResult.blocked(
+                return _with_collision_warning(CapabilityResult.blocked(
                     f"Publisering av denne bunten ble avvist tidligere (svar: {existing.get('answer')!r}).",
                     capability="pages_publish",
                     problems=["Godkjenning avvist for denne bunt-/mål-kombinasjonen."],
                     evidence=[f"bundle_fingerprint={bundle_fp}", f"target_fingerprint={target_fp}"],
                     artifacts=list(bundle_result.artifacts),
-                )
+                ))
         else:
             diff = _raise_preview_question()
-            return CapabilityResult.blocked(
+            return _with_collision_warning(CapabilityResult.blocked(
                 f"Publisering krever eksplisitt godkjenning for denne bunten (bunt {bundle_fp[:12]}, "
                 f"mål {target_fp[:12]}).",
                 capability="pages_publish",
@@ -641,7 +659,7 @@ def _execute_publish_pages(
                     f"diff_remove={len(diff['remove'])}",
                 ],
                 artifacts=list(bundle_result.artifacts),
-            )
+            ))
 
     publish_result = pages_publish.publish(
         export_dir=public_bundle_dir,
@@ -691,7 +709,7 @@ def _execute_publish_pages(
                     verify_result.suggested_actions
                 )
 
-    return publish_result
+    return _with_collision_warning(publish_result)
 
 
 def _last_ok_pages_publish_capability(work_dir: str) -> dict[str, Any] | None:

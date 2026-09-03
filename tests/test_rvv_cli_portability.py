@@ -27,6 +27,9 @@ def test_run_parser_accepts_portable_slash_command_flags() -> None:
             "--log-level",
             "verbose",
             "--force-refresh",
+            "--manual-bookup-login",
+            "--manual-bookup-login-timeout",
+            "600",
             "--work-dir",
             ".pipeline",
         ]
@@ -36,6 +39,8 @@ def test_run_parser_accepts_portable_slash_command_flags() -> None:
     assert args.resume_from == "3"
     assert args.log_level == "verbose"
     assert args.force_refresh is True
+    assert args.manual_bookup_login is True
+    assert args.manual_bookup_login_timeout == 600
 
 
 def test_run_parser_accepts_scrape_llm_flags() -> None:
@@ -284,7 +289,7 @@ def test_scrape_llm_cli_prints_browser_tool_guidance_for_browser_only_source() -
             "tournament_scheduler.cli.rvv_cli",
             "scrape-llm",
             "--club",
-            "Jar",
+            "Jutul",
         ],
         cwd=ROOT,
         capture_output=True,

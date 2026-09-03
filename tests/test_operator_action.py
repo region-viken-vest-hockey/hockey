@@ -287,6 +287,9 @@ class TestPublishPagesExecutor:
         assert "eksport" in result.summary.lower()
 
     def test_refuses_publish_when_planning_checkpoint_has_arena_conflict(self, tmp_path):
+        """Arena collisions no longer block publishing: they surface as a warning
+        and live in the manual-schedule view for manual hall booking."""
+        _init_repo(tmp_path)
         _write_export(tmp_path)
         PipelineState(tmp_path).write_stage(
             StageName.PLANNING,
@@ -315,10 +318,9 @@ class TestPublishPagesExecutor:
         )
         result = DEFAULT_REGISTRY.execute(action, approved=True)
 
-        assert result.status == "failed"
-        assert "Publisering blokkert" in result.summary
-        assert "Jarhallen" in result.summary
+        assert result.status == "warning"
         assert "arena_day_collisions=1" in result.evidence
+        assert "Må planlegges manuelt" in result.problems[0] or "manuelt" in result.problems[0]
 
     def test_routes_through_the_sanitizer_before_publishing(self, tmp_path):
         """A secret in the raw export must block before any git operation runs (issue #18)."""

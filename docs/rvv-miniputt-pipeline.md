@@ -121,14 +121,14 @@ For those sources, set the credentials expected by the configured strategy, typi
 - `BOOKUP_EMAIL`
 - `BOOKUP_PASSWORD`
 
-With credentials in place, Stage 2 can scrape the source and cache the events. Locally, prefer the dotenvx-backed Make targets so credentials are loaded from the encrypted `.env.bookup` file instead of being passed on the command line:
+With credentials in place, Stage 2 can scrape the source and cache the events. Pi slash commands automatically try to load missing `BOOKUP_EMAIL`/`BOOKUP_PASSWORD` from `DOTENVX_ENV_FILE` (default `.env.bookup`) before asking the operator. Locally, prefer the dotenvx-backed Make targets so credentials are loaded from the encrypted `.env.bookup` file instead of being passed on the command line:
 
 ```bash
 make run-dotenvx ARGS='--resume-from 2'
 make calendars-refresh-dotenvx
 ```
 
-`DOTENVX_ENV_FILE=/path/to/file` can point the Make targets at a different dotenvx file. Keep `.env.keys` local and out of git. If BookUp requires MFA/manual approval, use the recovery flow (`recovery-targets` → manual scrape/export → `recovery-inject` → `scrape-merge`) instead of accepting the placeholder public scrape.
+`DOTENVX_ENV_FILE=/path/to/file` can point the Make targets at a different dotenvx file. Keep `.env.keys` local and out of git. If BookUp requires Vipps/SMS MFA, run Stage 2 with `--manual-bookup-login` (or set `RVV_BOOKUP_MANUAL_LOGIN=1`) so Playwright opens a visible browser and pauses for the operator to complete login. Use `--manual-bookup-login-timeout <seconds>` / `RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT` when the terminal Stage 2 pause needs a longer post-login verification window. If manual login still cannot recover the source, use the recovery flow (`recovery-targets` → manual scrape/export → `recovery-inject` → `scrape-merge`) instead of accepting the placeholder public scrape.
 
 ### Skien BRP/Exigo calendar
 

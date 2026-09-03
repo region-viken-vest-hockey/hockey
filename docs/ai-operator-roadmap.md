@@ -411,9 +411,9 @@ updates, `/runs/<run-id>/` retention, no-op republish, and push failure) and
 **Status: implemented.** `tournament_scheduler/pipeline/pages_bundle.py`
 adds `build_public_bundle()`, a fail-closed gate in front of #17: only an
 explicit filename allowlist (`DEFAULT_ALLOWED_FILENAMES` —
-`season_plan.html`, `season_plan_report.html`, `calendars.html`,
-`season_plan.ics`, `season_plan.xlsx`, `season_plan.csv`,
-`season_plan_overview.csv`) is ever copied from the raw Stage 4 export into a
+`season_plan.html`, `season_plan_report.html`, `manual_schedule.html`,
+`calendars.html`, `input.html`, `season_plan.ics`, `season_plan.xlsx`,
+`season_plan.csv`, `season_plan_overview.csv`) is ever copied from the raw Stage 4 export into a
 separate bundle directory, so `review_packets/` and the Spond exports stay
 out by default unless explicitly added. Included text files are
 pattern-scanned for probable secrets (AWS/GitHub/Slack tokens, private key

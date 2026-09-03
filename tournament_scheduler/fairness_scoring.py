@@ -153,7 +153,10 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
                 "key": "missing_calendar_clubs",
                 "label": "Manglende kalenderdata",
                 "detail": (
-                    f"Kalenderdata mangler for {', '.join(missing_calendar_clubs)}; disse klubbene er utelatt fra hjemmebanebelastningen."
+                    f"Kalenderdata mangler for {', '.join(missing_calendar_clubs)}; disse klubbene "
+                    "er utelatt fra avviksberegningen, men får likevel sin forholdsmessige "
+                    "andel hjemmeturneringer — de er merket for manuell istidsbooking i "
+                    "«Må planlegges manuelt»-visningen."
                 ),
                 "excluded_clubs": missing_calendar_clubs,
             }

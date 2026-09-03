@@ -94,6 +94,8 @@ The following remain Pi-specific adapters on top of the repo workflow:
 --log-level <level>                    info | verbose
 --iterations N                         Stage 3 multi-seed search budget (default: 1)
 --mid-planning-critic-iterations N     Optional pre-export Stage 3 critic/rerun loop (default: 0/off)
+--manual-bookup-login                  Open a visible BookUp browser and pause for Vipps/SMS MFA during Stage 2
+--manual-bookup-login-timeout N         Terminal Stage 2 manual-login verification timeout seconds (default: 300)
 --publish                              With /rvv-miniputt run only: route to the publish flow
 ```
 
@@ -134,9 +136,9 @@ The LLM evaluates the page content, decides what to click or navigate to, and ca
 - `BOOKUP_EMAIL` — BookUp account email
 - `BOOKUP_PASSWORD` — BookUp account password
 
-If these are not set, the pipeline prompts interactively during scraping. Without them, Sandefjord scraping will fail.
+Pi slash commands automatically try to load missing values from `DOTENVX_ENV_FILE` (default `.env.bookup`) before prompting. If credentials still are not available, the pipeline prompts interactively during scraping. Without them, Sandefjord scraping will fail. If BookUp asks for Vipps/SMS MFA, run with `--manual-bookup-login` or set `RVV_BOOKUP_MANUAL_LOGIN=1`; Stage 2 opens a visible browser and waits for the operator before extracting events.
 
-**Tønsberg** also uses BookUp and the public "Se tilgjengelighet" view may show only sparse/generic placeholder bookings. Treat the full Tønsberg ishall calendar as credentialed: use `BOOKUP_EMAIL`/`BOOKUP_PASSWORD`, and expect manual/MFA recovery if credentialed scraping still returns zero events.
+**Tønsberg** also uses BookUp and the public "Se tilgjengelighet" view may show only sparse/generic placeholder bookings. Treat the full Tønsberg ishall calendar as credentialed: use `BOOKUP_EMAIL`/`BOOKUP_PASSWORD`, and use `--manual-bookup-login` when MFA blocks automated login.
 
 ### All clubs
 
@@ -334,7 +336,7 @@ If all checks pass, proceed to Stage 2 as normal.
 **Stage 2 — Scraping**
 
 ```bash
-python3 -m tournament_scheduler.pipeline.stage2_scraping [--work-dir .pipeline] [--force-refresh] [--non-strict] [--allow-missing-sources]
+python3 -m tournament_scheduler.pipeline.stage2_scraping [--work-dir .pipeline] [--force-refresh] [--non-strict] [--allow-missing-sources] [--manual-bookup-login]
 ```
 
 Read `.pipeline/stage2_scraping.json` and verify before continuing:
@@ -384,6 +386,7 @@ After a successful run:
 - `export/calendars.html` — interactive calendar viewer
 - `export/season_plan.html` — season plan HTML
 - `export/season_plan_report.html` — diagnostics/fairness report HTML
+- `export/manual_schedule.html` — “Må planlegges manuelt” view listing tournaments whose arena/sequence collision must be booked by hand (only present when collisions remain)
 - `export/input.html` — read-only "Påmeldte lag" overview of registered clubs/teams from the Lag sheet
 - `export/season_plan.xlsx` — season plan Excel
 - `.pipeline/logs/run-<date>.jsonl` — structured run log

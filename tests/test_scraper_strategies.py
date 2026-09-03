@@ -5,6 +5,7 @@ import pytest
 from tournament_scheduler.pipeline.scraper_strategies import (
     CalendarEngine,
     ScraperStrategy,
+    STRATEGIES,
     get_deterministic_scraper_type,
 )
 
@@ -20,8 +21,8 @@ def _strategy(engine: CalendarEngine) -> ScraperStrategy:
         (CalendarEngine.STYLED_CALENDAR, "styledcalendar"),
         (CalendarEngine.BOOKUP_SPA, "bookup"),
         (CalendarEngine.OUTLOOK_IFRAME, "browser"),
-        (CalendarEngine.DATE_PARAM, "browser"),
-        (CalendarEngine.FORUMBOOKING, "browser"),
+        (CalendarEngine.DATE_PARAM, "brp_exigo"),
+        (CalendarEngine.FORUMBOOKING, "forumbooking"),
         (CalendarEngine.SPORTELLO, "sportello"),
         (CalendarEngine.TEAMUP_ICAL, "ical"),
         (CalendarEngine.GENERIC_ICAL, "ical"),
@@ -41,3 +42,10 @@ def test_get_deterministic_scraper_type_covers_all_engines() -> None:
         assert result is not None, (
             f"CalendarEngine.{engine.name} returned None — add it to get_deterministic_scraper_type"
         )
+
+
+def test_bookup_strategies_include_optional_manual_login_pause() -> None:
+    """BookUp MFA can be handled by enabling the manual login pause."""
+    for name in ["Tønsberg", "Sandefjord Penguins"]:
+        commands = [step.get("cmd") for step in STRATEGIES[name].initial_navigation]
+        assert "manual_login" in commands

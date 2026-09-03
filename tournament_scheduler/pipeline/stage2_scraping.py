@@ -46,7 +46,12 @@ from .scraper_constants import (
 )
 from .scraper_bookup import _run_bookup_scraper, _bookup_navigate_to_date, _parse_bookup_timegrid
 from .scraper_brp_exigo import _run_brp_exigo_scraper
-from .scraper_credentialed import _credentialed_scrape_months, _run_credentialed_bookup_or_outlook, _try_credentialed_scrape
+from .scraper_credentialed import (
+    _credentialed_scrape_months,
+    _manual_bookup_login_enabled,
+    _run_credentialed_bookup_or_outlook,
+    _try_credentialed_scrape,
+)
 from .scraper_event_helpers import _events_to_dicts, _group_events_by_club
 from .scraper_forumbooking import _run_forumbooking_scraper
 from .scraper_ical import _run_ical_scraper
@@ -458,6 +463,12 @@ def run(
     blocked: list[dict[str, Any]] = []
     empty_sources: list[dict[str, Any]] = []
 
+    if _manual_bookup_login_enabled():
+        # Manual MFA means a human may need to interact with the visible BookUp
+        # browser. Keep scraping sequential to avoid multiple login windows and
+        # racing status prompts for Tønsberg/Sandefjord.
+        max_workers = 1
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_source = {
             executor.submit(
@@ -750,7 +761,20 @@ if __name__ == "__main__":  # pragma: no cover
         "--force-refresh", action="store_true",
         help="Ignore the unified scrape cache and re-scrape every source"
     )
+    parser.add_argument(
+        "--manual-bookup-login", action="store_true",
+        help="Open BookUp in a visible browser and wait for manual Vipps/SMS MFA"
+    )
+    parser.add_argument(
+        "--manual-bookup-login-timeout", type=int, default=None, metavar="SECONDS",
+        help="Maximum seconds to wait for manual BookUp MFA/login (default: 300)"
+    )
     cli_args = parser.parse_args()
+
+    if cli_args.manual_bookup_login:
+        os.environ["RVV_BOOKUP_MANUAL_LOGIN"] = "1"
+    if cli_args.manual_bookup_login_timeout is not None:
+        os.environ["RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT"] = str(cli_args.manual_bookup_login_timeout)
 
     from .run_log_paths import append_stage_log_line  # noqa: E402
     from .state import PipelineState, StageName  # noqa: E402

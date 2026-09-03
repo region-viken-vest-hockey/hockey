@@ -57,19 +57,21 @@ def _dict_to_plan(d: dict[str, Any]) -> SeasonPlan:
             raise ValueError("Tournament date is required but missing or empty")
         tournament_date = date.fromisoformat(date_str)
 
-        tournaments.append(
-            Tournament(
-                date=tournament_date,
-                arena=t_dict.get("arena", ""),
-                age_group=t_dict.get("age_group", ""),
-                teams=teams,
-                games=games,
-                host_club=t_dict.get("host_club"),
-                cancelled=bool(t_dict.get("cancelled", False)),
-                cancellation_reason=t_dict.get("cancellation_reason"),
-                start_time=t_dict.get("start_time"),
-            )
-        )
+        tournament_kwargs: dict[str, Any] = {
+            "date": tournament_date,
+            "arena": t_dict.get("arena", ""),
+            "age_group": t_dict.get("age_group", ""),
+            "teams": teams,
+            "games": games,
+            "host_club": t_dict.get("host_club"),
+            "cancelled": bool(t_dict.get("cancelled", False)),
+            "cancellation_reason": t_dict.get("cancellation_reason"),
+            "start_time": t_dict.get("start_time"),
+            "manual_booking_reason": t_dict.get("manual_booking_reason"),
+        }
+        if tournament_id:
+            tournament_kwargs["id"] = tournament_id
+        tournaments.append(Tournament(**tournament_kwargs))
 
     start_str = d.get("start_date")
     end_str = d.get("end_date")
