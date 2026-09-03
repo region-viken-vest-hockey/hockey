@@ -37,6 +37,26 @@ def test_host_assignment_is_proportional_within_age_group():
     assert Counter(hosts) == Counter({"Jar": 3, "Jutul": 2, "Kongsberg": 1})
 
 
+def test_zero_target_club_does_not_steal_large_club_hosting_share():
+    """Rounded target zero must stay zero while other clubs are below target."""
+    roster = Roster(
+        teams=[
+            _team("Jar", "Jar 1", "U10"),
+            _team("Jar", "Jar 2", "U10"),
+            _team("Jar", "Jar 3", "U10"),
+            _team("Jar", "Jar 4", "U10"),
+            _team("Jutul", "Jutul", "U10"),
+            _team("Kongsberg", "Kongsberg", "U10"),
+        ]
+    )
+    planner = SimpleNamespace(roster=roster)
+    scheduled = [(date(2026, 9, 5) + timedelta(days=7 * i), "U10") for i in range(4)]
+
+    targets = hosting_targets_for_age_group(planner, "U10", 4)
+    assert targets == {"Jar": 3, "Jutul": 1, "Kongsberg": 0}
+    assert Counter(assign_hosts(planner, scheduled)) == Counter({"Jar": 3, "Jutul": 1})
+
+
 def test_club_without_team_in_age_group_cannot_host_that_age_group():
     """Regression for the old plan where Jutul hosted JU10 without a JU10 team."""
     roster = Roster(
