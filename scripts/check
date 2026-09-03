@@ -60,9 +60,6 @@ run_named_phase() {
         if ! cmp -s "$before_lock" requirements.lock; then
           echo "ERROR: requirements.lock is stale. Run scripts/refresh-python-lock.sh and commit the result." >&2
           diff -u "$before_lock" requirements.lock >&2 || true
-          echo "----- BEGIN GENERATED REQUIREMENTS.LOCK -----" >&2
-          cat requirements.lock >&2
-          echo "----- END GENERATED REQUIREMENTS.LOCK -----" >&2
           exit 1
         fi
       '
