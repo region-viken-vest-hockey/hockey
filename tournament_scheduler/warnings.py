@@ -443,7 +443,13 @@ def scan_hosting_warnings(planner, plan: SeasonPlan) -> None:
         return
 
     breakdown = hosting_fairness_breakdown(planner, plan)
-    for row in breakdown.get("age_group_breakdown", []):
+    # When calendar coverage is partial, proportional host assignments for the missing
+    # clubs are intentionally manual. Keep the fairness diagnostics/note, but do not
+    # emit legacy deviation warnings for a distribution that still requires manual ice.
+    proportional_rows = (
+        [] if breakdown.get("missing_calendar_clubs") else breakdown.get("age_group_breakdown", [])
+    )
+    for row in proportional_rows:
         if not isinstance(row, dict):
             continue
         deviation = float(row.get("deviation", 0.0) or 0.0)
