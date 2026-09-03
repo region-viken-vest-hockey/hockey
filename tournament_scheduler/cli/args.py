@@ -1314,6 +1314,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Write the optimized candidate.json to this path instead of stdout",
     )
+    plan_optimize.add_argument(
+        "--weight",
+        action="append",
+        dest="weights",
+        default=None,
+        metavar="NAME=VALUE",
+        help="Override one objective weight (e.g. --weight gap_under_7=8.0); "
+        "repeatable. See stage3_optimizer.DEFAULT_WEIGHTS for the tunable names",
+    )
 
     plan_ab = plan_sub.add_parser(
         "ab",
@@ -1356,6 +1365,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--json",
         action="store_true",
         help="Print the A/B report as JSON instead of a human-readable summary",
+    )
+    plan_ab.add_argument(
+        "--weight",
+        action="append",
+        dest="weights",
+        default=None,
+        metavar="NAME=VALUE",
+        help="Override one optimizer objective weight for the new candidate "
+        "(e.g. --weight gap_under_7=8.0); repeatable. See "
+        "stage3_optimizer.DEFAULT_WEIGHTS for the tunable names",
     )
 
     plan_problem = plan_sub.add_parser(

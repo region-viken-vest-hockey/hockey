@@ -24,6 +24,17 @@ def _load_json_file(path: str) -> Dict[str, Any]:
         return json.load(fh)
 
 
+def _parse_weight_overrides(raw: Any) -> Dict[str, float]:
+    """Parse repeated ``--weight NAME=VALUE`` args into a dict for ``optimize_candidate``."""
+    weights: Dict[str, float] = {}
+    for item in raw or []:
+        name, sep, value = item.partition("=")
+        if not sep:
+            raise ValueError(f"Invalid --weight {item!r}, expected NAME=VALUE")
+        weights[name.strip()] = float(value)
+    return weights
+
+
 def _cmd_plan(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt plan ...`` — dispatches to sub-subcommands."""
     if args.plan_command == "verify":
@@ -142,7 +153,15 @@ def _cmd_plan_optimize(args: argparse.Namespace) -> int:
             _console.print(f"[red]✗[/red] Kunne ikke lese planning_problem: {exc}")
             return 1
 
-    optimized = optimize_candidate(candidate, problem, iterations=args.iterations, seed=args.seed)
+    try:
+        weight_overrides = _parse_weight_overrides(args.weights)
+    except ValueError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
+    optimized = optimize_candidate(
+        candidate, problem, iterations=args.iterations, seed=args.seed, weights=weight_overrides or None
+    )
 
     payload = json.dumps(optimized, indent=2, ensure_ascii=False)
     if args.output:
@@ -216,8 +235,16 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
         )
         return 1
 
+    try:
+        weight_overrides = _parse_weight_overrides(args.weights)
+    except ValueError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
     problem = build_planning_problem(config, scraping_result, start_date, end_date)
-    new_candidate = optimize_candidate(old_candidate, problem, iterations=args.iterations, seed=args.seed)
+    new_candidate = optimize_candidate(
+        old_candidate, problem, iterations=args.iterations, seed=args.seed, weights=weight_overrides or None
+    )
 
     report = build_ab_report(old_candidate, new_candidate, problem)
 

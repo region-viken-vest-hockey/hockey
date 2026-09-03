@@ -214,6 +214,26 @@ class TestVerifyCandidateWithProblem:
         codes = {v["code"] for v in result["violations"]}
         assert "participation_target_mismatch" in codes
 
+    def test_before_after_christmas_split_not_treated_as_participation_target(self):
+        # Regression test (issue #257): before_christmas/after_christmas are
+        # weights for splitting an age group's *tournament count* across the
+        # season (SeasonPlanner._split_tournament_counts_for_age_groups), not
+        # a per-team participation target. A team playing e.g. 6 tournaments
+        # in an age group configured with before_christmas: 5, after_christmas: 5
+        # must not be flagged just because 6 != 5 + 5.
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {
+            "tournaments": [
+                _tournament(f"t{i}", f"2026-0{i}-01", "Jarhallen", "U10", teams) for i in range(1, 7)
+            ]
+        }
+        problem = self._problem(
+            target_tournament_counts_by_age_group={"U10": {"before_christmas": 5, "after_christmas": 5}}
+        )
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "participation_target_mismatch" not in codes
+
     def test_pinned_tournament_missing_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}

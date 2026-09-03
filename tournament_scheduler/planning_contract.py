@@ -302,7 +302,6 @@ def verify_candidate(
         for t in problem.get("teams", [])
     }
     default_target = problem.get("target_tournament_count")
-    targets_by_age_group = problem.get("target_tournament_counts_by_age_group") or {}
 
     window_start = _parse_date(problem.get("start_date"))
     window_end = _parse_date(problem.get("end_date"))
@@ -401,21 +400,22 @@ def verify_candidate(
 
     for identity, count in participations.items():
         # Resolution order mirrors SeasonPlanner's own precedence (see
-        # `participant_selection.target_tournaments_for_age_group`): an
-        # explicit per-team override, then an explicit before+after-Christmas
-        # split total for the age group, then the global default. When none
-        # of those give a concrete number, the target is planner-inferred
-        # from tournament capacity — deliberately not reproduced here, since
+        # `season_planner.SeasonPlanner._team_target_tournament_count`): an
+        # explicit per-team override, then the global default. When neither
+        # gives a concrete number, the target is planner-inferred from
+        # tournament capacity — deliberately not reproduced here, since
         # duplicating that heuristic in the verifier is exactly the coupling
         # issue #257 asks the contract to avoid, so the check is skipped.
+        #
+        # `target_tournament_counts_by_age_group`'s before/after-Christmas
+        # entries are NOT a per-team participation target — they're weights
+        # `SeasonPlanner._split_tournament_counts_for_age_groups` uses to
+        # split an age group's *tournament count* across the two halves of
+        # the season. Treating "before + after" as a per-team target here
+        # produced 100+ false-positive participation_target_mismatch
+        # violations against a correct baseline plan (issue #257 A/B
+        # benchmark, 2026-09-03).
         target = target_by_identity.get(identity)
-        if target is None:
-            age_group = identity[2]
-            split = targets_by_age_group.get(age_group) if age_group else None
-            before = split.get("before_christmas") if isinstance(split, dict) else None
-            after = split.get("after_christmas") if isinstance(split, dict) else None
-            if before is not None and after is not None:
-                target = before + after
         if target is None:
             target = default_target
         if isinstance(target, int) and count != target:
