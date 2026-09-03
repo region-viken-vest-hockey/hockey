@@ -214,45 +214,6 @@ Make the preferred product model clear while retaining CLI, harness, and develop
 - The README clearly distinguishes preferred usage, portable CLI usage, and development internals.
 - Existing commands remain discoverable without dominating the product explanation.
 
-## 7. Reposition the desktop app as an optional supervisor console
-
-**Status: partially implemented — see `docs/desktop-app.md` for the full
-breakdown.** Confirmed and documented that the app can be omitted without
-losing operator capability (the CLI already reaches every capability the
-backend calls). Fixed a dead/broken endpoint (`POST /run` called an
-undefined function, unreachable from the actual UI, now removed) and a real
-release-pipeline bug (`keyring` wasn't installed for the Linux leg of
-`release.yml`, silently degrading credential storage on Linux release
-builds). Added `GET /manifest` and `GET /questions` /
-`POST /questions/answer` so the backend can serve the same run manifest and
-escalation questions the CLI uses. The stage *execution* was already shared
-with the CLI (same stage modules, same checkpoints) — not duplicated.
-**Not resolved:** `_run_smart`'s bounded retry loop still makes its own
-per-stage LLM calls for narration instead of delegating to `operator run`
-(issue #2) and translating its manifest into UI narration — left in place
-deliberately, since replacing it risks removing real end-user-facing
-behavior (live LLM narration) in a session with no way to run the actual
-Electron app to verify the change. See `docs/desktop-app.md` for the
-specific follow-up.
-
-### Goal
-
-Avoid building a second independent product while preserving a path to a non-technical supervisory interface.
-
-### Scope
-
-- Document the desktop app as an optional surface over the same operator capabilities.
-- Show objective, progress, source health, pending questions, candidate comparison, approvals, and artifacts.
-- Remove or avoid business logic duplicated in Electron.
-- Consume structured capability results and the run manifest.
-- Verify packaging and GitHub release configuration.
-
-### Acceptance criteria
-
-- The desktop app can be omitted without reducing core operator capability.
-- It does not implement separate scheduling or recovery behavior.
-- A future non-technical user can supervise the same run state used by CLI and harness agents.
-
 ## Suggested delivery order
 
 1. Run manifest and capability-result contract.
@@ -261,13 +222,12 @@ Avoid building a second independent product while preserving a path to a non-tec
 4. Reproducible candidate comparison.
 5. Human escalation and approval.
 6. README restructuring.
-7. Desktop supervisor console.
 
-The first two items establish the operator architecture. Items three through five make it trustworthy. Items six and seven clarify and broaden the user experience after the core workflow is stable.
+The first two items establish the operator architecture. Items three through five make it trustworthy. Item six clarifies the user experience after the core workflow is stable.
 
 ## Second wave: the observe-decide-act loop (issues #10-#16)
 
-Once items 1-7 above landed, a second wave of issues turns the entry point
+Once items 1-6 above landed, a second wave of issues turns the entry point
 from a smart-resume command into an actual bounded operator loop. Delivery
 order: #16 first (CI validates everything that follows), then #10 → #11
 (typed actions before the loop that dispatches them), #12/#14/#15
@@ -335,12 +295,11 @@ touching the original. `_raise_escalation_questions` in
 `input_version` (falling back to `workspace` without a fingerprint) as a
 concrete example of a run-specific-turned-durable question. CLI:
 `rvv-miniputt operator questions --all` (include answered/stale) and
-`rvv-miniputt operator promote <id> <scope> [--scope-key KEY]`; desktop API:
-`GET /questions?all=1`, `POST /questions/promote`. See
+`rvv-miniputt operator promote <id> <scope> [--scope-key KEY]`. See
 [`docs/run-manifest-schema.md`](run-manifest-schema.md#decision-scoping-issue-12)
 for the full scope table and examples. Tests in `tests/test_escalation.py`
 (all four scopes, staleness, promotion, and backward compatibility with
-pre-#12 questions) and `tests/test_desktop_server_escalation.py`.
+pre-#12 questions).
 
 ### 13. Make source readiness depend on coverage and downstream impact
 

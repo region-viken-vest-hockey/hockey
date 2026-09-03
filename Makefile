@@ -15,10 +15,6 @@ RELEASE ?= $(ROOT_DIR)/scripts/release
 INSTALL ?= $(ROOT_DIR)/scripts/install.sh
 SECRET_SCAN ?= $(ROOT_DIR)/scripts/secret-scan.sh
 RULES_REPORT ?= $(ROOT_DIR)/scripts/rules-report.sh
-PACKAGE_BACKEND_SH ?= $(ROOT_DIR)/scripts/package-desktop-backend.sh
-PACKAGE_BACKEND_PS1 ?= $(ROOT_DIR)/scripts/package-desktop-backend.ps1
-NPM ?= npm
-POWERSHELL ?= powershell
 DOTENVX ?= $(ROOT_DIR)/node_modules/.bin/dotenvx
 DOTENVX_ENV_FILE ?= $(ROOT_DIR)/.env.bookup
 
@@ -29,7 +25,7 @@ PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-repo
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
 	publish-preview publish verify-publish publish-history rollback \
-	desktop-start desktop-clean build-mac build-windows build-linux release-dry-run release
+	release-dry-run release
 
 .PHONY: $(PUBLIC_TARGETS) all
 
@@ -79,17 +75,12 @@ help:
 	@echo "  make publish-history               List publish/rollback history"
 	@echo "  make rollback RUN_ID=<id> CONFIRM_PUBLIC=1"
 	@echo ""
-	@echo "Desktop, cleanup, and guarded release:"
-	@echo "  make desktop-start                 Start desktop supervisor prototype"
-	@echo "  make desktop-clean                 Bounded desktop build cleanup"
-	@echo "  make build-mac                     Build macOS .dmg/.zip"
-	@echo "  make build-windows                 Build Windows installer"
-	@echo "  make build-linux                   Build Linux AppImage"
+	@echo "Guarded release:"
 	@echo "  make release-dry-run TAG=vX.Y.Z    Validate release without tag/push"
 	@echo "  make release TAG=vX.Y.Z            Guarded annotated tag release"
 	@echo ""
 	@echo "Safety: help/all/run/operator-run never publish publicly. Mutating publish, rollback,"
-	@echo "release, and cleanup paths retain explicit target-specific safeguards."
+	@echo "release paths retain explicit target-specific safeguards."
 
 install:
 	@cd "$(ROOT_DIR)" && sh "$(INSTALL)" $(ARGS)
@@ -197,28 +188,6 @@ rollback:
 	@if [ "$${CONFIRM_PUBLIC:-}" != "1" ]; then echo "ERROR: make rollback requires CONFIRM_PUBLIC=1" >&2; exit 2; fi
 	@cd "$(ROOT_DIR)" && "$(RVV)" operator rollback "$$RUN_ID" --confirm-public $(ARGS)
 
-desktop-start:
-	@cd "$(ROOT_DIR)/apps/desktop" && "$(NPM)" start $(ARGS)
-
-desktop-clean:
-	@cd "$(ROOT_DIR)/apps/desktop" && "$(NPM)" run cleanup
-	@rm -rf "$(ROOT_DIR)/dist/desktop-backend" "$(ROOT_DIR)/build/desktop-backend" "$(ROOT_DIR)/apps/desktop/dist"
-	@echo "✅ Cleaned bounded desktop build artifacts"
-
-build-mac:
-	@cd "$(ROOT_DIR)" && sh "$(PACKAGE_BACKEND_SH)"
-	@cd "$(ROOT_DIR)/apps/desktop" && "$(NPM)" ci && "$(NPM)" run dist -- --mac dmg zip $(ARGS)
-	@echo "✅ macOS build done — see apps/desktop/dist/"
-
-build-windows:
-	@cd "$(ROOT_DIR)" && "$(POWERSHELL)" -ExecutionPolicy Bypass -File "$(PACKAGE_BACKEND_PS1)"
-	@cd "$(ROOT_DIR)/apps/desktop" && "$(NPM)" ci && "$(NPM)" run dist -- --win nsis $(ARGS)
-	@echo "✅ Windows build done — see apps/desktop/dist/"
-
-build-linux:
-	@cd "$(ROOT_DIR)" && sh "$(PACKAGE_BACKEND_SH)"
-	@cd "$(ROOT_DIR)/apps/desktop" && "$(NPM)" ci && "$(NPM)" run dist -- --linux AppImage $(ARGS)
-	@echo "✅ Linux build done — see apps/desktop/dist/"
 
 release-dry-run:
 	@if [ -z "$${TAG:-}" ]; then echo "ERROR: make release-dry-run requires TAG=vX.Y.Z" >&2; exit 2; fi

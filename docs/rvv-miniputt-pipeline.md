@@ -233,7 +233,6 @@ Pi-only features remain the interactive guide and extension-managed tool wrapper
 | Publish preview | `make publish-preview` | `scripts/rvv-miniputt operator publish --dry-run` |
 | Publish latest | `make publish CONFIRM_PUBLIC=1` | `scripts/rvv-miniputt operator publish --confirm-public` |
 | Verify/history/rollback | `make verify-publish`, `make publish-history`, `make rollback RUN_ID=<id> CONFIRM_PUBLIC=1` | `operator verify`, `operator publish-history`, `operator rollback <id> --confirm-public` |
-| Desktop app | `make desktop-start`, `make desktop-clean`, `make build-mac`, `make build-windows`, `make build-linux` | desktop npm/package scripts |
 | Release | `make release-dry-run TAG=vX.Y.Z`, `make release TAG=vX.Y.Z` | `scripts/release --dry-run vX.Y.Z`, `scripts/release vX.Y.Z` |
 
 Publication and rollback default to non-mutating preview paths unless `CONFIRM_PUBLIC=1` is supplied to the mutating target. Release tagging is handled by `scripts/release`; the Makefile does not call raw `git tag` or `git push`.

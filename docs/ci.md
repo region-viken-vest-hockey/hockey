@@ -1,7 +1,7 @@
 # CI: required checks and branch protection
 
 This documents the checks introduced for issue #16 — automatic, visible
-evidence of test/reproducibility/packaging health on every PR and push to
+evidence of test/reproducibility health on every PR and push to
 `main`, since an autonomous operator needs independently enforced evidence
 before changes are trusted or merged, not just a local "hundreds of tests
 passed" claim in a commit message.
@@ -27,13 +27,11 @@ without duplicating the underlying command sequence in workflow YAML.
 | `Operator manifest & escalation tests`              | `scripts/check operator` — `test_run_manifest.py`, `test_capability_result.py`, `test_escalation.py`, `test_operator_run.py` specifically, as their own visible check. |
 | `Deterministic planner reproducibility`             | `scripts/check reproducibility` — `test_reproducibility.py`, where the same config/seeds must reproduce the same selected-candidate metadata and plan dates across two independent runs. |
 | `CLI integration smoke test`                        | `scripts/check cli-smoke` — `test_cli_smoke.py` (marked `integration`), a real `rvv-miniputt` subprocess invocation (`operator run`, `status`, `sources status`, `operator questions`, `candidates`) against a synthetic workbook with zero calendar sources. |
-| `Desktop backend API smoke test`                    | `scripts/check desktop-backend` — a real HTTP round-trip against `desktop_server.Handler` (manifest, questions, answer, and confirms the dead `/run` route stays gone). |
-| `Desktop packaging config validation`               | `scripts/check desktop-packaging` — static checks on `apps/desktop/package.json` and `release.yml` (no Electron download, no build, no publish). Guards against the wrong-owner and missing-keyring bugs found in issue #7. |
 | `Secret scanning (gitleaks)`                        | `gitleaks/gitleaks-action`, configured via the existing `.gitleaks.toml`. |
 
 Python jobs install from the committed hash-checked `requirements.lock` with `pip install --require-hashes -r requirements.lock` and then install the repository with `pip install --no-deps -e .`; they do not resolve the broad dependency ranges in `pyproject.toml` during normal CI. Dependencies are cached via `actions/setup-python`'s built-in `cache: pip`, keyed on `requirements.lock` and `pyproject.toml`, across jobs that install the locked set.
 
-`pyproject.toml` remains the canonical direct dependency declaration. Refresh the lock intentionally with `scripts/refresh-python-lock.sh` (or `make dependency-lock` to verify freshness after refresh). The refresh script uses pip-tools and generates the lock with all optional dependency groups, so test dependencies and desktop packaging tools (`keyring`, `PyInstaller`, and their transitives) are pinned alongside runtime dependencies. Platform/browser assets that are not Python packages, such as Playwright Chromium binaries and Electron/npm dependencies, remain managed by their existing installers/lockfiles.
+`pyproject.toml` remains the canonical direct dependency declaration. Refresh the lock intentionally with `scripts/refresh-python-lock.sh` (or `make dependency-lock` to verify freshness after refresh). The refresh script uses pip-tools and generates the lock with all optional dependency groups, so test dependencies are pinned alongside runtime dependencies. Platform/browser assets that are not Python packages, such as Playwright Chromium binaries, remain managed by their existing installers.
 
 Failure artifacts: the quick-suite job uploads its `htmlcov/` coverage
 report; the reproducibility and CLI-smoke jobs upload their `--basetemp`
@@ -70,10 +68,6 @@ and the absence of direct `gh-pages`/pipeline-module publishing logic.
 
 Unchanged by this issue, and intentionally *not* required on every PR:
 
-- **`.github/workflows/desktop-build.yml`** — manual (`workflow_dispatch`) or
-  on a push touching desktop-relevant paths; builds a real unsigned macOS
-  app via `electron-builder`. Slow (full Electron + PyInstaller build) and
-  consumes meaningfully more Actions minutes, hence optional.
 - **`.github/workflows/release.yml`** — triggers only on a `v*.*.*` tag;
   builds and publishes the real macOS/Windows/Linux release artifacts.
 
@@ -88,8 +82,6 @@ values above, as GitHub renders them):
 - `Operator manifest & escalation tests`
 - `Deterministic planner reproducibility`
 - `CLI integration smoke test`
-- `Desktop backend API smoke test`
-- `Desktop packaging config validation`
 - `Secret scanning (gitleaks)`
 
 Also recommended: **Require branches to be up to date before merging**, so

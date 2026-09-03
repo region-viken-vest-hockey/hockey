@@ -1,7 +1,7 @@
 # RVV Miniputt application architecture
 
 This document records the migration direction for GitHub issue #44: adapters such
-as CLI, desktop HTTP, Pi/Claude harness commands, and GitHub Actions should call
+as CLI, Pi/Claude harness commands, and GitHub Actions should call
 small typed application use cases instead of each reimplementing operator policy.
 
 ## Dependency rules
