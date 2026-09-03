@@ -2,8 +2,8 @@
 """Validate that the repository roster is an authoritative SharePoint snapshot.
 
 The registration CSV is source-managed: SharePoint replaces the complete
-snapshot. The companion source-state file fingerprints that snapshot and
-records the monotonically increasing GitHub sync issue number. This prevents
+snapshot.  The companion source-state file fingerprints that snapshot and
+records the monotonically increasing GitHub sync issue number.  This prevents
 an older branch/merge from silently resurrecting teams removed in SharePoint.
 """
 
