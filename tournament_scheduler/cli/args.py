@@ -1315,6 +1315,49 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write the optimized candidate.json to this path instead of stdout",
     )
 
+    plan_ab = plan_sub.add_parser(
+        "ab",
+        help="Full-season old-vs-new benchmark: baseline SeasonPlanner (Stage 3 checkpoint) vs. "
+        "the Stage 3 v2 optimizer, from the same normalized planning problem (issue #257)",
+    )
+    plan_ab.add_argument(
+        "--work-dir",
+        default=".pipeline",
+        help="Pipeline work directory containing Stage 1-3 checkpoints (default: .pipeline)",
+    )
+    plan_ab.add_argument(
+        "--start-date",
+        default=None,
+        help="Season start date (YYYY-MM-DD); defaults to the Stage 3 checkpoint's plan window",
+    )
+    plan_ab.add_argument(
+        "--end-date",
+        default=None,
+        help="Season end date (YYYY-MM-DD); defaults to the Stage 3 checkpoint's plan window",
+    )
+    plan_ab.add_argument(
+        "--iterations",
+        type=int,
+        default=4000,
+        help="Simulated-annealing swap attempts for the new candidate (default: 4000)",
+    )
+    plan_ab.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="Random seed for the new candidate (default: 0)",
+    )
+    plan_ab.add_argument(
+        "--output-dir",
+        default=None,
+        help="Write old_candidate.json/new_candidate.json/ab_report.json to this directory",
+    )
+    plan_ab.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the A/B report as JSON instead of a human-readable summary",
+    )
+
     plan_problem = plan_sub.add_parser(
         "problem",
         help="Emit a normalized planning_problem.json from the Stage 1/2 checkpoints",

@@ -34,7 +34,9 @@ def _cmd_plan(args: argparse.Namespace) -> int:
         return _cmd_plan_problem(args)
     if args.plan_command == "optimize":
         return _cmd_plan_optimize(args)
-    _console.print("[yellow]Bruk: rvv-miniputt plan verify|score|problem|optimize[/yellow]")
+    if args.plan_command == "ab":
+        return _cmd_plan_ab(args)
+    _console.print("[yellow]Bruk: rvv-miniputt plan verify|score|problem|optimize|ab[/yellow]")
     return 1
 
 
@@ -167,6 +169,106 @@ def _cmd_plan_optimize(args: argparse.Namespace) -> int:
         for v in verification["violations"]:
             _console.print(f"  [red]•[/red] [{v['code']}] {v['message']}")
     return 0
+
+
+def _cmd_plan_ab(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt plan ab`` — old-vs-new full-season A/B benchmark (issue #257).
+
+    Runs the existing ``SeasonPlanner`` baseline already sitting in the
+    Stage 3 checkpoint and the Stage 3 v2 optimizer repair pass from the
+    *same* normalized planning problem, then reports whether the new
+    candidate is a strict-or-better improvement per age group and overall.
+    """
+    import os
+
+    from ..planning_contract import build_planning_problem, extract_candidate
+    from ..pipeline.state import PipelineState, StageName
+    from ..stage3_ab import build_ab_report
+    from ..stage3_optimizer import optimize_candidate
+
+    state = PipelineState(args.work_dir)
+    config = state.read_stage(StageName.CONFIG)
+    if not config:
+        _console.print("[red]✗[/red] Fant ingen Stage 1-konfigurasjon i arbeidsmappen. Kjør Stage 1 først.")
+        return 1
+    scraping_result = state.read_stage(StageName.SCRAPING)
+    planning_checkpoint = state.read_stage(StageName.PLANNING)
+    if not planning_checkpoint:
+        _console.print("[red]✗[/red] Fant ingen Stage 3-sjekkpunkt (baseline-plan) i arbeidsmappen. Kjør Stage 3 først.")
+        return 1
+
+    try:
+        old_candidate = extract_candidate(planning_checkpoint)
+    except ValueError as exc:
+        _console.print(f"[red]✗[/red] Kunne ikke lese baseline-kandidat fra Stage 3-sjekkpunktet: {exc}")
+        return 1
+
+    plan_dict = planning_checkpoint.get("plan", {})
+    start_date = date.fromisoformat(args.start_date) if args.start_date else None
+    end_date = date.fromisoformat(args.end_date) if args.end_date else None
+    if start_date is None and plan_dict.get("start_date"):
+        start_date = date.fromisoformat(plan_dict["start_date"])
+    if end_date is None and plan_dict.get("end_date"):
+        end_date = date.fromisoformat(plan_dict["end_date"])
+    if start_date is None or end_date is None:
+        _console.print(
+            "[red]✗[/red] Kunne ikke bestemme planleggingsvinduet — oppgi --start-date/--end-date."
+        )
+        return 1
+
+    problem = build_planning_problem(config, scraping_result, start_date, end_date)
+    new_candidate = optimize_candidate(old_candidate, problem, iterations=args.iterations, seed=args.seed)
+
+    report = build_ab_report(old_candidate, new_candidate, problem)
+
+    if args.output_dir:
+        os.makedirs(args.output_dir, exist_ok=True)
+        for name, payload in (
+            ("old_candidate.json", old_candidate),
+            ("new_candidate.json", new_candidate),
+            ("ab_report.json", report),
+        ):
+            with open(os.path.join(args.output_dir, name), "w", encoding="utf-8") as fh:
+                json.dump(payload, fh, indent=2, ensure_ascii=False)
+        if not args.json:
+            _console.print(f"[green]✓[/green] Skrev old_candidate.json/new_candidate.json/ab_report.json til {args.output_dir}")
+
+    if args.json:
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0 if report["promotable"] else 1
+
+    _print_ab_report(report)
+    return 0 if report["promotable"] else 1
+
+
+def _print_ab_report(report: Dict[str, Any]) -> None:
+    old_v, new_v = report["old"]["verification"], report["new"]["verification"]
+    old_status = "OK" if old_v["ok"] else f"{len(old_v['violations'])} brudd"
+    new_status = "OK" if new_v["ok"] else f"{len(new_v['violations'])} brudd"
+    _console.print("[bold]Harde krav[/bold]")
+    _console.print(f"  Baseline (gammel planlegger): {old_status}")
+    _console.print(f"  Ny kandidat: {new_status}")
+    if report["hard_constraint_regressed"]:
+        _console.print("  [red]✗ Ny kandidat introduserer harde brudd baseline ikke hadde[/red]")
+        for v in new_v["violations"]:
+            _console.print(f"    [red]•[/red] [{v['code']}] {v['message']}")
+
+    _console.print("\n[bold]Kvalitet, hele sesongen[/bold]")
+    for m in report["overall_comparison"]["metrics"]:
+        marker = "[red]▼ regresjon[/red]" if m["regressed"] else ("[green]▲[/green]" if m["delta"] != 0 else "=")
+        _console.print(f"  {m['metric']}: {m['old']} → {m['new']} ({marker})")
+
+    _console.print("\n[bold]Per aldersgruppe[/bold]")
+    for age_group, entry in sorted(report["by_age_group"].items()):
+        regressions = entry["comparison"]["regressions"]
+        status = "[red]regresjon[/red]" if regressions else "[green]OK[/green]"
+        _console.print(f"  {age_group}: {status}" + (f" ({', '.join(regressions)})" if regressions else ""))
+
+    _console.print()
+    if report["promotable"]:
+        _console.print("[green]✓ Ny kandidat kan forfremmes: ingen regresjoner mot baseline.[/green]")
+    else:
+        _console.print("[yellow]![/yellow] Ny kandidat kan IKKE forfremmes ennå — se regresjoner over.")
 
 
 def _cmd_plan_problem(args: argparse.Namespace) -> int:
