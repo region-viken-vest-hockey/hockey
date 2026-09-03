@@ -48,9 +48,10 @@ jobs:
           Jutul,Jutul,U10
           CSV
           cat > "$tmp/overview.csv" <<'CSV'
-          date,age_group,host_club
-          2026-09-05,U10,Jar
-          2026-09-12,U10,Jutul
+          date,age_group,host_club,game_count
+          2026-09-05,U10,Jar,6
+          2026-09-05,U10,Jar,3
+          2026-09-12,U10,Jutul,3
           CSV
           python scripts/season-plan-audit.py \
             --registrations "$tmp/registrations.csv" \
@@ -67,5 +68,14 @@ jobs:
           assert payload["status"] in {"pass", "warn"}
           assert payload["registration_team_count"] == 3
           assert payload["registrations_sha256"]
+          assert payload["workload_basis"]["secondary"] == ["unique host days", "hosted games"]
           assert not any(issue["type"] == "host_without_registered_team" for issue in payload["issues"])
+
+          clubs = {row["club"]: row for row in payload["club_summary"]}
+          assert clubs["Jar"]["actual_hosts"] == 2
+          assert clubs["Jar"]["host_days"] == 1
+          assert clubs["Jar"]["hosted_games"] == 9
+          assert clubs["Jutul"]["actual_hosts"] == 1
+          assert clubs["Jutul"]["host_days"] == 1
+          assert clubs["Jutul"]["hosted_games"] == 3
           PY
