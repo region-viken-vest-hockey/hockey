@@ -22,6 +22,7 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   CANONICAL_PATH: "inputs/registrations/registered-teams.csv"
+  SOURCE_STATE_PATH: "inputs/registrations/source-state.json"
 
 jobs:
   import-registrations:
@@ -32,6 +33,7 @@ jobs:
       changed: ${{ steps.import.outputs.changed }}
       sha256: ${{ steps.import.outputs.sha256 }}
       team_count: ${{ steps.import.outputs.team_count }}
+      source_issue_number: ${{ steps.import.outputs.source_issue_number }}
       commit_sha: ${{ steps.commit.outputs.commit_sha }}
     steps:
       - name: "Hent kode"
@@ -73,10 +75,11 @@ jobs:
       - name: "Installer runtime-avhengigheter"
         run: pip install -e .
 
-      - name: "Importer, valider og skriv kanonisk CSV"
+      - name: "Importer, valider og skriv kanonisk snapshot"
         id: import
         env:
           ISSUE_BODY_FILE: ${{ steps.issue.outputs.body_file }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
         run: |
           python - <<'PY'
           import csv
@@ -93,6 +96,7 @@ jobs:
           )
 
           body = Path(os.environ["ISSUE_BODY_FILE"]).read_text(encoding="utf-8")
+          issue_number = int(os.environ["ISSUE_NUMBER"])
           fields = {}
           for raw_line in body.splitlines():
               match = re.match(r"^([a-z_][a-z0-9_]*)=(.*)$", raw_line.strip())
@@ -153,7 +157,11 @@ jobs:
               public_rows.append(projected)
 
           buffer = io.StringIO(newline="")
-          writer = csv.DictWriter(buffer, fieldnames=["club", "label", "age_group"], lineterminator="\n")
+          writer = csv.DictWriter(
+              buffer,
+              fieldnames=["club", "label", "age_group"],
+              lineterminator="\n",
+          )
           writer.writeheader()
           writer.writerows(public_rows)
           normalized_bytes = buffer.getvalue().encode("utf-8")
@@ -165,25 +173,71 @@ jobs:
           except RegisteredTeamsValidationError as exc:
               raise SystemExit(f"Påmeldingsdata feilet validering: {exc}") from exc
 
+          team_count = int(public_payload.get("total_teams", 0))
+          csv_sha256 = hashlib.sha256(normalized_bytes).hexdigest()
+          git_blob_sha = hashlib.sha1(
+              f"blob {len(normalized_bytes)}\0".encode("ascii") + normalized_bytes
+          ).hexdigest()
+
           canonical_path = Path(os.environ["CANONICAL_PATH"])
-          changed = not canonical_path.exists() or canonical_path.read_bytes() != normalized_bytes
+          state_path = Path(os.environ["SOURCE_STATE_PATH"])
+          previous_state = {}
+          if state_path.exists():
+              try:
+                  previous_state = json.loads(state_path.read_text(encoding="utf-8"))
+              except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                  raise SystemExit(f"Eksisterende source-state er ugyldig: {exc}") from exc
+
+          previous_issue = previous_state.get("source_issue_number", 0)
+          if isinstance(previous_issue, int) and previous_issue > issue_number:
+              raise SystemExit(
+                  f"Nekter å rulle SharePoint-snapshot bakover: issue #{issue_number} < #{previous_issue}"
+              )
+          if (
+              isinstance(previous_issue, int)
+              and previous_issue == issue_number
+              and previous_state.get("csv_git_blob_sha")
+              and previous_state.get("csv_git_blob_sha") != git_blob_sha
+          ):
+              raise SystemExit(
+                  f"Issue #{issue_number} forsøker å endre et allerede importert snapshot; bruk en ny sync-issue"
+              )
+
+          source_state = {
+              "schema_version": 1,
+              "source": "sharepoint",
+              "source_issue_number": issue_number,
+              "team_count": team_count,
+              "csv_git_blob_sha": git_blob_sha,
+              "csv_sha256": csv_sha256,
+          }
+          state_bytes = (
+              json.dumps(source_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+          ).encode("utf-8")
+
+          csv_changed = not canonical_path.exists() or canonical_path.read_bytes() != normalized_bytes
+          state_changed = not state_path.exists() or state_path.read_bytes() != state_bytes
+          changed = csv_changed or state_changed
           if changed:
               canonical_path.parent.mkdir(parents=True, exist_ok=True)
               canonical_path.write_bytes(normalized_bytes)
+              state_path.parent.mkdir(parents=True, exist_ok=True)
+              state_path.write_bytes(state_bytes)
 
           with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
               print(f"changed={'true' if changed else 'false'}", file=output)
-              print(f"sha256={hashlib.sha256(normalized_bytes).hexdigest()}", file=output)
-              print(f"team_count={public_payload.get('total_teams', 0)}", file=output)
+              print(f"sha256={csv_sha256}", file=output)
+              print(f"team_count={team_count}", file=output)
+              print(f"source_issue_number={issue_number}", file=output)
           PY
 
-      - name: "Commit og push endrede påmeldingsdata"
+      - name: "Commit og push endret SharePoint-snapshot"
         if: steps.import.outputs.changed == 'true'
         id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "$CANONICAL_PATH"
+          git add "$CANONICAL_PATH" "$SOURCE_STATE_PATH"
           git commit -m "[bot] [skip ci] Importer påmeldte lag fra SharePoint"
           git push origin HEAD:main
           echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
