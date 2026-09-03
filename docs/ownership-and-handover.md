@@ -39,7 +39,6 @@ Use this table as the live checklist during setup, handover, and annual review. 
 | WordPress administrator/editor accounts | MANUAL. | Club-controlled WordPress administrator account. | Second administrator plus hosting-provider recovery. | Editor for posting links; admin only for plugin/theme/user changes. | Password manager or hosting secret store; rotate admin passwords/tokens annually. | Document provider login, backup restore, and DNS mapping privately. | Automate publishing links only after approval. |
 | Calendar-source credentials and service accounts | MANUAL. | Club-owned service accounts or delegated calendar owners. | Backup custodian plus provider recovery path. | Read-only calendar access unless edits are explicitly needed. | GitHub environment secrets, M365/Google secret stores, or a club password manager; never `BOOKUP_EMAIL`/`BOOKUP_PASSWORD` in prompts/logs. | Rotate credentials at least annually and immediately after volunteer departure. | Prefer public/ical read-only feeds where available. |
 | Domains, DNS, analytics, and notification addresses | MANUAL. | Club/region registrar account, DNS zone, analytics property, and shared mailbox. | Second owner and registrar recovery contact. | Publish/technical maintainers need only the DNS or analytics permissions they operate. | Registrar MFA and recovery codes in club password manager/offline safe. | Record renewal dates, payment owner, and emergency transfer process privately. | Use shared notification addresses for alerts and form replies. |
-| Release signing/notarization identities | MANUAL; only relevant if desktop distribution is used. | Club/vendor developer account. | Backup account holder and provider recovery process. | Release maintainer can request signing; owner controls certificates. | Certificates and notarization credentials in secure secret store; rotate on maintainer change. | Track expiry dates and revoke lost certificates. | Avoid desktop distribution unless it has clear operational ownership. |
 
 ## Managed secrets and rotation
 
@@ -73,7 +72,6 @@ Perform this review before season signup opens and again during formal handover.
 - [ ] Spond and WordPress admin/editor lists match the current volunteer roster.
 - [ ] Calendar-source credentials are still needed, stored in managed secret stores, and rotated according to policy.
 - [ ] Domains, DNS, analytics, notification mailboxes, and renewals have club-owned contacts and backup recovery.
-- [ ] Release signing/notarization identities are either unused or club-owned with tracked expiry dates.
 - [ ] Generated public output and automation config are free of personal paths, emails, usernames, and machine-specific assumptions.
 - [ ] A non-maintainer has completed the second-person dry run since the last role change.
 
