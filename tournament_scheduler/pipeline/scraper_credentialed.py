@@ -1,10 +1,9 @@
 """Credentialed scraping helpers for Stage 2.
 
-Provides :func:`_try_credentialed_scrape` as the entry point, which checks
-environment-variable credentials and delegates to
-:func:`_run_credentialed_bookup_or_outlook` for the Playwright-based login
-flow. Set ``RVV_BOOKUP_MANUAL_LOGIN=1`` to open a visible BookUp browser and
-pause for Vipps/SMS MFA when running interactively.
+BookUp authentication is reusable across harnesses.  A visible browser on the
+macOS host can establish Playwright storage state under ``.pipeline/auth/``;
+subsequent headless runs (including Lima) reuse that state instead of starting
+a fresh credential/MFA flow every time.
 """
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from ..models import CalendarEvent
@@ -24,6 +24,8 @@ from .scraper_strategies import get_strategy, requires_credentials
 
 MANUAL_BOOKUP_LOGIN_ENV = "RVV_BOOKUP_MANUAL_LOGIN"
 MANUAL_BOOKUP_LOGIN_TIMEOUT_ENV = "RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT"
+BOOKUP_STORAGE_STATE_ENV = "RVV_BOOKUP_STORAGE_STATE"
+DEFAULT_BOOKUP_STORAGE_STATE = "bookup-storage-state.json"
 DEFAULT_MANUAL_BOOKUP_LOGIN_TIMEOUT_SECONDS = 300
 
 
@@ -48,8 +50,45 @@ def _manual_bookup_login_timeout_seconds() -> int:
         return DEFAULT_MANUAL_BOOKUP_LOGIN_TIMEOUT_SECONDS
 
 
+def _bookup_storage_state_path(cache: CalendarCache | None = None) -> Path:
+    """Return the shared Playwright storage-state path for BookUp.
+
+    When Stage 2 supplied a :class:`CalendarCache`, derive the pipeline work
+    directory from its conventional ``<work-dir>/cache/calendars`` location so
+    custom work directories keep auth state alongside their checkpoints.
+    """
+    override = os.environ.get(BOOKUP_STORAGE_STATE_ENV, "").strip()
+    if override:
+        return Path(override).expanduser()
+
+    if cache is not None:
+        cache_dir = Path(cache.cache_dir)
+        if cache_dir.name == "calendars" and cache_dir.parent.name == "cache":
+            return cache_dir.parent.parent / "auth" / DEFAULT_BOOKUP_STORAGE_STATE
+
+    return Path(".pipeline") / "auth" / DEFAULT_BOOKUP_STORAGE_STATE
+
+
+def _storage_state_available(path: Path) -> bool:
+    try:
+        return path.is_file() and path.stat().st_size > 2
+    except OSError:
+        return False
+
+
+def _save_bookup_storage_state(context: Any, path: Path, source_name: str) -> None:
+    """Persist authenticated browser state with private filesystem permissions."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    context.storage_state(path=str(path))
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
+    _emit_manual_login_status(f"{source_name}: lagret BookUp-innlogging i {path}")
+
+
 def _emit_manual_login_status(message: str) -> None:
-    """Print a live status line that Pi's pipeline runner surfaces as progress."""
+    """Print a live status line that harness runners can surface as progress."""
     print(f"[heartbeat] {message}", flush=True)
 
 
@@ -79,18 +118,13 @@ def _wait_for_manual_bookup_login(
     source_name: str,
     timeout_seconds: int | None = None,
 ) -> tuple[bool, str]:
-    """Pause a visible BookUp browser so the operator can complete Vipps/SMS MFA.
-
-    In a normal terminal we can wait for Enter. Pi's Stage 2 subprocess does
-    not have stdin attached, so it must return a blocked source quickly; the Pi
-    ScraperAgent then performs the same headed-browser pause via ``ctx.ui``.
-    """
+    """Pause a visible host browser so the operator can complete Vipps/SMS MFA."""
     timeout = timeout_seconds or _manual_bookup_login_timeout_seconds()
     if not sys.stdin.isatty():
         return False, (
             f"Manuell BookUp-innlogging/MFA for '{source_name}' krever interaktiv stdin. "
-            "I Pi: la kilden bli blokkert og bruk den utvidede ScraperAgent-pauseringen, "
-            "eller kjør kommandoen i en terminal med --manual-bookup-login."
+            "Kjør recovery i en synlig nettleser på macOS-verten; lagret Playwright-state "
+            "kan deretter gjenbrukes av headless/Lima-kjøringer."
         )
 
     _emit_manual_login_status(
@@ -118,21 +152,19 @@ def _try_credentialed_scrape(
     end_date: datetime,
     cache: CalendarCache | None = None,
 ) -> tuple[list[CalendarEvent], str]:
-    """Retry scraping with environment-variable credentials.
+    """Scrape a credentialed source using saved state or fresh credentials.
 
-    Checks the source's scraper strategy for ``credential_env_vars``. If all
-    required env vars are set, launches Playwright, executes the strategy's
-    ``initial_navigation`` login steps, then attempts standard Outlook/iframe
-    scraping.
-
-    Returns (events, error_string). Events is empty on failure; error_string
-    is empty on success.
+    A valid saved BookUp storage-state file is sufficient for a headless run.
+    Environment credentials are only mandatory when there is no reusable state
+    (or when the operator is deliberately refreshing it in a visible browser).
     """
     strategy = get_strategy(name)
     if not strategy or not requires_credentials(strategy):
         return [], ""
 
-    # Check that all required env vars are available
+    state_path = _bookup_storage_state_path(cache)
+    has_saved_state = _storage_state_available(state_path)
+
     missing: list[str] = []
     creds: dict[str, str] = {}
     for var in strategy.credential_env_vars:
@@ -142,19 +174,26 @@ def _try_credentialed_scrape(
         else:
             creds[var] = val
 
-    if missing:
+    if missing and not has_saved_state:
         return [], (
-            f"Kilden '{name}' krever innlogging men miljovariablene "
-            f"{', '.join(missing)} er ikke satt."
+            f"Kilden '{name}' krever BookUp-innlogging. Ingen gjenbrukbar Playwright-state finnes i "
+            f"{state_path}, og miljovariablene {', '.join(missing)} er ikke satt. "
+            "Opprett/oppdater innloggingen i synlig nettleser på macOS-verten."
         )
 
     if not strategy.initial_navigation:
         return [], f"Kilden '{name}' har credentials men ingen initial_navigation."
 
-    # Execute the login flow via Playwright, then scrape
     try:
         return _run_credentialed_bookup_or_outlook(
-            name, url, start_date, end_date, strategy, creds, cache
+            name,
+            url,
+            start_date,
+            end_date,
+            strategy,
+            creds,
+            cache,
+            storage_state_path=state_path,
         )
     except Exception as exc:
         return [], f"Credentialed scrape feilet for '{name}': {exc}"
@@ -168,16 +207,14 @@ def _run_credentialed_bookup_or_outlook(
     strategy: Any,
     creds: dict[str, str],
     cache: CalendarCache | None = None,
+    *,
+    storage_state_path: Path | None = None,
 ) -> tuple[list[CalendarEvent], str]:
-    """Playwright scraper that logs in before scraping.
-
-    Executes *strategy.initial_navigation* steps (with ``${VAR}`` placeholders
-    replaced by *creds* values). For BookUp SPA sources, delegates to the
-    BookUp timegrid parser after login. For Outlook sources, runs the standard
-    iframe month-by-month scraping loop.
-    """
+    """Playwright scraper that reuses or establishes authenticated state."""
     from string import Template
+
     from playwright.sync_api import sync_playwright
+
     from ..data_sources.calendar_scraper import OutlookCalendarScraper
 
     events: list[CalendarEvent] = []
@@ -194,34 +231,40 @@ def _run_credentialed_bookup_or_outlook(
     )
 
     is_bookup = (
-        getattr(strategy, 'engine', None) is not None
-        and getattr(strategy.engine, 'value', '') == 'bookup_spa'
+        getattr(strategy, "engine", None) is not None
+        and getattr(strategy.engine, "value", "") == "bookup_spa"
     )
+    state_path = storage_state_path or _bookup_storage_state_path(cache)
+    has_saved_state = is_bookup and _storage_state_available(state_path)
+    missing_credentials = [var for var in getattr(strategy, "credential_env_vars", []) if not creds.get(var)]
     manual_login_requested = is_bookup and _manual_bookup_login_enabled()
     manual_login = manual_login_requested and sys.stdin.isatty()
 
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=not manual_login)
-            page = browser.new_page()
+            context_kwargs: dict[str, Any] = {}
+            if has_saved_state:
+                context_kwargs["storage_state"] = str(state_path)
+                _emit_manual_login_status(f"{name}: gjenbruker BookUp-innlogging fra {state_path}")
+            context = browser.new_context(**context_kwargs)
+            page = context.new_page()
 
-            # Navigate to the calendar URL
             page.goto(url, timeout=30_000)
             page.wait_for_timeout(3_000)
 
-            # Execute login / initial navigation steps
             for step in strategy.initial_navigation:
                 cmd = step.get("cmd", "")
                 selector_tmpl = step.get("selector", "")
                 text_tmpl = step.get("text", "")
                 wait_ms = step.get("wait_ms", 1_500)
 
-                # Substitute env vars in selector and text
                 selector = Template(selector_tmpl).safe_substitute(creds)
                 text = Template(text_tmpl).safe_substitute(creds) if text_tmpl else ""
 
                 if cmd == "manual_login":
-                    if manual_login_requested:
+                    # A valid saved session should not force a new MFA pause.
+                    if manual_login_requested and not _bookup_calendar_ready(page):
                         ok, manual_error = _wait_for_manual_bookup_login(
                             page,
                             name,
@@ -230,10 +273,11 @@ def _run_credentialed_bookup_or_outlook(
                             ),
                         )
                         if not ok:
+                            context.close()
                             browser.close()
                             return [], manual_error
                     continue
-                elif cmd == "click" and selector:
+                if cmd == "click" and selector:
                     try:
                         el = page.locator(selector)
                         if el.count() > 0:
@@ -241,6 +285,10 @@ def _run_credentialed_bookup_or_outlook(
                     except Exception:
                         pass
                 elif cmd == "type" and selector:
+                    # If a saved session expired but this headless run has no
+                    # credentials, do not submit literal ${BOOKUP_*} placeholders.
+                    if "${" in text:
+                        continue
                     try:
                         el = page.locator(selector)
                         if el.count() > 0:
@@ -252,18 +300,20 @@ def _run_credentialed_bookup_or_outlook(
 
                 page.wait_for_timeout(wait_ms)
 
-            # Now run the appropriate scraping loop based on engine
+            if is_bookup and _bookup_calendar_ready(page):
+                try:
+                    _save_bookup_storage_state(context, state_path, name)
+                except Exception as exc:
+                    _emit_manual_login_status(f"{name}: kunne ikke lagre BookUp-state: {exc}")
+
             if is_bookup:
-                # BookUp SPA: find the app.html iframe and extract FullCalendar events
-                page.wait_for_timeout(5_000)  # Wait for post-login redirect
-                frame = page.frame(url=lambda u: 'app.html' in u)
+                page.wait_for_timeout(5_000)
+                frame = page.frame(url=lambda u: "app.html" in u)
                 if frame:
-                    # Click "Se tilgjengelighet" if visible
                     btn = frame.locator("text=Se tilgjengelighet")
                     if btn.count() > 0:
                         btn.first.click()
                         frame.wait_for_timeout(5_000)
-                    # Navigate weeks and extract
                     start_date_ref = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
                     end_date_ref = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
                     total_days = (end_date_ref - start_date_ref).days
@@ -288,11 +338,11 @@ def _run_credentialed_bookup_or_outlook(
                     page, events, months_to_scrape, norwegian_months
                 )
 
+            context.close()
             browser.close()
     except Exception as exc:
         error_message = f"Credentialed Playwright-feil for '{name}': {exc}"
 
-    # Deduplicate
     seen: set[tuple[str, str]] = set()
     unique: list[CalendarEvent] = []
     for ev in events:
@@ -300,6 +350,12 @@ def _run_credentialed_bookup_or_outlook(
         if key not in seen:
             seen.add(key)
             unique.append(ev)
+
+    if is_bookup and not unique and has_saved_state and missing_credentials and not error_message:
+        error_message = (
+            f"Lagret BookUp-innlogging i {state_path} ga ingen pålitelige kalenderhendelser for '{name}'. "
+            "Sesjonen kan være utløpt; oppdater den i synlig nettleser på macOS-verten."
+        )
 
     return unique, error_message or raw_html
 
@@ -310,11 +366,7 @@ def _credentialed_scrape_months(
     months_to_scrape: int,
     norwegian_months: dict[str, int],
 ) -> None:
-    """Scrape calendar months from an already-authenticated Playwright page.
-
-    Tries iframe-based extraction first, then falls back to date-parameter
-    navigation, then plain DOM text extraction.
-    """
+    """Scrape calendar months from an already-authenticated Playwright page."""
     iframe_element = page.query_selector("iframe")
     has_iframe = iframe_element is not None and iframe_element.content_frame() is not None
 
@@ -337,14 +389,14 @@ def _credentialed_scrape_months(
                 except Exception:
                     pass
     else:
-        # Try date-parameter navigation
-        from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
+        from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
         parsed = urlparse(page.url)
         query = parse_qs(parsed.query)
         current_month = datetime.now().replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
-        for month_idx in range(months_to_scrape):
+        for _month_idx in range(months_to_scrape):
             date_str = current_month.strftime("%Y-%m-%d")
             q = dict(query)
             q["date"] = [date_str]

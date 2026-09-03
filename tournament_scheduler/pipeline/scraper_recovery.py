@@ -14,22 +14,25 @@ def _recovery_hint_for_source(source_name: str) -> str:
     try:
         strategy = get_strategy(source_name)
         if strategy and requires_credentials(strategy):
-            engine = strategy.engine.value.replace("_", " ")
-            vars_list = ", ".join(strategy.credential_env_vars)
             missing = [var for var in strategy.credential_env_vars if not os.environ.get(var)]
-            if missing:
-                credential_text = f"Mangler miljovariablene {', '.join(missing)}."
-            else:
-                credential_text = f"Fyll innloggingsdetaljene for {engine}."
+            credential_note = (
+                f" Miljøvariabler som mangler ved ny innlogging: {', '.join(missing)}."
+                if missing
+                else ""
+            )
             return (
-                f"{credential_text} Kildens innlogging bruker {vars_list}. Kjor `rvv-miniputt run` pa nytt nar kilden er tilgjengelig, "
-                "eller bruk `rvv-miniputt run --allow-missing-sources` for a fortsette med delvise resultater."
+                "BookUp-recovery skal normalt bruke lagret Playwright-innlogging fra "
+                ".pipeline/auth/bookup-storage-state.json. Hvis sesjonen er utløpt, "
+                "oppdater den i en synlig nettleser på macOS-verten med "
+                "`RVV_BOOKUP_MANUAL_LOGIN=1 ... scripts/rvv-miniputt calendars --refresh`; "
+                "Lima/headless-kjøringer gjenbruker deretter samme state."
+                f"{credential_note} Kilden forblir uløst til kalenderhendelser kan leses."
             )
     except Exception:
         pass
     return (
-        "Kjor `rvv-miniputt run` pa nytt nar kalenderen er tilgjengelig, "
-        "eller bruk `rvv-miniputt run --allow-missing-sources` for a fortsette med delvise resultater."
+        "Kjør `scripts/rvv-miniputt run` på nytt når kalenderen er tilgjengelig. "
+        "Bruk bare `--allow-missing-sources` når en operatør uttrykkelig godkjenner delvise resultater."
     )
 
 
@@ -44,6 +47,20 @@ def _blocked_sources_warning(
     recovery = _recovery_hint_for_source(blocked[0].get("name", "")) if blocked else _recovery_hint_for_source("")
     prefix = "Delvise resultater er lagret" if allow_missing_sources else "Delvise resultater er lagret, men Stage 2 er markert som feilet"
     return f"{prefix} i {path}. Blokkerte kilder: {names}. {recovery}"
+
+
+def _temporary_unresolved_warning(
+    temporary: list[dict[str, Any]],
+    state: PipelineState,
+) -> str:
+    """Explain the temporary BookUp exception without pretending it is resolved."""
+    names = ", ".join(sorted({b.get("name", "?") for b in temporary})) or "ukjent kilde"
+    path = state.checkpoint_path(StageName.SCRAPING)
+    return (
+        f"Midlertidig ikke-blokkerende kalenderkilder i {path}: {names}. "
+        "De er fortsatt uløste kalenderkilder og skal forsøkes gjenopprettet; "
+        "dette er ikke en permanent manuell kalenderpolicy."
+    )
 
 
 def _empty_sources_warning(empty_sources: list[dict[str, Any]], state: PipelineState) -> str:
