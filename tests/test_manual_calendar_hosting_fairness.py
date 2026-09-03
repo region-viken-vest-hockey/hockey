@@ -1,6 +1,7 @@
 from datetime import date
 from types import SimpleNamespace
 
+from tournament_scheduler.html.data_computation import canonical_rvv_club_name
 from tournament_scheduler.models import Roster, SeasonPlan, Team, Tournament
 from tournament_scheduler.warnings import hosting_fairness_breakdown
 
@@ -37,13 +38,14 @@ def test_missing_calendar_club_keeps_proportional_hosting_obligation():
 
     result = hosting_fairness_breakdown(planner, plan)
     rows = {(row["age_group"], row["club"]): row for row in result["age_group_breakdown"]}
+    sandefjord = canonical_rvv_club_name("Sandefjord")
 
     assert "Sandefjord" in result["missing_calendar_clubs"]
     assert rows[("U10", "Jar")]["teams"] == 2
     assert rows[("U10", "Jar")]["actual"] == 2
     assert rows[("U10", "Jar")]["expected"] == 2.0
-    assert rows[("U10", "Sandefjord")]["teams"] == 1
-    assert rows[("U10", "Sandefjord")]["actual"] == 1
-    assert rows[("U10", "Sandefjord")]["expected"] == 1.0
+    assert rows[("U10", sandefjord)]["teams"] == 1
+    assert rows[("U10", sandefjord)]["actual"] == 1
+    assert rows[("U10", sandefjord)]["expected"] == 1.0
     assert result["max_deviation"] == 0
     assert "fortsatt med i avviksberegningen" in result["detail"]
