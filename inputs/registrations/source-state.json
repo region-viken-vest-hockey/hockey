@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source": "sharepoint",
+  "source_issue_number": 253,
+  "team_count": 143,
+  "csv_git_blob_sha": "2aa669c75061141f727541ec5b3d510c107c0e81",
+  "source_commit": "852bc04c7824dc69b1bc72abd1e5b1e304dfd929",
+  "synced_at": "2026-08-24T06:31:10Z"
+}
