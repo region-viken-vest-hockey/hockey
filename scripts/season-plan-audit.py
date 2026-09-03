@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 from collections import defaultdict
 from pathlib import Path
@@ -28,6 +29,9 @@ def _physical_club_weights(club: str) -> dict[str, float]:
 
 
 def audit(registrations_path: Path, overview_path: Path, max_deviation: float) -> dict[str, object]:
+    registration_bytes = registrations_path.read_bytes()
+    registrations_sha256 = hashlib.sha256(registration_bytes).hexdigest()
+    registration_team_count = 0
     registrations_by_age: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     with registrations_path.open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -37,8 +41,10 @@ def audit(registrations_path: Path, overview_path: Path, max_deviation: float) -
         for row in reader:
             age_group = (row.get("age_group") or "").strip()
             club = (row.get("club") or "").strip()
-            if not age_group or not club:
+            label = (row.get("label") or "").strip()
+            if not age_group or not club or not label:
                 continue
+            registration_team_count += 1
             for physical_club, weight in _physical_club_weights(club).items():
                 registrations_by_age[age_group][physical_club] += weight
 
@@ -61,7 +67,9 @@ def audit(registrations_path: Path, overview_path: Path, max_deviation: float) -
 
     rows: list[dict[str, object]] = []
     issues: list[dict[str, object]] = []
-    club_totals: dict[str, dict[str, float]] = defaultdict(lambda: {"teams": 0.0, "expected": 0.0, "actual": 0.0})
+    club_totals: dict[str, dict[str, float]] = defaultdict(
+        lambda: {"teams": 0.0, "expected": 0.0, "actual": 0.0}
+    )
 
     for age_group in sorted(set(tournaments_by_age) | set(registrations_by_age)):
         tournament_count = tournaments_by_age.get(age_group, 0)
@@ -123,10 +131,16 @@ def audit(registrations_path: Path, overview_path: Path, max_deviation: float) -
             }
         )
 
-    status = "fail" if any(issue["severity"] == "fail" for issue in issues) else ("warn" if issues else "pass")
+    status = (
+        "fail"
+        if any(issue["severity"] == "fail" for issue in issues)
+        else ("warn" if issues else "pass")
+    )
     return {
         "status": status,
         "registrations_path": str(registrations_path),
+        "registrations_sha256": registrations_sha256,
+        "registration_team_count": registration_team_count,
         "overview_path": str(overview_path),
         "max_age_group_host_deviation": max_deviation,
         "issues": issues,
