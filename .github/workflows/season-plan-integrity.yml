@@ -4,8 +4,11 @@ on:
   pull_request:
     paths:
       - "tournament_scheduler/host_assignment.py"
+      - "tournament_scheduler/warnings.py"
+      - "tournament_scheduler/fairness_scoring.py"
       - "scripts/season-plan-audit.py"
       - "tests/test_host_assignment_regression.py"
+      - "tests/test_manual_calendar_hosting_fairness.py"
       - ".github/workflows/season-review-bundle.yml"
       - ".github/workflows/season-validate.yml"
       - ".github/workflows/season-publish.yml"
@@ -36,7 +39,10 @@ jobs:
           pip install -e '.[test]'
 
       - name: "Kjør vertskapsregresjoner"
-        run: pytest -q tests/test_host_assignment_regression.py
+        run: |
+          pytest -q \
+            tests/test_host_assignment_regression.py \
+            tests/test_manual_calendar_hosting_fairness.py
 
       - name: "Smoke-test uavhengig season-plan-audit"
         run: |
