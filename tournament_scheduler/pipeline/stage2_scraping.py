@@ -9,19 +9,8 @@ For each configured calendar source:
   4. If a source returns zero events, record it separately as an empty calendar
      unless the scraper itself failed.
 
-Source config format (inside the validated Stage 1 config)::
-
-    "sources": [
-        {
-            "name": "Kongsberg ishall",
-            "type": "outlook",
-            "url": "https://kongsberghallen.no/webkalender/ishall/"
-        },
-        ...
-    ]
-
-If no ``sources`` key is present in the Stage 1 config, the stage writes an
-empty ``sources`` list to the checkpoint (useful for tests / partial runs).
+Stage 2 also owns the canonical source-readiness decision. Unresolved sources
+remain visible for recovery, while only ``blocking_sources`` prevent Stage 3.
 """
 
 from __future__ import annotations
@@ -39,6 +28,7 @@ from ..utils.calendar_cache import CalendarCache
 
 from .not_started import NOT_STARTED_MESSAGE
 from .scraper_strategies import get_strategy, requires_credentials, needs_llm_agent, get_deterministic_scraper_type
+from .source_readiness import classify_unresolved_sources, source_names
 from .state import PipelineState, StageName, StageStatus
 from .scraper_constants import (
     SOURCE_OUTLOOK, SOURCE_HTML, SOURCE_ICAL, SOURCE_GOOGLE,
@@ -56,9 +46,15 @@ from .scraper_event_helpers import _events_to_dicts, _group_events_by_club
 from .scraper_forumbooking import _run_forumbooking_scraper
 from .scraper_ical import _run_ical_scraper
 from .scraper_outlook import _run_outlook_scraper, _parse_date_param_calendar, _parse_outlook_calendar
-from .scraper_recovery import _blocked_sources_warning, _empty_sources_warning, _recovery_hint_for_source
+from .scraper_recovery import (
+    _blocked_sources_warning,
+    _empty_sources_warning,
+    _recovery_hint_for_source,
+    _temporary_unresolved_warning,
+)
 from .scraper_styledcalendar import _run_styledcalendar_scraper
 from .scraper_sportello import _run_sportello_scraper
+
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -80,12 +76,7 @@ def _make_source_result(
     scraper_error: str | None = None,
     from_cache: bool = False,
 ) -> dict[str, Any]:
-    """Build the canonical source-result dict used throughout stage 2.
-
-    All callers (skipped sources, executor exception handler, and
-    :func:`_scrape_source`) must go through this helper so the dict shape
-    stays consistent.
-    """
+    """Build the canonical source-result dict used throughout stage 2."""
     result: dict[str, Any] = {
         "name": name,
         "url": url,
@@ -141,15 +132,7 @@ def _count_weekend_days(start_date: datetime, end_date: datetime) -> int:
 
 
 def _expected_min_events(config: dict[str, Any], start_date: datetime, end_date: datetime) -> int:
-    """Estimate a lower-bound event count for each configured arena source.
-
-    This is intentionally a coarse warning heuristic, not a hard validation rule.
-    Across a normal RVV season, an active arena calendar should usually expose at
-    least roughly one relevant booking for every four weekend days. The active
-    age-group count scales that expectation down for tiny test/special-purpose
-    configurations while keeping full RVV workbooks near the historical ~16 event
-    lower bound over a September-April season.
-    """
+    """Estimate a lower-bound event count for each configured arena source."""
     age_group_count = len(_active_age_groups(config))
     if age_group_count == 0:
         return 0
@@ -307,42 +290,7 @@ def run(
     max_workers: int = 4,
     force_refresh: bool = False,
 ) -> dict[str, Any]:
-    """Run Stage 2 scraping for all sources listed in *config*.
-
-    Sources are scraped in parallel via :class:`~concurrent.futures.ThreadPoolExecutor`
-    because each source creates its own Playwright browser context (or uses HTTP-only
-    iCal feeds) — there is no shared browser state.
-
-    Before scraping, each source is checked against the unified
-    :class:`~tournament_scheduler.pipeline.cache_manager.ScrapedDataCache`. If a
-    source has a fresh (non-stale), non-blocked, non-empty cache entry for the
-    same date range, the cached events are reused instead of re-scraping. After
-    scraping, fresh results are written back to the cache so subsequent runs can
-    benefit.
-
-    Parameters
-    ----------
-    config:
-        Validated Stage 1 config dict (from :func:`stage1_config.run`).
-    state:
-        :class:`PipelineState` managing the work directory.
-    start_date / end_date:
-        Date range for scraping.
-    strict:
-        If ``True``, raise :class:`Stage2Error` when any source is blocked.
-    allow_missing_sources:
-        If ``True``, keep partial scrape results as a successful checkpoint and
-        continue downstream even when some sources are blocked.
-    max_workers:
-        Number of worker threads for the executor. Default 4.
-    force_refresh:
-        If ``True``, ignore the cache and re-scrape every source.
-
-    Returns
-    -------
-    dict
-        Checkpoint data with per-source results.
-    """
+    """Run Stage 2 scraping and apply the canonical source-readiness policy."""
     state._set_status(StageName.SCRAPING, StageStatus.RUNNING)
 
     sources: list[dict[str, Any]] = config.get("sources", [])
@@ -353,6 +301,9 @@ def run(
             "sources": [],
             "events_by_club": {},
             "blocked": [],
+            "blocking_sources": [],
+            "temporarily_unresolved_sources": [],
+            "planning_ready": True,
             "empty_sources": [],
             "cached": [],
             "start_date": start_date.strftime("%Y-%m-%d"),
@@ -376,6 +327,9 @@ def run(
         result: dict[str, Any] = {
             "sources": [],
             "blocked": [],
+            "blocking_sources": [],
+            "temporarily_unresolved_sources": [],
+            "planning_ready": False,
             "start_date": start_date.strftime("%Y-%m-%d"),
             "end_date": end_date.strftime("%Y-%m-%d"),
             "warning": reason,
@@ -383,7 +337,6 @@ def run(
         state.write_stage(StageName.SCRAPING, result, status=StageStatus.DONE)
         return result
 
-    # --- Split sources into cache hits and sources that need (re-)scraping ---
     cache = ScrapedDataCache(work_dir=state.work_dir)
     calendar_cache = CalendarCache(work_dir=state.work_dir)
     cache_data = cache.read()
@@ -460,13 +413,10 @@ def run(
         else:
             sources_to_scrape.append(source_cfg)
 
-    blocked: list[dict[str, Any]] = []
+    unresolved: list[dict[str, Any]] = []
     empty_sources: list[dict[str, Any]] = []
 
     if _manual_bookup_login_enabled():
-        # Manual MFA means a human may need to interact with the visible BookUp
-        # browser. Keep scraping sequential to avoid multiple login windows and
-        # racing status prompts for Tønsberg/Sandefjord.
         max_workers = 1
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -498,7 +448,7 @@ def run(
                 )
             source_results.append(source_result)
             if source_result.get("blocked"):
-                blocked.append({"name": source_cfg.get("name", "?"), **source_result})
+                unresolved.append({"name": source_cfg.get("name", "?"), **source_result})
             if source_result.get("empty_calendar"):
                 empty_sources.append({"name": source_cfg.get("name", "?"), **source_result})
 
@@ -509,10 +459,28 @@ def run(
         end_date=end_date,
     )
 
+    readiness = classify_unresolved_sources(
+        unresolved,
+        allow_missing_sources=allow_missing_sources,
+    )
+    blocking = readiness["blocking"]
+    temporary = readiness["temporary"]
+    operator_allowed = readiness["operator_allowed"]
+    planning_ready = bool(readiness["planning_ready"])
+    assert isinstance(blocking, list)
+    assert isinstance(temporary, list)
+    assert isinstance(operator_allowed, list)
+
     checkpoint: dict[str, Any] = {
         "sources": source_results,
         "events_by_club": _group_events_by_club(source_results),
-        "blocked": [b["name"] for b in blocked],
+        # Backward-compatible unresolved list used by recovery/status tooling.
+        "blocked": source_names(unresolved),
+        # Canonical readiness fields. Harnesses must not recalculate these.
+        "blocking_sources": source_names(blocking),
+        "temporarily_unresolved_sources": source_names(temporary),
+        "operator_allowed_missing_sources": source_names(operator_allowed),
+        "planning_ready": planning_ready,
         "empty_sources": [e["name"] for e in empty_sources],
         "cached": cached_names,
         "start_date": start_date.strftime("%Y-%m-%d"),
@@ -520,29 +488,37 @@ def run(
         "event_expectation_warnings": event_expectation_warnings,
     }
 
-    status = StageStatus.DONE if (not blocked or allow_missing_sources) else StageStatus.FAILED
+    status = StageStatus.DONE if planning_ready else StageStatus.FAILED
     checkpoint["checkpoint_path"] = str(state.checkpoint_path(StageName.SCRAPING))
     warnings: list[str] = []
-    if blocked:
+    if blocking:
         warnings.append(
             _blocked_sources_warning(
-                blocked,
+                blocking,
                 state,
-                allow_missing_sources=allow_missing_sources,
+                allow_missing_sources=False,
             )
         )
+    elif unresolved and allow_missing_sources:
+        warnings.append(
+            _blocked_sources_warning(
+                unresolved,
+                state,
+                allow_missing_sources=True,
+            )
+        )
+    if temporary:
+        warnings.append(_temporary_unresolved_warning(temporary, state))
     if empty_sources:
         warnings.append(_empty_sources_warning(empty_sources, state))
     if warnings:
         checkpoint["warning"] = " ".join(warnings)
 
     state.write_stage(StageName.SCRAPING, checkpoint, status=status)
-
-    # Persist freshly-scraped results to the unified cache for future runs
     cache.build_from_checkpoint(config, checkpoint)
 
-    if blocked and strict and not allow_missing_sources:
-        raise Stage2Error(blocked)
+    if blocking and strict and not allow_missing_sources:
+        raise Stage2Error(blocking)
 
     return checkpoint
 
@@ -559,30 +535,7 @@ def _scrape_source(
     end_date: datetime,
     calendar_cache: CalendarCache | None = None,
 ) -> dict[str, Any]:
-    """Scrape a single source deterministically.
-
-    Dispatch is driven by the :class:`~scraper_strategies.CalendarEngine`
-    declared in ``STRATEGIES`` via :func:`~scraper_strategies.get_deterministic_scraper_type`:
-
-    * ``"styledcalendar"`` (e.g. Bærum/Jutul) — calls ``_run_styledcalendar_scraper``
-    * ``"sportello"``     (e.g. Holmen) — calls ``_run_sportello_scraper``
-    * ``"bookup"``         (e.g. Tønsberg, Sandefjord) — calls ``_run_bookup_scraper``
-    * ``"forumbooking"``   (e.g. Jar) — calls ``_run_forumbooking_scraper``
-    * ``"brp_exigo"``      (e.g. Skien) — calls ``_run_brp_exigo_scraper``
-    * sources not in ``STRATEGIES`` fall back to ``source_type``-based routing:
-
-      * ``outlook`` / ``html`` — Playwright Outlook-iframe scraper
-      * ``ical`` / ``google``  — HTTP iCal scraper
-
-    If the deterministic scrape returns zero events and the source strategy
-    requires credentials, the function automatically retries with environment-
-    variable credentials injected via Playwright login.
-
-    Direct deterministic sources that still end up empty are recorded as
-    ``empty_calendar=True`` so operators can distinguish a truly empty
-    calendar from a scraper crash. Strategy-backed browser sources that need
-    the LLM agent still surface as blocked with ``llm_fallback=True``.
-    """
+    """Scrape a single source deterministically."""
     name = source_cfg.get("name", "ukjent kilde")
     url = source_cfg.get("url", "")
     source_type = source_cfg.get("type", SOURCE_OUTLOOK).lower()
@@ -598,25 +551,15 @@ def _scrape_source(
         llm_fallback=False,
     )
 
-    # --- Run the deterministic scraper ---
     events: list[CalendarEvent] = []
     scraper_error: str = ""
     deterministic_raised: bool = False
     credentialed_required: bool = False
 
     try:
-        # Dispatch is driven by the CalendarEngine declared in scraper_strategies.
-        # get_deterministic_scraper_type() returns a string token for sources
-        # registered in STRATEGIES, or None for sources that only appear in
-        # the generic _BROWSER_SOURCE_TYPES / _ICAL_SOURCE_TYPES fallbacks.
         _strategy = None if source_type in _ICAL_SOURCE_TYPES else get_strategy(name)
         _scraper_type = get_deterministic_scraper_type(_strategy) if _strategy is not None else None
 
-        # BookUp sources can expose a tiny public placeholder calendar while the
-        # useful arena schedule is behind login. If credentials are declared,
-        # the public scrape is not trustworthy enough to use as fallback: a
-        # failed login must surface as blocked/manual-recovery-needed instead
-        # of silently accepting a handful of generic "Booket" entries.
         credentialed_required = _strategy is not None and requires_credentials(_strategy)
         if credentialed_required:
             events, _cred_error = _try_credentialed_scrape(
@@ -649,7 +592,6 @@ def _scrape_source(
         elif source_type in _BROWSER_SOURCE_TYPES:
             events, _ = _run_outlook_scraper(url, name, start_date, end_date, calendar_cache)
         elif source_type in _ICAL_SOURCE_TYPES:
-            # Look up any per-source location filter registered in CLUB_REGISTRY
             _club_name = club_for_source_name(name)
             _location_filter = (
                 CLUB_REGISTRY[_club_name].location_filter
@@ -668,10 +610,6 @@ def _scrape_source(
     if scraper_error:
         result["scraper_error"] = scraper_error
 
-    # --- If deterministic succeeded but returned 0 events, try credentialed fallback ---
-    # Do NOT fall through to credentialed scrape when the deterministic scraper raised an
-    # exception (e.g. network error, Playwright crash) — an exception means we don't know
-    # whether the source has events; only a clean zero-event return warrants the fallback.
     if not events and not deterministic_raised:
         events, cred_error = _try_credentialed_scrape(
             name, url, start_date, end_date, calendar_cache
@@ -679,7 +617,6 @@ def _scrape_source(
         if cred_error:
             scraper_error = scraper_error or cred_error
 
-    # --- If still no events, assess LLM fallback viability ---
     if not events:
         strategy = get_strategy(name)
         if deterministic_raised:
@@ -692,9 +629,6 @@ def _scrape_source(
             result["block_reason"] = f"{block_reason} {recovery_hint}".strip()
             result["recovery_hint"] = recovery_hint
 
-            # Mark for browser/LLM recovery when the source is either known to
-            # need the LLM agent or it requires a login that deterministic
-            # scraping could not complete (for example MFA/manual approval).
             if strategy and (needs_llm_agent(strategy) or credentialed_required):
                 result["llm_fallback"] = True
                 result["llm_strategy"] = {
@@ -735,7 +669,6 @@ def _scrape_source(
     return result
 
 
-
 # CLI entry point
 # ---------------------------------------------------------------------------
 
@@ -751,11 +684,11 @@ if __name__ == "__main__":  # pragma: no cover
     )
     parser.add_argument(
         "--non-strict", action="store_true",
-        help="Don't raise on blocked sources — write checkpoint anyway"
+        help="Don't raise on blocking sources — write checkpoint anyway"
     )
     parser.add_argument(
         "--allow-missing-sources", action="store_true",
-        help="Mark blocked sources as an operator-approved skip and keep partial results"
+        help="Explicitly allow all unresolved sources and keep partial results"
     )
     parser.add_argument(
         "--force-refresh", action="store_true",
@@ -763,7 +696,7 @@ if __name__ == "__main__":  # pragma: no cover
     )
     parser.add_argument(
         "--manual-bookup-login", action="store_true",
-        help="Open BookUp in a visible browser and wait for manual Vipps/SMS MFA"
+        help="Open BookUp in a visible host browser and refresh reusable Playwright auth state"
     )
     parser.add_argument(
         "--manual-bookup-login-timeout", type=int, default=None, metavar="SECONDS",
@@ -798,7 +731,8 @@ if __name__ == "__main__":  # pragma: no cover
             force_refresh=cli_args.force_refresh,
         )
         n_sources = len(_result.get("sources", []))
-        blocked = _result.get("blocked", [])
+        unresolved = _result.get("blocked", [])
+        blocking = _result.get("blocking_sources", unresolved)
         cached = _result.get("cached", [])
         cached_sources = [s for s in _result.get("sources", []) if isinstance(s, dict) and s.get("from_cache")]
         if cached_sources:
@@ -809,12 +743,16 @@ if __name__ == "__main__":  # pragma: no cover
         if _result.get("skipped"):
             print(f"Stage 2 SKIPPED -- {_result.get('skip_reason') or 'ingen skraping nødvendig'}")
         else:
-            print(f"Stage 2 OK -- {n_sources} kilder skannet, {len(cached)} fra cache{age_text}, {len(blocked)} blokkert")
+            print(
+                f"Stage 2 OK -- {n_sources} kilder skannet, {len(cached)} fra cache{age_text}, "
+                f"{len(unresolved)} uløst, {len(blocking)} blokkerende"
+            )
         if _result.get("warning"):
             print(_result["warning"])
         append_stage_log_line(
             _state,
-            f"Stage 2 OK: {n_sources} sources scanned, {len(cached)} from cache, {len(blocked)} blocked",
+            f"Stage 2 OK: {n_sources} sources scanned, {len(cached)} from cache, "
+            f"{len(unresolved)} unresolved, {len(blocking)} blocking",
         )
         sys.exit(0)
     except Stage2Error as _e:
