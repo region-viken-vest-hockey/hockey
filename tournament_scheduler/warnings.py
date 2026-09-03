@@ -300,25 +300,23 @@ def scan_club_load_warnings(planner, tournaments: Sequence[Tournament]) -> None:
                 )
 
 
-def _resolvable_club_keys(club: str, available_calendar_clubs: Set[str]) -> List[str]:
-    """Constituent clubs to attribute this team's hosting load to.
+def _resolvable_club_keys(club: str, known_host_clubs: Set[str]) -> List[str]:
+    """Return physical clubs that can carry hosting for a roster club.
 
-    A joint club like "Jar/Jutul" has no arena or calendar source of its own —
-    host_assignment.find_slot_for_tournament already resolves it to whichever
-    constituent club's arena has a free slot, so the resulting tournament's
-    host_club always ends up being "Jar" or "Jutul", never "Jar/Jutul". To
-    keep expected-vs-actual hosting counts on the same keys, split the joint
-    team's load across whichever constituents actually have calendar data.
+    Calendar availability is deliberately not used here. A club whose ice
+    calendar is unavailable still owes its proportional hosting share; the
+    resulting placement is handled manually. Joint teams such as "Jar/Jutul"
+    are split across their physical constituent clubs.
     """
-    if club in available_calendar_clubs:
+    if "/" not in club:
         return [club]
     parts = [part.strip() for part in club.split("/") if part.strip()]
-    resolvable = [part for part in parts if part in available_calendar_clubs]
-    return resolvable or [club]
+    resolvable = [part for part in parts if part in known_host_clubs]
+    return resolvable or parts or [club]
 
 
 def _club_calendar_available(club: str, available_calendar_clubs: Set[str]) -> bool:
-    """Whether a club has scraped calendar data to judge hosting load against."""
+    """Whether a club has scraped calendar data for automatic slot placement."""
     if club in available_calendar_clubs:
         return True
     parts = [part.strip() for part in club.split("/") if part.strip()]
@@ -326,7 +324,12 @@ def _club_calendar_available(club: str, available_calendar_clubs: Set[str]) -> b
 
 
 def hosting_fairness_breakdown(planner, plan: SeasonPlan) -> Dict[str, object]:
-    """Return age-group-aware expected vs actual hosting diagnostics."""
+    """Return age-group-aware expected vs actual hosting diagnostics.
+
+    All registered clubs remain part of the fairness calculation. Missing
+    calendar data changes placement confidence (manual vs automatic), not the
+    club's hosting obligation.
+    """
     rows: List[Dict[str, object]] = []
     max_deviation = 0.0
     max_detail = ""
@@ -335,6 +338,12 @@ def hosting_fairness_breakdown(planner, plan: SeasonPlan) -> Dict[str, object]:
     available_calendar_clubs = set(
         getattr(planner, "available_calendar_clubs", getattr(planner, "events_by_club", {}).keys())
     )
+    known_host_clubs = set(available_calendar_clubs)
+    known_host_clubs.update(getattr(planner, "club_arenas", {}).keys())
+    for team in planner.roster.teams:
+        parts = [part.strip() for part in team.club.split("/") if part.strip()]
+        known_host_clubs.update(parts or [team.club])
+
     # Clubs the scheduler tried to book as host but had to substitute away
     # from because no free arena slot was found (see
     # SeasonPlanner.fallback_host_substitutions / find_slot_for_tournament).
@@ -354,30 +363,16 @@ def hosting_fairness_breakdown(planner, plan: SeasonPlan) -> Dict[str, object]:
         if available_calendar_clubs
         else []
     )
-    # A club excluded from the "expected" side (missing calendar data) must
-    # also be excluded from "actual" hosting, or its tournaments get counted
-    # as pure deviation against an expectation of zero. Joint teams like
-    # "Jar/Jutul" are split into their constituent arenas by host-assignment,
-    # so exclude those constituents too, not just the joint label.
-    excluded_host_names: Set[str] = set()
-    for club in missing_calendar_clubs:
-        excluded_host_names.add(canonical_rvv_club_name(club))
-        excluded_host_names.update(
-            canonical_rvv_club_name(part.strip()) for part in club.split("/") if part.strip()
-        )
+
     for tournament in plan.tournaments:
         tournaments_by_age.setdefault(tournament.age_group, []).append(tournament)
 
     for age_group in sorted(tournaments_by_age):
         tournaments = tournaments_by_age[age_group]
-        age_teams = [
-            team
-            for team in planner.roster.by_age_group(age_group)
-            if _club_calendar_available(team.club, available_calendar_clubs)
-        ]
+        age_teams = list(planner.roster.by_age_group(age_group))
         club_team_counts: Dict[str, float] = {}
         for team in age_teams:
-            keys = _resolvable_club_keys(team.club, available_calendar_clubs)
+            keys = _resolvable_club_keys(team.club, known_host_clubs)
             weight = 1.0 / len(keys)
             for key in keys:
                 club = canonical_rvv_club_name(key)
@@ -386,7 +381,7 @@ def hosting_fairness_breakdown(planner, plan: SeasonPlan) -> Dict[str, object]:
         actual_hosting: Dict[str, int] = {}
         for tournament in tournaments:
             host = canonical_rvv_club_name(tournament.host_club) if tournament.host_club else ""
-            if host and host not in excluded_host_names:
+            if host:
                 actual_hosting[host] = actual_hosting.get(host, 0) + 1
 
         for club in sorted(set(club_team_counts) | set(actual_hosting)):
@@ -423,9 +418,9 @@ def hosting_fairness_breakdown(planner, plan: SeasonPlan) -> Dict[str, object]:
     if missing_calendar_clubs:
         detail += (
             f" Kalenderdata mangler for: {', '.join(missing_calendar_clubs)}; "
-            "disse klubbene er utelatt fra avviksberegningen, men får likevel sin "
-            "forholdsmessige andel hjemmeturneringer — de er merket for manuell "
-            "istidsbooking i «Må planlegges manuelt»-visningen."
+            "disse klubbene er fortsatt med i avviksberegningen og beholder sin "
+            "forholdsmessige andel hjemmeturneringer. Istiden må planlegges manuelt "
+            "i «Må planlegges manuelt»-visningen."
         )
     if max_deviation_capacity_explained:
         detail += (

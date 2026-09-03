@@ -1,0 +1,87 @@
+name: "Sesong: plan-integritet"
+
+on:
+  pull_request:
+    paths:
+      - "tournament_scheduler/host_assignment.py"
+      - "tournament_scheduler/warnings.py"
+      - "tournament_scheduler/fairness_scoring.py"
+      - "scripts/season-plan-audit.py"
+      - "tests/test_host_assignment_regression.py"
+      - "tests/test_manual_calendar_hosting_fairness.py"
+      - ".github/workflows/season-review-bundle.yml"
+      - ".github/workflows/season-validate.yml"
+      - ".github/workflows/season-publish.yml"
+      - ".github/workflows/season-plan-integrity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  season-plan-integrity:
+    name: "Proporsjonalt vertskap og uavhengig audit"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "Hent kode"
+        uses: actions/checkout@v4
+
+      - name: "Sett opp Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: "Installer målrettede testavhengigheter"
+        run: |
+          python -m pip install --upgrade "pip<26"
+          pip install -e '.[test]'
+
+      - name: "Kjør vertskapsregresjoner"
+        run: |
+          pytest -q \
+            tests/test_host_assignment_regression.py \
+            tests/test_manual_calendar_hosting_fairness.py
+
+      - name: "Smoke-test uavhengig season-plan-audit"
+        run: |
+          tmp="$(mktemp -d)"
+          cat > "$tmp/registrations.csv" <<'CSV'
+          club,label,age_group
+          Jar,Jar 1,U10
+          Jar,Jar 2,U10
+          Jutul,Jutul,U10
+          CSV
+          cat > "$tmp/overview.csv" <<'CSV'
+          date,age_group,host_club,game_count
+          2026-09-05,U10,Jar,6
+          2026-09-05,U10,Jar,3
+          2026-09-12,U10,Jutul,3
+          CSV
+          python scripts/season-plan-audit.py \
+            --registrations "$tmp/registrations.csv" \
+            --overview "$tmp/overview.csv" \
+            --json-out "$tmp/audit.json" \
+            --max-deviation 1 \
+            --fail-on-impossible-host
+          python - "$tmp/audit.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          assert payload["status"] in {"pass", "warn"}
+          assert payload["registration_team_count"] == 3
+          assert payload["registrations_sha256"]
+          assert payload["workload_basis"]["secondary"] == ["unique host days", "hosted games"]
+          assert not any(issue["type"] == "host_without_registered_team" for issue in payload["issues"])
+
+          clubs = {row["club"]: row for row in payload["club_summary"]}
+          assert clubs["Jar"]["actual_hosts"] == 2
+          assert clubs["Jar"]["host_days"] == 1
+          assert clubs["Jar"]["hosted_games"] == 9
+          assert clubs["Jutul"]["actual_hosts"] == 1
+          assert clubs["Jutul"]["host_days"] == 1
+          assert clubs["Jutul"]["hosted_games"] == 3
+          PY

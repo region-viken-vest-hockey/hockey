@@ -41,6 +41,7 @@ env:
   PYTHON_VERSION: "3.12"
   WORK_DIR: .pipeline/github-review
   EXPORT_DIR: export/github-review
+  REGISTRATIONS_PATH: inputs/registrations/registered-teams.csv
 
 jobs:
   generate-review-bundle:
@@ -50,6 +51,8 @@ jobs:
     steps:
       - name: "Hent kode"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: "Sett opp Python"
         uses: actions/setup-python@v5
@@ -66,7 +69,44 @@ jobs:
           pip install -r requirements.txt
           pip install -e '.[test]'
 
-      - name: "Skriv input-fingeravtrykk"
+      - name: "Valider SharePoint-snapshot for påmeldte lag"
+        run: python scripts/check-registration-snapshot.py
+
+      - name: "Synkroniser autoritative påmeldinger inn i sesongarbeidsboken"
+        env:
+          INPUT_PATH: ${{ inputs.input_path }}
+        run: |
+          mkdir -p "$WORK_DIR/github-actions"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from tournament_scheduler.pipeline.registration_sync import (
+              RegistrationSyncError,
+              sync_registered_teams_to_workbook,
+          )
+
+          input_path = Path(os.environ["INPUT_PATH"])
+          if not input_path.exists():
+              raise SystemExit(f"Input workbook not found: {input_path}")
+          try:
+              result = sync_registered_teams_to_workbook(
+                  os.environ["REGISTRATIONS_PATH"],
+                  input_path,
+              )
+          except RegistrationSyncError as exc:
+              raise SystemExit(f"Kunne ikke synkronisere påmeldte lag: {exc}") from exc
+
+          output = Path(os.environ["WORK_DIR"]) / "github-actions" / "registration-sync.json"
+          output.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8")
+          print(
+              f"Registration snapshot applied: {result['lag_rows_before']} -> "
+              f"{result['lag_rows_after']} rows (changed={result['changed']})"
+          )
+          PY
+
+      - name: "Skriv input-fingeravtrykk etter påmeldingssynk"
         env:
           INPUT_PATH: ${{ inputs.input_path }}
         run: |
@@ -80,10 +120,13 @@ jobs:
           path = Path(os.environ["INPUT_PATH"])
           if not path.exists():
               raise SystemExit(f"Input workbook not found: {path}")
+          registrations = Path(os.environ["REGISTRATIONS_PATH"])
           payload = {
               "path": str(path),
               "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
               "size_bytes": path.stat().st_size,
+              "registrations_path": str(registrations),
+              "registrations_sha256": hashlib.sha256(registrations.read_bytes()).hexdigest(),
           }
           Path(os.environ["WORK_DIR"]).joinpath("github-actions", "input-fingerprint.json").write_text(
               json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -121,12 +164,26 @@ jobs:
             $extra_refresh \
             2>&1 | tee "$WORK_DIR/github-actions/review-run.log"
 
+      - name: "Kjør uavhengig vertskapsaudit"
+        run: |
+          test -f "$EXPORT_DIR/season_plan_overview.csv"
+          python scripts/season-plan-audit.py \
+            --registrations "$REGISTRATIONS_PATH" \
+            --overview "$EXPORT_DIR/season_plan_overview.csv" \
+            --json-out "$EXPORT_DIR/season_plan_audit.json" \
+            --csv-out "$EXPORT_DIR/season_plan_hosting_audit.csv" \
+            --max-deviation 1 \
+            --fail-on-impossible-host \
+            | tee "$WORK_DIR/github-actions/season-plan-audit.log"
+
       - name: "Lag publiseringsforhåndsvisning og personvernrapport (ingen publisering)"
         run: |
           set +e
           scripts/rvv-miniputt operator publish \
             --work-dir "$WORK_DIR" \
             --dry-run \
+            --extra-public-file season_plan_audit.json \
+            --extra-public-file season_plan_hosting_audit.csv \
             --json \
             2>&1 | tee "$WORK_DIR/github-actions/publish-preview.json"
           status=${PIPESTATUS[0]}
@@ -146,8 +203,12 @@ jobs:
           from pathlib import Path
 
           work_dir = Path(os.environ["WORK_DIR"])
+          export_dir = Path(os.environ["EXPORT_DIR"])
           status_path = work_dir / "github-actions" / "status.json"
           fingerprint_path = work_dir / "github-actions" / "input-fingerprint.json"
+          sync_path = work_dir / "github-actions" / "registration-sync.json"
+          audit_path = export_dir / "season_plan_audit.json"
+
           status = {}
           if status_path.exists():
               try:
@@ -155,17 +216,34 @@ jobs:
               except json.JSONDecodeError:
                   status = {"raw_status": status_path.read_text(encoding="utf-8")[:1000]}
           fingerprint = json.loads(fingerprint_path.read_text(encoding="utf-8")) if fingerprint_path.exists() else {}
+          sync = json.loads(sync_path.read_text(encoding="utf-8")) if sync_path.exists() else {}
+          audit = json.loads(audit_path.read_text(encoding="utf-8")) if audit_path.exists() else {}
+
           body = [
               "## Vurderingspakke for sesongplan",
               "",
               f"- Workflow-run: {os.environ.get('GITHUB_SERVER_URL')}/{os.environ.get('GITHUB_REPOSITORY')}/actions/runs/{os.environ.get('GITHUB_RUN_ID')}",
               f"- Input: `{fingerprint.get('path', '?')}`",
-              f"- Input SHA-256: `{fingerprint.get('sha256', '?')}`",
-              f"- Status: `{status.get('status', status.get('overall_status', 'se artifact'))}`",
+              f"- Input SHA-256 etter påmeldingssynk: `{fingerprint.get('sha256', '?')}`",
+              f"- Påmeldingssnapshot SHA-256: `{fingerprint.get('registrations_sha256', '?')}`",
+              f"- Lag i arbeidsbok: {sync.get('lag_rows_before', '?')} → {sync.get('lag_rows_after', '?')}",
+              f"- Planstatus: `{status.get('status', status.get('overall_status', 'se artifact'))}`",
+              f"- Uavhengig vertskapsaudit: `{audit.get('status', 'ikke kjørt')}`",
               "- Publisering: ikke utført; bruk egen godkjenningsworkflow etter review.",
-              "",
-              "Last ned workflow-artifacten for HTML-review, logger, manifest og personvernrapport.",
           ]
+
+          issues = audit.get("issues", []) if isinstance(audit, dict) else []
+          if issues:
+              body.extend(["", "### Vertskapsaudit"])
+              for issue in issues[:10]:
+                  body.append(f"- **{str(issue.get('severity', 'warn')).upper()}** {issue.get('detail', '')}")
+              if len(issues) > 10:
+                  body.append(f"- … og {len(issues) - 10} flere; se `season_plan_audit.json`.")
+
+          body.extend([
+              "",
+              "Artifacten inneholder HTML-review, logger, manifest, `season_plan_audit.json` og `season_plan_hosting_audit.csv`.",
+          ])
           summary_path = work_dir / "github-actions" / "review-summary.md"
           summary_path.write_text("\n".join(body) + "\n", encoding="utf-8")
           Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text("\n".join(body) + "\n", encoding="utf-8")
@@ -183,7 +261,9 @@ jobs:
           name: season-review-bundle-${{ github.run_id }}
           path: |
             ${{ env.WORK_DIR }}/github-actions/input-fingerprint.json
+            ${{ env.WORK_DIR }}/github-actions/registration-sync.json
             ${{ env.WORK_DIR }}/github-actions/review-run.log
+            ${{ env.WORK_DIR }}/github-actions/season-plan-audit.log
             ${{ env.WORK_DIR }}/github-actions/status.json
             ${{ env.WORK_DIR }}/github-actions/publish-preview.json
             ${{ env.WORK_DIR }}/github-actions/review-summary.md

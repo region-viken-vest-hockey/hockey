@@ -27,6 +27,7 @@ env:
   PYTHON_VERSION: "3.12"
   WORK_DIR: .pipeline/github-validate
   EXPORT_DIR: export/github-validate
+  REGISTRATIONS_PATH: inputs/registrations/registered-teams.csv
 
 jobs:
   validate:
@@ -36,6 +37,8 @@ jobs:
     steps:
       - name: "Hent kode"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: "Sett opp Python"
         uses: actions/setup-python@v5
@@ -52,7 +55,40 @@ jobs:
           pip install -r requirements.txt
           pip install -e '.[test]'
 
-      - name: "Skriv input-fingeravtrykk"
+      - name: "Valider SharePoint-snapshot for påmeldte lag"
+        run: python scripts/check-registration-snapshot.py
+
+      - name: "Synkroniser autoritative påmeldinger inn i sesongarbeidsboken"
+        env:
+          INPUT_PATH: ${{ inputs.input_path }}
+        run: |
+          mkdir -p "$WORK_DIR/github-actions"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from tournament_scheduler.pipeline.registration_sync import (
+              RegistrationSyncError,
+              sync_registered_teams_to_workbook,
+          )
+
+          input_path = Path(os.environ["INPUT_PATH"])
+          if not input_path.exists():
+              raise SystemExit(f"Input workbook not found: {input_path}")
+          try:
+              result = sync_registered_teams_to_workbook(
+                  os.environ["REGISTRATIONS_PATH"], input_path
+              )
+          except RegistrationSyncError as exc:
+              raise SystemExit(f"Kunne ikke synkronisere påmeldte lag: {exc}") from exc
+
+          Path(os.environ["WORK_DIR"]).joinpath("github-actions", "registration-sync.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: "Skriv input-fingeravtrykk etter påmeldingssynk"
         env:
           INPUT_PATH: ${{ inputs.input_path }}
         run: |
@@ -66,10 +102,12 @@ jobs:
           path = Path(os.environ["INPUT_PATH"])
           if not path.exists():
               raise SystemExit(f"Input workbook not found: {path}")
+          registrations = Path(os.environ["REGISTRATIONS_PATH"])
           payload = {
               "path": str(path),
               "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
               "size_bytes": path.stat().st_size,
+              "registrations_sha256": hashlib.sha256(registrations.read_bytes()).hexdigest(),
           }
           Path(os.environ["WORK_DIR"]).joinpath("github-actions", "input-fingerprint.json").write_text(
               json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -101,6 +139,19 @@ jobs:
           scripts/rvv-miniputt status --work-dir "$WORK_DIR" --json > "$WORK_DIR/github-actions/status.json" || true
           exit "$status"
 
+      - name: "Kjør uavhengig vertskapsaudit"
+        if: success()
+        run: |
+          test -f "$EXPORT_DIR/season_plan_overview.csv"
+          python scripts/season-plan-audit.py \
+            --registrations "$REGISTRATIONS_PATH" \
+            --overview "$EXPORT_DIR/season_plan_overview.csv" \
+            --json-out "$EXPORT_DIR/season_plan_audit.json" \
+            --csv-out "$EXPORT_DIR/season_plan_hosting_audit.csv" \
+            --max-deviation 1 \
+            --fail-on-impossible-host \
+            | tee "$WORK_DIR/github-actions/season-plan-audit.log"
+
       - name: "Last opp valideringsrapport"
         if: always()
         uses: actions/upload-artifact@v4
@@ -108,7 +159,9 @@ jobs:
           name: season-validation-${{ github.run_id }}
           path: |
             ${{ env.WORK_DIR }}/github-actions/input-fingerprint.json
+            ${{ env.WORK_DIR }}/github-actions/registration-sync.json
             ${{ env.WORK_DIR }}/github-actions/validation.log
+            ${{ env.WORK_DIR }}/github-actions/season-plan-audit.log
             ${{ env.WORK_DIR }}/github-actions/status.json
             ${{ env.WORK_DIR }}/run_manifest.json
             ${{ env.WORK_DIR }}/logs/**

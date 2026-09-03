@@ -42,10 +42,12 @@ def default_target_count(num_free_dates: int) -> int:
 def assign_hosts(planner, scheduled: Sequence[Tuple[date, str]]) -> List[str]:
     """Assign a host club to each scheduled `(date, age_group)`.
 
-    The assignment prefers hosts that still help balance per-age-group hosting,
-    and it keeps the weekend/holiday streak logic. Same arena on the same day
-    is allowed as long as the planner can sequence the tournaments without an
-    actual overlap.
+    The assignment follows the integer per-age-group hosting targets first,
+    then uses weekend/holiday load and recency to spread those assignments in
+    time. A club whose rounded target is zero must not take a tournament while
+    another club is still below its proportional target. Same arena on the
+    same day is allowed as long as the planner can sequence the tournaments
+    without an actual overlap.
     """
     if not scheduled:
         planner._arena_day_collisions = []
@@ -82,32 +84,53 @@ def assign_hosts(planner, scheduled: Sequence[Tuple[date, str]]) -> List[str]:
 
     for tournament_date, age_group in scheduled:
         targets = targets_by_age.get(age_group, {})
-        candidate_pool = list(targets) if targets else list(clubs_by_age.get(age_group, [])) or list(all_clubs)
-        if not candidate_pool:
+        base_candidate_pool = (
+            list(targets)
+            if targets
+            else list(clubs_by_age.get(age_group, [])) or list(all_clubs)
+        )
+        if not base_candidate_pool:
             assignments.append("")
             continue
 
         actual_counts = actual_by_age.get(age_group, {})
-        candidate_order = {club: idx for idx, club in enumerate(candidate_pool)}
+        if targets:
+            under_target = [
+                club
+                for club in base_candidate_pool
+                if actual_counts.get(club, 0) < targets.get(club, 0)
+            ]
+            # Integer targets sum to the number of scheduled tournaments, so
+            # this should normally be non-empty until the final assignment.
+            # The fallback keeps the helper robust for synthetic/external use.
+            candidate_pool = under_target or base_candidate_pool
+        else:
+            candidate_pool = base_candidate_pool
+
+        candidate_order = {club: idx for idx, club in enumerate(base_candidate_pool)}
         is_holiday_heavy = tournament_date in holiday_heavy_dates
 
         def _projected_streak(club: str) -> int:
             key = (club, age_group)
-            last_date = last_hosted_date_by_club_age.get(key)
-            if last_date is not None and (tournament_date - last_date).days == 7:
+            previous_date = last_hosted_date_by_club_age.get(key)
+            if previous_date is not None and (tournament_date - previous_date).days == 7:
                 return consecutive_streak_by_club_age.get(key, 1) + 1
             return 1
 
-        def _score(club: str) -> Tuple[int, int, int, int, int, int, int]:
-            last_date = last_hosted_date_by_club.get(club)
-            gap = (tournament_date - last_date).days if last_date is not None else 10_000
+        def _score(club: str) -> Tuple[float, int, int, int, int, int, int]:
+            previous_date = last_hosted_date_by_club.get(club)
+            gap = (tournament_date - previous_date).days if previous_date is not None else 10_000
+            target = max(0, targets.get(club, 0))
+            actual = actual_counts.get(club, 0)
+            completion_ratio = actual / target if target > 0 else float("inf")
+            remaining = max(0, target - actual)
             return (
-                0 if actual_counts.get(club, 0) == 0 else 1,
-                -max(0, targets.get(club, 0) - actual_counts.get(club, 0)),
+                completion_ratio,
                 _projected_streak(club),
                 holiday_heavy_host_count_by_club.get(club, 0) + (1 if is_holiday_heavy else 0),
                 -gap,
-                actual_counts.get(club, 0),
+                -remaining,
+                actual,
                 candidate_order.get(club, 0),
             )
 

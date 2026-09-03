@@ -37,13 +37,20 @@ def render_fairness_gate_html(fairness_gate: dict[str, Any] | None) -> str:
             continue
         if note.get("key") != "missing_calendar_clubs":
             continue
-        excluded = note.get("excluded_clubs") or []
+        manual = note.get("manual_calendar_clubs") or []
+        excluded = [] if manual else (note.get("excluded_clubs") or [])
+        manual_text = ", ".join(_html.escape(str(club)) for club in manual)
         excluded_text = ", ".join(_html.escape(str(club)) for club in excluded)
+        extra = ""
+        if manual_text:
+            extra = f' <span class="fairness-gate-note-extra">Manuell istid: {manual_text}</span>'
+        elif excluded_text:
+            extra = f' <span class="fairness-gate-note-extra">Utelatt: {excluded_text}</span>'
         note_blocks.append(
             '<div class="fairness-gate-note">'
             f'<strong>{_html.escape(str(note.get("label", "Informasjon")))}</strong>: '
             f'{_html.escape(str(note.get("detail", "")))}'
-            + (f' <span class="fairness-gate-note-extra">Utelatt: {excluded_text}</span>' if excluded_text else "")
+            + extra
             + '</div>'
         )
 
