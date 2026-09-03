@@ -1281,6 +1281,40 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the score report as JSON instead of a human-readable summary",
     )
 
+    plan_optimize = plan_sub.add_parser(
+        "optimize",
+        help="Generic local-search repair pass over a candidate's existing tournament "
+        "skeleton (issue #257 Stage 3 v2 optimizer, explicit opt-in — never run implicitly)",
+    )
+    plan_optimize.add_argument(
+        "candidate",
+        help="Path to a candidate.json, or a Stage 3 checkpoint file containing a 'plan' key",
+    )
+    plan_optimize.add_argument(
+        "--problem",
+        default=None,
+        help="Path to a planning_problem.json (used to size tournaments per age group; "
+        "falls back to inferring capacity from the candidate's own games)",
+    )
+    plan_optimize.add_argument(
+        "--iterations",
+        type=int,
+        default=4000,
+        help="Simulated-annealing swap attempts (default: 4000)",
+    )
+    plan_optimize.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="Random seed for reproducible output (default: 0)",
+    )
+    plan_optimize.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="Write the optimized candidate.json to this path instead of stdout",
+    )
+
     plan_problem = plan_sub.add_parser(
         "problem",
         help="Emit a normalized planning_problem.json from the Stage 1/2 checkpoints",

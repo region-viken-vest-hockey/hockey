@@ -32,7 +32,9 @@ def _cmd_plan(args: argparse.Namespace) -> int:
         return _cmd_plan_score(args)
     if args.plan_command == "problem":
         return _cmd_plan_problem(args)
-    _console.print("[yellow]Bruk: rvv-miniputt plan verify|score|problem[/yellow]")
+    if args.plan_command == "optimize":
+        return _cmd_plan_optimize(args)
+    _console.print("[yellow]Bruk: rvv-miniputt plan verify|score|problem|optimize[/yellow]")
     return 1
 
 
@@ -111,6 +113,59 @@ def _cmd_plan_score(args: argparse.Namespace) -> int:
     _console.print("[bold]Månedsfordeling[/bold]")
     for month, count in sorted(report["month_distribution"].items()):
         _console.print(f"  {month}: {count}")
+    return 0
+
+
+def _cmd_plan_optimize(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt plan optimize`` — the Stage 3 v2 generic optimizer (issue #257).
+
+    Explicit opt-in command only: never invoked by the regular pipeline, so
+    it stays behind the "feature flag or explicit command" the issue asks
+    for while it's being A/B tested against ``SeasonPlanner``.
+    """
+    from ..planning_contract import extract_candidate, verify_candidate
+    from ..stage3_optimizer import optimize_candidate
+
+    try:
+        candidate = extract_candidate(_load_json_file(args.candidate))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        _console.print(f"[red]✗[/red] Kunne ikke lese kandidatplan: {exc}")
+        return 1
+
+    problem = None
+    if args.problem:
+        try:
+            problem = _load_json_file(args.problem)
+        except (OSError, json.JSONDecodeError) as exc:
+            _console.print(f"[red]✗[/red] Kunne ikke lese planning_problem: {exc}")
+            return 1
+
+    optimized = optimize_candidate(candidate, problem, iterations=args.iterations, seed=args.seed)
+
+    payload = json.dumps(optimized, indent=2, ensure_ascii=False)
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as fh:
+            fh.write(payload)
+        _console.print(f"[green]✓[/green] Skrev optimalisert kandidatplan til {args.output}")
+    else:
+        print(payload)
+
+    source = optimized.get("source", {})
+    before = source.get("objective_before")
+    after = source.get("objective_after")
+    if before is not None and after is not None:
+        _console.print(f"[dim]Objektivfunksjon: {before:.1f} → {after:.1f}[/dim]")
+
+    verification = verify_candidate(optimized, problem)
+    if verification["ok"]:
+        _console.print("[green]✓[/green] Optimalisert kandidat består alle harde krav.")
+    else:
+        _console.print(
+            f"[yellow]![/yellow] Optimalisert kandidat bryter {len(verification['violations'])} harde krav "
+            "(bør ikke skje — se stage3_optimizer):"
+        )
+        for v in verification["violations"]:
+            _console.print(f"  [red]•[/red] [{v['code']}] {v['message']}")
     return 0
 
 
