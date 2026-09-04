@@ -349,7 +349,10 @@ def _cmd_plan_ab_participants(args: argparse.Namespace) -> int:
     from ..planning_contract import build_planning_problem, extract_candidate
     from ..pipeline.state import PipelineState, StageName
     from ..stage3_ab import build_ab_report
-    from ..stage3_optimizer import optimize_candidate_participants_bounded_multi_seed
+    from ..stage3_optimizer import (
+        optimize_candidate_participants_bounded_multi_seed,
+        repair_schedule_conflicts_bounded_multi_seed,
+    )
 
     state = PipelineState(args.work_dir)
     config = state.read_stage(StageName.CONFIG)
@@ -394,9 +397,23 @@ def _cmd_plan_ab_participants(args: argparse.Namespace) -> int:
     new_candidate = optimize_candidate_participants_bounded_multi_seed(
         old_candidate, problem, seeds=seeds, iterations=args.iterations
     )
+    schedule_repair_source = None
+    if args.repair_schedule:
+        # A participant-only optimizer never moves a tournament's date/arena,
+        # so it structurally cannot fix violations like arena_interval_conflict.
+        # Run the date-swap-only repair pass on top, still baseline-bounded
+        # against the participant-optimized candidate (issue #257 skeleton
+        # follow-up).
+        repaired_candidate = repair_schedule_conflicts_bounded_multi_seed(
+            new_candidate, problem, seeds=seeds, iterations=args.iterations
+        )
+        schedule_repair_source = repaired_candidate.get("source")
+        new_candidate = repaired_candidate
 
     report = build_ab_report(old_candidate, new_candidate, problem)
-    per_age_group_status = new_candidate.get("source", {}).get("per_age_group_status", {})
+    per_age_group_status = new_candidate.get("source", {}).get("base_source", {}).get(
+        "per_age_group_status", {}
+    ) if args.repair_schedule else new_candidate.get("source", {}).get("per_age_group_status", {})
 
     if args.output_dir:
         os.makedirs(args.output_dir, exist_ok=True)
@@ -425,6 +442,19 @@ def _cmd_plan_ab_participants(args: argparse.Namespace) -> int:
         _console.print(f"  {age_group}: {marker}{seed_note}")
         if status["status"] == "unchanged" and status.get("reason"):
             _console.print(f"    [dim]{status['reason']}[/dim]")
+
+    if schedule_repair_source is not None:
+        _console.print("\n[bold]Skjelett-reparasjon (dato-bytte for harde brudd)[/bold]")
+        marker = (
+            "[green]improved[/green]" if schedule_repair_source["status"] == "improved" else "[dim]unchanged[/dim]"
+        )
+        _console.print(
+            f"  {marker}: harde brudd {schedule_repair_source['baseline_violations']} → "
+            f"{schedule_repair_source['best_violations']}"
+        )
+        if schedule_repair_source.get("reason"):
+            _console.print(f"    [dim]{schedule_repair_source['reason']}[/dim]")
+
     return 0 if report["dominates_baseline"] else 1
 
 

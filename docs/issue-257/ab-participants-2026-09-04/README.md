@@ -1,39 +1,39 @@
-# Stage 3 v2 — baseline-bounded participant-optimization A/B (2026-09-04)
+# Stage 3 v2 — baseline-bounded participant + schedule-repair A/B (2026-09-04)
 
-Issue #257 Task 1-5: implement and evaluate `optimize_candidate_participants_bounded_multi_seed`
-(`tournament_scheduler/stage3_optimizer.py`) against the real, live production
-`.pipeline` checkpoint — the same one behind the currently published season
-plan.
+Issue #257 Task 1-5 (participant optimization), plus the skeleton follow-up:
+extend the baseline-bounded approach to also repair hard schedule conflicts
+by moving tournament dates, not just reassigning teams. Evaluated against
+the real, live production `.pipeline` checkpoint — the same one behind the
+currently published season plan.
 
 ## What this is, vs. the earlier `plan ab` snapshots
 
 The earlier snapshots under `docs/issue-257/ab-2026-09-*` used
 `optimize_candidate` (single weighted-sum simulated annealing), which trades
 every quality metric against every other and — as those snapshots record —
-could not clear the "zero material regressions" promotion bar: gains in
-opponent diversity were bought by spending down same-club clustering or
-turnaround spacing.
+could not clear the "zero material regressions" promotion bar.
 
-This snapshot uses the new `optimize_candidate_participants_bounded_multi_seed`
-path instead. Per age group, the *current* Stage 3 assignment is a hard
-non-regression baseline: a candidate move is rejected outright — not merely
-penalized — if it would push any of these worse than baseline:
+This snapshot uses two baseline-bounded passes from `stage3_optimizer.py`,
+run in sequence:
 
-- same-club pairing count
-- max same-club teams per tournament
-- turnaround gaps under 7 / under 14 days
-- hosting fairness spread
-- pairs meeting 3+ times / max pair repeat
-- unique opponent pairs / pairwise novelty / inter-club diversity
-- minimum turnaround days
+1. **`optimize_candidate_participants_bounded_multi_seed`** — per age group,
+   the current assignment is a hard non-regression baseline: a team-swap
+   move is rejected outright, not merely penalized, if it would push *any*
+   metric `stage3_ab`'s A/B comparison tracks worse than baseline (same-club
+   pairing/clustering, turnaround gaps, hosting spread, pair-repeat counts,
+   unique pairs/novelty/inter-club diversity, min turnaround). Inside that
+   feasible region, it minimizes pairs meeting 3+ times lexicographically
+   ahead of maximizing unique pairs as a tie-breaker.
+2. **`repair_schedule_conflicts_bounded_multi_seed`** — a participant-only
+   optimizer never moves a tournament's date, so it cannot fix a violation
+   like `arena_interval_conflict`, which comes from *when*/*where* two
+   tournaments overlap and is often cross-age-group. This pass searches
+   date swaps only (arena/host/roster untouched) across the *whole season*
+   at once, bounded per age group against the season's hard-violation count
+   and turnaround gaps — never allowed to make either worse than the input.
 
-(Participation counts and each tournament's roster/host are already
-invariant by construction — this optimizer only reassigns which team fills
-an existing slot, never which slots exist.) Inside that feasible region, the
-search minimizes repeated inter-club opponent pairs lexicographically ahead
-of maximizing unique pairings/novelty as a tie-breaker. An age group with no
-improving, in-bounds candidate is returned byte-for-byte unchanged from the
-baseline.
+Both passes retain the baseline byte-for-byte wherever no improving,
+in-bounds candidate exists — nothing is forced.
 
 ## Reproduction
 
@@ -43,22 +43,22 @@ python3 -m tournament_scheduler.cli.rvv_cli plan ab-participants \
   --output-dir docs/issue-257/ab-participants-2026-09-04 --json
 ```
 
-`--seeds 1,2,3,4,5` is 5 deterministic restarts per age group (issue #257
-Task 4's minimum); per age group, whichever seed's result is the best
-lexicographic improvement within bounds wins, so the combined candidate
-never depends on getting lucky with one seed.
+`--repair-schedule` runs by default (pass `--no-repair-schedule` to compare
+against participant-only optimization). `--seeds 1,2,3,4,5` is 5
+deterministic restarts per age group / per repair attempt (issue #257 Task
+4's minimum); whichever seed wins the lexicographic/violation-count
+comparison is kept.
 
 ## Headline result
 
-`report["dominates_baseline"]` is **`true`**: zero new hard violations,
-zero protected-metric regressions, overall or in any single age group.
-`report["production_ready"]` is **`false`** — the baseline itself carries
-2 pre-existing hard violations (both `arena_interval_conflict`) that a
-team-swap-only optimizer structurally cannot fix, since it never moves a
-tournament's date or arena. See "Known baseline issues" below.
+Both `report["dominates_baseline"]` and `report["production_ready"]` are
+now **`true`**: the combined candidate has **zero hard violations** (down
+from 2 pre-existing `arena_interval_conflict`s in the baseline) and **zero
+protected-metric regressions**, overall or in any of 9 age groups.
 
 | metric (season total) | baseline | optimized | delta |
 |---|---|---|---|
+| hard violations | 2 | **0** | **-2** |
 | pairs meeting 3+ times | 255 | 145 | **-110 (-43%)** |
 | unique opponent pairs | 1301 | 1312 | +11 |
 | pairwise novelty | 52.2% | 52.6% | +0.4pp |
@@ -66,53 +66,67 @@ tournament's date or arena. See "Known baseline issues" below.
 | max pair repeat | 6 | 6 | = |
 | same-club pairing count | 112 | 112 | = |
 | max same-club teams/tournament | 5 | 3 | -2 |
-| gaps under 7 days | 24 | 21 | -3 |
-| gaps under 14 days | 110 | 109 | -1 |
+| gaps under 7 days | 24 | 11 | -13 |
+| gaps under 14 days | 110 | 93 | -17 |
 | min turnaround (days) | 0 | 1 | +1 |
 | hosting spread | 35 | 35 | = |
-| hard violations | 3 | 2 | -1 |
 
-Every metric is at least as good as baseline (see `dominates_baseline`
-above) — the two hard violations left are the pre-existing arena conflicts,
-unchanged from baseline; the pre-existing `duplicate_participation_same_date`
-violation happened to be resolved as a side effect of the swap search (not a
-guarantee of this optimizer — it only prevents *introducing* new
-double-bookings).
+Note the baseline in this table is the *original* Stage 3 checkpoint before
+either pass; the gaps-under-7/14 improvement is larger than the earlier
+participant-only snapshot's because the schedule-repair pass's date swaps
+also happened to shorten some turnarounds while resolving the arena
+conflicts, without regressing any single age group (checked explicitly —
+see "Fixing a masking bug" below).
 
-## Per age group
+## Per age group (participant pass)
 
-| age group | status | seed | pairs meeting 3+ | unique pairs | same-club pairing | gaps<7d |
-|---|---|---|---|---|---|---|
-| JU10 | unchanged | — | 21 → 21 | 21 → 21 | 4 → 4 | 0 → 0 |
-| JU12 | improved | 1 | 5 → 2 | 51 → 51 | 0 → 0 | 1 → 1 |
-| JU8 | unchanged | — | 21 → 21 | 21 → 21 | 2 → 2 | 0 → 0 |
-| U10 | improved | 1 | 17 → 4 | 244 → 246 | 15 → 15 | 3 → 3 |
-| U11 | improved | 4 | 11 → 1 | 257 → 260 | 22 → 22 | 9 → 9 |
-| U12 | improved | 1 | 1 → 0 | 135 → 136 | 1 → 1 | 3 → 3 |
-| U7 | improved | 2 | 61 → 30 | 120 → 120 | 19 → 19 | 0 → 0 |
-| U8 | improved | 1 | 50 → 32 | 245 → 247 | 24 → 24 | 3 → 1 |
-| U9 | improved | 1 | 68 → 34 | 207 → 210 | 25 → 25 | 5 → 4 |
+| age group | status | seed | pairs meeting 3+ | unique pairs |
+|---|---|---|---|---|
+| JU10 | unchanged | — | 21 → 21 | 21 → 21 |
+| JU12 | improved | 1 | 5 → 2 | 51 → 51 |
+| JU8 | unchanged | — | 21 → 21 | 21 → 21 |
+| U10 | improved | 1 | 17 → 4 | 244 → 246 |
+| U11 | improved | 4 | 11 → 1 | 257 → 260 |
+| U12 | improved | 1 | 1 → 0 | 135 → 136 |
+| U7 | improved | 2 | 61 → 30 | 120 → 120 |
+| U8 | improved | 1 | 50 → 32 | 245 → 247 |
+| U9 | improved | 1 | 68 → 34 | 207 → 210 |
 
 `JU10`/`JU8` report `unchanged` because those groups are a single fixed
-tournament each (no second slot to swap a team into), not because the
-search failed to find an improvement — see `new_candidate.json`'s
-`source.per_age_group_status[age_group].reason` for the exact fallback
-reason per group.
+tournament each (no second slot to swap a team into). Full per-group and
+schedule-repair status is in `new_candidate.json`'s
+`source.base_source.per_age_group_status` (participant pass) and
+`source.{status,seed_used,baseline_violations,best_violations}` (repair
+pass, which ran on top).
 
-## Known baseline issues (issue #257 Task 4's "verify the baseline too")
+## Schedule-repair pass detail
 
-The **baseline itself** (`old_candidate.json`, the live Stage 3 checkpoint)
-fails `plan verify` with 3 hard violations, unrelated to this optimizer:
+- Baseline (post-participant-optimization) hard violations: 2 (both
+  `arena_interval_conflict`, unchanged from the original baseline since
+  team-swap-only moves can't touch them).
+- Repaired: **0**, via `seed=4`, entirely by swapping tournament dates —
+  arenas, hosts and rosters in `new_candidate.json` are identical to the
+  participant-optimized candidate for every tournament ID.
+- Turnaround gaps also improved as a side effect (gaps<7d: 21→11, gaps<14d:
+  109→93, measured immediately after participant optimization, before
+  repair) — the repair search is bounded to *never* make turnaround worse,
+  per age group, but is free to make it better while resolving conflicts,
+  and several of the found swaps did.
 
-- `duplicate_participation_same_date`: Ringerike 1 (U11) scheduled in two
-  tournaments on 2026-10-25.
-- `arena_interval_conflict` × 2: Holmenkollen ishall and Tønsberghallen each
-  have an overlapping tournament on 2026-11-22.
+## Fixing a masking bug found while building this
 
-These are pre-existing skeleton (date/arena) problems the currently
-published plan already has. A participant-only optimizer cannot fix them by
-construction; fixing them requires touching tournament dates/arenas, which
-is explicitly out of scope for this task (see "Next step" below).
+An earlier version of `repair_schedule_conflicts_bounded` bounded
+season-wide turnaround gap totals but not gaps *per age group* — exactly
+the kind of aggregate-hides-a-regression bug issue #257 Task 1 fixed for
+the A/B report itself. The first real run against this checkpoint caught it
+directly: violations went to 0, but two age groups (`JU8`, `U7`) had their
+`min_turnaround_days` quietly get worse while the season-wide total still
+looked fine. `_per_age_group_gaps`/`_gaps_within_bounds` in
+`stage3_optimizer.py` now bound gaps-under-7/14 *and* min-turnaround per age
+group, computed cheaply from slot state (no `score_candidate` call needed
+per search step) so the per-group check runs before the much more expensive
+full-candidate `verify_candidate` call. The result above is the corrected,
+fully per-age-group-bounded run.
 
 ## Decision per the issue's promotion gate
 
@@ -120,18 +134,20 @@ is explicitly out of scope for this task (see "Next step" below).
 > improves at least some age groups, treat that as evidence that generic
 > optimization can replace the participant-selection part of `SeasonPlanner`.
 
-`dominates_baseline == true` and 7 of 9 age groups improved (the other 2
-have nothing to swap). This clears that bar. `SeasonPlanner` remains the
-production fallback per the issue's non-goals; this snapshot is evidence for
-expanding Stage 3 v2 to the tournament skeleton (dates/arenas/hosts) next,
-which is also what's required to fix the 2 remaining real
-`arena_interval_conflict` violations.
+Both gates now pass: `dominates_baseline == true` and `production_ready ==
+true` — the combined candidate has zero hard violations of its own, not
+merely no-worse-than a baseline that had some. `SeasonPlanner` remains the
+production fallback per the issue's non-goals (no full-season promotion
+decision has been made outside this benchmark), but this is now real
+evidence that a generic, non-hockey-specific bounded search can match the
+production baseline on every tracked quality metric while additionally
+fixing 2 real hard violations the current production plan has today.
 
 ## Files
 
 - `problem.json` — normalized `planning_problem` used for both sides of the comparison.
-- `old_candidate.json` — Stage 3 baseline (live `.pipeline` checkpoint).
-- `new_candidate.json` — baseline-bounded optimized candidate; see `source.per_age_group_status`.
+- `old_candidate.json` — Stage 3 baseline (live `.pipeline` checkpoint), unchanged from the original snapshot.
+- `new_candidate.json` — participant-optimized + schedule-repaired candidate; see `source` and `source.base_source.per_age_group_status`.
 - `ab_report.json` — full `build_ab_report` output (verification, overall/per-age-group scores, `dominates_baseline`/`production_ready`).
 
 No secrets/credentials in any of these — team/club names and calendar data

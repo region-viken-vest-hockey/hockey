@@ -825,7 +825,7 @@
   "tournaments": [
     {
       "id": "f69206e5",
-      "date": "2026-09-05",
+      "date": "2027-01-24",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "JU12",
       "host_club": "Frisk Asker",
@@ -961,7 +961,7 @@
     },
     {
       "id": "fa396fa0",
-      "date": "2026-09-05",
+      "date": "2026-11-21",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U8",
       "host_club": "Frisk Asker",
@@ -1181,7 +1181,7 @@
     },
     {
       "id": "3b99e8d5",
-      "date": "2026-09-05",
+      "date": "2026-11-01",
       "arena": "Baerum ishall",
       "age_group": "U9",
       "host_club": "Jutul",
@@ -1401,7 +1401,7 @@
     },
     {
       "id": "7a88089f",
-      "date": "2026-09-06",
+      "date": "2027-01-31",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U12",
       "host_club": "Frisk Asker",
@@ -1469,7 +1469,7 @@
     },
     {
       "id": "0e362691",
-      "date": "2026-09-12",
+      "date": "2027-01-16",
       "arena": "Baerum ishall",
       "age_group": "JU10",
       "host_club": "Jutul",
@@ -1601,7 +1601,7 @@
     },
     {
       "id": "5bdb307f",
-      "date": "2026-09-12",
+      "date": "2026-09-13",
       "arena": "Kongsberghallen",
       "age_group": "U11",
       "host_club": "Kongsberg",
@@ -1733,7 +1733,7 @@
     },
     {
       "id": "beaf1c0a",
-      "date": "2026-09-12",
+      "date": "2026-10-25",
       "arena": "Tonsberghallen",
       "age_group": "U12",
       "host_club": "Tønsberg",
@@ -2023,7 +2023,7 @@
     },
     {
       "id": "2ff787be",
-      "date": "2026-09-13",
+      "date": "2026-10-31",
       "arena": "Tonsberghallen",
       "age_group": "JU12",
       "host_club": "Tønsberg",
@@ -2092,7 +2092,7 @@
     },
     {
       "id": "cb0a5e1e",
-      "date": "2026-09-13",
+      "date": "2026-09-27",
       "arena": "Baerum ishall",
       "age_group": "U10",
       "host_club": "Jutul",
@@ -2224,7 +2224,7 @@
     },
     {
       "id": "87425bd9",
-      "date": "2026-09-13",
+      "date": "2026-09-19",
       "arena": "Baerum ishall",
       "age_group": "U11",
       "host_club": "Jutul",
@@ -2356,7 +2356,7 @@
     },
     {
       "id": "fc1c7f69",
-      "date": "2026-09-19",
+      "date": "2027-02-13",
       "arena": "Baerum ishall",
       "age_group": "JU8",
       "host_club": "Jutul",
@@ -2529,7 +2529,7 @@
     },
     {
       "id": "1e644121",
-      "date": "2026-09-19",
+      "date": "2026-12-05",
       "arena": "Holmenkollen ishall",
       "age_group": "U11",
       "host_club": "Holmen",
@@ -2661,7 +2661,7 @@
     },
     {
       "id": "9e6d4728",
-      "date": "2026-09-19",
+      "date": "2026-10-03",
       "arena": "Tonsberghallen",
       "age_group": "U12",
       "host_club": "Tønsberg",
@@ -2730,7 +2730,7 @@
     },
     {
       "id": "ebfbbf4a",
-      "date": "2026-09-19",
+      "date": "2027-04-10",
       "arena": "Baerum ishall",
       "age_group": "U8",
       "host_club": "Jutul",
@@ -2950,7 +2950,7 @@
     },
     {
       "id": "2ac04f61",
-      "date": "2026-09-20",
+      "date": "2026-10-17",
       "arena": "Skien ishall",
       "age_group": "JU12",
       "host_club": "Skien",
@@ -3018,7 +3018,7 @@
     },
     {
       "id": "f0788ab9",
-      "date": "2026-09-20",
+      "date": "2026-10-04",
       "arena": "Ringerikshallen",
       "age_group": "U10",
       "host_club": "Ringerike",
@@ -3350,7 +3350,7 @@
     },
     {
       "id": "c99b3ffc",
-      "date": "2026-09-26",
+      "date": "2026-11-22",
       "arena": "Sandefjord ishall",
       "age_group": "U11",
       "host_club": "Sandefjord Penguins",
@@ -3551,7 +3551,7 @@
     },
     {
       "id": "5886f4c4",
-      "date": "2026-09-26",
+      "date": "2026-09-20",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U9",
       "host_club": "Frisk Asker",
@@ -3771,7 +3771,7 @@
     },
     {
       "id": "bc1ed9a7",
-      "date": "2026-09-27",
+      "date": "2026-10-04",
       "arena": "Baerum ishall",
       "age_group": "JU12",
       "host_club": "Jutul",
@@ -3839,7 +3839,7 @@
     },
     {
       "id": "f1eee646",
-      "date": "2026-09-27",
+      "date": "2026-11-29",
       "arena": "Skien ishall",
       "age_group": "U11",
       "host_club": "Skien",
@@ -3971,7 +3971,7 @@
     },
     {
       "id": "135e12d8",
-      "date": "2026-09-27",
+      "date": "2026-10-04",
       "arena": "Tonsberghallen",
       "age_group": "U7",
       "host_club": "Tønsberg",
@@ -4324,7 +4324,7 @@
     },
     {
       "id": "2af6a55c",
-      "date": "2026-10-03",
+      "date": "2026-09-26",
       "arena": "Kongsberghallen",
       "age_group": "U12",
       "host_club": "Kongsberg",
@@ -4612,7 +4612,7 @@
     },
     {
       "id": "c55c1a74",
-      "date": "2026-10-03",
+      "date": "2027-01-16",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U9",
       "host_club": "Frisk Asker",
@@ -4832,7 +4832,7 @@
     },
     {
       "id": "8584b679",
-      "date": "2026-10-04",
+      "date": "2026-09-05",
       "arena": "Ringerikshallen",
       "age_group": "JU10",
       "host_club": "Ringerike",
@@ -4964,7 +4964,7 @@
     },
     {
       "id": "e2ed80ab",
-      "date": "2026-10-04",
+      "date": "2027-04-17",
       "arena": "Holmenkollen ishall",
       "age_group": "U10",
       "host_club": "Holmen",
@@ -5096,7 +5096,7 @@
     },
     {
       "id": "f717525e",
-      "date": "2026-10-04",
+      "date": "2026-10-18",
       "arena": "Tonsberghallen",
       "age_group": "U12",
       "host_club": "Tønsberg",
@@ -5386,7 +5386,7 @@
     },
     {
       "id": "8d1aeaa9",
-      "date": "2026-10-04",
+      "date": "2027-01-09",
       "arena": "Skien ishall",
       "age_group": "U9",
       "host_club": "Skien",
@@ -5738,7 +5738,7 @@
     },
     {
       "id": "c8e8aeb3",
-      "date": "2026-10-10",
+      "date": "2026-09-27",
       "arena": "Tonsberghallen",
       "age_group": "JU12",
       "host_club": "Tønsberg",
@@ -5807,7 +5807,7 @@
     },
     {
       "id": "1d13ec6d",
-      "date": "2026-10-10",
+      "date": "2026-09-05",
       "arena": "Baerum ishall",
       "age_group": "U10",
       "host_club": "Jutul",
@@ -6007,7 +6007,7 @@
     },
     {
       "id": "70efff68",
-      "date": "2026-10-11",
+      "date": "2027-02-20",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U12",
       "host_club": "Frisk Asker",
@@ -6075,7 +6075,7 @@
     },
     {
       "id": "b25b7d59",
-      "date": "2026-10-17",
+      "date": "2027-01-16",
       "arena": "Ringerikshallen",
       "age_group": "JU12",
       "host_club": "Ringerike",
@@ -6143,7 +6143,7 @@
     },
     {
       "id": "200f7ede",
-      "date": "2026-10-17",
+      "date": "2026-10-18",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U10",
       "host_club": "Frisk Asker",
@@ -6275,7 +6275,7 @@
     },
     {
       "id": "87078d80",
-      "date": "2026-10-17",
+      "date": "2026-09-19",
       "arena": "Tonsberghallen",
       "age_group": "U12",
       "host_club": "Tønsberg",
@@ -6412,7 +6412,7 @@
     },
     {
       "id": "287ad76b",
-      "date": "2026-10-18",
+      "date": "2026-10-31",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U7",
       "host_club": "Frisk Asker",
@@ -6632,7 +6632,7 @@
     },
     {
       "id": "de56f35f",
-      "date": "2026-10-18",
+      "date": "2027-02-06",
       "arena": "Baerum ishall",
       "age_group": "U9",
       "host_club": "Jutul",
@@ -6852,7 +6852,7 @@
     },
     {
       "id": "1be5b6ef",
-      "date": "2026-10-24",
+      "date": "2026-11-22",
       "arena": "Baerum ishall",
       "age_group": "JU12",
       "host_club": "Jutul",
@@ -7053,7 +7053,7 @@
     },
     {
       "id": "99ba1cf8",
-      "date": "2026-10-25",
+      "date": "2027-02-06",
       "arena": "Tonsberghallen",
       "age_group": "U11",
       "host_club": "Tønsberg",
@@ -7254,7 +7254,7 @@
     },
     {
       "id": "ac709c39",
-      "date": "2026-10-25",
+      "date": "2026-10-10",
       "arena": "Skien ishall",
       "age_group": "JU8",
       "host_club": "Skien",
@@ -7427,7 +7427,7 @@
     },
     {
       "id": "abfcfc5f",
-      "date": "2026-10-25",
+      "date": "2026-11-07",
       "arena": "Ringerikshallen",
       "age_group": "U11",
       "host_club": "Ringerike",
@@ -7559,7 +7559,7 @@
     },
     {
       "id": "7abd37b4",
-      "date": "2026-10-25",
+      "date": "2026-09-19",
       "arena": "Holmenkollen ishall",
       "age_group": "U8",
       "host_club": "Holmen",
@@ -7779,7 +7779,7 @@
     },
     {
       "id": "dfae105f",
-      "date": "2026-10-31",
+      "date": "2027-01-03",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "JU12",
       "host_club": "Frisk Asker",
@@ -7847,7 +7847,7 @@
     },
     {
       "id": "9131236f",
-      "date": "2026-10-31",
+      "date": "2026-10-25",
       "arena": "Holmenkollen ishall",
       "age_group": "U10",
       "host_club": "Holmen",
@@ -7979,7 +7979,7 @@
     },
     {
       "id": "4318bb3b",
-      "date": "2026-10-31",
+      "date": "2026-10-10",
       "arena": "Baerum ishall",
       "age_group": "U12",
       "host_club": "Jutul",
@@ -8047,7 +8047,7 @@
     },
     {
       "id": "d97bb98e",
-      "date": "2026-11-01",
+      "date": "2026-11-15",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U10",
       "host_club": "Frisk Asker",
@@ -8379,7 +8379,7 @@
     },
     {
       "id": "a8efb584",
-      "date": "2026-11-01",
+      "date": "2027-02-28",
       "arena": "Sandefjord ishall",
       "age_group": "U9",
       "host_club": "Sandefjord Penguins",
@@ -8600,7 +8600,7 @@
     },
     {
       "id": "13768eb8",
-      "date": "2026-11-07",
+      "date": "2026-12-13",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "JU10",
       "host_club": "Frisk Asker",
@@ -8864,7 +8864,7 @@
     },
     {
       "id": "5941e0ad",
-      "date": "2026-11-07",
+      "date": "2027-02-14",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U11",
       "host_club": "Frisk Asker",
@@ -9216,7 +9216,7 @@
     },
     {
       "id": "e1c72aec",
-      "date": "2026-11-08",
+      "date": "2026-11-15",
       "arena": "Ringerikshallen",
       "age_group": "JU12",
       "host_club": "Ringerike",
@@ -9353,7 +9353,7 @@
     },
     {
       "id": "0c273547",
-      "date": "2026-11-08",
+      "date": "2026-11-14",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U8",
       "host_club": "Frisk Asker",
@@ -9837,7 +9837,7 @@
     },
     {
       "id": "22031103",
-      "date": "2026-11-14",
+      "date": "2026-11-08",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U12",
       "host_club": "Frisk Asker",
@@ -10193,7 +10193,7 @@
     },
     {
       "id": "7c380fda",
-      "date": "2026-11-15",
+      "date": "2026-11-07",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U10",
       "host_club": "Frisk Asker",
@@ -10458,7 +10458,7 @@
     },
     {
       "id": "b445e995",
-      "date": "2026-11-15",
+      "date": "2026-11-08",
       "arena": "Jarhallen",
       "age_group": "U12",
       "host_club": "Jar",
@@ -10526,7 +10526,7 @@
     },
     {
       "id": "fa2c0b27",
-      "date": "2026-11-21",
+      "date": "2026-12-12",
       "arena": "Jarhallen",
       "age_group": "JU12",
       "host_club": "Jar",
@@ -10594,7 +10594,7 @@
     },
     {
       "id": "9b2b4ea9",
-      "date": "2026-11-21",
+      "date": "2026-11-28",
       "arena": "Baerum ishall",
       "age_group": "U11",
       "host_club": "Jutul",
@@ -10726,7 +10726,7 @@
     },
     {
       "id": "57581504",
-      "date": "2026-11-21",
+      "date": "2026-09-05",
       "arena": "Jarhallen",
       "age_group": "U8",
       "host_club": "Jar",
@@ -11166,7 +11166,7 @@
     },
     {
       "id": "36ae566f",
-      "date": "2026-11-22",
+      "date": "2026-12-05",
       "arena": "Kongsberghallen",
       "age_group": "JU12",
       "host_club": "Kongsberg",
@@ -11234,7 +11234,7 @@
     },
     {
       "id": "2cbd9e9f",
-      "date": "2026-11-22",
+      "date": "2026-11-21",
       "arena": "Tonsberghallen",
       "age_group": "U12",
       "host_club": "Tønsberg",
@@ -11655,7 +11655,7 @@
     },
     {
       "id": "088e6700",
-      "date": "2026-11-22",
+      "date": "2027-02-27",
       "arena": "Holmenkollen ishall",
       "age_group": "U11",
       "host_club": "Holmen",
@@ -11787,7 +11787,7 @@
     },
     {
       "id": "84467533",
-      "date": "2026-11-22",
+      "date": "2026-11-21",
       "arena": "Baerum ishall",
       "age_group": "U12",
       "host_club": "Jutul",
@@ -12208,7 +12208,7 @@
     },
     {
       "id": "86bfb1a2",
-      "date": "2026-11-28",
+      "date": "2026-12-05",
       "arena": "Baerum ishall",
       "age_group": "U10",
       "host_club": "Jutul",
@@ -12340,7 +12340,7 @@
     },
     {
       "id": "203feea2",
-      "date": "2026-11-28",
+      "date": "2026-11-22",
       "arena": "Jarhallen",
       "age_group": "U12",
       "host_club": "Jar",
@@ -12408,7 +12408,7 @@
     },
     {
       "id": "0d5967a5",
-      "date": "2026-11-29",
+      "date": "2026-12-05",
       "arena": "Skien ishall",
       "age_group": "JU12",
       "host_club": "Skien",
@@ -12608,7 +12608,7 @@
     },
     {
       "id": "4c4ace1c",
-      "date": "2026-11-29",
+      "date": "2027-01-17",
       "arena": "Baerum ishall",
       "age_group": "U11",
       "host_club": "Jutul",
@@ -12808,7 +12808,7 @@
     },
     {
       "id": "949676c7",
-      "date": "2026-12-05",
+      "date": "2026-11-01",
       "arena": "Jarhallen",
       "age_group": "JU10",
       "host_club": "Jar",
@@ -12940,7 +12940,7 @@
     },
     {
       "id": "fb3352b0",
-      "date": "2026-12-05",
+      "date": "2026-11-29",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "JU8",
       "host_club": "Frisk Asker",
@@ -13113,7 +13113,7 @@
     },
     {
       "id": "3f462798",
-      "date": "2026-12-05",
+      "date": "2026-11-28",
       "arena": "Holmenkollen ishall",
       "age_group": "U10",
       "host_club": "Holmen",
@@ -13245,7 +13245,7 @@
     },
     {
       "id": "2887c5ff",
-      "date": "2026-12-05",
+      "date": "2026-10-24",
       "arena": "Ringerikshallen",
       "age_group": "U11",
       "host_club": "Ringerike",
@@ -13598,7 +13598,7 @@
     },
     {
       "id": "b07841b6",
-      "date": "2026-12-06",
+      "date": "2026-09-27",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U11",
       "host_club": "Frisk Asker",
@@ -13730,7 +13730,7 @@
     },
     {
       "id": "c76c1d35",
-      "date": "2026-12-12",
+      "date": "2027-01-09",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "JU12",
       "host_club": "Frisk Asker",
@@ -13798,7 +13798,7 @@
     },
     {
       "id": "83710ff2",
-      "date": "2026-12-12",
+      "date": "2026-10-17",
       "arena": "Jarhallen",
       "age_group": "U11",
       "host_club": "Jar",
@@ -13998,7 +13998,7 @@
     },
     {
       "id": "8381f718",
-      "date": "2026-12-12",
+      "date": "2026-11-22",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U7",
       "host_club": "Frisk Asker",
@@ -14218,7 +14218,7 @@
     },
     {
       "id": "7b869a7a",
-      "date": "2026-12-13",
+      "date": "2027-03-14",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U10",
       "host_club": "Frisk Asker",
@@ -14350,7 +14350,7 @@
     },
     {
       "id": "edd89639",
-      "date": "2026-12-13",
+      "date": "2026-12-12",
       "arena": "Baerum ishall",
       "age_group": "U11",
       "host_club": "Jutul",
@@ -14702,7 +14702,7 @@
     },
     {
       "id": "935ac3cf",
-      "date": "2026-12-13",
+      "date": "2027-03-07",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U9",
       "host_club": "Frisk Asker",
@@ -14922,7 +14922,7 @@
     },
     {
       "id": "638e091d",
-      "date": "2027-01-02",
+      "date": "2026-09-13",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U12",
       "host_club": "Frisk Asker",
@@ -14990,7 +14990,7 @@
     },
     {
       "id": "563b7ccd",
-      "date": "2027-01-03",
+      "date": "2027-01-02",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U11",
       "host_club": "Frisk Asker",
@@ -15122,7 +15122,7 @@
     },
     {
       "id": "57bef64f",
-      "date": "2027-01-09",
+      "date": "2027-01-23",
       "arena": "Jarhallen",
       "age_group": "U10",
       "host_club": "Jar",
@@ -15254,7 +15254,7 @@
     },
     {
       "id": "c8da1b0a",
-      "date": "2027-01-09",
+      "date": "2027-01-10",
       "arena": "Tonsberghallen",
       "age_group": "U11",
       "host_club": "Tønsberg",
@@ -15387,7 +15387,7 @@
     },
     {
       "id": "7d836a3c",
-      "date": "2027-01-09",
+      "date": "2026-12-12",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U12",
       "host_club": "Frisk Asker",
@@ -15587,7 +15587,7 @@
     },
     {
       "id": "cb73ddf0",
-      "date": "2027-01-10",
+      "date": "2027-01-16",
       "arena": "Jarhallen",
       "age_group": "U12",
       "host_club": "Jar",
@@ -15875,7 +15875,7 @@
     },
     {
       "id": "44b7a5eb",
-      "date": "2027-01-10",
+      "date": "2026-10-11",
       "arena": "Baerum ishall",
       "age_group": "U9",
       "host_club": "Jutul",
@@ -16095,7 +16095,7 @@
     },
     {
       "id": "551b2f79",
-      "date": "2027-01-16",
+      "date": "2026-09-12",
       "arena": "Ringerikshallen",
       "age_group": "JU12",
       "host_club": "Ringerike",
@@ -16163,7 +16163,7 @@
     },
     {
       "id": "49abe60b",
-      "date": "2027-01-16",
+      "date": "2026-09-06",
       "arena": "Tonsberghallen",
       "age_group": "U11",
       "host_club": "Tønsberg",
@@ -16296,7 +16296,7 @@
     },
     {
       "id": "5b1198da",
-      "date": "2027-01-16",
+      "date": "2027-01-17",
       "arena": "Kongsberghallen",
       "age_group": "U12",
       "host_club": "Kongsberg",
@@ -16364,7 +16364,7 @@
     },
     {
       "id": "cd3e8a19",
-      "date": "2027-01-16",
+      "date": "2027-01-10",
       "arena": "Holmenkollen ishall",
       "age_group": "U8",
       "host_club": "Holmen",
@@ -16584,7 +16584,7 @@
     },
     {
       "id": "13279054",
-      "date": "2027-01-17",
+      "date": "2026-09-12",
       "arena": "Baerum ishall",
       "age_group": "JU12",
       "host_club": "Jutul",
@@ -16652,7 +16652,7 @@
     },
     {
       "id": "81075fcc",
-      "date": "2027-01-17",
+      "date": "2026-09-19",
       "arena": "Jarhallen",
       "age_group": "JU8",
       "host_club": "Jar",
@@ -16957,7 +16957,7 @@
     },
     {
       "id": "35e7921f",
-      "date": "2027-01-17",
+      "date": "2027-01-31",
       "arena": "Sandefjord ishall",
       "age_group": "U11",
       "host_club": "Sandefjord Penguins",
@@ -17159,7 +17159,7 @@
     },
     {
       "id": "9badb125",
-      "date": "2027-01-23",
+      "date": "2026-10-17",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "JU10",
       "host_club": "Frisk Asker",
@@ -17291,7 +17291,7 @@
     },
     {
       "id": "9b513ef6",
-      "date": "2027-01-23",
+      "date": "2026-10-04",
       "arena": "Jarhallen",
       "age_group": "U9",
       "host_club": "Jar",
@@ -17643,7 +17643,7 @@
     },
     {
       "id": "3fc56aa9",
-      "date": "2027-01-24",
+      "date": "2026-10-03",
       "arena": "Jarhallen",
       "age_group": "U7",
       "host_club": "Jar",
@@ -18083,7 +18083,7 @@
     },
     {
       "id": "629d2f38",
-      "date": "2027-01-31",
+      "date": "2026-09-20",
       "arena": "Jarhallen",
       "age_group": "JU10",
       "host_club": "Jar",
@@ -18215,7 +18215,7 @@
     },
     {
       "id": "e49d69a4",
-      "date": "2027-01-31",
+      "date": "2027-02-13",
       "arena": "Ringerikshallen",
       "age_group": "U10",
       "host_club": "Ringerike",
@@ -18347,7 +18347,7 @@
     },
     {
       "id": "2d643b28",
-      "date": "2027-01-31",
+      "date": "2026-12-06",
       "arena": "Holmenkollen ishall",
       "age_group": "U9",
       "host_club": "Holmen",
@@ -18567,7 +18567,7 @@
     },
     {
       "id": "9a3b6c94",
-      "date": "2027-02-06",
+      "date": "2027-01-31",
       "arena": "Baerum ishall",
       "age_group": "U10",
       "host_club": "Jutul",
@@ -18699,7 +18699,7 @@
     },
     {
       "id": "c4412c96",
-      "date": "2027-02-06",
+      "date": "2027-04-11",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U9",
       "host_club": "Frisk Asker",
@@ -18919,7 +18919,7 @@
     },
     {
       "id": "8d5a6fae",
-      "date": "2027-02-07",
+      "date": "2026-10-31",
       "arena": "Baerum ishall",
       "age_group": "JU8",
       "host_club": "Jutul",
@@ -19224,7 +19224,7 @@
     },
     {
       "id": "1b674f93",
-      "date": "2027-02-13",
+      "date": "2026-09-12",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U10",
       "host_club": "Frisk Asker",
@@ -19356,7 +19356,7 @@
     },
     {
       "id": "54cfea88",
-      "date": "2027-02-13",
+      "date": "2026-10-25",
       "arena": "Jarhallen",
       "age_group": "U8",
       "host_club": "Jar",
@@ -19576,7 +19576,7 @@
     },
     {
       "id": "3efb4852",
-      "date": "2027-02-13",
+      "date": "2026-10-25",
       "arena": "Baerum ishall",
       "age_group": "U9",
       "host_club": "Jutul",
@@ -19796,7 +19796,7 @@
     },
     {
       "id": "4cdee364",
-      "date": "2027-02-14",
+      "date": "2026-09-13",
       "arena": "Holmenkollen ishall",
       "age_group": "U7",
       "host_club": "Holmen",
@@ -20016,7 +20016,7 @@
     },
     {
       "id": "85379604",
-      "date": "2027-02-20",
+      "date": "2026-12-13",
       "arena": "Jarhallen",
       "age_group": "U10",
       "host_club": "Jar",
@@ -20148,7 +20148,7 @@
     },
     {
       "id": "f4088baf",
-      "date": "2027-02-27",
+      "date": "2027-02-13",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U8",
       "host_club": "Frisk Asker",
@@ -20368,7 +20368,7 @@
     },
     {
       "id": "1f8c9ab5",
-      "date": "2027-02-27",
+      "date": "2026-09-26",
       "arena": "Jarhallen",
       "age_group": "U9",
       "host_club": "Jar",
@@ -20500,7 +20500,7 @@
     },
     {
       "id": "f44da70e",
-      "date": "2027-02-28",
+      "date": "2027-01-17",
       "arena": "Jarhallen",
       "age_group": "JU8",
       "host_club": "Jar",
@@ -20673,7 +20673,7 @@
     },
     {
       "id": "3c7eac7b",
-      "date": "2027-03-06",
+      "date": "2027-01-23",
       "arena": "Varner Arena / Askerhallen",
       "age_group": "U7",
       "host_club": "Frisk Asker",
@@ -20893,7 +20893,7 @@
     },
     {
       "id": "f6f6810f",
-      "date": "2027-03-07",
+      "date": "2027-01-09",
       "arena": "Baerum ishall",
       "age_group": "U7",
       "host_club": "Jutul",
@@ -21333,7 +21333,7 @@
     },
     {
       "id": "f2fa3f87",
-      "date": "2027-03-14",
+      "date": "2027-03-06",
       "arena": "Kongsberghallen",
       "age_group": "U8",
       "host_club": "Kongsberg",
@@ -21553,7 +21553,7 @@
     },
     {
       "id": "27703632",
-      "date": "2027-04-10",
+      "date": "2027-02-27",
       "arena": "Baerum ishall",
       "age_group": "U8",
       "host_club": "Jutul",
@@ -21773,7 +21773,7 @@
     },
     {
       "id": "467e2f3b",
-      "date": "2027-04-11",
+      "date": "2027-02-07",
       "arena": "Baerum ishall",
       "age_group": "U7",
       "host_club": "Jutul",
@@ -21993,7 +21993,7 @@
     },
     {
       "id": "0fa53f03",
-      "date": "2027-04-17",
+      "date": "2026-12-13",
       "arena": "Holmenkollen ishall",
       "age_group": "U7",
       "host_club": "Holmen",
@@ -22214,8 +22214,300 @@
   ],
   "schema_version": 1,
   "source": {
-    "planner": "stage3_optimizer_participants_bounded",
-    "base_source": null,
+    "planner": "stage3_optimizer_schedule_repair",
+    "base_source": {
+      "planner": "stage3_optimizer_participants_bounded",
+      "base_source": null,
+      "iterations": 8000,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "per_age_group_status": {
+        "JU10": {
+          "status": "unchanged",
+          "reason": "no seed found a lexicographic improvement within the baseline non-regression bounds",
+          "baseline_metrics": {
+            "pairs_meeting_3_plus": 21,
+            "max_pair_repeat": 5,
+            "same_club_pairing_count": 4,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 0,
+            "gaps_under_14": 10,
+            "hosting_spread": 2,
+            "unique_pairs": 21,
+            "pairwise_novelty": 0.2,
+            "inter_club_diversity": 1.0,
+            "min_turnaround_days": 7
+          },
+          "optimized_metrics": {
+            "pairs_meeting_3_plus": 21,
+            "max_pair_repeat": 5,
+            "same_club_pairing_count": 4,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 0,
+            "gaps_under_14": 10,
+            "hosting_spread": 2,
+            "unique_pairs": 21,
+            "pairwise_novelty": 0.2,
+            "inter_club_diversity": 1.0,
+            "min_turnaround_days": 7
+          },
+          "seed_used": null
+        },
+        "JU12": {
+          "status": "improved",
+          "reason": null,
+          "baseline_metrics": {
+            "pairs_meeting_3_plus": 5,
+            "max_pair_repeat": 3,
+            "same_club_pairing_count": 0,
+            "max_same_club_teams_per_tournament": 1,
+            "gaps_under_7": 1,
+            "gaps_under_14": 11,
+            "hosting_spread": 3,
+            "unique_pairs": 51,
+            "pairwise_novelty": 0.53125,
+            "inter_club_diversity": 1.0,
+            "min_turnaround_days": 1
+          },
+          "optimized_metrics": {
+            "pairs_meeting_3_plus": 2,
+            "max_pair_repeat": 3,
+            "same_club_pairing_count": 0,
+            "max_same_club_teams_per_tournament": 1,
+            "gaps_under_7": 1,
+            "gaps_under_14": 11,
+            "hosting_spread": 3,
+            "unique_pairs": 51,
+            "pairwise_novelty": 0.53125,
+            "inter_club_diversity": 1.0,
+            "min_turnaround_days": 6
+          },
+          "seed_used": 1
+        },
+        "JU8": {
+          "status": "unchanged",
+          "reason": "no seed found a lexicographic improvement within the baseline non-regression bounds",
+          "baseline_metrics": {
+            "pairs_meeting_3_plus": 21,
+            "max_pair_repeat": 6,
+            "same_club_pairing_count": 2,
+            "max_same_club_teams_per_tournament": 2,
+            "gaps_under_7": 0,
+            "gaps_under_14": 0,
+            "hosting_spread": 1,
+            "unique_pairs": 21,
+            "pairwise_novelty": 0.16666666666666666,
+            "inter_club_diversity": 1.0,
+            "min_turnaround_days": 21
+          },
+          "optimized_metrics": {
+            "pairs_meeting_3_plus": 21,
+            "max_pair_repeat": 6,
+            "same_club_pairing_count": 2,
+            "max_same_club_teams_per_tournament": 2,
+            "gaps_under_7": 0,
+            "gaps_under_14": 0,
+            "hosting_spread": 1,
+            "unique_pairs": 21,
+            "pairwise_novelty": 0.16666666666666666,
+            "inter_club_diversity": 1.0,
+            "min_turnaround_days": 21
+          },
+          "seed_used": null
+        },
+        "U10": {
+          "status": "improved",
+          "reason": null,
+          "baseline_metrics": {
+            "pairs_meeting_3_plus": 17,
+            "max_pair_repeat": 4,
+            "same_club_pairing_count": 15,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 3,
+            "gaps_under_14": 18,
+            "hosting_spread": 6,
+            "unique_pairs": 244,
+            "pairwise_novelty": 0.6506666666666666,
+            "inter_club_diversity": 0.8980392156862745,
+            "min_turnaround_days": 1
+          },
+          "optimized_metrics": {
+            "pairs_meeting_3_plus": 4,
+            "max_pair_repeat": 4,
+            "same_club_pairing_count": 15,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 3,
+            "gaps_under_14": 18,
+            "hosting_spread": 6,
+            "unique_pairs": 246,
+            "pairwise_novelty": 0.656,
+            "inter_club_diversity": 0.9058823529411765,
+            "min_turnaround_days": 1
+          },
+          "seed_used": 1
+        },
+        "U11": {
+          "status": "improved",
+          "reason": null,
+          "baseline_metrics": {
+            "pairs_meeting_3_plus": 11,
+            "max_pair_repeat": 4,
+            "same_club_pairing_count": 22,
+            "max_same_club_teams_per_tournament": 5,
+            "gaps_under_7": 9,
+            "gaps_under_14": 30,
+            "hosting_spread": 6,
+            "unique_pairs": 257,
+            "pairwise_novelty": 0.6853333333333333,
+            "inter_club_diversity": 0.9108527131782945,
+            "min_turnaround_days": 0
+          },
+          "optimized_metrics": {
+            "pairs_meeting_3_plus": 1,
+            "max_pair_repeat": 3,
+            "same_club_pairing_count": 22,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 9,
+            "gaps_under_14": 30,
+            "hosting_spread": 6,
+            "unique_pairs": 260,
+            "pairwise_novelty": 0.6933333333333334,
+            "inter_club_diversity": 0.9224806201550387,
+            "min_turnaround_days": 1
+          },
+          "seed_used": 4
+        },
+        "U12": {
+          "status": "improved",
+          "reason": null,
+          "baseline_metrics": {
+            "pairs_meeting_3_plus": 1,
+            "max_pair_repeat": 3,
+            "same_club_pairing_count": 1,
+            "max_same_club_teams_per_tournament": 2,
+            "gaps_under_7": 3,
+            "gaps_under_14": 18,
+            "hosting_spread": 6,
+            "unique_pairs": 135,
+            "pairwise_novelty": 0.8035714285714286,
+            "inter_club_diversity": 0.8993288590604027,
+            "min_turnaround_days": 1
+          },
+          "optimized_metrics": {
+            "pairs_meeting_3_plus": 0,
+            "max_pair_repeat": 2,
+            "same_club_pairing_count": 1,
+            "max_same_club_teams_per_tournament": 2,
+            "gaps_under_7": 3,
+            "gaps_under_14": 17,
+            "hosting_spread": 6,
+            "unique_pairs": 136,
+            "pairwise_novelty": 0.8095238095238095,
+            "inter_club_diversity": 0.9060402684563759,
+            "min_turnaround_days": 1
+          },
+          "seed_used": 1
+        },
+        "U7": {
+          "status": "improved",
+          "reason": null,
+          "baseline_metrics": {
+            "pairs_meeting_3_plus": 61,
+            "max_pair_repeat": 6,
+            "same_club_pairing_count": 19,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 0,
+            "gaps_under_14": 0,
+            "hosting_spread": 2,
+            "unique_pairs": 120,
+            "pairwise_novelty": 0.35714285714285715,
+            "inter_club_diversity": 1.0,
+            "min_turnaround_days": 15
+          },
+          "optimized_metrics": {
+            "pairs_meeting_3_plus": 30,
+            "max_pair_repeat": 6,
+            "same_club_pairing_count": 19,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 0,
+            "gaps_under_14": 0,
+            "hosting_spread": 2,
+            "unique_pairs": 120,
+            "pairwise_novelty": 0.35714285714285715,
+            "inter_club_diversity": 1.0,
+            "min_turnaround_days": 15
+          },
+          "seed_used": 2
+        },
+        "U8": {
+          "status": "improved",
+          "reason": null,
+          "baseline_metrics": {
+            "pairs_meeting_3_plus": 50,
+            "max_pair_repeat": 5,
+            "same_club_pairing_count": 24,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 3,
+            "gaps_under_14": 5,
+            "hosting_spread": 3,
+            "unique_pairs": 245,
+            "pairwise_novelty": 0.5147058823529411,
+            "inter_club_diversity": 0.9866071428571429,
+            "min_turnaround_days": 1
+          },
+          "optimized_metrics": {
+            "pairs_meeting_3_plus": 32,
+            "max_pair_repeat": 5,
+            "same_club_pairing_count": 24,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 1,
+            "gaps_under_14": 5,
+            "hosting_spread": 3,
+            "unique_pairs": 247,
+            "pairwise_novelty": 0.5189075630252101,
+            "inter_club_diversity": 0.9955357142857143,
+            "min_turnaround_days": 1
+          },
+          "seed_used": 1
+        },
+        "U9": {
+          "status": "improved",
+          "reason": null,
+          "baseline_metrics": {
+            "pairs_meeting_3_plus": 68,
+            "max_pair_repeat": 6,
+            "same_club_pairing_count": 25,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 5,
+            "gaps_under_14": 18,
+            "hosting_spread": 3,
+            "unique_pairs": 207,
+            "pairwise_novelty": 0.47586206896551725,
+            "inter_club_diversity": 0.9837837837837838,
+            "min_turnaround_days": 1
+          },
+          "optimized_metrics": {
+            "pairs_meeting_3_plus": 34,
+            "max_pair_repeat": 5,
+            "same_club_pairing_count": 25,
+            "max_same_club_teams_per_tournament": 3,
+            "gaps_under_7": 4,
+            "gaps_under_14": 18,
+            "hosting_spread": 3,
+            "unique_pairs": 210,
+            "pairwise_novelty": 0.4827586206896552,
+            "inter_club_diversity": 1.0,
+            "min_turnaround_days": 1
+          },
+          "seed_used": 1
+        }
+      }
+    },
     "iterations": 8000,
     "seeds": [
       1,
@@ -22224,286 +22516,14 @@
       4,
       5
     ],
-    "per_age_group_status": {
-      "JU10": {
-        "status": "unchanged",
-        "reason": "no seed found a lexicographic improvement within the baseline non-regression bounds",
-        "baseline_metrics": {
-          "pairs_meeting_3_plus": 21,
-          "max_pair_repeat": 5,
-          "same_club_pairing_count": 4,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 0,
-          "gaps_under_14": 10,
-          "hosting_spread": 2,
-          "unique_pairs": 21,
-          "pairwise_novelty": 0.2,
-          "inter_club_diversity": 1.0,
-          "min_turnaround_days": 7
-        },
-        "optimized_metrics": {
-          "pairs_meeting_3_plus": 21,
-          "max_pair_repeat": 5,
-          "same_club_pairing_count": 4,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 0,
-          "gaps_under_14": 10,
-          "hosting_spread": 2,
-          "unique_pairs": 21,
-          "pairwise_novelty": 0.2,
-          "inter_club_diversity": 1.0,
-          "min_turnaround_days": 7
-        },
-        "seed_used": null
-      },
-      "JU12": {
-        "status": "improved",
-        "reason": null,
-        "baseline_metrics": {
-          "pairs_meeting_3_plus": 5,
-          "max_pair_repeat": 3,
-          "same_club_pairing_count": 0,
-          "max_same_club_teams_per_tournament": 1,
-          "gaps_under_7": 1,
-          "gaps_under_14": 11,
-          "hosting_spread": 3,
-          "unique_pairs": 51,
-          "pairwise_novelty": 0.53125,
-          "inter_club_diversity": 1.0,
-          "min_turnaround_days": 1
-        },
-        "optimized_metrics": {
-          "pairs_meeting_3_plus": 2,
-          "max_pair_repeat": 3,
-          "same_club_pairing_count": 0,
-          "max_same_club_teams_per_tournament": 1,
-          "gaps_under_7": 1,
-          "gaps_under_14": 11,
-          "hosting_spread": 3,
-          "unique_pairs": 51,
-          "pairwise_novelty": 0.53125,
-          "inter_club_diversity": 1.0,
-          "min_turnaround_days": 6
-        },
-        "seed_used": 1
-      },
-      "JU8": {
-        "status": "unchanged",
-        "reason": "no seed found a lexicographic improvement within the baseline non-regression bounds",
-        "baseline_metrics": {
-          "pairs_meeting_3_plus": 21,
-          "max_pair_repeat": 6,
-          "same_club_pairing_count": 2,
-          "max_same_club_teams_per_tournament": 2,
-          "gaps_under_7": 0,
-          "gaps_under_14": 0,
-          "hosting_spread": 1,
-          "unique_pairs": 21,
-          "pairwise_novelty": 0.16666666666666666,
-          "inter_club_diversity": 1.0,
-          "min_turnaround_days": 21
-        },
-        "optimized_metrics": {
-          "pairs_meeting_3_plus": 21,
-          "max_pair_repeat": 6,
-          "same_club_pairing_count": 2,
-          "max_same_club_teams_per_tournament": 2,
-          "gaps_under_7": 0,
-          "gaps_under_14": 0,
-          "hosting_spread": 1,
-          "unique_pairs": 21,
-          "pairwise_novelty": 0.16666666666666666,
-          "inter_club_diversity": 1.0,
-          "min_turnaround_days": 21
-        },
-        "seed_used": null
-      },
-      "U10": {
-        "status": "improved",
-        "reason": null,
-        "baseline_metrics": {
-          "pairs_meeting_3_plus": 17,
-          "max_pair_repeat": 4,
-          "same_club_pairing_count": 15,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 3,
-          "gaps_under_14": 18,
-          "hosting_spread": 6,
-          "unique_pairs": 244,
-          "pairwise_novelty": 0.6506666666666666,
-          "inter_club_diversity": 0.8980392156862745,
-          "min_turnaround_days": 1
-        },
-        "optimized_metrics": {
-          "pairs_meeting_3_plus": 4,
-          "max_pair_repeat": 4,
-          "same_club_pairing_count": 15,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 3,
-          "gaps_under_14": 18,
-          "hosting_spread": 6,
-          "unique_pairs": 246,
-          "pairwise_novelty": 0.656,
-          "inter_club_diversity": 0.9058823529411765,
-          "min_turnaround_days": 1
-        },
-        "seed_used": 1
-      },
-      "U11": {
-        "status": "improved",
-        "reason": null,
-        "baseline_metrics": {
-          "pairs_meeting_3_plus": 11,
-          "max_pair_repeat": 4,
-          "same_club_pairing_count": 22,
-          "max_same_club_teams_per_tournament": 5,
-          "gaps_under_7": 9,
-          "gaps_under_14": 30,
-          "hosting_spread": 6,
-          "unique_pairs": 257,
-          "pairwise_novelty": 0.6853333333333333,
-          "inter_club_diversity": 0.9108527131782945,
-          "min_turnaround_days": 0
-        },
-        "optimized_metrics": {
-          "pairs_meeting_3_plus": 1,
-          "max_pair_repeat": 3,
-          "same_club_pairing_count": 22,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 9,
-          "gaps_under_14": 30,
-          "hosting_spread": 6,
-          "unique_pairs": 260,
-          "pairwise_novelty": 0.6933333333333334,
-          "inter_club_diversity": 0.9224806201550387,
-          "min_turnaround_days": 1
-        },
-        "seed_used": 4
-      },
-      "U12": {
-        "status": "improved",
-        "reason": null,
-        "baseline_metrics": {
-          "pairs_meeting_3_plus": 1,
-          "max_pair_repeat": 3,
-          "same_club_pairing_count": 1,
-          "max_same_club_teams_per_tournament": 2,
-          "gaps_under_7": 3,
-          "gaps_under_14": 18,
-          "hosting_spread": 6,
-          "unique_pairs": 135,
-          "pairwise_novelty": 0.8035714285714286,
-          "inter_club_diversity": 0.8993288590604027,
-          "min_turnaround_days": 1
-        },
-        "optimized_metrics": {
-          "pairs_meeting_3_plus": 0,
-          "max_pair_repeat": 2,
-          "same_club_pairing_count": 1,
-          "max_same_club_teams_per_tournament": 2,
-          "gaps_under_7": 3,
-          "gaps_under_14": 17,
-          "hosting_spread": 6,
-          "unique_pairs": 136,
-          "pairwise_novelty": 0.8095238095238095,
-          "inter_club_diversity": 0.9060402684563759,
-          "min_turnaround_days": 1
-        },
-        "seed_used": 1
-      },
-      "U7": {
-        "status": "improved",
-        "reason": null,
-        "baseline_metrics": {
-          "pairs_meeting_3_plus": 61,
-          "max_pair_repeat": 6,
-          "same_club_pairing_count": 19,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 0,
-          "gaps_under_14": 0,
-          "hosting_spread": 2,
-          "unique_pairs": 120,
-          "pairwise_novelty": 0.35714285714285715,
-          "inter_club_diversity": 1.0,
-          "min_turnaround_days": 15
-        },
-        "optimized_metrics": {
-          "pairs_meeting_3_plus": 30,
-          "max_pair_repeat": 6,
-          "same_club_pairing_count": 19,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 0,
-          "gaps_under_14": 0,
-          "hosting_spread": 2,
-          "unique_pairs": 120,
-          "pairwise_novelty": 0.35714285714285715,
-          "inter_club_diversity": 1.0,
-          "min_turnaround_days": 15
-        },
-        "seed_used": 2
-      },
-      "U8": {
-        "status": "improved",
-        "reason": null,
-        "baseline_metrics": {
-          "pairs_meeting_3_plus": 50,
-          "max_pair_repeat": 5,
-          "same_club_pairing_count": 24,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 3,
-          "gaps_under_14": 5,
-          "hosting_spread": 3,
-          "unique_pairs": 245,
-          "pairwise_novelty": 0.5147058823529411,
-          "inter_club_diversity": 0.9866071428571429,
-          "min_turnaround_days": 1
-        },
-        "optimized_metrics": {
-          "pairs_meeting_3_plus": 32,
-          "max_pair_repeat": 5,
-          "same_club_pairing_count": 24,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 1,
-          "gaps_under_14": 5,
-          "hosting_spread": 3,
-          "unique_pairs": 247,
-          "pairwise_novelty": 0.5189075630252101,
-          "inter_club_diversity": 0.9955357142857143,
-          "min_turnaround_days": 1
-        },
-        "seed_used": 1
-      },
-      "U9": {
-        "status": "improved",
-        "reason": null,
-        "baseline_metrics": {
-          "pairs_meeting_3_plus": 68,
-          "max_pair_repeat": 6,
-          "same_club_pairing_count": 25,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 5,
-          "gaps_under_14": 18,
-          "hosting_spread": 3,
-          "unique_pairs": 207,
-          "pairwise_novelty": 0.47586206896551725,
-          "inter_club_diversity": 0.9837837837837838,
-          "min_turnaround_days": 1
-        },
-        "optimized_metrics": {
-          "pairs_meeting_3_plus": 34,
-          "max_pair_repeat": 5,
-          "same_club_pairing_count": 25,
-          "max_same_club_teams_per_tournament": 3,
-          "gaps_under_7": 4,
-          "gaps_under_14": 18,
-          "hosting_spread": 3,
-          "unique_pairs": 210,
-          "pairwise_novelty": 0.4827586206896552,
-          "inter_club_diversity": 1.0,
-          "min_turnaround_days": 1
-        },
-        "seed_used": 1
-      }
-    }
+    "status": "improved",
+    "reason": null,
+    "seed_used": 4,
+    "baseline_violations": 2,
+    "best_violations": 0,
+    "baseline_gaps_under_7": 21,
+    "best_gaps_under_7": 11,
+    "baseline_gaps_under_14": 109,
+    "best_gaps_under_14": 93
   }
 }

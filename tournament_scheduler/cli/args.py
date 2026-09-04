@@ -1434,6 +1434,20 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print the A/B report as JSON instead of a human-readable summary",
     )
+    plan_ab_participants.add_argument(
+        "--repair-schedule",
+        action="store_true",
+        default=True,
+        help="Also run the baseline-bounded date-swap-only schedule-conflict repair pass "
+        "after participant optimization, to fix hard violations like arena_interval_conflict "
+        "that a participant-only optimizer cannot (default: on)",
+    )
+    plan_ab_participants.add_argument(
+        "--no-repair-schedule",
+        action="store_false",
+        dest="repair_schedule",
+        help="Skip the schedule-conflict repair pass; only optimize team assignments",
+    )
 
     plan_problem = plan_sub.add_parser(
         "problem",

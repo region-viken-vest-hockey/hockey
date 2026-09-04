@@ -232,68 +232,43 @@
   },
   "new": {
     "verification": {
-      "ok": false,
-      "violations": [
-        {
-          "code": "arena_interval_conflict",
-          "message": "Arena conflict Holmenkollen ishall 2026-11-22: 088e6700 (U11) 2026-11-22 10:00–2026-11-22 11:40 overlaps a3fc7b8f (U7) 2026-11-22 10:00–2026-11-22 12:20",
-          "tournament_id": "088e6700"
-        },
-        {
-          "code": "arena_interval_conflict",
-          "message": "Arena conflict Tonsberghallen 2026-11-22: 2cbd9e9f (U12) 2026-11-22 10:00–2026-11-22 11:00 overlaps deaa4140 (U9) 2026-11-22 10:00–2026-11-22 12:20",
-          "tournament_id": "2cbd9e9f"
-        }
-      ],
+      "ok": true,
+      "violations": [],
       "skipped": []
     },
     "score": {
       "participation": {
         "counts_by_team": {
-          "Frisk Asker Orange (Frisk Asker, JU12)": 6,
-          "Jar (Jar, JU12)": 6,
-          "Jutul Kittens (Jutul, JU12)": 6,
-          "Ringerike 1 (Ringerike, JU12)": 6,
           "Frisk Asker 1 (Frisk Asker, U12)": 6,
           "Jar Blå (Jar, U12)": 6,
           "Tønsberg Grå (Tønsberg, U12)": 6,
           "Holmen Hockey Hvit (Holmen, U12)": 6,
-          "Frisk Asker 2 (Frisk Asker, U8)": 6,
-          "Holmen Hockey Blå (Holmen, U8)": 6,
-          "Jar Blå (Jar, U8)": 6,
-          "Jutul Grønn (Jutul, U8)": 5,
-          "Ringerike 1 (Ringerike, U8)": 6,
-          "Jar Rød (Jar, U8)": 6,
-          "Sandefjord (Sandefjord Penguins, U8)": 6,
-          "Skien (Skien, U8)": 6,
-          "Jutul Gul (Jutul, U9)": 6,
-          "Jar Hvit (Jar, U9)": 6,
-          "Frisk Asker 3 (Frisk Asker, U9)": 6,
-          "Jar Blå (Jar, U9)": 6,
-          "Kongsberg (Kongsberg, U9)": 6,
-          "Ringerike 1 (Ringerike, U9)": 6,
-          "Tønsberg (Tønsberg, U9)": 6,
-          "Skien (Skien, U9)": 6,
-          "Frisk Asker 4 (Frisk Asker, U12)": 6,
-          "Jar Rød (Jar, U12)": 6,
-          "Jutul Grønn (Jutul, U12)": 6,
-          "Ringerike 1 (Ringerike, U12)": 6,
-          "Jar Blå (Jar, JU10)": 6,
-          "Frisk Asker Orange (Frisk Asker, JU10)": 6,
           "Ringerike 1 (Ringerike, JU10)": 6,
+          "Jar Rød (Jar, JU10)": 6,
+          "Frisk Asker Orange (Frisk Asker, JU10)": 6,
           "Skien (Skien, JU10)": 6,
-          "Jar Hvit (Jar, JU10)": 6,
+          "Jar Blå (Jar, JU10)": 6,
           "Frisk Asker Svart (Frisk Asker, JU10)": 6,
-          "Kongsberg (Kongsberg, U11)": 6,
+          "Jutul Grønn (Jutul, U10)": 6,
+          "Frisk Asker 4 (Frisk Asker, U10)": 6,
+          "Jar Grønn (Jar, U10)": 6,
+          "Holmen Hockey Rød (Holmen, U10)": 6,
+          "Ringerike 3": 6,
+          "Tønsberg (Tønsberg, U10)": 6,
+          "Jar Hvit (Jar, U8)": 6,
+          "Frisk Asker 1 (Frisk Asker, U8)": 6,
+          "Ringerike 2 (Ringerike, U8)": 6,
+          "Jutul Gul (Jutul, U8)": 6,
+          "Sandefjord (Sandefjord Penguins, U8)": 6,
+          "Holmen Hockey Hvit (Holmen, U8)": 6,
+          "Skien (Skien, U8)": 6,
+          "Frisk Asker 4 (Frisk Asker, U8)": 6,
+          "Tønsberg Grå (Tønsberg, U11)": 6,
+          "Jar Lilla (Jar, U11)": 6,
+          "Jar Grønn (Jar, U11)": 6,
+          "Frisk Asker 4 (Frisk Asker, U11)": 6,
+          "Jutul Grønn (Jutul, U11)": 6,
           "Jar Svart (Jar, U11)": 6,
-          "Frisk Asker 2 (Frisk Asker, U11)": 6,
-          "Jar Oransje": 6,
-          "Frisk Asker 1 (Frisk Asker, U11)": 6,
-          "Ringerike 2 (Ringerike, U11)": 6,
-          "Tønsberg Rød (Tønsberg, U12)": 6,
-          "Jar Lilla (Jar, U12)": 6,
-          "Frisk Asker 3 (Frisk Asker, U12)": 5,
-          "Ringerike 2 (Ringerike, U12)": 6,
           "Sandefjord (Sandefjord Penguins, U7)": 6,
           "Jar Blå (Jar, U7)": 6,
           "Frisk Asker 1 (Frisk Asker, U7)": 6,
@@ -302,108 +277,122 @@
           "Tønsberg (Tønsberg, U7)": 6,
           "Jutul Rød (Jutul, U7)": 6,
           "Jar Rød (Jar, U7)": 6,
-          "Frisk Asker Svart (Frisk Asker, JU12)": 6,
-          "Jar Hvit (Jar, JU12)": 5,
-          "Jutul/Jar Kittens": 6,
           "Ringerike 2 (Ringerike, JU12)": 6,
-          "Jutul Grønn (Jutul, U10)": 6,
-          "Frisk Asker 1 (Frisk Asker, U10)": 6,
-          "Jar Blå (Jar, U10)": 6,
+          "Frisk Asker Orange (Frisk Asker, JU12)": 6,
+          "Tønsberg (Tønsberg, JU12)": 6,
+          "Kongsberg/Tønsberg": 5,
+          "Jutul/Jar Kittens": 6,
+          "Frisk Asker Svart (Frisk Asker, JU12)": 6,
+          "Skien (Skien, JU12)": 6,
+          "Ringerike 1 (Ringerike, JU12)": 6,
+          "Frisk Asker 3 (Frisk Asker, U10)": 6,
+          "Jar Svart (Jar, U10)": 6,
+          "Jar Hvit (Jar, U10)": 6,
           "Holmen Hockey Blå (Holmen, U10)": 6,
-          "Ringerike 1 (Ringerike, U10)": 6,
-          "Kongsberg (Kongsberg, U10)": 6,
+          "Ringerike 4": 6,
+          "Kongsberg (Kongsberg, U11)": 6,
+          "Frisk Asker 2 (Frisk Asker, U11)": 6,
+          "Jar Oransje": 6,
+          "Frisk Asker 1 (Frisk Asker, U11)": 6,
+          "Ringerike 2 (Ringerike, U11)": 6,
+          "Jar Lilla (Jar, U12)": 6,
+          "Holmen Hockey Rød (Holmen, U12)": 6,
+          "Jutul Rød (Jutul, U12)": 6,
+          "Kongsberg (Kongsberg, U12)": 6,
+          "Holmen Hockey Rød (Holmen, U7)": 6,
+          "Holmen Hockey Sort (Holmen, U7)": 6,
+          "Jar Svart (Jar, U7)": 6,
+          "Frisk Asker 3 (Frisk Asker, U7)": 6,
+          "Jutul Grønn (Jutul, U7)": 6,
+          "Jar Grønn (Jar, U7)": 6,
+          "Jutul Hvit (Jutul, U7)": 6,
+          "Jar Hvit (Jar, U7)": 6,
           "Jutul Rød (Jutul, U11)": 6,
           "Jar Gul (Jar, U11)": 6,
           "Frisk Asker 3 (Frisk Asker, U11)": 6,
           "Tønsberg Rød (Tønsberg, U11)": 6,
           "Ringerike 1 (Ringerike, U11)": 6,
           "Sandefjord (Sandefjord Penguins, U11)": 6,
-          "Jutul Grønn (Jutul, JU8)": 6,
-          "Jutul Kittens (Jutul, JU8)": 6,
+          "Tønsberg Hvit (Tønsberg, U12)": 6,
+          "Frisk Asker 3 (Frisk Asker, U12)": 5,
+          "Ringerike 2 (Ringerike, U12)": 6,
+          "Holmen Hockey Blå (Holmen, U8)": 6,
+          "Holmen Hockey Rød (Holmen, U8)": 6,
+          "Frisk Asker 2 (Frisk Asker, U8)": 6,
+          "Jar Svart (Jar, U8)": 5,
+          "Jar Blå (Jar, U8)": 6,
           "Jar (Jar, JU8)": 6,
+          "Jar Rød (Jar, JU8)": 6,
+          "Jutul Grønn (Jutul, JU8)": 6,
           "Frisk Asker": 6,
           "Ringerike 1 (Ringerike, JU8)": 6,
           "Skien (Skien, JU8)": 6,
-          "Jar Rød (Jar, JU8)": 6,
-          "Holmen Hockey Hvit (Holmen, U11)": 6,
-          "Jar Hvit (Jar, U11)": 6,
-          "Jar Lilla (Jar, U11)": 6,
-          "Jar Grønn (Jar, U11)": 6,
-          "Tønsberg Hvit (Tønsberg, U11)": 6,
-          "Tønsberg Hvit (Tønsberg, U12)": 6,
-          "Jutul Hvit (Jutul, U8)": 6,
-          "Frisk Asker 5 (Frisk Asker, U8)": 6,
-          "Frisk Asker 3 (Frisk Asker, U8)": 6,
-          "Ringerike 2 (Ringerike, U8)": 6,
-          "Tønsberg (Tønsberg, U8)": 6,
-          "Holmen Hockey Rød (Holmen, U8)": 6,
-          "Skien (Skien, JU12)": 6,
-          "Tønsberg (Tønsberg, JU12)": 6,
-          "Ringerike 2 (Ringerike, U10)": 6,
-          "Frisk Asker 2 (Frisk Asker, U10)": 6,
-          "Jar Grønn (Jar, U10)": 6,
-          "Holmen Hockey Hvit (Holmen, U10)": 6,
-          "Jutul Hvit (Jutul, U10)": 6,
-          "Jar Svart (Jar, U10)": 6,
+          "Jutul Kittens (Jutul, JU8)": 6,
+          "Jutul Grønn (Jutul, U12)": 6,
           "Jar Svart (Jar, U12)": 5,
-          "Kongsberg (Kongsberg, U12)": 6,
-          "Frisk Asker 3 (Frisk Asker, U10)": 6,
-          "Jar Gul (Jar, U10)": 6,
-          "Holmen Hockey Sort (Holmen, U10)": 6,
-          "Ringerike 3": 6,
-          "Jutul Rød (Jutul, U10)": 6,
-          "Jar Rød (Jar, U11)": 6,
-          "Jutul Hvit (Jutul, U11)": 6,
-          "Frisk Asker 2 (Frisk Asker, U12)": 6,
-          "Jutul Rød (Jutul, U12)": 6,
           "Frisk Asker 1 (Frisk Asker, U9)": 6,
           "Frisk Asker 4 (Frisk Asker, U9)": 6,
+          "Jar Blå (Jar, U9)": 6,
           "Jutul Grønn (Jutul, U9)": 6,
+          "Jutul Gul (Jutul, U9)": 6,
           "Holmen Hockey Rød (Holmen, U9)": 6,
+          "Tønsberg (Tønsberg, U9)": 6,
           "Jar Svart (Jar, U9)": 6,
-          "Kongsberg/Tønsberg": 5,
-          "Jar Blå (Jar, U11)": 6,
-          "Tønsberg Grå (Tønsberg, U11)": 6,
-          "Holmen Hockey Rød (Holmen, U11)": 6,
-          "Jar Hvit (Jar, U7)": 6,
-          "Holmen Hockey Rød (Holmen, U7)": 6,
-          "Jutul Hvit (Jutul, U7)": 6,
-          "Jar Grønn (Jar, U7)": 6,
-          "Holmen Hockey Sort (Holmen, U7)": 6,
-          "Jutul Grønn (Jutul, U11)": 6,
+          "Jar Hvit (Jar, JU10)": 6,
+          "Jutul Hvit (Jutul, U10)": 6,
+          "Jar Gul (Jar, U10)": 6,
+          "Holmen Hockey Sort (Holmen, U10)": 6,
+          "Jutul Rød (Jutul, U10)": 6,
+          "Frisk Asker 2 (Frisk Asker, U12)": 6,
+          "Tønsberg Rød (Tønsberg, U12)": 6,
           "Jar Hvit (Jar, U12)": 6,
-          "Jutul Rød (Jutul, U8)": 6,
-          "Jutul Gul (Jutul, U8)": 6,
-          "Frisk Asker 4 (Frisk Asker, U8)": 6,
-          "Holmen Hockey Hvit (Holmen, U9)": 6,
-          "Jutul Rød (Jutul, U9)": 6,
-          "Holmen Hockey Sort (Holmen, U9)": 6,
-          "Sandefjord (Sandefjord Penguins, U9)": 6,
-          "Jar Rød (Jar, JU10)": 6,
-          "Frisk Asker 5 (Frisk Asker, U10)": 6,
-          "Jar Hvit (Jar, U10)": 6,
-          "Ringerike 4": 6,
-          "Jar Rød (Jar, U10)": 6,
-          "Jar Hvit (Jar, U8)": 6,
-          "Frisk Asker 1 (Frisk Asker, U8)": 6,
-          "Holmen Hockey Hvit (Holmen, U8)": 6,
-          "Kongsberg (Kongsberg, U8)": 6,
-          "Frisk Asker 5 (Frisk Asker, U9)": 6,
-          "Jar Rød (Jar, U9)": 6,
+          "Ringerike 1 (Ringerike, U12)": 6,
+          "Jar Hvit (Jar, U9)": 6,
           "Jutul Hvit (Jutul, U9)": 6,
-          "Frisk Asker 4 (Frisk Asker, U11)": 6,
-          "Skien (Skien, U11)": 6,
-          "Frisk Asker 4 (Frisk Asker, U10)": 6,
-          "Holmen Hockey Rød (Holmen, U10)": 6,
-          "Tønsberg (Tønsberg, U10)": 6,
-          "Holmen Hockey Rød (Holmen, U12)": 6,
-          "Jar Svart (Jar, U8)": 5,
-          "Frisk Asker 6": 6,
+          "Holmen Hockey Sort (Holmen, U9)": 6,
           "Frisk Asker 2 (Frisk Asker, U9)": 6,
-          "Jutul Grønn (Jutul, U7)": 6,
-          "Frisk Asker 3 (Frisk Asker, U7)": 6,
-          "Jar Svart (Jar, U7)": 6,
-          "Holmen Hockey Sort (Holmen, U8)": 6
+          "Frisk Asker 3 (Frisk Asker, U9)": 6,
+          "Frisk Asker 1 (Frisk Asker, U10)": 6,
+          "Jar Blå (Jar, U10)": 6,
+          "Ringerike 1 (Ringerike, U10)": 6,
+          "Kongsberg (Kongsberg, U10)": 6,
+          "Jar Hvit (Jar, JU12)": 5,
+          "Jar Blå (Jar, U11)": 6,
+          "Skien (Skien, U11)": 6,
+          "Jar Rød (Jar, U12)": 6,
+          "Frisk Asker 4 (Frisk Asker, U12)": 6,
+          "Tønsberg Hvit (Tønsberg, U11)": 6,
+          "Jar Hvit (Jar, U11)": 6,
+          "Jutul Hvit (Jutul, U8)": 6,
+          "Jutul Rød (Jutul, U8)": 6,
+          "Jar Rød (Jar, U8)": 6,
+          "Frisk Asker 5 (Frisk Asker, U8)": 6,
+          "Ringerike 2 (Ringerike, U10)": 6,
+          "Frisk Asker 2 (Frisk Asker, U10)": 6,
+          "Holmen Hockey Hvit (Holmen, U10)": 6,
+          "Jutul Kittens (Jutul, JU12)": 6,
+          "Jar (Jar, JU12)": 6,
+          "Frisk Asker 3 (Frisk Asker, U8)": 6,
+          "Jutul Grønn (Jutul, U8)": 5,
+          "Kongsberg (Kongsberg, U8)": 6,
+          "Tønsberg (Tønsberg, U8)": 6,
+          "Holmen Hockey Hvit (Holmen, U11)": 6,
+          "Frisk Asker 5 (Frisk Asker, U9)": 6,
+          "Sandefjord (Sandefjord Penguins, U9)": 6,
+          "Ringerike 1 (Ringerike, U9)": 6,
+          "Jar Rød (Jar, U9)": 6,
+          "Holmen Hockey Hvit (Holmen, U9)": 6,
+          "Skien (Skien, U9)": 6,
+          "Kongsberg (Kongsberg, U9)": 6,
+          "Jutul Hvit (Jutul, U11)": 6,
+          "Frisk Asker 5 (Frisk Asker, U10)": 6,
+          "Jar Rød (Jar, U11)": 6,
+          "Frisk Asker 6": 6,
+          "Holmen Hockey Sort (Holmen, U8)": 6,
+          "Jutul Rød (Jutul, U9)": 6,
+          "Jar Rød (Jar, U10)": 6,
+          "Holmen Hockey Rød (Holmen, U11)": 6,
+          "Ringerike 1 (Ringerike, U8)": 6
         },
         "spread": 1
       },
@@ -411,11 +400,11 @@
         "unique_pairs": 1312,
         "pairwise_novelty": 0.5264847512038523,
         "pair_repeat_distribution": {
-          "2": 667,
           "1": 500,
-          "3": 32,
-          "4": 42,
+          "2": 667,
           "5": 32,
+          "4": 42,
+          "3": 32,
           "6": 39
         },
         "pairs_meeting_3_plus": 145,
@@ -427,21 +416,21 @@
       "turnaround": {
         "min_turnaround_days": 1,
         "gaps_under_days": {
-          "7": 21,
-          "14": 109
+          "7": 11,
+          "14": 93
         }
       },
       "hosting": {
         "counts_by_host": {
           "Frisk Asker": 40,
+          "Ringerike": 13,
           "Jutul": 29,
-          "Kongsberg": 5,
+          "Jar": 20,
           "Tønsberg": 17,
           "Sandefjord Penguins": 5,
+          "Kongsberg": 5,
           "Holmen": 18,
-          "Skien": 5,
-          "Ringerike": 13,
-          "Jar": 20
+          "Skien": 5
         },
         "spread": 35
       },
@@ -535,16 +524,16 @@
         "metric": "turnaround.gaps_under_days.7",
         "direction": "lower",
         "old": 24,
-        "new": 21,
-        "delta": -3,
+        "new": 11,
+        "delta": -13,
         "regressed": false
       },
       {
         "metric": "turnaround.gaps_under_days.14",
         "direction": "lower",
         "old": 110,
-        "new": 109,
-        "delta": -1,
+        "new": 93,
+        "delta": -17,
         "regressed": false
       },
       {
@@ -612,13 +601,13 @@
       "new": {
         "participation": {
           "counts_by_team": {
-            "Jar Blå": 6,
-            "Frisk Asker Orange": 6,
             "Ringerike 1": 6,
+            "Jar Rød": 6,
+            "Frisk Asker Orange": 6,
             "Skien": 6,
-            "Jar Hvit": 6,
+            "Jar Blå": 6,
             "Frisk Asker Svart": 6,
-            "Jar Rød": 6
+            "Jar Hvit": 6
           },
           "spread": 0
         },
@@ -635,27 +624,27 @@
           "max_same_club_teams_per_tournament": 3
         },
         "turnaround": {
-          "min_turnaround_days": 7,
+          "min_turnaround_days": 15,
           "gaps_under_days": {
             "7": 0,
-            "14": 10
+            "14": 0
           }
         },
         "hosting": {
           "counts_by_host": {
-            "Jutul": 1,
             "Ringerike": 1,
+            "Jar": 2,
             "Frisk Asker": 3,
-            "Jar": 2
+            "Jutul": 1
           },
           "spread": 2
         },
         "month_distribution": {
-          "2026-09": 1,
+          "2026-09": 2,
           "2026-10": 1,
           "2026-11": 2,
           "2026-12": 1,
-          "2027-01": 2
+          "2027-01": 1
         }
       },
       "comparison": {
@@ -728,8 +717,8 @@
             "metric": "turnaround.min_turnaround_days",
             "direction": "higher",
             "old": 7,
-            "new": 7,
-            "delta": 0,
+            "new": 15,
+            "delta": 8,
             "regressed": false
           },
           {
@@ -744,8 +733,8 @@
             "metric": "turnaround.gaps_under_days.14",
             "direction": "lower",
             "old": 10,
-            "new": 10,
-            "delta": 0,
+            "new": 0,
+            "delta": -10,
             "regressed": false
           },
           {
@@ -822,17 +811,17 @@
       "new": {
         "participation": {
           "counts_by_team": {
-            "Frisk Asker Orange": 6,
-            "Jar": 6,
-            "Jutul Kittens": 6,
-            "Ringerike 1": 6,
-            "Frisk Asker Svart": 6,
-            "Jar Hvit": 5,
-            "Jutul/Jar Kittens": 6,
             "Ringerike 2": 6,
-            "Skien": 6,
+            "Frisk Asker Orange": 6,
             "Tønsberg": 6,
-            "Kongsberg/Tønsberg": 5
+            "Kongsberg/Tønsberg": 5,
+            "Jutul/Jar Kittens": 6,
+            "Frisk Asker Svart": 6,
+            "Skien": 6,
+            "Ringerike 1": 6,
+            "Jar Hvit": 5,
+            "Jutul Kittens": 6,
+            "Jar": 6
           },
           "spread": 1
         },
@@ -851,30 +840,30 @@
           "max_same_club_teams_per_tournament": 1
         },
         "turnaround": {
-          "min_turnaround_days": 6,
+          "min_turnaround_days": 7,
           "gaps_under_days": {
-            "7": 1,
-            "14": 11
+            "7": 0,
+            "14": 10
           }
         },
         "hosting": {
           "counts_by_host": {
-            "Frisk Asker": 3,
+            "Ringerike": 3,
+            "Jutul": 4,
             "Tønsberg": 2,
             "Skien": 2,
-            "Jutul": 4,
-            "Ringerike": 3,
+            "Kongsberg": 1,
             "Jar": 1,
-            "Kongsberg": 1
+            "Frisk Asker": 3
           },
           "spread": 3
         },
         "month_distribution": {
-          "2026-09": 4,
-          "2026-10": 4,
-          "2026-11": 5,
-          "2026-12": 1,
-          "2027-01": 2
+          "2026-09": 3,
+          "2026-10": 3,
+          "2026-11": 3,
+          "2026-12": 3,
+          "2027-01": 4
         }
       },
       "comparison": {
@@ -947,24 +936,24 @@
             "metric": "turnaround.min_turnaround_days",
             "direction": "higher",
             "old": 1,
-            "new": 6,
-            "delta": 5,
+            "new": 7,
+            "delta": 6,
             "regressed": false
           },
           {
             "metric": "turnaround.gaps_under_days.7",
             "direction": "lower",
             "old": 1,
-            "new": 1,
-            "delta": 0,
+            "new": 0,
+            "delta": -1,
             "regressed": false
           },
           {
             "metric": "turnaround.gaps_under_days.14",
             "direction": "lower",
             "old": 11,
-            "new": 11,
-            "delta": 0,
+            "new": 10,
+            "delta": -1,
             "regressed": false
           },
           {
@@ -1032,13 +1021,13 @@
       "new": {
         "participation": {
           "counts_by_team": {
-            "Jutul Grønn": 6,
-            "Jutul Kittens": 6,
             "Jar": 6,
+            "Jar Rød": 6,
+            "Jutul Grønn": 6,
             "Frisk Asker": 6,
             "Ringerike 1": 6,
             "Skien": 6,
-            "Jar Rød": 6
+            "Jutul Kittens": 6
           },
           "spread": 0
         },
@@ -1063,19 +1052,19 @@
         },
         "hosting": {
           "counts_by_host": {
-            "Jutul": 2,
+            "Jar": 2,
             "Skien": 1,
-            "Frisk Asker": 1,
-            "Jar": 2
+            "Jutul": 2,
+            "Frisk Asker": 1
           },
           "spread": 1
         },
         "month_distribution": {
           "2026-09": 1,
-          "2026-10": 1,
-          "2026-12": 1,
+          "2026-10": 2,
+          "2026-11": 1,
           "2027-01": 1,
-          "2027-02": 2
+          "2027-02": 1
         }
       },
       "comparison": {
@@ -1258,30 +1247,30 @@
         "participation": {
           "counts_by_team": {
             "Jutul Grønn": 6,
+            "Frisk Asker 4": 6,
+            "Jar Grønn": 6,
+            "Holmen Hockey Rød": 6,
+            "Ringerike 3": 6,
+            "Tønsberg": 6,
+            "Frisk Asker 3": 6,
+            "Jar Svart": 6,
+            "Jar Hvit": 6,
+            "Holmen Hockey Blå": 6,
+            "Ringerike 4": 6,
+            "Jutul Hvit": 6,
+            "Jar Gul": 6,
+            "Holmen Hockey Sort": 6,
+            "Jutul Rød": 6,
             "Frisk Asker 1": 6,
             "Jar Blå": 6,
-            "Holmen Hockey Blå": 6,
             "Ringerike 1": 6,
             "Kongsberg": 6,
             "Ringerike 2": 6,
             "Frisk Asker 2": 6,
-            "Jar Grønn": 6,
             "Holmen Hockey Hvit": 6,
-            "Jutul Hvit": 6,
-            "Jar Svart": 6,
-            "Frisk Asker 3": 6,
-            "Jar Gul": 6,
-            "Holmen Hockey Sort": 6,
-            "Ringerike 3": 6,
-            "Jutul Rød": 6,
             "Frisk Asker 5": 6,
-            "Jar Hvit": 6,
-            "Ringerike 4": 6,
-            "Jar Rød": 6,
-            "Frisk Asker 4": 6,
-            "Holmen Hockey Rød": 6,
-            "Tønsberg": 6,
-            "Frisk Asker 6": 6
+            "Frisk Asker 6": 6,
+            "Jar Rød": 6
           },
           "spread": 0
         },
@@ -1289,8 +1278,8 @@
           "unique_pairs": 246,
           "pairwise_novelty": 0.656,
           "pair_repeat_distribution": {
-            "1": 125,
             "2": 117,
+            "1": 125,
             "4": 4
           },
           "pairs_meeting_3_plus": 4,
@@ -1302,28 +1291,30 @@
         "turnaround": {
           "min_turnaround_days": 1,
           "gaps_under_days": {
-            "7": 3,
-            "14": 18
+            "7": 2,
+            "14": 17
           }
         },
         "hosting": {
           "counts_by_host": {
             "Jutul": 4,
-            "Ringerike": 3,
             "Frisk Asker": 7,
-            "Holmen": 5,
+            "Ringerike": 3,
             "Tønsberg": 1,
+            "Holmen": 5,
             "Jar": 5
           },
           "spread": 6
         },
         "month_distribution": {
-          "2026-09": 3,
-          "2026-10": 5,
+          "2026-09": 4,
+          "2026-10": 4,
           "2026-11": 7,
           "2026-12": 2,
           "2027-01": 4,
-          "2027-02": 4
+          "2027-02": 2,
+          "2027-03": 1,
+          "2027-04": 1
         }
       },
       "comparison": {
@@ -1404,16 +1395,16 @@
             "metric": "turnaround.gaps_under_days.7",
             "direction": "lower",
             "old": 3,
-            "new": 3,
-            "delta": 0,
+            "new": 2,
+            "delta": -1,
             "regressed": false
           },
           {
             "metric": "turnaround.gaps_under_days.14",
             "direction": "lower",
             "old": 18,
-            "new": 18,
-            "delta": 0,
+            "new": 17,
+            "delta": -1,
             "regressed": false
           },
           {
@@ -1507,8 +1498,13 @@
       "new": {
         "participation": {
           "counts_by_team": {
-            "Kongsberg": 6,
+            "Tønsberg Grå": 6,
+            "Jar Lilla": 6,
+            "Jar Grønn": 6,
+            "Frisk Asker 4": 6,
+            "Jutul Grønn": 6,
             "Jar Svart": 6,
+            "Kongsberg": 6,
             "Frisk Asker 2": 6,
             "Jar Oransje": 6,
             "Frisk Asker 1": 6,
@@ -1519,19 +1515,14 @@
             "Tønsberg Rød": 6,
             "Ringerike 1": 6,
             "Sandefjord": 6,
-            "Holmen Hockey Hvit": 6,
-            "Jar Hvit": 6,
-            "Jar Lilla": 6,
-            "Jar Grønn": 6,
-            "Tønsberg Hvit": 6,
-            "Jar Rød": 6,
-            "Jutul Hvit": 6,
             "Jar Blå": 6,
-            "Tønsberg Grå": 6,
-            "Holmen Hockey Rød": 6,
-            "Jutul Grønn": 6,
-            "Frisk Asker 4": 6,
-            "Skien": 6
+            "Skien": 6,
+            "Tønsberg Hvit": 6,
+            "Jar Hvit": 6,
+            "Holmen Hockey Hvit": 6,
+            "Jutul Hvit": 6,
+            "Jar Rød": 6,
+            "Holmen Hockey Rød": 6
           },
           "spread": 0
         },
@@ -1552,30 +1543,31 @@
         "turnaround": {
           "min_turnaround_days": 1,
           "gaps_under_days": {
-            "7": 9,
-            "14": 30
+            "7": 6,
+            "14": 29
           }
         },
         "hosting": {
           "counts_by_host": {
+            "Tønsberg": 4,
             "Kongsberg": 1,
             "Jutul": 4,
-            "Holmen": 2,
+            "Frisk Asker": 7,
+            "Jar": 2,
+            "Ringerike": 2,
             "Sandefjord Penguins": 2,
             "Skien": 1,
-            "Frisk Asker": 7,
-            "Tønsberg": 4,
-            "Ringerike": 2,
-            "Jar": 2
+            "Holmen": 2
           },
           "spread": 6
         },
         "month_distribution": {
-          "2026-09": 5,
+          "2026-09": 4,
           "2026-10": 4,
           "2026-11": 7,
-          "2026-12": 4,
-          "2027-01": 5
+          "2026-12": 2,
+          "2027-01": 5,
+          "2027-02": 3
         }
       },
       "comparison": {
@@ -1656,16 +1648,16 @@
             "metric": "turnaround.gaps_under_days.7",
             "direction": "lower",
             "old": 9,
-            "new": 9,
-            "delta": 0,
+            "new": 6,
+            "delta": -3,
             "regressed": false
           },
           {
             "metric": "turnaround.gaps_under_days.14",
             "direction": "lower",
             "old": 30,
-            "new": 30,
-            "delta": 0,
+            "new": 29,
+            "delta": -1,
             "regressed": false
           },
           {
@@ -1754,21 +1746,21 @@
             "Jar Blå": 6,
             "Tønsberg Grå": 6,
             "Holmen Hockey Hvit": 6,
-            "Frisk Asker 4": 6,
-            "Jar Rød": 6,
-            "Jutul Grønn": 6,
-            "Ringerike 1": 6,
-            "Tønsberg Rød": 6,
             "Jar Lilla": 6,
+            "Holmen Hockey Rød": 6,
+            "Jutul Rød": 6,
+            "Kongsberg": 6,
+            "Tønsberg Hvit": 6,
             "Frisk Asker 3": 5,
             "Ringerike 2": 6,
-            "Tønsberg Hvit": 6,
+            "Jutul Grønn": 6,
             "Jar Svart": 5,
-            "Kongsberg": 6,
             "Frisk Asker 2": 6,
-            "Jutul Rød": 6,
+            "Tønsberg Rød": 6,
             "Jar Hvit": 6,
-            "Holmen Hockey Rød": 6
+            "Ringerike 1": 6,
+            "Jar Rød": 6,
+            "Frisk Asker 4": 6
           },
           "spread": 1
         },
@@ -1788,8 +1780,8 @@
         "turnaround": {
           "min_turnaround_days": 1,
           "gaps_under_days": {
-            "7": 3,
-            "14": 17
+            "7": 1,
+            "14": 16
           }
         },
         "hosting": {
@@ -1806,10 +1798,11 @@
         },
         "month_distribution": {
           "2026-09": 6,
-          "2026-10": 8,
+          "2026-10": 7,
           "2026-11": 8,
-          "2026-12": 1,
-          "2027-01": 5
+          "2026-12": 2,
+          "2027-01": 4,
+          "2027-02": 1
         }
       },
       "comparison": {
@@ -1890,16 +1883,16 @@
             "metric": "turnaround.gaps_under_days.7",
             "direction": "lower",
             "old": 3,
-            "new": 3,
-            "delta": 0,
+            "new": 1,
+            "delta": -2,
             "regressed": false
           },
           {
             "metric": "turnaround.gaps_under_days.14",
             "direction": "lower",
             "old": 18,
-            "new": 17,
-            "delta": -1,
+            "new": 16,
+            "delta": -2,
             "regressed": false
           },
           {
@@ -1994,14 +1987,14 @@
             "Tønsberg": 6,
             "Jutul Rød": 6,
             "Jar Rød": 6,
-            "Jar Hvit": 6,
             "Holmen Hockey Rød": 6,
-            "Jutul Hvit": 6,
-            "Jar Grønn": 6,
             "Holmen Hockey Sort": 6,
-            "Jutul Grønn": 6,
+            "Jar Svart": 6,
             "Frisk Asker 3": 6,
-            "Jar Svart": 6
+            "Jutul Grønn": 6,
+            "Jar Grønn": 6,
+            "Jutul Hvit": 6,
+            "Jar Hvit": 6
           },
           "spread": 0
         },
@@ -2029,23 +2022,21 @@
         "hosting": {
           "counts_by_host": {
             "Sandefjord Penguins": 1,
+            "Holmen": 3,
+            "Jar": 1,
             "Tønsberg": 1,
             "Frisk Asker": 3,
-            "Jutul": 3,
-            "Holmen": 3,
-            "Jar": 1
+            "Jutul": 3
           },
           "spread": 2
         },
         "month_distribution": {
           "2026-09": 2,
-          "2026-10": 1,
-          "2026-11": 2,
+          "2026-10": 3,
+          "2026-11": 3,
           "2026-12": 1,
-          "2027-01": 1,
-          "2027-02": 1,
-          "2027-03": 2,
-          "2027-04": 2
+          "2027-01": 2,
+          "2027-02": 1
         }
       },
       "comparison": {
@@ -2230,29 +2221,29 @@
       "new": {
         "participation": {
           "counts_by_team": {
-            "Frisk Asker 2": 6,
-            "Holmen Hockey Blå": 6,
-            "Jar Blå": 6,
-            "Jutul Grønn": 5,
-            "Ringerike 1": 6,
-            "Jar Rød": 6,
-            "Sandefjord": 6,
-            "Skien": 6,
-            "Jutul Hvit": 6,
-            "Frisk Asker 5": 6,
-            "Frisk Asker 3": 6,
-            "Ringerike 2": 6,
-            "Tønsberg": 6,
-            "Holmen Hockey Rød": 6,
-            "Jutul Rød": 6,
-            "Jutul Gul": 6,
-            "Frisk Asker 4": 6,
             "Jar Hvit": 6,
             "Frisk Asker 1": 6,
+            "Ringerike 2": 6,
+            "Jutul Gul": 6,
+            "Sandefjord": 6,
             "Holmen Hockey Hvit": 6,
-            "Kongsberg": 6,
+            "Skien": 6,
+            "Frisk Asker 4": 6,
+            "Holmen Hockey Blå": 6,
+            "Holmen Hockey Rød": 6,
+            "Frisk Asker 2": 6,
             "Jar Svart": 5,
-            "Holmen Hockey Sort": 6
+            "Jar Blå": 6,
+            "Jutul Hvit": 6,
+            "Jutul Rød": 6,
+            "Jar Rød": 6,
+            "Frisk Asker 5": 6,
+            "Frisk Asker 3": 6,
+            "Jutul Grønn": 5,
+            "Kongsberg": 6,
+            "Tønsberg": 6,
+            "Holmen Hockey Sort": 6,
+            "Ringerike 1": 6
           },
           "spread": 1
         },
@@ -2261,10 +2252,10 @@
           "pairwise_novelty": 0.5189075630252101,
           "pair_repeat_distribution": {
             "2": 144,
-            "1": 71,
-            "3": 15,
             "4": 13,
-            "5": 4
+            "5": 4,
+            "3": 15,
+            "1": 71
           },
           "pairs_meeting_3_plus": 32,
           "max_pair_repeat": 5,
@@ -2273,19 +2264,19 @@
           "max_same_club_teams_per_tournament": 3
         },
         "turnaround": {
-          "min_turnaround_days": 1,
+          "min_turnaround_days": 7,
           "gaps_under_days": {
-            "7": 1,
+            "7": 0,
             "14": 5
           }
         },
         "hosting": {
           "counts_by_host": {
-            "Frisk Asker": 4,
+            "Jar": 2,
+            "Holmen": 3,
             "Jutul": 4,
             "Sandefjord Penguins": 1,
-            "Holmen": 3,
-            "Jar": 2,
+            "Frisk Asker": 4,
             "Tønsberg": 1,
             "Ringerike": 1,
             "Kongsberg": 1
@@ -2373,16 +2364,16 @@
             "metric": "turnaround.min_turnaround_days",
             "direction": "higher",
             "old": 1,
-            "new": 1,
-            "delta": 0,
+            "new": 7,
+            "delta": 6,
             "regressed": false
           },
           {
             "metric": "turnaround.gaps_under_days.7",
             "direction": "lower",
             "old": 3,
-            "new": 1,
-            "delta": -2,
+            "new": 0,
+            "delta": -3,
             "regressed": false
           },
           {
@@ -2481,27 +2472,27 @@
       "new": {
         "participation": {
           "counts_by_team": {
-            "Jutul Gul": 6,
-            "Jar Hvit": 6,
-            "Frisk Asker 3": 6,
-            "Jar Blå": 6,
-            "Kongsberg": 6,
-            "Ringerike 1": 6,
-            "Tønsberg": 6,
-            "Skien": 6,
             "Frisk Asker 1": 6,
             "Frisk Asker 4": 6,
+            "Jar Blå": 6,
             "Jutul Grønn": 6,
+            "Jutul Gul": 6,
             "Holmen Hockey Rød": 6,
+            "Tønsberg": 6,
             "Jar Svart": 6,
-            "Holmen Hockey Hvit": 6,
-            "Jutul Rød": 6,
-            "Holmen Hockey Sort": 6,
-            "Sandefjord": 6,
-            "Frisk Asker 5": 6,
-            "Jar Rød": 6,
+            "Jar Hvit": 6,
             "Jutul Hvit": 6,
-            "Frisk Asker 2": 6
+            "Holmen Hockey Sort": 6,
+            "Frisk Asker 2": 6,
+            "Frisk Asker 3": 6,
+            "Frisk Asker 5": 6,
+            "Sandefjord": 6,
+            "Ringerike 1": 6,
+            "Jar Rød": 6,
+            "Holmen Hockey Hvit": 6,
+            "Skien": 6,
+            "Kongsberg": 6,
+            "Jutul Rød": 6
           },
           "spread": 0
         },
@@ -2509,10 +2500,10 @@
           "unique_pairs": 210,
           "pairwise_novelty": 0.4827586206896552,
           "pair_repeat_distribution": {
-            "1": 46,
-            "3": 14,
-            "5": 7,
             "2": 130,
+            "1": 46,
+            "5": 7,
+            "3": 14,
             "4": 13
           },
           "pairs_meeting_3_plus": 34,
@@ -2524,20 +2515,20 @@
         "turnaround": {
           "min_turnaround_days": 1,
           "gaps_under_days": {
-            "7": 4,
-            "14": 18
+            "7": 2,
+            "14": 16
           }
         },
         "hosting": {
           "counts_by_host": {
-            "Jutul": 4,
             "Frisk Asker": 4,
-            "Skien": 1,
-            "Sandefjord Penguins": 1,
+            "Jar": 2,
+            "Jutul": 4,
             "Holmen": 2,
             "Ringerike": 1,
             "Tønsberg": 1,
-            "Jar": 2
+            "Skien": 1,
+            "Sandefjord Penguins": 1
           },
           "spread": 3
         },
@@ -2546,8 +2537,10 @@
           "2026-10": 3,
           "2026-11": 4,
           "2026-12": 1,
-          "2027-01": 3,
-          "2027-02": 3
+          "2027-01": 2,
+          "2027-02": 2,
+          "2027-03": 1,
+          "2027-04": 1
         }
       },
       "comparison": {
@@ -2628,16 +2621,16 @@
             "metric": "turnaround.gaps_under_days.7",
             "direction": "lower",
             "old": 5,
-            "new": 4,
-            "delta": -1,
+            "new": 2,
+            "delta": -3,
             "regressed": false
           },
           {
             "metric": "turnaround.gaps_under_days.14",
             "direction": "lower",
             "old": 18,
-            "new": 18,
-            "delta": 0,
+            "new": 16,
+            "delta": -2,
             "regressed": false
           },
           {
@@ -2656,6 +2649,6 @@
   "per_age_group_regressions": {},
   "hard_constraint_regressed": false,
   "dominates_baseline": true,
-  "production_ready": false,
-  "promotable": false
+  "production_ready": true,
+  "promotable": true
 }

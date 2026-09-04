@@ -805,3 +805,317 @@ def optimize_candidate_participants_bounded_multi_seed(
         "per_age_group_status": per_group_status,
     }
     return result
+
+
+# ---------------------------------------------------------------------------
+# Baseline-bounded schedule (date-only) conflict repair (issue #257 skeleton
+# follow-up)
+# ---------------------------------------------------------------------------
+#
+# optimize_candidate_participants_bounded[_multi_seed] only reassigns *which*
+# teams fill an existing tournament slot, so it cannot fix a violation like
+# `arena_interval_conflict` that comes from *when*/*where* two tournaments
+# overlap — that's structural to the skeleton (dates), not the participant
+# assignment. Those conflicts are also often cross-age-group (two different
+# age groups' tournaments sharing an arena at an overlapping time), so unlike
+# the participant optimizer this pass searches across the whole season at
+# once rather than one age group at a time.
+#
+# Moves are date swaps only (see `_apply_date_swap`): each tournament keeps
+# its own arena, host and roster, so opponent diversity, same-club
+# clustering and participation counts are invariant by construction — only
+# hard-violation count and turnaround spacing can change, so those are what
+# get measured and bounded.
+
+
+def _per_age_group_gaps(
+    slots: List["_Slot"],
+) -> Dict[str, Tuple[int, int, Optional[int]]]:
+    """Cheap, slot-state-only per-age-group turnaround metrics: (gaps under
+    7 days, gaps under 14 days, min turnaround days).
+
+    A season-wide total can hide one age group regressing while others
+    improve — the same masking issue Task 1 fixed for the A/B report — so
+    the repair search bounds these per age group, not just in aggregate.
+    Computed directly from slot dates (no candidate materialization/
+    ``score_candidate`` call needed), so it's cheap enough to call on every
+    search step.
+    """
+    dates_by_team: Dict[TeamIdentity, List[date]] = {}
+    for slot in slots:
+        for identity in slot.team_ids:
+            dates_by_team.setdefault(identity, []).append(slot.date)
+    gaps_7_by_group: Dict[str, int] = {}
+    gaps_14_by_group: Dict[str, int] = {}
+    min_turnaround_by_group: Dict[str, int] = {}
+    for identity, dates in dates_by_team.items():
+        age_group = identity[2]
+        ordered = sorted(dates)
+        for prev, nxt in zip(ordered, ordered[1:]):
+            gap = (nxt - prev).days
+            if gap < 7:
+                gaps_7_by_group[age_group] = gaps_7_by_group.get(age_group, 0) + 1
+            if gap < 14:
+                gaps_14_by_group[age_group] = gaps_14_by_group.get(age_group, 0) + 1
+            if age_group not in min_turnaround_by_group or gap < min_turnaround_by_group[age_group]:
+                min_turnaround_by_group[age_group] = gap
+    age_groups = {identity[2] for identity in dates_by_team}
+    return {
+        age_group: (
+            gaps_7_by_group.get(age_group, 0),
+            gaps_14_by_group.get(age_group, 0),
+            min_turnaround_by_group.get(age_group),
+        )
+        for age_group in age_groups
+    }
+
+
+def _gaps_within_bounds(
+    trial: Dict[str, Tuple[int, int, Optional[int]]],
+    baseline: Dict[str, Tuple[int, int, Optional[int]]],
+) -> bool:
+    """True if *trial* is no worse than *baseline* in every age group."""
+    for age_group, (baseline_g7, baseline_g14, baseline_min) in baseline.items():
+        trial_g7, trial_g14, trial_min = trial.get(age_group, (0, 0, None))
+        if trial_g7 > baseline_g7 or trial_g14 > baseline_g14:
+            return False
+        if baseline_min is not None:
+            if trial_min is None or trial_min < baseline_min:
+                return False
+    return True
+
+
+def _repair_search(
+    slots: List["_Slot"],
+    untouched: List[Dict[str, Any]],
+    base_candidate_template: Dict[str, Any],
+    problem: Optional[Dict[str, Any]],
+    baseline_violations: int,
+    baseline_gaps_7: int,
+    baseline_gaps_14: int,
+    baseline_per_age_group_gaps: Dict[str, Tuple[int, int, Optional[int]]],
+    baseline_dates: List[date],
+    iterations: int,
+    seed: int,
+) -> Tuple[int, int, int, List[date]]:
+    """One seeded bounded local-search restart over *slots*' dates.
+
+    Mutates *slots* during the search but always restores it to
+    *baseline_dates* before returning — callers own applying whichever
+    result (this seed's, another seed's, or the baseline) wins. Never
+    accepts a swap that would push the season's hard-violation count, the
+    season-wide turnaround gap totals, or *any single age group's*
+    turnaround gaps worse than the input baseline. The cheap per-age-group
+    gap check runs before the expensive full-candidate verifier call, so an
+    infeasible move is rejected without materializing/verifying at all.
+    """
+    from .planning_contract import verify_candidate
+
+    def _materialize() -> Dict[str, Any]:
+        result = dict(base_candidate_template)
+        result["tournaments"] = [
+            _rebuild_tournament(slot) if (slot.changed or slot.date_changed) else slot.tournament
+            for slot in slots
+        ] + untouched
+        return result
+
+    def _violation_count() -> int:
+        return len(verify_candidate(_materialize(), problem)["violations"])
+
+    def _score(violations: int, gaps_7: int, gaps_14: int) -> float:
+        return violations * 1_000_000.0 + gaps_7 * 1_000.0 + gaps_14
+
+    rng = random.Random(seed)
+    current_v, current_g7, current_g14 = baseline_violations, baseline_gaps_7, baseline_gaps_14
+    current_score = _score(current_v, current_g7, current_g14)
+    best_v, best_g7, best_g14 = current_v, current_g7, current_g14
+    best_score = current_score
+    best_dates = list(baseline_dates)
+
+    for step in range(iterations):
+        if best_v == 0:
+            break
+        i, j = rng.sample(range(len(slots)), 2)
+        if slots[i].date == slots[j].date:
+            continue
+        if not _date_swap_is_valid(slots, i, j):
+            continue
+
+        _apply_date_swap(slots, i, j)
+
+        trial_per_age_group_gaps = _per_age_group_gaps(slots)
+        if not _gaps_within_bounds(trial_per_age_group_gaps, baseline_per_age_group_gaps):
+            _apply_date_swap(slots, i, j)  # revert: self-inverse
+            continue
+
+        trial_g7 = sum(g7 for g7, _, _ in trial_per_age_group_gaps.values())
+        trial_g14 = sum(g14 for _, g14, _ in trial_per_age_group_gaps.values())
+        if trial_g7 > baseline_gaps_7 or trial_g14 > baseline_gaps_14:
+            _apply_date_swap(slots, i, j)
+            continue
+
+        trial_v = _violation_count()
+        if trial_v > baseline_violations:
+            _apply_date_swap(slots, i, j)
+            continue
+
+        trial_score = _score(trial_v, trial_g7, trial_g14)
+        delta = trial_score - current_score
+        temperature = max(1e-6, 1.0 - step / iterations)
+        accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 1000.0))
+        if accept:
+            current_v, current_g7, current_g14 = trial_v, trial_g7, trial_g14
+            current_score = trial_score
+            if trial_score < best_score:
+                best_score = trial_score
+                best_v, best_g7, best_g14 = trial_v, trial_g7, trial_g14
+                best_dates = [slot.date for slot in slots]
+        else:
+            _apply_date_swap(slots, i, j)
+
+    for slot, d in zip(slots, baseline_dates):
+        slot.date = d
+        slot.date_changed = False
+
+    return best_v, best_g7, best_g14, best_dates
+
+
+def repair_schedule_conflicts_bounded(
+    candidate: Dict[str, Any],
+    problem: Optional[Dict[str, Any]] = None,
+    *,
+    iterations: int = 8000,
+    seed: int = 0,
+) -> Dict[str, Any]:
+    """Single-seed baseline-bounded schedule-conflict repair (issue #257).
+
+    Convenience wrapper around :func:`repair_schedule_conflicts_bounded_multi_seed`
+    with one seed/restart.
+    """
+    return repair_schedule_conflicts_bounded_multi_seed(
+        candidate, problem, seeds=(seed,), iterations=iterations
+    )
+
+
+def repair_schedule_conflicts_bounded_multi_seed(
+    candidate: Dict[str, Any],
+    problem: Optional[Dict[str, Any]] = None,
+    *,
+    seeds: Tuple[int, ...] = (0,),
+    iterations: int = 8000,
+) -> Dict[str, Any]:
+    """Baseline-bounded date-swap-only repair for hard schedule conflicts,
+    with multiple seeds/restarts (issue #257 skeleton follow-up).
+
+    Searches for a sequence of tournament-date swaps (arena/host/roster
+    unchanged) that reduces the season's hard-violation count — e.g.
+    `arena_interval_conflict` — without pushing turnaround gaps worse than
+    the input. Runs across the whole season at once (not per age group),
+    since a skeleton conflict like two different age groups sharing an
+    arena at an overlapping time can only be fixed by a swap that spans
+    them. Keeps whichever seed's result is the best (fewest violations,
+    then fewest turnaround-gap regressions); the season is returned
+    byte-for-byte unchanged if no seed improves on the baseline, including
+    when the baseline already has zero hard violations (nothing to repair).
+    """
+    from .planning_contract import verify_candidate
+
+    slots, untouched = _build_slots(candidate, problem)
+    if len(slots) < 2 or iterations <= 0 or not seeds:
+        return dict(candidate)
+
+    base_candidate_template = dict(candidate)
+    base_candidate_template["schema_version"] = candidate.get("schema_version", CANDIDATE_SCHEMA_VERSION)
+
+    def _materialize_initial() -> Dict[str, Any]:
+        result = dict(base_candidate_template)
+        result["tournaments"] = [slot.tournament for slot in slots] + untouched
+        return result
+
+    baseline_candidate = _materialize_initial()
+    baseline_violations = len(verify_candidate(baseline_candidate, problem)["violations"])
+
+    if baseline_violations == 0:
+        result = dict(candidate)
+        result["source"] = {
+            "planner": "stage3_optimizer_schedule_repair",
+            "base_source": candidate.get("source"),
+            "status": "unchanged",
+            "reason": "baseline already has zero hard violations; nothing to repair",
+            "seed_used": None,
+            "baseline_violations": 0,
+            "best_violations": 0,
+        }
+        return result
+
+    baseline_per_age_group_gaps = _per_age_group_gaps(slots)
+    baseline_gaps_7 = sum(g7 for g7, _, _ in baseline_per_age_group_gaps.values())
+    baseline_gaps_14 = sum(g14 for _, g14, _ in baseline_per_age_group_gaps.values())
+    baseline_dates = [slot.date for slot in slots]
+
+    overall_best_violations = baseline_violations
+    overall_best_gaps_7 = baseline_gaps_7
+    overall_best_gaps_14 = baseline_gaps_14
+    overall_best_dates = baseline_dates
+    overall_best_seed: Optional[int] = None
+
+    for run_seed in seeds:
+        trial_violations, trial_gaps_7, trial_gaps_14, trial_dates = _repair_search(
+            slots,
+            untouched,
+            base_candidate_template,
+            problem,
+            baseline_violations,
+            baseline_gaps_7,
+            baseline_gaps_14,
+            baseline_per_age_group_gaps,
+            baseline_dates,
+            iterations,
+            run_seed,
+        )
+        improved = trial_violations < overall_best_violations or (
+            trial_violations == overall_best_violations
+            and (trial_gaps_7 < overall_best_gaps_7 or trial_gaps_14 < overall_best_gaps_14)
+        )
+        if improved:
+            overall_best_violations = trial_violations
+            overall_best_gaps_7 = trial_gaps_7
+            overall_best_gaps_14 = trial_gaps_14
+            overall_best_dates = trial_dates
+            overall_best_seed = run_seed
+
+    if overall_best_seed is not None:
+        for slot, d in zip(slots, overall_best_dates):
+            if d != slot.date:
+                slot.date = d
+                slot.date_changed = True
+        status = "improved"
+        reason = None
+    else:
+        for slot, d in zip(slots, baseline_dates):
+            slot.date = d
+            slot.date_changed = False
+        status = "unchanged"
+        reason = "no seed found a date-swap sequence that reduces hard violations without regressing turnaround gaps"
+
+    result = dict(base_candidate_template)
+    result["tournaments"] = [
+        _rebuild_tournament(slot) if (slot.changed or slot.date_changed) else slot.tournament
+        for slot in slots
+    ] + untouched
+    result["source"] = {
+        "planner": "stage3_optimizer_schedule_repair",
+        "base_source": candidate.get("source"),
+        "iterations": iterations,
+        "seeds": list(seeds),
+        "status": status,
+        "reason": reason,
+        "seed_used": overall_best_seed,
+        "baseline_violations": baseline_violations,
+        "best_violations": overall_best_violations,
+        "baseline_gaps_under_7": baseline_gaps_7,
+        "best_gaps_under_7": overall_best_gaps_7,
+        "baseline_gaps_under_14": baseline_gaps_14,
+        "best_gaps_under_14": overall_best_gaps_14,
+    }
+    return result
