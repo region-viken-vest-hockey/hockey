@@ -1,12 +1,16 @@
-Run the RVV Miniputt pipeline from this repository.
+Run the RVV Miniputt pipeline from this repository, stage-by-stage, reviewing a structured decision context after each stage.
 
 Rules:
 - Never run `/rvv-miniputt ...` as a shell command.
-- Use `scripts/rvv-miniputt run <user-args>`.
-- If that fails because the launcher is unavailable, retry with `python3 -m tournament_scheduler.cli.rvv_cli run <user-args>`.
-- Report the actual command used and summarize the result.
-- Do not reimplement the pipeline by calling `tournament_scheduler.pipeline.stageN_*` modules directly.
-- If stage 2 reports blocked sources, use the scrape-llm command per blocked club, then resume with `--resume-from 3`.
+- Use `scripts/rvv-miniputt run --interactive <user-args>`. If unavailable, retry with `python3 -m tournament_scheduler.cli.rvv_cli run --interactive <user-args>`.
+- Do not reimplement the pipeline by calling `tournament_scheduler.pipeline.stageN_*` modules directly, and do not run `run` without `--interactive` — both bypass per-stage review.
+- Do not hand-roll proceed/abort criteria here — read `.agents/skills/rvv/SKILL.md`'s "Stage gating policy" section, which is canonical.
+
+Each invocation runs exactly one stage, then prints a JSON `DecisionContext` (facts, hard violations, warnings, `available_actions`) and exits with code `2`. Decide using only an action listed in `available_actions`, then re-invoke with `--resume-from` set to the next stage and `--decision-action '<JSON>'` (e.g. `{"action_id": "proceed", "rationale": "..."}`). Exit `1` means a hard failure or an abort decision — stop and report.
+
+If stage 2 reports blocked sources (`recover_source` offered), use `recovery-targets`/`scrape-llm`/`recovery-inject` per blocked club, then decide `retry_stage` to re-run stage 2 against the recovered data before proceeding.
+
+Report the actual command used and summarize the result.
 
 Flags:
 ```
@@ -19,10 +23,10 @@ Flags:
 --non-strict                Continue on blocked sources or warnings
 --allow-missing-sources     Treat blocked sources as operator-approved and keep partial results
 --timestamped-export        Write exports to a timestamped subfolder
+--decision-action <JSON>    Decision for the stage being resumed past
 ```
 
 Examples:
-- `scripts/rvv-miniputt run`
-- `scripts/rvv-miniputt run --resume-from 2 --log-level verbose`
-- `scripts/rvv-miniputt run --non-strict --allow-missing-sources`
-- `scripts/rvv-miniputt run --force-refresh`
+- `scripts/rvv-miniputt run --interactive`
+- `scripts/rvv-miniputt run --interactive --resume-from 2 --decision-action '{"action_id": "proceed"}'`
+- `scripts/rvv-miniputt run --interactive --non-strict --allow-missing-sources`
