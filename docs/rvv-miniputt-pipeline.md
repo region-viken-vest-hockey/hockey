@@ -248,7 +248,7 @@ make registered-teams-publish CSV=downloads/Miniputt-26-27.csv CONFIRM_PUBLIC=1
 
 The command validates the public `club,label,age_group` CSV fields, ignores extra SharePoint/contact/status/comment columns, writes review artifacts under `registered-teams/`, and stages the result on top of the current Pages `/latest/` snapshot so unrelated season-plan and activity files remain in place. The public page path for WordPress links or iframes is:
 
-- `https://niclas-lindgren.github.io/hockey/latest/registered-teams/pameldte-lag.html`
+- `https://region-viken-vest-hockey.github.io/hockey/latest/registered-teams/pameldte-lag.html`
 
 ### Browser-based GitHub Actions flow
 
@@ -311,8 +311,8 @@ This is separate from the post-Stage-4 refinement loop. Post-export refinement s
 
 When the input workbook contains a supported public activity table, Stage 4 writes both timestamped exports and the published `latest/` bundle with:
 
-- `https://niclas-lindgren.github.io/hockey/latest/activities.json`
-- `https://niclas-lindgren.github.io/hockey/latest/activities/`
+- `https://region-viken-vest-hockey.github.io/hockey/latest/activities.json`
+- `https://region-viken-vest-hockey.github.io/hockey/latest/activities/`
 
 Use the standalone page as a responsive WordPress iframe; it loads only the small JSON export and does not parse the workbook in the browser. On desktop/tablet the default view is `Sesongsløp` (age-group swimlanes) where each activity is a compact point-in-time markør. Rows answer which age group, horizontal position answers when, and marker code/shape/color answers category. Full names, location, description, and links open in an overlay dialog and are always available in the chronological list. On mobile it opens in the month-grouped `Liste` view to avoid squeezing twelve-month swimlanes into a narrow iframe. The old decorative `Årshjul` view is removed rather than retained as a secondary view, because it did not encode a meaningful age-group comparison grammar; do not re-add it unless it gets labelled age-group rings, date-angle geometry, category cues, and accessibility coverage.
 
@@ -332,7 +332,7 @@ Known legacy values such as `IA`, `RS`, `regionsturnering`, and `regionsturnerin
 ```html
 <iframe
   id="rvv-activities-frame"
-  src="https://niclas-lindgren.github.io/hockey/latest/activities/?frame=rvv-activities-frame"
+  src="https://region-viken-vest-hockey.github.io/hockey/latest/activities/?frame=rvv-activities-frame"
   title="Aktivitetskalender for Region Viken Vest"
   loading="lazy"
   style="width:100%;min-height:320px;height:420px;border:0;display:block;overflow:hidden"
@@ -358,7 +358,7 @@ Add this parent-side listener in WordPress (for example in a Custom HTML block n
 ```html
 <script>
 (function () {
-  var EXPECTED_ORIGIN = 'https://niclas-lindgren.github.io';
+  var EXPECTED_ORIGIN = 'https://region-viken-vest-hockey.github.io';
   var NAMESPACE = 'rvv.activities';
   var MESSAGE_TYPE = 'rvv-activities-height';
   var SCHEMA_VERSION = 1;

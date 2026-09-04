@@ -224,7 +224,7 @@ make registered-teams CSV=downloads/Miniputt-26-27.csv
 make registered-teams-publish CSV=downloads/Miniputt-26-27.csv CONFIRM_PUBLIC=1
 ```
 
-This updates the public team list without changing `input.xlsx` or regenerating season/activity output. Extra contact, ID, status, and comment columns are ignored in public output.
+This updates the public team list without changing `input.xlsx` or regenerating season/activity output. Extra contact, ID, status, and comment columns are ignored in public output. The public link for WordPress is `https://region-viken-vest-hockey.github.io/hockey/latest/registered-teams/pameldte-lag.html`.
 
 ## Browser-only GitHub workflow
 
