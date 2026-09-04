@@ -38,11 +38,6 @@ PUBLIC_TARGETS = [
     "verify-publish",
     "publish-history",
     "rollback",
-    "desktop-start",
-    "desktop-clean",
-    "build-mac",
-    "build-windows",
-    "build-linux",
     "release-dry-run",
     "release",
 ]
@@ -304,7 +299,7 @@ class TestMakefileOperatorInterface:
         docs = (ROOT / "docs" / "ci.md").read_text(encoding="utf-8")
         check_script = (ROOT / "scripts" / "check").read_text(encoding="utf-8")
 
-        for phase in ["dependency-lock", "quick", "operator", "reproducibility", "cli-smoke", "desktop-backend", "desktop-packaging"]:
+        for phase in ["dependency-lock", "quick", "operator", "reproducibility", "cli-smoke"]:
             assert f"scripts/check {phase}" in ci
             assert f"scripts/check {phase}" in docs
             assert f"{phase})" in check_script

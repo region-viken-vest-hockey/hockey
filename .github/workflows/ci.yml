@@ -187,58 +187,6 @@ jobs:
           path: cli-smoke-tmp/
           if-no-files-found: ignore
 
-  desktop-backend:
-    name: Desktop backend API smoke test
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: |
-            requirements.lock
-            pyproject.toml
-
-      - name: Install locked Python dependencies
-        run: |
-          python -m pip install --disable-pip-version-check --upgrade "pip<26"
-          python -m pip install --require-hashes -r requirements.lock
-          python -m pip install --no-deps -e .
-
-      - name: Run desktop backend smoke test
-        run: scripts/check desktop-backend
-
-  desktop-packaging:
-    name: Desktop packaging config validation
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: |
-            requirements.lock
-            pyproject.toml
-
-      - name: Install locked Python dependencies
-        run: |
-          python -m pip install --disable-pip-version-check --upgrade "pip<26"
-          python -m pip install --require-hashes -r requirements.lock
-          python -m pip install --no-deps -e .
-
-      - name: Run desktop packaging validation
-        run: scripts/check desktop-packaging
-
   secret-scan:
     name: Secret scanning (gitleaks)
     runs-on: ubuntu-latest

@@ -110,14 +110,9 @@ PY
 }
 
 py_version=$(read_version pyproject.toml '^version = "([^"]+)"')
-desktop_version=$(read_version apps/desktop/package.json version)
 
 if [[ "$py_version" != "$VERSION" ]]; then
   echo "ERROR: pyproject.toml version $py_version does not match $TAG" >&2
-  exit 2
-fi
-if [[ "$desktop_version" != "$VERSION" ]]; then
-  echo "ERROR: apps/desktop/package.json version $desktop_version does not match $TAG" >&2
   exit 2
 fi
 
