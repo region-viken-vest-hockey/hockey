@@ -63,9 +63,12 @@ def test_routine_publish_workflows_exist_and_trigger_on_path():
         workflow = WORKFLOWS_PARSED[name]
         assert workflow.path.exists(), name
         on_block = workflow.data.get("on", workflow.data.get(True, {}))
-        # Both workflows support workflow_dispatch and push.paths
+        # Both workflows support manual workflow_dispatch and are callable as
+        # a reusable job from the SharePoint sync routers (dispatch-only —
+        # no push trigger, so they cannot loop on their own commits).
         assert "workflow_dispatch" in on_block, f"{name} should support workflow_dispatch"
-        assert "push" in on_block, f"{name} should support push trigger"
+        assert "workflow_call" in on_block, f"{name} should be callable from the sync routers"
+        assert "push" not in on_block, f"{name} must not have a push trigger (loop risk)"
         assert workflow.data.get("concurrency"), f"{name} should have a concurrency group"
 
 
@@ -163,10 +166,11 @@ def test_activity_publish_delegates_to_cli_and_preserves_latest_snapshot():
     workflow = WORKFLOWS_PARSED["activity-publish"]
 
     assert workflow.data["permissions"] == {"contents": "write"}
-    # Path-triggered on the canonical input.
+    # Dispatch-only: called by sharepoint-import.yml via workflow_call, or
+    # manually via workflow_dispatch. No push trigger.
     on_block = workflow.data.get("on", workflow.data.get(True, {}))
-    push_block = on_block.get("push", {})
-    assert "inputs/activities/activities.xlsx" in str(push_block.get("paths", []))
+    assert "workflow_call" in on_block
+    assert "activity_input" in on_block["workflow_call"].get("inputs", {})
     # workflow_dispatch input
     assert "input_path" in workflow.inputs
     # Canonical CLI delegation
@@ -180,17 +184,17 @@ def test_activity_publish_delegates_to_cli_and_preserves_latest_snapshot():
     assert "input-fingerprint.json" in workflow.text
     assert "publish-result.json" in workflow.text
     assert "pages_privacy_report.json" in workflow.text
-    assert "scripts/check quick" in workflow.text
 
 
 def test_registration_publish_delegates_to_cli_and_syncs_workbook():
     workflow = WORKFLOWS_PARSED["registration-publish"]
 
     assert workflow.data["permissions"] == {"contents": "write"}
-    # Path-triggered on the canonical CSV.
+    # Dispatch-only: called by sharepoint-registrations-import.yml via
+    # workflow_call, or manually via workflow_dispatch. No push trigger.
     on_block = workflow.data.get("on", workflow.data.get(True, {}))
-    push_block = on_block.get("push", {})
-    assert "inputs/registrations/registered-teams.csv" in str(push_block.get("paths", []))
+    assert "workflow_call" in on_block
+    assert "csv_path" in on_block["workflow_call"].get("inputs", {})
     # workflow_dispatch inputs
     assert "csv_path" in workflow.inputs
     assert "workbook_path" in workflow.inputs
@@ -198,15 +202,16 @@ def test_registration_publish_delegates_to_cli_and_syncs_workbook():
     assert "scripts/rvv-miniputt registered-teams" in workflow.text
     assert "--publish" in workflow.text
     assert "--confirm-public" in workflow.text
-    # Shares routine-publish concurrency group
-    assert "routine-publish" in workflow.text
+    # Own concurrency group (serializes repeated registration publishes)
+    assert workflow.data["concurrency"]["group"] == "registration-publish-${{ github.ref }}"
     # Sync step with loop prevention
     assert "sync_registered_teams_to_workbook" in workflow.text
     assert "[skip ci]" in workflow.text
+    # Lightweight domain-specific validation instead of the full test suite
+    assert "scripts/check-registration-snapshot.py" in workflow.text
     # Artifact uploads
     assert "actions/upload-artifact@v4" in workflow.text
     assert "sync-report.json" in workflow.text
-    assert "scripts/check quick" in workflow.text
 
 
 def test_routine_publish_workflows_never_run_full_season_planning():
@@ -221,30 +226,30 @@ def test_routine_publish_workflows_never_run_full_season_planning():
 
 
 def test_routine_publish_workflows_serialize_publication():
-    """Both routine workflows use the same concurrency group to serialize Pages writes."""
+    """Each routine workflow serializes its own repeated publishes via a
+    per-ref concurrency group (activity and registration publishing use
+    separate groups since they write independent Pages content)."""
     activity_wf = WORKFLOWS_PARSED["activity-publish"]
     reg_wf = WORKFLOWS_PARSED["registration-publish"]
 
-    assert "routine-publish" in activity_wf.text
-    assert "routine-publish" in reg_wf.text
-    # Verify it's the exact same group key
     activity_group = activity_wf.data.get("concurrency", {})
     reg_group = reg_wf.data.get("concurrency", {})
-    assert activity_group.get("group") == reg_group.get("group") == "routine-publish-${{ github.ref }}"
+    assert activity_group.get("group") == "routine-publish-${{ github.ref }}"
+    assert reg_group.get("group") == "registration-publish-${{ github.ref }}"
+    assert activity_group.get("cancel-in-progress") is False
+    assert reg_group.get("cancel-in-progress") is False
 
 
 def test_registration_publish_prevents_recursive_loops():
-    """Workbook commit includes [skip ci] and path filters prevent re-trigger."""
+    """Workbook commit includes [skip ci], and the workflow has no push
+    trigger at all (it only runs via workflow_dispatch/workflow_call), so its
+    own commit to the workbook cannot re-trigger itself."""
     workflow = WORKFLOWS_PARSED["registration-publish"]
 
     # The commit message for workbook updates must contain [skip ci]
     assert "[skip ci]" in workflow.text
-    # Path trigger only on the CSV, not the workbook
     on_block = workflow.data.get("on", workflow.data.get(True, {}))
-    push_block = on_block.get("push", {})
-    paths = push_block.get("paths", [])
-    assert "inputs/registrations/registered-teams.csv" in str(paths)
-    assert "inputs/season/input.xlsx" not in str(paths)
+    assert "push" not in on_block
 
 
 def test_workflows_delegate_to_canonical_cli_instead_of_reimplementing_policy():
@@ -272,9 +277,11 @@ def test_workflows_delegate_to_canonical_cli_instead_of_reimplementing_policy():
         if name == "registration-publish":
             assert "scripts/rvv-miniputt registered-teams" in workflow.text
         if name == "sharepoint-import":
-            # Import workflow delegates to Python inline scripts for download/validation.
-            assert "openpyxl" in workflow.text
-            assert "requests" in workflow.text
+            # Import workflow delegates to the canonical activity-JSON contract
+            # for validation; content arrives embedded in the issue body, so
+            # there is no separate download step to reimplement.
+            assert "validate_content_json" in workflow.text
+            assert "hashlib.sha256" in workflow.text
 
 
 # ---------------------------------------------------------------------------
@@ -331,15 +338,23 @@ def test_sharepoint_import_has_least_privilege_permissions():
 
 
 def test_sharepoint_import_title_and_author_gate():
+    """The router already gates on title/author before dispatch, but the
+    import job re-checks the dispatched issue itself (a race-safe re-fetch,
+    not a job-level `if:`) since the router's debounce window means the
+    issue's state could have changed between the router's check and the
+    dispatched run actually starting."""
     workflow = WORKFLOWS_PARSED["sharepoint-import"]
 
-    job = list(workflow.jobs.values())[0]
-    condition = str(job.get("if", ""))
+    text = workflow.text
     # Title gate
-    assert "sharepoint-sync: activities" in condition
+    assert '.title == "sharepoint-sync: activities"' in text
     # Author association gate
-    assert "author_association" in condition
-    assert "OWNER" in condition or "MEMBER" in condition or "COLLABORATOR" in condition
+    assert "author_association" in text
+    assert "OWNER" in text and "MEMBER" in text and "COLLABORATOR" in text
+    # Issue must still be open.
+    assert '.state == "open"' in text
+    # Failing the gate aborts the run.
+    assert "Issue is not an open trusted activity sync request" in text
 
 
 def test_sharepoint_import_enforces_fixed_source_and_target_contract():
@@ -347,37 +362,41 @@ def test_sharepoint_import_enforces_fixed_source_and_target_contract():
 
     text = workflow.text
     # Enforces exact source.
-    assert "source må være" in text
-    # Enforces exact target_path.
-    assert "target_path må være" in text
-    # These are contract enforcement, not just field presence.
-    assert '"sharepoint"' in text
-    assert '"inputs/activities/activities.xlsx"' in text
+    assert "source må være 'sharepoint'" in text
+    assert 'parsed.get("source") != "sharepoint"' in text
+    # Enforces target_path is one of the two known-good paths, not arbitrary.
+    assert "target_path matcher verken SharePoint-kildefilen eller kanonisk repository-sti" in text
+    assert 'target_path not in {os.environ["SOURCE_PATH"], os.environ["CANONICAL_PATH"]}' in text
 
 
 def test_sharepoint_import_hard_codes_write_destination():
     workflow = WORKFLOWS_PARSED["sharepoint-import"]
 
     text = workflow.text
-    # The CANONICAL_PATH env var is set at workflow level.
+    # The CANONICAL_PATH env var is set at workflow level and is what the
+    # importer actually writes to.
     assert "CANONICAL_PATH" in text
-    assert "inputs/activities/activities.xlsx" in text
-    # The download step documents the hard-coded destination.
-    assert "Hard-coded destination" in text
-    # target_path from issue body is validated but NOT used for writing.
-    # Verify the download step uses CANONICAL_PATH, not TARGET_PATH.
-    # The parsed target_path is validated for contract compliance only.
+    assert 'CANONICAL_PATH: "inputs/activities/activities.json"' in text
+    assert 'canonical_path = Path(os.environ["CANONICAL_PATH"])' in text
+    assert 'canonical_path.write_bytes(normalized_bytes)' in text
+    # target_path from the issue body is validated for contract compliance
+    # (must equal SOURCE_PATH or CANONICAL_PATH) but is never itself used as
+    # a write destination — the write always goes through CANONICAL_PATH.
+    assert 'os.environ["TARGET_PATH"]' not in text
 
 
 def test_sharepoint_import_supports_identifier_validation():
     workflow = WORKFLOWS_PARSED["sharepoint-import"]
 
     text = workflow.text
-    # Optional identifier validation via env vars.
+    # Optional identifier validation via repository vars.
     assert "EXPECTED_DRIVE_ID" in text
     assert "EXPECTED_DRIVE_ITEM_ID" in text
+    assert "vars.SHAREPOINT_ACTIVITIES_DRIVE_ID" in text
+    assert "vars.SHAREPOINT_ACTIVITIES_DRIVE_ITEM_ID" in text
     # Mismatch produces errors.
-    assert "matcher ikke forventet verdi" in text
+    assert "drive_id matcher ikke forventet repository-variabel" in text
+    assert "drive_item_id matcher ikke forventet repository-variabel" in text
 
 
 def test_sharepoint_import_rejects_wrong_source():
@@ -392,36 +411,43 @@ def test_sharepoint_import_rejects_wrong_target_path():
     workflow = WORKFLOWS_PARSED["sharepoint-import"]
 
     text = workflow.text
-    # When target_path != expected value, it's an error.
-    assert "target_path må være" in text
+    # When target_path isn't one of the known-good paths, it's an error.
+    assert "target_path matcher verken SharePoint-kildefilen eller kanonisk repository-sti" in text
 
 
-def test_sharepoint_import_downloads_and_validates_xlsx():
+def test_sharepoint_import_validates_content_json_contract():
+    """Content arrives embedded as a `content_json=` field in the issue body
+    (no external download/fetch step), and is validated against the same
+    canonical activity-JSON contract used elsewhere in the pipeline before
+    being written to the canonical path."""
     workflow = WORKFLOWS_PARSED["sharepoint-import"]
 
     text = workflow.text
-    # Download with requests
-    assert "requests.get" in text
-    assert "allow_redirects=True" in text
-    # XLSX magic byte verification
-    assert "PK\\x03\\x04" in text or "PK\\x03\\x04" in text or "PK\\003\\004" in text or "PK\x03\x04" in text
-    # openpyxl validation
-    assert "openpyxl.load_workbook" in text
-    # Size bound
-    assert "20 * 1024 * 1024" in text
-    # SHA-256 comparison
+    # content_json is required in the issue body and must be valid JSON.
+    assert '"content_json"' in text
+    assert "json.loads(parsed.get(\"content_json\"" in text
+    assert "content_json er ikke gyldig JSON" in text
+    # Canonical contract validation, shared with the routine publish path.
+    assert "from tournament_scheduler.pipeline.activity_export import (" in text
+    assert "validate_content_json" in text
+    assert "ActivityJSONValidationError" in text
+    # Normalized bytes are hashed for the audit fingerprint.
     assert "hashlib.sha256" in text
 
 
-def test_sharepoint_import_never_exposes_download_url():
+def test_sharepoint_import_never_fetches_external_url():
+    """Content arrives embedded in the issue body (pushed by Power Automate),
+    so the importer never makes an outbound request to SharePoint and has no
+    URL/token to leak in logs or the audit commit message."""
     workflow = WORKFLOWS_PARSED["sharepoint-import"]
 
     text = workflow.text
-    # The download_url value itself must not appear in logs/comments.
-    assert "<redacted>" in text
-    # The env var DOWNLOAD_URL is passed to the download step, but never echoed.
-    # Git commit message uses source/drive_id/drive_item_id/version, not the URL.
-    assert "Importer aktivitetsarbeidsbok fra SharePoint" in text
+    assert "requests.get" not in text
+    assert "download_url" not in text.lower()
+    # Git commit message uses source/drive_id/drive_item_id/version, not a URL.
+    assert "Importer aktivitetsdata fra SharePoint" in text
+    assert "drive_id=" in text
+    assert "drive_item_id=" in text
 
 
 def test_sharepoint_import_commits_only_when_changed():
@@ -429,10 +455,10 @@ def test_sharepoint_import_commits_only_when_changed():
 
     text = workflow.text
     # The commit step is conditional on changed=true.
-    assert "steps.download.outputs.changed == 'true'" in text
-    # Unchanged detection.
-    assert "FILE_UNCHANGED" in text
-    # Success comment.
+    assert "steps.validate.outputs.changed == 'true'" in text
+    # changed is computed by byte-comparing against the existing canonical file.
+    assert "canonical_path.read_bytes() != normalized_bytes" in text
+    # Success comment/close.
     assert "gh issue close" in text
 
 
@@ -440,11 +466,15 @@ def test_sharepoint_import_leaves_issue_open_on_failure():
     workflow = WORKFLOWS_PARSED["sharepoint-import"]
 
     text = workflow.text
-    # Failure comment step.
-    assert "Kommenter issue — feil" in text
-    assert "if: failure()" in text
-    # Does NOT close on failure.
-    # The success step has gh issue close; failure step does not.
+    # Failure comment step, gated on either job not succeeding.
+    assert "Kommenter ved feil" in text
+    assert "env.IMPORT_RESULT != 'success' || env.PUBLISH_RESULT != 'success'" in text
+    # Does NOT close on failure: gh issue close only appears in the
+    # success-path step, not the failure-comment step.
+    finalize_job = workflow.jobs["finalize-sync-issue"]
+    steps = finalize_job["steps"]
+    failure_step = next(s for s in steps if s["name"] == "Kommenter ved feil")
+    assert "gh issue close" not in failure_step["run"]
 
 
 def test_sharepoint_import_has_concurrency_group():
