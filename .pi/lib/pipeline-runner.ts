@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { parseRunArgs } from "./parsers";
 import { PipelineLogger } from "./pipeline-logger";
@@ -34,6 +34,37 @@ function computeExportTimestamp(): string {
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}${pad(now.getMinutes())}`;
+}
+
+// Pipes a recovered event list into the canonical `rvv-miniputt
+// recovery-inject` CLI (stdin JSON) rather than writing the scrape cache
+// directly, so the same validated writer normalizes recovered Stage 2
+// evidence regardless of which harness recovered it.
+async function runRecoveryInject(
+  cwd: string,
+  workDir: string,
+  source: string,
+  events: unknown[],
+): Promise<void> {
+  const { spawn } = await import("node:child_process");
+  const python = resolve(cwd, "venv", "bin", "python3");
+  const exe = existsSync(python) ? python : "python3";
+  await new Promise<void>((resolvePromise, rejectPromise) => {
+    const child = spawn(
+      exe,
+      ["-m", "tournament_scheduler.cli.rvv_cli", "recovery-inject", "--source", source, "--work-dir", workDir],
+      { cwd, stdio: ["pipe", "ignore", "pipe"] },
+    );
+    let stderr = "";
+    child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.on("error", rejectPromise);
+    child.on("close", (code: number | null) => {
+      if (code === 0) resolvePromise();
+      else rejectPromise(new Error(stderr.trim() || `recovery-inject exited with code ${code ?? "unknown"}`));
+    });
+    child.stdin?.write(JSON.stringify(events));
+    child.stdin?.end();
+  });
 }
 
 function writeRunLogFile(
@@ -362,31 +393,36 @@ export async function runPipeline(rawArgs: unknown, ctx: ExtensionContext, onPro
           flushLine(`  ${name}: ${events.length} events funnet\n`);
           onProgress?.({ stage: "scraping-extended", status: "ok", message: `${name}: ${events.length} events funnet`, blockedName: name, eventCount: events.length });
 
-          // Update checkpoint data by writing to cache
+          // Extracted evidence goes through the same repo-owned recovery
+          // path a terminal-only harness uses (`rvv-miniputt recovery-inject`)
+          // rather than Pi patching the cache file directly — this is the one
+          // validated writer for recovered Stage 2 events (issue #260 Phase 5:
+          // Pi does not independently define recovery validity).
           if (events.length > 0) {
-            const { appendFileSync, writeFileSync } = await import("node:fs");
-            const cachePath = resolve(workDir, "cache", "scraped_data.json");
-            let cacheData: Record<string, any> = {};
             try {
-              cacheData = JSON.parse(readFileSync(cachePath, "utf-8"));
-            } catch {}
-            if (!cacheData.sources) cacheData.sources = {};
-            cacheData.sources[name] = {
-              name,
-              url: strat.url,
-              scrape_timestamp: new Date().toISOString(),
-              event_count: events.length,
-              blocked: false,
-              events,
-            };
-            cacheData.total_events = Object.values(cacheData.sources as Record<string, any>).reduce((s: number, src: any) => s + (src.event_count || 0), 0);
-            cacheData.source_count = Object.keys(cacheData.sources as Record<string, any>).length;
-            writeFileSync(cachePath, JSON.stringify(cacheData, null, 2));
+              await runRecoveryInject(cwdPath, workDir, name, events);
+            } catch (injectErr: unknown) {
+              const msg = injectErr instanceof Error ? injectErr.message : String(injectErr);
+              flushLine(`  ${name}: recovery-inject feilet — ${msg}`);
+            }
           }
         }
 
         await agent.close();
         lines.push("Trinn 2 utvidet: OK\n");
+
+        // Rebuild the Stage 2 checkpoint from the recovered cache — the same
+        // `scrape-merge` normalization a terminal-only harness runs after
+        // `recovery-inject` — so Stage 3 sees updated event counts and
+        // unblocked sources instead of a stale checkpoint.
+        try {
+          const { execFile } = await import("node:child_process");
+          const { promisify } = await import("node:util");
+          const execFileAsync = promisify(execFile);
+          const python = resolve(cwdPath, "venv", "bin", "python3");
+          const exe = existsSync(python) ? python : "python3";
+          await execFileAsync(exe, ["-m", "tournament_scheduler.cli.rvv_cli", "scrape-merge", "--work-dir", workDir], { cwd: cwdPath });
+        } catch {}
 
         // Regenerate viewer
         try {
