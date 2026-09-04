@@ -164,3 +164,76 @@ class TestPerAgeGroupWeights:
             [s for s in slots if s.age_group == "U10"], DEFAULT_WEIGHTS
         )
         assert zeroed_u12 == u10_only
+
+
+def _turnaround_fixable_by_date_swap_candidate() -> dict:
+    """Turnaround violation for team A that a pure date swap (no team swap) can fix.
+
+    Team A appears in t1 (2026-01-01) and t3 (2026-01-06) — a 5-day gap
+    (violates the 7-day threshold). t2 sits on 2026-01-15 with unrelated
+    teams C/D. Swapping t2's and t3's *dates* only (arenas differ, so no
+    conflict) leaves A at 2026-01-01/2026-01-15 — a clean 14-day gap — while
+    every team's opponents stay exactly who they were.
+    """
+    teams_ab = [_team("Jar", "A", "U9"), _team("Kongsberg", "B", "U9")]
+    teams_cd = [_team("Ringerike", "C", "U9"), _team("Hønefoss", "D", "U9")]
+    teams_ae = [_team("Jar", "A", "U9"), _team("Asker", "E", "U9")]
+    return {
+        "tournaments": [
+            _tournament("t1", "2026-01-01", "Arena1", "U9", teams_ab),
+            _tournament("t2", "2026-01-15", "Arena2", "U9", teams_cd),
+            _tournament("t3", "2026-01-06", "Arena3", "U9", teams_ae),
+        ]
+    }
+
+
+class TestMoveDates:
+    def test_off_by_default_dates_unchanged(self):
+        candidate = _clustered_candidate()
+        optimized = optimize_candidate(candidate, iterations=1000, seed=1)
+        assert [t["date"] for t in optimized["tournaments"]] == [
+            t["date"] for t in candidate["tournaments"]
+        ]
+
+    def test_date_swap_only_preserves_pairings_participation_and_date_multiset(self):
+        candidate = _clustered_candidate()
+        before_diversity = score_candidate(candidate)["opponent_diversity"]
+        before_participation = score_candidate(candidate)["participation"]
+
+        optimized = optimize_candidate(
+            candidate, iterations=2000, seed=3, move_dates=True, date_swap_probability=1.0
+        )
+
+        assert score_candidate(optimized)["opponent_diversity"] == before_diversity
+        assert score_candidate(optimized)["participation"] == before_participation
+        assert sorted(t["date"] for t in optimized["tournaments"]) == sorted(
+            t["date"] for t in candidate["tournaments"]
+        )
+        result = verify_candidate(optimized)
+        assert result["ok"], result["violations"]
+
+    def test_date_swap_resolves_turnaround_without_touching_pairings(self):
+        candidate = _turnaround_fixable_by_date_swap_candidate()
+        before = score_candidate(candidate)
+        assert before["turnaround"]["gaps_under_days"][7] == 1
+
+        optimized = optimize_candidate(
+            candidate,
+            iterations=4000,
+            seed=7,
+            move_dates=True,
+            date_swap_probability=1.0,
+            weights={"gap_under_7": 50.0, "gap_under_14": 10.0},
+        )
+
+        after = score_candidate(optimized)
+        assert after["turnaround"]["gaps_under_days"][7] == 0
+        assert after["opponent_diversity"] == before["opponent_diversity"]
+        result = verify_candidate(optimized)
+        assert result["ok"], result["violations"]
+
+    def test_deterministic_for_fixed_seed(self):
+        candidate = _clustered_candidate()
+        a = optimize_candidate(candidate, iterations=1500, seed=42, move_dates=True)
+        b = optimize_candidate(candidate, iterations=1500, seed=42, move_dates=True)
+        assert a["tournaments"] == b["tournaments"]

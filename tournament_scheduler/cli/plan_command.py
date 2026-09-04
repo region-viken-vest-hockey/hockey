@@ -183,6 +183,7 @@ def _cmd_plan_optimize(args: argparse.Namespace) -> int:
         seed=args.seed,
         weights=weight_overrides or None,
         per_age_group_weights=per_age_group_weights or None,
+        move_dates=args.move_dates,
     )
 
     payload = json.dumps(optimized, indent=2, ensure_ascii=False)
@@ -271,6 +272,7 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
         seed=args.seed,
         weights=weight_overrides or None,
         per_age_group_weights=per_age_group_weights or None,
+        move_dates=args.move_dates,
     )
 
     report = build_ab_report(old_candidate, new_candidate, problem)

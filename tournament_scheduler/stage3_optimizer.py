@@ -11,15 +11,22 @@ issue, which reassigned teams within a fixed schedule and struck a strictly
 better balance of opponent repetition, turnaround spacing and same-club
 clustering than the baseline planner):
 
-- The tournament *skeleton* — dates, arenas, hosts, and how many teams each
+- The tournament *skeleton* — arenas, hosts, and how many teams each
   tournament holds — is taken as given from the input candidate. This
   optimizer does not invent tournament slots; it only decides which teams
-  fill them.
+  fill them and, optionally, when they happen.
 - Within each age group, teams are swapped one-for-one between tournaments
   via simulated annealing, so every team's total participation count and
   every tournament's roster size stay exactly as in the input (the hard
   requirements :func:`verify_candidate` checks for these are preserved by
   construction, not re-derived here).
+- Optionally (``move_dates=True``, ``rvv-miniputt plan optimize --move-dates``),
+  the search can also swap two same-age-group tournaments' *dates* — the
+  turnaround/gap regressions found in issue #257's A/B benchmarks are
+  fundamentally date-driven and a team-swap-only search cannot fix them,
+  since which teams meet is orthogonal to when a tournament happens. Off by
+  default to keep the "skeleton taken as given" behavior of the first
+  optimizer version unchanged when not explicitly requested.
 - After the search settles, games for any changed tournament are
   regenerated with the existing generic round-robin generator
   (:func:`tournament_scheduler.game_generation.generate_round_robin_games`),
@@ -63,8 +70,10 @@ class _Slot:
     age_group: str
     host_club: Optional[str]
     parallel_games: int
+    arena: Optional[str] = None
     team_ids: List[TeamIdentity] = field(default_factory=list)
     changed: bool = False
+    date_changed: bool = False
 
 
 def _infer_parallel_games(tournament: Dict[str, Any], problem: Optional[Dict[str, Any]]) -> int:
@@ -99,6 +108,7 @@ def _build_slots(
                 age_group=tournament.get("age_group", ""),
                 host_club=tournament.get("host_club"),
                 parallel_games=_infer_parallel_games(tournament, problem),
+                arena=tournament.get("arena"),
                 team_ids=[_team_identity(t) for t in tournament.get("teams", [])],
             )
         )
@@ -234,8 +244,68 @@ def _apply_swap(slots: List[_Slot], slot_a: int, pos_a: int, slot_b: int, pos_b:
     b.changed = True
 
 
+def _date_swap_candidates(slots: List[_Slot], rng: random.Random) -> Optional[Tuple[int, int]]:
+    """Pick two same-age-group slots with different dates to swap dates between.
+
+    Only the ``date`` moves; each slot keeps its own arena, host and teams,
+    so this move never changes opponent pairings or same-club clustering —
+    it only reshuffles *when* a tournament happens, which is what turnaround
+    spacing depends on.
+    """
+    by_age_group: Dict[str, List[int]] = {}
+    for index, slot in enumerate(slots):
+        by_age_group.setdefault(slot.age_group, []).append(index)
+
+    candidates = [indices for indices in by_age_group.values() if len(indices) >= 2]
+    if not candidates:
+        return None
+    indices = rng.choice(candidates)
+    slot_a, slot_b = rng.sample(indices, 2)
+    if slots[slot_a].date == slots[slot_b].date:
+        return None
+    return slot_a, slot_b
+
+
+def _date_swap_is_valid(slots: List[_Slot], slot_a: int, slot_b: int) -> bool:
+    a, b = slots[slot_a], slots[slot_b]
+    new_a_date, new_b_date = b.date, a.date
+
+    for slot in slots:
+        if slot is a or slot is b:
+            continue
+        # No other tournament may already occupy the same arena on the date
+        # a slot is moving to.
+        if a.arena and slot.arena == a.arena and slot.date == new_a_date:
+            return False
+        if b.arena and slot.arena == b.arena and slot.date == new_b_date:
+            return False
+        # No team from the moving slot may already be scheduled elsewhere
+        # (same age group) on the date it's moving to.
+        if slot.age_group == a.age_group and slot.date == new_a_date:
+            if any(team in slot.team_ids for team in a.team_ids):
+                return False
+        if slot.age_group == b.age_group and slot.date == new_b_date:
+            if any(team in slot.team_ids for team in b.team_ids):
+                return False
+    return True
+
+
+def _apply_date_swap(slots: List[_Slot], slot_a: int, slot_b: int) -> None:
+    a, b = slots[slot_a], slots[slot_b]
+    a.date, b.date = b.date, a.date
+    a.date_changed = True
+    b.date_changed = True
+
+
 def _rebuild_tournament(slot: _Slot) -> Dict[str, Any]:
-    """Regenerate a slot's ``teams``/``games`` from its (possibly swapped) team_ids."""
+    """Regenerate a slot's ``teams``/``games``/``date`` from search state."""
+    tournament = dict(slot.tournament)
+    if slot.date_changed:
+        tournament["date"] = slot.date.isoformat()
+
+    if not slot.changed:
+        return tournament
+
     teams = [Team(club=club, label=label, age_group=age_group) for club, label, age_group in slot.team_ids]
     if slot.host_club:
         host_teams = [t for t in teams if t.club == slot.host_club]
@@ -245,7 +315,6 @@ def _rebuild_tournament(slot: _Slot) -> Dict[str, Any]:
 
     games = generate_round_robin_games(teams, slot.parallel_games)
 
-    tournament = dict(slot.tournament)
     tournament["teams"] = [
         {"club": t.club, "label": t.label, "age_group": t.age_group} for t in teams
     ]
@@ -269,6 +338,8 @@ def optimize_candidate(
     seed: int = 0,
     weights: Optional[Dict[str, float]] = None,
     per_age_group_weights: Optional[Dict[str, Dict[str, float]]] = None,
+    move_dates: bool = False,
+    date_swap_probability: float = 0.3,
 ) -> Dict[str, Any]:
     """Locally optimize *candidate* by reassigning teams to its existing tournament slots.
 
@@ -285,6 +356,13 @@ def optimize_candidate(
     for a single age group on top of that, since different age groups can
     need different tradeoffs between opponent diversity and turnaround
     spacing (issue #257 follow-up).
+
+    When *move_dates* is true, the search also considers swapping two
+    same-age-group tournaments' dates (each tournament keeps its own arena,
+    host and teams — see :func:`_date_swap_candidates`), attempted with
+    probability *date_swap_probability* each step and a team swap otherwise.
+    Off by default, matching the first optimizer version's "skeleton taken
+    as given" behavior.
 
     Deterministic for a given *seed*. Returns a new candidate dict; does not
     mutate *candidate*.
@@ -303,8 +381,33 @@ def optimize_candidate(
     best_score = current_score
 
     for step in range(iterations):
+        try_date_swap = move_dates and rng.random() < date_swap_probability
+        if try_date_swap:
+            date_move = _date_swap_candidates(slots, rng)
+            if date_move is None or not _date_swap_is_valid(slots, *date_move):
+                continue
+            slot_a, slot_b = date_move
+            _apply_date_swap(slots, slot_a, slot_b)
+            new_score = _objective(slots, resolved_weights, per_age_group_weights)
+            delta = new_score - current_score
+            temperature = max(1e-6, 1.0 - step / iterations)
+            accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
+            if accept:
+                current_score = new_score
+                best_score = min(best_score, new_score)
+            else:
+                # Revert: swapping the same pair of dates back is its own inverse.
+                _apply_date_swap(slots, slot_a, slot_b)
+            continue
+
         move = _candidate_swaps(slots, rng)
         if move is None:
+            # With move_dates on, a date swap may still be possible even
+            # when no team swap is (e.g. single-team-per-tournament age
+            # groups), so don't give up on the whole search — just skip
+            # this step's team-swap attempt.
+            if move_dates:
+                continue
             break
         slot_a, pos_a, slot_b, pos_b = move
         if not _swap_is_valid(slots, slot_a, pos_a, slot_b, pos_b):
@@ -326,7 +429,8 @@ def optimize_candidate(
 
     initial_score = _objective(_build_slots(candidate, problem)[0], resolved_weights, per_age_group_weights)
     rebuilt_tournaments = [
-        _rebuild_tournament(slot) if slot.changed else slot.tournament for slot in slots
+        _rebuild_tournament(slot) if (slot.changed or slot.date_changed) else slot.tournament
+        for slot in slots
     ]
 
     result = dict(candidate)
@@ -341,5 +445,6 @@ def optimize_candidate(
         "objective_before": initial_score,
         "objective_after": best_score,
         "per_age_group_weights": per_age_group_weights or None,
+        "move_dates": move_dates,
     }
     return result

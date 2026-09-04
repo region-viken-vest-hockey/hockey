@@ -1,0 +1,2675 @@
+{
+  "old": {
+    "verification": {
+      "ok": false,
+      "violations": [
+        {
+          "code": "duplicate_participation_same_date",
+          "message": "Team 'Ringerike 1 (Ringerike, U11)' is scheduled in 2 tournaments on 2026-10-25: ['99ba1cf8', 'abfcfc5f']"
+        },
+        {
+          "code": "arena_interval_conflict",
+          "message": "Arena conflict Holmenkollen ishall 2026-11-22: 088e6700 (U11) 2026-11-22 10:00–2026-11-22 11:40 overlaps a3fc7b8f (U7) 2026-11-22 10:00–2026-11-22 12:20",
+          "tournament_id": "088e6700"
+        },
+        {
+          "code": "arena_interval_conflict",
+          "message": "Arena conflict Tonsberghallen 2026-11-22: 2cbd9e9f (U12) 2026-11-22 10:00–2026-11-22 11:00 overlaps deaa4140 (U9) 2026-11-22 10:00–2026-11-22 12:20",
+          "tournament_id": "2cbd9e9f"
+        }
+      ],
+      "skipped": []
+    },
+    "score": {
+      "participation": {
+        "counts_by_team": {
+          "Frisk Asker Orange (Frisk Asker, JU12)": 6,
+          "Jar (Jar, JU12)": 6,
+          "Jutul Kittens (Jutul, JU12)": 6,
+          "Ringerike 1 (Ringerike, JU12)": 6,
+          "Frisk Asker 1 (Frisk Asker, U12)": 6,
+          "Jar Blå (Jar, U12)": 6,
+          "Tønsberg Grå (Tønsberg, U12)": 6,
+          "Holmen Hockey Hvit (Holmen, U12)": 6,
+          "Frisk Asker 1 (Frisk Asker, U8)": 6,
+          "Holmen Hockey Blå (Holmen, U8)": 6,
+          "Jar Blå (Jar, U8)": 6,
+          "Jutul Grønn (Jutul, U8)": 5,
+          "Ringerike 1 (Ringerike, U8)": 6,
+          "Kongsberg (Kongsberg, U8)": 6,
+          "Sandefjord (Sandefjord Penguins, U8)": 6,
+          "Skien (Skien, U8)": 6,
+          "Jutul Grønn (Jutul, U9)": 6,
+          "Frisk Asker 1 (Frisk Asker, U9)": 6,
+          "Jar Blå (Jar, U9)": 6,
+          "Holmen Hockey Hvit (Holmen, U9)": 6,
+          "Kongsberg (Kongsberg, U9)": 6,
+          "Ringerike 1 (Ringerike, U9)": 6,
+          "Sandefjord (Sandefjord Penguins, U9)": 6,
+          "Skien (Skien, U9)": 6,
+          "Frisk Asker 4 (Frisk Asker, U12)": 6,
+          "Jar Rød (Jar, U12)": 6,
+          "Jutul Grønn (Jutul, U12)": 6,
+          "Ringerike 1 (Ringerike, U12)": 6,
+          "Jar Blå (Jar, JU10)": 6,
+          "Frisk Asker Orange (Frisk Asker, JU10)": 6,
+          "Ringerike 1 (Ringerike, JU10)": 6,
+          "Skien (Skien, JU10)": 6,
+          "Jar Hvit (Jar, JU10)": 6,
+          "Frisk Asker Svart (Frisk Asker, JU10)": 6,
+          "Jar Grønn (Jar, U11)": 6,
+          "Frisk Asker 2 (Frisk Asker, U11)": 6,
+          "Jutul Hvit (Jutul, U11)": 6,
+          "Tønsberg Hvit (Tønsberg, U11)": 6,
+          "Holmen Hockey Rød (Holmen, U11)": 6,
+          "Ringerike 2 (Ringerike, U11)": 6,
+          "Tønsberg Rød (Tønsberg, U12)": 6,
+          "Jar Lilla (Jar, U12)": 6,
+          "Frisk Asker 3 (Frisk Asker, U12)": 5,
+          "Sandefjord (Sandefjord Penguins, U7)": 6,
+          "Jar Blå (Jar, U7)": 6,
+          "Frisk Asker 1 (Frisk Asker, U7)": 6,
+          "Holmen Hockey Hvit (Holmen, U7)": 6,
+          "Jutul Grønn (Jutul, U7)": 6,
+          "Tønsberg (Tønsberg, U7)": 6,
+          "Jar Grønn (Jar, U7)": 6,
+          "Frisk Asker 2 (Frisk Asker, U7)": 6,
+          "Frisk Asker Svart (Frisk Asker, JU12)": 6,
+          "Jar Hvit (Jar, JU12)": 5,
+          "Jutul/Jar Kittens": 6,
+          "Ringerike 2 (Ringerike, JU12)": 6,
+          "Jutul Grønn (Jutul, U10)": 6,
+          "Frisk Asker 1 (Frisk Asker, U10)": 6,
+          "Jar Blå (Jar, U10)": 6,
+          "Holmen Hockey Blå (Holmen, U10)": 6,
+          "Ringerike 1 (Ringerike, U10)": 6,
+          "Kongsberg (Kongsberg, U10)": 6,
+          "Jutul Rød (Jutul, U11)": 6,
+          "Jar Gul (Jar, U11)": 6,
+          "Frisk Asker 3 (Frisk Asker, U11)": 6,
+          "Tønsberg Rød (Tønsberg, U11)": 6,
+          "Kongsberg (Kongsberg, U11)": 6,
+          "Sandefjord (Sandefjord Penguins, U11)": 6,
+          "Jutul Grønn (Jutul, JU8)": 6,
+          "Jutul Kittens (Jutul, JU8)": 6,
+          "Jar (Jar, JU8)": 6,
+          "Frisk Asker": 6,
+          "Ringerike 1 (Ringerike, JU8)": 6,
+          "Skien (Skien, JU8)": 6,
+          "Jar Rød (Jar, JU8)": 6,
+          "Jar Hvit (Jar, U11)": 6,
+          "Frisk Asker 4 (Frisk Asker, U11)": 6,
+          "Skien (Skien, U11)": 6,
+          "Jar Lilla (Jar, U11)": 6,
+          "Jutul Grønn (Jutul, U11)": 6,
+          "Jutul Rød (Jutul, U12)": 6,
+          "Jutul Gul (Jutul, U8)": 6,
+          "Frisk Asker 2 (Frisk Asker, U8)": 6,
+          "Holmen Hockey Hvit (Holmen, U8)": 6,
+          "Jar Hvit (Jar, U8)": 6,
+          "Ringerike 2 (Ringerike, U8)": 6,
+          "Tønsberg (Tønsberg, U8)": 6,
+          "Frisk Asker 3 (Frisk Asker, U8)": 6,
+          "Holmen Hockey Rød (Holmen, U8)": 6,
+          "Skien (Skien, JU12)": 6,
+          "Kongsberg/Tønsberg": 5,
+          "Tønsberg (Tønsberg, JU12)": 6,
+          "Ringerike 2 (Ringerike, U10)": 6,
+          "Frisk Asker 2 (Frisk Asker, U10)": 6,
+          "Jar Grønn (Jar, U10)": 6,
+          "Holmen Hockey Hvit (Holmen, U10)": 6,
+          "Jutul Hvit (Jutul, U10)": 6,
+          "Tønsberg (Tønsberg, U10)": 6,
+          "Jar Svart (Jar, U12)": 5,
+          "Ringerike 2 (Ringerike, U12)": 6,
+          "Kongsberg (Kongsberg, U12)": 6,
+          "Frisk Asker 3 (Frisk Asker, U10)": 6,
+          "Frisk Asker 4 (Frisk Asker, U10)": 6,
+          "Jar Gul (Jar, U10)": 6,
+          "Holmen Hockey Rød (Holmen, U10)": 6,
+          "Ringerike 3": 6,
+          "Jutul Rød (Jutul, U10)": 6,
+          "Jar Oransje": 6,
+          "Jar Rød (Jar, U11)": 6,
+          "Frisk Asker 1 (Frisk Asker, U11)": 6,
+          "Jar Svart (Jar, U11)": 6,
+          "Frisk Asker 2 (Frisk Asker, U12)": 6,
+          "Frisk Asker 2 (Frisk Asker, U9)": 6,
+          "Frisk Asker 3 (Frisk Asker, U9)": 6,
+          "Jar Hvit (Jar, U9)": 6,
+          "Jutul Gul (Jutul, U9)": 6,
+          "Holmen Hockey Rød (Holmen, U9)": 6,
+          "Tønsberg (Tønsberg, U9)": 6,
+          "Jar Rød (Jar, U9)": 6,
+          "Jutul Hvit (Jutul, U9)": 6,
+          "Jar Blå (Jar, U11)": 6,
+          "Tønsberg Grå (Tønsberg, U11)": 6,
+          "Jar Hvit (Jar, U7)": 6,
+          "Frisk Asker 3 (Frisk Asker, U7)": 6,
+          "Holmen Hockey Rød (Holmen, U7)": 6,
+          "Jutul Hvit (Jutul, U7)": 6,
+          "Jar Rød (Jar, U7)": 6,
+          "Holmen Hockey Sort (Holmen, U7)": 6,
+          "Jutul Rød (Jutul, U7)": 6,
+          "Jar Svart (Jar, U7)": 6,
+          "Holmen Hockey Hvit (Holmen, U11)": 6,
+          "Ringerike 1 (Ringerike, U11)": 6,
+          "Jar Hvit (Jar, U12)": 6,
+          "Jutul Hvit (Jutul, U8)": 6,
+          "Jutul Rød (Jutul, U8)": 6,
+          "Frisk Asker 4 (Frisk Asker, U8)": 6,
+          "Holmen Hockey Sort (Holmen, U8)": 6,
+          "Jar Rød (Jar, U8)": 6,
+          "Frisk Asker 5 (Frisk Asker, U8)": 6,
+          "Jar Svart (Jar, U8)": 5,
+          "Frisk Asker 4 (Frisk Asker, U9)": 6,
+          "Frisk Asker 5 (Frisk Asker, U9)": 6,
+          "Jar Svart (Jar, U9)": 6,
+          "Jutul Rød (Jutul, U9)": 6,
+          "Holmen Hockey Sort (Holmen, U9)": 6,
+          "Jar Rød (Jar, JU10)": 6,
+          "Holmen Hockey Sort (Holmen, U10)": 6,
+          "Frisk Asker 5 (Frisk Asker, U10)": 6,
+          "Jar Hvit (Jar, U10)": 6,
+          "Ringerike 4": 6,
+          "Frisk Asker 6": 6,
+          "Jar Rød (Jar, U10)": 6,
+          "Jar Svart (Jar, U10)": 6,
+          "Holmen Hockey Rød (Holmen, U12)": 6,
+          "Tønsberg Hvit (Tønsberg, U12)": 6
+        },
+        "spread": 1
+      },
+      "opponent_diversity": {
+        "unique_pairs": 1301,
+        "pairwise_novelty": 0.5220706260032103,
+        "pair_repeat_distribution": {
+          "2": 488,
+          "3": 144,
+          "1": 558,
+          "4": 55,
+          "6": 26,
+          "5": 30
+        },
+        "pairs_meeting_3_plus": 255,
+        "max_pair_repeat": 6,
+        "inter_club_diversity": 0.9444003177124702,
+        "same_club_pairing_count": 112,
+        "max_same_club_teams_per_tournament": 5
+      },
+      "turnaround": {
+        "min_turnaround_days": 0,
+        "gaps_under_days": {
+          "7": 24,
+          "14": 110
+        }
+      },
+      "hosting": {
+        "counts_by_host": {
+          "Frisk Asker": 40,
+          "Jutul": 29,
+          "Kongsberg": 5,
+          "Tønsberg": 17,
+          "Sandefjord Penguins": 5,
+          "Holmen": 18,
+          "Skien": 5,
+          "Ringerike": 13,
+          "Jar": 20
+        },
+        "spread": 35
+      },
+      "month_distribution": {
+        "2026-09": 26,
+        "2026-10": 30,
+        "2026-11": 37,
+        "2026-12": 14,
+        "2027-01": 26,
+        "2027-02": 12,
+        "2027-03": 4,
+        "2027-04": 3
+      }
+    }
+  },
+  "new": {
+    "verification": {
+      "ok": true,
+      "violations": [],
+      "skipped": []
+    },
+    "score": {
+      "participation": {
+        "counts_by_team": {
+          "Jutul Grønn (Jutul, U9)": 6,
+          "Tønsberg (Tønsberg, U9)": 6,
+          "Frisk Asker 3 (Frisk Asker, U9)": 6,
+          "Jar Rød (Jar, U9)": 6,
+          "Holmen Hockey Sort (Holmen, U9)": 6,
+          "Kongsberg (Kongsberg, U9)": 6,
+          "Frisk Asker 4 (Frisk Asker, U9)": 6,
+          "Jar Hvit (Jar, U9)": 6,
+          "Holmen Hockey Rød (Holmen, U8)": 6,
+          "Ringerike 2 (Ringerike, U8)": 6,
+          "Jar Hvit (Jar, U8)": 6,
+          "Tønsberg (Tønsberg, U8)": 6,
+          "Sandefjord (Sandefjord Penguins, U8)": 6,
+          "Frisk Asker 2 (Frisk Asker, U8)": 6,
+          "Frisk Asker 5 (Frisk Asker, U8)": 6,
+          "Jutul Gul (Jutul, U8)": 6,
+          "Tønsberg Hvit (Tønsberg, U12)": 6,
+          "Frisk Asker 2 (Frisk Asker, U12)": 6,
+          "Jar Rød (Jar, U12)": 6,
+          "Holmen Hockey Rød (Holmen, U12)": 6,
+          "Frisk Asker Svart (Frisk Asker, JU12)": 6,
+          "Kongsberg/Tønsberg": 5,
+          "Jutul/Jar Kittens": 6,
+          "Ringerike 1 (Ringerike, JU12)": 6,
+          "Ringerike 2 (Ringerike, U12)": 6,
+          "Kongsberg (Kongsberg, U12)": 6,
+          "Tønsberg Rød (Tønsberg, U12)": 6,
+          "Jar Blå (Jar, U12)": 6,
+          "Frisk Asker Svart (Frisk Asker, JU10)": 6,
+          "Frisk Asker Orange (Frisk Asker, JU10)": 6,
+          "Jar Blå (Jar, JU10)": 6,
+          "Skien (Skien, JU10)": 6,
+          "Ringerike 1 (Ringerike, JU10)": 6,
+          "Jar Hvit (Jar, JU10)": 6,
+          "Tønsberg Grå (Tønsberg, U12)": 6,
+          "Frisk Asker 1 (Frisk Asker, U12)": 6,
+          "Frisk Asker 4 (Frisk Asker, U12)": 6,
+          "Jar Hvit (Jar, U12)": 6,
+          "Sandefjord (Sandefjord Penguins, U11)": 6,
+          "Jar Lilla (Jar, U11)": 6,
+          "Jar Svart (Jar, U11)": 6,
+          "Tønsberg Hvit (Tønsberg, U11)": 6,
+          "Holmen Hockey Rød (Holmen, U11)": 6,
+          "Frisk Asker 1 (Frisk Asker, U11)": 6,
+          "Holmen Hockey Sort (Holmen, U7)": 6,
+          "Frisk Asker 1 (Frisk Asker, U7)": 6,
+          "Jar Rød (Jar, U7)": 6,
+          "Jar Hvit (Jar, U7)": 6,
+          "Jutul Hvit (Jutul, U7)": 6,
+          "Jutul Rød (Jutul, U7)": 6,
+          "Frisk Asker 2 (Frisk Asker, U7)": 6,
+          "Jar Blå (Jar, U7)": 6,
+          "Jar Blå (Jar, U11)": 6,
+          "Frisk Asker 4 (Frisk Asker, U11)": 6,
+          "Skien (Skien, U11)": 6,
+          "Jar Rød (Jar, U11)": 6,
+          "Jutul Hvit (Jutul, U11)": 6,
+          "Tønsberg Rød (Tønsberg, U11)": 6,
+          "Frisk Asker 5 (Frisk Asker, U10)": 6,
+          "Frisk Asker 2 (Frisk Asker, U10)": 6,
+          "Holmen Hockey Blå (Holmen, U10)": 6,
+          "Jar Hvit (Jar, U10)": 6,
+          "Ringerike 3": 6,
+          "Jutul Rød (Jutul, U10)": 6,
+          "Skien (Skien, JU12)": 6,
+          "Jutul Kittens (Jutul, JU12)": 6,
+          "Ringerike 2 (Ringerike, JU12)": 6,
+          "Frisk Asker 4 (Frisk Asker, U8)": 6,
+          "Jar Blå (Jar, U8)": 6,
+          "Holmen Hockey Hvit (Holmen, U8)": 6,
+          "Kongsberg (Kongsberg, U8)": 6,
+          "Jutul Rød (Jutul, U8)": 6,
+          "Jutul Grønn (Jutul, U11)": 6,
+          "Jar Oransje": 6,
+          "Ringerike 2 (Ringerike, U11)": 6,
+          "Frisk Asker 3 (Frisk Asker, U11)": 6,
+          "Tønsberg Grå (Tønsberg, U11)": 6,
+          "Jar Grønn (Jar, U11)": 6,
+          "Jutul Grønn (Jutul, U12)": 6,
+          "Jar Svart (Jar, U12)": 5,
+          "Ringerike 1 (Ringerike, U12)": 6,
+          "Skien (Skien, JU8)": 6,
+          "Jar (Jar, JU8)": 6,
+          "Jutul Grønn (Jutul, JU8)": 6,
+          "Frisk Asker": 6,
+          "Ringerike 1 (Ringerike, JU8)": 6,
+          "Jar Rød (Jar, JU8)": 6,
+          "Jutul Kittens (Jutul, JU8)": 6,
+          "Frisk Asker Orange (Frisk Asker, JU12)": 6,
+          "Tønsberg (Tønsberg, JU12)": 6,
+          "Jutul Rød (Jutul, U12)": 6,
+          "Frisk Asker 1 (Frisk Asker, U10)": 6,
+          "Jutul Grønn (Jutul, U10)": 6,
+          "Tønsberg (Tønsberg, U10)": 6,
+          "Jar Blå (Jar, U10)": 6,
+          "Jar Rød (Jar, U10)": 6,
+          "Ringerike 2 (Ringerike, U10)": 6,
+          "Holmen Hockey Hvit (Holmen, U12)": 6,
+          "Jar Lilla (Jar, U12)": 6,
+          "Jar Gul (Jar, U11)": 6,
+          "Ringerike 1 (Ringerike, U11)": 6,
+          "Holmen Hockey Hvit (Holmen, U11)": 6,
+          "Ringerike 1 (Ringerike, U9)": 6,
+          "Jutul Hvit (Jutul, U9)": 6,
+          "Holmen Hockey Hvit (Holmen, U9)": 6,
+          "Jutul Gul (Jutul, U9)": 6,
+          "Frisk Asker 1 (Frisk Asker, U9)": 6,
+          "Jar Svart (Jar, U9)": 6,
+          "Frisk Asker 4 (Frisk Asker, U10)": 6,
+          "Frisk Asker 3 (Frisk Asker, U10)": 6,
+          "Kongsberg (Kongsberg, U10)": 6,
+          "Jar Grønn (Jar, U10)": 6,
+          "Holmen Hockey Sort (Holmen, U10)": 6,
+          "Jutul Hvit (Jutul, U10)": 6,
+          "Jutul Rød (Jutul, U11)": 6,
+          "Jar Hvit (Jar, U11)": 6,
+          "Jar (Jar, JU12)": 6,
+          "Holmen Hockey Rød (Holmen, U7)": 6,
+          "Holmen Hockey Hvit (Holmen, U7)": 6,
+          "Jar Grønn (Jar, U7)": 6,
+          "Jutul Grønn (Jutul, U7)": 6,
+          "Frisk Asker 3 (Frisk Asker, U7)": 6,
+          "Frisk Asker 5 (Frisk Asker, U9)": 6,
+          "Sandefjord (Sandefjord Penguins, U9)": 6,
+          "Skien (Skien, U9)": 6,
+          "Skien (Skien, U8)": 6,
+          "Jutul Grønn (Jutul, U8)": 5,
+          "Holmen Hockey Blå (Holmen, U8)": 6,
+          "Jar Gul (Jar, U10)": 6,
+          "Holmen Hockey Rød (Holmen, U10)": 6,
+          "Frisk Asker 3 (Frisk Asker, U12)": 5,
+          "Kongsberg (Kongsberg, U11)": 6,
+          "Frisk Asker 2 (Frisk Asker, U11)": 6,
+          "Frisk Asker 1 (Frisk Asker, U8)": 6,
+          "Jar Rød (Jar, U8)": 6,
+          "Holmen Hockey Sort (Holmen, U8)": 6,
+          "Jar Svart (Jar, U8)": 5,
+          "Holmen Hockey Rød (Holmen, U9)": 6,
+          "Jar Blå (Jar, U9)": 6,
+          "Frisk Asker 2 (Frisk Asker, U9)": 6,
+          "Jutul Rød (Jutul, U9)": 6,
+          "Jar Rød (Jar, JU10)": 6,
+          "Jar Hvit (Jar, JU12)": 5,
+          "Jar Svart (Jar, U10)": 6,
+          "Frisk Asker 6": 6,
+          "Sandefjord (Sandefjord Penguins, U7)": 6,
+          "Jar Svart (Jar, U7)": 6,
+          "Tønsberg (Tønsberg, U7)": 6,
+          "Ringerike 4": 6,
+          "Jutul Hvit (Jutul, U8)": 6,
+          "Frisk Asker 3 (Frisk Asker, U8)": 6,
+          "Holmen Hockey Hvit (Holmen, U10)": 6,
+          "Ringerike 1 (Ringerike, U10)": 6,
+          "Ringerike 1 (Ringerike, U8)": 6
+        },
+        "spread": 1
+      },
+      "opponent_diversity": {
+        "unique_pairs": 1306,
+        "pairwise_novelty": 0.5240770465489567,
+        "pair_repeat_distribution": {
+          "3": 165,
+          "2": 589,
+          "1": 484,
+          "5": 21,
+          "4": 26,
+          "6": 21
+        },
+        "pairs_meeting_3_plus": 233,
+        "max_pair_repeat": 6,
+        "inter_club_diversity": 0.9428117553613979,
+        "same_club_pairing_count": 119,
+        "max_same_club_teams_per_tournament": 3
+      },
+      "turnaround": {
+        "min_turnaround_days": 1,
+        "gaps_under_days": {
+          "7": 2,
+          "14": 87
+        }
+      },
+      "hosting": {
+        "counts_by_host": {
+          "Jutul": 29,
+          "Holmen": 18,
+          "Tønsberg": 17,
+          "Frisk Asker": 40,
+          "Ringerike": 13,
+          "Skien": 5,
+          "Sandefjord Penguins": 5,
+          "Jar": 20,
+          "Kongsberg": 5
+        },
+        "spread": 35
+      },
+      "month_distribution": {
+        "2026-09": 26,
+        "2026-10": 30,
+        "2026-11": 37,
+        "2026-12": 14,
+        "2027-01": 26,
+        "2027-02": 12,
+        "2027-03": 4,
+        "2027-04": 3
+      }
+    }
+  },
+  "overall_comparison": {
+    "metrics": [
+      {
+        "metric": "participation.spread",
+        "direction": "lower",
+        "old": 1,
+        "new": 1,
+        "delta": 0,
+        "regressed": false
+      },
+      {
+        "metric": "opponent_diversity.unique_pairs",
+        "direction": "higher",
+        "old": 1301,
+        "new": 1306,
+        "delta": 5,
+        "regressed": false
+      },
+      {
+        "metric": "opponent_diversity.pairwise_novelty",
+        "direction": "higher",
+        "old": 0.5220706260032103,
+        "new": 0.5240770465489567,
+        "delta": 0.0020064205457464013,
+        "regressed": false
+      },
+      {
+        "metric": "opponent_diversity.pairs_meeting_3_plus",
+        "direction": "lower",
+        "old": 255,
+        "new": 233,
+        "delta": -22,
+        "regressed": false
+      },
+      {
+        "metric": "opponent_diversity.max_pair_repeat",
+        "direction": "lower",
+        "old": 6,
+        "new": 6,
+        "delta": 0,
+        "regressed": false
+      },
+      {
+        "metric": "opponent_diversity.inter_club_diversity",
+        "direction": "higher",
+        "old": 0.9444003177124702,
+        "new": 0.9428117553613979,
+        "delta": -0.001588562351072298,
+        "regressed": true
+      },
+      {
+        "metric": "opponent_diversity.same_club_pairing_count",
+        "direction": "lower",
+        "old": 112,
+        "new": 119,
+        "delta": 7,
+        "regressed": true
+      },
+      {
+        "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+        "direction": "lower",
+        "old": 5,
+        "new": 3,
+        "delta": -2,
+        "regressed": false
+      },
+      {
+        "metric": "turnaround.min_turnaround_days",
+        "direction": "higher",
+        "old": 0,
+        "new": 1,
+        "delta": 1,
+        "regressed": false
+      },
+      {
+        "metric": "turnaround.gaps_under_days.7",
+        "direction": "lower",
+        "old": 24,
+        "new": 2,
+        "delta": -22,
+        "regressed": false
+      },
+      {
+        "metric": "turnaround.gaps_under_days.14",
+        "direction": "lower",
+        "old": 110,
+        "new": 87,
+        "delta": -23,
+        "regressed": false
+      },
+      {
+        "metric": "hosting.spread",
+        "direction": "lower",
+        "old": 35,
+        "new": 35,
+        "delta": 0,
+        "regressed": false
+      }
+    ],
+    "regressions": [
+      "opponent_diversity.inter_club_diversity",
+      "opponent_diversity.same_club_pairing_count"
+    ]
+  },
+  "by_age_group": {
+    "JU10": {
+      "old": {
+        "participation": {
+          "counts_by_team": {
+            "Jar Blå": 6,
+            "Frisk Asker Orange": 6,
+            "Ringerike 1": 6,
+            "Skien": 6,
+            "Jar Hvit": 6,
+            "Frisk Asker Svart": 6,
+            "Jar Rød": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 21,
+          "pairwise_novelty": 0.2,
+          "pair_repeat_distribution": {
+            "5": 21
+          },
+          "pairs_meeting_3_plus": 21,
+          "max_pair_repeat": 5,
+          "inter_club_diversity": 1.0,
+          "same_club_pairing_count": 4,
+          "max_same_club_teams_per_tournament": 3
+        },
+        "turnaround": {
+          "min_turnaround_days": 7,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 10
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Jutul": 1,
+            "Ringerike": 1,
+            "Frisk Asker": 3,
+            "Jar": 2
+          },
+          "spread": 2
+        },
+        "month_distribution": {
+          "2026-09": 1,
+          "2026-10": 1,
+          "2026-11": 2,
+          "2026-12": 1,
+          "2027-01": 2
+        }
+      },
+      "new": {
+        "participation": {
+          "counts_by_team": {
+            "Frisk Asker Svart": 6,
+            "Frisk Asker Orange": 6,
+            "Jar Blå": 6,
+            "Skien": 6,
+            "Ringerike 1": 6,
+            "Jar Hvit": 6,
+            "Jar Rød": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 21,
+          "pairwise_novelty": 0.2,
+          "pair_repeat_distribution": {
+            "5": 21
+          },
+          "pairs_meeting_3_plus": 21,
+          "max_pair_repeat": 5,
+          "inter_club_diversity": 1.0,
+          "same_club_pairing_count": 4,
+          "max_same_club_teams_per_tournament": 3
+        },
+        "turnaround": {
+          "min_turnaround_days": 7,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 10
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Frisk Asker": 3,
+            "Jar": 2,
+            "Ringerike": 1,
+            "Jutul": 1
+          },
+          "spread": 2
+        },
+        "month_distribution": {
+          "2026-09": 1,
+          "2026-10": 1,
+          "2026-11": 2,
+          "2026-12": 1,
+          "2027-01": 2
+        }
+      },
+      "comparison": {
+        "metrics": [
+          {
+            "metric": "participation.spread",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.unique_pairs",
+            "direction": "higher",
+            "old": 21,
+            "new": 21,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairwise_novelty",
+            "direction": "higher",
+            "old": 0.2,
+            "new": 0.2,
+            "delta": 0.0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairs_meeting_3_plus",
+            "direction": "lower",
+            "old": 21,
+            "new": 21,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_pair_repeat",
+            "direction": "lower",
+            "old": 5,
+            "new": 5,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.inter_club_diversity",
+            "direction": "higher",
+            "old": 1.0,
+            "new": 1.0,
+            "delta": 0.0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.same_club_pairing_count",
+            "direction": "lower",
+            "old": 4,
+            "new": 4,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+            "direction": "lower",
+            "old": 3,
+            "new": 3,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.min_turnaround_days",
+            "direction": "higher",
+            "old": 7,
+            "new": 7,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.7",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.14",
+            "direction": "lower",
+            "old": 10,
+            "new": 10,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "hosting.spread",
+            "direction": "lower",
+            "old": 2,
+            "new": 2,
+            "delta": 0,
+            "regressed": false
+          }
+        ],
+        "regressions": []
+      }
+    },
+    "JU12": {
+      "old": {
+        "participation": {
+          "counts_by_team": {
+            "Frisk Asker Orange": 6,
+            "Jar": 6,
+            "Jutul Kittens": 6,
+            "Ringerike 1": 6,
+            "Frisk Asker Svart": 6,
+            "Jar Hvit": 5,
+            "Jutul/Jar Kittens": 6,
+            "Ringerike 2": 6,
+            "Skien": 6,
+            "Kongsberg/Tønsberg": 5,
+            "Tønsberg": 6
+          },
+          "spread": 1
+        },
+        "opponent_diversity": {
+          "unique_pairs": 51,
+          "pairwise_novelty": 0.53125,
+          "pair_repeat_distribution": {
+            "2": 35,
+            "3": 5,
+            "1": 11
+          },
+          "pairs_meeting_3_plus": 5,
+          "max_pair_repeat": 3,
+          "inter_club_diversity": 1.0,
+          "same_club_pairing_count": 0,
+          "max_same_club_teams_per_tournament": 1
+        },
+        "turnaround": {
+          "min_turnaround_days": 1,
+          "gaps_under_days": {
+            "7": 1,
+            "14": 11
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Frisk Asker": 3,
+            "Tønsberg": 2,
+            "Skien": 2,
+            "Jutul": 4,
+            "Ringerike": 3,
+            "Jar": 1,
+            "Kongsberg": 1
+          },
+          "spread": 3
+        },
+        "month_distribution": {
+          "2026-09": 4,
+          "2026-10": 4,
+          "2026-11": 5,
+          "2026-12": 1,
+          "2027-01": 2
+        }
+      },
+      "new": {
+        "participation": {
+          "counts_by_team": {
+            "Frisk Asker Svart": 6,
+            "Kongsberg/Tønsberg": 5,
+            "Jutul/Jar Kittens": 6,
+            "Ringerike 1": 6,
+            "Skien": 6,
+            "Jutul Kittens": 6,
+            "Ringerike 2": 6,
+            "Frisk Asker Orange": 6,
+            "Tønsberg": 6,
+            "Jar": 6,
+            "Jar Hvit": 5
+          },
+          "spread": 1
+        },
+        "opponent_diversity": {
+          "unique_pairs": 50,
+          "pairwise_novelty": 0.5208333333333334,
+          "pair_repeat_distribution": {
+            "2": 38,
+            "3": 4,
+            "1": 8
+          },
+          "pairs_meeting_3_plus": 4,
+          "max_pair_repeat": 3,
+          "inter_club_diversity": 0.9803921568627451,
+          "same_club_pairing_count": 0,
+          "max_same_club_teams_per_tournament": 1
+        },
+        "turnaround": {
+          "min_turnaround_days": 7,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 8
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Frisk Asker": 3,
+            "Tønsberg": 2,
+            "Skien": 2,
+            "Ringerike": 3,
+            "Jutul": 4,
+            "Jar": 1,
+            "Kongsberg": 1
+          },
+          "spread": 3
+        },
+        "month_distribution": {
+          "2026-09": 4,
+          "2026-10": 4,
+          "2026-11": 5,
+          "2026-12": 1,
+          "2027-01": 2
+        }
+      },
+      "comparison": {
+        "metrics": [
+          {
+            "metric": "participation.spread",
+            "direction": "lower",
+            "old": 1,
+            "new": 1,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.unique_pairs",
+            "direction": "higher",
+            "old": 51,
+            "new": 50,
+            "delta": -1,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.pairwise_novelty",
+            "direction": "higher",
+            "old": 0.53125,
+            "new": 0.5208333333333334,
+            "delta": -0.01041666666666663,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.pairs_meeting_3_plus",
+            "direction": "lower",
+            "old": 5,
+            "new": 4,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_pair_repeat",
+            "direction": "lower",
+            "old": 3,
+            "new": 3,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.inter_club_diversity",
+            "direction": "higher",
+            "old": 1.0,
+            "new": 0.9803921568627451,
+            "delta": -0.019607843137254943,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.same_club_pairing_count",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+            "direction": "lower",
+            "old": 1,
+            "new": 1,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.min_turnaround_days",
+            "direction": "higher",
+            "old": 1,
+            "new": 7,
+            "delta": 6,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.7",
+            "direction": "lower",
+            "old": 1,
+            "new": 0,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.14",
+            "direction": "lower",
+            "old": 11,
+            "new": 8,
+            "delta": -3,
+            "regressed": false
+          },
+          {
+            "metric": "hosting.spread",
+            "direction": "lower",
+            "old": 3,
+            "new": 3,
+            "delta": 0,
+            "regressed": false
+          }
+        ],
+        "regressions": [
+          "opponent_diversity.unique_pairs",
+          "opponent_diversity.pairwise_novelty",
+          "opponent_diversity.inter_club_diversity"
+        ]
+      }
+    },
+    "JU8": {
+      "old": {
+        "participation": {
+          "counts_by_team": {
+            "Jutul Grønn": 6,
+            "Jutul Kittens": 6,
+            "Jar": 6,
+            "Frisk Asker": 6,
+            "Ringerike 1": 6,
+            "Skien": 6,
+            "Jar Rød": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 21,
+          "pairwise_novelty": 0.16666666666666666,
+          "pair_repeat_distribution": {
+            "6": 21
+          },
+          "pairs_meeting_3_plus": 21,
+          "max_pair_repeat": 6,
+          "inter_club_diversity": 1.0,
+          "same_club_pairing_count": 2,
+          "max_same_club_teams_per_tournament": 2
+        },
+        "turnaround": {
+          "min_turnaround_days": 21,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 0
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Jutul": 2,
+            "Skien": 1,
+            "Frisk Asker": 1,
+            "Jar": 2
+          },
+          "spread": 1
+        },
+        "month_distribution": {
+          "2026-09": 1,
+          "2026-10": 1,
+          "2026-12": 1,
+          "2027-01": 1,
+          "2027-02": 2
+        }
+      },
+      "new": {
+        "participation": {
+          "counts_by_team": {
+            "Skien": 6,
+            "Jar": 6,
+            "Jutul Grønn": 6,
+            "Frisk Asker": 6,
+            "Ringerike 1": 6,
+            "Jar Rød": 6,
+            "Jutul Kittens": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 21,
+          "pairwise_novelty": 0.16666666666666666,
+          "pair_repeat_distribution": {
+            "6": 21
+          },
+          "pairs_meeting_3_plus": 21,
+          "max_pair_repeat": 6,
+          "inter_club_diversity": 1.0,
+          "same_club_pairing_count": 2,
+          "max_same_club_teams_per_tournament": 2
+        },
+        "turnaround": {
+          "min_turnaround_days": 21,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 0
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Skien": 1,
+            "Jutul": 2,
+            "Jar": 2,
+            "Frisk Asker": 1
+          },
+          "spread": 1
+        },
+        "month_distribution": {
+          "2026-09": 1,
+          "2026-10": 1,
+          "2026-12": 1,
+          "2027-01": 1,
+          "2027-02": 2
+        }
+      },
+      "comparison": {
+        "metrics": [
+          {
+            "metric": "participation.spread",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.unique_pairs",
+            "direction": "higher",
+            "old": 21,
+            "new": 21,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairwise_novelty",
+            "direction": "higher",
+            "old": 0.16666666666666666,
+            "new": 0.16666666666666666,
+            "delta": 0.0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairs_meeting_3_plus",
+            "direction": "lower",
+            "old": 21,
+            "new": 21,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_pair_repeat",
+            "direction": "lower",
+            "old": 6,
+            "new": 6,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.inter_club_diversity",
+            "direction": "higher",
+            "old": 1.0,
+            "new": 1.0,
+            "delta": 0.0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.same_club_pairing_count",
+            "direction": "lower",
+            "old": 2,
+            "new": 2,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+            "direction": "lower",
+            "old": 2,
+            "new": 2,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.min_turnaround_days",
+            "direction": "higher",
+            "old": 21,
+            "new": 21,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.7",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.14",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "hosting.spread",
+            "direction": "lower",
+            "old": 1,
+            "new": 1,
+            "delta": 0,
+            "regressed": false
+          }
+        ],
+        "regressions": []
+      }
+    },
+    "U10": {
+      "old": {
+        "participation": {
+          "counts_by_team": {
+            "Jutul Grønn": 6,
+            "Frisk Asker 1": 6,
+            "Jar Blå": 6,
+            "Holmen Hockey Blå": 6,
+            "Ringerike 1": 6,
+            "Kongsberg": 6,
+            "Ringerike 2": 6,
+            "Frisk Asker 2": 6,
+            "Jar Grønn": 6,
+            "Holmen Hockey Hvit": 6,
+            "Jutul Hvit": 6,
+            "Tønsberg": 6,
+            "Frisk Asker 3": 6,
+            "Frisk Asker 4": 6,
+            "Jar Gul": 6,
+            "Holmen Hockey Rød": 6,
+            "Ringerike 3": 6,
+            "Jutul Rød": 6,
+            "Holmen Hockey Sort": 6,
+            "Frisk Asker 5": 6,
+            "Jar Hvit": 6,
+            "Ringerike 4": 6,
+            "Frisk Asker 6": 6,
+            "Jar Rød": 6,
+            "Jar Svart": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 244,
+          "pairwise_novelty": 0.6506666666666666,
+          "pair_repeat_distribution": {
+            "2": 96,
+            "1": 131,
+            "3": 16,
+            "4": 1
+          },
+          "pairs_meeting_3_plus": 17,
+          "max_pair_repeat": 4,
+          "inter_club_diversity": 0.8980392156862745,
+          "same_club_pairing_count": 15,
+          "max_same_club_teams_per_tournament": 3
+        },
+        "turnaround": {
+          "min_turnaround_days": 1,
+          "gaps_under_days": {
+            "7": 3,
+            "14": 18
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Jutul": 4,
+            "Ringerike": 3,
+            "Frisk Asker": 7,
+            "Holmen": 5,
+            "Tønsberg": 1,
+            "Jar": 5
+          },
+          "spread": 6
+        },
+        "month_distribution": {
+          "2026-09": 3,
+          "2026-10": 5,
+          "2026-11": 7,
+          "2026-12": 2,
+          "2027-01": 4,
+          "2027-02": 4
+        }
+      },
+      "new": {
+        "participation": {
+          "counts_by_team": {
+            "Frisk Asker 5": 6,
+            "Frisk Asker 2": 6,
+            "Holmen Hockey Blå": 6,
+            "Jar Hvit": 6,
+            "Ringerike 3": 6,
+            "Jutul Rød": 6,
+            "Frisk Asker 1": 6,
+            "Jutul Grønn": 6,
+            "Tønsberg": 6,
+            "Jar Blå": 6,
+            "Jar Rød": 6,
+            "Ringerike 2": 6,
+            "Frisk Asker 4": 6,
+            "Frisk Asker 3": 6,
+            "Kongsberg": 6,
+            "Jar Grønn": 6,
+            "Holmen Hockey Sort": 6,
+            "Jutul Hvit": 6,
+            "Jar Gul": 6,
+            "Holmen Hockey Rød": 6,
+            "Jar Svart": 6,
+            "Frisk Asker 6": 6,
+            "Ringerike 4": 6,
+            "Holmen Hockey Hvit": 6,
+            "Ringerike 1": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 258,
+          "pairwise_novelty": 0.688,
+          "pair_repeat_distribution": {
+            "1": 144,
+            "2": 111,
+            "3": 3
+          },
+          "pairs_meeting_3_plus": 3,
+          "max_pair_repeat": 3,
+          "inter_club_diversity": 0.9137254901960784,
+          "same_club_pairing_count": 25,
+          "max_same_club_teams_per_tournament": 2
+        },
+        "turnaround": {
+          "min_turnaround_days": 7,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 16
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Frisk Asker": 7,
+            "Jutul": 4,
+            "Tønsberg": 1,
+            "Holmen": 5,
+            "Jar": 5,
+            "Ringerike": 3
+          },
+          "spread": 6
+        },
+        "month_distribution": {
+          "2026-09": 3,
+          "2026-10": 5,
+          "2026-11": 7,
+          "2026-12": 2,
+          "2027-01": 4,
+          "2027-02": 4
+        }
+      },
+      "comparison": {
+        "metrics": [
+          {
+            "metric": "participation.spread",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.unique_pairs",
+            "direction": "higher",
+            "old": 244,
+            "new": 258,
+            "delta": 14,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairwise_novelty",
+            "direction": "higher",
+            "old": 0.6506666666666666,
+            "new": 0.688,
+            "delta": 0.03733333333333333,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairs_meeting_3_plus",
+            "direction": "lower",
+            "old": 17,
+            "new": 3,
+            "delta": -14,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_pair_repeat",
+            "direction": "lower",
+            "old": 4,
+            "new": 3,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.inter_club_diversity",
+            "direction": "higher",
+            "old": 0.8980392156862745,
+            "new": 0.9137254901960784,
+            "delta": 0.015686274509803866,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.same_club_pairing_count",
+            "direction": "lower",
+            "old": 15,
+            "new": 25,
+            "delta": 10,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+            "direction": "lower",
+            "old": 3,
+            "new": 2,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.min_turnaround_days",
+            "direction": "higher",
+            "old": 1,
+            "new": 7,
+            "delta": 6,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.7",
+            "direction": "lower",
+            "old": 3,
+            "new": 0,
+            "delta": -3,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.14",
+            "direction": "lower",
+            "old": 18,
+            "new": 16,
+            "delta": -2,
+            "regressed": false
+          },
+          {
+            "metric": "hosting.spread",
+            "direction": "lower",
+            "old": 6,
+            "new": 6,
+            "delta": 0,
+            "regressed": false
+          }
+        ],
+        "regressions": [
+          "opponent_diversity.same_club_pairing_count"
+        ]
+      }
+    },
+    "U11": {
+      "old": {
+        "participation": {
+          "counts_by_team": {
+            "Jar Grønn": 6,
+            "Frisk Asker 2": 6,
+            "Jutul Hvit": 6,
+            "Tønsberg Hvit": 6,
+            "Holmen Hockey Rød": 6,
+            "Ringerike 2": 6,
+            "Jutul Rød": 6,
+            "Jar Gul": 6,
+            "Frisk Asker 3": 6,
+            "Tønsberg Rød": 6,
+            "Kongsberg": 6,
+            "Sandefjord": 6,
+            "Jar Hvit": 6,
+            "Frisk Asker 4": 6,
+            "Skien": 6,
+            "Jar Lilla": 6,
+            "Jutul Grønn": 6,
+            "Jar Oransje": 6,
+            "Jar Rød": 6,
+            "Frisk Asker 1": 6,
+            "Jar Svart": 6,
+            "Jar Blå": 6,
+            "Tønsberg Grå": 6,
+            "Holmen Hockey Hvit": 6,
+            "Ringerike 1": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 257,
+          "pairwise_novelty": 0.6853333333333333,
+          "pair_repeat_distribution": {
+            "2": 93,
+            "1": 153,
+            "4": 3,
+            "3": 8
+          },
+          "pairs_meeting_3_plus": 11,
+          "max_pair_repeat": 4,
+          "inter_club_diversity": 0.9108527131782945,
+          "same_club_pairing_count": 22,
+          "max_same_club_teams_per_tournament": 5
+        },
+        "turnaround": {
+          "min_turnaround_days": 0,
+          "gaps_under_days": {
+            "7": 9,
+            "14": 30
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Kongsberg": 1,
+            "Jutul": 4,
+            "Holmen": 2,
+            "Sandefjord Penguins": 2,
+            "Skien": 1,
+            "Frisk Asker": 7,
+            "Tønsberg": 4,
+            "Ringerike": 2,
+            "Jar": 2
+          },
+          "spread": 6
+        },
+        "month_distribution": {
+          "2026-09": 5,
+          "2026-10": 4,
+          "2026-11": 7,
+          "2026-12": 4,
+          "2027-01": 5
+        }
+      },
+      "new": {
+        "participation": {
+          "counts_by_team": {
+            "Sandefjord": 6,
+            "Jar Lilla": 6,
+            "Jar Svart": 6,
+            "Tønsberg Hvit": 6,
+            "Holmen Hockey Rød": 6,
+            "Frisk Asker 1": 6,
+            "Jar Blå": 6,
+            "Frisk Asker 4": 6,
+            "Skien": 6,
+            "Jar Rød": 6,
+            "Jutul Hvit": 6,
+            "Tønsberg Rød": 6,
+            "Jutul Grønn": 6,
+            "Jar Oransje": 6,
+            "Ringerike 2": 6,
+            "Frisk Asker 3": 6,
+            "Tønsberg Grå": 6,
+            "Jar Grønn": 6,
+            "Jar Gul": 6,
+            "Ringerike 1": 6,
+            "Holmen Hockey Hvit": 6,
+            "Jutul Rød": 6,
+            "Jar Hvit": 6,
+            "Kongsberg": 6,
+            "Frisk Asker 2": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 255,
+          "pairwise_novelty": 0.68,
+          "pair_repeat_distribution": {
+            "2": 108,
+            "3": 6,
+            "1": 141
+          },
+          "pairs_meeting_3_plus": 6,
+          "max_pair_repeat": 3,
+          "inter_club_diversity": 0.9069767441860465,
+          "same_club_pairing_count": 21,
+          "max_same_club_teams_per_tournament": 2
+        },
+        "turnaround": {
+          "min_turnaround_days": 7,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 23
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Jutul": 4,
+            "Holmen": 2,
+            "Sandefjord Penguins": 2,
+            "Frisk Asker": 7,
+            "Skien": 1,
+            "Tønsberg": 4,
+            "Ringerike": 2,
+            "Jar": 2,
+            "Kongsberg": 1
+          },
+          "spread": 6
+        },
+        "month_distribution": {
+          "2026-09": 5,
+          "2026-10": 4,
+          "2026-11": 7,
+          "2026-12": 4,
+          "2027-01": 5
+        }
+      },
+      "comparison": {
+        "metrics": [
+          {
+            "metric": "participation.spread",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.unique_pairs",
+            "direction": "higher",
+            "old": 257,
+            "new": 255,
+            "delta": -2,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.pairwise_novelty",
+            "direction": "higher",
+            "old": 0.6853333333333333,
+            "new": 0.68,
+            "delta": -0.005333333333333301,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.pairs_meeting_3_plus",
+            "direction": "lower",
+            "old": 11,
+            "new": 6,
+            "delta": -5,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_pair_repeat",
+            "direction": "lower",
+            "old": 4,
+            "new": 3,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.inter_club_diversity",
+            "direction": "higher",
+            "old": 0.9108527131782945,
+            "new": 0.9069767441860465,
+            "delta": -0.003875968992248069,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.same_club_pairing_count",
+            "direction": "lower",
+            "old": 22,
+            "new": 21,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+            "direction": "lower",
+            "old": 5,
+            "new": 2,
+            "delta": -3,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.min_turnaround_days",
+            "direction": "higher",
+            "old": 0,
+            "new": 7,
+            "delta": 7,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.7",
+            "direction": "lower",
+            "old": 9,
+            "new": 0,
+            "delta": -9,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.14",
+            "direction": "lower",
+            "old": 30,
+            "new": 23,
+            "delta": -7,
+            "regressed": false
+          },
+          {
+            "metric": "hosting.spread",
+            "direction": "lower",
+            "old": 6,
+            "new": 6,
+            "delta": 0,
+            "regressed": false
+          }
+        ],
+        "regressions": [
+          "opponent_diversity.unique_pairs",
+          "opponent_diversity.pairwise_novelty",
+          "opponent_diversity.inter_club_diversity"
+        ]
+      }
+    },
+    "U12": {
+      "old": {
+        "participation": {
+          "counts_by_team": {
+            "Frisk Asker 1": 6,
+            "Jar Blå": 6,
+            "Tønsberg Grå": 6,
+            "Holmen Hockey Hvit": 6,
+            "Frisk Asker 4": 6,
+            "Jar Rød": 6,
+            "Jutul Grønn": 6,
+            "Ringerike 1": 6,
+            "Tønsberg Rød": 6,
+            "Jar Lilla": 6,
+            "Frisk Asker 3": 5,
+            "Jutul Rød": 6,
+            "Jar Svart": 5,
+            "Ringerike 2": 6,
+            "Kongsberg": 6,
+            "Frisk Asker 2": 6,
+            "Jar Hvit": 6,
+            "Holmen Hockey Rød": 6,
+            "Tønsberg Hvit": 6
+          },
+          "spread": 1
+        },
+        "opponent_diversity": {
+          "unique_pairs": 135,
+          "pairwise_novelty": 0.8035714285714286,
+          "pair_repeat_distribution": {
+            "2": 31,
+            "3": 1,
+            "1": 103
+          },
+          "pairs_meeting_3_plus": 1,
+          "max_pair_repeat": 3,
+          "inter_club_diversity": 0.8993288590604027,
+          "same_club_pairing_count": 1,
+          "max_same_club_teams_per_tournament": 2
+        },
+        "turnaround": {
+          "min_turnaround_days": 1,
+          "gaps_under_days": {
+            "7": 3,
+            "14": 18
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Frisk Asker": 8,
+            "Tønsberg": 7,
+            "Jutul": 3,
+            "Holmen": 3,
+            "Kongsberg": 2,
+            "Ringerike": 2,
+            "Jar": 3
+          },
+          "spread": 6
+        },
+        "month_distribution": {
+          "2026-09": 6,
+          "2026-10": 8,
+          "2026-11": 8,
+          "2026-12": 1,
+          "2027-01": 5
+        }
+      },
+      "new": {
+        "participation": {
+          "counts_by_team": {
+            "Tønsberg Hvit": 6,
+            "Frisk Asker 2": 6,
+            "Jar Rød": 6,
+            "Holmen Hockey Rød": 6,
+            "Ringerike 2": 6,
+            "Kongsberg": 6,
+            "Tønsberg Rød": 6,
+            "Jar Blå": 6,
+            "Tønsberg Grå": 6,
+            "Frisk Asker 1": 6,
+            "Frisk Asker 4": 6,
+            "Jar Hvit": 6,
+            "Jutul Grønn": 6,
+            "Jar Svart": 5,
+            "Ringerike 1": 6,
+            "Jutul Rød": 6,
+            "Holmen Hockey Hvit": 6,
+            "Jar Lilla": 6,
+            "Frisk Asker 3": 5
+          },
+          "spread": 1
+        },
+        "opponent_diversity": {
+          "unique_pairs": 133,
+          "pairwise_novelty": 0.7916666666666666,
+          "pair_repeat_distribution": {
+            "1": 98,
+            "2": 35
+          },
+          "pairs_meeting_3_plus": 0,
+          "max_pair_repeat": 2,
+          "inter_club_diversity": 0.8791946308724832,
+          "same_club_pairing_count": 2,
+          "max_same_club_teams_per_tournament": 2
+        },
+        "turnaround": {
+          "min_turnaround_days": 7,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 7
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Tønsberg": 7,
+            "Frisk Asker": 8,
+            "Ringerike": 2,
+            "Jutul": 3,
+            "Holmen": 3,
+            "Kongsberg": 2,
+            "Jar": 3
+          },
+          "spread": 6
+        },
+        "month_distribution": {
+          "2026-09": 6,
+          "2026-10": 8,
+          "2026-11": 8,
+          "2026-12": 1,
+          "2027-01": 5
+        }
+      },
+      "comparison": {
+        "metrics": [
+          {
+            "metric": "participation.spread",
+            "direction": "lower",
+            "old": 1,
+            "new": 1,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.unique_pairs",
+            "direction": "higher",
+            "old": 135,
+            "new": 133,
+            "delta": -2,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.pairwise_novelty",
+            "direction": "higher",
+            "old": 0.8035714285714286,
+            "new": 0.7916666666666666,
+            "delta": -0.011904761904761973,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.pairs_meeting_3_plus",
+            "direction": "lower",
+            "old": 1,
+            "new": 0,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_pair_repeat",
+            "direction": "lower",
+            "old": 3,
+            "new": 2,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.inter_club_diversity",
+            "direction": "higher",
+            "old": 0.8993288590604027,
+            "new": 0.8791946308724832,
+            "delta": -0.020134228187919545,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.same_club_pairing_count",
+            "direction": "lower",
+            "old": 1,
+            "new": 2,
+            "delta": 1,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+            "direction": "lower",
+            "old": 2,
+            "new": 2,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.min_turnaround_days",
+            "direction": "higher",
+            "old": 1,
+            "new": 7,
+            "delta": 6,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.7",
+            "direction": "lower",
+            "old": 3,
+            "new": 0,
+            "delta": -3,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.14",
+            "direction": "lower",
+            "old": 18,
+            "new": 7,
+            "delta": -11,
+            "regressed": false
+          },
+          {
+            "metric": "hosting.spread",
+            "direction": "lower",
+            "old": 6,
+            "new": 6,
+            "delta": 0,
+            "regressed": false
+          }
+        ],
+        "regressions": [
+          "opponent_diversity.unique_pairs",
+          "opponent_diversity.pairwise_novelty",
+          "opponent_diversity.inter_club_diversity",
+          "opponent_diversity.same_club_pairing_count"
+        ]
+      }
+    },
+    "U7": {
+      "old": {
+        "participation": {
+          "counts_by_team": {
+            "Sandefjord": 6,
+            "Jar Blå": 6,
+            "Frisk Asker 1": 6,
+            "Holmen Hockey Hvit": 6,
+            "Jutul Grønn": 6,
+            "Tønsberg": 6,
+            "Jar Grønn": 6,
+            "Frisk Asker 2": 6,
+            "Jar Hvit": 6,
+            "Frisk Asker 3": 6,
+            "Holmen Hockey Rød": 6,
+            "Jutul Hvit": 6,
+            "Jar Rød": 6,
+            "Holmen Hockey Sort": 6,
+            "Jutul Rød": 6,
+            "Jar Svart": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 120,
+          "pairwise_novelty": 0.35714285714285715,
+          "pair_repeat_distribution": {
+            "2": 50,
+            "5": 7,
+            "3": 32,
+            "6": 4,
+            "4": 18,
+            "1": 9
+          },
+          "pairs_meeting_3_plus": 61,
+          "max_pair_repeat": 6,
+          "inter_club_diversity": 1.0,
+          "same_club_pairing_count": 19,
+          "max_same_club_teams_per_tournament": 3
+        },
+        "turnaround": {
+          "min_turnaround_days": 15,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 0
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Sandefjord Penguins": 1,
+            "Tønsberg": 1,
+            "Frisk Asker": 3,
+            "Jutul": 3,
+            "Holmen": 3,
+            "Jar": 1
+          },
+          "spread": 2
+        },
+        "month_distribution": {
+          "2026-09": 2,
+          "2026-10": 1,
+          "2026-11": 2,
+          "2026-12": 1,
+          "2027-01": 1,
+          "2027-02": 1,
+          "2027-03": 2,
+          "2027-04": 2
+        }
+      },
+      "new": {
+        "participation": {
+          "counts_by_team": {
+            "Holmen Hockey Sort": 6,
+            "Frisk Asker 1": 6,
+            "Jar Rød": 6,
+            "Jar Hvit": 6,
+            "Jutul Hvit": 6,
+            "Jutul Rød": 6,
+            "Frisk Asker 2": 6,
+            "Jar Blå": 6,
+            "Holmen Hockey Rød": 6,
+            "Holmen Hockey Hvit": 6,
+            "Jar Grønn": 6,
+            "Jutul Grønn": 6,
+            "Frisk Asker 3": 6,
+            "Sandefjord": 6,
+            "Jar Svart": 6,
+            "Tønsberg": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 120,
+          "pairwise_novelty": 0.35714285714285715,
+          "pair_repeat_distribution": {
+            "4": 21,
+            "2": 39,
+            "3": 57,
+            "1": 3
+          },
+          "pairs_meeting_3_plus": 78,
+          "max_pair_repeat": 4,
+          "inter_club_diversity": 1.0,
+          "same_club_pairing_count": 19,
+          "max_same_club_teams_per_tournament": 3
+        },
+        "turnaround": {
+          "min_turnaround_days": 6,
+          "gaps_under_days": {
+            "7": 1,
+            "14": 1
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Holmen": 3,
+            "Sandefjord Penguins": 1,
+            "Jutul": 3,
+            "Frisk Asker": 3,
+            "Tønsberg": 1,
+            "Jar": 1
+          },
+          "spread": 2
+        },
+        "month_distribution": {
+          "2026-09": 2,
+          "2026-10": 1,
+          "2026-11": 2,
+          "2026-12": 1,
+          "2027-01": 1,
+          "2027-02": 1,
+          "2027-03": 2,
+          "2027-04": 2
+        }
+      },
+      "comparison": {
+        "metrics": [
+          {
+            "metric": "participation.spread",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.unique_pairs",
+            "direction": "higher",
+            "old": 120,
+            "new": 120,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairwise_novelty",
+            "direction": "higher",
+            "old": 0.35714285714285715,
+            "new": 0.35714285714285715,
+            "delta": 0.0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairs_meeting_3_plus",
+            "direction": "lower",
+            "old": 61,
+            "new": 78,
+            "delta": 17,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.max_pair_repeat",
+            "direction": "lower",
+            "old": 6,
+            "new": 4,
+            "delta": -2,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.inter_club_diversity",
+            "direction": "higher",
+            "old": 1.0,
+            "new": 1.0,
+            "delta": 0.0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.same_club_pairing_count",
+            "direction": "lower",
+            "old": 19,
+            "new": 19,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+            "direction": "lower",
+            "old": 3,
+            "new": 3,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.min_turnaround_days",
+            "direction": "higher",
+            "old": 15,
+            "new": 6,
+            "delta": -9,
+            "regressed": true
+          },
+          {
+            "metric": "turnaround.gaps_under_days.7",
+            "direction": "lower",
+            "old": 0,
+            "new": 1,
+            "delta": 1,
+            "regressed": true
+          },
+          {
+            "metric": "turnaround.gaps_under_days.14",
+            "direction": "lower",
+            "old": 0,
+            "new": 1,
+            "delta": 1,
+            "regressed": true
+          },
+          {
+            "metric": "hosting.spread",
+            "direction": "lower",
+            "old": 2,
+            "new": 2,
+            "delta": 0,
+            "regressed": false
+          }
+        ],
+        "regressions": [
+          "opponent_diversity.pairs_meeting_3_plus",
+          "turnaround.min_turnaround_days",
+          "turnaround.gaps_under_days.7",
+          "turnaround.gaps_under_days.14"
+        ]
+      }
+    },
+    "U8": {
+      "old": {
+        "participation": {
+          "counts_by_team": {
+            "Frisk Asker 1": 6,
+            "Holmen Hockey Blå": 6,
+            "Jar Blå": 6,
+            "Jutul Grønn": 5,
+            "Ringerike 1": 6,
+            "Kongsberg": 6,
+            "Sandefjord": 6,
+            "Skien": 6,
+            "Jutul Gul": 6,
+            "Frisk Asker 2": 6,
+            "Holmen Hockey Hvit": 6,
+            "Jar Hvit": 6,
+            "Ringerike 2": 6,
+            "Tønsberg": 6,
+            "Frisk Asker 3": 6,
+            "Holmen Hockey Rød": 6,
+            "Jutul Hvit": 6,
+            "Jutul Rød": 6,
+            "Frisk Asker 4": 6,
+            "Holmen Hockey Sort": 6,
+            "Jar Rød": 6,
+            "Frisk Asker 5": 6,
+            "Jar Svart": 5
+          },
+          "spread": 1
+        },
+        "opponent_diversity": {
+          "unique_pairs": 245,
+          "pairwise_novelty": 0.5147058823529411,
+          "pair_repeat_distribution": {
+            "1": 84,
+            "3": 32,
+            "2": 111,
+            "4": 16,
+            "5": 2
+          },
+          "pairs_meeting_3_plus": 50,
+          "max_pair_repeat": 5,
+          "inter_club_diversity": 0.9866071428571429,
+          "same_club_pairing_count": 24,
+          "max_same_club_teams_per_tournament": 3
+        },
+        "turnaround": {
+          "min_turnaround_days": 1,
+          "gaps_under_days": {
+            "7": 3,
+            "14": 5
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Frisk Asker": 4,
+            "Jutul": 4,
+            "Sandefjord Penguins": 1,
+            "Holmen": 3,
+            "Jar": 2,
+            "Tønsberg": 1,
+            "Ringerike": 1,
+            "Kongsberg": 1
+          },
+          "spread": 3
+        },
+        "month_distribution": {
+          "2026-09": 2,
+          "2026-10": 3,
+          "2026-11": 2,
+          "2026-12": 2,
+          "2027-01": 3,
+          "2027-02": 2,
+          "2027-03": 2,
+          "2027-04": 1
+        }
+      },
+      "new": {
+        "participation": {
+          "counts_by_team": {
+            "Holmen Hockey Rød": 6,
+            "Ringerike 2": 6,
+            "Jar Hvit": 6,
+            "Tønsberg": 6,
+            "Sandefjord": 6,
+            "Frisk Asker 2": 6,
+            "Frisk Asker 5": 6,
+            "Jutul Gul": 6,
+            "Frisk Asker 4": 6,
+            "Jar Blå": 6,
+            "Holmen Hockey Hvit": 6,
+            "Kongsberg": 6,
+            "Jutul Rød": 6,
+            "Skien": 6,
+            "Jutul Grønn": 5,
+            "Holmen Hockey Blå": 6,
+            "Frisk Asker 1": 6,
+            "Jar Rød": 6,
+            "Holmen Hockey Sort": 6,
+            "Jar Svart": 5,
+            "Jutul Hvit": 6,
+            "Frisk Asker 3": 6,
+            "Ringerike 1": 6
+          },
+          "spread": 1
+        },
+        "opponent_diversity": {
+          "unique_pairs": 241,
+          "pairwise_novelty": 0.5063025210084033,
+          "pair_repeat_distribution": {
+            "2": 146,
+            "1": 51,
+            "3": 43,
+            "4": 1
+          },
+          "pairs_meeting_3_plus": 44,
+          "max_pair_repeat": 4,
+          "inter_club_diversity": 0.96875,
+          "same_club_pairing_count": 24,
+          "max_same_club_teams_per_tournament": 2
+        },
+        "turnaround": {
+          "min_turnaround_days": 8,
+          "gaps_under_days": {
+            "7": 0,
+            "14": 3
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Holmen": 3,
+            "Frisk Asker": 4,
+            "Jar": 2,
+            "Sandefjord Penguins": 1,
+            "Jutul": 4,
+            "Ringerike": 1,
+            "Tønsberg": 1,
+            "Kongsberg": 1
+          },
+          "spread": 3
+        },
+        "month_distribution": {
+          "2026-09": 2,
+          "2026-10": 3,
+          "2026-11": 2,
+          "2026-12": 2,
+          "2027-01": 3,
+          "2027-02": 2,
+          "2027-03": 2,
+          "2027-04": 1
+        }
+      },
+      "comparison": {
+        "metrics": [
+          {
+            "metric": "participation.spread",
+            "direction": "lower",
+            "old": 1,
+            "new": 1,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.unique_pairs",
+            "direction": "higher",
+            "old": 245,
+            "new": 241,
+            "delta": -4,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.pairwise_novelty",
+            "direction": "higher",
+            "old": 0.5147058823529411,
+            "new": 0.5063025210084033,
+            "delta": -0.008403361344537785,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.pairs_meeting_3_plus",
+            "direction": "lower",
+            "old": 50,
+            "new": 44,
+            "delta": -6,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_pair_repeat",
+            "direction": "lower",
+            "old": 5,
+            "new": 4,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.inter_club_diversity",
+            "direction": "higher",
+            "old": 0.9866071428571429,
+            "new": 0.96875,
+            "delta": -0.017857142857142905,
+            "regressed": true
+          },
+          {
+            "metric": "opponent_diversity.same_club_pairing_count",
+            "direction": "lower",
+            "old": 24,
+            "new": 24,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+            "direction": "lower",
+            "old": 3,
+            "new": 2,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.min_turnaround_days",
+            "direction": "higher",
+            "old": 1,
+            "new": 8,
+            "delta": 7,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.7",
+            "direction": "lower",
+            "old": 3,
+            "new": 0,
+            "delta": -3,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.14",
+            "direction": "lower",
+            "old": 5,
+            "new": 3,
+            "delta": -2,
+            "regressed": false
+          },
+          {
+            "metric": "hosting.spread",
+            "direction": "lower",
+            "old": 3,
+            "new": 3,
+            "delta": 0,
+            "regressed": false
+          }
+        ],
+        "regressions": [
+          "opponent_diversity.unique_pairs",
+          "opponent_diversity.pairwise_novelty",
+          "opponent_diversity.inter_club_diversity"
+        ]
+      }
+    },
+    "U9": {
+      "old": {
+        "participation": {
+          "counts_by_team": {
+            "Jutul Grønn": 6,
+            "Frisk Asker 1": 6,
+            "Jar Blå": 6,
+            "Holmen Hockey Hvit": 6,
+            "Kongsberg": 6,
+            "Ringerike 1": 6,
+            "Sandefjord": 6,
+            "Skien": 6,
+            "Frisk Asker 2": 6,
+            "Frisk Asker 3": 6,
+            "Jar Hvit": 6,
+            "Jutul Gul": 6,
+            "Holmen Hockey Rød": 6,
+            "Tønsberg": 6,
+            "Jar Rød": 6,
+            "Jutul Hvit": 6,
+            "Frisk Asker 4": 6,
+            "Frisk Asker 5": 6,
+            "Jar Svart": 6,
+            "Jutul Rød": 6,
+            "Holmen Hockey Sort": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 207,
+          "pairwise_novelty": 0.47586206896551725,
+          "pair_repeat_distribution": {
+            "1": 67,
+            "3": 50,
+            "2": 72,
+            "4": 17,
+            "6": 1
+          },
+          "pairs_meeting_3_plus": 68,
+          "max_pair_repeat": 6,
+          "inter_club_diversity": 0.9837837837837838,
+          "same_club_pairing_count": 25,
+          "max_same_club_teams_per_tournament": 3
+        },
+        "turnaround": {
+          "min_turnaround_days": 1,
+          "gaps_under_days": {
+            "7": 5,
+            "14": 18
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Jutul": 4,
+            "Frisk Asker": 4,
+            "Skien": 1,
+            "Sandefjord Penguins": 1,
+            "Holmen": 2,
+            "Ringerike": 1,
+            "Tønsberg": 1,
+            "Jar": 2
+          },
+          "spread": 3
+        },
+        "month_distribution": {
+          "2026-09": 2,
+          "2026-10": 3,
+          "2026-11": 4,
+          "2026-12": 1,
+          "2027-01": 3,
+          "2027-02": 3
+        }
+      },
+      "new": {
+        "participation": {
+          "counts_by_team": {
+            "Jutul Grønn": 6,
+            "Tønsberg": 6,
+            "Frisk Asker 3": 6,
+            "Jar Rød": 6,
+            "Holmen Hockey Sort": 6,
+            "Kongsberg": 6,
+            "Frisk Asker 4": 6,
+            "Jar Hvit": 6,
+            "Ringerike 1": 6,
+            "Jutul Hvit": 6,
+            "Holmen Hockey Hvit": 6,
+            "Jutul Gul": 6,
+            "Frisk Asker 1": 6,
+            "Jar Svart": 6,
+            "Frisk Asker 5": 6,
+            "Sandefjord": 6,
+            "Skien": 6,
+            "Holmen Hockey Rød": 6,
+            "Jar Blå": 6,
+            "Frisk Asker 2": 6,
+            "Jutul Rød": 6
+          },
+          "spread": 0
+        },
+        "opponent_diversity": {
+          "unique_pairs": 207,
+          "pairwise_novelty": 0.47586206896551725,
+          "pair_repeat_distribution": {
+            "3": 52,
+            "2": 112,
+            "4": 4,
+            "1": 39
+          },
+          "pairs_meeting_3_plus": 56,
+          "max_pair_repeat": 4,
+          "inter_club_diversity": 1.0,
+          "same_club_pairing_count": 22,
+          "max_same_club_teams_per_tournament": 2
+        },
+        "turnaround": {
+          "min_turnaround_days": 1,
+          "gaps_under_days": {
+            "7": 1,
+            "14": 19
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Jutul": 4,
+            "Ringerike": 1,
+            "Frisk Asker": 4,
+            "Holmen": 2,
+            "Sandefjord Penguins": 1,
+            "Tønsberg": 1,
+            "Jar": 2,
+            "Skien": 1
+          },
+          "spread": 3
+        },
+        "month_distribution": {
+          "2026-09": 2,
+          "2026-10": 3,
+          "2026-11": 4,
+          "2026-12": 1,
+          "2027-01": 3,
+          "2027-02": 3
+        }
+      },
+      "comparison": {
+        "metrics": [
+          {
+            "metric": "participation.spread",
+            "direction": "lower",
+            "old": 0,
+            "new": 0,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.unique_pairs",
+            "direction": "higher",
+            "old": 207,
+            "new": 207,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairwise_novelty",
+            "direction": "higher",
+            "old": 0.47586206896551725,
+            "new": 0.47586206896551725,
+            "delta": 0.0,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.pairs_meeting_3_plus",
+            "direction": "lower",
+            "old": 68,
+            "new": 56,
+            "delta": -12,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_pair_repeat",
+            "direction": "lower",
+            "old": 6,
+            "new": 4,
+            "delta": -2,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.inter_club_diversity",
+            "direction": "higher",
+            "old": 0.9837837837837838,
+            "new": 1.0,
+            "delta": 0.01621621621621616,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.same_club_pairing_count",
+            "direction": "lower",
+            "old": 25,
+            "new": 22,
+            "delta": -3,
+            "regressed": false
+          },
+          {
+            "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+            "direction": "lower",
+            "old": 3,
+            "new": 2,
+            "delta": -1,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.min_turnaround_days",
+            "direction": "higher",
+            "old": 1,
+            "new": 1,
+            "delta": 0,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.7",
+            "direction": "lower",
+            "old": 5,
+            "new": 1,
+            "delta": -4,
+            "regressed": false
+          },
+          {
+            "metric": "turnaround.gaps_under_days.14",
+            "direction": "lower",
+            "old": 18,
+            "new": 19,
+            "delta": 1,
+            "regressed": true
+          },
+          {
+            "metric": "hosting.spread",
+            "direction": "lower",
+            "old": 3,
+            "new": 3,
+            "delta": 0,
+            "regressed": false
+          }
+        ],
+        "regressions": [
+          "turnaround.gaps_under_days.14"
+        ]
+      }
+    }
+  },
+  "hard_constraint_regressed": false,
+  "promotable": false
+}

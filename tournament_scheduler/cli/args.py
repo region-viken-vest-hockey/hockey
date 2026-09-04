@@ -1324,6 +1324,13 @@ def build_parser() -> argparse.ArgumentParser:
         "age group's weight (e.g. --weight JU12:same_club_pairing=1.5); repeatable. "
         "See stage3_optimizer.DEFAULT_WEIGHTS for the tunable names",
     )
+    plan_optimize.add_argument(
+        "--move-dates",
+        action="store_true",
+        help="Also let the search swap two same-age-group tournaments' dates (arena/host/"
+        "teams stay put), not just teams between tournaments. Off by default — the "
+        "skeleton (dates/arenas/hosts) is otherwise taken as given",
+    )
 
     plan_ab = plan_sub.add_parser(
         "ab",
@@ -1377,6 +1384,12 @@ def build_parser() -> argparse.ArgumentParser:
         "(e.g. --weight gap_under_7=8.0), or just one age group's weight "
         "(e.g. --weight JU12:same_club_pairing=1.5); repeatable. See "
         "stage3_optimizer.DEFAULT_WEIGHTS for the tunable names",
+    )
+    plan_ab.add_argument(
+        "--move-dates",
+        action="store_true",
+        help="Also let the new candidate's search swap two same-age-group tournaments' "
+        "dates, not just teams between tournaments. Off by default",
     )
 
     plan_problem = plan_sub.add_parser(
