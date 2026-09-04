@@ -44,6 +44,7 @@ import math
 import random
 from dataclasses import asdict, dataclass, field
 from datetime import date
+from itertools import combinations
 from typing import Any, Dict, List, Optional, Tuple
 
 from .game_generation import generate_round_robin_games
@@ -458,9 +459,11 @@ def optimize_candidate(
 # other, so it can (and does) buy opponent-diversity gains by spending down
 # turnaround spacing or same-club clustering the caller never asked to give
 # up. This section instead treats *each age group's current assignment* as a
-# hard baseline: a candidate move is only ever considered if it does not
-# push same-club pairings, same-club clustering, or turnaround gaps worse
-# than that baseline (participation counts and hosting are already invariant
+# hard baseline: a candidate move is only ever considered if it does not push
+# any metric tracked by stage3_ab's A/B promotion comparison worse than that
+# baseline — same-club pairings/clustering, turnaround gaps, hosting spread,
+# pair-repeat counts, and unique-pairs/novelty/inter-club diversity alike
+# (participation counts and per-tournament roster/host are already invariant
 # under team-swap-only moves, by construction). Inside that feasible region,
 # search minimizes repeated inter-club opponent pairs lexicographically
 # ahead of maximizing unique pairings/novelty as a tie-breaker. If no move
@@ -484,6 +487,8 @@ class _GroupMetrics:
     hosting_spread: int
     unique_pairs: int
     pairwise_novelty: float
+    inter_club_diversity: float
+    min_turnaround_days: Optional[int]
 
 
 def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
@@ -503,6 +508,15 @@ def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
     pairs_meeting_3_plus = sum(1 for count in pair_counts.values() if count >= 3)
     max_pair_repeat = max(pair_counts.values()) if pair_counts else 0
     same_club_pairing_count = sum(1 for (a, b) in pair_counts if a[0] == b[0])
+    inter_club_pairs = sum(1 for (a, b) in pair_counts if a[0] != b[0])
+
+    # The universe of *possible* inter-club opponents is every cross-club
+    # pair among all teams that appear anywhere in this age group's slots —
+    # not just pairs that happened to share a tournament — matching
+    # `score_candidate`'s `inter_club_diversity` denominator exactly.
+    all_team_ids = sorted({identity for slot in slots for identity in slot.team_ids})
+    inter_club_universe = sum(1 for a, b in combinations(all_team_ids, 2) if a[0] != b[0])
+    inter_club_diversity = (inter_club_pairs / inter_club_universe) if inter_club_universe else 0.0
 
     max_same_club_teams_per_tournament = 0
     for slot in slots:
@@ -520,10 +534,13 @@ def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
             dates_by_team.setdefault(identity, []).append(slot.date)
     gaps_under_7 = 0
     gaps_under_14 = 0
+    min_turnaround_days: Optional[int] = None
     for dates in dates_by_team.values():
         ordered = sorted(dates)
         for prev, nxt in zip(ordered, ordered[1:]):
             gap = (nxt - prev).days
+            if min_turnaround_days is None or gap < min_turnaround_days:
+                min_turnaround_days = gap
             if gap < 7:
                 gaps_under_7 += 1
             if gap < 14:
@@ -546,17 +563,38 @@ def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
         hosting_spread=hosting_spread,
         unique_pairs=unique_pairs,
         pairwise_novelty=pairwise_novelty,
+        inter_club_diversity=inter_club_diversity,
+        min_turnaround_days=min_turnaround_days,
     )
 
 
 def _within_bounds(current: _GroupMetrics, baseline: _GroupMetrics) -> bool:
-    """True if *current* is no worse than *baseline* on every protected metric."""
+    """True if *current* weakly Pareto-dominates *baseline* on every metric
+    :mod:`tournament_scheduler.stage3_ab` treats as protected for A/B
+    promotion (issue #257 Task 2's "other existing protected A/B metrics
+    must not regress") — not just the explicitly-named subset. A move that
+    trades e.g. unique-pair diversity for fewer 3+ repeats is a real
+    lexicographic tradeoff the *scorer* would flag as `regressed`, so it is
+    rejected here too, not merely penalized.
+    """
+    if baseline.min_turnaround_days is None:
+        turnaround_ok = True
+    elif current.min_turnaround_days is None:
+        turnaround_ok = False
+    else:
+        turnaround_ok = current.min_turnaround_days >= baseline.min_turnaround_days
     return (
         current.same_club_pairing_count <= baseline.same_club_pairing_count
         and current.max_same_club_teams_per_tournament <= baseline.max_same_club_teams_per_tournament
         and current.gaps_under_7 <= baseline.gaps_under_7
         and current.gaps_under_14 <= baseline.gaps_under_14
         and current.hosting_spread <= baseline.hosting_spread
+        and current.pairs_meeting_3_plus <= baseline.pairs_meeting_3_plus
+        and current.max_pair_repeat <= baseline.max_pair_repeat
+        and current.unique_pairs >= baseline.unique_pairs
+        and current.pairwise_novelty >= baseline.pairwise_novelty - 1e-9
+        and current.inter_club_diversity >= baseline.inter_club_diversity - 1e-9
+        and turnaround_ok
     )
 
 
@@ -580,7 +618,15 @@ def _lexicographic_score(m: _GroupMetrics) -> float:
 
 
 def _strictly_better(new: _GroupMetrics, baseline: _GroupMetrics) -> bool:
-    """Exact lexicographic comparison used to decide improved vs. unchanged."""
+    """True if *new* weakly dominates *baseline* (see :func:`_within_bounds`)
+    AND is a genuine improvement on at least the lexicographic primary
+    metrics (pairs meeting 3+ times, then max pair repeat) — or, failing
+    that, on the unique-pairs/novelty tie-breaker. A candidate that only
+    matches the baseline everywhere is not "improved"; callers should retain
+    the baseline in that case.
+    """
+    if not _within_bounds(new, baseline):
+        return False
     if new.pairs_meeting_3_plus != baseline.pairs_meeting_3_plus:
         return new.pairs_meeting_3_plus < baseline.pairs_meeting_3_plus
     if new.max_pair_repeat != baseline.max_pair_repeat:

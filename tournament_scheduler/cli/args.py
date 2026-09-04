@@ -1392,6 +1392,49 @@ def build_parser() -> argparse.ArgumentParser:
         "dates, not just teams between tournaments. Off by default",
     )
 
+    plan_ab_participants = plan_sub.add_parser(
+        "ab-participants",
+        help="Full-season baseline-bounded participant-optimization benchmark: for each age "
+        "group independently, keep the Stage 3 checkpoint's assignment unless a seeded "
+        "search finds a strict, non-regressing improvement (issue #257 Task 2-4)",
+    )
+    plan_ab_participants.add_argument(
+        "--work-dir",
+        default=".pipeline",
+        help="Pipeline work directory containing Stage 1-3 checkpoints (default: .pipeline)",
+    )
+    plan_ab_participants.add_argument(
+        "--start-date",
+        default=None,
+        help="Season start date (YYYY-MM-DD); defaults to the Stage 3 checkpoint's plan window",
+    )
+    plan_ab_participants.add_argument(
+        "--end-date",
+        default=None,
+        help="Season end date (YYYY-MM-DD); defaults to the Stage 3 checkpoint's plan window",
+    )
+    plan_ab_participants.add_argument(
+        "--seeds",
+        default="1,2,3,4,5",
+        help="Comma-separated list of seeds/restarts to try per age group (default: 1,2,3,4,5)",
+    )
+    plan_ab_participants.add_argument(
+        "--iterations",
+        type=int,
+        default=4000,
+        help="Simulated-annealing swap attempts per seed per age group (default: 4000)",
+    )
+    plan_ab_participants.add_argument(
+        "--output-dir",
+        default=None,
+        help="Write problem.json/old_candidate.json/new_candidate.json/ab_report.json to this directory",
+    )
+    plan_ab_participants.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the A/B report as JSON instead of a human-readable summary",
+    )
+
     plan_problem = plan_sub.add_parser(
         "problem",
         help="Emit a normalized planning_problem.json from the Stage 1/2 checkpoints",
