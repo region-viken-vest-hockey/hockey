@@ -277,6 +277,30 @@ Useful flags:
 - `--timestamped-export` — write diffable exports into a timestamped folder only
 - `SOURCE_DATE_EPOCH=<epoch-seconds>` — pin Stage 4 content timestamps for reproducible export bytes and stable public bundle fingerprints
 
+### Interactive stage-by-stage mode
+
+`--interactive` runs exactly one stage (the one at `--resume-from`), prints a
+JSON `DecisionContext` (facts, hard violations, warnings, `available_actions`)
+for that stage, and exits `2` instead of advancing — this is the canonical
+capability behind harness stage-by-stage checkpoint review (issue #260 Phase
+5), used by `.claude/commands/rvv-miniputt/run.md` instead of a hand-rolled
+per-harness re-implementation of the recovery loop or the tone-gated
+refinement decision. Pass `--decision-action '<JSON DecisionAction>'`
+(validated via `application/decisions.decide`, recorded in
+`run_manifest.json`'s `decision_log`) on the next invocation to advance,
+retry, or abort:
+
+```bash
+rvv-miniputt run --interactive --resume-from 1 --input input.xlsx
+# ... read the printed DecisionContext, decide ...
+rvv-miniputt run --interactive --resume-from 2 --input input.xlsx \
+  --decision-action '{"action_id": "proceed", "rationale": "..."}'
+```
+
+Single-attempt only: it does not run Stage 3's multi-seed retry loop or the
+post-Stage4 refinement pass — those remain available via the non-interactive
+`run` command above once a plan looks good enough to finalize.
+
 ### Pre-export planning critic vs post-export refinement
 
 `--mid-planning-critic-iterations N` runs before any Stage 4 artifacts exist. It is checkpoint-driven: the pipeline reads the Stage 3 plan, asks the deterministic plan critic/fairness metrics for issues, persists the structured hint payload in the next Stage 3 checkpoint as `planning_critic_hints`, and reruns Stage 3 with the extracted numeric `penalty_hints` baked into the config. Default is `0`, so existing runs are unchanged.

@@ -350,6 +350,29 @@ def build_parser() -> argparse.ArgumentParser:
     # plus the matching API key (ANTHROPIC_API_KEY / OPENAI_API_KEY) to enable
     # inter-stage LLM judgment when no harness session is present.
     # See docs/rvv-miniputt-pipeline.md §"Headless / CI usage" for details.
+    run.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Run exactly one stage (starting at --resume-from), emit a DecisionContext for it "
+        "as JSON, and exit — the canonical capability behind harness stage-by-stage checkpoint "
+        "review (issue #260 Phase 5). See --decision-action to advance past a prior stage's "
+        "checkpoint on the next invocation",
+    )
+    run.add_argument(
+        "--decision-action",
+        default=None,
+        metavar="JSON",
+        help="Inline JSON DecisionAction (e.g. '{\"action_id\": \"proceed\"}') deciding the "
+        "outcome of the stage immediately before --resume-from. Validated against a freshly "
+        "rebuilt DecisionContext for that stage before the run proceeds; only meaningful with "
+        "--interactive and --resume-from > 1",
+    )
+    run.add_argument(
+        "--decision-action-file",
+        default=None,
+        metavar="PATH",
+        help="Path to a JSON file containing the DecisionAction, alternative to --decision-action",
+    )
 
     # operator — the goal-oriented AI operator entry point (see docs/ai-operator-product-direction.md)
     operator = sub.add_parser(

@@ -129,6 +129,14 @@ def _planning_facts(summary: dict[str, Any]) -> dict[str, Any]:
         "clubs_covered": summary.get("clubs_covered", []),
         "age_groups_covered": summary.get("age_groups_covered", []),
         "warnings": summary.get("warnings", []),
+        "tone": summary.get("tone"),
+    }
+
+
+def _export_facts(summary: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "files_written": summary.get("files_written", []),
+        "errors": summary.get("errors", []),
     }
 
 
@@ -139,6 +147,8 @@ _FACT_BUILDERS = {
     "stage2": _scraping_facts,
     "planning": _planning_facts,
     "stage3": _planning_facts,
+    "export": _export_facts,
+    "stage4": _export_facts,
 }
 
 _STAGE_LABELS = {
@@ -148,11 +158,19 @@ _STAGE_LABELS = {
     "stage2": "Calendar Scraping (Stage 2)",
     "planning": "Season Planning (Stage 3)",
     "stage3": "Season Planning (Stage 3)",
+    "export": "Export (Stage 4)",
+    "stage4": "Export (Stage 4)",
 }
 
 
 def build_decision_context(stage_name: str, checkpoint_summary: dict[str, Any]) -> DecisionContext:
-    """Build a :class:`DecisionContext` for a stage-gate proceed/abort decision.
+    """Build a :class:`DecisionContext` for a stage-gate decision.
+
+    ``available_actions`` always offers ``proceed``/``abort``/``retry_stage``/
+    ``request_operator`` — the generic actions any stage-gate decision can
+    reasonably need — plus ``recover_source`` specifically for a scraping
+    stage with blocked sources, since that's the only stage where a "source"
+    argument is meaningful (issue #260 Phase 5's interactive stage mode).
 
     Raises:
         ValueError: If *stage_name* is not recognised.
@@ -162,13 +180,17 @@ def build_decision_context(stage_name: str, checkpoint_summary: dict[str, Any]) 
         raise ValueError(
             f"Unknown stage name {stage_name!r}. Valid values: {', '.join(sorted(set(_FACT_BUILDERS)))}"
         )
+    facts = _FACT_BUILDERS[key](checkpoint_summary)
+    available_actions = ["proceed", "abort", "retry_stage", "request_operator"]
+    if key in ("scraping", "stage2") and facts.get("blocked_count"):
+        available_actions.append("recover_source")
     return DecisionContext(
         run_id="",
         capability=key,
         stage=key,
         objective="decide whether the pipeline should continue past this stage",
-        facts=_FACT_BUILDERS[key](checkpoint_summary),
-        available_actions=("proceed", "abort"),
+        facts=facts,
+        available_actions=tuple(available_actions),
     )
 
 

@@ -1341,8 +1341,237 @@ def _run_refinement_and_reexport(
     return plan, generated_calendars, False
 
 
+# stage-number -> (StageName, DecisionContext stage key) for the interactive
+# stage-by-stage mode. build_decision_context accepts either "config"/"stage1"
+# etc. — pick the readable form.
+_INTERACTIVE_STAGE_KEYS = {1: "config", 2: "scraping", 3: "planning", 4: "export"}
+
+
+def _decision_summary_for_checkpoint(
+    stage_num: int, checkpoint: dict[str, Any], *, effective_config: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """Build the ``checkpoint_summary`` dict ``build_decision_context`` expects,
+    directly from a persisted stage checkpoint (issue #260 Phase 5's
+    interactive stage mode reads checkpoints after the fact, rather than the
+    in-flight local summaries ``_run_stageN`` build for the headless judge).
+
+    Stage 1's ``sources``/``start_date``/``end_date`` are intentionally
+    *not* stored in its checkpoint — they live in ``input.xlsx`` and are
+    merged in dynamically by ``load_effective_config`` at runtime (see
+    ``_run_stage1``) — so callers must pass the already-loaded
+    *effective_config* for stage 1 rather than relying on *checkpoint*
+    alone, or these facts silently read as empty/"?".
+    """
+    if stage_num == 1:
+        cfg = effective_config or checkpoint
+        return {
+            "sources": len(cfg.get("sources", [])),
+            "start_date": cfg.get("start_date", "?"),
+            "end_date": cfg.get("end_date", "?"),
+            "age_groups": cfg.get("age_groups", []),
+            "clubs": cfg.get("clubs", []),
+        }
+    if stage_num == 2:
+        return {
+            "sources_scanned": len(checkpoint.get("sources", [])),
+            "blocked": checkpoint.get("blocked", []),
+        }
+    if stage_num == 3:
+        plan_obj = checkpoint.get("plan", {})
+        tournaments = plan_obj.get("tournaments", []) if isinstance(plan_obj, dict) else []
+        return {
+            "tournaments_planned": len(tournaments),
+            "warnings": checkpoint.get("warnings", []),
+            "tone": _compute_verdict_tone(checkpoint),
+        }
+    # stage 4 / export
+    return {
+        "files_written": list((checkpoint.get("output_files") or {}).keys()),
+        "errors": checkpoint.get("errors", []),
+    }
+
+
+def _emit_interactive_decision_context(
+    stage_num: int, state: "Any", work_dir: str, *, input_path: str | None = None
+) -> int:
+    """Build, persist and print the :class:`DecisionContext` for the stage
+    that was just completed, then return the process exit code (always 2 —
+    "paused for decision" — distinct from 0/success and 1/hard failure, so a
+    caller script can branch on it without parsing output)."""
+    import json as _json
+
+    from ..llm_judge.prompts import build_decision_context
+    from ..pipeline.state import StageName
+
+    stage_name = list(StageName)[stage_num - 1]
+    checkpoint = state.read_stage(stage_name) or {}
+    effective_config = None
+    if stage_num == 1:
+        from ..pipeline.stage1_config import load_effective_config
+
+        effective_config = load_effective_config(state, input_path=input_path)
+    summary = _decision_summary_for_checkpoint(stage_num, checkpoint, effective_config=effective_config)
+    context = build_decision_context(_INTERACTIVE_STAGE_KEYS[stage_num], summary)
+    payload = context.to_dict()
+
+    try:
+        from ..pipeline.run_log_paths import resolve_active_run_log_dir
+
+        log_dir = resolve_active_run_log_dir(work_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        with open(log_dir / "decision_context.json", "w", encoding="utf-8") as fh:
+            _json.dump(payload, fh, indent=2, ensure_ascii=False)
+    except Exception:
+        pass  # best-effort audit copy; stdout below is authoritative
+
+    print(_json.dumps(payload, indent=2, ensure_ascii=False))
+    return 2
+
+
+def _cmd_run_interactive(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt run --interactive`` (issue #260 Phase 5).
+
+    Runs exactly one stage (the stage at ``--resume-from``, default 1) using
+    the same ``_run_stageN`` helpers ``_cmd_run`` uses, then emits a
+    :class:`~tournament_scheduler.application.decisions.DecisionContext` for
+    that stage as JSON on stdout and exits 2 — never advancing to the next
+    stage on its own. This is the canonical capability a thin harness
+    adapter (Claude/ChatGPT/OpenCode/Codex/Pi) calls between checkpoints
+    instead of invoking ``stageN_*`` modules directly and hand-rolling
+    recovery/refinement policy in prose (see
+    ``.claude/commands/rvv-miniputt/run.md``).
+
+    Pass ``--decision-action``/``--decision-action-file`` (a JSON
+    :class:`DecisionAction`) on the *next* invocation to validate and record
+    a decision for the stage just emitted before advancing:
+
+    - ``proceed`` (or any action not listed below): the target stage runs.
+    - ``abort``: the run stops here, exit 1, target stage does not run.
+    - ``retry_stage``: the *previous* stage re-runs instead of the target
+      (e.g. after ``--force-refresh`` for a fresh scrape).
+    - ``recover_source``: advisory only — the adapter is expected to have
+      already called ``recovery-inject`` for the named source before
+      retrying; this action just gets recorded, then the target stage runs.
+
+    An invalid/not-offered action, or a hard-violation/human-approval
+    conflict, is rejected deterministically by
+    :func:`~tournament_scheduler.application.decisions.decide` — the same
+    validator ``_judge_stage`` uses — before anything runs.
+
+    Single-attempt only: unlike ``rvv-miniputt run``, this does not run
+    Stage 3's multi-seed best-of-N retry loop or the post-Stage4 tone-gated
+    refinement pass. Once a plan looks good enough to finalize, either
+    accept it as-is or invoke the non-interactive ``run --resume-from 3``
+    for the full retry/refinement machinery.
+    """
+    import json as _json
+
+    from ..application.decisions import DecisionAction, decide, record_llm_decision
+    from ..llm_judge.prompts import build_decision_context
+    from ..pipeline.state import PipelineState, StageName
+
+    strict = not args.non_strict
+    resume_from = _resolve_resume_stage(getattr(args, "resume_from", None))
+    state = PipelineState(args.work_dir)
+
+    log_lines: list[str] = []
+
+    def _log(msg: str) -> None:
+        ts = datetime.now().strftime("%H:%M:%S")
+        log_lines.append(f"[{ts}] {msg}")
+
+    decision_payload: dict[str, Any] | None = None
+    if getattr(args, "decision_action", None):
+        try:
+            decision_payload = _json.loads(args.decision_action)
+        except _json.JSONDecodeError as exc:
+            _console.print(f"[red]✗[/red] Ugyldig --decision-action JSON: {exc}")
+            return 1
+    elif getattr(args, "decision_action_file", None):
+        try:
+            with open(args.decision_action_file, "r", encoding="utf-8") as fh:
+                decision_payload = _json.load(fh)
+        except (OSError, _json.JSONDecodeError) as exc:
+            _console.print(f"[red]✗[/red] Kunne ikke lese --decision-action-file: {exc}")
+            return 1
+
+    if decision_payload is not None:
+        prev_stage_num = resume_from - 1
+        if prev_stage_num < 1:
+            _console.print(
+                "[red]✗[/red] --decision-action krever --resume-from > 1 "
+                "(ingen forrige stage å avgjøre)."
+            )
+            return 1
+        prev_stage_name = list(StageName)[prev_stage_num - 1]
+        if not state.checkpoint_path(prev_stage_name).exists():
+            _console.print(f"[red]✗[/red] Fant ingen sjekkpunkt for Stage {prev_stage_num} å avgjøre.")
+            return 1
+        prev_checkpoint = state.read_stage(prev_stage_name)
+        prev_effective_config = None
+        if prev_stage_num == 1:
+            from ..pipeline.stage1_config import load_effective_config
+
+            prev_effective_config = load_effective_config(state, input_path=args.input)
+        prev_summary = _decision_summary_for_checkpoint(
+            prev_stage_num, prev_checkpoint, effective_config=prev_effective_config
+        )
+        prev_context = build_decision_context(_INTERACTIVE_STAGE_KEYS[prev_stage_num], prev_summary)
+        try:
+            decision_action = DecisionAction.from_dict(decision_payload)
+        except Exception as exc:
+            _console.print(f"[red]✗[/red] Ugyldig DecisionAction: {exc}")
+            return 1
+        decision_result = decide(prev_context, decision_action)
+        try:
+            record_llm_decision(str(state.work_dir), prev_context, decision_action, decision_result)
+        except Exception as exc:
+            _log(f"record_llm_decision failed: {exc}")
+        if not decision_result.accepted:
+            _console.print(
+                f"[red]✗[/red] Avgjørelse avvist: {decision_result.rejection_reason}"
+            )
+            return 1
+        if decision_action.action_id == "abort":
+            _console.print("[yellow]Avbrutt etter operatørens avgjørelse.[/yellow]")
+            return 1
+        if decision_action.action_id == "retry_stage":
+            resume_from = prev_stage_num
+
+    cfg, abort = _run_stage1(args, state, strict, _log, resume_from)
+    if abort:
+        return 1
+    if resume_from == 1:
+        return _emit_interactive_decision_context(1, state, args.work_dir, input_path=args.input)
+
+    start = datetime.strptime(cfg["start_date"], "%Y-%m-%d")
+    end = datetime.strptime(cfg["end_date"], "%Y-%m-%d")
+
+    scraping, abort, _stage2_failed = _run_stage2(args, cfg, state, start, end, strict, _log, resume_from)
+    if abort:
+        return 1
+    if resume_from == 2:
+        return _emit_interactive_decision_context(2, state, args.work_dir)
+
+    plan, abort, _stage3_failed = _run_stage3(args, cfg, scraping, state, start, end, strict, resume_from, _log)
+    if abort:
+        return 1
+    if resume_from == 3:
+        return _emit_interactive_decision_context(3, state, args.work_dir)
+
+    _generated_calendars, abort, _stage4_failed = _run_stage4_export(
+        args, plan, state, strict, _log, resume_from
+    )
+    if abort:
+        return 1
+    return _emit_interactive_decision_context(4, state, args.work_dir)
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt run`` — full pipeline stages 1→4 + HTML."""
+    if getattr(args, "interactive", False):
+        return _cmd_run_interactive(args)
+
     from ..pipeline.state import PipelineState
 
     strict = not args.non_strict

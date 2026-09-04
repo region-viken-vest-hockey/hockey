@@ -34,9 +34,35 @@ def test_build_decision_context_carries_facts_and_proceed_abort_vocabulary() -> 
     context = build_decision_context("scraping", {"sources_scanned": 10, "blocked": ["a", "b"]})
 
     assert context.capability == "scraping"
-    assert context.available_actions == ("proceed", "abort")
+    assert context.available_actions == (
+        "proceed",
+        "abort",
+        "retry_stage",
+        "request_operator",
+        "recover_source",
+    )
     assert context.facts["sources_scanned"] == 10
     assert context.facts["blocked_count"] == 2
+
+
+def test_build_decision_context_omits_recover_source_without_blocked_sources() -> None:
+    context = build_decision_context("scraping", {"sources_scanned": 10, "blocked": []})
+
+    assert "recover_source" not in context.available_actions
+
+
+def test_build_decision_context_offers_generic_actions_for_config_stage() -> None:
+    context = build_decision_context("config", {"sources": 5})
+
+    assert context.available_actions == ("proceed", "abort", "retry_stage", "request_operator")
+
+
+@pytest.mark.parametrize("stage_key", ["export", "stage4"])
+def test_build_decision_context_supports_export_stage(stage_key: str) -> None:
+    context = build_decision_context(stage_key, {"files_written": ["a.ics"], "errors": []})
+
+    assert context.capability == stage_key
+    assert context.facts["files_written"] == ["a.ics"]
 
 
 def test_build_decision_context_rejects_unknown_stage() -> None:
