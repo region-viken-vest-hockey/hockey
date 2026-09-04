@@ -116,17 +116,47 @@ def _pair_counts(slots: List[_Slot]) -> Dict[Tuple[TeamIdentity, TeamIdentity], 
     return counts
 
 
-def _objective(slots: List[_Slot], weights: Dict[str, float]) -> float:
+def _resolve_weights(
+    base_weights: Dict[str, float],
+    per_age_group: Optional[Dict[str, Dict[str, float]]],
+    age_group: str,
+) -> Dict[str, float]:
+    resolved = dict(base_weights)
+    if per_age_group and age_group in per_age_group:
+        resolved.update(per_age_group[age_group])
+    return resolved
+
+
+def _objective(
+    slots: List[_Slot],
+    base_weights: Dict[str, float],
+    per_age_group: Optional[Dict[str, Dict[str, float]]] = None,
+) -> float:
     total = 0.0
 
+    # Pairs, clustering and gaps are only ever computed *within* a single age
+    # group (teams from different age groups never share a tournament or a
+    # participation target), so each metric can be weighted per age group by
+    # attributing it to the age group its slot(s) belong to.
     pair_counts = _pair_counts(slots)
+    slots_by_age_group: Dict[str, List[_Slot]] = {}
+    for slot in slots:
+        slots_by_age_group.setdefault(slot.age_group, []).append(slot)
+
+    age_group_by_team: Dict[TeamIdentity, str] = {
+        identity: slot.age_group for slot in slots for identity in slot.team_ids
+    }
+
     for (a, b), count in pair_counts.items():
+        age_group = age_group_by_team.get(a, "")
+        weights = _resolve_weights(base_weights, per_age_group, age_group)
         if count > 1:
             total += weights["pair_repeat"] * (count - 1) ** 2
         if a[0] == b[0]:
             total += weights["same_club_pairing"] * count
 
     for slot in slots:
+        weights = _resolve_weights(base_weights, per_age_group, slot.age_group)
         club_counts: Dict[str, int] = {}
         for identity in slot.team_ids:
             club_counts[identity[0]] = club_counts.get(identity[0], 0) + 1
@@ -138,7 +168,8 @@ def _objective(slots: List[_Slot], weights: Dict[str, float]) -> float:
     for slot in slots:
         for identity in slot.team_ids:
             dates_by_team.setdefault(identity, []).append(slot.date)
-    for dates in dates_by_team.values():
+    for identity, dates in dates_by_team.items():
+        weights = _resolve_weights(base_weights, per_age_group, age_group_by_team.get(identity, ""))
         dates.sort()
         for prev, nxt in zip(dates, dates[1:]):
             gap = (nxt - prev).days
@@ -237,6 +268,7 @@ def optimize_candidate(
     iterations: int = 4000,
     seed: int = 0,
     weights: Optional[Dict[str, float]] = None,
+    per_age_group_weights: Optional[Dict[str, Dict[str, float]]] = None,
 ) -> Dict[str, Any]:
     """Locally optimize *candidate* by reassigning teams to its existing tournament slots.
 
@@ -247,6 +279,12 @@ def optimize_candidate(
     Every team's total participation count and every tournament's roster
     size are preserved exactly, by construction, since the search only ever
     swaps one team for another.
+
+    *weights* overrides :data:`DEFAULT_WEIGHTS` globally; *per_age_group_weights*
+    (``{age_group: {name: value}}``) additionally overrides specific weights
+    for a single age group on top of that, since different age groups can
+    need different tradeoffs between opponent diversity and turnaround
+    spacing (issue #257 follow-up).
 
     Deterministic for a given *seed*. Returns a new candidate dict; does not
     mutate *candidate*.
@@ -261,7 +299,7 @@ def optimize_candidate(
     if not slots or iterations <= 0:
         return dict(candidate)
 
-    current_score = _objective(slots, resolved_weights)
+    current_score = _objective(slots, resolved_weights, per_age_group_weights)
     best_score = current_score
 
     for step in range(iterations):
@@ -273,7 +311,7 @@ def optimize_candidate(
             continue
 
         _apply_swap(slots, slot_a, pos_a, slot_b, pos_b)
-        new_score = _objective(slots, resolved_weights)
+        new_score = _objective(slots, resolved_weights, per_age_group_weights)
         delta = new_score - current_score
 
         temperature = max(1e-6, 1.0 - step / iterations)
@@ -286,7 +324,7 @@ def optimize_candidate(
             # Revert: swapping the same pair back is its own inverse.
             _apply_swap(slots, slot_a, pos_a, slot_b, pos_b)
 
-    initial_score = _objective(_build_slots(candidate, problem)[0], resolved_weights)
+    initial_score = _objective(_build_slots(candidate, problem)[0], resolved_weights, per_age_group_weights)
     rebuilt_tournaments = [
         _rebuild_tournament(slot) if slot.changed else slot.tournament for slot in slots
     ]
@@ -302,5 +340,6 @@ def optimize_candidate(
         "seed": seed,
         "objective_before": initial_score,
         "objective_after": best_score,
+        "per_age_group_weights": per_age_group_weights or None,
     }
     return result

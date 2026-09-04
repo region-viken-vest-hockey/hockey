@@ -111,3 +111,56 @@ class TestOptimizeCandidate:
 
         optimized_by_id = {t["id"]: t for t in optimized["tournaments"]}
         assert optimized_by_id["tc"] == cancelled
+
+
+class TestPerAgeGroupWeights:
+    def test_resolve_weights_falls_back_to_base(self):
+        from tournament_scheduler.stage3_optimizer import DEFAULT_WEIGHTS, _resolve_weights
+
+        resolved = _resolve_weights(DEFAULT_WEIGHTS, {"JU12": {"gap_under_7": 99.0}}, "JU14")
+        assert resolved == DEFAULT_WEIGHTS
+
+    def test_resolve_weights_applies_age_group_override_on_top_of_base(self):
+        from tournament_scheduler.stage3_optimizer import DEFAULT_WEIGHTS, _resolve_weights
+
+        resolved = _resolve_weights(DEFAULT_WEIGHTS, {"JU12": {"gap_under_7": 99.0}}, "JU12")
+        assert resolved["gap_under_7"] == 99.0
+        assert resolved["pair_repeat"] == DEFAULT_WEIGHTS["pair_repeat"]
+
+    def test_objective_weights_each_age_group_independently(self):
+        from tournament_scheduler.stage3_optimizer import DEFAULT_WEIGHTS, _build_slots, _objective
+
+        two_group_candidate = {
+            "tournaments": [
+                *_clustered_candidate()["tournaments"],
+                _tournament(
+                    "u12-t1",
+                    "2026-01-05",
+                    "Arena2",
+                    "U12",
+                    [_team("Jar", "Jar 1", "U12"), _team("Kongsberg", "Kongsberg 1", "U12")],
+                ),
+                _tournament(
+                    "u12-t2",
+                    "2026-02-04",
+                    "Arena2",
+                    "U12",
+                    [_team("Jar", "Jar 1", "U12"), _team("Kongsberg", "Kongsberg 1", "U12")],
+                ),
+            ]
+        }
+        slots, _ = _build_slots(two_group_candidate, None)
+
+        baseline = _objective(slots, DEFAULT_WEIGHTS)
+        # Zeroing every U12 weight must remove exactly the U12 contribution
+        # (the repeated Jar-vs-Kongsberg pair and its zero-gap turnaround)
+        # while leaving the U10 contribution untouched.
+        zeroed_u12 = _objective(
+            slots, DEFAULT_WEIGHTS, {"U12": {name: 0.0 for name in DEFAULT_WEIGHTS}}
+        )
+        assert zeroed_u12 < baseline
+
+        u10_only = _objective(
+            [s for s in slots if s.age_group == "U10"], DEFAULT_WEIGHTS
+        )
+        assert zeroed_u12 == u10_only

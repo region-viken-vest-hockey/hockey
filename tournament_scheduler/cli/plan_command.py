@@ -24,15 +24,32 @@ def _load_json_file(path: str) -> Dict[str, Any]:
         return json.load(fh)
 
 
-def _parse_weight_overrides(raw: Any) -> Dict[str, float]:
-    """Parse repeated ``--weight NAME=VALUE`` args into a dict for ``optimize_candidate``."""
+def _parse_weight_overrides(raw: Any) -> "tuple[Dict[str, float], Dict[str, Dict[str, float]]]":
+    """Parse repeated ``--weight`` args into global and per-age-group overrides.
+
+    Accepts two forms:
+
+    - ``--weight NAME=VALUE`` — overrides the weight globally.
+    - ``--weight AGE_GROUP:NAME=VALUE`` — overrides the weight for just that
+      age group (issue #257 follow-up: a single global weight vector can't
+      resolve every age group's opponent-diversity/turnaround tradeoff, so
+      the CLI needs to be able to tune weights per age group).
+    """
     weights: Dict[str, float] = {}
+    per_age_group: Dict[str, Dict[str, float]] = {}
     for item in raw or []:
-        name, sep, value = item.partition("=")
+        scope, colon, rest = item.partition(":")
+        if not colon:
+            name, sep, value = item.partition("=")
+            if not sep:
+                raise ValueError(f"Invalid --weight {item!r}, expected NAME=VALUE or AGE_GROUP:NAME=VALUE")
+            weights[name.strip()] = float(value)
+            continue
+        name, sep, value = rest.partition("=")
         if not sep:
-            raise ValueError(f"Invalid --weight {item!r}, expected NAME=VALUE")
-        weights[name.strip()] = float(value)
-    return weights
+            raise ValueError(f"Invalid --weight {item!r}, expected NAME=VALUE or AGE_GROUP:NAME=VALUE")
+        per_age_group.setdefault(scope.strip(), {})[name.strip()] = float(value)
+    return weights, per_age_group
 
 
 def _cmd_plan(args: argparse.Namespace) -> int:
@@ -154,13 +171,18 @@ def _cmd_plan_optimize(args: argparse.Namespace) -> int:
             return 1
 
     try:
-        weight_overrides = _parse_weight_overrides(args.weights)
+        weight_overrides, per_age_group_weights = _parse_weight_overrides(args.weights)
     except ValueError as exc:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
 
     optimized = optimize_candidate(
-        candidate, problem, iterations=args.iterations, seed=args.seed, weights=weight_overrides or None
+        candidate,
+        problem,
+        iterations=args.iterations,
+        seed=args.seed,
+        weights=weight_overrides or None,
+        per_age_group_weights=per_age_group_weights or None,
     )
 
     payload = json.dumps(optimized, indent=2, ensure_ascii=False)
@@ -236,14 +258,19 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
         return 1
 
     try:
-        weight_overrides = _parse_weight_overrides(args.weights)
+        weight_overrides, per_age_group_weights = _parse_weight_overrides(args.weights)
     except ValueError as exc:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
 
     problem = build_planning_problem(config, scraping_result, start_date, end_date)
     new_candidate = optimize_candidate(
-        old_candidate, problem, iterations=args.iterations, seed=args.seed, weights=weight_overrides or None
+        old_candidate,
+        problem,
+        iterations=args.iterations,
+        seed=args.seed,
+        weights=weight_overrides or None,
+        per_age_group_weights=per_age_group_weights or None,
     )
 
     report = build_ab_report(old_candidate, new_candidate, problem)

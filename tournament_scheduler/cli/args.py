@@ -1320,8 +1320,9 @@ def build_parser() -> argparse.ArgumentParser:
         dest="weights",
         default=None,
         metavar="NAME=VALUE",
-        help="Override one objective weight (e.g. --weight gap_under_7=8.0); "
-        "repeatable. See stage3_optimizer.DEFAULT_WEIGHTS for the tunable names",
+        help="Override one objective weight (e.g. --weight gap_under_7=8.0), or just one "
+        "age group's weight (e.g. --weight JU12:same_club_pairing=1.5); repeatable. "
+        "See stage3_optimizer.DEFAULT_WEIGHTS for the tunable names",
     )
 
     plan_ab = plan_sub.add_parser(
@@ -1373,7 +1374,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="NAME=VALUE",
         help="Override one optimizer objective weight for the new candidate "
-        "(e.g. --weight gap_under_7=8.0); repeatable. See "
+        "(e.g. --weight gap_under_7=8.0), or just one age group's weight "
+        "(e.g. --weight JU12:same_club_pairing=1.5); repeatable. See "
         "stage3_optimizer.DEFAULT_WEIGHTS for the tunable names",
     )
 
