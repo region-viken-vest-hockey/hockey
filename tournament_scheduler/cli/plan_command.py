@@ -66,7 +66,14 @@ def _cmd_plan(args: argparse.Namespace) -> int:
         return _cmd_plan_ab(args)
     if args.plan_command == "ab-participants":
         return _cmd_plan_ab_participants(args)
-    _console.print("[yellow]Bruk: rvv-miniputt plan verify|score|problem|optimize|ab|ab-participants[/yellow]")
+    if args.plan_command == "decision-context":
+        return _cmd_plan_decision_context(args)
+    if args.plan_command == "decide":
+        return _cmd_plan_decide(args)
+    _console.print(
+        "[yellow]Bruk: rvv-miniputt plan verify|score|problem|optimize|ab|ab-participants|"
+        "decision-context|decide[/yellow]"
+    )
     return 1
 
 
@@ -456,6 +463,142 @@ def _cmd_plan_ab_participants(args: argparse.Namespace) -> int:
             _console.print(f"    [dim]{schedule_repair_source['reason']}[/dim]")
 
     return 0 if report["dominates_baseline"] else 1
+
+
+def _resolve_run_id(explicit: "str | None", work_dir: str) -> str:
+    """Default ``--run-id`` to the active run manifest's run_id, if any."""
+    if explicit:
+        return explicit
+    try:
+        from ..pipeline.run_manifest import RunManifest
+
+        return str(RunManifest(work_dir).read().get("run_id") or "")
+    except Exception:
+        return ""
+
+
+def _cmd_plan_decision_context(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt plan decision-context`` (issue #260 Phase 4).
+
+    Builds and prints the :class:`DecisionContext` for an old-vs-new Stage 3
+    A/B report (``plan ab``/``plan ab-participants`` output), so an
+    LLM/agent controller can choose ``apply_candidate``/``keep_baseline``/
+    ``optimize_plan``/``request_operator`` instead of a Python quality
+    heuristic deciding automatically.
+    """
+    from ..stage3_decision import build_stage3_decision_context
+
+    try:
+        report = _load_json_file(args.ab_report)
+    except (OSError, json.JSONDecodeError) as exc:
+        _console.print(f"[red]✗[/red] Kunne ikke lese ab-rapport: {exc}")
+        return 1
+
+    context = build_stage3_decision_context(
+        report,
+        run_id=_resolve_run_id(args.run_id, args.work_dir),
+        baseline_ref=args.baseline_ref,
+        candidate_ref=args.candidate_ref,
+        objective=args.objective or "",
+    )
+    payload = json.dumps(context.to_dict(), indent=2, ensure_ascii=False)
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as fh:
+            fh.write(payload)
+        _console.print(f"[green]✓[/green] Skrev decision_context.json til {args.output}")
+    else:
+        print(payload)
+    return 0
+
+
+def _cmd_plan_decide(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt plan decide`` (issue #260 Phase 4).
+
+    Validates one :class:`DecisionAction` against the :class:`DecisionContext`
+    built from *ab_report* using the same deterministic validator
+    ``_judge_stage``/the interactive stage loop use
+    (:func:`application.decisions.decide`), records it into the run
+    manifest's ``decision_log``, and — only when the action is accepted —
+    executes it: ``apply_candidate`` swaps the Stage 3 checkpoint's plan for
+    the new candidate; ``keep_baseline``/``optimize_plan``/``request_operator``
+    are recorded but do not touch pipeline state (the caller re-runs ``plan
+    optimize``/``plan ab`` or escalates, as directed).
+
+    A hard-violation or human-approval conflict, an unknown action, or a
+    missing required argument (e.g. ``apply_candidate`` without
+    ``--candidate``) is rejected before anything executes — an LLM response
+    cannot bypass the verifier by prose.
+    """
+    from ..application.decisions import DecisionAction, decide, record_llm_decision
+    from ..stage3_decision import apply_stage3_candidate, build_stage3_decision_context
+
+    try:
+        report = _load_json_file(args.ab_report)
+    except (OSError, json.JSONDecodeError) as exc:
+        _console.print(f"[red]✗[/red] Kunne ikke lese ab-rapport: {exc}")
+        return 1
+
+    context = build_stage3_decision_context(
+        report,
+        run_id=_resolve_run_id(args.run_id, args.work_dir),
+        baseline_ref=args.baseline_ref,
+        candidate_ref=args.candidate_ref,
+        objective=args.objective or "",
+    )
+
+    arguments: Dict[str, Any] = {}
+    if args.action == "apply_candidate":
+        candidate_ref = args.candidate_ref or args.candidate
+        if candidate_ref:
+            arguments["candidate_ref"] = candidate_ref
+    elif args.action == "request_operator":
+        if args.question:
+            arguments["question"] = args.question
+
+    action = DecisionAction(
+        action_id=args.action,
+        target=args.target or "",
+        arguments=arguments,
+        rationale=args.rationale or "",
+    )
+    result = decide(context, action)
+    try:
+        record_llm_decision(args.work_dir, context, action, result)
+    except Exception as exc:
+        _console.print(f"[yellow]⚠[/yellow] Kunne ikke lagre avgjørelsen i run manifest: {exc}")
+
+    if not result.accepted:
+        _console.print(f"[red]✗[/red] Avgjørelse avvist: {result.rejection_reason}")
+        if args.json:
+            print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+        return 1
+
+    if action.action_id == "apply_candidate":
+        if not args.candidate:
+            _console.print("[red]✗[/red] --candidate (sti til candidate.json) kreves for apply_candidate.")
+            return 1
+        from ..planning_contract import extract_candidate
+
+        try:
+            candidate = extract_candidate(_load_json_file(args.candidate))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            _console.print(f"[red]✗[/red] Kunne ikke lese kandidatplan: {exc}")
+            return 1
+        apply_stage3_candidate(args.work_dir, candidate)
+        _console.print("[green]✓[/green] Ny kandidat skrevet til Stage 3-sjekkpunktet.")
+    elif action.action_id == "keep_baseline":
+        _console.print("[dim]Baseline beholdes — Stage 3-sjekkpunktet er uendret.[/dim]")
+    elif action.action_id == "optimize_plan":
+        _console.print(
+            "[dim]Avgjørelse registrert: kjør 'plan optimize'/'plan ab' på nytt med justerte "
+            "innstillinger for en ny kandidat.[/dim]"
+        )
+    elif action.action_id == "request_operator":
+        _console.print("[dim]Avgjørelse registrert: ber operatør om avklaring.[/dim]")
+
+    if args.json:
+        print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    return 0
 
 
 def _cmd_plan_problem(args: argparse.Namespace) -> int:

@@ -1472,6 +1472,127 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip the schedule-conflict repair pass; only optimize team assignments",
     )
 
+    # plan decision-context / plan decide — Stage 3 optimizer as an
+    # LLM-directed decision (issue #260 Phase 4). Turns a "plan ab"/
+    # "plan ab-participants" report into a DecisionContext, and validates +
+    # records + (when accepted) executes the LLM's chosen DecisionAction,
+    # instead of a Python quality heuristic deciding automatically.
+    plan_decision_context = plan_sub.add_parser(
+        "decision-context",
+        help="Build the DecisionContext for an old-vs-new Stage 3 A/B report, for an "
+        "LLM/agent controller to choose apply_candidate/keep_baseline/optimize_plan/"
+        "request_operator (issue #260 Phase 4)",
+    )
+    plan_decision_context.add_argument(
+        "ab_report",
+        help="Path to an ab_report.json written by 'plan ab'/'plan ab-participants' "
+        "(--output-dir)",
+    )
+    plan_decision_context.add_argument(
+        "--work-dir",
+        default=".pipeline",
+        help="Pipeline work directory, used to default --run-id from the active run "
+        "manifest (default: .pipeline)",
+    )
+    plan_decision_context.add_argument(
+        "--run-id",
+        default=None,
+        help="Run id to stamp on the DecisionContext; defaults to the active run "
+        "manifest's run_id",
+    )
+    plan_decision_context.add_argument(
+        "--baseline-ref",
+        default=None,
+        help="Reference (e.g. path) to the baseline candidate, carried through unchanged",
+    )
+    plan_decision_context.add_argument(
+        "--candidate-ref",
+        default=None,
+        help="Reference (e.g. path) to the new candidate, carried through unchanged",
+    )
+    plan_decision_context.add_argument(
+        "--objective",
+        default=None,
+        help="Override the default decision objective text",
+    )
+    plan_decision_context.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="Write the DecisionContext JSON to this path instead of stdout",
+    )
+
+    plan_decide = plan_sub.add_parser(
+        "decide",
+        help="Validate, record, and (when accepted) execute a DecisionAction against an "
+        "old-vs-new Stage 3 A/B report (issue #260 Phase 4)",
+    )
+    plan_decide.add_argument(
+        "ab_report",
+        help="Path to an ab_report.json written by 'plan ab'/'plan ab-participants' "
+        "(--output-dir)",
+    )
+    plan_decide.add_argument(
+        "--action",
+        required=True,
+        choices=["apply_candidate", "keep_baseline", "optimize_plan", "request_operator"],
+        help="The DecisionAction to validate and execute",
+    )
+    plan_decide.add_argument(
+        "--rationale",
+        default=None,
+        help="Concise rationale to record for this decision (never chain-of-thought)",
+    )
+    plan_decide.add_argument(
+        "--target",
+        default=None,
+        help="Optional DecisionAction target (e.g. age group), recorded for audit",
+    )
+    plan_decide.add_argument(
+        "--candidate",
+        default=None,
+        help="Path to the new candidate.json; required for --action apply_candidate, which "
+        "writes it into the Stage 3 checkpoint's plan",
+    )
+    plan_decide.add_argument(
+        "--question",
+        default=None,
+        help="Question to record for --action request_operator",
+    )
+    plan_decide.add_argument(
+        "--work-dir",
+        default=".pipeline",
+        help="Pipeline work directory whose Stage 3 checkpoint/run manifest this decision "
+        "applies to (default: .pipeline)",
+    )
+    plan_decide.add_argument(
+        "--run-id",
+        default=None,
+        help="Run id to stamp on the DecisionContext; defaults to the active run "
+        "manifest's run_id",
+    )
+    plan_decide.add_argument(
+        "--baseline-ref",
+        default=None,
+        help="Reference (e.g. path) to the baseline candidate, carried through unchanged",
+    )
+    plan_decide.add_argument(
+        "--candidate-ref",
+        default=None,
+        help="Reference (e.g. path) to the new candidate, carried through unchanged "
+        "(defaults to --candidate for apply_candidate)",
+    )
+    plan_decide.add_argument(
+        "--objective",
+        default=None,
+        help="Override the default decision objective text",
+    )
+    plan_decide.add_argument(
+        "--json",
+        action="store_true",
+        help="Also print the DecisionResult as JSON",
+    )
+
     plan_problem = plan_sub.add_parser(
         "problem",
         help="Emit a normalized planning_problem.json from the Stage 1/2 checkpoints",
