@@ -443,8 +443,20 @@ def scan_hosting_warnings(planner, plan: SeasonPlan) -> None:
         return
 
     breakdown = hosting_fairness_breakdown(planner, plan)
+    # A club with no scraped calendar distorts every other club's expected
+    # share in the same age group (see hosting_fairness_breakdown's
+    # missing_calendar_clubs note: those clubs still count toward the
+    # proportional target, but we can't yet confirm they can actually host
+    # it). Don't fire a firm imbalance warning for an age group affected by
+    # that uncertainty — the note already surfaces it for manual follow-up.
+    missing_calendar_clubs = set(breakdown.get("missing_calendar_clubs", []))
+    age_groups_with_missing_calendar_clubs = {
+        team.age_group for team in planner.roster.teams if team.club in missing_calendar_clubs
+    }
     for row in breakdown.get("age_group_breakdown", []):
         if not isinstance(row, dict):
+            continue
+        if row.get("age_group") in age_groups_with_missing_calendar_clubs:
             continue
         deviation = float(row.get("deviation", 0.0) or 0.0)
         if deviation > planner.max_hosting_deviation:
