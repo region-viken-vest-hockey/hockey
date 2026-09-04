@@ -133,17 +133,39 @@ def build_ab_report(
     # A hard-constraint regression is specifically: old passed, new fails.
     hard_constraint_regressed = old_verification["ok"] and not new_verification["ok"]
 
-    promotable = (
-        new_verification["ok"]
-        and not hard_constraint_regressed
+    # A whole-season aggregate can improve while a single age group
+    # regresses (the aggregate averages over groups). Promotion must look at
+    # *every* age group's regressions, not just the overall comparison —
+    # otherwise a regression hidden inside one group is masked by
+    # improvements in another (issue #257 Task 1).
+    per_age_group_regressions = {
+        age_group: entry["comparison"]["regressions"]
+        for age_group, entry in by_age_group.items()
+        if entry["comparison"]["regressions"]
+    }
+
+    # dominates_baseline: no new hard violations, and no protected quality
+    # regression anywhere — overall or in any single age group.
+    dominates_baseline = (
+        not hard_constraint_regressed
         and not overall_comparison["regressions"]
+        and not per_age_group_regressions
     )
+
+    # production_ready: the candidate is dominant AND passes the verifier
+    # outright (zero hard violations of its own, not merely "no worse than
+    # baseline" — the baseline itself may carry pre-existing violations).
+    production_ready = dominates_baseline and new_verification["ok"]
 
     return {
         "old": {"verification": old_verification, "score": old_overall},
         "new": {"verification": new_verification, "score": new_overall},
         "overall_comparison": overall_comparison,
         "by_age_group": by_age_group,
+        "per_age_group_regressions": per_age_group_regressions,
         "hard_constraint_regressed": hard_constraint_regressed,
-        "promotable": promotable,
+        "dominates_baseline": dominates_baseline,
+        "production_ready": production_ready,
+        # Deprecated alias for production_ready, kept for existing callers.
+        "promotable": production_ready,
     }

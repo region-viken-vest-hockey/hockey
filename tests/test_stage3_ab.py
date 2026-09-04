@@ -53,12 +53,16 @@ class TestBuildAbReport:
         assert report["new"]["verification"]["ok"]
         assert not report["hard_constraint_regressed"]
         assert report["promotable"], report["overall_comparison"]["regressions"]
+        assert report["dominates_baseline"]
+        assert report["production_ready"]
 
     def test_identical_candidates_have_no_regressions(self):
         candidate = _clustered_candidate()
         report = build_ab_report(candidate, dict(candidate))
         assert report["overall_comparison"]["regressions"] == []
         assert report["promotable"]
+        assert report["dominates_baseline"]
+        assert report["production_ready"]
 
     def test_worse_new_candidate_is_flagged_as_regression(self):
         old_candidate = _clustered_candidate()
@@ -90,6 +94,60 @@ class TestBuildAbReport:
         assert u10["old"]["opponent_diversity"] == report["old"]["score"]["opponent_diversity"]
         assert u10["new"]["opponent_diversity"] == report["new"]["score"]["opponent_diversity"]
 
+    def test_dominates_baseline_false_when_one_age_group_regresses_but_aggregate_does_not(self):
+        """A whole-season aggregate can hide a single age group's regression.
+
+        U10 gets strictly more diverse opponent pairings, U11 gets strictly
+        less diverse — same dates/arenas on both sides, so only the pairing
+        (not turnaround/hosting) changes. The aggregate score, averaged
+        across both groups, shows zero regressions even though U11 alone
+        regressed — issue #257 Task 1.
+        """
+
+        def _group(age_group: str, ids: "list[int]") -> "list[dict]":
+            return [_team(f"Club{age_group}{n}", f"{age_group}T{n}", age_group) for n in ids]
+
+        dates = ["2026-01-05", "2026-02-04", "2026-03-06", "2026-04-05"]
+        arenas = ["Arena1", "Arena1", "Arena5", "Arena5"]
+
+        def _make(age_group: str, id_groups: "list[list[int]]") -> dict:
+            return {
+                "schema_version": 1,
+                "tournaments": [
+                    _tournament(f"{age_group}-t{i}", d, arena, age_group, _group(age_group, ids))
+                    for i, (ids, d, arena) in enumerate(zip(id_groups, dates, arenas))
+                ],
+            }
+
+        # U10: old repeats each group's pairs twice; new spreads into mixed
+        # groups so more unique pairs appear — strictly more diverse.
+        u10_old = _make("U10", [[1, 2, 3, 4], [1, 2, 3, 4], [5, 6, 7, 8], [5, 6, 7, 8]])
+        u10_new = _make("U10", [[1, 2, 3, 4], [1, 2, 5, 6], [3, 4, 7, 8], [5, 6, 7, 8]])
+
+        # U11: the mirror image — old is already mixed/diverse, new collapses
+        # back to two isolated repeating groups — strictly less diverse.
+        u11_old = _make("U11", [[1, 2, 3, 4], [1, 2, 5, 6], [3, 4, 7, 8], [5, 6, 7, 8]])
+        u11_new = _make("U11", [[1, 2, 3, 4], [1, 2, 3, 4], [5, 6, 7, 8], [5, 6, 7, 8]])
+
+        old_candidate = {
+            "schema_version": 1,
+            "tournaments": u10_old["tournaments"] + u11_old["tournaments"],
+        }
+        new_candidate = {
+            "schema_version": 1,
+            "tournaments": u10_new["tournaments"] + u11_new["tournaments"],
+        }
+
+        report = build_ab_report(old_candidate, new_candidate)
+
+        assert not report["overall_comparison"]["regressions"], (
+            "test setup should show an aggregate improvement despite the U11 regression"
+        )
+        assert "U11" in report["per_age_group_regressions"]
+        assert not report["dominates_baseline"]
+        assert not report["production_ready"]
+        assert not report["promotable"]
+
     def test_hard_constraint_regression_blocks_promotion(self):
         old_candidate = _clustered_candidate()
         broken = dict(old_candidate)
@@ -105,4 +163,31 @@ class TestBuildAbReport:
         report = build_ab_report(old_candidate, broken)
 
         assert report["hard_constraint_regressed"]
+        assert not report["promotable"]
+        assert not report["dominates_baseline"]
+        assert not report["production_ready"]
+
+    def test_pre_existing_violation_dominates_baseline_but_not_production_ready(self):
+        """dominates_baseline only asks for "no worse than baseline"; a
+        candidate that keeps a pre-existing baseline violation dominates but
+        must not be reported production_ready — issue #257 Task 1.
+        """
+        old_candidate = _clustered_candidate()
+        broken_tournaments = [dict(t) for t in old_candidate["tournaments"]]
+        broken_tournaments[0] = dict(broken_tournaments[0])
+        broken_tournaments[0]["teams"] = broken_tournaments[0]["teams"] + [
+            broken_tournaments[0]["teams"][0]
+        ]
+        # Same duplicate-participation violation on both sides — not a new
+        # regression, just an inherited pre-existing problem.
+        old_broken = dict(old_candidate)
+        old_broken["tournaments"] = broken_tournaments
+        new_broken = dict(old_broken)
+
+        report = build_ab_report(old_broken, new_broken)
+
+        assert not report["hard_constraint_regressed"]
+        assert not report["new"]["verification"]["ok"]
+        assert report["dominates_baseline"]
+        assert not report["production_ready"]
         assert not report["promotable"]

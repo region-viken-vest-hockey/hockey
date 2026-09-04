@@ -321,10 +321,15 @@ def _print_ab_report(report: Dict[str, Any]) -> None:
         _console.print(f"  {age_group}: {status}" + (f" ({', '.join(regressions)})" if regressions else ""))
 
     _console.print()
-    if report["promotable"]:
-        _console.print("[green]✓ Ny kandidat kan forfremmes: ingen regresjoner mot baseline.[/green]")
+    if report["dominates_baseline"]:
+        _console.print("[green]✓ dominates_baseline: ingen nye harde brudd, ingen kvalitetsregresjon (helhet eller per aldersgruppe).[/green]")
     else:
-        _console.print("[yellow]![/yellow] Ny kandidat kan IKKE forfremmes ennå — se regresjoner over.")
+        _console.print("[yellow]✗ dominates_baseline: false[/yellow] — se regresjoner over.")
+    if report["production_ready"]:
+        _console.print("[green]✓ production_ready: kandidaten består verifikator uten brudd og kan forfremmes.[/green]")
+    else:
+        reason = "består ikke verifikator uten brudd" if not report["new"]["verification"]["ok"] else "dominerer ikke baseline"
+        _console.print(f"[yellow]✗ production_ready: false[/yellow] ({reason}).")
 
 
 def _cmd_plan_problem(args: argparse.Namespace) -> int:
