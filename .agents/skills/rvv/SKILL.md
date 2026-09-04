@@ -112,6 +112,51 @@ committed/pushed and the public URL is verified after the run.
 3. **Planning** — builds a season plan with constraint-solving
 4. **Export** — outputs Excel, iCal, CSV, and HTML
 
+## Stage gating policy (soft judgment)
+
+This is the canonical soft-policy source for the proceed/abort decision an
+agent or the headless judge makes after each stage (see ADR 0002 —
+`docs/adr/0002-llm-directed-decision-ownership-and-thin-adapters.md`).
+Interactive harnesses and the headless `tournament_scheduler.llm_judge`
+path must use this policy rather than defining their own criteria — the
+decision protocol is `DecisionContext` (facts + violations + warnings) in,
+a `proceed` or `abort` `DecisionAction` out
+(`tournament_scheduler.application.decisions`). A hard violation in the
+context always blocks `proceed`, regardless of this policy.
+
+### Stage 1 — Configuration
+
+- `proceed` when at least one calendar source is configured and the date
+  range is a realistic hockey season window.
+- `abort` when no sources are configured, or the date range is clearly
+  wrong (e.g. zero-length, reversed, or outside a plausible season).
+
+### Stage 2 — Scraping
+
+- `proceed` when most configured sources were scraped successfully.
+- `abort` when so many sources are blocked or empty that planning would be
+  meaningless — as a starting heuristic, fewer than half the sources have
+  usable data. Prefer `recover_source` / `retry_stage` over an outright
+  `abort` when a blocked source looks recoverable (see BookUp session
+  guidance below) before concluding the run cannot continue.
+
+### Stage 3 — Planning
+
+- `proceed` when the draft plan contains at least a handful of tournaments
+  covering the configured clubs/age groups.
+- `abort` when the plan is empty or clearly wrong (e.g. zero tournaments
+  planned despite configured sources/registrations) — that usually
+  indicates a configuration or upstream data error, not a planning-quality
+  judgment call.
+
+Planning-quality tradeoffs (which warning to address first, whether a
+small regression is worth a larger gain, whether to keep the baseline)
+are the agent's soft judgment to make once past this proceed/abort gate —
+see `docs/adr/0002-llm-directed-decision-ownership-and-thin-adapters.md`
+for the full decision-ownership boundary. Do not encode a new fixed
+threshold or magic weight here to answer one of those tradeoffs; expose
+the underlying facts/metrics instead.
+
 ## LLM-driven scraping (ScraperAgent)
 
 When deterministic scraping fails for a source, the ScraperAgent in `.pi/lib/scraper-agent.ts` handles it:

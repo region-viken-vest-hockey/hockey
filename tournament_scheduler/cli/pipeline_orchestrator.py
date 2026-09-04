@@ -143,7 +143,9 @@ def _judge_stage(
     ``state.write_judgment`` so it appears in ``.pipeline/stage*.json``.
     """
     import os as _os
-    from ..llm_judge import build_stage_prompt, get_judge_if_headless
+
+    from ..application.decisions import DecisionAction, decide, record_llm_decision
+    from ..llm_judge import build_decision_context, build_stage_prompt, get_judge_if_headless
 
     try:
         judge = get_judge_if_headless()
@@ -157,9 +159,12 @@ def _judge_stage(
     backend_name = _os.environ.get("RVV_JUDGE_BACKEND", "unknown")
     stage_key = _STAGE_NAMES.get(stage_num, f"stage{stage_num}")
     try:
+        decision_context = build_decision_context(stage_key, checkpoint_summary)
         prompt = build_stage_prompt(stage_key, checkpoint_summary)
     except ValueError:
-        # Unknown stage — fall back to a generic prompt.
+        # Unknown stage — fall back to a generic prompt and no decision context
+        # (the decision-contract audit trail is skipped for unrecognised stages).
+        decision_context = None
         prompt = (
             f"Pipeline stage {stage_num} completed. "
             f"Summary: {checkpoint_summary}. "
@@ -195,6 +200,26 @@ def _judge_stage(
             )
         except Exception as exc:
             log_fn(f"Stage {stage_num} write_judgment failed: {exc}")
+
+    if decision_context is not None:
+        action_id = "abort" if verdict_keyword.upper().startswith("ABORT") else "proceed"
+        decision_action = DecisionAction(action_id=action_id, rationale=reasoning or verdict_raw)
+        decision_result = decide(decision_context, decision_action)
+        try:
+            record_llm_decision(str(state.work_dir), decision_context, decision_action, decision_result)
+        except Exception as exc:
+            log_fn(f"Stage {stage_num} record_llm_decision failed: {exc}")
+        if not decision_result.accepted:
+            # Deterministic validator rejected the LLM's action (e.g. it
+            # is not one of the vocabulary this context offers) — this
+            # cannot happen for proceed/abort today, but stay safe rather
+            # than silently trusting an unvalidated verdict.
+            log_fn(f"Stage {stage_num} decision rejected: {decision_result.rejection_reason}")
+            _console.print(
+                f"  [red]✗ Ugyldig dommeravgjørelse etter Stage {stage_num}:[/red] "
+                f"{decision_result.rejection_reason}"
+            )
+            return False
 
     if verdict_keyword.upper().startswith("ABORT"):
         _console.print(f"  [red]✗ Headless dommer avbrøt etter Stage {stage_num}:[/red] {verdict_raw}")

@@ -274,6 +274,38 @@ class RunManifest:
         self._write(manifest)
         return entry
 
+    def record_decision(
+        self,
+        *,
+        context: dict[str, Any],
+        action: dict[str, Any],
+        result: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Append one LLM-directed soft decision (issue #260) to ``decision_log``.
+
+        Distinct from :meth:`record_action_transition`'s deterministic
+        observe-decide-act loop (issue #11), whose actions are selected by a
+        stable ``policy_rule``: entries here originate from an LLM/agent
+        controller choosing a ``DecisionAction`` over a ``DecisionContext``
+        (``tournament_scheduler.application.decisions``), after deterministic
+        validation. Takes plain dicts (each type's ``to_dict()``) rather than
+        the application-layer dataclasses themselves, since this module must
+        not import the application layer. Only the concise rationale is
+        persisted — never chain-of-thought.
+        """
+        manifest = self.read()
+        now = _now_iso()
+        entry = {
+            "context": dict(context),
+            "action": dict(action),
+            "result": dict(result),
+            "recorded_at": now,
+        }
+        manifest.setdefault("decision_log", []).append(entry)
+        manifest["updated_at"] = now
+        self._write(manifest)
+        return entry
+
     def finalize(self, outcome: str) -> None:
         """Mark the run as finished with a terminal outcome.
 

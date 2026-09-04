@@ -1,10 +1,15 @@
 """Stage-specific prompt builders for inter-stage headless pipeline judgment.
 
 Each builder produces a concise, structured prompt that describes what the
-stage produced and asks whether the pipeline should continue.  The prompts
-are designed to work with any LLM backend — they include enough context to
-make a meaningful PROCEED / ABORT decision without requiring the judge to
-know the codebase.
+stage produced and asks whether the pipeline should continue. The
+evaluation criteria are **not** defined here: per issue #260 / ADR 0002,
+``.agents/skills/rvv/SKILL.md`` ("Stage gating policy" section) is the
+single canonical soft-policy source for both interactive harnesses and
+this headless judge path. This module only assembles the deterministic
+facts (a :class:`~tournament_scheduler.application.decisions.DecisionContext`)
+and quotes the matching policy section — it must not carry its own
+independent thresholds (e.g. "most sources" / "fewer than half") that
+could drift from the canonical policy.
 
 Usage::
 
@@ -16,123 +21,176 @@ Usage::
 
 from __future__ import annotations
 
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
+from ..application.decisions import DecisionContext
 
 # ---------------------------------------------------------------------------
-# Stage template registry
+# Canonical shared policy (.agents/skills/rvv/SKILL.md)
 # ---------------------------------------------------------------------------
 
-def _build_config_prompt(summary: dict[str, Any]) -> str:
-    sources = summary.get("sources", summary.get("source_count", "?"))
-    start = summary.get("start_date", "?")
-    end = summary.get("end_date", "?")
-    age_groups = summary.get("age_groups", [])
-    clubs = summary.get("clubs", [])
+_SKILL_MD_PATH = Path(__file__).resolve().parents[2] / ".agents" / "skills" / "rvv" / "SKILL.md"
+_POLICY_SECTION_HEADING = "## Stage gating policy (soft judgment)"
 
-    lines = [
-        "PIPELINE STAGE: Configuration (Stage 1)",
-        "",
-        "The pipeline has loaded its input configuration file and validated it.",
-        "Key metrics:",
-        f"  - Calendar sources configured: {sources}",
-        f"  - Date range: {start} → {end}",
-    ]
-    if age_groups:
-        lines.append(f"  - Age groups: {', '.join(str(a) for a in age_groups)}")
-    if clubs:
-        lines.append(f"  - Clubs: {', '.join(str(c) for c in clubs)}")
-
-    lines += [
-        "",
-        "Evaluation criteria: Does the configuration look plausible?",
-        "  - At least one calendar source should be configured.",
-        "  - The date range should be a realistic hockey season window.",
-        "",
-        "Respond with exactly one of:",
-        "  PROCEED — configuration looks valid, continue to Stage 2 (scraping)",
-        "  ABORT   — there is a problem; briefly explain after the keyword",
-    ]
-    return "\n".join(lines)
-
-
-def _build_scraping_prompt(summary: dict[str, Any]) -> str:
-    n = summary.get("sources_scanned", summary.get("sources", "?"))
-    blocked = summary.get("blocked", [])
-    n_blocked = len(blocked) if isinstance(blocked, list) else blocked
-    llm_fallback = summary.get("llm_fallback", [])
-    n_llm = len(llm_fallback) if isinstance(llm_fallback, list) else llm_fallback
-
-    lines = [
-        "PIPELINE STAGE: Calendar Scraping (Stage 2)",
-        "",
-        "The pipeline has attempted to scrape calendar data from all configured sources.",
-        "Key metrics:",
-        f"  - Sources scanned: {n}",
-        f"  - Blocked / unavailable: {n_blocked}",
-        f"  - Needing LLM fallback: {n_llm}",
-    ]
-    if isinstance(blocked, list) and blocked:
-        lines.append(f"  - Blocked source names: {', '.join(str(b) for b in blocked)}")
-
-    lines += [
-        "",
-        "Evaluation criteria: Is there enough data to proceed to planning?",
-        "  - PROCEED if most sources were scraped successfully.",
-        "  - ABORT if so many sources are blocked that planning would be meaningless",
-        "    (e.g. fewer than half the sources have data).",
-        "",
-        "Respond with exactly one of:",
-        "  PROCEED — enough calendar data was collected, continue to Stage 3 (planning)",
-        "  ABORT   — too many sources are missing; briefly explain after the keyword",
-    ]
-    return "\n".join(lines)
-
-
-def _build_planning_prompt(summary: dict[str, Any]) -> str:
-    n_tournaments = summary.get("tournaments_planned", summary.get("n_tournaments", "?"))
-    clubs = summary.get("clubs_covered", [])
-    age_groups = summary.get("age_groups_covered", [])
-    warnings = summary.get("warnings", [])
-
-    lines = [
-        "PIPELINE STAGE: Season Planning (Stage 3)",
-        "",
-        "The pipeline has generated a draft season plan assigning tournaments to",
-        "weekends and arenas for the RVV (Region Viken Vest) youth hockey clubs.",
-        "Key metrics:",
-        f"  - Tournaments planned: {n_tournaments}",
-    ]
-    if clubs:
-        lines.append(f"  - Clubs covered: {', '.join(str(c) for c in clubs)}")
-    if age_groups:
-        lines.append(f"  - Age groups covered: {', '.join(str(a) for a in age_groups)}")
-    if warnings:
-        lines.append(f"  - Planning warnings: {len(warnings)}")
-        for w in warnings[:5]:
-            lines.append(f"      • {w}")
-
-    lines += [
-        "",
-        "Evaluation criteria: Does the plan look reasonable?",
-        "  - There should be at least a handful of tournaments in the plan.",
-        "  - A zero-tournament plan likely indicates a configuration or data error.",
-        "",
-        "Respond with exactly one of:",
-        "  PROCEED — the plan looks reasonable, continue to Stage 4 (export)",
-        "  ABORT   — the plan is empty or clearly wrong; briefly explain after the keyword",
-    ]
-    return "\n".join(lines)
-
-
-_BUILDERS = {
-    "config": _build_config_prompt,
-    "stage1": _build_config_prompt,
-    "scraping": _build_scraping_prompt,
-    "stage2": _build_scraping_prompt,
-    "planning": _build_planning_prompt,
-    "stage3": _build_planning_prompt,
+_STAGE_POLICY_HEADINGS: dict[str, str] = {
+    "config": "### Stage 1 — Configuration",
+    "stage1": "### Stage 1 — Configuration",
+    "scraping": "### Stage 2 — Scraping",
+    "stage2": "### Stage 2 — Scraping",
+    "planning": "### Stage 3 — Planning",
+    "stage3": "### Stage 3 — Planning",
 }
+
+# Fallback text used only if SKILL.md is unreadable or has drifted away
+# from the expected headings — keeps the judge functional, but should not
+# happen in a normal checkout.
+_FALLBACK_POLICY = (
+    "Canonical policy at .agents/skills/rvv/SKILL.md was unavailable. "
+    "Use best judgment: proceed only if the stage facts show no hard "
+    "problems; abort if the stage produced clearly insufficient or "
+    "invalid data."
+)
+
+
+@lru_cache(maxsize=1)
+def _read_skill_md() -> str:
+    return _SKILL_MD_PATH.read_text(encoding="utf-8")
+
+
+def _extract_section(markdown: str, heading: str) -> str | None:
+    """Return the body text under *heading* up to the next heading of equal-or-higher level."""
+    lines = markdown.splitlines()
+    level = len(heading) - len(heading.lstrip("#"))
+    try:
+        start = next(i for i, line in enumerate(lines) if line.strip() == heading)
+    except StopIteration:
+        return None
+    body: list[str] = []
+    for line in lines[start + 1 :]:
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            stripped_level = len(stripped) - len(stripped.lstrip("#"))
+            if stripped_level <= level:
+                break
+        body.append(line)
+    return "\n".join(body).strip()
+
+
+def load_stage_gating_policy(stage_key: str) -> str:
+    """Return the canonical soft-policy text for *stage_key* from SKILL.md.
+
+    Falls back to a conservative generic instruction if the shared policy
+    document or the expected section heading cannot be found, so a
+    documentation edit that breaks the heading text degrades gracefully
+    instead of crashing the pipeline.
+    """
+    heading = _STAGE_POLICY_HEADINGS.get(stage_key.lower())
+    if heading is None:
+        return _FALLBACK_POLICY
+    try:
+        markdown = _read_skill_md()
+    except OSError:
+        return _FALLBACK_POLICY
+    section = _extract_section(markdown, heading)
+    return section or _FALLBACK_POLICY
+
+
+# ---------------------------------------------------------------------------
+# DecisionContext construction from a stage checkpoint summary
+# ---------------------------------------------------------------------------
+
+
+def _config_facts(summary: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "sources": summary.get("sources", summary.get("source_count", "?")),
+        "start_date": summary.get("start_date", "?"),
+        "end_date": summary.get("end_date", "?"),
+        "age_groups": summary.get("age_groups", []),
+        "clubs": summary.get("clubs", []),
+    }
+
+
+def _scraping_facts(summary: dict[str, Any]) -> dict[str, Any]:
+    blocked = summary.get("blocked", [])
+    llm_fallback = summary.get("llm_fallback", [])
+    return {
+        "sources_scanned": summary.get("sources_scanned", summary.get("sources", "?")),
+        "blocked_count": len(blocked) if isinstance(blocked, list) else blocked,
+        "blocked_sources": blocked if isinstance(blocked, list) else [],
+        "llm_fallback_count": len(llm_fallback) if isinstance(llm_fallback, list) else llm_fallback,
+    }
+
+
+def _planning_facts(summary: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "tournaments_planned": summary.get("tournaments_planned", summary.get("n_tournaments", "?")),
+        "clubs_covered": summary.get("clubs_covered", []),
+        "age_groups_covered": summary.get("age_groups_covered", []),
+        "warnings": summary.get("warnings", []),
+    }
+
+
+_FACT_BUILDERS = {
+    "config": _config_facts,
+    "stage1": _config_facts,
+    "scraping": _scraping_facts,
+    "stage2": _scraping_facts,
+    "planning": _planning_facts,
+    "stage3": _planning_facts,
+}
+
+_STAGE_LABELS = {
+    "config": "Configuration (Stage 1)",
+    "stage1": "Configuration (Stage 1)",
+    "scraping": "Calendar Scraping (Stage 2)",
+    "stage2": "Calendar Scraping (Stage 2)",
+    "planning": "Season Planning (Stage 3)",
+    "stage3": "Season Planning (Stage 3)",
+}
+
+
+def build_decision_context(stage_name: str, checkpoint_summary: dict[str, Any]) -> DecisionContext:
+    """Build a :class:`DecisionContext` for a stage-gate proceed/abort decision.
+
+    Raises:
+        ValueError: If *stage_name* is not recognised.
+    """
+    key = stage_name.lower()
+    if key not in _FACT_BUILDERS:
+        raise ValueError(
+            f"Unknown stage name {stage_name!r}. Valid values: {', '.join(sorted(set(_FACT_BUILDERS)))}"
+        )
+    return DecisionContext(
+        run_id="",
+        capability=key,
+        stage=key,
+        objective="decide whether the pipeline should continue past this stage",
+        facts=_FACT_BUILDERS[key](checkpoint_summary),
+        available_actions=("proceed", "abort"),
+    )
+
+
+def build_decision_prompt(context: DecisionContext) -> str:
+    """Build a judgment prompt from a :class:`DecisionContext` plus canonical policy."""
+    label = _STAGE_LABELS.get(context.stage, context.stage or context.capability)
+    policy = load_stage_gating_policy(context.stage or context.capability)
+
+    lines = [f"PIPELINE STAGE: {label}", "", "Facts:"]
+    for key, value in context.facts.items():
+        lines.append(f"  - {key}: {value}")
+
+    lines += [
+        "",
+        "Policy (from .agents/skills/rvv/SKILL.md — canonical, do not override):",
+        policy,
+        "",
+        "Respond with exactly one of:",
+        "  PROCEED — continue to the next stage",
+        "  ABORT   — do not continue; briefly explain after the keyword",
+    ]
+    return "\n".join(lines)
 
 
 def build_stage_prompt(stage_name: str, checkpoint_summary: dict[str, Any]) -> str:
@@ -142,8 +200,7 @@ def build_stage_prompt(stage_name: str, checkpoint_summary: dict[str, Any]) -> s
         stage_name: One of ``"config"`` / ``"stage1"``, ``"scraping"`` /
                     ``"stage2"``, or ``"planning"`` / ``"stage3"``.
         checkpoint_summary: A dict of key metrics extracted from the stage
-                            checkpoint.  Each builder uses a best-effort
-                            approach — unknown keys are ignored gracefully.
+                            checkpoint. Unknown keys are ignored gracefully.
 
     Returns:
         A prompt string ready to pass to :meth:`LLMJudge.judge`.
@@ -151,10 +208,5 @@ def build_stage_prompt(stage_name: str, checkpoint_summary: dict[str, Any]) -> s
     Raises:
         ValueError: If *stage_name* is not recognised.
     """
-    key = stage_name.lower()
-    if key not in _BUILDERS:
-        raise ValueError(
-            f"Unknown stage name {stage_name!r}. "
-            f"Valid values: {', '.join(sorted(set(_BUILDERS)))}"
-        )
-    return _BUILDERS[key](checkpoint_summary)
+    context = build_decision_context(stage_name, checkpoint_summary)
+    return build_decision_prompt(context)
