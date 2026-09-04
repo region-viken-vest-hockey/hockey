@@ -25,7 +25,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from ..application.decisions import DecisionContext
+from ..application.decisions import DecisionAction, DecisionContext
 
 # ---------------------------------------------------------------------------
 # Canonical shared policy (.agents/skills/rvv/SKILL.md)
@@ -213,6 +213,74 @@ def build_decision_prompt(context: DecisionContext) -> str:
         "  ABORT   — do not continue; briefly explain after the keyword",
     ]
     return "\n".join(lines)
+
+
+def build_action_decision_prompt(context: DecisionContext) -> str:
+    """Build a generic multi-action judgment prompt from any :class:`DecisionContext`.
+
+    Unlike :func:`build_decision_prompt` (fixed PROCEED/ABORT, tied to a
+    pipeline stage-gate and its canonical SKILL.md policy section), this
+    works for any context whose ``available_actions`` come from the full
+    :data:`~tournament_scheduler.application.decisions.DECISION_ACTION_IDS`
+    vocabulary — e.g. the Stage 3 optimizer promote/reject decision
+    (:func:`tournament_scheduler.stage3_decision.build_stage3_decision_context`)
+    or a mid-planning critic rerun-vs-best-attempt decision.
+    """
+    lines = [f"OBJECTIVE: {context.objective}", ""]
+    if context.facts:
+        lines.append("Facts:")
+        lines.extend(f"  - {key}: {value}" for key, value in context.facts.items())
+        lines.append("")
+    if context.hard_violations:
+        lines.append(
+            "Hard violations (any action that would bypass these is rejected "
+            "deterministically regardless of your answer):"
+        )
+        lines.extend(f"  - {v}" for v in context.hard_violations)
+        lines.append("")
+    if context.warnings:
+        lines.append("Warnings:")
+        lines.extend(f"  - {w}" for w in context.warnings)
+        lines.append("")
+    if context.scorecard:
+        lines.append("Scorecard:")
+        lines.extend(f"  - {key}: {value}" for key, value in context.scorecard.items())
+        lines.append("")
+    lines += [
+        "Respond with exactly one of these action ids on the first line: "
+        + ", ".join(context.available_actions),
+        "Then, optionally on following lines, a brief rationale (never chain-of-thought).",
+    ]
+    return "\n".join(lines)
+
+
+def parse_action_verdict(context: DecisionContext, raw_verdict: str) -> DecisionAction:
+    """Parse a headless judge's free-text reply into a :class:`DecisionAction`.
+
+    Matches the first line case-insensitively against
+    ``context.available_actions``. A reply that doesn't clearly name one of
+    them falls back to ``request_operator`` (never silently applying or
+    discarding a candidate) when that action is offered; otherwise the
+    literal unparsed text is returned as the action id, which
+    :func:`application.decisions.decide` will deterministically reject as
+    unknown — a caller must always check ``DecisionResult.accepted`` and
+    fall back to its own deterministic policy rather than assume the judge
+    produced something actionable.
+    """
+    lines = raw_verdict.strip().splitlines()
+    first = lines[0].strip() if lines else ""
+    rationale = "\n".join(lines[1:]).strip() if len(lines) > 1 else ""
+    normalized = first.lower().strip(" .:-")
+    for action_id in context.available_actions:
+        if normalized == action_id.lower():
+            return DecisionAction(action_id=action_id, rationale=rationale or raw_verdict.strip())
+    if "request_operator" in context.available_actions:
+        return DecisionAction(
+            action_id="request_operator",
+            arguments={"question": f"Could not parse judge verdict: {first!r}"},
+            rationale=f"Unparsed judge verdict: {raw_verdict.strip()[:200]}",
+        )
+    return DecisionAction(action_id=first, rationale=f"Unparsed judge verdict: {raw_verdict.strip()[:200]}")
 
 
 def build_stage_prompt(stage_name: str, checkpoint_summary: dict[str, Any]) -> str:

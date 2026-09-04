@@ -1173,6 +1173,139 @@ def _run_stage3(
     return plan, False, False
 
 
+def _mid_planning_decision_problem(
+    cfg: "dict[str, Any]", scraping: "dict[str, Any]", start: "Any", end: "Any"
+) -> "dict[str, Any] | None":
+    """Best-effort ``planning_problem`` for mid-planning critic decisions.
+
+    Returns ``None`` (rather than raising) when it can't be built from *cfg*/
+    *scraping* — the A/B report and decision prompt both degrade gracefully
+    to self-consistency-only verification in that case
+    (``planning_contract.verify_candidate``), matching how ``plan ab``
+    already treats a missing ``--problem``.
+    """
+    try:
+        from ..planning_contract import build_planning_problem
+
+        return build_planning_problem(cfg, scraping, start.date(), end.date())
+    except Exception:
+        return None
+
+
+def _decide_mid_planning_adoption(
+    best_plan: "dict[str, Any]",
+    rerun_plan: "dict[str, Any]",
+    problem: "dict[str, Any] | None",
+    *,
+    run_id: str,
+    iteration: int,
+    work_dir: str,
+    log_fn: "Any",
+) -> bool:
+    """Decide whether *rerun_plan* should replace *best_plan* as the best
+    pre-export attempt (issue #260 Phase 4).
+
+    When a headless judge is configured (``RVV_JUDGE_BACKEND``), builds the
+    same kind of ``DecisionContext`` the Stage 3 v2 optimizer promote/reject
+    decision uses (:func:`stage3_decision.build_stage3_decision_context`)
+    from an old-vs-new A/B report of best-vs-rerun, asks the judge to choose
+    ``apply_candidate``/``keep_baseline``, validates the reply
+    deterministically, and records it to the run manifest's
+    ``decision_log``.
+
+    Falls back to the deterministic composite-quality rank comparison
+    (:func:`_plan_attempt_quality`) — the loop's original behavior — when no
+    judge is configured, the A/B report can't be built, the judge call
+    fails, or the judge's action is deterministically rejected. This
+    mirrors ``_judge_stage``'s "proceed unchanged" fallback so headless/
+    no-LLM runs behave exactly as before.
+    """
+    from ..application.decisions import decide, record_llm_decision
+    from ..llm_judge import (
+        build_action_decision_prompt,
+        get_judge_if_headless,
+        parse_action_verdict,
+    )
+    from ..planning_contract import extract_candidate
+    from ..stage3_ab import build_ab_report
+    from ..stage3_decision import build_stage3_decision_context
+
+    def _deterministic_fallback() -> bool:
+        best_quality = _plan_attempt_quality(best_plan)
+        rerun_quality = _plan_attempt_quality(rerun_plan)
+        return rerun_quality["rank"] > best_quality["rank"]
+
+    try:
+        judge = get_judge_if_headless()
+    except ValueError:
+        return _deterministic_fallback()
+    if judge is None:
+        return _deterministic_fallback()
+
+    try:
+        report = build_ab_report(extract_candidate(best_plan), extract_candidate(rerun_plan), problem)
+    except (ValueError, KeyError) as exc:
+        log_fn(f"Mid-planning critic {iteration}: could not build A/B report for judge, falling back: {exc}")
+        return _deterministic_fallback()
+
+    context = build_stage3_decision_context(
+        report,
+        run_id=run_id,
+        baseline_ref="mid_planning_critic:best_attempt",
+        candidate_ref=f"mid_planning_critic:iteration_{iteration}",
+        objective=(
+            "Decide whether this mid-planning critic rerun should replace "
+            "the current best pre-export plan, or the current best should "
+            "be kept."
+        ),
+    )
+    try:
+        raw_verdict = judge.judge(build_action_decision_prompt(context))
+    except RuntimeError as exc:
+        log_fn(f"Mid-planning critic {iteration}: judge call failed, falling back: {exc}")
+        return _deterministic_fallback()
+
+    action = parse_action_verdict(context, raw_verdict)
+    if action.action_id == "apply_candidate" and not action.arguments.get("candidate_ref"):
+        from dataclasses import replace as _dc_replace
+
+        action = _dc_replace(
+            action,
+            arguments={**action.arguments, "candidate_ref": context.candidate_ref or action.target},
+        )
+
+    result = decide(context, action)
+    try:
+        record_llm_decision(work_dir, context, action, result)
+    except Exception as exc:
+        log_fn(f"Mid-planning critic {iteration}: record_llm_decision failed: {exc}")
+
+    if not result.accepted:
+        if result.rejection_reason == "hard_violation_blocks_action":
+            # The rerun itself fails the verifier — a known-invalid candidate.
+            # Falling back to the deterministic quality rank here would risk
+            # "adopting" it anyway (that heuristic never checks hard
+            # constraints), silently letting prose bypass the verifier. Not
+            # adopting is always safe: the current best is, by definition,
+            # not this newly-invalid rerun.
+            log_fn(
+                f"Mid-planning critic {iteration}: judge chose apply_candidate but the rerun "
+                "fails the verifier — not adopting (a hard violation cannot be bypassed)"
+            )
+            return False
+        log_fn(
+            f"Mid-planning critic {iteration}: judge action {action.action_id!r} rejected "
+            f"({result.rejection_reason}), falling back to deterministic quality rank"
+        )
+        return _deterministic_fallback()
+
+    log_fn(
+        f"Mid-planning critic {iteration}: judge decided {action.action_id} "
+        f"({(action.rationale or '')[:200]})"
+    )
+    return action.action_id == "apply_candidate"
+
+
 def _run_mid_planning_critic_loop(
     args: "argparse.Namespace",
     cfg: "dict[str, Any]",
@@ -1197,9 +1330,15 @@ def _run_mid_planning_critic_loop(
 
     current_plan = plan
     best_plan = plan
-    best_quality = _plan_attempt_quality(plan) if plan else None
     run_failed = False
     base_iterations = max(1, int(getattr(args, "iterations", 1) or 1))
+    problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+    try:
+        from ..pipeline.run_manifest import RunManifest
+
+        run_id = str(RunManifest(state.work_dir).read().get("run_id") or "")
+    except Exception:
+        run_id = ""
 
     for iteration in range(1, max_iterations + 1):
         hints = _build_mid_planning_critic_hints(current_plan, iteration, log_fn)
@@ -1242,13 +1381,19 @@ def _run_mid_planning_critic_loop(
             break
 
         current_plan = rerun_plan
-        rerun_quality = _plan_attempt_quality(rerun_plan)
-        if best_quality is None or rerun_quality["rank"] > best_quality["rank"]:
-            best_quality = rerun_quality
+        if _decide_mid_planning_adoption(
+            best_plan,
+            rerun_plan,
+            problem,
+            run_id=run_id,
+            iteration=iteration,
+            work_dir=str(state.work_dir),
+            log_fn=log_fn,
+        ):
             best_plan = rerun_plan
             log_fn(
-                f"Mid-planning critic {iteration}: new best quality "
-                f"{_format_plan_attempt_quality(rerun_quality)}"
+                f"Mid-planning critic {iteration}: adopted rerun as new best "
+                f"{_format_plan_attempt_quality(_plan_attempt_quality(rerun_plan))}"
             )
 
     if best_plan is not current_plan and best_plan is not None:

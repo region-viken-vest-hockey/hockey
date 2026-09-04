@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import pytest
 
+from tournament_scheduler.application.decisions import DecisionContext
 from tournament_scheduler.llm_judge.prompts import (
+    build_action_decision_prompt,
     build_decision_context,
     build_decision_prompt,
     build_stage_prompt,
     load_stage_gating_policy,
+    parse_action_verdict,
 )
 
 
@@ -91,3 +94,72 @@ def test_build_stage_prompt_still_returns_a_string_for_each_known_stage() -> Non
 def test_build_stage_prompt_raises_on_unknown_stage() -> None:
     with pytest.raises(ValueError, match="Unknown stage name"):
         build_stage_prompt("not-a-real-stage", {})
+
+
+def _action_context(**overrides) -> DecisionContext:
+    defaults = dict(
+        run_id="run-1",
+        capability="stage3_optimize",
+        stage="stage3",
+        objective="Decide whether to adopt the rerun.",
+        facts={"composite_score": 12.5},
+        hard_violations=(),
+        warnings=("U10: pairs_meeting_3_plus",),
+        scorecard={"dominates_baseline": True},
+        available_actions=("apply_candidate", "keep_baseline", "request_operator"),
+    )
+    defaults.update(overrides)
+    return DecisionContext(**defaults)
+
+
+class TestBuildActionDecisionPrompt:
+    def test_includes_objective_facts_warnings_scorecard_and_action_choices(self) -> None:
+        context = _action_context()
+
+        prompt = build_action_decision_prompt(context)
+
+        assert "Decide whether to adopt the rerun." in prompt
+        assert "composite_score: 12.5" in prompt
+        assert "U10: pairs_meeting_3_plus" in prompt
+        assert "dominates_baseline: True" in prompt
+        assert "apply_candidate, keep_baseline, request_operator" in prompt
+
+    def test_includes_hard_violations_when_present(self) -> None:
+        context = _action_context(hard_violations=("arena_interval_conflict: t1/t2",))
+
+        prompt = build_action_decision_prompt(context)
+
+        assert "Hard violations" in prompt
+        assert "arena_interval_conflict: t1/t2" in prompt
+
+
+class TestParseActionVerdict:
+    def test_matches_action_id_case_insensitively(self) -> None:
+        context = _action_context()
+
+        action = parse_action_verdict(context, "apply_candidate\nBecause it dominates baseline.")
+
+        assert action.action_id == "apply_candidate"
+        assert action.rationale == "Because it dominates baseline."
+
+    def test_matches_with_surrounding_whitespace_and_punctuation(self) -> None:
+        context = _action_context()
+
+        action = parse_action_verdict(context, "  KEEP_BASELINE.  \n")
+
+        assert action.action_id == "keep_baseline"
+
+    def test_unparseable_reply_falls_back_to_request_operator(self) -> None:
+        context = _action_context()
+
+        action = parse_action_verdict(context, "I'm not sure, maybe apply it?")
+
+        assert action.action_id == "request_operator"
+        assert "question" in action.arguments
+
+    def test_unparseable_reply_without_request_operator_returns_raw_text(self) -> None:
+        context = _action_context(available_actions=("apply_candidate", "keep_baseline"))
+
+        action = parse_action_verdict(context, "garbage reply")
+
+        assert action.action_id == "garbage reply"

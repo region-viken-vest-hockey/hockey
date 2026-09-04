@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 from unittest.mock import MagicMock, call, patch
 
@@ -10,11 +11,19 @@ import pytest
 from tournament_scheduler.cli.pipeline_orchestrator import (
     _MAX_REFINEMENT_ITERATIONS,
     _compute_verdict_tone,
+    _decide_mid_planning_adoption,
     _run_approval_gate,
     _run_mid_planning_critic_loop,
     _run_refinement_loop,
 )
 from tournament_scheduler.models import SeasonPlan
+
+_HARNESS_CLEAN = {
+    "RVV_HARNESS": "",
+    "CLAUDE_CODE_SESSION_ID": "",
+    "PI_SESSION_ID": "",
+    "OPENCODE_SESSION_ID": "",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -224,6 +233,166 @@ class TestRunMidPlanningCriticLoop:
             )
 
         assert mock_stage3.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# _decide_mid_planning_adoption — unit tests (issue #260 Phase 4)
+# ---------------------------------------------------------------------------
+
+
+def _decision_team(club: str, label: str, age_group: str) -> dict:
+    return {"club": club, "label": label, "age_group": age_group}
+
+
+def _decision_tournament(t_id: str, date_str: str, arena: str, age_group: str, teams: list[dict]) -> dict:
+    game_pairs = [(a["label"], b["label"]) for i, a in enumerate(teams) for b in teams[i + 1 :]]
+    return {
+        "id": t_id,
+        "date": date_str,
+        "arena": arena,
+        "age_group": age_group,
+        "host_club": teams[0]["club"] if teams else None,
+        "teams": teams,
+        "games": [
+            {"home": home, "away": away, "parallel_slot": 0, "round_number": 1}
+            for home, away in game_pairs
+        ],
+    }
+
+
+def _worse_candidate() -> dict:
+    teams = {f"T{i}": _decision_team(f"Club{i}", f"T{i}", "U10") for i in range(1, 9)}
+    group_a = [teams["T1"], teams["T2"], teams["T3"], teams["T4"]]
+    group_b = [teams["T5"], teams["T6"], teams["T7"], teams["T8"]]
+    return {
+        "schema_version": 1,
+        "tournaments": [
+            _decision_tournament("t1", "2026-01-05", "Arena1", "U10", group_a),
+            _decision_tournament("t2", "2026-02-04", "Arena1", "U10", group_a),
+            _decision_tournament("t3", "2026-03-06", "Arena5", "U10", group_b),
+            _decision_tournament("t4", "2026-04-05", "Arena5", "U10", group_b),
+        ],
+    }
+
+
+def _better_candidate() -> dict:
+    from tournament_scheduler.stage3_optimizer import optimize_candidate
+
+    return optimize_candidate(_worse_candidate(), iterations=3000, seed=1)
+
+
+class TestDecideMidPlanningAdoption:
+    """Issue #260 Phase 4: promote/reject via DecisionContext when a headless
+    judge is configured, falling back to the pre-existing deterministic
+    composite-quality rank comparison otherwise."""
+
+    def test_no_headless_judge_falls_back_to_deterministic_rank(self, tmp_path) -> None:
+        # CLAUDE_CODE_SESSION_ID etc. are set in this test process (or at
+        # least RVV_JUDGE_BACKEND is unset), so get_judge_if_headless()
+        # returns None/raises — behavior must be identical to before this
+        # change: adopt strictly-better rerun by _plan_attempt_quality rank
+        # (the SeasonPlanner-specific fairness_gate/pairwise/diversity/
+        # month_balance composite, not the stage3_ab/planning_contract
+        # metrics used once a judge is actually consulted).
+        best = _make_gate_checkpoint("warn", gate_score=50)
+        rerun = _make_gate_checkpoint("pass", gate_score=95)
+
+        adopted = _decide_mid_planning_adoption(
+            best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
+        )
+
+        assert adopted is True
+
+    def test_headless_judge_apply_candidate_is_recorded_and_adopted(self, tmp_path) -> None:
+        best = {"plan": _worse_candidate()}
+        rerun = {"plan": _better_candidate()}
+        judge = MagicMock()
+        judge.judge.return_value = "apply_candidate\nDominates baseline on every metric."
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            adopted = _decide_mid_planning_adoption(
+                best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
+            )
+
+        assert adopted is True
+        judge.judge.assert_called_once()
+
+        from tournament_scheduler.pipeline.run_manifest import RunManifest
+
+        manifest = RunManifest(str(tmp_path)).read()
+        entry = manifest["decision_log"][-1]
+        assert entry["action"]["action_id"] == "apply_candidate"
+        assert entry["result"]["accepted"] is True
+        assert entry["context"]["capability"] == "stage3_optimize"
+
+    def test_headless_judge_keep_baseline_is_not_adopted(self, tmp_path) -> None:
+        best = {"plan": _worse_candidate()}
+        rerun = {"plan": _better_candidate()}
+        judge = MagicMock()
+        judge.judge.return_value = "keep_baseline"
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            adopted = _decide_mid_planning_adoption(
+                best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
+            )
+
+        assert adopted is False
+
+    def test_headless_judge_call_failure_falls_back_to_deterministic_rank(self, tmp_path) -> None:
+        best = _make_gate_checkpoint("warn", gate_score=50)
+        rerun = _make_gate_checkpoint("pass", gate_score=95)
+        judge = MagicMock()
+        judge.judge.side_effect = RuntimeError("backend unreachable")
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            adopted = _decide_mid_planning_adoption(
+                best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
+            )
+
+        # Falls back to the deterministic rank comparison, which prefers the
+        # strictly-better candidate — same outcome as the no-judge case.
+        assert adopted is True
+
+    def test_headless_judge_cannot_bypass_invalid_candidate(self, tmp_path) -> None:
+        """An LLM saying apply_candidate cannot adopt a candidate that fails
+        the verifier — the deterministic validator rejects it regardless."""
+        teams = [_decision_team(f"Club{i}", f"T{i}", "U10") for i in range(1, 5)]
+        invalid = {
+            "schema_version": 1,
+            "tournaments": [
+                _decision_tournament("t1", "2026-01-05", "Arena1", "U10", teams),
+                _decision_tournament("t2", "2026-01-05", "Arena1", "U10", teams),
+            ],
+        }
+        best = {"plan": _worse_candidate()}
+        rerun = {"plan": invalid}
+        judge = MagicMock()
+        judge.judge.return_value = "apply_candidate\nLooks fine to me."
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            adopted = _decide_mid_planning_adoption(
+                best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
+            )
+
+        # The verifier rejection must not be silently papered over by a
+        # fallback that never checks hard constraints at all.
+        assert adopted is False
+
+        from tournament_scheduler.pipeline.run_manifest import RunManifest
+
+        manifest = RunManifest(str(tmp_path)).read()
+        entry = manifest["decision_log"][-1]
+        assert entry["action"]["action_id"] == "apply_candidate"
+        assert entry["result"]["accepted"] is False
+        assert entry["result"]["rejection_reason"] == "hard_violation_blocks_action"
 
 
 # ---------------------------------------------------------------------------
