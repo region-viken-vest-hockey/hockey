@@ -1,4 +1,4 @@
-# ADR 0001: Stage 3 v2 uses generic optimization, deterministic verification, and portable BookUp session handoff
+# ADR 0001: Stage 3 v2 uses LLM-directed planning, generic optimization, deterministic verification, and portable BookUp session handoff
 
 - **Status:** Accepted — migration in progress
 - **Date:** 2026-09-04
@@ -15,11 +15,13 @@ The RVV miniputt pipeline currently has two areas where implementation details h
 
 The architecture should let Pi, Claude Code, Codex, OpenCode, ChatGPT, or another harness operate the same canonical repo workflow without each harness owning its own scheduling policy or BookUp recovery semantics.
 
+A central motivation for the Stage 3 migration is to **move judgment and soft planning decisions out of bespoke hardcoded Python heuristics and into the LLM/agent planning loop**, while keeping facts, hard constraints, verification, scoring, persistence, and publication deterministic and repo-owned.
+
 This work is primarily tracked in GitHub issue #257. BookUp/session portability is an adjacent execution requirement that must be preserved while Stage 3 is simplified.
 
 ## Decision summary
 
-The target architecture is:
+The target Stage 3 architecture is:
 
 ```text
 input.xlsx + registrations + calendars
@@ -28,22 +30,35 @@ input.xlsx + registrations + calendars
        normalized planning problem
                  |
                  v
-        generic candidate optimizer
+      shared RVV planning policy/runbook
                  |
                  v
-            candidate.json
-                 |
-                 v
-       deterministic verifier
-          + quality scorer
-                 |
-          bad ---+--- good
-           |             |
-         iterate       accept
-                         |
-                         v
-            existing Stage 4 exports
+          LLM / agent controller
+        /          |           \
+       /           |            \
+choose priorities  |        explain/review
+and tradeoffs      |
+       \           v
+        +--> generic optimizer/search tool
+                    |
+                    v
+               candidate.json
+                    |
+                    v
+          deterministic verifier
+             + quality scorer
+                    |
+              bad / scorecard
+                    |
+                    +------> LLM/agent iterates
+                    |
+                 accepted
+                    |
+                    v
+             existing Stage 4 exports
 ```
+
+The generic optimizer is **not** intended to become a second large hardcoded policy engine. It provides generic search/optimization mechanisms. The LLM/agent decides how to use those mechanisms within deterministic guardrails.
 
 Browser authentication/recovery is a separate boundary:
 
@@ -61,7 +76,62 @@ already-authenticated BookUp browser/session
               resume pipeline
 ```
 
-The repo owns the contracts, verifier, scoring, optimizer, BookUp session-handoff semantics, scraping result acceptance, and export/publication behavior. Harness adapters remain thin.
+The repo owns the contracts, hard constraints, verifier, scoring, optimizer primitives, BookUp session-handoff semantics, scraping result acceptance, and export/publication behavior. The LLM/agent owns soft-policy interpretation and planning tradeoff decisions. Harness adapters remain thin.
+
+## Core decision boundary: what belongs in code vs the LLM
+
+This boundary is intentional and is the main architectural goal of the Stage 3 work.
+
+### Deterministic code owns facts and guardrails
+
+Python/repo code should own things that must be reproducible, testable, and authoritative:
+
+- parsing and normalizing `input.xlsx`, registrations, and calendar data
+- source validity and BookUp/calendar evidence
+- team/date/arena/host facts
+- hard scheduling constraints
+- explicit operator overrides
+- candidate schema and persistence
+- deterministic verification
+- deterministic quality metrics/audit
+- generic optimization/search primitives
+- exports, publication, rollback, and privacy controls
+
+An LLM must never be the sole authority for whether a schedule is valid.
+
+### The LLM/agent owns soft planning judgment
+
+The LLM/agent should increasingly own decisions that are contextual, preference-driven, or involve tradeoffs, for example:
+
+- which quality objective deserves attention next
+- whether opponent diversity is worth a small spacing cost when the operator has not made that a hard rule
+- which age groups need different priorities
+- whether to keep a baseline assignment when improvement is marginal
+- how to interpret organizer guidance expressed in natural language
+- which solver/search strategy or restart to try next
+- how to react to a verifier/scorer report
+- when a candidate is worth presenting to the operator for review
+
+These decisions should be driven from the shared RVV policy/runbook and current problem evidence, not copied into separate harness-specific prompts.
+
+### Do not migrate soft policy from one hardcoded planner into another
+
+Removing `SeasonPlanner` heuristics only to recreate the same decisions as:
+
+- a growing list of Python `if` statements,
+- permanent magic penalty weights,
+- per-age-group hardcoded tuning tables,
+- or a second bespoke optimization policy layer
+
+would miss the point of this ADR.
+
+Generic code may expose objective parameters, hard bounds, candidate generators, Pareto sets, or search operators. **The choice of soft priorities and tradeoffs should normally be made by the LLM/agent at runtime**, unless a preference has been explicitly promoted to a deterministic business rule by the operator/project.
+
+### Promotion from soft preference to hard rule must be explicit
+
+If repeated real-world use establishes that something is no longer a preference but a true invariant — for example “never schedule the same team twice on one date” — it should be deliberately added to deterministic verification/configuration with tests.
+
+Do not silently turn an LLM preference into a permanent hardcoded rule merely because one benchmark favored it.
 
 ## Stage 3 evidence
 
@@ -99,7 +169,7 @@ But the default/global weighted objective regressed other important metrics:
 - gaps under 7 days: 24 -> 28
 - gaps under 14 days: 110 -> 167
 
-A weight sweep showed that one global weighted sum mostly moves along the Pareto frontier. Reducing spacing/same-club regressions eventually gives back the diversity improvements. Therefore **continuing to tune one global weight vector is not the chosen design direction**.
+A weight sweep showed that one global weighted sum mostly moves along the Pareto frontier. Reducing spacing/same-club regressions eventually gives back the diversity improvements. Therefore **continuing to tune one global weight vector is not the chosen design direction**. It also reinforces the architectural goal: the project should expose measurable tradeoffs to the agent rather than attempting to encode one universally correct judgment in permanent Python weights.
 
 Benchmark snapshots:
 
@@ -108,7 +178,7 @@ Benchmark snapshots:
 
 ## Stage 3 decisions
 
-### 1. Keep the repo as the authority
+### 1. Keep the repo as the deterministic authority
 
 The hockey repo continues to own:
 
@@ -118,22 +188,40 @@ The hockey repo continues to own:
 - candidate-plan contract
 - deterministic verification
 - deterministic quality scoring/audit
-- generic optimization
+- generic optimization/search mechanisms
 - Stage 4 exports and publication
 
-Hard rules, quality metrics, and promotion criteria must not live only in LLM prompts or harness-specific adapters.
+Hard rules, facts, quality measurements, and promotion safety gates must not live only in LLM prompts or harness-specific adapters.
 
-### 2. Keep `SeasonPlanner` as baseline/fallback during migration
+This does **not** mean all planning policy belongs in Python. Soft preferences and tradeoff decisions belong in the LLM/agent layer unless deliberately promoted to deterministic rules.
+
+### 2. Move soft planning decisions from bespoke code into the LLM/agent loop
+
+The migration target is not merely “replace `SeasonPlanner` with a better optimizer.” The target is to remove unnecessary hardcoded scheduling judgment.
+
+The LLM/agent should receive:
+
+- the normalized planning problem
+- shared RVV policy/runbook
+- available generic optimization actions/options
+- deterministic verifier results
+- deterministic scorecards/Pareto comparisons
+
+It should then decide what to optimize, which tradeoffs to accept within allowed bounds, and whether to iterate or retain the baseline.
+
+The agent must be able to make these decisions similarly from Pi, Claude Code, Codex, OpenCode, ChatGPT, or another harness because the policy and tooling are shared and harness-neutral.
+
+### 3. Keep `SeasonPlanner` as baseline/fallback during migration
 
 Do not delete or heavily rewrite the current planner until Stage 3 v2 has demonstrated that it can replace the relevant responsibilities without regression.
 
 This is a strangler migration, not a rewrite-in-place.
 
-### 3. Prefer constrained/lexicographic optimization over a single global weighted sum
+### 4. Use deterministic non-regression bounds where we know we must not get worse
 
-Important baseline qualities should not be freely traded against each other merely because a weight vector permits it.
+Important qualities that the project has explicitly chosen to protect should not be freely traded away merely because a weight vector permits it.
 
-For participant-assignment optimization, the current baseline is a non-regression envelope. A candidate for an age group must preserve or improve at least:
+For the current participant-assignment migration experiment, the baseline is used as a temporary non-regression envelope. A candidate for an age group must preserve or improve at least:
 
 - participation counts/balance
 - same-club pairing count
@@ -143,16 +231,18 @@ For participant-assignment optimization, the current baseline is a non-regressio
 - hosting fairness where participant reassignment can affect it
 - hard-constraint status: no new hard violations
 
-Within that feasible region, optimize opponent quality, primarily:
+Within that safe region, the LLM/agent can direct optimization of opponent quality, for example:
 
 - minimize repeated opponents
 - minimize pairs meeting 3+ times
 - minimize max pair repetition
 - maximize unique inter-club opponents / pairwise novelty
 
-If no strictly better feasible assignment is found for an age group, retain the baseline assignment for that age group. Stage 3 v2 does **not** need to improve every age group; unchanged is acceptable, regression is not.
+These baseline bounds are a migration/evaluation safety mechanism, not a declaration that every protected metric must become a permanent business rule. After evidence and operator review, some may remain deterministic constraints while others may return to agent-controlled soft tradeoffs.
 
-### 4. Separate participant-assignment success from full production readiness
+If no strictly better feasible assignment is found for an age group, retain the baseline assignment for that age group. Stage 3 v2 does **not** need to improve every age group; unchanged is acceptable, regression is not during this migration phase.
+
+### 5. Separate participant-assignment success from full production readiness
 
 The current v2 optimizer keeps dates/arenas/hosts fixed. It cannot repair every pre-existing skeleton-level problem.
 
@@ -168,15 +258,15 @@ Evaluation therefore needs two distinct concepts:
 
 Participant-only Stage 3 v2 can prove `dominates_baseline` before later skeleton optimization is capable of proving `production_ready`.
 
-### 5. Do not spend the next cycle on harness comparison
+### 6. Do not spend the next cycle on harness comparison
 
 Pi vs Claude Code vs Codex vs OpenCode is not the next algorithm-quality experiment. They would currently drive the same repo optimizer/verifier.
 
-Harness independence should be tested after the Stage 3 v2 optimization path itself meets the quality bar.
+Harness independence should be tested after the Stage 3 v2 planning loop itself meets the quality bar. The eventual test should verify that different harnesses can make acceptable planning decisions from the same shared policy, problem contract, optimizer tools, and deterministic feedback — not that they produce byte-identical schedules.
 
 ## BookUp session-handoff decisions
 
-### 6. Treat BookUp authentication as a reusable session, not a harness-local login step
+### 7. Treat BookUp authentication as a reusable session, not a harness-local login step
 
 BookUp can require credentials plus Vipps/SMS MFA. The operator may already have completed login in a browser. The pipeline must be able to **take over that authenticated session** instead of requiring a fresh login in the environment where the agent is currently running.
 
@@ -187,7 +277,7 @@ This applies in both supported execution modes:
 
 The same canonical Stage 2 recovery semantics must work in both modes.
 
-### 7. The session-handoff mechanism must be harness-neutral
+### 8. The session-handoff mechanism must be harness-neutral
 
 Do not solve this separately in `.pi`, `.claude`, `.codex`, or `.opencode`.
 
@@ -195,7 +285,7 @@ The repo should expose one canonical BookUp recovery/session interface that adap
 
 The handoff implementation may use an attachable browser endpoint, reusable browser profile/storage state, or another secure mechanism, but it must satisfy the behavior below rather than tying the contract to one specific browser technology prematurely.
 
-### 8. Required BookUp takeover behavior
+### 9. Required BookUp takeover behavior
 
 The canonical workflow must be able to:
 
@@ -209,7 +299,7 @@ The canonical workflow must be able to:
 - avoid leaking BookUp credentials, session cookies, tokens, or browser-profile secrets to logs, committed files, command-line history, or benchmark artifacts
 - fail with a clear recovery instruction when session takeover is unavailable
 
-### 9. Lima must bridge to the host session; it must not create a second independent authority
+### 10. Lima must bridge to the host session; it must not create a second independent authority
 
 When invoked inside Lima, the preferred model is that the VM reaches a host-owned authenticated browser/session through an explicit handoff/bridge or receives a deliberately exported ephemeral session state.
 
@@ -234,7 +324,7 @@ Already implemented on `main` for Stage 3:
 
 Existing BookUp behavior already includes credentialed scraping and `--manual-bookup-login` for visible-browser MFA recovery. The new requirement is to generalize that into **portable session takeover**, especially across the host/Lima boundary, rather than duplicating login/recovery per harness.
 
-Do not redo the shipped Stage 3 contracts/tools from scratch. Extend them.
+Do not redo the shipped Stage 3 contracts/tools from scratch. Extend them toward the LLM-directed planning boundary described above.
 
 ## Known Stage 3 implementation issues before trusting the next benchmark
 
@@ -272,11 +362,13 @@ Do these in order.
 
 Do not do another large global weight-tuning sweep before this is complete.
 
-### Task 2 — implement baseline-bounded participant optimization
+### Task 2 — implement baseline-bounded participant search as an agent-callable capability
 
 Add a participant optimization mode that evaluates each age group independently against its baseline metrics.
 
-Candidate acceptance must be based on explicit non-regression bounds rather than only a weighted-sum score.
+Candidate acceptance during this migration experiment must be based on explicit non-regression bounds rather than only a weighted-sum score.
+
+The implementation should expose generic search controls/results so an LLM/agent can direct the process instead of burying the next set of planning choices in Python.
 
 Desired behavior:
 
@@ -285,20 +377,23 @@ for each age group:
     baseline = existing assignment
     search for feasible alternatives
 
-    reject candidate if it worsens a protected metric
+    deterministic code rejects candidates that violate hard/baseline bounds
 
-    among remaining candidates:
-        minimize opponent repetition
-        maximize inter-club opponent diversity
+    agent receives scorecard / alternatives
+    agent chooses objective priority or next search action
 
-    if no improvement exists:
+    if a better acceptable candidate is selected:
+        use it
+    else:
         keep baseline age-group assignment
 
 combine selected age-group assignments
 verify + score full season
 ```
 
-The search may use simulated annealing, local search, CP-SAT/MILP, multiple restarts, or another generic technique. Prefer explicit/lexicographic constraints for protected metrics over ever-larger penalty weights.
+The search may use simulated annealing, local search, CP-SAT/MILP, multiple restarts, or another generic technique. Prefer explicit constraints/Pareto outputs for protected metrics over ever-larger permanent penalty weights.
+
+Do **not** introduce a large per-age-group hardcoded weight table as the solution to the current Pareto problem. If temporary benchmark weights are needed as search parameters, keep them observable/configurable and let the agent choose or vary them.
 
 ### Task 3 — run the real local production-checkpoint experiment
 
@@ -326,10 +421,11 @@ Report, overall and per age group:
 - whether each age group improved, stayed unchanged, or regressed
 - `dominates_baseline`
 - `production_ready`
+- which soft-objective/tradeoff choices were made by the agent versus enforced by deterministic code
 
 Key decision question:
 
-> Can Stage 3 v2 produce a full-season participant assignment that Pareto-dominates the existing participant assignment, retaining the old assignment for age groups it cannot improve?
+> Can Stage 3 v2, with deterministic guardrails and agent-directed soft planning decisions, produce a full-season participant assignment that Pareto-dominates the existing participant assignment, retaining the old assignment for age groups it cannot improve?
 
 ### Task 4 — push benchmark artifacts for external evaluation
 
@@ -350,6 +446,7 @@ Include at minimum:
 - `ab_report.json`
 - per-seed/per-restart summary if applicable
 - any Pareto/selection summary needed to explain which age-group candidate was chosen
+- a concise record of agent-selected soft priorities/tradeoffs so another agent can understand why the candidate was selected
 
 Do not overwrite previous benchmark snapshots.
 
@@ -377,11 +474,27 @@ If a real BookUp/MFA session is required to prove this, the implementation agent
 
 If the proof produces useful non-secret diagnostics, commit/push a sanitized report under `docs/` so the next evaluator can confirm both execution modes without rediscovering the design. Never commit cookies, tokens, browser profiles, storage-state secrets, credentials, or MFA artifacts.
 
+### Task 6 — prove the LLM-directed boundary before deleting planner heuristics
+
+Once the bounded participant experiment succeeds, demonstrate that at least two capable harness/model combinations can consume the same shared policy/problem/scorecard and independently reach acceptable candidates without planner-specific policy embedded in their adapters.
+
+The proof is not byte-identical output. The proof is:
+
+- same deterministic contracts and guardrails
+- same shared RVV policy/runbook
+- no harness-specific scheduling rules
+- agent-selected soft priorities are observable in the run/snapshot
+- final candidates pass the same verifier and quality gates
+
+Only after this should planner-specific heuristic code be removed aggressively.
+
 ## Decision gate after the next participant benchmark
 
 ### If participant v2 dominates the baseline
 
 Proceed to generic tournament-skeleton optimization, beginning with dates and arena/time placement so v2 can address the remaining skeleton-level hard violations and replace more of `SeasonPlanner`.
+
+As that scope expands, preserve the same boundary: deterministic code defines facts/hard constraints/search primitives; the LLM/agent directs soft tradeoffs and iterative planning.
 
 Keep the existing planner as fallback until complete v2 output is production-ready and export-compatible.
 
@@ -392,7 +505,8 @@ Do not expand Stage 3 scope yet. Determine whether the blocker is:
 - search algorithm quality
 - the fixed tournament skeleton
 - a genuinely unavoidable tradeoff
-- or a scoring/constraint-definition problem
+- a scoring/constraint-definition problem
+- or insufficient agent guidance/tooling for making the tradeoff decisions
 
 Use that evidence to choose the next experiment.
 
@@ -400,9 +514,11 @@ Use that evidence to choose the next experiment.
 
 ### Positive
 
-- Scheduling quality becomes measurable and harness-independent.
+- Scheduling correctness and quality remain measurable and harness-independent.
+- Soft planning intelligence can evolve through better models/prompts/shared policy without rewriting scheduling algorithms for every preference change.
 - We can simplify bespoke `SeasonPlanner` intelligence only after evidence proves a replacement.
-- Agents can change without changing the correctness authority.
+- Agents can change without changing the deterministic correctness authority.
+- The repo does not need to permanently encode every organizer preference as Python heuristics or magic weights.
 - BookUp MFA can be completed once and reused across execution environments instead of being coupled to whichever harness launched the run.
 - Lima becomes an execution environment, not a separate source of scheduling/scraping policy.
 - Local experiments become reviewable through immutable pushed benchmark snapshots.
@@ -410,6 +526,7 @@ Use that evidence to choose the next experiment.
 ### Costs / tradeoffs
 
 - During migration, old and new planning implementations coexist.
+- Agent-directed planning is less byte-for-byte deterministic than one fixed heuristic planner; reproducibility therefore relies on persisted inputs, scorecards, chosen priorities, model/harness metadata where useful, and final candidate artifacts.
 - Baseline-bounded optimization may preserve an imperfect age-group assignment when no safe improvement is found.
 - Full production readiness requires later optimization of dates/arenas/hosts, not only participant swapping.
 - Portable BookUp session takeover needs careful host/VM connectivity and secret-handling design.
@@ -420,8 +537,9 @@ Use that evidence to choose the next experiment.
 This ADR deliberately does **not** choose:
 
 - a permanent optimization library (CP-SAT, MILP, local search, etc.)
-- one preferred LLM/harness
+- one preferred LLM/harness or model
+- one permanent set of soft-objective weights or per-age-group tuning values
 - a specific BookUp browser transport such as CDP vs storage-state export
 - removal of `SeasonPlanner` today
 
-Those decisions should be made from the next benchmark/prototype evidence rather than guessed in advance.
+Those decisions should be made from benchmark/prototype evidence rather than guessed in advance.
