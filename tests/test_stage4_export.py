@@ -289,6 +289,33 @@ class TestRunStage4:
         assert rows[1][7] == "09:00"
         assert rows[1][8] == "09:45"
 
+    def test_exports_stage3_v2_candidate_envelope_unchanged(self, tmp_path):
+        """Stage 3 v2's candidate.json (issue #257) is the same checkpoint
+        shape as SeasonPlanner's plan dict plus a ``schema_version``/``source``
+        envelope (see ``candidate_from_plan_dict``). Stage 4 must accept it
+        without a conversion step and produce the same output surface."""
+        from tournament_scheduler.planning_contract import candidate_from_plan_dict
+
+        state = PipelineState(tmp_path / "pipeline")
+        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        plan_checkpoint = _make_plan_dict()
+        plan_checkpoint["plan"] = candidate_from_plan_dict(
+            plan_checkpoint["plan"], source="Stage3Optimizer", planner_version="v2"
+        )
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        files = result.get("output_files", {})
+        assert result.get("errors") == []
+        for key in ("excel", "ical", "csv_games", "csv_overview", "html", "html_report", "spond", "spond_games"):
+            assert key in files, key
+            assert Path(files[key]).exists(), key
+
     def test_not_started_plan_writes_placeholder_outputs(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
         input_file = tmp_path / "input.xlsx"
