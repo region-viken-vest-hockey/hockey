@@ -42,7 +42,7 @@ from __future__ import annotations
 
 import math
 import random
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -446,5 +446,316 @@ def optimize_candidate(
         "objective_after": best_score,
         "per_age_group_weights": per_age_group_weights or None,
         "move_dates": move_dates,
+    }
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Baseline-bounded / lexicographic participant optimization (issue #257 Task 2)
+# ---------------------------------------------------------------------------
+#
+# The generic weighted-sum optimizer above trades every metric against every
+# other, so it can (and does) buy opponent-diversity gains by spending down
+# turnaround spacing or same-club clustering the caller never asked to give
+# up. This section instead treats *each age group's current assignment* as a
+# hard baseline: a candidate move is only ever considered if it does not
+# push same-club pairings, same-club clustering, or turnaround gaps worse
+# than that baseline (participation counts and hosting are already invariant
+# under team-swap-only moves, by construction). Inside that feasible region,
+# search minimizes repeated inter-club opponent pairs lexicographically
+# ahead of maximizing unique pairings/novelty as a tie-breaker. If no move
+# improves an age group without leaving its feasible region, that age
+# group's assignment is returned unchanged from the input rather than
+# forcing a worse result.
+
+
+@dataclass(frozen=True)
+class _GroupMetrics:
+    """The subset of :func:`tournament_scheduler.planning_contract.score_candidate`
+    metrics that are meaningful *within one age group* and relevant to
+    participant (team-swap-only) optimization."""
+
+    pairs_meeting_3_plus: int
+    max_pair_repeat: int
+    same_club_pairing_count: int
+    max_same_club_teams_per_tournament: int
+    gaps_under_7: int
+    gaps_under_14: int
+    hosting_spread: int
+    unique_pairs: int
+    pairwise_novelty: float
+
+
+def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
+    """Compute :class:`_GroupMetrics` for one age group's slots.
+
+    Mirrors ``score_candidate``'s definitions exactly (see
+    ``planning_contract.score_candidate``), computed directly from slot
+    state rather than regenerated games — round-robin generation makes each
+    team pair within a tournament play exactly one game, so pair
+    co-occurrence counts here are equivalent to that function's per-game
+    counts without needing to materialize games on every search step.
+    """
+    pair_counts = _pair_counts(slots)
+    total_pairings = sum(pair_counts.values())
+    unique_pairs = len(pair_counts)
+    pairwise_novelty = (unique_pairs / total_pairings) if total_pairings else 0.0
+    pairs_meeting_3_plus = sum(1 for count in pair_counts.values() if count >= 3)
+    max_pair_repeat = max(pair_counts.values()) if pair_counts else 0
+    same_club_pairing_count = sum(1 for (a, b) in pair_counts if a[0] == b[0])
+
+    max_same_club_teams_per_tournament = 0
+    for slot in slots:
+        club_counts: Dict[str, int] = {}
+        for identity in slot.team_ids:
+            club_counts[identity[0]] = club_counts.get(identity[0], 0) + 1
+        if club_counts:
+            max_same_club_teams_per_tournament = max(
+                max_same_club_teams_per_tournament, max(club_counts.values())
+            )
+
+    dates_by_team: Dict[TeamIdentity, List[date]] = {}
+    for slot in slots:
+        for identity in slot.team_ids:
+            dates_by_team.setdefault(identity, []).append(slot.date)
+    gaps_under_7 = 0
+    gaps_under_14 = 0
+    for dates in dates_by_team.values():
+        ordered = sorted(dates)
+        for prev, nxt in zip(ordered, ordered[1:]):
+            gap = (nxt - prev).days
+            if gap < 7:
+                gaps_under_7 += 1
+            if gap < 14:
+                gaps_under_14 += 1
+
+    host_counts: Dict[str, int] = {}
+    for slot in slots:
+        host = slot.host_club or slot.arena
+        if host:
+            host_counts[host] = host_counts.get(host, 0) + 1
+    hosting_spread = (max(host_counts.values()) - min(host_counts.values())) if host_counts else 0
+
+    return _GroupMetrics(
+        pairs_meeting_3_plus=pairs_meeting_3_plus,
+        max_pair_repeat=max_pair_repeat,
+        same_club_pairing_count=same_club_pairing_count,
+        max_same_club_teams_per_tournament=max_same_club_teams_per_tournament,
+        gaps_under_7=gaps_under_7,
+        gaps_under_14=gaps_under_14,
+        hosting_spread=hosting_spread,
+        unique_pairs=unique_pairs,
+        pairwise_novelty=pairwise_novelty,
+    )
+
+
+def _within_bounds(current: _GroupMetrics, baseline: _GroupMetrics) -> bool:
+    """True if *current* is no worse than *baseline* on every protected metric."""
+    return (
+        current.same_club_pairing_count <= baseline.same_club_pairing_count
+        and current.max_same_club_teams_per_tournament <= baseline.max_same_club_teams_per_tournament
+        and current.gaps_under_7 <= baseline.gaps_under_7
+        and current.gaps_under_14 <= baseline.gaps_under_14
+        and current.hosting_spread <= baseline.hosting_spread
+    )
+
+
+def _lexicographic_score(m: _GroupMetrics) -> float:
+    """A single float approximating the lexicographic order for annealing.
+
+    Primary: fewer pairs meeting 3+ times, then a lower max repeat. Secondary
+    tie-breaker: more unique pairs / higher novelty. The gaps between
+    successive constant magnitudes assume group sizes small enough (a season
+    age group, not the whole league) that a secondary-metric delta can never
+    outweigh a one-unit primary-metric step; :func:`_strictly_better` (exact
+    lexicographic comparison, no constants) is the actual promotion gate —
+    this score only steers the search.
+    """
+    return (
+        m.pairs_meeting_3_plus * 1_000_000.0
+        + m.max_pair_repeat * 1_000.0
+        - m.unique_pairs * 1.0
+        - m.pairwise_novelty * 0.5
+    )
+
+
+def _strictly_better(new: _GroupMetrics, baseline: _GroupMetrics) -> bool:
+    """Exact lexicographic comparison used to decide improved vs. unchanged."""
+    if new.pairs_meeting_3_plus != baseline.pairs_meeting_3_plus:
+        return new.pairs_meeting_3_plus < baseline.pairs_meeting_3_plus
+    if new.max_pair_repeat != baseline.max_pair_repeat:
+        return new.max_pair_repeat < baseline.max_pair_repeat
+    if new.unique_pairs != baseline.unique_pairs:
+        return new.unique_pairs > baseline.unique_pairs
+    return new.pairwise_novelty > baseline.pairwise_novelty
+
+
+def _search_group_bounded(
+    group_slots: List["_Slot"],
+    baseline_metrics: _GroupMetrics,
+    baseline_team_ids: List[List[TeamIdentity]],
+    iterations: int,
+    seed: int,
+) -> Tuple[_GroupMetrics, List[List[TeamIdentity]]]:
+    """One seeded bounded local-search restart over *group_slots*.
+
+    Mutates *group_slots* during the search but always restores it to
+    *baseline_team_ids* before returning — callers own applying whichever
+    result (this seed's, another seed's, or the baseline) wins. Never
+    returns a result outside the feasible region: infeasible moves are
+    rejected on the spot, not merely penalized.
+    """
+    rng = random.Random(seed)
+    best_metrics = baseline_metrics
+    best_team_ids = [list(ids) for ids in baseline_team_ids]
+    current_score = _lexicographic_score(baseline_metrics)
+    best_score = current_score
+
+    for step in range(iterations):
+        move = _candidate_swaps(group_slots, rng)
+        if move is None:
+            break
+        slot_a, pos_a, slot_b, pos_b = move
+        if not _swap_is_valid(group_slots, slot_a, pos_a, slot_b, pos_b):
+            continue
+
+        _apply_swap(group_slots, slot_a, pos_a, slot_b, pos_b)
+        new_metrics = _group_metrics(group_slots)
+        if not _within_bounds(new_metrics, baseline_metrics):
+            _apply_swap(group_slots, slot_a, pos_a, slot_b, pos_b)  # revert: self-inverse
+            continue
+
+        new_score = _lexicographic_score(new_metrics)
+        delta = new_score - current_score
+        temperature = max(1e-6, 1.0 - step / iterations)
+        accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 1000.0))
+        if accept:
+            current_score = new_score
+            if new_score < best_score:
+                best_score = new_score
+                best_metrics = new_metrics
+                best_team_ids = [list(slot.team_ids) for slot in group_slots]
+        else:
+            _apply_swap(group_slots, slot_a, pos_a, slot_b, pos_b)
+
+    for slot, ids in zip(group_slots, baseline_team_ids):
+        slot.team_ids = list(ids)
+    return best_metrics, best_team_ids
+
+
+def optimize_candidate_participants_bounded(
+    candidate: Dict[str, Any],
+    problem: Optional[Dict[str, Any]] = None,
+    *,
+    iterations: int = 4000,
+    seed: int = 0,
+) -> Dict[str, Any]:
+    """Single-seed baseline-bounded participant optimization (issue #257 Task 2).
+
+    Convenience wrapper around :func:`optimize_candidate_participants_bounded_multi_seed`
+    with one seed/restart.
+    """
+    return optimize_candidate_participants_bounded_multi_seed(
+        candidate, problem, seeds=(seed,), iterations=iterations
+    )
+
+
+def optimize_candidate_participants_bounded_multi_seed(
+    candidate: Dict[str, Any],
+    problem: Optional[Dict[str, Any]] = None,
+    *,
+    seeds: Tuple[int, ...] = (0,),
+    iterations: int = 4000,
+) -> Dict[str, Any]:
+    """Baseline-bounded participant optimization with multiple seeds/restarts
+    (issue #257 Tasks 2-3).
+
+    Runs :func:`_search_group_bounded` for every age group independently and
+    for every seed in *seeds*, then keeps whichever seed's result is the
+    best *lexicographic* improvement over that age group's own baseline
+    (never a candidate that merely satisfies the bounds without improving —
+    :func:`_strictly_better` is the promotion gate). An age group with no
+    improving seed is returned byte-for-byte identical to the input.
+
+    ``result["source"]["per_age_group_status"]`` reports, per age group,
+    ``"improved"`` or ``"unchanged"``, the baseline/optimized metrics, the
+    winning seed (if any), and a reason for an ``"unchanged"`` fallback —
+    the evaluation shape issue #257 Task 3 asks for.
+    """
+    slots, untouched = _build_slots(candidate, problem)
+    if not slots or iterations <= 0 or not seeds:
+        return dict(candidate)
+
+    by_age_group: Dict[str, List[int]] = {}
+    for index, slot in enumerate(slots):
+        by_age_group.setdefault(slot.age_group, []).append(index)
+
+    per_group_status: Dict[str, Dict[str, Any]] = {}
+
+    for age_group, indices in sorted(by_age_group.items()):
+        group_slots = [slots[i] for i in indices]
+        baseline_team_ids = [list(slot.team_ids) for slot in group_slots]
+        baseline_metrics = _group_metrics(group_slots)
+
+        if len(indices) < 2:
+            per_group_status[age_group] = {
+                "status": "unchanged",
+                "reason": "fewer than two tournaments in age group; nothing to swap",
+                "baseline_metrics": asdict(baseline_metrics),
+                "optimized_metrics": asdict(baseline_metrics),
+                "seed_used": None,
+            }
+            continue
+
+        overall_best_metrics = baseline_metrics
+        overall_best_team_ids = baseline_team_ids
+        overall_best_seed: Optional[int] = None
+
+        for run_seed in seeds:
+            candidate_metrics, candidate_team_ids = _search_group_bounded(
+                group_slots, baseline_metrics, baseline_team_ids, iterations, run_seed
+            )
+            if _strictly_better(candidate_metrics, overall_best_metrics):
+                overall_best_metrics = candidate_metrics
+                overall_best_team_ids = candidate_team_ids
+                overall_best_seed = run_seed
+
+        if overall_best_seed is not None:
+            for slot, ids in zip(group_slots, overall_best_team_ids):
+                if ids != slot.team_ids:
+                    slot.team_ids = list(ids)
+                    slot.changed = True
+            per_group_status[age_group] = {
+                "status": "improved",
+                "reason": None,
+                "baseline_metrics": asdict(baseline_metrics),
+                "optimized_metrics": asdict(overall_best_metrics),
+                "seed_used": overall_best_seed,
+            }
+        else:
+            for slot, ids in zip(group_slots, baseline_team_ids):
+                slot.team_ids = list(ids)
+                slot.changed = False
+            per_group_status[age_group] = {
+                "status": "unchanged",
+                "reason": "no seed found a lexicographic improvement within the baseline non-regression bounds",
+                "baseline_metrics": asdict(baseline_metrics),
+                "optimized_metrics": asdict(baseline_metrics),
+                "seed_used": None,
+            }
+
+    rebuilt_tournaments = [
+        _rebuild_tournament(slot) if slot.changed else slot.tournament for slot in slots
+    ]
+
+    result = dict(candidate)
+    result["schema_version"] = candidate.get("schema_version", CANDIDATE_SCHEMA_VERSION)
+    result["tournaments"] = rebuilt_tournaments + untouched
+    result["source"] = {
+        "planner": "stage3_optimizer_participants_bounded",
+        "base_source": candidate.get("source"),
+        "iterations": iterations,
+        "seeds": list(seeds),
+        "per_age_group_status": per_group_status,
     }
     return result
