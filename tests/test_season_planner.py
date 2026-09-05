@@ -8,6 +8,7 @@ from typing import Dict
 import pytest
 
 from tournament_scheduler import participant_selection
+from tournament_scheduler.fairness_scoring import DEFAULT_FAIRNESS_THRESHOLDS
 from tournament_scheduler.models import (
     AGE_GROUP_OVERLAP,
     CalendarEvent,
@@ -2785,6 +2786,50 @@ class TestFairnessGate:
         travel_metric = next(metric for metric in gate["metrics"] if metric["key"] == "travel_distance")
         assert travel_metric["status"] == "warn"
         assert gate["status"] == "warn"
+
+
+class TestPenaltyHintRelaxationGating:
+    """Issue #260 Phase 4 ("remove penalty_hints threshold relaxation from
+    the canonical decision-driven path"): allow_penalty_hint_relaxation=False
+    disables SeasonPlanner's threshold-mutation from penalty_hints, without
+    touching the hints themselves (still recorded for audit)."""
+
+    def _make_planner(self, **kwargs) -> SeasonPlanner:
+        roster = _build_roster(["Jar", "Holmen"], ["U10"])
+        return SeasonPlanner(
+            scheduler=FakeScheduler([]),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in roster.clubs()},
+            parallel_games_for_age_group={"U10": 3},
+            max_hosting_deviation=1,
+            max_game_count_spread=2,
+            penalty_hints={
+                "hosting_deviation_score": 40.0,
+                "game_count_spread_score": 40.0,
+                "diversity_score": 50.0,
+            },
+            **kwargs,
+        )
+
+    def test_relaxation_enabled_by_default_matches_legacy_behavior(self):
+        planner = self._make_planner()
+
+        assert planner.max_hosting_deviation > 1
+        assert planner.max_game_count_spread > 2
+        assert planner.fairness_thresholds["min_diversity_score"] < DEFAULT_FAIRNESS_THRESHOLDS["min_diversity_score"]
+
+    def test_relaxation_disabled_leaves_thresholds_untouched(self):
+        planner = self._make_planner(allow_penalty_hint_relaxation=False)
+
+        assert planner.max_hosting_deviation == 1
+        assert planner.max_game_count_spread == 2
+        assert planner.fairness_thresholds["min_diversity_score"] == DEFAULT_FAIRNESS_THRESHOLDS["min_diversity_score"]
+        # The hints are still recorded for audit — just not acted on.
+        assert planner.penalty_hints == {
+            "hosting_deviation_score": 40.0,
+            "game_count_spread_score": 40.0,
+            "diversity_score": 50.0,
+        }
 
 
 class TestHostingDaysConstraint:

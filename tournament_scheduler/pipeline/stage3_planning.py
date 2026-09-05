@@ -206,6 +206,14 @@ def run(
     # Mutated in place across seed attempts below (fed forward from the best
     # candidate's weak metrics), so this must be a fresh dict, never None.
     penalty_hints: dict[str, float] = dict(penalty_hints_in) if penalty_hints_in else {}
+    # issue #260 Phase 4 ("remove penalty_hints threshold relaxation from the
+    # canonical decision-driven path"): set by pipeline_orchestrator._run_stage3
+    # to False whenever a headless judge is configured, so neither an initial
+    # penalty_hints handoff from a previous attempt nor this run's own
+    # per-seed feed-forward below silently relaxes SeasonPlanner's acceptance
+    # thresholds on the canonical path. Defaults True (legacy behavior
+    # unchanged) for any caller that doesn't set it.
+    allow_penalty_hint_relaxation = bool(config.get("allow_penalty_hint_relaxation", True))
 
     config_fingerprint = stable_payload_sha256(config)
     source_fingerprint = stable_payload_sha256(scraping_result)
@@ -237,9 +245,18 @@ def run(
             if new_hints and new_hints != {k: penalty_hints.get(k) for k in new_hints}:
                 penalty_hints.update(new_hints)
                 hint_str = ", ".join(f"{k}={v}" for k, v in new_hints.items())
+                # Recorded either way for audit (candidate["penalty_hints"]
+                # below), but only actually relaxes thresholds when
+                # allow_penalty_hint_relaxation is True (see SeasonPlanner) —
+                # word the log accordingly rather than implying relaxation
+                # happened on the canonical (judge-directed) path.
+                relaxation_note = (
+                    "" if allow_penalty_hint_relaxation
+                    else " (kun logget — terskel-lemping er avslått på kanonisk sti)"
+                )
                 print(
                     f"[plan] Forsøk {idx}/{n_iters}: straffetips fra beste forsøk hittil "
-                    f"(forsøk {best_attempt}): {hint_str}",
+                    f"(forsøk {best_attempt}): {hint_str}{relaxation_note}",
                     flush=True,
                 )
         print(f"[plan] Forsøk {idx}/{n_iters} (seed={seed if seed is not None else 'default'})", flush=True)
@@ -264,6 +281,7 @@ def run(
             seed=seed,
             max_hosting_days_per_month=max_hosting_days_per_month,
             penalty_hints=penalty_hints,
+            allow_penalty_hint_relaxation=allow_penalty_hint_relaxation,
         )
         stop_heartbeat = threading.Event()
         heartbeat_started = datetime.now()

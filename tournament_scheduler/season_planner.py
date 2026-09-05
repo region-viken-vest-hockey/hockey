@@ -127,6 +127,7 @@ class SeasonPlanner:
         preferanse_vekt_by_age_group: Optional[Dict[str, float]] = None,
         seed: Optional[int] = None,
         penalty_hints: Optional[Dict[str, float]] = None,
+        allow_penalty_hint_relaxation: bool = True,
     ):
         self.scheduler = scheduler
         self.roster = roster
@@ -184,7 +185,16 @@ class SeasonPlanner:
         if fairness_thresholds:
             self.fairness_thresholds.update(fairness_thresholds)
         self.penalty_hints: Dict[str, float] = _normalize_penalty_hints(penalty_hints)
-        if self.penalty_hints:
+        self.allow_penalty_hint_relaxation = allow_penalty_hint_relaxation
+        # issue #260 Phase 4 ("remove penalty_hints threshold relaxation from
+        # the canonical decision-driven path"): auto-relaxing acceptance
+        # thresholds from a previous attempt's weak scores is legacy
+        # no-judge-configured behavior — the canonical LLM-directed path
+        # should see the scorecard and choose a search/optimization action
+        # itself, not have Python quietly lower the bar behind it.
+        # self.penalty_hints is still recorded above either way (useful for
+        # audit/logging), just not acted on when relaxation is disabled.
+        if self.penalty_hints and allow_penalty_hint_relaxation:
             _hint_keys_log: list[str] = []
             # Relax thresholds for metrics that failed, capped at 2x original
             host_score = self.penalty_hints.get("hosting_deviation_score")

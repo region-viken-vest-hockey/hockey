@@ -1528,16 +1528,33 @@ def _run_stage3(
 
     When *penalty_hints* is provided, it is injected into the config dict under the
     key ``"penalty_hints"`` before calling the planner, so failed fairness metrics
-    from a previous attempt can relax thresholds in the next attempt.
+    from a previous attempt can relax thresholds in the next attempt — but only
+    when no headless judge is configured (issue #260 Phase 4: "remove
+    penalty_hints threshold relaxation from the canonical decision-driven
+    path"). When a judge *is* configured, ``allow_penalty_hint_relaxation``
+    is set to False in the merged config, which disables both this initial
+    hint handoff's effect and Stage 3's own internal per-seed feed-forward
+    (see ``stage3_planning.run``/``SeasonPlanner``) — the canonical path
+    should see the scorecard and choose a search/optimization action itself
+    rather than have Python quietly lower acceptance thresholds behind it.
     """
+    from ..llm_judge import get_judge_if_headless
     from ..pipeline.stage3_planning import run as stage3_run
     from ..pipeline.state import StageName
+
+    try:
+        judge_configured = get_judge_if_headless() is not None
+    except ValueError:
+        judge_configured = False
 
     if resume_from <= 3:
         _console.print("[bold]Stage 3:[/bold] Sesongplanlegging...")
         try:
             # Inject penalty hints from a previous failed attempt into config
             merged_cfg = dict(cfg)
+            merged_cfg["allow_penalty_hint_relaxation"] = not judge_configured
+            if judge_configured:
+                log_fn("Stage 3: penalty-hint threshold relaxation disabled (headless judge configured)")
             if penalty_hints:
                 merged_cfg["penalty_hints"] = dict(penalty_hints)
                 hint_display = ", ".join(f"{k}={v}" for k, v in penalty_hints.items())

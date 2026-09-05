@@ -203,6 +203,60 @@ class TestRunStage3:
         }
         assert make_planner.call_args.kwargs["penalty_hints"] == {"hosting_deviation_score": 30.0}
 
+    def _fake_planner_with_plan(self) -> MagicMock:
+        fake_planner = MagicMock()
+        fake_planner.build_plan.return_value = SeasonPlan(
+            tournaments=[
+                Tournament(
+                    date=date(2025, 10, 5),
+                    arena="Kongsberghallen",
+                    age_group="U10",
+                    teams=[
+                        Team(club="Kongsberg", label="Kongsberg U10A", age_group="U10"),
+                        Team(club="Skien", label="Skien U10A", age_group="U10"),
+                        Team(club="Jar", label="Jar U10A", age_group="U10"),
+                    ],
+                    games=[],
+                )
+            ]
+        )
+        fake_planner.rules_report.return_value = {"ok": True}
+        return fake_planner
+
+    def test_allow_penalty_hint_relaxation_defaults_true(self, tmp_path):
+        """Legacy behavior unchanged for any caller that doesn't set the
+        config flag (issue #260 Phase 4)."""
+        state = PipelineState(tmp_path / "pipeline")
+        fake_planner = self._fake_planner_with_plan()
+
+        with patch("tournament_scheduler.pipeline.stage3_planning._make_planner", return_value=fake_planner) as make_planner, patch(
+            "tournament_scheduler.pipeline.stage3_planning._build_fairness_gate",
+            return_value={"status": "pass", "score": 42, "metrics": []},
+        ):
+            run(_make_config(), {}, state, datetime(2025, 9, 1), datetime(2025, 12, 15))
+
+        assert make_planner.call_args.kwargs["allow_penalty_hint_relaxation"] is True
+
+    def test_allow_penalty_hint_relaxation_threaded_from_config_flag(self, tmp_path):
+        """issue #260 Phase 4 ("remove penalty_hints threshold relaxation
+        from the canonical decision-driven path"): pipeline_orchestrator
+        ._run_stage3 sets allow_penalty_hint_relaxation=False in the merged
+        config whenever a headless judge is configured; stage3_planning.run
+        must thread it through to every _make_planner call, not just honor
+        it for the first seed."""
+        state = PipelineState(tmp_path / "pipeline")
+        fake_planner = self._fake_planner_with_plan()
+        cfg = {**_make_config(), "allow_penalty_hint_relaxation": False}
+
+        with patch("tournament_scheduler.pipeline.stage3_planning._make_planner", return_value=fake_planner) as make_planner, patch(
+            "tournament_scheduler.pipeline.stage3_planning._build_fairness_gate",
+            return_value={"status": "warn", "score": 42, "metrics": [{"key": "game_count_spread", "status": "warn", "score": 42}]},
+        ):
+            run(cfg, {}, state, datetime(2025, 9, 1), datetime(2025, 12, 15), iterations=2)
+
+        assert make_planner.call_count == 2
+        assert all(c.kwargs["allow_penalty_hint_relaxation"] is False for c in make_planner.call_args_list)
+
     def test_weak_metric_from_best_attempt_is_fed_forward_to_later_seeds(self, tmp_path):
         """When attempts stay stuck at warn/fail, later seeds should be biased toward
         fixing the best-so-far candidate's weak metric instead of repeating a blind

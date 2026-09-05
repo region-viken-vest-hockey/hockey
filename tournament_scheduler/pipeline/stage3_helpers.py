@@ -194,6 +194,7 @@ def _make_planner(
     seed: int | None = None,
     max_hosting_days_per_month: int | None = None,
     penalty_hints: dict[str, float] | None = None,
+    allow_penalty_hint_relaxation: bool = True,
 ) -> SeasonPlanner:
     """Construct a :class:`SeasonPlanner` with derived tournament sizing.
 
@@ -223,6 +224,7 @@ def _make_planner(
         fairness_thresholds=fairness_thresholds or None,
         seed=seed,
         penalty_hints=penalty_hints,
+        allow_penalty_hint_relaxation=allow_penalty_hint_relaxation,
     )
 
 
