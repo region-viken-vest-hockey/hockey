@@ -1192,7 +1192,7 @@ def _mid_planning_decision_problem(
         return None
 
 
-def _decide_mid_planning_adoption(
+def _decide_plan_adoption(
     best_plan: "dict[str, Any]",
     rerun_plan: "dict[str, Any]",
     problem: "dict[str, Any] | None",
@@ -1201,9 +1201,17 @@ def _decide_mid_planning_adoption(
     iteration: int,
     work_dir: str,
     log_fn: "Any",
+    label: str = "mid_planning_critic",
 ) -> bool:
     """Decide whether *rerun_plan* should replace *best_plan* as the best
     pre-export attempt (issue #260 Phase 4).
+
+    Shared by the mid-planning critic loop (``_run_mid_planning_critic_loop``)
+    and the multi-seed Stage 3 best-attempt loop in ``_cmd_run`` — both are
+    the same "does this new attempt replace the current best?" decision,
+    just at different points before export. *label* only distinguishes the
+    two in logs/decision-context refs (e.g. ``"mid_planning_critic"`` vs.
+    ``"stage3_multi_seed"``); it does not change the decision logic.
 
     When a headless judge is configured (``RVV_JUDGE_BACKEND``), builds the
     same kind of ``DecisionContext`` the Stage 3 v2 optimizer promote/reject
@@ -1245,16 +1253,16 @@ def _decide_mid_planning_adoption(
     try:
         report = build_ab_report(extract_candidate(best_plan), extract_candidate(rerun_plan), problem)
     except (ValueError, KeyError) as exc:
-        log_fn(f"Mid-planning critic {iteration}: could not build A/B report for judge, falling back: {exc}")
+        log_fn(f"{label} {iteration}: could not build A/B report for judge, falling back: {exc}")
         return _deterministic_fallback()
 
     context = build_stage3_decision_context(
         report,
         run_id=run_id,
-        baseline_ref="mid_planning_critic:best_attempt",
-        candidate_ref=f"mid_planning_critic:iteration_{iteration}",
+        baseline_ref=f"{label}:best_attempt",
+        candidate_ref=f"{label}:iteration_{iteration}",
         objective=(
-            "Decide whether this mid-planning critic rerun should replace "
+            f"Decide whether this {label} rerun should replace "
             "the current best pre-export plan, or the current best should "
             "be kept."
         ),
@@ -1262,7 +1270,7 @@ def _decide_mid_planning_adoption(
     try:
         raw_verdict = judge.judge(build_action_decision_prompt(context))
     except RuntimeError as exc:
-        log_fn(f"Mid-planning critic {iteration}: judge call failed, falling back: {exc}")
+        log_fn(f"{label} {iteration}: judge call failed, falling back: {exc}")
         return _deterministic_fallback()
 
     action = parse_action_verdict(context, raw_verdict)
@@ -1278,7 +1286,7 @@ def _decide_mid_planning_adoption(
     try:
         record_llm_decision(work_dir, context, action, result)
     except Exception as exc:
-        log_fn(f"Mid-planning critic {iteration}: record_llm_decision failed: {exc}")
+        log_fn(f"{label} {iteration}: record_llm_decision failed: {exc}")
 
     if not result.accepted:
         if result.rejection_reason == "hard_violation_blocks_action":
@@ -1289,18 +1297,18 @@ def _decide_mid_planning_adoption(
             # adopting is always safe: the current best is, by definition,
             # not this newly-invalid rerun.
             log_fn(
-                f"Mid-planning critic {iteration}: judge chose apply_candidate but the rerun "
+                f"{label} {iteration}: judge chose apply_candidate but the rerun "
                 "fails the verifier — not adopting (a hard violation cannot be bypassed)"
             )
             return False
         log_fn(
-            f"Mid-planning critic {iteration}: judge action {action.action_id!r} rejected "
+            f"{label} {iteration}: judge action {action.action_id!r} rejected "
             f"({result.rejection_reason}), falling back to deterministic quality rank"
         )
         return _deterministic_fallback()
 
     log_fn(
-        f"Mid-planning critic {iteration}: judge decided {action.action_id} "
+        f"{label} {iteration}: judge decided {action.action_id} "
         f"({(action.rationale or '')[:200]})"
     )
     return action.action_id == "apply_candidate"
@@ -1381,7 +1389,7 @@ def _run_mid_planning_critic_loop(
             break
 
         current_plan = rerun_plan
-        if _decide_mid_planning_adoption(
+        if _decide_plan_adoption(
             best_plan,
             rerun_plan,
             problem,
@@ -1811,6 +1819,13 @@ def _cmd_run(args: argparse.Namespace) -> int:
     best_attempt: int = 0
     last_attempt: int = 0
     attempt_qualities: list[tuple[int, dict[str, Any]]] = []
+    multi_seed_problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+    try:
+        from ..pipeline.run_manifest import RunManifest
+
+        multi_seed_run_id = str(RunManifest(state.work_dir).read().get("run_id") or "")
+    except Exception:
+        multi_seed_run_id = ""
 
     _manifest_set_active(args.work_dir, "planning")
     for attempt in range(1, max_plan_attempts + 1):
@@ -1857,12 +1872,28 @@ def _cmd_run(args: argparse.Namespace) -> int:
         final_tournament_count = len((plan or {}).get("plan", {}).get("tournaments", []))
         final_tone = _compute_verdict_tone(plan or {})
 
-        # Track best plan by composite quality across attempts.
+        # Track best plan across attempts. The first attempt with a plan
+        # always becomes the initial best (nothing to compare it to yet);
+        # every later attempt is an apply_candidate/keep_baseline decision
+        # against the current best, routed through the same headless-judge
+        # decision path as the mid-planning critic loop
+        # (_decide_plan_adoption, issue #260 Phase 4) instead of a bare
+        # Python composite-quality rank comparison deciding alone.
         attempt_quality: dict[str, Any] | None = None
         if plan is not None:
             attempt_quality = _plan_attempt_quality(plan)
             attempt_qualities.append((attempt, attempt_quality))
-            if best_quality is None or attempt_quality["rank"] > best_quality["rank"]:
+            adopt = best_plan is None or _decide_plan_adoption(
+                best_plan,
+                plan,
+                multi_seed_problem,
+                run_id=multi_seed_run_id,
+                iteration=attempt,
+                work_dir=str(state.work_dir),
+                log_fn=_log,
+                label="stage3_multi_seed",
+            )
+            if adopt:
                 best_quality = attempt_quality
                 best_plan = plan
                 best_attempt = attempt

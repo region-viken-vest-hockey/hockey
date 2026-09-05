@@ -11,7 +11,7 @@ import pytest
 from tournament_scheduler.cli.pipeline_orchestrator import (
     _MAX_REFINEMENT_ITERATIONS,
     _compute_verdict_tone,
-    _decide_mid_planning_adoption,
+    _decide_plan_adoption,
     _run_approval_gate,
     _run_mid_planning_critic_loop,
     _run_refinement_loop,
@@ -236,7 +236,7 @@ class TestRunMidPlanningCriticLoop:
 
 
 # ---------------------------------------------------------------------------
-# _decide_mid_planning_adoption — unit tests (issue #260 Phase 4)
+# _decide_plan_adoption — unit tests (issue #260 Phase 4)
 # ---------------------------------------------------------------------------
 
 
@@ -297,7 +297,7 @@ class TestDecideMidPlanningAdoption:
         best = _make_gate_checkpoint("warn", gate_score=50)
         rerun = _make_gate_checkpoint("pass", gate_score=95)
 
-        adopted = _decide_mid_planning_adoption(
+        adopted = _decide_plan_adoption(
             best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
         )
 
@@ -312,7 +312,7 @@ class TestDecideMidPlanningAdoption:
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            adopted = _decide_mid_planning_adoption(
+            adopted = _decide_plan_adoption(
                 best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
             )
 
@@ -336,7 +336,7 @@ class TestDecideMidPlanningAdoption:
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            adopted = _decide_mid_planning_adoption(
+            adopted = _decide_plan_adoption(
                 best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
             )
 
@@ -351,7 +351,7 @@ class TestDecideMidPlanningAdoption:
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            adopted = _decide_mid_planning_adoption(
+            adopted = _decide_plan_adoption(
                 best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
             )
 
@@ -378,7 +378,7 @@ class TestDecideMidPlanningAdoption:
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            adopted = _decide_mid_planning_adoption(
+            adopted = _decide_plan_adoption(
                 best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
             )
 
@@ -393,6 +393,41 @@ class TestDecideMidPlanningAdoption:
         assert entry["action"]["action_id"] == "apply_candidate"
         assert entry["result"]["accepted"] is False
         assert entry["result"]["rejection_reason"] == "hard_violation_blocks_action"
+
+    def test_label_distinguishes_multi_seed_from_mid_planning_critic_in_decision_context(
+        self, tmp_path
+    ) -> None:
+        """The Stage 3 multi-seed best-attempt loop in ``_cmd_run`` reuses this
+        same decision, just with ``label="stage3_multi_seed"`` (issue #260
+        Phase 4) — the recorded DecisionContext refs/objective must reflect
+        that instead of hardcoding "mid_planning_critic"."""
+        best = {"plan": _worse_candidate()}
+        rerun = {"plan": _better_candidate()}
+        judge = MagicMock()
+        judge.judge.return_value = "apply_candidate\nBetter on every metric."
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            adopted = _decide_plan_adoption(
+                best,
+                rerun,
+                None,
+                run_id="run-1",
+                iteration=2,
+                work_dir=str(tmp_path),
+                log_fn=lambda _: None,
+                label="stage3_multi_seed",
+            )
+
+        assert adopted is True
+
+        from tournament_scheduler.pipeline.run_manifest import RunManifest
+
+        manifest = RunManifest(str(tmp_path)).read()
+        entry = manifest["decision_log"][-1]
+        assert entry["context"]["baseline_ref"] == "stage3_multi_seed:best_attempt"
+        assert entry["context"]["candidate_ref"] == "stage3_multi_seed:iteration_2"
 
 
 # ---------------------------------------------------------------------------
