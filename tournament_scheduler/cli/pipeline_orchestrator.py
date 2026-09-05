@@ -337,86 +337,112 @@ def _format_plan_attempt_quality(quality: dict[str, Any]) -> str:
 _MAX_REFINEMENT_ITERATIONS = 3
 
 
-def _decide_apply_refinement_moves(
-    issues: "list[str]",
-    moves: "list[dict[str, Any]]",
-    auto_moves: "list[dict[str, Any]]",
+def _refinement_decision_problem(state: "Any", plan_obj: "Any") -> "dict[str, Any] | None":
+    """Best-effort ``planning_problem`` for a refinement-candidate decision.
+
+    Mirrors ``_mid_planning_decision_problem``'s "degrade to None rather than
+    raise" philosophy, adapted for the ``date``-typed ``start_date``/
+    ``end_date`` already on a loaded :class:`SeasonPlan` (the mid-planning
+    variant takes ``datetime`` and calls ``.date()`` on it, which does not
+    apply here).
+    """
+    try:
+        from ..pipeline.state import StageName
+        from ..planning_contract import build_planning_problem
+
+        start_date = getattr(plan_obj, "start_date", None)
+        end_date = getattr(plan_obj, "end_date", None)
+        if not start_date or not end_date:
+            return None
+        cfg = state.read_stage(StageName.CONFIG) or {}
+        scraping = state.read_stage(StageName.SCRAPING) or {}
+        return build_planning_problem(cfg, scraping, start_date, end_date)
+    except Exception:
+        return None
+
+
+def _decide_refinement_candidate(
+    before_candidate: "dict[str, Any]",
+    after_candidate: "dict[str, Any]",
+    problem: "dict[str, Any] | None",
     *,
     run_id: str,
     iteration: int,
     work_dir: str,
     log_fn: "Any",
-) -> bool:
-    """Decide whether to apply this refinement iteration's auto-fixable moves
-    (issue #260 Phase 4).
+) -> "tuple[str, str]":
+    """Decide whether to persist this refinement iteration's proposed candidate
+    (issue #260 Phase 4: ``cli/plan_critic.py`` + the refinement-candidate
+    verification boundary).
 
-    ``plan_critic.suggest_moves`` ranks issues and marks some moves
-    ``can_auto_fix`` — a deterministic classification of *what a fix would
-    look like*, not a judgment that applying it now is the right call. The
-    refinement loop previously applied every ``can_auto_fix`` move
-    unconditionally, one of the Phase 4 hotspots named alongside the
-    mid-planning critic loop and the Stage 3 multi-seed loop (this is the
-    "plan critic currently decides repair policy" item from the alignment
-    review).
+    ``after_candidate`` is the plan *after* this iteration's plan-critic
+    moves have already been tentatively applied in memory (via
+    ``ManualAdjustmentWorkflow.apply``, not yet persisted) — unlike the
+    earlier, narrower version of this gate, the decision now sees the actual
+    resulting candidate, verified and A/B-scored against the baseline via
+    the same ``stage3_ab``/``stage3_decision`` machinery the Stage 3
+    optimizer promote/reject decision uses, not just a description of the
+    proposed moves.
 
-    When a headless judge is configured (``RVV_JUDGE_BACKEND``), builds a
-    ``DecisionContext`` from the critic's findings and proposed moves,
-    asks the judge to choose ``apply_candidate`` (apply this batch),
-    ``keep_baseline`` (skip this iteration), or ``request_operator``,
-    validates the reply deterministically, and records it to the run
-    manifest's ``decision_log``.
+    Returns ``(outcome, reason)`` where ``outcome`` is one of:
+    - ``"no_judge"`` — no headless judge is configured (harness-active or
+      ``RVV_JUDGE_BACKEND`` unset). The caller falls back to its own
+      explicitly-named legacy auto-apply compatibility path so unattended/
+      non-interactive production runs are unaffected by this change.
+    - ``"persist"`` — a judge explicitly chose ``apply_candidate`` and the
+      deterministic validator accepted it (which itself refuses to accept a
+      candidate that fails the verifier).
+    - ``"hold"`` — a judge is configured but chose not to apply this
+      candidate, its action was deterministically rejected (including
+      because ``after_candidate`` fails the verifier), or the judge call
+      itself failed.
 
-    Falls back to applying the moves (the loop's original behavior) when no
-    judge is configured, the judge call fails, or its action is
-    deterministically rejected — headless/no-LLM runs are unchanged. There
-    is no separate verifier gate here (unlike the Stage 3 optimizer/A-B
-    decisions): the moves themselves are already deterministically derived
-    from the critic's findings, and ``workflow.apply()`` recomputes
-    fairness/tone from whatever is actually applied, same as before.
+    Unlike the Stage 3 promote/reject, mid-planning critic, and multi-seed
+    decisions (which fall back to the pre-existing deterministic
+    quality-rank comparison on any judge failure), ``"hold"`` here does
+    *not* fall back to auto-apply — a configured-but-failing judge leaves
+    the baseline intact rather than silently reverting to the old
+    always-on behavior. That old behavior is preserved only as the
+    separate, explicitly-named ``"no_judge"`` legacy path.
     """
-    from ..application.decisions import DecisionAction, DecisionContext, decide, record_llm_decision
+    from ..application.decisions import decide, record_llm_decision
     from ..llm_judge import build_action_decision_prompt, get_judge_if_headless, parse_action_verdict
-
-    def _deterministic_fallback() -> bool:
-        return True
+    from ..stage3_ab import build_ab_report
+    from ..stage3_decision import build_stage3_decision_context
 
     try:
         judge = get_judge_if_headless()
     except ValueError:
-        return _deterministic_fallback()
+        return "no_judge", "no_judge_configured"
     if judge is None:
-        return _deterministic_fallback()
+        return "no_judge", "no_judge_configured"
 
-    candidate_ref = f"refinement_iteration_{iteration}"
-    context = DecisionContext(
+    try:
+        report = build_ab_report(before_candidate, after_candidate, problem)
+    except (ValueError, KeyError) as exc:
+        log_fn(f"Refinement {iteration}: could not build A/B report for judge — holding: {exc}")
+        return "hold", "ab_report_failed"
+
+    baseline_ref = f"refinement_iteration_{iteration}:before"
+    candidate_ref = f"refinement_iteration_{iteration}:after"
+    context = build_stage3_decision_context(
+        report,
         run_id=run_id,
-        capability="plan_critic_refinement",
-        stage="refinement",
-        objective=(
-            "Decide whether to apply this iteration's auto-fixable plan-critic "
-            "moves (e.g. shifting a colliding tournament or a hosting clump by "
-            "a week), skip this iteration and keep the current plan unchanged, "
-            "or ask the operator."
-        ),
-        facts={
-            "issue_count": len(issues),
-            "auto_fixable_move_count": len(auto_moves),
-            "manual_review_move_count": len(moves) - len(auto_moves),
-            "issues": "; ".join(issues[:5]),
-            "proposed_moves": "; ".join(
-                f"{m.get('tournament_id') or '?'}→{m.get('new_date') or '?'} "
-                f"({(m.get('reason') or '')[:80]})"
-                for m in auto_moves[:5]
-            ),
-        },
+        baseline_ref=baseline_ref,
         candidate_ref=candidate_ref,
-        available_actions=("apply_candidate", "keep_baseline", "request_operator"),
+        objective=(
+            "Decide whether to apply this iteration's plan-critic-derived "
+            "repair (proposed dates/moves already computed deterministically "
+            "and applied to a trial candidate, verified and A/B-scored "
+            "against the current plan), ask the operator, or keep the "
+            "current plan unchanged."
+        ),
     )
     try:
         raw_verdict = judge.judge(build_action_decision_prompt(context))
     except RuntimeError as exc:
-        log_fn(f"Refinement {iteration}: judge call failed, falling back to auto-apply: {exc}")
-        return _deterministic_fallback()
+        log_fn(f"Refinement {iteration}: judge call failed — holding: {exc}")
+        return "hold", "judge_call_failed"
 
     action = parse_action_verdict(context, raw_verdict)
     if action.action_id == "apply_candidate" and not action.arguments.get("candidate_ref"):
@@ -433,15 +459,19 @@ def _decide_apply_refinement_moves(
     if not result.accepted:
         log_fn(
             f"Refinement {iteration}: judge action {action.action_id!r} rejected "
-            f"({result.rejection_reason}), falling back to auto-apply"
+            f"({result.rejection_reason}) — holding, not persisting"
         )
-        return _deterministic_fallback()
+        return "hold", result.rejection_reason or "rejected"
+
+    if action.action_id != "apply_candidate":
+        log_fn(f"Refinement {iteration}: judge decided {action.action_id} — holding, not persisting")
+        return "hold", action.action_id
 
     log_fn(
-        f"Refinement {iteration}: judge decided {action.action_id} "
+        f"Refinement {iteration}: judge decided apply_candidate "
         f"({(action.rationale or '')[:200]})"
     )
-    return action.action_id == "apply_candidate"
+    return "persist", "apply_candidate"
 
 
 def _run_refinement_loop(
@@ -455,14 +485,23 @@ def _run_refinement_loop(
 
     On each iteration:
     1. Loads the current SeasonPlan from the Stage 3 checkpoint.
-    2. Generates targeted swap suggestions via the plan critic.
-    3. Decides whether to apply this iteration's auto-fixable moves at all
-       (:func:`_decide_apply_refinement_moves`, issue #260 Phase 4) — a
-       headless judge, when configured, may choose to skip the iteration
-       instead.
-    4. Merges those suggestions into ``plan.manual_adjustments``.
-    5. Applies the adjustments and recalculates fairness scores.
-    6. Re-evaluates the verdict tone; exits early if tone is no longer 'rough'.
+    2. Generates every deterministic critic finding
+       (:func:`plan_critic.generate_critic_findings`, uncapped/unranked —
+       issue #260 Phase 4) and derives targeted swap suggestions from them.
+    3. Tentatively applies this iteration's auto-fixable moves to an
+       in-memory trial candidate (not yet persisted).
+    4. Verifies and A/B-scores that trial candidate against the current
+       plan and decides whether to persist it
+       (:func:`_decide_refinement_candidate`, issue #260 Phase 4 — the
+       "cli/plan_critic.py + refinement-candidate verification boundary"):
+       a headless judge, when configured, must explicitly choose
+       ``apply_candidate`` for the trial candidate to be persisted; a
+       configured-but-failing/declining judge leaves the baseline intact
+       (safe-by-default) rather than silently auto-applying. When no judge
+       is configured at all, the loop falls back to the pre-existing
+       always-apply legacy compatibility behavior so unattended/
+       non-interactive production runs are unaffected.
+    5. Re-evaluates the verdict tone; exits early if tone is no longer 'rough'.
 
     Args:
         plan_checkpoint: Stage 3 checkpoint dict (with a ``"plan"`` key).
@@ -478,8 +517,9 @@ def _run_refinement_loop(
     from datetime import date as _date
 
     from ..pipeline.manual_adjustment_workflow import ManualAdjustmentWorkflow
+    from ..pipeline.stage3_helpers import _resolve_plan_dict
     from ..pipeline.state import StageName
-    from .plan_critic import generate_critic_summary, suggest_moves
+    from .plan_critic import generate_critic_findings, suggest_moves
 
     workflow = ManualAdjustmentWorkflow(state)
     current_checkpoint = plan_checkpoint
@@ -507,28 +547,24 @@ def _run_refinement_loop(
             _console.print(f"  [yellow]⚠[/yellow] Refinement {iteration}: kan ikke laste plan: {exc}")
             break
 
-        # Generate critic issues and targeted swap suggestions
-        issues = generate_critic_summary(plan_obj)
-        if not issues:
-            log_fn(f"Refinement {iteration}: no critic issues found — stopping")
+        # Snapshot the plan *before* any moves are applied, for the
+        # verify+A/B decision below — must be captured now, since plan_obj
+        # is mutated in place by move_date/apply() further down.
+        before_candidate = _resolve_plan_dict(plan_obj)
+
+        # Generate every deterministic critic finding (uncapped/unranked —
+        # which one matters most is a contextual judgment, not this
+        # function's to make) and derive targeted swap suggestions from them.
+        findings = generate_critic_findings(plan_obj)
+        if not findings:
+            log_fn(f"Refinement {iteration}: no critic findings — stopping")
             break
+        issues = [finding["message"] for finding in findings]
 
         moves = suggest_moves(plan_obj, issues)
         auto_moves = [m for m in moves if m.get("can_auto_fix")]
         if not auto_moves:
             log_fn(f"Refinement {iteration}: no auto-fixable moves — stopping")
-            break
-
-        if not _decide_apply_refinement_moves(
-            issues,
-            moves,
-            auto_moves,
-            run_id=run_id,
-            iteration=iteration,
-            work_dir=str(state.work_dir),
-            log_fn=log_fn,
-        ):
-            log_fn(f"Refinement {iteration}: decision was not to apply auto-fixable moves — stopping")
             break
 
         # Apply auto-fixable moves directly via TournamentUpdater.move_date when
@@ -581,13 +617,42 @@ def _run_refinement_loop(
             log_fn(f"Refinement {iteration}: no effective changes — skipping apply/persist")
             break
 
-        # Apply adjustments and recompute fairness scores
+        # Apply adjustments and recompute fairness scores — this only mutates
+        # plan_obj in memory; nothing is persisted until the decision below
+        # accepts it.
         try:
             result = workflow.apply(plan_obj)
         except Exception as exc:
             log_fn(f"Refinement {iteration}: apply() failed: {exc}")
             _console.print(f"  [yellow]⚠[/yellow] Refinement {iteration}: apply feilet: {exc}")
             break
+
+        after_candidate = _resolve_plan_dict(plan_obj)
+        problem = _refinement_decision_problem(state, plan_obj)
+        outcome, reason = _decide_refinement_candidate(
+            before_candidate,
+            after_candidate,
+            problem,
+            run_id=run_id,
+            iteration=iteration,
+            work_dir=str(state.work_dir),
+            log_fn=log_fn,
+        )
+        if outcome == "hold":
+            log_fn(f"Refinement {iteration}: not persisting this iteration's candidate ({reason}) — stopping")
+            _console.print(
+                f"  [yellow]⚠[/yellow] Refinement {iteration}: kandidat ikke akseptert ({reason}) — stopper."
+            )
+            break
+        if outcome == "no_judge":
+            # Legacy compatibility: no headless judge configured (harness-active
+            # or RVV_JUDGE_BACKEND unset) — preserve the pre-existing always-apply
+            # behavior so unattended/non-interactive production runs are
+            # unaffected by this decision gate. This is deliberately the only
+            # place remaining that persists without a decision, and it is
+            # scoped to "no judge available at all", never to a judge that
+            # was consulted and declined/failed (see _decide_refinement_candidate).
+            log_fn(f"Refinement {iteration}: no judge configured — using legacy auto-apply compatibility path")
 
         # Persist the updated plan so the next iteration reads fresh scores
         try:

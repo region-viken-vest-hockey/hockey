@@ -1,8 +1,18 @@
-"""Plan critic: analyse a Stage 3 SeasonPlan and return ranked issue strings.
+"""Plan critic: analyse a Stage 3 SeasonPlan for deterministic findings.
 
 This module is intentionally free of LLM calls and external dependencies.
-It reads the SeasonPlan data model and returns up to 5 actionable issue strings
-ranked by severity (most severe first).
+It reads the SeasonPlan data model and returns deterministic factual
+findings (:func:`generate_critic_findings`) plus generic candidate repair
+moves derived from them (:func:`suggest_moves`).
+
+:func:`generate_critic_findings` returns every finding it detects, with no
+cap and no severity ranking baked in — which finding matters most, and
+whether/which repair to apply, is a contextual judgment for the LLM/agent
+controller (or the operator), not something this module should decide for
+them (issue #260 Phase 4). :func:`generate_critic_summary` remains as a
+backward-compatible ranked-and-capped-at-5 string view for callers that
+predate the structured decision path (e.g. ``rvv-miniputt critic``,
+mid-planning-critic penalty-hint text) and were not part of this change.
 """
 from __future__ import annotations
 
@@ -15,17 +25,30 @@ from typing import TYPE_CHECKING, Any, Dict, List
 if TYPE_CHECKING:
     from tournament_scheduler.models import SeasonPlan
 
+# Legacy display order for generate_critic_summary only — this is not a
+# claim that "fail" always matters more than "clump" to the LLM/agent
+# controller, just the order the pre-existing capped-at-5 text view showed
+# issues in before this change, kept for that view's backward compatibility.
+_LEGACY_CATEGORY_ORDER = ("fail", "collision", "outlier", "warn", "clump", "balance")
 
-def generate_critic_summary(plan: "SeasonPlan") -> List[str]:
-    """Analyse *plan* and return up to 5 ranked issue strings with fix proposals.
 
-    Severity ranking (highest first):
-    1. Fairness gate "fail" metrics
-    2. Arena-day collisions
-    3. Game count outliers (spread > 4)
-    4. Fairness gate "warn" metrics
-    5. Hosting clumps (>2 tournaments per club per month)
-    6. Low month balance (score < 0.6)
+def generate_critic_findings(plan: "SeasonPlan") -> List[Dict[str, Any]]:
+    """Analyse *plan* and return every deterministic finding, uncapped and unranked.
+
+    Each finding is ``{"category": ..., "message": ...}`` where ``category``
+    is one of ``"fail"``, ``"collision"``, ``"outlier"``, ``"warn"``,
+    ``"clump"``, ``"balance"``. Findings are grouped by category (in the
+    order below) but nothing here declares one category more severe than
+    another or hides any finding from the caller — that prioritization
+    belongs to the LLM/agent controller.
+
+    Categories detected:
+    - Fairness gate "fail" metrics
+    - Arena-day collisions
+    - Game count outliers (spread > 4)
+    - Fairness gate "warn" metrics
+    - Hosting clumps (>2 tournaments per club per month)
+    - Low month balance (score < 0.6)
 
     Returns an empty list if no issues are detected.
     """
@@ -175,17 +198,39 @@ def generate_critic_summary(plan: "SeasonPlan") -> List[str]:
         )
 
     # ------------------------------------------------------------------
-    # Combine by severity rank and cap at 5
+    # Every finding, tagged by category, uncapped and unranked — the
+    # grouping below is just how they were computed above, not a claim
+    # about relative severity (see generate_critic_summary for the
+    # legacy ranked-and-capped view built from this).
     # ------------------------------------------------------------------
-    all_issues = (
-        fail_issues
-        + collision_issues
-        + outlier_issues
-        + warn_issues
-        + clump_issues
-        + balance_issues
+    findings: List[Dict[str, Any]] = []
+    for category, messages in (
+        ("fail", fail_issues),
+        ("collision", collision_issues),
+        ("outlier", outlier_issues),
+        ("warn", warn_issues),
+        ("clump", clump_issues),
+        ("balance", balance_issues),
+    ):
+        findings.extend({"category": category, "message": message} for message in messages)
+    return findings
+
+
+def generate_critic_summary(plan: "SeasonPlan") -> List[str]:
+    """Backward-compatible ranked-and-capped-at-5 issue strings.
+
+    Built from :func:`generate_critic_findings`, ordered by
+    :data:`_LEGACY_CATEGORY_ORDER` and capped at 5 — the exact shape this
+    function had before issue #260 Phase 4, kept for callers that predate
+    the structured decision path (``rvv-miniputt critic``, mid-planning
+    critic penalty-hint text) and were not part of this change.
+    """
+    order = {category: index for index, category in enumerate(_LEGACY_CATEGORY_ORDER)}
+    ranked = sorted(
+        generate_critic_findings(plan),
+        key=lambda finding: order.get(finding["category"], len(order)),
     )
-    return all_issues[:5]
+    return [finding["message"] for finding in ranked[:5]]
 
 
 def suggest_moves(plan: "SeasonPlan", issues: List[str]) -> List[Dict]:

@@ -11,8 +11,8 @@ import pytest
 from tournament_scheduler.cli.pipeline_orchestrator import (
     _MAX_REFINEMENT_ITERATIONS,
     _compute_verdict_tone,
-    _decide_apply_refinement_moves,
     _decide_plan_adoption,
+    _decide_refinement_candidate,
     _run_approval_gate,
     _run_mid_planning_critic_loop,
     _run_refinement_loop,
@@ -866,9 +866,11 @@ class TestRunRefinementLoop:
             f"Expected 'no effective changes' in log; got: {log_calls}"
         )
 
-    def test_headless_judge_keep_baseline_stops_iteration_without_applying(self, tmp_path) -> None:
-        """Issue #260 Phase 4: a headless judge may skip an iteration's
-        auto-fixable moves entirely instead of them always being applied."""
+    def test_headless_judge_keep_baseline_holds_without_persisting(self, tmp_path) -> None:
+        """Issue #260 Phase 4: a headless judge may decline to persist an
+        iteration's trial candidate. apply() still runs (it only computes the
+        trial candidate in memory), but write_updated_checkpoint must not be
+        called when the judge holds."""
         plan_obj = _make_plan_obj(gate_status="fail", gate_score=40, pairwise=0.5, diversity=0.5, month_balance=0.5)
         checkpoint = _make_checkpoint(plan_obj)
         state = _make_state()
@@ -877,8 +879,11 @@ class TestRunRefinementLoop:
         log_calls: list[str] = []
 
         apply_mock = MagicMock()
+        write_checkpoint_mock = MagicMock()
         judge = MagicMock()
         judge.judge.return_value = "keep_baseline\nNot worth the churn this iteration."
+        move_date_result = MagicMock()
+        move_date_result.summary_nb = "moved"
 
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
@@ -892,8 +897,8 @@ class TestRunRefinementLoop:
                     return_value=plan_obj,
                 ):
                     with patch(
-                        "tournament_scheduler.cli.plan_critic.generate_critic_summary",
-                        return_value=["Arena-day collision on 2026-03-01"],
+                        "tournament_scheduler.cli.plan_critic.generate_critic_findings",
+                        return_value=[{"category": "collision", "message": "Arena-day collision on 2026-03-01"}],
                     ):
                         with patch(
                             "tournament_scheduler.cli.plan_critic.suggest_moves",
@@ -906,72 +911,75 @@ class TestRunRefinementLoop:
                             }],
                         ):
                             with patch(
-                                "tournament_scheduler.pipeline.manual_adjustment_workflow.ManualAdjustmentWorkflow.apply",
-                                apply_mock,
+                                "tournament_scheduler.pipeline.tournament_updater.TournamentUpdater.move_date",
+                                return_value=move_date_result,
                             ):
-                                tone, updated = _run_refinement_loop(
-                                    checkpoint, state, args, False, log_calls.append
-                                )
+                                with patch(
+                                    "tournament_scheduler.pipeline.manual_adjustment_workflow.ManualAdjustmentWorkflow.apply",
+                                    apply_mock,
+                                ):
+                                    with patch(
+                                        "tournament_scheduler.pipeline.tournament_updater.TournamentUpdater.write_updated_checkpoint",
+                                        write_checkpoint_mock,
+                                    ):
+                                        tone, updated = _run_refinement_loop(
+                                            checkpoint, state, args, False, log_calls.append
+                                        )
 
         judge.judge.assert_called_once()
-        apply_mock.assert_not_called()
+        apply_mock.assert_called_once()
+        write_checkpoint_mock.assert_not_called()
         assert tone == "rough"
         assert updated is checkpoint
-        assert any("was not to apply auto-fixable moves" in msg for msg in log_calls)
+        assert any("not persisting this iteration's candidate" in msg for msg in log_calls)
 
 
 # ---------------------------------------------------------------------------
-# _decide_apply_refinement_moves — unit tests
+# _decide_refinement_candidate — unit tests (issue #260 Phase 4:
+# cli/plan_critic.py + the refinement-candidate verification boundary)
 # ---------------------------------------------------------------------------
 
 
-class TestDecideApplyRefinementMoves:
-    """Issue #260 Phase 4: gate the refinement loop's auto-fix application
-    through a headless decision instead of always applying every
-    ``can_auto_fix`` move, falling back to the pre-existing auto-apply
-    behavior when no judge is configured."""
+class TestDecideRefinementCandidate:
+    """Unlike the other three Phase 4 decision gates in this file (which fall
+    back to their pre-existing deterministic comparison on any judge
+    failure), this one is safe-by-default: a configured-but-failing/
+    declining judge holds (does not persist) rather than falling back to
+    auto-apply. Only "no judge configured at all" returns "no_judge", and
+    even then this function does not itself auto-apply — it leaves that to
+    the caller's explicitly-named legacy compatibility path."""
 
-    _ISSUES = ["Arena-day collision on 2026-03-01"]
-    _MOVES = [
-        {
-            "tournament_id": "t1",
-            "new_date": "2026-03-08",
-            "reason": "shift",
-            "can_auto_fix": True,
-            "issue": "Arena-day collision on 2026-03-01",
-        }
-    ]
-
-    def test_no_headless_judge_falls_back_to_auto_apply(self, tmp_path) -> None:
-        decision = _decide_apply_refinement_moves(
-            self._ISSUES,
-            self._MOVES,
-            self._MOVES,
+    def test_no_headless_judge_returns_no_judge(self, tmp_path) -> None:
+        outcome, reason = _decide_refinement_candidate(
+            _worse_candidate(),
+            _worse_candidate(),
+            None,
             run_id="run-1",
             iteration=1,
             work_dir=str(tmp_path),
             log_fn=lambda _: None,
         )
-        assert decision is True
+        assert outcome == "no_judge"
 
-    def test_headless_judge_apply_candidate_is_recorded_and_applied(self, tmp_path) -> None:
+    def test_headless_judge_apply_candidate_is_recorded_and_persists(self, tmp_path) -> None:
         judge = MagicMock()
-        judge.judge.return_value = "apply_candidate\nSafe to shift the colliding tournament."
+        judge.judge.return_value = "apply_candidate\nDominates baseline on every metric."
 
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            decision = _decide_apply_refinement_moves(
-                self._ISSUES,
-                self._MOVES,
-                self._MOVES,
+            outcome, reason = _decide_refinement_candidate(
+                _worse_candidate(),
+                _better_candidate(),
+                None,
                 run_id="run-1",
                 iteration=1,
                 work_dir=str(tmp_path),
                 log_fn=lambda _: None,
             )
 
-        assert decision is True
+        assert outcome == "persist"
+        assert reason == "apply_candidate"
 
         from tournament_scheduler.pipeline.run_manifest import RunManifest
 
@@ -979,45 +987,80 @@ class TestDecideApplyRefinementMoves:
         entry = manifest["decision_log"][-1]
         assert entry["action"]["action_id"] == "apply_candidate"
         assert entry["result"]["accepted"] is True
-        assert entry["context"]["capability"] == "plan_critic_refinement"
 
-    def test_headless_judge_keep_baseline_is_not_applied(self, tmp_path) -> None:
+    def test_headless_judge_keep_baseline_holds(self, tmp_path) -> None:
         judge = MagicMock()
         judge.judge.return_value = "keep_baseline"
 
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            decision = _decide_apply_refinement_moves(
-                self._ISSUES,
-                self._MOVES,
-                self._MOVES,
+            outcome, reason = _decide_refinement_candidate(
+                _worse_candidate(),
+                _better_candidate(),
+                None,
                 run_id="run-1",
                 iteration=1,
                 work_dir=str(tmp_path),
                 log_fn=lambda _: None,
             )
 
-        assert decision is False
+        assert outcome == "hold"
+        assert reason == "keep_baseline"
 
-    def test_headless_judge_call_failure_falls_back_to_auto_apply(self, tmp_path) -> None:
+    def test_headless_judge_call_failure_holds_and_does_not_auto_apply(self, tmp_path) -> None:
+        """Correction from the earlier, narrower version of this gate: a
+        configured judge that errors must not silently fall back to
+        auto-apply — it holds instead."""
         judge = MagicMock()
         judge.judge.side_effect = RuntimeError("backend unreachable")
 
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            decision = _decide_apply_refinement_moves(
-                self._ISSUES,
-                self._MOVES,
-                self._MOVES,
+            outcome, reason = _decide_refinement_candidate(
+                _worse_candidate(),
+                _better_candidate(),
+                None,
                 run_id="run-1",
                 iteration=1,
                 work_dir=str(tmp_path),
                 log_fn=lambda _: None,
             )
 
-        assert decision is True
+        assert outcome == "hold"
+        assert reason == "judge_call_failed"
+
+    def test_headless_judge_cannot_bypass_invalid_candidate(self, tmp_path) -> None:
+        """An LLM saying apply_candidate cannot persist a candidate that
+        fails the verifier — the deterministic validator rejects it
+        regardless, and this gate does not fall back to auto-apply either."""
+        teams = [_decision_team(f"Club{i}", f"T{i}", "U10") for i in range(1, 5)]
+        invalid = {
+            "schema_version": 1,
+            "tournaments": [
+                _decision_tournament("t1", "2026-01-05", "Arena1", "U10", teams),
+                _decision_tournament("t2", "2026-01-05", "Arena1", "U10", teams),
+            ],
+        }
+        judge = MagicMock()
+        judge.judge.return_value = "apply_candidate\nLooks fine to me."
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            outcome, reason = _decide_refinement_candidate(
+                _worse_candidate(),
+                invalid,
+                None,
+                run_id="run-1",
+                iteration=1,
+                work_dir=str(tmp_path),
+                log_fn=lambda _: None,
+            )
+
+        assert outcome == "hold"
+        assert reason == "hard_violation_blocks_action"
 
 
 # ---------------------------------------------------------------------------
