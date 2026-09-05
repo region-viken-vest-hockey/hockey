@@ -224,8 +224,13 @@ def test_judge_abort_verdict_writes_judgment_to_checkpoint(tmp_path: Path) -> No
     assert "Missing required sources." in envelope["judgment"]["reasoning"]
 
 
-def test_judge_runtime_error_continues_pipeline(tmp_path: Path) -> None:
-    """When judge.judge() raises RuntimeError, pipeline continues (returns 0)."""
+def test_judge_runtime_error_aborts_pipeline_safely(tmp_path: Path) -> None:
+    """When judge.judge() raises RuntimeError, the pipeline aborts (issue
+    #260 Phase 4: "_judge_stage() still treats a configured judge failure
+    as proceed" — a configured-but-failing judge is not the same as no
+    judge being configured at all; every prior stage's checkpoint is
+    already persisted, so aborting here is a safe, resumable stop rather
+    than silently trusting an unavailable judge)."""
     args = _make_args(tmp_path)
     judge_mock = MagicMock()
     judge_mock.judge.side_effect = RuntimeError("LLM Bridge connection failed")
@@ -237,7 +242,7 @@ def test_judge_runtime_error_continues_pipeline(tmp_path: Path) -> None:
                 with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5]:
                     result = _cmd_run(args)
 
-    assert result == 0
+    assert result == 1
     # judge was attempted despite failure
     assert judge_mock.judge.call_count >= 1
 

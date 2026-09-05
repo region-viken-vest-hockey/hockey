@@ -136,8 +136,21 @@ def _judge_stage(
     """Ask the headless judge whether to proceed after a stage.
 
     Returns True if the pipeline should continue, False if it should abort.
-    When no judge is present (harness active or RVV_JUDGE_BACKEND unset)
-    always returns True so the pipeline continues unchanged.
+
+    Distinguishes "no judge configured at all" from "a judge is configured
+    but the call failed" (issue #260 Phase 4 — "_judge_stage() still treats
+    a configured judge failure as proceed"):
+
+    - No judge present (harness active, or headless with
+      ``RVV_JUDGE_BACKEND`` unset): always returns True — an explicitly-named
+      legacy compatibility case where there is nothing to ask, not a
+      decision at all. This is unchanged.
+    - A judge *is* configured but the call itself fails (backend error):
+      now returns False (abort) rather than silently proceeding. Every
+      Stage 1-3 checkpoint is already persisted before this point, so
+      aborting here is a safe, non-destructive stop — the run can be
+      resumed from this stage — rather than an implicit "trust it anyway"
+      policy choice standing in for an actual decision.
 
     The verdict is persisted into the stage checkpoint via
     ``state.write_judgment`` so it appears in ``.pipeline/stage*.json``.
@@ -173,14 +186,19 @@ def _judge_stage(
     try:
         verdict_raw = judge.judge(prompt).strip()
     except RuntimeError as exc:
+        # Safe-by-default (issue #260 Phase 4): a configured judge that
+        # fails to answer is not the same as no judge being configured at
+        # all. Aborting is safe here — every prior stage's checkpoint is
+        # already persisted, so the run can simply be resumed from this
+        # stage rather than silently trusting an unavailable judge.
         log_fn(f"Stage {stage_num} judge call failed: {exc}")
-        _console.print(f"  [yellow]⚠[/yellow] Dommerkall feilet: {exc} — fortsetter")
+        _console.print(f"  [red]✗[/red] Dommerkall feilet etter Stage {stage_num}: {exc} — avbryter (kan gjenopptas)")
         if stage_name is not None:
             try:
                 state.write_judgment(stage_name, "ERROR", reasoning=str(exc), backend=backend_name)
             except Exception:
                 pass
-        return True
+        return False
 
     # Split verdict keyword from any trailing reasoning text.
     lines = verdict_raw.splitlines()
@@ -1562,6 +1580,22 @@ def _mid_planning_decision_problem(
         return None
 
 
+def _plan_attempt_quality_adopts(best_plan: "dict[str, Any]", rerun_plan: "dict[str, Any]") -> bool:
+    """Legacy deterministic composite-quality rank comparison.
+
+    The pre-#260 behavior of ``_decide_plan_adoption``'s callers: adopt
+    *rerun_plan* only if its :func:`_plan_attempt_quality` rank is strictly
+    higher than *best_plan*'s. Kept as an explicitly-named, standalone
+    legacy compatibility path — callers use it only when
+    :func:`_decide_plan_adoption` returns ``"no_judge"``, never as a
+    fallback for a configured judge that failed or declined (issue #260
+    Phase 4: "fix the remaining unsafe decision fallbacks").
+    """
+    best_quality = _plan_attempt_quality(best_plan)
+    rerun_quality = _plan_attempt_quality(rerun_plan)
+    return rerun_quality["rank"] > best_quality["rank"]
+
+
 def _decide_plan_adoption(
     best_plan: "dict[str, Any]",
     rerun_plan: "dict[str, Any]",
@@ -1572,7 +1606,7 @@ def _decide_plan_adoption(
     work_dir: str,
     log_fn: "Any",
     label: str = "mid_planning_critic",
-) -> bool:
+) -> "tuple[str, str]":
     """Decide whether *rerun_plan* should replace *best_plan* as the best
     pre-export attempt (issue #260 Phase 4).
 
@@ -1591,12 +1625,19 @@ def _decide_plan_adoption(
     deterministically, and records it to the run manifest's
     ``decision_log``.
 
-    Falls back to the deterministic composite-quality rank comparison
-    (:func:`_plan_attempt_quality`) — the loop's original behavior — when no
-    judge is configured, the A/B report can't be built, the judge call
-    fails, or the judge's action is deterministically rejected. This
-    mirrors ``_judge_stage``'s "proceed unchanged" fallback so headless/
-    no-LLM runs behave exactly as before.
+    Returns ``(outcome, reason)``:
+    - ``"no_judge"`` — no headless judge configured at all. The caller
+      falls back to its own explicitly-named legacy path
+      (:func:`_plan_attempt_quality_adopts`).
+    - ``"adopt"`` — the judge chose ``apply_candidate`` and it was accepted
+      (which itself refuses a rerun that fails the verifier).
+    - ``"hold"`` — a judge is configured but the A/B report couldn't be
+      built, the judge call failed, or its action was rejected/declined.
+      Safe-by-default (issue #260 Phase 4 — this previously fell back to
+      :func:`_plan_attempt_quality_adopts` in every one of these cases,
+      "the remaining unsafe decision fallback" the issue names): a
+      configured-but-failing/declining judge no longer silently reverts to
+      the deterministic quality rank — it holds, i.e. does not adopt.
     """
     from ..application.decisions import decide, record_llm_decision
     from ..llm_judge import (
@@ -1608,23 +1649,18 @@ def _decide_plan_adoption(
     from ..stage3_ab import build_ab_report
     from ..stage3_decision import build_stage3_decision_context
 
-    def _deterministic_fallback() -> bool:
-        best_quality = _plan_attempt_quality(best_plan)
-        rerun_quality = _plan_attempt_quality(rerun_plan)
-        return rerun_quality["rank"] > best_quality["rank"]
-
     try:
         judge = get_judge_if_headless()
     except ValueError:
-        return _deterministic_fallback()
+        return "no_judge", "no_judge_configured"
     if judge is None:
-        return _deterministic_fallback()
+        return "no_judge", "no_judge_configured"
 
     try:
         report = build_ab_report(extract_candidate(best_plan), extract_candidate(rerun_plan), problem)
     except (ValueError, KeyError) as exc:
-        log_fn(f"{label} {iteration}: could not build A/B report for judge, falling back: {exc}")
-        return _deterministic_fallback()
+        log_fn(f"{label} {iteration}: could not build A/B report for judge — holding: {exc}")
+        return "hold", "ab_report_failed"
 
     context = build_stage3_decision_context(
         report,
@@ -1640,8 +1676,8 @@ def _decide_plan_adoption(
     try:
         raw_verdict = judge.judge(build_action_decision_prompt(context))
     except RuntimeError as exc:
-        log_fn(f"{label} {iteration}: judge call failed, falling back: {exc}")
-        return _deterministic_fallback()
+        log_fn(f"{label} {iteration}: judge call failed — holding: {exc}")
+        return "hold", "judge_call_failed"
 
     action = parse_action_verdict(context, raw_verdict)
     if action.action_id == "apply_candidate" and not action.arguments.get("candidate_ref"):
@@ -1661,27 +1697,28 @@ def _decide_plan_adoption(
     if not result.accepted:
         if result.rejection_reason == "hard_violation_blocks_action":
             # The rerun itself fails the verifier — a known-invalid candidate.
-            # Falling back to the deterministic quality rank here would risk
-            # "adopting" it anyway (that heuristic never checks hard
-            # constraints), silently letting prose bypass the verifier. Not
-            # adopting is always safe: the current best is, by definition,
-            # not this newly-invalid rerun.
+            # Not adopting is always safe: the current best is, by
+            # definition, not this newly-invalid rerun.
             log_fn(
                 f"{label} {iteration}: judge chose apply_candidate but the rerun "
                 "fails the verifier — not adopting (a hard violation cannot be bypassed)"
             )
-            return False
+            return "hold", "hard_violation_blocks_action"
         log_fn(
             f"{label} {iteration}: judge action {action.action_id!r} rejected "
-            f"({result.rejection_reason}), falling back to deterministic quality rank"
+            f"({result.rejection_reason}) — holding"
         )
-        return _deterministic_fallback()
+        return "hold", result.rejection_reason or "rejected"
+
+    if action.action_id != "apply_candidate":
+        log_fn(f"{label} {iteration}: judge decided {action.action_id} — holding")
+        return "hold", action.action_id
 
     log_fn(
-        f"{label} {iteration}: judge decided {action.action_id} "
+        f"{label} {iteration}: judge decided apply_candidate "
         f"({(action.rationale or '')[:200]})"
     )
-    return action.action_id == "apply_candidate"
+    return "adopt", "apply_candidate"
 
 
 def _run_mid_planning_critic_loop(
@@ -1759,7 +1796,7 @@ def _run_mid_planning_critic_loop(
             break
 
         current_plan = rerun_plan
-        if _decide_plan_adoption(
+        adoption_outcome, adoption_reason = _decide_plan_adoption(
             best_plan,
             rerun_plan,
             problem,
@@ -1767,7 +1804,16 @@ def _run_mid_planning_critic_loop(
             iteration=iteration,
             work_dir=str(state.work_dir),
             log_fn=log_fn,
-        ):
+        )
+        if adoption_outcome == "no_judge":
+            # Explicitly-named legacy compatibility path (issue #260 Phase 4):
+            # no judge configured at all, so fall back to the deterministic
+            # quality rank — never used for a configured judge that failed
+            # or declined (that is "hold", handled by adopts=False below).
+            adopts = _plan_attempt_quality_adopts(best_plan, rerun_plan)
+        else:
+            adopts = adoption_outcome == "adopt"
+        if adopts:
             best_plan = rerun_plan
             log_fn(
                 f"Mid-planning critic {iteration}: adopted rerun as new best "
@@ -2253,16 +2299,27 @@ def _cmd_run(args: argparse.Namespace) -> int:
         if plan is not None:
             attempt_quality = _plan_attempt_quality(plan)
             attempt_qualities.append((attempt, attempt_quality))
-            adopt = best_plan is None or _decide_plan_adoption(
-                best_plan,
-                plan,
-                multi_seed_problem,
-                run_id=multi_seed_run_id,
-                iteration=attempt,
-                work_dir=str(state.work_dir),
-                log_fn=_log,
-                label="stage3_multi_seed",
-            )
+            if best_plan is None:
+                adopt = True
+            else:
+                adoption_outcome, _adoption_reason = _decide_plan_adoption(
+                    best_plan,
+                    plan,
+                    multi_seed_problem,
+                    run_id=multi_seed_run_id,
+                    iteration=attempt,
+                    work_dir=str(state.work_dir),
+                    log_fn=_log,
+                    label="stage3_multi_seed",
+                )
+                if adoption_outcome == "no_judge":
+                    # Explicitly-named legacy compatibility path (issue #260
+                    # Phase 4): no judge configured at all, so fall back to
+                    # the deterministic quality rank — never used for a
+                    # configured judge that failed or declined.
+                    adopt = _plan_attempt_quality_adopts(best_plan, plan)
+                else:
+                    adopt = adoption_outcome == "adopt"
             if adopt:
                 best_quality = attempt_quality
                 best_plan = plan

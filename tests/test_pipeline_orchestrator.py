@@ -14,6 +14,7 @@ from tournament_scheduler.cli.pipeline_orchestrator import (
     _decide_continue_refinement,
     _decide_plan_adoption,
     _decide_refinement_candidate,
+    _plan_attempt_quality_adopts,
     _refinement_metrics,
     _run_approval_gate,
     _run_mid_planning_critic_loop,
@@ -286,25 +287,27 @@ def _better_candidate() -> dict:
 
 class TestDecideMidPlanningAdoption:
     """Issue #260 Phase 4: promote/reject via DecisionContext when a headless
-    judge is configured, falling back to the pre-existing deterministic
-    composite-quality rank comparison otherwise."""
+    judge is configured. Safe-by-default: only "no judge configured at all"
+    returns "no_judge" (callers fall back to the legacy deterministic
+    quality-rank comparison, _plan_attempt_quality_adopts); a judge that is
+    configured but fails or declines returns "hold", never a silent
+    reversion to the quality rank."""
 
-    def test_no_headless_judge_falls_back_to_deterministic_rank(self, tmp_path) -> None:
+    def test_no_headless_judge_returns_no_judge(self, tmp_path) -> None:
         # CLAUDE_CODE_SESSION_ID etc. are set in this test process (or at
         # least RVV_JUDGE_BACKEND is unset), so get_judge_if_headless()
-        # returns None/raises — behavior must be identical to before this
-        # change: adopt strictly-better rerun by _plan_attempt_quality rank
-        # (the SeasonPlanner-specific fairness_gate/pairwise/diversity/
-        # month_balance composite, not the stage3_ab/planning_contract
-        # metrics used once a judge is actually consulted).
+        # returns None/raises.
         best = _make_gate_checkpoint("warn", gate_score=50)
         rerun = _make_gate_checkpoint("pass", gate_score=95)
 
-        adopted = _decide_plan_adoption(
+        outcome, reason = _decide_plan_adoption(
             best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
         )
 
-        assert adopted is True
+        assert outcome == "no_judge"
+        # The caller's legacy fallback would adopt this strictly-better
+        # rerun by rank — verified directly against the helper it uses.
+        assert _plan_attempt_quality_adopts(best, rerun) is True
 
     def test_headless_judge_apply_candidate_is_recorded_and_adopted(self, tmp_path) -> None:
         best = {"plan": _worse_candidate()}
@@ -315,11 +318,12 @@ class TestDecideMidPlanningAdoption:
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            adopted = _decide_plan_adoption(
+            outcome, reason = _decide_plan_adoption(
                 best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
             )
 
-        assert adopted is True
+        assert outcome == "adopt"
+        assert reason == "apply_candidate"
         judge.judge.assert_called_once()
 
         from tournament_scheduler.pipeline.run_manifest import RunManifest
@@ -330,7 +334,7 @@ class TestDecideMidPlanningAdoption:
         assert entry["result"]["accepted"] is True
         assert entry["context"]["capability"] == "stage3_optimize"
 
-    def test_headless_judge_keep_baseline_is_not_adopted(self, tmp_path) -> None:
+    def test_headless_judge_keep_baseline_holds(self, tmp_path) -> None:
         best = {"plan": _worse_candidate()}
         rerun = {"plan": _better_candidate()}
         judge = MagicMock()
@@ -339,13 +343,18 @@ class TestDecideMidPlanningAdoption:
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            adopted = _decide_plan_adoption(
+            outcome, reason = _decide_plan_adoption(
                 best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
             )
 
-        assert adopted is False
+        assert outcome == "hold"
+        assert reason == "keep_baseline"
 
-    def test_headless_judge_call_failure_falls_back_to_deterministic_rank(self, tmp_path) -> None:
+    def test_headless_judge_call_failure_holds_and_does_not_auto_adopt(self, tmp_path) -> None:
+        """Correction from the earlier, narrower version of this gate (issue
+        #260 Phase 4's "remaining unsafe decision fallbacks"): a configured
+        judge that errors must not silently fall back to the deterministic
+        quality rank — it holds instead."""
         best = _make_gate_checkpoint("warn", gate_score=50)
         rerun = _make_gate_checkpoint("pass", gate_score=95)
         judge = MagicMock()
@@ -354,13 +363,12 @@ class TestDecideMidPlanningAdoption:
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            adopted = _decide_plan_adoption(
+            outcome, reason = _decide_plan_adoption(
                 best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
             )
 
-        # Falls back to the deterministic rank comparison, which prefers the
-        # strictly-better candidate — same outcome as the no-judge case.
-        assert adopted is True
+        assert outcome == "hold"
+        assert reason == "judge_call_failed"
 
     def test_headless_judge_cannot_bypass_invalid_candidate(self, tmp_path) -> None:
         """An LLM saying apply_candidate cannot adopt a candidate that fails
@@ -381,13 +389,14 @@ class TestDecideMidPlanningAdoption:
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            adopted = _decide_plan_adoption(
+            outcome, reason = _decide_plan_adoption(
                 best, rerun, None, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
             )
 
         # The verifier rejection must not be silently papered over by a
         # fallback that never checks hard constraints at all.
-        assert adopted is False
+        assert outcome == "hold"
+        assert reason == "hard_violation_blocks_action"
 
         from tournament_scheduler.pipeline.run_manifest import RunManifest
 
@@ -412,7 +421,7 @@ class TestDecideMidPlanningAdoption:
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
-            adopted = _decide_plan_adoption(
+            outcome, reason = _decide_plan_adoption(
                 best,
                 rerun,
                 None,
@@ -423,7 +432,7 @@ class TestDecideMidPlanningAdoption:
                 label="stage3_multi_seed",
             )
 
-        assert adopted is True
+        assert outcome == "adopt"
 
         from tournament_scheduler.pipeline.run_manifest import RunManifest
 
