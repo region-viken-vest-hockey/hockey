@@ -127,7 +127,20 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
         round(normalized_game_count_spread, 3),
         thresholds.get("max_game_count_spread", planner.max_game_count_spread),
         direction="max",
-        severity="fail",
+        # Not a hard invariant like arena_day_collisions: an uneven game
+        # count per team is a fairness quality concern, not an operationally
+        # impossible schedule. Unlike hosting_deviation (wired to the
+        # operator-configurable maxHostingDeviation federation default),
+        # max_game_count_spread is not currently threaded through from Stage
+        # 1 config in the main pipeline (tournament_scheduler.pipeline
+        # .stage3_helpers) at all, so today this threshold is a
+        # code-invented default (2), not an explicitly configured business
+        # rule — exactly the kind of soft threshold issue #260 Phase 4 says
+        # should not unconditionally fail a plan. Downgraded to "warn": the
+        # measurement itself (value/threshold/detail) is unchanged, so the
+        # LLM/agent controller and operator still see it, they just no
+        # longer get a hard "fail" imposed by an unconfigured default.
+        severity="warn",
         detail=f"Normalisert spredning per aldersgruppe er {normalized_game_count_spread:.3f} (rå spredning: {plan.game_count_spread} kamper, tak på [0, 1]).",
     )
     add_metric(
