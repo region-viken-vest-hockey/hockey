@@ -493,18 +493,36 @@ def _decide_refinement_candidate(
 
 
 def _refinement_metrics(checkpoint: "dict[str, Any] | Any") -> dict[str, Any]:
-    """Underlying deterministic metrics behind the rough/mixed/strong tone bucket.
+    """Underlying deterministic facts behind the rough/mixed/strong tone bucket.
 
     Used by :func:`_decide_continue_refinement` so the LLM/agent controller
-    sees the actual measurements (fairness gate status/score, pairwise/
-    diversity/month-balance scores, game-count spread) rather than a single
-    pre-collapsed tone label standing in for them.
+    sees the actual measurements rather than a single pre-collapsed tone
+    label standing in for them.
+
+    Issue #260 Phase 4 ("separate fairness measurement from soft default
+    threshold policy"): reads ``fairness_scoring.build_fairness_gate``'s
+    canonical ``policy_gate`` (hard invariants + config-threaded
+    thresholds only) rather than its legacy blended ``status``/``score`` —
+    a soft/default measurement outside its reference threshold must not,
+    by itself, look like control authority to this decision. The other
+    (unconfigured-default) metrics are still surfaced under
+    ``measurements`` for context, never as a pass/warn/fail authority.
     """
     plan_obj = _extract_plan_obj(checkpoint)
     gate = _fairness_gate(plan_obj)
+    policy_gate = gate.get("policy_gate") or {}
+    policy_gate_metrics = policy_gate.get("metrics") or []
+    measurements = gate.get("measurements") or []
     return {
-        "fairness_gate_status": str(gate.get("status", "pass")),
-        "fairness_gate_score": float(gate.get("score", 0) or 0),
+        "policy_gate_status": str(policy_gate.get("status", "pass")),
+        "policy_gate_metrics": "; ".join(
+            f"{m.get('key')}={m.get('value')} (threshold {m.get('threshold')}, {m.get('status')})"
+            for m in policy_gate_metrics
+        ),
+        "measurements": "; ".join(
+            f"{m.get('key')}={m.get('value')} (reference threshold {m.get('threshold')}, not policy)"
+            for m in measurements
+        ),
         "pairwise_matchup_score": _score_attr(plan_obj, "pairwise_matchup_score"),
         "diversity_score": _score_attr(plan_obj, "diversity_score"),
         "month_balance_score": _score_attr(plan_obj, "month_balance_score"),

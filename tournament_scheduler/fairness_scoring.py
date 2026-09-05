@@ -25,7 +25,31 @@ DEFAULT_FAIRNESS_THRESHOLDS = {
 
 
 def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
-    """Return a structured pass/warn/fail summary for key fairness metrics."""
+    """Return a structured pass/warn/fail summary for key fairness metrics.
+
+    Issue #260 Phase 4 ("separate fairness measurement from soft default
+    threshold policy"): the returned dict carries both the pre-existing
+    blended report shape (``status``/``score``/``metrics``/``notes``/
+    ``thresholds`` — kept at the top level and duplicated under
+    ``legacy_summary`` for report/export/no-judge compatibility, unchanged)
+    and a canonical split:
+
+    - ``policy_gate``: only metrics with ``provenance`` ``"hard_invariant"``
+      (a physically impossible schedule, e.g. an arena double-booking) or
+      ``"configured"`` (a threshold actually threaded through from Stage 1
+      config, e.g. ``maxHostingDeviation`` — not merely present as a code
+      default). This is the only part of this return value the canonical
+      LLM-directed decision path may treat as acceptance/control authority.
+    - ``measurements``: every other metric — raw value/threshold/detail for
+      context, never a canonical pass/warn/fail authority by itself. A
+      soft/default metric outside its reference threshold must not make
+      ``policy_gate`` warn/fail.
+
+    A metric's ``provenance`` is a structural fact about *this pipeline's
+    wiring* (is the threshold actually threaded through from Stage 1->3
+    config, or only ever a code-level default in this module), not about
+    whether an operator happened to override the default value.
+    """
     thresholds = planner.fairness_thresholds
     metrics: List[Dict[str, object]] = []
 
@@ -39,6 +63,7 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
         severity: str,
         detail: str,
         unit: str = "",
+        provenance: str = "measurement",
     ) -> None:
         if threshold is None:
             threshold_value = 0.0
@@ -74,6 +99,7 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
                 "score": score,
                 "unit": unit,
                 "detail": detail,
+                "provenance": provenance,
             }
         )
 
@@ -156,6 +182,10 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
         # a human (freeing up ice time, adjusting the target) can resolve.
         severity="warn" if hosting_capacity_explained else "fail",
         detail=hosting_detail or "Aldersgruppevis fordeling av hjemmeturneringer ligger innenfor terskelen.",
+        # Configured policy: max_hosting_deviation is threaded through from
+        # Stage 1 config (cfg["maxHostingDeviation"]) into the planner
+        # constructor in the main pipeline, unlike max_game_count_spread.
+        provenance="configured",
     )
     if metrics and metrics[-1].get("key") == "hosting_deviation":
         metrics[-1]["age_group_breakdown"] = hosting_breakdown.get("age_group_breakdown", [])
@@ -253,6 +283,9 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
             if not getattr(plan, "arena_day_collisions", None)
             else f"{len(plan.arena_day_collisions)} kollisjon(er) der samme arena ble tildelt mer enn én turnering samme dag."
         ),
+        # True hard invariant: an arena physically cannot host two
+        # tournaments at once.
+        provenance="hard_invariant",
     )
 
     statuses = [str(m["status"]) for m in metrics]
@@ -263,10 +296,47 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
     else:
         overall_status = "pass"
     overall_score = int(round(sum(float(m["score"]) for m in metrics) / len(metrics))) if metrics else 100
-    return {
+    legacy_summary = {
         "status": overall_status,
         "score": overall_score,
         "metrics": metrics,
         "notes": notes,
         "thresholds": dict(thresholds),
+    }
+
+    # Canonical split (issue #260 Phase 4): only hard invariants and
+    # metrics whose threshold is actually threaded through from Stage 1
+    # config are policy-gate authority; everything else is a measurement/
+    # hint. A soft/default metric outside its reference threshold does not
+    # make the policy gate warn/fail by itself.
+    policy_gate_metrics = [m for m in metrics if m.get("provenance") in ("hard_invariant", "configured")]
+    measurement_metrics = [m for m in metrics if m.get("provenance") not in ("hard_invariant", "configured")]
+    policy_statuses = [str(m["status"]) for m in policy_gate_metrics]
+    if "fail" in policy_statuses:
+        policy_gate_status = "fail"
+    elif "warn" in policy_statuses:
+        policy_gate_status = "warn"
+    else:
+        policy_gate_status = "pass"
+
+    return {
+        # Legacy/report-compatible blended shape — unchanged, still the
+        # top-level fields so existing exports/consumers/no-judge behavior
+        # do not need to change in this pass. Duplicated under
+        # legacy_summary to make explicit that it is not canonical policy
+        # authority going forward.
+        "status": overall_status,
+        "score": overall_score,
+        "metrics": metrics,
+        "notes": notes,
+        "thresholds": dict(thresholds),
+        "legacy_summary": legacy_summary,
+        # Canonical fields: the only part of this return value the
+        # LLM-directed decision path may treat as acceptance/control
+        # authority.
+        "policy_gate": {
+            "status": policy_gate_status,
+            "metrics": policy_gate_metrics,
+        },
+        "measurements": measurement_metrics,
     }

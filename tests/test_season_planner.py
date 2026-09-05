@@ -2636,6 +2636,107 @@ class TestFairnessGate:
         assert gate["status"] in {"warn", "fail"}
         assert any(metric["status"] == "fail" for metric in gate["metrics"])
 
+    def test_soft_measurement_outside_threshold_does_not_fail_policy_gate(self, season_window, monkeypatch):
+        """Issue #260 Phase 4 acceptance criterion: a soft/default metric
+        outside its reference threshold does not make the canonical
+        policy_gate warn/fail by itself — only hard invariants and
+        config-threaded thresholds (hosting_deviation, arena_day_collisions)
+        may do that."""
+        start, end = season_window
+        free_dates = all_weekend_dates(start, end)
+        roster = _build_roster(["Jar", "Holmen", "Kongsberg"], ["U10"])
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in roster.clubs()},
+            parallel_games_for_age_group={"U10": 3},
+            fairness_thresholds={
+                # Lenient on the two policy-gate metrics...
+                "max_hosting_deviation": 999,
+                # ...but impossibly tight on every soft/default measurement.
+                "max_game_count_spread": -1,
+                "max_team_travel_km": 0,
+                "min_diversity_score": 1.0,
+                "min_pairwise_matchup_score": 1.0,
+                "min_month_balance_score": 1.0,
+                "max_same_weekend_club_load": 0,
+                "max_consecutive_weekend_club_load": 0,
+                "max_holiday_stretch_club_load": 0,
+            },
+        )
+        plan = planner.build_plan(start, end)
+        gate = plan.fairness_gate
+
+        # The legacy blended status/score do reflect the soft-metric skew...
+        assert gate["status"] in {"warn", "fail"}
+        assert any(m["status"] != "pass" for m in gate["measurements"])
+        # ...but none of that is policy-gate (canonical control) authority.
+        assert gate["policy_gate"]["status"] == "pass"
+        assert all(m["status"] == "pass" for m in gate["policy_gate"]["metrics"])
+        policy_gate_keys = {m["key"] for m in gate["policy_gate"]["metrics"]}
+        assert policy_gate_keys == {"hosting_deviation", "arena_day_collisions"}
+
+    def test_arena_collision_fails_policy_gate(self, season_window):
+        """Issue #260 Phase 4 acceptance criterion: an arena collision makes
+        the canonical policy_gate fail (true hard invariant)."""
+        start, end = season_window
+        free_dates = [start.date()]
+        roster = Roster(teams=[
+            Team(club="Jar", label="Jar U7-1", age_group="U7"),
+            Team(club="Jar", label="Jar U7-2", age_group="U7"),
+            Team(club="Jar", label="Jar U7-3", age_group="U7"),
+            Team(club="Jar", label="Jar U8-1", age_group="U8"),
+            Team(club="Jar", label="Jar U8-2", age_group="U8"),
+            Team(club="Jar", label="Jar U8-3", age_group="U8"),
+            Team(club="Jar", label="Jar U9-1", age_group="U9"),
+            Team(club="Jar", label="Jar U9-2", age_group="U9"),
+            Team(club="Jar", label="Jar U9-3", age_group="U9"),
+        ])
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={"Jar": "Jarahallen"},
+            parallel_games_for_age_group={"U7": 4, "U8": 4, "U9": 4},
+            round_length_for_age_group={"U7": 60, "U8": 60, "U9": 60},
+            seed=0,
+        )
+
+        plan = planner.build_plan(start, end)
+
+        assert len(plan.arena_day_collisions) >= 1
+        gate = plan.fairness_gate
+        assert gate["policy_gate"]["status"] == "fail"
+        collision_metric = next(m for m in gate["policy_gate"]["metrics"] if m["key"] == "arena_day_collisions")
+        assert collision_metric["status"] == "fail"
+        assert collision_metric["provenance"] == "hard_invariant"
+
+    def test_configured_hosting_deviation_drives_policy_gate_with_capacity_downgrade(self, season_window):
+        """Issue #260 Phase 4 acceptance criterion: configured
+        max_hosting_deviation is reflected as configured policy and can
+        affect the gate; capacity-explained cases preserve the intended
+        downgrade to warn rather than fail."""
+        start, end = season_window
+        free_dates = all_weekend_dates(start, end)
+        roster = _build_roster(["Jar", "Holmen", "Kongsberg"], ["U10"])
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in roster.clubs()},
+            parallel_games_for_age_group={"U10": 3},
+            fairness_thresholds={"max_hosting_deviation": -1},
+        )
+        plan = planner.build_plan(start, end)
+        gate = plan.fairness_gate
+
+        hosting_metric = next(m for m in gate["policy_gate"]["metrics"] if m["key"] == "hosting_deviation")
+        assert hosting_metric["provenance"] == "configured"
+        # No arena-capacity constraint in this synthetic scenario (FakeScheduler
+        # has ample free dates, no events_by_club calendar limits), so the
+        # deviation is not capacity-explained -> fail, and that failure is
+        # policy-gate (canonical) authority, not merely a legacy-summary one.
+        assert hosting_metric["status"] == "fail"
+        assert gate["policy_gate"]["status"] == "fail"
+
     def test_travel_distance_threshold_is_cumulative_and_passes_at_the_default_boundary(self, monkeypatch):
         jar = Team(club="Jar", label="Jar 1", age_group="U10")
         kongsberg = Team(club="Kongsberg", label="Kongsberg 1", age_group="U10")

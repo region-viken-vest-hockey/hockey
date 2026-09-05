@@ -1137,18 +1137,53 @@ class TestDecideRefinementCandidate:
 
 
 class TestRefinementMetrics:
-    def test_extracts_underlying_measurements_not_the_tone_bucket(self) -> None:
-        plan_obj = _make_plan_obj(gate_status="warn", gate_score=72, pairwise=0.81, diversity=0.77, month_balance=0.85)
+    def test_extracts_canonical_policy_gate_not_the_legacy_blended_status(self) -> None:
+        """Issue #260 Phase 4 ("separate fairness measurement from soft
+        default threshold policy"): reads fairness_gate's canonical
+        policy_gate (hard invariants + config-threaded thresholds only),
+        not the legacy blended status/score a soft/default metric could
+        also move."""
+        plan_obj = _make_plan_obj(pairwise=0.81, diversity=0.77, month_balance=0.85)
+        plan_obj.fairness_gate = {
+            # Legacy blended fields — must NOT be what this function reads.
+            "status": "warn",
+            "score": 72,
+            "policy_gate": {
+                "status": "fail",
+                "metrics": [
+                    {"key": "arena_day_collisions", "value": 1, "threshold": 0, "status": "fail"},
+                ],
+            },
+            "measurements": [
+                {"key": "game_count_spread", "value": 3, "threshold": 2, "status": "warn"},
+            ],
+        }
         checkpoint = _make_checkpoint(plan_obj)
 
         metrics = _refinement_metrics(checkpoint)
 
-        assert metrics["fairness_gate_status"] == "warn"
-        assert metrics["fairness_gate_score"] == 72
+        assert metrics["policy_gate_status"] == "fail"
+        assert "arena_day_collisions=1" in metrics["policy_gate_metrics"]
+        assert "game_count_spread=3" in metrics["measurements"]
         assert metrics["pairwise_matchup_score"] == 0.81
         assert metrics["diversity_score"] == 0.77
         assert metrics["month_balance_score"] == 0.85
         assert "tone" not in metrics
+        assert "fairness_gate_status" not in metrics
+        assert "fairness_gate_score" not in metrics
+
+    def test_defaults_gracefully_when_fairness_gate_has_no_canonical_split(self) -> None:
+        """Older/synthetic fairness_gate dicts without policy_gate/measurements
+        (e.g. a checkpoint predating this change) must not crash — they
+        just report an empty/pass policy gate."""
+        plan_obj = _make_plan_obj(gate_status="fail", gate_score=40)
+        checkpoint = _make_checkpoint(plan_obj)
+
+        metrics = _refinement_metrics(checkpoint)
+
+        assert metrics["policy_gate_status"] == "pass"
+        assert metrics["policy_gate_metrics"] == ""
+        assert metrics["measurements"] == ""
 
 
 class TestDecideContinueRefinement:
