@@ -1,4 +1,14 @@
-"""Opinionated end-of-report judgment for the season-plan report page."""
+"""Neutral deterministic end-of-report metric summary for the season-plan report page.
+
+Renders the same deterministic tone/scorecard as before (issue #260 Phase 4:
+``html/renderers/judgment.py`` was flagged as Python acting as the authority
+for subjective "rough/mixed/strong" framing and "what to fix next"
+recommendations). This module now only states measured facts and the
+deterministic tone classification (:func:`_score_tone`) — it does not author
+an opinion about whether the plan is good enough, and it does not prescribe
+a fix order. That judgment belongs to the LLM/agent controller or the
+operator, not to this renderer.
+"""
 
 from __future__ import annotations
 
@@ -133,28 +143,17 @@ def analyze_opinionated_judgment(
         "rough": "IKKE KLAR",
     }[tone]
 
-    if tone == "strong":
-        verdict = "Dette er en plan jeg ville sendt videre: den er jevn, variert og uten tydelige røde flagg."
-    elif tone == "mixed":
-        verdict = "Dette er brukbart, men jeg ville ikke kalt planen ferdig før de tydeligste skjevhetene er sjekket en gang til."
-    else:
-        verdict = "Dette er ikke en plan jeg ville sendt ut ennå; den trenger mer arbeid før den kan forsvares som helhet."
+    # Neutral deterministic status/metric summary (issue #260 Phase 4):
+    # state what the thresholds measured, not a first-person opinion about
+    # whether the plan is good enough to send, and no recommended fix order —
+    # that judgment belongs to the LLM/agent controller (or the operator),
+    # not to this renderer. `tone`/`tone_label` remain the one deterministic
+    # classification (see `_score_tone`); everything below only reports the
+    # facts that fed it.
+    verdict = f"Status: {tone_label}."
 
-    if pairwise >= 0.9 and diversity >= 0.9:
-        matchup_text = (
-            f"Motstanderbildet er bredt: {int(round(pairwise * 100))}% av kampene er nye møtepar. "
-            "Jeg viser dette tallet fordi det er den tydeligste styrken her."
-        )
-    elif pairwise >= 0.8:
-        matchup_text = (
-            f"Motstanderbildet er ganske bredt: {int(round(pairwise * 100))}% av kampene er nye møtepar. "
-            "Det fungerer, men det er fortsatt litt gjentakelse."
-        )
-    else:
-        matchup_text = (
-            f"Motstanderbildet er litt snevert: bare {int(round(pairwise * 100))}% av kampene er nye møtepar. "
-            "Jeg viser dette tallet fordi det er den tydeligste svakheten her."
-        )
+    matchup_bucket = "bredt" if (pairwise >= 0.9 and diversity >= 0.9) else "moderat bredt" if pairwise >= 0.8 else "snevert"
+    matchup_text = f"Motstanderbilde: {int(round(pairwise * 100))}% nye møtepar ({matchup_bucket})."
 
     if age_group_game_spreads:
         age_spread_text = ", ".join(
@@ -164,29 +163,24 @@ def analyze_opinionated_judgment(
     else:
         age_spread_text = ""
 
+    load_bucket = "jevn" if spread <= 1 else "akseptabel" if spread <= 2 else "ujevn"
     load_text = (
-        f"Kampbelastningen er {'jevn' if spread <= 1 else 'akseptabel' if spread <= 2 else 'for ujevn'}: "
-        f"{max_team or 'ingen lag'} har {max_games} kamper, {min_team or 'ingen lag'} har {min_games}, og spredningen er {spread}."
+        f"Kampbelastning ({load_bucket}): {max_team or 'ingen lag'} har {max_games} kamper, "
+        f"{min_team or 'ingen lag'} har {min_games}, spredning {spread}."
     )
     if age_spread_text:
-        load_text += f" De tre mest ujevne aldersgruppene er: {age_spread_text}."
-    if month_balance >= 0.9 and spread <= 1:
-        load_text += " Det ser veldig kontrollert ut over hele sesongen."
-    elif month_balance >= 0.8:
-        load_text += " Det er helt brukbart, men ikke spesielt elegant."
-    else:
-        load_text += " Det er et punkt jeg ville sett nærmere på før utsending."
+        load_text += f" Størst spredning per aldersgruppe: {age_spread_text}."
 
     if missing_hosts:
-        hosting_text = f"Hjemmeturneringene er planen svakeste del: {len(missing_hosts)} RVV-klubber mangler hjemmeturnering ({', '.join(_missing_host_label(club) for club in missing_hosts)})."
+        hosting_text = f"{len(missing_hosts)} RVV-klubb(er) uten hjemmeturnering: {', '.join(_missing_host_label(club) for club in missing_hosts)}."
         if busiest_club:
-            hosting_text += f" {busiest_club} bærer mest av klubbbelastningen totalt ({busiest_club_load} roller)."
+            hosting_text += f" Høyest totalbelastning: {busiest_club} ({busiest_club_load} roller)."
     elif top_host_share >= 0.4:
-        hosting_text = f"Hjemmeturneringene er litt for konsentrert hos {top_host}: {top_host_count} av {total_hosted} hjemmeturneringer."
+        hosting_text = f"Hjemmeturneringer mest konsentrert hos {top_host}: {top_host_count} av {total_hosted}."
         if busiest_club:
-            hosting_text += f" {busiest_club} er samtidig den mest belastede klubben totalt ({busiest_club_load} roller)."
+            hosting_text += f" Høyest totalbelastning: {busiest_club} ({busiest_club_load} roller)."
     else:
-        hosting_text = "Hjemmeturneringene ser balansert ut og gir et ryddig sesongbilde."
+        hosting_text = "Hjemmeturneringer er balansert på tvers av klubber."
     if age_group_host_summaries:
         top_host_groups = ", ".join(
             f"{age_group} {top_count}/{total_count}"
@@ -196,21 +190,18 @@ def analyze_opinionated_judgment(
                 reverse=True,
             )[:3]
         )
-        hosting_text += f" De mest skjeve aldersgruppene er: {top_host_groups}."
+        hosting_text += f" Høyest konsentrasjon per aldersgruppe: {top_host_groups}."
 
     if team_travel and farthest_km:
         travel_age = f" ({farthest_age_group})" if farthest_age_group else ""
-        travel_text = f"Reisebildet har også en klar topp: {farthest_team}{travel_age} ligger på {farthest_km} km total reise."
-        if farthest_km >= 200:
-            travel_text += " Det er verdt å dobbeltsjekke om den belastningen er bevisst."
+        travel_text = f"Lengst total reise: {farthest_team}{travel_age}, {farthest_km} km."
     else:
-        travel_text = "Reisebildet ser ikke ut til å være det som drar planen i noen retning her."
+        travel_text = "Ingen fremtredende reiseavvik registrert."
 
-    action_text = {
-        "strong": "Hvis du vil pirke, ville jeg først sjekket hjemmeturneringene og reise, ikke matchupene.",
-        "mixed": "Hvis jeg skulle justert noe nå, ville jeg startet med hjemmeturneringene og de mest skjeve lagene.",
-        "rough": "Jeg ville stoppet her og brukt neste runde på å jevne ut kampbildet og fordele belastningen bedre.",
-    }[tone]
+    # No prescribed fix order here — that is a contextual tradeoff for the
+    # LLM/agent controller or operator to decide, not a Python policy. Point
+    # at the deterministic capability that lists concrete findings instead.
+    action_text = "Se `rvv-miniputt critic` for konkrete funn og forslag til justeringer."
 
     cards = [
         ("Matchup", matchup_text),
