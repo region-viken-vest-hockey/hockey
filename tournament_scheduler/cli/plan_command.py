@@ -477,6 +477,87 @@ def _resolve_run_id(explicit: "str | None", work_dir: str) -> str:
         return ""
 
 
+def _execute_optimize_plan(args: argparse.Namespace) -> "str | None":
+    """Execute an accepted ``optimize_plan`` decision (issue #260 Phase 4).
+
+    Re-runs the Stage 3 v2 optimizer against the Stage 3 checkpoint's
+    baseline candidate — starting from ``--candidate`` if the LLM/agent
+    passed one along (e.g. a previous ``optimize_plan`` pass's
+    ``new_candidate.json``), otherwise from the baseline itself — using the
+    decision's ``--weight``/``--iterations``/``--seed``/``--move-dates``
+    settings, and writes ``old_candidate.json``/``new_candidate.json``/
+    ``ab_report.json`` to ``--output-dir`` exactly like ``plan ab`` does.
+    This is what makes ``optimize_plan`` an executable action instead of a
+    recorded no-op the operator had to act on manually out of band: the
+    returned path is a new ab_report the same LLM/agent loop can immediately
+    feed back into ``plan decision-context`` to choose again (apply_candidate/
+    keep_baseline/optimize_plan/request_operator), closing the
+    optimizer→verifier→LLM loop. Returns the new ab_report.json path, or
+    ``None`` if a required input could not be read.
+    """
+    import os
+
+    from ..pipeline.state import PipelineState, StageName
+    from ..planning_contract import extract_candidate
+    from ..stage3_ab import build_ab_report
+    from ..stage3_optimizer import optimize_candidate
+
+    state = PipelineState(args.work_dir)
+    planning_checkpoint = state.read_stage(StageName.PLANNING)
+    if not planning_checkpoint:
+        _console.print("[red]✗[/red] Fant ingen Stage 3-sjekkpunkt (baseline-plan) i arbeidsmappen.")
+        return None
+    try:
+        baseline_candidate = extract_candidate(planning_checkpoint)
+    except ValueError as exc:
+        _console.print(f"[red]✗[/red] Kunne ikke lese baseline-kandidat fra Stage 3-sjekkpunktet: {exc}")
+        return None
+
+    starting_candidate = baseline_candidate
+    if args.candidate:
+        try:
+            starting_candidate = extract_candidate(_load_json_file(args.candidate))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            _console.print(f"[red]✗[/red] Kunne ikke lese startkandidat: {exc}")
+            return None
+
+    problem = None
+    if args.problem:
+        try:
+            problem = _load_json_file(args.problem)
+        except (OSError, json.JSONDecodeError) as exc:
+            _console.print(f"[red]✗[/red] Kunne ikke lese planning_problem: {exc}")
+            return None
+
+    try:
+        weight_overrides, per_age_group_weights = _parse_weight_overrides(args.weights)
+    except ValueError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return None
+
+    new_candidate = optimize_candidate(
+        starting_candidate,
+        problem,
+        iterations=args.iterations,
+        seed=args.seed,
+        weights=weight_overrides or None,
+        per_age_group_weights=per_age_group_weights or None,
+        move_dates=args.move_dates,
+    )
+    report = build_ab_report(baseline_candidate, new_candidate, problem)
+
+    os.makedirs(args.output_dir, exist_ok=True)
+    for name, payload in (
+        ("old_candidate.json", baseline_candidate),
+        ("new_candidate.json", new_candidate),
+        ("ab_report.json", report),
+    ):
+        with open(os.path.join(args.output_dir, name), "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=2, ensure_ascii=False)
+
+    return os.path.join(args.output_dir, "ab_report.json")
+
+
 def _cmd_plan_decision_context(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt plan decision-context`` (issue #260 Phase 4).
 
@@ -520,9 +601,11 @@ def _cmd_plan_decide(args: argparse.Namespace) -> int:
     (:func:`application.decisions.decide`), records it into the run
     manifest's ``decision_log``, and — only when the action is accepted —
     executes it: ``apply_candidate`` swaps the Stage 3 checkpoint's plan for
-    the new candidate; ``keep_baseline``/``optimize_plan``/``request_operator``
-    are recorded but do not touch pipeline state (the caller re-runs ``plan
-    optimize``/``plan ab`` or escalates, as directed).
+    the new candidate; ``optimize_plan`` re-runs the Stage 3 v2 optimizer
+    (see :func:`_execute_optimize_plan`) and writes a new ``ab_report.json``
+    the caller feeds straight back into ``plan decision-context`` to decide
+    again, closing the optimizer→verifier→LLM loop; ``keep_baseline``/
+    ``request_operator`` are recorded but do not touch pipeline state.
 
     A hard-violation or human-approval conflict, an unknown action, or a
     missing required argument (e.g. ``apply_candidate`` without
@@ -589,9 +672,15 @@ def _cmd_plan_decide(args: argparse.Namespace) -> int:
     elif action.action_id == "keep_baseline":
         _console.print("[dim]Baseline beholdes — Stage 3-sjekkpunktet er uendret.[/dim]")
     elif action.action_id == "optimize_plan":
+        if not args.output_dir:
+            _console.print("[red]✗[/red] --output-dir kreves for optimize_plan.")
+            return 1
+        next_report_path = _execute_optimize_plan(args)
+        if next_report_path is None:
+            return 1
         _console.print(
-            "[dim]Avgjørelse registrert: kjør 'plan optimize'/'plan ab' på nytt med justerte "
-            "innstillinger for en ny kandidat.[/dim]"
+            f"[green]✓[/green] Skrev ny kandidat/ab_report til {args.output_dir}. "
+            f"Kjør 'plan decision-context {next_report_path}' for neste avgjørelse."
         )
     elif action.action_id == "request_operator":
         _console.print("[dim]Avgjørelse registrert: ber operatør om avklaring.[/dim]")

@@ -1552,12 +1552,55 @@ def build_parser() -> argparse.ArgumentParser:
         "--candidate",
         default=None,
         help="Path to the new candidate.json; required for --action apply_candidate, which "
-        "writes it into the Stage 3 checkpoint's plan",
+        "writes it into the Stage 3 checkpoint's plan. For --action optimize_plan, an "
+        "optional starting point to re-optimize from (defaults to the Stage 3 "
+        "checkpoint's baseline)",
     )
     plan_decide.add_argument(
         "--question",
         default=None,
         help="Question to record for --action request_operator",
+    )
+    plan_decide.add_argument(
+        "--output-dir",
+        default=None,
+        help="For --action optimize_plan: write old_candidate.json/new_candidate.json/"
+        "ab_report.json from the re-run to this directory, so the result can be fed "
+        "back into 'plan decision-context' (required for optimize_plan)",
+    )
+    plan_decide.add_argument(
+        "--problem",
+        default=None,
+        help="For --action optimize_plan: path to a planning_problem.json (falls back to "
+        "inferring capacity from the candidate's own games)",
+    )
+    plan_decide.add_argument(
+        "--iterations",
+        type=int,
+        default=4000,
+        help="For --action optimize_plan: simulated-annealing swap attempts (default: 4000)",
+    )
+    plan_decide.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="For --action optimize_plan: random seed for reproducible output (default: 0)",
+    )
+    plan_decide.add_argument(
+        "--weight",
+        action="append",
+        dest="weights",
+        default=None,
+        metavar="NAME=VALUE",
+        help="For --action optimize_plan: override one objective weight (e.g. "
+        "--weight gap_under_7=8.0), or just one age group's weight (e.g. "
+        "--weight JU12:same_club_pairing=1.5); repeatable",
+    )
+    plan_decide.add_argument(
+        "--move-dates",
+        action="store_true",
+        help="For --action optimize_plan: also let the search swap two same-age-group "
+        "tournaments' dates, not just teams between tournaments. Off by default",
     )
     plan_decide.add_argument(
         "--work-dir",
