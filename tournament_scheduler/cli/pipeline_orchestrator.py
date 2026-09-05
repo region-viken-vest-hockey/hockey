@@ -337,6 +337,113 @@ def _format_plan_attempt_quality(quality: dict[str, Any]) -> str:
 _MAX_REFINEMENT_ITERATIONS = 3
 
 
+def _decide_apply_refinement_moves(
+    issues: "list[str]",
+    moves: "list[dict[str, Any]]",
+    auto_moves: "list[dict[str, Any]]",
+    *,
+    run_id: str,
+    iteration: int,
+    work_dir: str,
+    log_fn: "Any",
+) -> bool:
+    """Decide whether to apply this refinement iteration's auto-fixable moves
+    (issue #260 Phase 4).
+
+    ``plan_critic.suggest_moves`` ranks issues and marks some moves
+    ``can_auto_fix`` — a deterministic classification of *what a fix would
+    look like*, not a judgment that applying it now is the right call. The
+    refinement loop previously applied every ``can_auto_fix`` move
+    unconditionally, one of the Phase 4 hotspots named alongside the
+    mid-planning critic loop and the Stage 3 multi-seed loop (this is the
+    "plan critic currently decides repair policy" item from the alignment
+    review).
+
+    When a headless judge is configured (``RVV_JUDGE_BACKEND``), builds a
+    ``DecisionContext`` from the critic's findings and proposed moves,
+    asks the judge to choose ``apply_candidate`` (apply this batch),
+    ``keep_baseline`` (skip this iteration), or ``request_operator``,
+    validates the reply deterministically, and records it to the run
+    manifest's ``decision_log``.
+
+    Falls back to applying the moves (the loop's original behavior) when no
+    judge is configured, the judge call fails, or its action is
+    deterministically rejected — headless/no-LLM runs are unchanged. There
+    is no separate verifier gate here (unlike the Stage 3 optimizer/A-B
+    decisions): the moves themselves are already deterministically derived
+    from the critic's findings, and ``workflow.apply()`` recomputes
+    fairness/tone from whatever is actually applied, same as before.
+    """
+    from ..application.decisions import DecisionAction, DecisionContext, decide, record_llm_decision
+    from ..llm_judge import build_action_decision_prompt, get_judge_if_headless, parse_action_verdict
+
+    def _deterministic_fallback() -> bool:
+        return True
+
+    try:
+        judge = get_judge_if_headless()
+    except ValueError:
+        return _deterministic_fallback()
+    if judge is None:
+        return _deterministic_fallback()
+
+    candidate_ref = f"refinement_iteration_{iteration}"
+    context = DecisionContext(
+        run_id=run_id,
+        capability="plan_critic_refinement",
+        stage="refinement",
+        objective=(
+            "Decide whether to apply this iteration's auto-fixable plan-critic "
+            "moves (e.g. shifting a colliding tournament or a hosting clump by "
+            "a week), skip this iteration and keep the current plan unchanged, "
+            "or ask the operator."
+        ),
+        facts={
+            "issue_count": len(issues),
+            "auto_fixable_move_count": len(auto_moves),
+            "manual_review_move_count": len(moves) - len(auto_moves),
+            "issues": "; ".join(issues[:5]),
+            "proposed_moves": "; ".join(
+                f"{m.get('tournament_id') or '?'}→{m.get('new_date') or '?'} "
+                f"({(m.get('reason') or '')[:80]})"
+                for m in auto_moves[:5]
+            ),
+        },
+        candidate_ref=candidate_ref,
+        available_actions=("apply_candidate", "keep_baseline", "request_operator"),
+    )
+    try:
+        raw_verdict = judge.judge(build_action_decision_prompt(context))
+    except RuntimeError as exc:
+        log_fn(f"Refinement {iteration}: judge call failed, falling back to auto-apply: {exc}")
+        return _deterministic_fallback()
+
+    action = parse_action_verdict(context, raw_verdict)
+    if action.action_id == "apply_candidate" and not action.arguments.get("candidate_ref"):
+        from dataclasses import replace as _dc_replace
+
+        action = _dc_replace(action, arguments={**action.arguments, "candidate_ref": candidate_ref})
+
+    result = decide(context, action)
+    try:
+        record_llm_decision(work_dir, context, action, result)
+    except Exception as exc:
+        log_fn(f"Refinement {iteration}: record_llm_decision failed: {exc}")
+
+    if not result.accepted:
+        log_fn(
+            f"Refinement {iteration}: judge action {action.action_id!r} rejected "
+            f"({result.rejection_reason}), falling back to auto-apply"
+        )
+        return _deterministic_fallback()
+
+    log_fn(
+        f"Refinement {iteration}: judge decided {action.action_id} "
+        f"({(action.rationale or '')[:200]})"
+    )
+    return action.action_id == "apply_candidate"
+
+
 def _run_refinement_loop(
     plan_checkpoint: "dict[str, Any]",
     state: "Any",
@@ -349,9 +456,13 @@ def _run_refinement_loop(
     On each iteration:
     1. Loads the current SeasonPlan from the Stage 3 checkpoint.
     2. Generates targeted swap suggestions via the plan critic.
-    3. Merges those suggestions into ``plan.manual_adjustments``.
-    4. Applies the adjustments and recalculates fairness scores.
-    5. Re-evaluates the verdict tone; exits early if tone is no longer 'rough'.
+    3. Decides whether to apply this iteration's auto-fixable moves at all
+       (:func:`_decide_apply_refinement_moves`, issue #260 Phase 4) — a
+       headless judge, when configured, may choose to skip the iteration
+       instead.
+    4. Merges those suggestions into ``plan.manual_adjustments``.
+    5. Applies the adjustments and recalculates fairness scores.
+    6. Re-evaluates the verdict tone; exits early if tone is no longer 'rough'.
 
     Args:
         plan_checkpoint: Stage 3 checkpoint dict (with a ``"plan"`` key).
@@ -372,6 +483,12 @@ def _run_refinement_loop(
 
     workflow = ManualAdjustmentWorkflow(state)
     current_checkpoint = plan_checkpoint
+    try:
+        from ..pipeline.run_manifest import RunManifest
+
+        run_id = str(RunManifest(state.work_dir).read().get("run_id") or "")
+    except Exception:
+        run_id = ""
 
     for iteration in range(1, _MAX_REFINEMENT_ITERATIONS + 1):
         tone = _compute_verdict_tone(current_checkpoint)
@@ -400,6 +517,18 @@ def _run_refinement_loop(
         auto_moves = [m for m in moves if m.get("can_auto_fix")]
         if not auto_moves:
             log_fn(f"Refinement {iteration}: no auto-fixable moves — stopping")
+            break
+
+        if not _decide_apply_refinement_moves(
+            issues,
+            moves,
+            auto_moves,
+            run_id=run_id,
+            iteration=iteration,
+            work_dir=str(state.work_dir),
+            log_fn=log_fn,
+        ):
+            log_fn(f"Refinement {iteration}: decision was not to apply auto-fixable moves — stopping")
             break
 
         # Apply auto-fixable moves directly via TournamentUpdater.move_date when

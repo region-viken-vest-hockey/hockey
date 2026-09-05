@@ -11,6 +11,7 @@ import pytest
 from tournament_scheduler.cli.pipeline_orchestrator import (
     _MAX_REFINEMENT_ITERATIONS,
     _compute_verdict_tone,
+    _decide_apply_refinement_moves,
     _decide_plan_adoption,
     _run_approval_gate,
     _run_mid_planning_critic_loop,
@@ -864,6 +865,159 @@ class TestRunRefinementLoop:
         assert any("no effective changes" in msg for msg in log_calls), (
             f"Expected 'no effective changes' in log; got: {log_calls}"
         )
+
+    def test_headless_judge_keep_baseline_stops_iteration_without_applying(self, tmp_path) -> None:
+        """Issue #260 Phase 4: a headless judge may skip an iteration's
+        auto-fixable moves entirely instead of them always being applied."""
+        plan_obj = _make_plan_obj(gate_status="fail", gate_score=40, pairwise=0.5, diversity=0.5, month_balance=0.5)
+        checkpoint = _make_checkpoint(plan_obj)
+        state = _make_state()
+        state.work_dir = str(tmp_path)
+        args = _make_args()
+        log_calls: list[str] = []
+
+        apply_mock = MagicMock()
+        judge = MagicMock()
+        judge.judge.return_value = "keep_baseline\nNot worth the churn this iteration."
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            with patch(
+                "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+                return_value="rough",
+            ):
+                with patch(
+                    "tournament_scheduler.pipeline.manual_adjustment_workflow.ManualAdjustmentWorkflow.load_plan",
+                    return_value=plan_obj,
+                ):
+                    with patch(
+                        "tournament_scheduler.cli.plan_critic.generate_critic_summary",
+                        return_value=["Arena-day collision on 2026-03-01"],
+                    ):
+                        with patch(
+                            "tournament_scheduler.cli.plan_critic.suggest_moves",
+                            return_value=[{
+                                "tournament_id": "t1",
+                                "new_date": "2026-03-08",
+                                "reason": "shift",
+                                "can_auto_fix": True,
+                                "issue": "Arena-day collision on 2026-03-01",
+                            }],
+                        ):
+                            with patch(
+                                "tournament_scheduler.pipeline.manual_adjustment_workflow.ManualAdjustmentWorkflow.apply",
+                                apply_mock,
+                            ):
+                                tone, updated = _run_refinement_loop(
+                                    checkpoint, state, args, False, log_calls.append
+                                )
+
+        judge.judge.assert_called_once()
+        apply_mock.assert_not_called()
+        assert tone == "rough"
+        assert updated is checkpoint
+        assert any("was not to apply auto-fixable moves" in msg for msg in log_calls)
+
+
+# ---------------------------------------------------------------------------
+# _decide_apply_refinement_moves — unit tests
+# ---------------------------------------------------------------------------
+
+
+class TestDecideApplyRefinementMoves:
+    """Issue #260 Phase 4: gate the refinement loop's auto-fix application
+    through a headless decision instead of always applying every
+    ``can_auto_fix`` move, falling back to the pre-existing auto-apply
+    behavior when no judge is configured."""
+
+    _ISSUES = ["Arena-day collision on 2026-03-01"]
+    _MOVES = [
+        {
+            "tournament_id": "t1",
+            "new_date": "2026-03-08",
+            "reason": "shift",
+            "can_auto_fix": True,
+            "issue": "Arena-day collision on 2026-03-01",
+        }
+    ]
+
+    def test_no_headless_judge_falls_back_to_auto_apply(self, tmp_path) -> None:
+        decision = _decide_apply_refinement_moves(
+            self._ISSUES,
+            self._MOVES,
+            self._MOVES,
+            run_id="run-1",
+            iteration=1,
+            work_dir=str(tmp_path),
+            log_fn=lambda _: None,
+        )
+        assert decision is True
+
+    def test_headless_judge_apply_candidate_is_recorded_and_applied(self, tmp_path) -> None:
+        judge = MagicMock()
+        judge.judge.return_value = "apply_candidate\nSafe to shift the colliding tournament."
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            decision = _decide_apply_refinement_moves(
+                self._ISSUES,
+                self._MOVES,
+                self._MOVES,
+                run_id="run-1",
+                iteration=1,
+                work_dir=str(tmp_path),
+                log_fn=lambda _: None,
+            )
+
+        assert decision is True
+
+        from tournament_scheduler.pipeline.run_manifest import RunManifest
+
+        manifest = RunManifest(str(tmp_path)).read()
+        entry = manifest["decision_log"][-1]
+        assert entry["action"]["action_id"] == "apply_candidate"
+        assert entry["result"]["accepted"] is True
+        assert entry["context"]["capability"] == "plan_critic_refinement"
+
+    def test_headless_judge_keep_baseline_is_not_applied(self, tmp_path) -> None:
+        judge = MagicMock()
+        judge.judge.return_value = "keep_baseline"
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            decision = _decide_apply_refinement_moves(
+                self._ISSUES,
+                self._MOVES,
+                self._MOVES,
+                run_id="run-1",
+                iteration=1,
+                work_dir=str(tmp_path),
+                log_fn=lambda _: None,
+            )
+
+        assert decision is False
+
+    def test_headless_judge_call_failure_falls_back_to_auto_apply(self, tmp_path) -> None:
+        judge = MagicMock()
+        judge.judge.side_effect = RuntimeError("backend unreachable")
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            decision = _decide_apply_refinement_moves(
+                self._ISSUES,
+                self._MOVES,
+                self._MOVES,
+                run_id="run-1",
+                iteration=1,
+                work_dir=str(tmp_path),
+                log_fn=lambda _: None,
+            )
+
+        assert decision is True
 
 
 # ---------------------------------------------------------------------------
