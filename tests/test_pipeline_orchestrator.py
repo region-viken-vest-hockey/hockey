@@ -870,9 +870,9 @@ class TestRunRefinementLoop:
 
     def test_headless_judge_keep_baseline_holds_without_persisting(self, tmp_path) -> None:
         """Issue #260 Phase 4: a headless judge may decline to persist an
-        iteration's trial candidate. apply() still runs (it only computes the
-        trial candidate in memory), but write_updated_checkpoint must not be
-        called when the judge holds."""
+        iteration's optimizer-produced trial candidate. The metadata-recompute
+        apply() still runs (it only computes the trial candidate in memory),
+        but write_updated_checkpoint must not be called when the judge holds."""
         plan_obj = _make_plan_obj(gate_status="fail", gate_score=40, pairwise=0.5, diversity=0.5, month_balance=0.5)
         checkpoint = _make_checkpoint(plan_obj)
         state = _make_state()
@@ -889,8 +889,6 @@ class TestRunRefinementLoop:
             "optimize_plan\nKeep trying this iteration.",
             "keep_baseline\nNot worth the churn this iteration.",
         ]
-        move_date_result = MagicMock()
-        move_date_result.summary_nb = "moved"
 
         with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
@@ -908,37 +906,90 @@ class TestRunRefinementLoop:
                         return_value=[{"category": "collision", "message": "Arena-day collision on 2026-03-01"}],
                     ):
                         with patch(
-                            "tournament_scheduler.cli.plan_critic.suggest_moves",
-                            return_value=[{
-                                "tournament_id": "t1",
-                                "new_date": "2026-03-08",
-                                "reason": "shift",
-                                "can_auto_fix": True,
-                                "issue": "Arena-day collision on 2026-03-01",
-                            }],
+                            "tournament_scheduler.pipeline.manual_adjustment_workflow.ManualAdjustmentWorkflow.apply",
+                            apply_mock,
                         ):
                             with patch(
-                                "tournament_scheduler.pipeline.tournament_updater.TournamentUpdater.move_date",
-                                return_value=move_date_result,
+                                "tournament_scheduler.pipeline.tournament_updater.TournamentUpdater.write_updated_checkpoint",
+                                write_checkpoint_mock,
                             ):
-                                with patch(
-                                    "tournament_scheduler.pipeline.manual_adjustment_workflow.ManualAdjustmentWorkflow.apply",
-                                    apply_mock,
-                                ):
-                                    with patch(
-                                        "tournament_scheduler.pipeline.tournament_updater.TournamentUpdater.write_updated_checkpoint",
-                                        write_checkpoint_mock,
-                                    ):
-                                        tone, updated = _run_refinement_loop(
-                                            checkpoint, state, args, False, log_calls.append
-                                        )
+                                tone, updated = _run_refinement_loop(
+                                    checkpoint, state, args, False, log_calls.append
+                                )
 
         assert judge.judge.call_count == 2
         apply_mock.assert_called_once()
         write_checkpoint_mock.assert_not_called()
         assert tone == "rough"
         assert updated is checkpoint
-        assert any("not persisting this iteration's candidate" in msg for msg in log_calls)
+        assert any("not persisting optimizer candidate" in msg for msg in log_calls)
+
+    def test_no_judge_uses_legacy_suggest_moves_path(self, tmp_path) -> None:
+        """Issue #260 Phase 4: with no judge configured at all, the loop still
+        uses plan_critic.suggest_moves() and applies unconditionally — the
+        pre-existing behavior, explicitly kept only as a legacy compatibility
+        path. optimize_candidate must not be called on this path."""
+        plan_obj = _make_plan_obj(gate_status="fail", gate_score=40, pairwise=0.5, diversity=0.5, month_balance=0.5)
+        checkpoint = _make_checkpoint(plan_obj)
+        state = _make_state()
+        state.work_dir = str(tmp_path)
+        args = _make_args()
+        log_calls: list[str] = []
+
+        apply_mock = MagicMock(return_value=_make_update_result(success=True))
+        write_checkpoint_mock = MagicMock()
+        optimize_mock = MagicMock()
+        move_date_result = MagicMock()
+        move_date_result.summary_nb = "moved"
+
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            return_value="rough",
+        ):
+            with patch(
+                "tournament_scheduler.pipeline.manual_adjustment_workflow.ManualAdjustmentWorkflow.load_plan",
+                return_value=plan_obj,
+            ):
+                with patch(
+                    "tournament_scheduler.cli.plan_critic.generate_critic_findings",
+                    return_value=[{"category": "collision", "message": "Arena-day collision on 2026-03-01"}],
+                ):
+                    with patch(
+                        "tournament_scheduler.cli.plan_critic.suggest_moves",
+                        return_value=[{
+                            "tournament_id": "t1",
+                            "new_date": "2026-03-08",
+                            "reason": "shift",
+                            "can_auto_fix": True,
+                            "issue": "Arena-day collision on 2026-03-01",
+                        }],
+                    ):
+                        with patch(
+                            "tournament_scheduler.pipeline.tournament_updater.TournamentUpdater.move_date",
+                            return_value=move_date_result,
+                        ):
+                            with patch(
+                                "tournament_scheduler.pipeline.manual_adjustment_workflow.ManualAdjustmentWorkflow.apply",
+                                apply_mock,
+                            ):
+                                with patch(
+                                    "tournament_scheduler.pipeline.tournament_updater.TournamentUpdater.write_updated_checkpoint",
+                                    write_checkpoint_mock,
+                                ):
+                                    with patch(
+                                        "tournament_scheduler.stage3_optimizer.optimize_candidate",
+                                        optimize_mock,
+                                    ):
+                                        tone, updated = _run_refinement_loop(
+                                            checkpoint, state, args, False, log_calls.append
+                                        )
+
+        # Tone is mocked to always "rough" and moves are always the same
+        # non-empty mocked list, so the loop runs to _MAX_REFINEMENT_ITERATIONS.
+        optimize_mock.assert_not_called()
+        assert apply_mock.call_count == _MAX_REFINEMENT_ITERATIONS
+        assert write_checkpoint_mock.call_count == _MAX_REFINEMENT_ITERATIONS
+        assert any("legacy suggest_moves path" in msg for msg in log_calls)
 
 
 # ---------------------------------------------------------------------------
