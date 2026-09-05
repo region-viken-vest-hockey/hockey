@@ -154,8 +154,12 @@ def test_judge_proceed_verdict_continues_pipeline(tmp_path: Path) -> None:
                     result = _cmd_run(args)
 
     assert result == 0
-    # judge called after stage1, stage2, stage3
-    assert judge_mock.judge.call_count == 3
+    # judge called after stage1, stage2, stage3, plus once for the
+    # post-Stage4 refinement loop's continue-decision (issue #260 Phase 4:
+    # "remove tone classification from control authority" —
+    # _decide_continue_refinement consults the same headless judge before
+    # falling back to the tone-bucket gate).
+    assert judge_mock.judge.call_count == 4
 
 
 def test_judge_abort_verdict_after_stage1_stops_pipeline(tmp_path: Path) -> None:
@@ -256,7 +260,9 @@ def test_judge_no_backend_configured_continues(tmp_path: Path) -> None:
 
 
 def test_judge_called_three_times_when_all_proceed(tmp_path: Path) -> None:
-    """In a complete headless run, judge is invoked after stages 1, 2, and 3."""
+    """In a complete headless run, judge is invoked after stages 1, 2, and 3,
+    plus once more for the post-Stage4 refinement loop's continue-decision
+    (issue #260 Phase 4 — see test_judge_proceed_verdict_continues_pipeline)."""
     args = _make_args(tmp_path)
     judge_mock = MagicMock()
     judge_mock.judge.return_value = "PROCEED"
@@ -269,7 +275,7 @@ def test_judge_called_three_times_when_all_proceed(tmp_path: Path) -> None:
                     result = _cmd_run(args)
 
     assert result == 0
-    assert judge_mock.judge.call_count == 3
+    assert judge_mock.judge.call_count == 4
 
 
 def test_rough_plan_triggers_stage3_retries_and_fails(tmp_path: Path) -> None:

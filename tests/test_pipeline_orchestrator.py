@@ -11,8 +11,10 @@ import pytest
 from tournament_scheduler.cli.pipeline_orchestrator import (
     _MAX_REFINEMENT_ITERATIONS,
     _compute_verdict_tone,
+    _decide_continue_refinement,
     _decide_plan_adoption,
     _decide_refinement_candidate,
+    _refinement_metrics,
     _run_approval_gate,
     _run_mid_planning_critic_loop,
     _run_refinement_loop,
@@ -881,7 +883,12 @@ class TestRunRefinementLoop:
         apply_mock = MagicMock()
         write_checkpoint_mock = MagicMock()
         judge = MagicMock()
-        judge.judge.return_value = "keep_baseline\nNot worth the churn this iteration."
+        # First call is the continue-decision (must say optimize_plan to reach
+        # the trial candidate at all); second is the candidate decision itself.
+        judge.judge.side_effect = [
+            "optimize_plan\nKeep trying this iteration.",
+            "keep_baseline\nNot worth the churn this iteration.",
+        ]
         move_date_result = MagicMock()
         move_date_result.summary_nb = "moved"
 
@@ -926,7 +933,7 @@ class TestRunRefinementLoop:
                                             checkpoint, state, args, False, log_calls.append
                                         )
 
-        judge.judge.assert_called_once()
+        assert judge.judge.call_count == 2
         apply_mock.assert_called_once()
         write_checkpoint_mock.assert_not_called()
         assert tone == "rough"
@@ -1061,6 +1068,98 @@ class TestDecideRefinementCandidate:
 
         assert outcome == "hold"
         assert reason == "hard_violation_blocks_action"
+
+
+# ---------------------------------------------------------------------------
+# _refinement_metrics / _decide_continue_refinement — unit tests
+# (issue #260 Phase 4: "remove tone classification from control authority")
+# ---------------------------------------------------------------------------
+
+
+class TestRefinementMetrics:
+    def test_extracts_underlying_measurements_not_the_tone_bucket(self) -> None:
+        plan_obj = _make_plan_obj(gate_status="warn", gate_score=72, pairwise=0.81, diversity=0.77, month_balance=0.85)
+        checkpoint = _make_checkpoint(plan_obj)
+
+        metrics = _refinement_metrics(checkpoint)
+
+        assert metrics["fairness_gate_status"] == "warn"
+        assert metrics["fairness_gate_score"] == 72
+        assert metrics["pairwise_matchup_score"] == 0.81
+        assert metrics["diversity_score"] == 0.77
+        assert metrics["month_balance_score"] == 0.85
+        assert "tone" not in metrics
+
+
+class TestDecideContinueRefinement:
+    """A configured judge sees the underlying metrics, not the rough/mixed/
+    strong bucket, and its decision replaces the bucket's hard gate — with
+    the bucket-based gate preserved only as an explicitly-named legacy
+    fallback when no judge is configured."""
+
+    _METRICS = {
+        "fairness_gate_status": "fail",
+        "fairness_gate_score": 40.0,
+        "pairwise_matchup_score": 0.5,
+        "diversity_score": 0.5,
+        "month_balance_score": 0.5,
+        "game_count_spread": 6,
+    }
+
+    def test_no_headless_judge_returns_no_judge(self, tmp_path) -> None:
+        outcome, reason = _decide_continue_refinement(
+            self._METRICS, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
+        )
+        assert outcome == "no_judge"
+
+    def test_headless_judge_optimize_plan_continues(self, tmp_path) -> None:
+        judge = MagicMock()
+        judge.judge.return_value = "optimize_plan\nStill worth another pass."
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            outcome, reason = _decide_continue_refinement(
+                self._METRICS, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
+            )
+
+        assert outcome == "continue"
+        assert reason == "optimize_plan"
+
+        from tournament_scheduler.pipeline.run_manifest import RunManifest
+
+        manifest = RunManifest(str(tmp_path)).read()
+        entry = manifest["decision_log"][-1]
+        assert entry["action"]["action_id"] == "optimize_plan"
+        assert entry["result"]["accepted"] is True
+
+    def test_headless_judge_keep_baseline_stops(self, tmp_path) -> None:
+        judge = MagicMock()
+        judge.judge.return_value = "keep_baseline\nGood enough for this run."
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            outcome, reason = _decide_continue_refinement(
+                self._METRICS, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
+            )
+
+        assert outcome == "stop"
+        assert reason == "keep_baseline"
+
+    def test_headless_judge_call_failure_stops_safely(self, tmp_path) -> None:
+        judge = MagicMock()
+        judge.judge.side_effect = RuntimeError("backend unreachable")
+
+        with patch.dict(os.environ, {**_HARNESS_CLEAN, "RVV_JUDGE_BACKEND": "llm_bridge"}), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
+        ):
+            outcome, reason = _decide_continue_refinement(
+                self._METRICS, run_id="run-1", iteration=1, work_dir=str(tmp_path), log_fn=lambda _: None
+            )
+
+        assert outcome == "stop"
+        assert reason == "judge_call_failed"
 
 
 # ---------------------------------------------------------------------------

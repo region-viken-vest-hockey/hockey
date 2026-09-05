@@ -474,6 +474,114 @@ def _decide_refinement_candidate(
     return "persist", "apply_candidate"
 
 
+def _refinement_metrics(checkpoint: "dict[str, Any] | Any") -> dict[str, Any]:
+    """Underlying deterministic metrics behind the rough/mixed/strong tone bucket.
+
+    Used by :func:`_decide_continue_refinement` so the LLM/agent controller
+    sees the actual measurements (fairness gate status/score, pairwise/
+    diversity/month-balance scores, game-count spread) rather than a single
+    pre-collapsed tone label standing in for them.
+    """
+    plan_obj = _extract_plan_obj(checkpoint)
+    gate = _fairness_gate(plan_obj)
+    return {
+        "fairness_gate_status": str(gate.get("status", "pass")),
+        "fairness_gate_score": float(gate.get("score", 0) or 0),
+        "pairwise_matchup_score": _score_attr(plan_obj, "pairwise_matchup_score"),
+        "diversity_score": _score_attr(plan_obj, "diversity_score"),
+        "month_balance_score": _score_attr(plan_obj, "month_balance_score"),
+        "game_count_spread": int(_score_attr(plan_obj, "game_count_spread")),
+    }
+
+
+def _decide_continue_refinement(
+    metrics: "dict[str, Any]",
+    *,
+    run_id: str,
+    iteration: int,
+    work_dir: str,
+    log_fn: "Any",
+) -> "tuple[str, str]":
+    """Decide whether to continue attempting refinement this iteration
+    (issue #260 Phase 4: "remove tone classification from control authority").
+
+    ``_run_refinement_loop`` previously used ``_compute_verdict_tone``'s
+    rough/mixed/strong bucket as a hard gate: keep attempting refinement
+    only while the tone is "rough", stop the moment it is anything else.
+    That bucket remains a useful display label — ``tone``/``tone_label``
+    are still computed and returned unchanged by the caller — but whether
+    spending another iteration trying to improve the plan is worthwhile is
+    a contextual tradeoff, not something three fixed threshold bands should
+    decide unconditionally.
+
+    When a headless judge is configured, builds a ``DecisionContext`` from
+    :func:`_refinement_metrics` — the underlying measurements, not the tone
+    bucket itself — and asks it to choose ``optimize_plan`` (continue
+    attempting refinement this run) or ``keep_baseline`` (stop; the current
+    plan is accepted as final for this run).
+
+    Returns ``(outcome, reason)``:
+    - ``"no_judge"`` — no judge configured; the caller falls back to the
+      pre-existing tone-bucket gate (explicitly-named legacy compatibility,
+      so unattended/non-interactive runs are unaffected).
+    - ``"continue"`` — the judge chose ``optimize_plan``.
+    - ``"stop"`` — the judge chose anything else, its action was
+      deterministically rejected, or the judge call itself failed.
+      Safe-by-default: a configured-but-failing/declining judge does not
+      force more iterations that could keep mutating the plan without
+      oversight — it simply stops where the plan already is, same as the
+      "hold" outcome in :func:`_decide_refinement_candidate`.
+    """
+    from ..application.decisions import DecisionContext, decide, record_llm_decision
+    from ..llm_judge import build_action_decision_prompt, get_judge_if_headless, parse_action_verdict
+
+    try:
+        judge = get_judge_if_headless()
+    except ValueError:
+        return "no_judge", "no_judge_configured"
+    if judge is None:
+        return "no_judge", "no_judge_configured"
+
+    context = DecisionContext(
+        run_id=run_id,
+        capability="plan_critic_refinement",
+        stage="refinement",
+        objective=(
+            "Decide whether to continue attempting plan-critic-driven "
+            "refinement this iteration, or stop and accept the current "
+            "plan as final for this run."
+        ),
+        facts=metrics,
+        available_actions=("optimize_plan", "keep_baseline", "request_operator"),
+    )
+    try:
+        raw_verdict = judge.judge(build_action_decision_prompt(context))
+    except RuntimeError as exc:
+        log_fn(f"Refinement {iteration}: continue-decision judge call failed — stopping: {exc}")
+        return "stop", "judge_call_failed"
+
+    action = parse_action_verdict(context, raw_verdict)
+    result = decide(context, action)
+    try:
+        record_llm_decision(work_dir, context, action, result)
+    except Exception as exc:
+        log_fn(f"Refinement {iteration}: record_llm_decision failed: {exc}")
+
+    if not result.accepted:
+        log_fn(
+            f"Refinement {iteration}: continue-decision action {action.action_id!r} rejected "
+            f"({result.rejection_reason}) — stopping"
+        )
+        return "stop", result.rejection_reason or "rejected"
+
+    if action.action_id == "optimize_plan":
+        log_fn(f"Refinement {iteration}: judge decided to continue ({(action.rationale or '')[:200]})")
+        return "continue", "optimize_plan"
+
+    log_fn(f"Refinement {iteration}: judge decided {action.action_id} — stopping")
+    return "stop", action.action_id
+
+
 def _run_refinement_loop(
     plan_checkpoint: "dict[str, Any]",
     state: "Any",
@@ -484,13 +592,22 @@ def _run_refinement_loop(
     """Run the skill-driven plan refinement loop after Stage 4.
 
     On each iteration:
-    1. Loads the current SeasonPlan from the Stage 3 checkpoint.
-    2. Generates every deterministic critic finding
+    1. Computes the tone display label and decides whether to continue
+       attempting refinement at all (:func:`_decide_continue_refinement`,
+       issue #260 Phase 4: "remove tone classification from control
+       authority") — a headless judge, when configured, sees the
+       underlying metrics (:func:`_refinement_metrics`) and chooses,
+       rather than the rough/mixed/strong bucket alone deciding. Falls
+       back to the pre-existing "continue only while tone == rough" gate
+       as an explicitly-named legacy compatibility path when no judge is
+       configured.
+    2. Loads the current SeasonPlan from the Stage 3 checkpoint.
+    3. Generates every deterministic critic finding
        (:func:`plan_critic.generate_critic_findings`, uncapped/unranked —
        issue #260 Phase 4) and derives targeted swap suggestions from them.
-    3. Tentatively applies this iteration's auto-fixable moves to an
+    4. Tentatively applies this iteration's auto-fixable moves to an
        in-memory trial candidate (not yet persisted).
-    4. Verifies and A/B-scores that trial candidate against the current
+    5. Verifies and A/B-scores that trial candidate against the current
        plan and decides whether to persist it
        (:func:`_decide_refinement_candidate`, issue #260 Phase 4 — the
        "cli/plan_critic.py + refinement-candidate verification boundary"):
@@ -501,7 +618,6 @@ def _run_refinement_loop(
        is configured at all, the loop falls back to the pre-existing
        always-apply legacy compatibility behavior so unattended/
        non-interactive production runs are unaffected.
-    5. Re-evaluates the verdict tone; exits early if tone is no longer 'rough'.
 
     Args:
         plan_checkpoint: Stage 3 checkpoint dict (with a ``"plan"`` key).
@@ -532,12 +648,29 @@ def _run_refinement_loop(
 
     for iteration in range(1, _MAX_REFINEMENT_ITERATIONS + 1):
         tone = _compute_verdict_tone(current_checkpoint)
-        log_fn(f"Refinement iteration {iteration}: tone={tone}")
+        log_fn(f"Refinement iteration {iteration}: tone={tone} (display label)")
         _console.print(f"  [dim]Refinement {iteration}/{_MAX_REFINEMENT_ITERATIONS}: tone={tone}[/dim]")
 
-        if tone != "rough":
-            log_fn(f"Refinement loop exiting early at iteration {iteration}: tone={tone}")
+        continue_outcome, continue_reason = _decide_continue_refinement(
+            _refinement_metrics(current_checkpoint),
+            run_id=run_id,
+            iteration=iteration,
+            work_dir=str(state.work_dir),
+            log_fn=log_fn,
+        )
+        if continue_outcome == "no_judge":
+            # Legacy compatibility: no headless judge configured — preserve
+            # the pre-existing tone-bucket gate so unattended/non-interactive
+            # production runs are unaffected by this decision.
+            if tone != "rough":
+                log_fn(f"Refinement loop exiting early at iteration {iteration}: tone={tone} (legacy tone-gate)")
+                return tone, current_checkpoint
+        elif continue_outcome == "stop":
+            log_fn(f"Refinement loop stopping at iteration {iteration} per continue-decision ({continue_reason})")
             return tone, current_checkpoint
+        # else continue_outcome == "continue": proceed regardless of tone —
+        # the "no critic findings" check just below still stops the loop
+        # once there is genuinely nothing left to fix.
 
         # Load current SeasonPlan object
         try:
