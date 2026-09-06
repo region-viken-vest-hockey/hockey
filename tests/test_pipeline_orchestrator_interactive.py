@@ -302,12 +302,19 @@ class TestStage3InteractiveDecisionLoop:
             "abort",
         }
         assert "apply_candidate" not in payload["available_actions"]
+        # issue #262 P0: the first-attempt context must already offer the
+        # v2 optimizer's schema, not the legacy search_budget one -- the
+        # dispatch on a later optimize_plan decision runs the v2 optimizer
+        # regardless of which attempt this is.
+        assert "weights" in payload["action_parameters"]["optimize_plan"]
 
         interactive_state = _read_stage3_interactive_state(state)
         assert interactive_state["attempts_used"] == 1
         assert interactive_state["best_plan"] == plan
 
-    def test_optimize_plan_reruns_stage3_and_emits_ab_context(self, state, tmp_path):
+    def test_optimize_plan_runs_v2_optimizer_not_legacy_stage3(self, state, tmp_path):
+        """issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
+        optimizer, not rerun the legacy SeasonPlanner via _run_stage3."""
         from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report
         from tournament_scheduler.stage3_decision import build_stage3_decision_context
@@ -315,7 +322,8 @@ class TestStage3InteractiveDecisionLoop:
         plan1 = _plan_checkpoint(seed=1)
         report = build_ab_report(plan1["plan"], plan1["plan"])
         baseline_context = build_stage3_decision_context(
-            report, run_id="", baseline_ref=None, candidate_ref=None
+            report, run_id="", baseline_ref=None, candidate_ref=None,
+            optimize_plan_schema="v2_optimizer",
         )
         _write_stage3_interactive_state(
             state,
@@ -328,11 +336,13 @@ class TestStage3InteractiveDecisionLoop:
         )
         state.write_stage(StageName.PLANNING, plan1, status=StageStatus.DONE)
 
-        plan2 = _plan_checkpoint(seed=2)
+        plan2_candidate = _candidate(seed=2)
         args = _args(
             work_dir=str(tmp_path),
             resume_from="4",
-            decision_action=json.dumps({"action_id": "optimize_plan", "rationale": "try again"}),
+            decision_action=json.dumps(
+                {"action_id": "optimize_plan", "rationale": "try again", "arguments": {"iterations": 500}}
+            ),
         )
         with patch(
             "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
@@ -342,22 +352,29 @@ class TestStage3InteractiveDecisionLoop:
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
-            return_value=(plan2, False, False),
-        ) as run_stage3:
+        ) as run_stage3, patch(
+            "tournament_scheduler.stage3_optimizer.optimize_candidate",
+            return_value=plan2_candidate,
+        ) as optimize_candidate:
             exit_code = _cmd_run_interactive(args)
 
         assert exit_code == 2
-        # resume_from was redirected from 4 back to 3 — another attempt, not
-        # advancing straight to Stage 4.
-        assert run_stage3.call_args.args[7] == 3
+        # optimize_plan must not fall back to the legacy SeasonPlanner rerun.
+        run_stage3.assert_not_called()
+        optimize_candidate.assert_called_once()
+        assert optimize_candidate.call_args.kwargs["iterations"] == 500
+        assert optimize_candidate.call_args.args[0] == plan1["plan"]
 
         interactive_state = _read_stage3_interactive_state(state)
         assert interactive_state["attempts_used"] == 2
         assert interactive_state["best_plan"] == plan1
-        assert interactive_state["pending_candidate"] == plan2
+        assert interactive_state["pending_candidate"]["plan"] == plan2_candidate
         available = interactive_state["last_context"]["available_actions"]
         assert "apply_candidate" in available
         assert "keep_baseline" in available
+        # The offered optimize_plan schema must match what actually executes.
+        assert "optimize_plan" in interactive_state["last_context"]["action_parameters"]
+        assert "weights" in interactive_state["last_context"]["action_parameters"]["optimize_plan"]
 
     def test_apply_candidate_advances_and_clears_state(self, state, tmp_path):
         from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state

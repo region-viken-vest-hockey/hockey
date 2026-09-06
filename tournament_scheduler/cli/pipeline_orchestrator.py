@@ -1530,6 +1530,71 @@ def _build_mid_planning_critic_hints(
     }
 
 
+def _run_stage3_v2_optimize(
+    state: "Any",
+    cfg: "dict[str, Any]",
+    scraping: "dict[str, Any]",
+    start: "Any",
+    end: "Any",
+    arguments: "dict[str, Any] | None",
+    log_fn: "Any",
+) -> "tuple[dict[str, Any] | None, bool]":
+    """Execute an accepted interactive ``optimize_plan`` decision via the
+    Stage 3 v2 optimizer (issue #262 P0), instead of rerunning the legacy
+    ``SeasonPlanner`` multi-seed loop.
+
+    Mirrors ``cli.plan_command._execute_optimize_plan``'s headless behavior:
+    takes the current best Stage 3 candidate, runs
+    ``stage3_optimizer.optimize_candidate`` against it with the LLM-selected
+    search arguments (already schema-validated by
+    ``application.decisions.decide`` against the ``"v2_optimizer"`` schema
+    before this function ever runs), and writes the result as the new Stage
+    3 checkpoint. ``SeasonPlanner``/``_run_stage3`` remains the baseline
+    generator for the *first* Stage 3 attempt only — this is only reached
+    for a subsequent ``optimize_plan`` decision on an already-planned run.
+
+    Returns ``(checkpoint, abort)`` -- *checkpoint* is ``None`` and *abort*
+    is ``True`` when there is no baseline candidate to optimize.
+    """
+    from ..planning_contract import build_planning_problem, extract_candidate
+    from ..pipeline.state import StageName, StageStatus
+    from ..stage3_optimizer import optimize_candidate
+
+    arguments = arguments or {}
+    planning_checkpoint = state.read_stage(StageName.PLANNING)
+    if not planning_checkpoint:
+        log_fn("optimize_plan: no Stage 3 checkpoint (baseline) to optimize -- aborting")
+        return None, True
+    try:
+        baseline_candidate = extract_candidate(planning_checkpoint)
+    except ValueError as exc:
+        log_fn(f"optimize_plan: could not read baseline candidate: {exc}")
+        return None, True
+
+    problem = build_planning_problem(cfg, scraping, start.date(), end.date())
+
+    weights = arguments.get("weights")
+    new_candidate = optimize_candidate(
+        baseline_candidate,
+        problem,
+        iterations=int(arguments.get("iterations", 4000)),
+        seed=int(arguments.get("seed", 0)),
+        weights={k: float(v) for k, v in weights.items()} if isinstance(weights, dict) else None,
+        move_dates=bool(arguments.get("move_dates", False)),
+        date_swap_probability=float(arguments.get("date_swap_probability", 0.3)),
+    )
+
+    checkpoint = dict(planning_checkpoint)
+    checkpoint["plan"] = new_candidate
+    checkpoint["source"] = "stage3_optimizer_v2"
+    log_fn(
+        "optimize_plan: ran Stage 3 v2 optimizer "
+        f"(iterations={arguments.get('iterations', 4000)}, seed={arguments.get('seed', 0)})"
+    )
+    state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
+    return checkpoint, False
+
+
 def _run_stage3(
     args: "argparse.Namespace",
     cfg: "dict[str, Any]",
@@ -2132,7 +2197,11 @@ def _emit_stage3_interactive_decision(
     from ..application.decisions import DecisionContext
     from ..planning_contract import extract_candidate
     from ..stage3_ab import build_ab_report
-    from ..stage3_decision import STAGE3_DECISION_ACTIONS, build_stage3_decision_context
+    from ..stage3_decision import (
+        STAGE3_DECISION_ACTIONS,
+        _OPTIMIZE_PLAN_SCHEMAS,
+        build_stage3_decision_context,
+    )
 
     interactive_state = _read_stage3_interactive_state(state)
     attempts_used = int(interactive_state.get("attempts_used", 0))
@@ -2164,6 +2233,14 @@ def _emit_stage3_interactive_decision(
             ),
             facts=summary,
             available_actions=tuple(available),
+            # issue #262 P0: optimize_plan on this first attempt already
+            # runs the Stage 3 v2 optimizer too (see _run_stage3_v2_optimize),
+            # so it needs the same schema the else-branch below attaches.
+            action_parameters=(
+                {"optimize_plan": _OPTIMIZE_PLAN_SCHEMAS["v2_optimizer"]}
+                if "optimize_plan" in available
+                else {}
+            ),
         )
         interactive_state = {
             "attempts_used": attempts_used,
@@ -2195,6 +2272,11 @@ def _emit_stage3_interactive_decision(
                     f"the current best attempt ({best_attempt}), request another "
                     "optimization attempt, ask the operator, or keep the current best."
                 ),
+                # issue #262 P0: optimize_plan now runs the Stage 3 v2
+                # optimizer (see _run_stage3_v2_optimize), not a legacy
+                # SeasonPlanner rerun -- attach the schema that matches what
+                # will actually execute.
+                optimize_plan_schema="v2_optimizer",
             )
             context = _dc_replace(context, available_actions=tuple(available) + ("abort",))
         else:
@@ -2304,6 +2386,11 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             return 1
 
     stage3_search_iterations: int | None = None
+    # issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
+    # optimizer (stage3_optimizer.optimize_candidate) rather than rerunning
+    # legacy SeasonPlanner -- see _run_stage3_v2_optimize below.
+    use_v2_optimizer_for_stage3 = False
+    optimize_plan_arguments: dict[str, Any] | None = None
 
     if decision_payload is not None:
         prev_stage_num = resume_from - 1
@@ -2361,11 +2448,8 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         if prev_stage_num == 3 and stage3_interactive_state is not None:
             if decision_action.action_id == "optimize_plan":
                 resume_from = 3
-                raw_iterations = decision_action.arguments.get("iterations")
-                try:
-                    stage3_search_iterations = max(1, min(10, int(raw_iterations)))
-                except (TypeError, ValueError):
-                    stage3_search_iterations = None
+                use_v2_optimizer_for_stage3 = True
+                optimize_plan_arguments = dict(decision_action.arguments or {})
             elif decision_action.action_id == "apply_candidate":
                 # The on-disk Stage 3 checkpoint already holds the candidate
                 # that was just rerun (the pending attempt), so no checkpoint
@@ -2398,6 +2482,14 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         return 1
     if resume_from == 2:
         return _emit_interactive_decision_context(2, state, args.work_dir)
+
+    if resume_from == 3 and use_v2_optimizer_for_stage3:
+        plan, abort = _run_stage3_v2_optimize(
+            state, cfg, scraping, start, end, optimize_plan_arguments, _log
+        )
+        if abort:
+            return 1
+        return _emit_stage3_interactive_decision(state, args.work_dir, cfg, scraping, start, end, plan, _log)
 
     plan, abort, _stage3_failed = _run_stage3(
         args, cfg, scraping, state, start, end, strict, resume_from, _log, stage3_search_iterations
