@@ -21,9 +21,19 @@ Known/working deterministic sources today include Ringerike/Frisk Asker
 (Forumbooking weekly HTML), Skien (BRP/Exigo daily Next.js payload), and Jutul
 (StyledCalendar widget).
 
-BookUp sources for Tønsberg and Sandefjord have known URLs but require
+A BookUp source for Tønsberg has a known URL but requires
 BOOKUP_EMAIL/BOOKUP_PASSWORD and may still need manual/MFA recovery before the
 full private booking calendar can be trusted.
+
+Sandefjord Penguins is *not* a BookUp/credentialed source for the RVV
+Miniputt pipeline (issue #261): the club has a known, fixed weekly ice-time
+allocation instead of a bookable calendar, modelled deterministically in
+`tournament_scheduler.sandefjord_allocation` and fed into Stage 2 as a
+`"fixed_allocation"` source (`pipeline.fixed_allocation_source`). The entry
+below keeps `source`/`kind=OUTLOOK` only so `is_known` stays true for the
+older, non-pipeline `scheduling_command`/`season_command`/`reschedule_command`
+CLI tools that still build a live `CalendarDataSource` from the registry --
+the Stage 1-4 pipeline never scrapes it.
 """
 
 from dataclasses import dataclass
@@ -114,8 +124,12 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         source="https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen___/view:item/id:4497/part:/place:3907:SANDEFJORD/q:sandefjord/r:31/mod:book",
         skip=False,
         note=(
-            "BookUp SPA -- the Pi-driven ScraperAgent navigates the "
-            "JS-rendered booking widget to extract ice hall bookings."
+            "Issue #261: the RVV Miniputt pipeline no longer scrapes this "
+            "BookUp URL -- Sandefjord Penguins has a known, fixed weekend "
+            "ice-time allocation instead (see sandefjord_allocation.py), fed "
+            "into Stage 2 via a 'fixed_allocation' source. The BookUp URL is "
+            "kept only so legacy, non-pipeline CLI commands still see this "
+            "club as 'known'."
         ),
     ),
     "Jar": ClubCalendarSource(

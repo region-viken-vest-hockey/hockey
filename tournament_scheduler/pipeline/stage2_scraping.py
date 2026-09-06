@@ -41,7 +41,7 @@ from .not_started import NOT_STARTED_MESSAGE
 from .scraper_strategies import get_strategy, requires_credentials, needs_llm_agent, get_deterministic_scraper_type
 from .state import PipelineState, StageName, StageStatus
 from .scraper_constants import (
-    SOURCE_OUTLOOK, SOURCE_HTML, SOURCE_ICAL, SOURCE_GOOGLE,
+    SOURCE_OUTLOOK, SOURCE_HTML, SOURCE_ICAL, SOURCE_GOOGLE, SOURCE_FIXED_ALLOCATION,
     _BROWSER_SOURCE_TYPES, _ICAL_SOURCE_TYPES,
 )
 from .scraper_bookup import _run_bookup_scraper, _bookup_navigate_to_date, _parse_bookup_timegrid
@@ -52,6 +52,7 @@ from .scraper_credentialed import (
     _run_credentialed_bookup_or_outlook,
     _try_credentialed_scrape,
 )
+from .fixed_allocation_source import run_fixed_allocation_source
 from .scraper_event_helpers import _events_to_dicts, _group_events_by_club
 from .scraper_forumbooking import _run_forumbooking_scraper
 from .scraper_ical import _run_ical_scraper
@@ -401,6 +402,12 @@ def run(
     for source_cfg in sources:
         name = source_cfg.get("name", "ukjent kilde")
         url = source_cfg.get("url", "").strip()
+        source_type_lower = source_cfg.get("type", SOURCE_OUTLOOK).lower()
+        if source_type_lower == SOURCE_FIXED_ALLOCATION:
+            # Deterministic and free to recompute (issue #261) -- always
+            # scrape directly, no URL and no cache lookup needed.
+            sources_to_scrape.append(source_cfg)
+            continue
         if not url:
             source_results.append(_make_source_result(
                 name=name,
@@ -597,6 +604,15 @@ def _scrape_source(
         block_reason="",
         llm_fallback=False,
     )
+
+    # A fixed-allocation source's availability is already known (issue #261)
+    # -- short-circuit before any strategy lookup, credential check, or
+    # empty-calendar/LLM-fallback logic, none of which apply here.
+    if source_type == SOURCE_FIXED_ALLOCATION:
+        events = run_fixed_allocation_source(name, start_date, end_date)
+        result["events"] = _events_to_dicts(events, club_name=club_for_source_name(name))
+        result["event_count"] = len(events)
+        return result
 
     # --- Run the deterministic scraper ---
     events: list[CalendarEvent] = []

@@ -11,6 +11,7 @@ from tournament_scheduler.pipeline.input_workbook import (
     PUBLIC_SHEET_WHITELIST,
     WorkbookInputError,
     assert_public_sheet,
+    load_workbook_config,
     read_public_teams,
 )
 
@@ -76,3 +77,51 @@ class TestPublicSheetWhitelist:
         wb.save(path)
 
         assert read_public_teams(path) == []
+
+
+class TestKilderSourceFiltering:
+    """Issue #261: a fixed_allocation source needs no URL to be kept."""
+
+    def _write_workbook_with_sources(self, path: Path, source_rows: list[tuple]) -> None:
+        wb = openpyxl.Workbook()
+        settings = wb.active
+        settings.title = "Innstillinger"
+        settings.append(["felt", "verdi"])
+        settings.append(["start_date", "2025-09-01"])
+
+        teams = wb.create_sheet("Lag")
+        teams.append(["club", "label", "age_group"])
+        teams.append(["Kongsberg", "Kongsberg U10A", "U10"])
+
+        sources = wb.create_sheet("Kilder")
+        sources.append(["name", "type", "url"])
+        for row in source_rows:
+            sources.append(list(row))
+
+        wb.save(path)
+
+    def test_fixed_allocation_row_survives_without_url(self, tmp_path):
+        path = tmp_path / "input.xlsx"
+        self._write_workbook_with_sources(path, [
+            ("Kongsberg", "outlook", "https://example.com/kongsberg"),
+            ("Sandefjord Penguins", "fixed_allocation", None),
+        ])
+
+        config = load_workbook_config(path)
+
+        names = {s["name"]: s for s in config["sources"]}
+        assert set(names) == {"Kongsberg", "Sandefjord Penguins"}
+        assert names["Sandefjord Penguins"]["type"] == "fixed_allocation"
+        assert "url" not in names["Sandefjord Penguins"]
+
+    def test_row_without_url_and_without_fixed_allocation_type_is_dropped(self, tmp_path):
+        path = tmp_path / "input.xlsx"
+        self._write_workbook_with_sources(path, [
+            ("Kongsberg", "outlook", "https://example.com/kongsberg"),
+            ("Broken Source", "outlook", None),
+        ])
+
+        config = load_workbook_config(path)
+
+        names = {s["name"] for s in config["sources"]}
+        assert names == {"Kongsberg"}

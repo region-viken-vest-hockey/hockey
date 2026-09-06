@@ -46,6 +46,11 @@ def test_get_deterministic_scraper_type_covers_all_engines() -> None:
 
 def test_bookup_strategies_include_optional_manual_login_pause() -> None:
     """BookUp MFA can be handled by enabling the manual login pause."""
-    for name in ["Tønsberg", "Sandefjord Penguins"]:
+    for name in ["Tønsberg"]:
         commands = [step.get("cmd") for step in STRATEGIES[name].initial_navigation]
         assert "manual_login" in commands
+
+
+def test_sandefjord_has_no_scraper_strategy() -> None:
+    """Issue #261: Sandefjord Penguins is a fixed_allocation source, not scraped."""
+    assert "Sandefjord Penguins" not in STRATEGIES

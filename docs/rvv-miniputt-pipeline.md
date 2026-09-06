@@ -114,7 +114,9 @@ That flow is scriptable and does not require a live browser controller.
 
 ### BookUp credentials
 
-Some BookUp calendars require authentication before scraping works. Tønsberg and Sandefjord should be treated as credentialed sources; the public BookUp availability view can return sparse generic `Booket` placeholders that are not safe for planning.
+Some BookUp calendars require authentication before scraping works. Tønsberg should be treated as a credentialed source; the public BookUp availability view can return sparse generic `Booket` placeholders that are not safe for planning.
+
+Sandefjord Penguins is *not* a BookUp source for this workflow (issue #261) — it has a known, fixed weekend ice-time allocation instead, modelled as a `fixed_allocation` source (see `tournament_scheduler/sandefjord_allocation.py`). No credentials are needed for it.
 
 For those sources, set the credentials expected by the configured strategy, typically:
 

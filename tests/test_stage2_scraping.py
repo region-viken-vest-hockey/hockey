@@ -13,6 +13,7 @@ from tournament_scheduler.pipeline.scraper_credentialed import (
     _wait_for_manual_bookup_login,
 )
 from tournament_scheduler.pipeline.stage2_scraping import (
+    SOURCE_FIXED_ALLOCATION,
     SOURCE_GOOGLE,
     SOURCE_ICAL,
     SOURCE_OUTLOOK,
@@ -137,6 +138,37 @@ class TestRunStage2:
         assert result["sources"][0]["empty_calendar"] is True
         assert result["sources"][0]["blocked"] is False
 
+    def test_fixed_allocation_source_needs_no_url_and_is_never_blocked(self, tmp_path):
+        """Issue #261: a fixed_allocation source (e.g. Sandefjord) never scrapes or blocks."""
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources([
+            {"name": "Sandefjord Penguins", "type": SOURCE_FIXED_ALLOCATION, "url": ""},
+        ])
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_outlook_scraper",
+        ) as outlook_scraper, patch(
+            "tournament_scheduler.pipeline.stage2_scraping._try_credentialed_scrape",
+        ) as credentialed_scrape:
+            result = run(
+                cfg, state,
+                datetime(2025, 9, 1), datetime(2025, 9, 30),
+                strict=True,
+            )
+
+        outlook_scraper.assert_not_called()
+        credentialed_scrape.assert_not_called()
+        assert state.is_done(StageName.SCRAPING)
+        assert result["blocked"] == []
+        assert result["empty_sources"] == []
+        src = result["sources"][0]
+        assert src["blocked"] is False
+        assert src.get("skipped", False) is False
+        assert src["event_count"] > 0
+        assert "Sandefjord Penguins" in result["events_by_club"]
+        events = result["events_by_club"]["Sandefjord Penguins"]
+        assert all(e["location"] == "Sandefjord ishall" for e in events)
+
     def test_zero_events_strict_false_does_not_raise(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
         cfg = _make_config_with_sources([
@@ -160,9 +192,9 @@ class TestRunStage2:
         state = PipelineState(tmp_path / "pipeline")
         cfg = _make_config_with_sources([
             {
-                "name": "Sandefjord Penguins",
+                "name": "Tønsberg",
                 "type": SOURCE_OUTLOOK,
-                "url": "https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen___/view:item/id:4497/part:/place:3907:SANDEFJORD/q:sandefjord/r:31/mod:book",
+                "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
             },
         ])
 
@@ -179,7 +211,7 @@ class TestRunStage2:
 
         assert state.is_done(StageName.SCRAPING)
         assert not state.is_failed(StageName.SCRAPING)
-        assert result["blocked"] == ["Sandefjord Penguins"]
+        assert result["blocked"] == ["Tønsberg"]
         assert result["empty_sources"] == []
         assert "delvise resultater" in result["warning"].lower()
         src = result["sources"][0]

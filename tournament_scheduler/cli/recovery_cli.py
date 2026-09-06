@@ -14,7 +14,7 @@ def _cmd_recovery_targets(args: argparse.Namespace) -> int:
     Reads the Stage 2 scraping checkpoint and prints a JSON array of sources
     that are either blocked or returned zero events.  Each entry has the shape::
 
-        {"name": "Sandefjord", "url": "https://...", "reason": "blocked|zero_events",
+        {"name": "Tønsberg", "url": "https://...", "reason": "blocked|zero_events",
          "block_reason": "..." | null, "llm_fallback": true|false}
 
     This output is intended for consumption by the harness agent when deciding
@@ -103,7 +103,7 @@ def _cmd_recovery_inject(args: argparse.Namespace) -> int:
     Example::
 
         echo '[{"title": "...", "start": "2025-01-04"}]' | \\
-            rvv-miniputt recovery-inject --source "Sandefjord"
+            rvv-miniputt recovery-inject --source "Tønsberg"
     """
     from ..pipeline.recovery_injector import inject_recovered_events
 

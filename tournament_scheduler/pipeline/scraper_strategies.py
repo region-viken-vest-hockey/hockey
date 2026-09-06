@@ -43,7 +43,7 @@ class CalendarEngine(str, Enum):
     """Forumbooking HTML schema viewer with JS month navigation (Jar)."""
 
     BOOKUP_SPA = "bookup_spa"
-    """BookUp SPA with JS-rendered booking widget (Tønsberg, Sandefjord)."""
+    """BookUp SPA with JS-rendered booking widget (Tønsberg)."""
 
     SPORTELLO = "sportello"
     """Sportello booking widget SPA (Holmen)."""
@@ -159,28 +159,10 @@ STRATEGIES: dict[str, ScraperStrategy] = {
         direct_scraper=True,
         note="Bookup SPA — Tønsberg ishall krever BOOKUP_EMAIL/BOOKUP_PASSWORD for full kalender.",
     ),
-    "Sandefjord Penguins": ScraperStrategy(
-        engine=CalendarEngine.BOOKUP_SPA,
-        url="https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen___/view:item/id:4497/part:/place:3907:SANDEFJORD/q:sandefjord/r:31/mod:book",
-        has_iframe=True,
-        date_param="",
-        month_selector=".fc-next-button",
-        event_pattern="FullCalendar timeGrid fc-bgevent bookings in iframe",
-        initial_navigation=[
-            {"cmd": "goto", "url": "https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen___/view:item/id:4497/part:/place:3907:SANDEFJORD/q:sandefjord/r:31/mod:book", "wait_ms": 3000},
-            {"cmd": "click", "selector": "a:has-text('logge inn')", "wait_ms": 3000},
-            {"cmd": "type", "selector": "#email", "text": "${BOOKUP_EMAIL}", "wait_ms": 1000},
-            {"cmd": "click", "selector": "button:has-text('Fortsett')", "wait_ms": 3000},
-            {"cmd": "type", "selector": "#password", "text": "${BOOKUP_PASSWORD}", "wait_ms": 1000},
-            {"cmd": "click", "selector": "button:has-text('Fortsett')", "wait_ms": 5000},
-            {"cmd": "manual_login", "text": "Fullfør eventuell Vipps/SMS-MFA i nettleseren.", "timeout_s": 300},
-            {"cmd": "goto", "url": "https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen___/view:item/id:4497/part:/place:3907:SANDEFJORD/q:sandefjord/r:31/mod:book", "wait_ms": 3000},
-            {"cmd": "click", "selector": "text=Se tilgjengelighet", "wait_ms": 5000},
-        ],
-        credential_env_vars=["BOOKUP_EMAIL", "BOOKUP_PASSWORD"],
-        direct_scraper=True,
-        note="Bookup SPA — Index/4497 = Bugårdshallen. BOOKUP_EMAIL/BOOKUP_PASSWORD hvis innlogging kreves.",
-    ),
+    # Sandefjord Penguins is intentionally absent here (issue #261): the club
+    # has a known fixed weekend ice-time allocation instead of a bookable
+    # BookUp calendar, so Stage 2 never needs to scrape or MFA-recover a
+    # Sandefjord BookUp session. See `tournament_scheduler.sandefjord_allocation`.
     "Jar": ScraperStrategy(
         engine=CalendarEngine.FORUMBOOKING,
         url="https://www.forumbooking.no/schema.aspx?obj=2&schema=Jarhallen%20(ishall)&kalender=true&safarifix=true",
@@ -319,7 +301,7 @@ if __name__ == "__main__":  # pragma: no cover
     )
     parser.add_argument(
         "--name", type=str, default="",
-        help="Klubbnavn (f.eks. 'Tønsberg', 'Sandefjord Penguins')"
+        help="Klubbnavn (f.eks. 'Tønsberg', 'Jar')"
     )
     parser.add_argument(
         "--all", action="store_true",

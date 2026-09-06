@@ -221,14 +221,14 @@ The LLM evaluates the page content, decides what to click or navigate to, and ca
 
 ### BookUp SPA (requires login for some clubs)
 
-**⚠️ Sandefjord Penguins — ALWAYS requires login.** The BookUp page for Bugårdshallen (`Index/4497`) is behind authentication. The ScraperAgent's initial navigation handles login automatically, but the credentials must be set as environment variables:
+**Tønsberg** uses BookUp and the public "Se tilgjengelighet" view may show only sparse/generic placeholder bookings. Treat the full Tønsberg ishall calendar as credentialed:
 
 - `BOOKUP_EMAIL` — BookUp account email
 - `BOOKUP_PASSWORD` — BookUp account password
 
-Pi slash commands automatically try to load missing values from `DOTENVX_ENV_FILE` (default `.env.bookup`) before prompting. If credentials still are not available, the pipeline prompts interactively during scraping. Without them, Sandefjord scraping will fail. If BookUp asks for Vipps/SMS MFA, run with `--manual-bookup-login` or set `RVV_BOOKUP_MANUAL_LOGIN=1`; Stage 2 opens a visible browser and waits for the operator before extracting events.
+Pi slash commands automatically try to load missing values from `DOTENVX_ENV_FILE` (default `.env.bookup`) before prompting. If credentials still are not available, the pipeline prompts interactively during scraping. If BookUp asks for Vipps/SMS MFA, run with `--manual-bookup-login` or set `RVV_BOOKUP_MANUAL_LOGIN=1`; Stage 2 opens a visible browser and waits for the operator before extracting events.
 
-**Tønsberg** also uses BookUp and the public "Se tilgjengelighet" view may show only sparse/generic placeholder bookings. Treat the full Tønsberg ishall calendar as credentialed: use `BOOKUP_EMAIL`/`BOOKUP_PASSWORD`, and use `--manual-bookup-login` when MFA blocks automated login.
+**Sandefjord Penguins does *not* use BookUp for this workflow (issue #261).** The club has a known, fixed weekend ice-time allocation at Bugårdshallen — Saturday and Sunday 15:00–18:00 — instead of a bookable calendar. That allocation is encoded as deterministic evidence in `tournament_scheduler/sandefjord_allocation.py` and surfaced to Stage 2 as a `"fixed_allocation"` source (`input.xlsx` → `Kilder` sheet, `type=fixed_allocation`, no URL needed). Stage 2 never scrapes or blocks on it, and no `BOOKUP_EMAIL`/`BOOKUP_PASSWORD` is required for Sandefjord planning to work.
 
 ### All clubs
 
@@ -240,7 +240,7 @@ Pi slash commands automatically try to load missing values from `DOTENVX_ENV_FIL
 | Ringerike | Teamup iCal | Deterministic | Pure iCal feed |
 | Frisk Asker | Teamup iCal | Deterministic | iCal feed |
 | Tønsberg | BookUp SPA | Credentialed / manual recovery | Full calendar is behind BookUp login; public view can be sparse/generic |
-| **Sandefjord Penguins** | **BookUp SPA** | **LLM-driven** | **Requires `BOOKUP_EMAIL` + `BOOKUP_PASSWORD`** |
+| **Sandefjord Penguins** | **Fixed allocation (issue #261)** | **Deterministic, no scraping** | **Known Sat/Sun 15:00–18:00 ice at Bugårdshallen — no BookUp credentials needed** |
 | Jar | Forumbooking | Deterministic | Weekly HTML schema viewer parsed via `div.bokning` ids/tooltips |
 | Holmen | Sportello | Deterministic | Public GraphQL API on the Sportello SPA |
 | Jutul / Bærum ishall | StyledCalendar | LLM-driven | JS widget |
@@ -314,12 +314,15 @@ cat .pipeline/stage2_scraping.json | python3 -m json.tool | grep blocked
 /rvv-miniputt logs show latest
 ```
 
-### Sandefjord failures
+### Sandefjord shows up as blocked or missing
 
-Almost always a missing login. Verify:
-1. `BOOKUP_EMAIL` and `BOOKUP_PASSWORD` are set in the environment
-2. The BookUp account is active and can access Sandefjord's calendar
-3. Re-run scraping only: `/rvv-miniputt run --resume-from 2`
+This should not happen (issue #261) — Sandefjord Penguins is a
+`"fixed_allocation"` source, not a BookUp scrape, so Stage 2 never blocks
+on it or needs BookUp credentials. If it does show up blocked/missing:
+1. Check `input.xlsx` → `Kilder`: the Sandefjord Penguins row must have
+   `type=fixed_allocation` (URL can be empty).
+2. Check `tournament_scheduler/pipeline/fixed_allocation_source.py` still
+   registers `"Sandefjord Penguins"` → `sandefjord_fixed_busy_events`.
 
 ### Stale calendar data
 

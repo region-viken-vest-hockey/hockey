@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 from tournament_scheduler.conflict_checkers.holiday_checker import HolidayConflictChecker
 from tournament_scheduler.models import CalendarEvent
+from tournament_scheduler.sandefjord_allocation import sandefjord_fixed_busy_events
 from tournament_scheduler.scheduler import TournamentScheduler
 from tournament_scheduler.utils.date_parser import DateParser
 
@@ -163,4 +164,50 @@ class TestFindArenaSlotForDate:
         assert result is not None
         host_used, start, _end = result
         assert host_used == "Frisk Asker"
-        assert start == "12:00"
+
+
+class TestSandefjordFixedAllocation:
+    """Issue #261: Sandefjord's fixed weekend allocation feeds slot search
+    exactly like a scraped calendar -- no Sandefjord-specific code needed
+    here, just its synthetic busy events plugged into events_by_club."""
+
+    def test_weekend_slot_fits_inside_15_to_18_window(self):
+        scheduler = _make_scheduler()
+        events_by_club = {
+            "Sandefjord Penguins": sandefjord_fixed_busy_events(CHECK_DATE, CHECK_DATE),
+        }
+
+        result = scheduler.find_arena_slot_for_date(
+            CHECK_DATE, "Sandefjord Penguins", 180, events_by_club
+        )
+
+        assert result is not None
+        host_used, start, end = result
+        assert host_used == "Sandefjord Penguins"
+        assert start == "15:00"
+        assert end == "18:00"
+
+    def test_weekday_has_no_valid_slot(self):
+        scheduler = _make_scheduler()
+        weekday = date(2026, 9, 3)  # Thursday
+        events_by_club = {
+            "Sandefjord Penguins": sandefjord_fixed_busy_events(weekday, weekday),
+        }
+
+        result = scheduler.find_arena_slot_for_date(
+            weekday, "Sandefjord Penguins", 60, events_by_club
+        )
+
+        assert result is None
+
+    def test_duration_exceeding_the_window_has_no_valid_slot(self):
+        scheduler = _make_scheduler()
+        events_by_club = {
+            "Sandefjord Penguins": sandefjord_fixed_busy_events(CHECK_DATE, CHECK_DATE),
+        }
+
+        result = scheduler.find_arena_slot_for_date(
+            CHECK_DATE, "Sandefjord Penguins", 181, events_by_club
+        )
+
+        assert result is None

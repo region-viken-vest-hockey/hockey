@@ -16,6 +16,7 @@ import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 
 from ..models import DatePreference
+from .scraper_constants import SOURCE_FIXED_ALLOCATION
 
 
 class WorkbookInputError(ValueError):
@@ -131,7 +132,14 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
             wb["Kilder"],
             required_columns=("name", "type", "url"),
         )
-        sources = [s for s in sources if s.get("url")]
+        # A row needs a URL to be scraped, *unless* its type is
+        # "fixed_allocation" (issue #261): those sources' availability is a
+        # known, deterministic fact computed in Python, not fetched from a
+        # calendar URL -- see `pipeline.fixed_allocation_source`.
+        sources = [
+            s for s in sources
+            if s.get("url") or s.get("type") == SOURCE_FIXED_ALLOCATION
+        ]
         if sources:
             raw["sources"] = sources
 

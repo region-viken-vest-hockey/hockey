@@ -4,10 +4,9 @@ Rules:
 - Never run `/rvv-miniputt ...` as a shell command.
 - Use `scripts/rvv-miniputt scrape-llm --club "<name>" <user-args>`.
 - Fallback if needed: `python3 -m tournament_scheduler.cli.rvv_cli scrape-llm --club "<name>" <user-args>`.
-- `--club` is required (e.g. `Jar`, `Holmen`, `Jutul`, `Tønsberg`, `Sandefjord`).
+- `--club` is required (e.g. `Jar`, `Holmen`, `Jutul`, `Tønsberg`). Sandefjord has no scraper strategy (issue #261) — it's a `fixed_allocation` source, not scraped at all.
 - Results are cached to `.pipeline/cache/scraped_data.json` by default.
 - After scraping blocked sources, suggest resuming with `scripts/rvv-miniputt run --resume-from 3`.
-- Sandefjord requires `BOOKUP_EMAIL` and `BOOKUP_PASSWORD` in the environment.
 
 When to use:
 Run this after stage 2 reports blocked sources, then resume from stage 3 to replan with the new data.
@@ -27,4 +26,3 @@ Flags:
 Examples:
 - `/rvv-miniputt:scrape-llm --club Jar`
 - `/rvv-miniputt:scrape-llm --club Holmen --max-iterations 30`
-- `/rvv-miniputt:scrape-llm --club Sandefjord --debug-screenshots`

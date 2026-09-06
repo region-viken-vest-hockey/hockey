@@ -971,7 +971,7 @@ def build_parser() -> argparse.ArgumentParser:
     recovery_inject.add_argument(
         "--source",
         required=True,
-        help="Source name to patch (e.g. 'Sandefjord', 'Tønsberg')",
+        help="Source name to patch (e.g. 'Tønsberg')",
     )
     recovery_inject.add_argument(
         "--work-dir",
