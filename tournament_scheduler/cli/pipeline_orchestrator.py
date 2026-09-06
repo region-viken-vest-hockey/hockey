@@ -2145,16 +2145,43 @@ def _stage3_interactive_state_path(state: "Any") -> Path:
     return state.work_dir / "stage3_interactive_state.json"
 
 
-def _read_stage3_interactive_state(state: "Any") -> dict[str, Any]:
+def _current_run_id(state: "Any") -> str:
+    """Return the active run manifest's ``run_id``, or ``""`` if unreadable."""
+    try:
+        from ..pipeline.run_manifest import RunManifest
+
+        return str(RunManifest(state.work_dir).read().get("run_id") or "")
+    except Exception:
+        return ""
+
+
+def _read_stage3_interactive_state(state: "Any", expected_run_id: str | None = None) -> dict[str, Any]:
+    """Read the Stage 3 interactive side-state, scoped to *expected_run_id*.
+
+    issue #264 P0: a Stage 3 controller run must not inherit attempt
+    counters, a pending candidate, or a "best plan so far" from a
+    prior/superseded run sharing the same work directory. When
+    *expected_run_id* is given and the persisted state was written under a
+    *different* run_id (or carries none at all -- e.g. a file left over from
+    before this scoping existed), it is treated as stale/foreign and
+    discarded here rather than silently resumed, so a fresh run always
+    starts Stage 3 at attempt 1 instead of inheriting an old run's attempt
+    count towards :data:`_MAX_INTERACTIVE_STAGE3_ATTEMPTS`.
+    """
     path = _stage3_interactive_state_path(state)
     if not path.exists():
         return {}
     try:
         import json as _json
 
-        return _json.loads(path.read_text(encoding="utf-8"))
+        data = _json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return {}
+    if not isinstance(data, dict):
+        return {}
+    if expected_run_id and data.get("run_id") != expected_run_id:
+        return {}
+    return data
 
 
 def _write_stage3_interactive_state(state: "Any", data: dict[str, Any]) -> None:
@@ -2211,15 +2238,9 @@ def _emit_stage3_interactive_decision(
         build_stage3_decision_context,
     )
 
-    interactive_state = _read_stage3_interactive_state(state)
+    run_id = _current_run_id(state)
+    interactive_state = _read_stage3_interactive_state(state, expected_run_id=run_id)
     attempts_used = int(interactive_state.get("attempts_used", 0))
-    run_id = ""
-    try:
-        from ..pipeline.run_manifest import RunManifest
-
-        run_id = str(RunManifest(state.work_dir).read().get("run_id") or "")
-    except Exception:
-        pass
 
     if attempts_used <= 0 or "best_plan" not in interactive_state:
         # First attempt this run: nothing to compare against yet — auto-
@@ -2251,6 +2272,7 @@ def _emit_stage3_interactive_decision(
             ),
         )
         interactive_state = {
+            "run_id": run_id,
             "attempts_used": attempts_used,
             "best_attempt": attempts_used,
             "best_plan": plan,
@@ -2393,6 +2415,20 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             _console.print(f"[red]✗[/red] Kunne ikke lese --decision-action-file: {exc}")
             return 1
 
+    if resume_from == 1 and decision_payload is None:
+        # issue #264 P0: this is the very first invocation of a new logical
+        # run (no decision to answer yet, starting at Stage 1) -- resolve
+        # this run's run_id here, before anything else, so every Stage 3
+        # DecisionContext this run emits is scoped to a run_id that's
+        # actually unique to it, and explicitly drop any Stage 3 interactive
+        # side-state left behind by a prior/superseded run in this same work
+        # directory rather than letting it silently resurface as this run's
+        # "best plan so far" / attempt count. A `retry_stage` decision that
+        # happens to reset resume_from back to 1 always carries a
+        # decision_payload, so it never re-triggers this branch.
+        _manifest_start_run(args.work_dir, args.input, getattr(args, "objective", None))
+        _clear_stage3_interactive_state(state)
+
     stage3_search_iterations: int | None = None
     # issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
     # optimizer (stage3_optimizer.optimize_candidate) rather than rerunning
@@ -2421,7 +2457,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
 
         stage3_interactive_state: dict[str, Any] | None = None
         if prev_stage_num == 3:
-            stage3_interactive_state = _read_stage3_interactive_state(state)
+            stage3_interactive_state = _read_stage3_interactive_state(state, expected_run_id=_current_run_id(state))
             last_context_payload = stage3_interactive_state.get("last_context")
             if not last_context_payload:
                 _console.print("[red]✗[/red] Fant ingen Stage 3-avgjørelseskontekst å avgjøre.")

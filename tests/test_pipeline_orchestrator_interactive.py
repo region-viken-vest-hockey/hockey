@@ -328,6 +328,7 @@ class TestStage3InteractiveDecisionLoop:
         _write_stage3_interactive_state(
             state,
             {
+                "run_id": "legacy",
                 "attempts_used": 1,
                 "best_attempt": 1,
                 "best_plan": plan1,
@@ -393,6 +394,7 @@ class TestStage3InteractiveDecisionLoop:
         _write_stage3_interactive_state(
             state,
             {
+                "run_id": "legacy",
                 "attempts_used": 2,
                 "best_attempt": 1,
                 "best_plan": plan1,
@@ -447,6 +449,7 @@ class TestStage3InteractiveDecisionLoop:
         _write_stage3_interactive_state(
             state,
             {
+                "run_id": "legacy",
                 "attempts_used": 2,
                 "best_attempt": 1,
                 "best_plan": plan1,
@@ -497,6 +500,7 @@ class TestStage3InteractiveDecisionLoop:
         _write_stage3_interactive_state(
             state,
             {
+                "run_id": "legacy",
                 "attempts_used": _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
                 "best_attempt": 1,
                 "best_plan": plan1,
@@ -519,3 +523,77 @@ class TestStage3InteractiveDecisionLoop:
         interactive_state = _read_stage3_interactive_state(state)
         assert "optimize_plan" not in interactive_state["last_context"]["available_actions"]
         assert "apply_candidate" in interactive_state["last_context"]["available_actions"]
+
+    def test_fresh_run_start_ignores_stale_state_from_a_superseded_run(self, state, tmp_path):
+        """issue #264 P0: a Stage 3 controller run must not inherit attempt
+        counters or a "best plan so far" from a prior/superseded run sharing
+        the same work directory -- reproduces the exact symptom reported in
+        the issue (a recorded attempt count past _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
+        left over from an earlier/aborted run in the same work_dir)."""
+        from tournament_scheduler.cli.pipeline_orchestrator import (
+            _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
+            _write_stage3_interactive_state,
+        )
+        from tournament_scheduler.pipeline.run_manifest import RunManifest
+
+        # Simulate leftover state from a previous, different run in this
+        # same work directory: a run_id that won't match the fresh run's,
+        # and an attempt count already past the cap.
+        RunManifest(str(tmp_path)).start_run("old run", run_id="stale-old-run")
+        stale_best_plan = _plan_checkpoint(seed=99)
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "stale-old-run",
+                "attempts_used": _MAX_INTERACTIVE_STAGE3_ATTEMPTS + 2,
+                "best_attempt": 1,
+                "best_plan": stale_best_plan,
+            },
+        )
+
+        # Stage 1 of a genuinely new run: resume_from=1, no decision to
+        # answer yet -- this is the fresh-start signal.
+        args1 = _args(work_dir=str(tmp_path), resume_from="1")
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.pipeline.stage1_config.load_effective_config",
+            return_value={"sources": [], "start_date": "2026-09-01", "end_date": "2027-04-30"},
+        ):
+            exit_code = _cmd_run_interactive(args1)
+        assert exit_code == 2
+
+        new_run_id = RunManifest(str(tmp_path)).read()["run_id"]
+        assert new_run_id != "stale-old-run"
+        # The stale side-file must already be gone, not merely shadowed.
+        assert not (tmp_path / "stage3_interactive_state.json").exists()
+
+        # Answer Stage 2's context (prev_stage_num=2) to advance into Stage 3
+        # of this same (new) run -- a fresh manifest doesn't wipe checkpoints
+        # already on disk from earlier in this same run.
+        state.write_stage(StageName.SCRAPING, {"sources": [], "blocked": []}, status=StageStatus.DONE)
+        plan_this_run = _plan_checkpoint(seed=1)
+        args2 = _args(
+            work_dir=str(tmp_path),
+            resume_from="3",
+            decision_action=json.dumps({"action_id": "proceed"}),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan_this_run, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args2)
+        assert exit_code == 2
+
+        interactive_state = _read_stage3_interactive_state(state)
+        assert interactive_state["run_id"] == new_run_id
+        assert interactive_state["attempts_used"] == 1
+        assert interactive_state["best_plan"] == plan_this_run
+        assert "optimize_plan" in interactive_state["last_context"]["available_actions"]
