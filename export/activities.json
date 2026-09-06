@@ -1,0 +1,352 @@
+{
+  "activities": [
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "date": "2026-01-05",
+      "description": null,
+      "location": null,
+      "title": "RS JU16",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "date": "2026-01-26",
+      "description": null,
+      "location": null,
+      "title": "RS U15",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "date": "2026-02-07",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling U14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU14"
+      ],
+      "date": "2026-02-09",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling JU14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "date": "2026-02-15",
+      "description": null,
+      "location": null,
+      "title": "RS JU16",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U13"
+      ],
+      "date": "2026-02-21",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling U13",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "date": "2026-02-24",
+      "description": null,
+      "location": null,
+      "title": "RS U15",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "date": "2026-03-10",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling U14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "date": "2026-03-28",
+      "description": null,
+      "location": null,
+      "title": "RS JU16",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "date": "2026-03-31",
+      "description": null,
+      "location": null,
+      "title": "RS U15",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [],
+      "date": "2026-04-10",
+      "description": null,
+      "location": null,
+      "title": "RegionsturneringJU16",
+      "type": "regionsturneringju16",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "date": "2026-04-17",
+      "description": null,
+      "location": "Bærum Ishall",
+      "title": "Mesterskap U14",
+      "type": "mesterskap",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU14"
+      ],
+      "date": "2026-04-18",
+      "description": null,
+      "location": null,
+      "title": "Mesterskap JU14",
+      "type": "mesterskap",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "date": "2026-04-24",
+      "description": null,
+      "location": null,
+      "title": "Regionsturnering U15",
+      "type": "regionsturnering",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "date": "2026-05-09",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling U14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU14"
+      ],
+      "date": "2026-05-15",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling JU14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U13"
+      ],
+      "date": "2026-05-31",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling U13",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [],
+      "date": "2026-06-15",
+      "description": null,
+      "location": null,
+      "title": "IA",
+      "type": "ia",
+      "url": null
+    },
+    {
+      "age_groups": [],
+      "date": "2026-07-15",
+      "description": null,
+      "location": null,
+      "title": "IA",
+      "type": "ia",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "date": "2026-08-15",
+      "description": null,
+      "location": "Tønsberg",
+      "title": "RS JU16",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "date": "2026-08-15",
+      "description": null,
+      "location": "Tønsberg",
+      "title": "S.Utvikling U14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "date": "2026-08-22",
+      "description": null,
+      "location": "Sadefjord",
+      "title": "RS U15",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU14"
+      ],
+      "date": "2026-09-06",
+      "description": null,
+      "location": "Ringerike",
+      "title": "S.Utvikling JU14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U13"
+      ],
+      "date": "2026-09-06",
+      "description": null,
+      "location": "Ringerike",
+      "title": "S.Utvikling U13",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "date": "2026-09-30",
+      "description": null,
+      "location": "Sandefjord",
+      "title": "RS JU16",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "date": "2026-10-10",
+      "description": null,
+      "location": null,
+      "title": "RS U15",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U13"
+      ],
+      "date": "2026-10-20",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling U13",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "date": "2026-10-31",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling U14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "date": "2026-11-15",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling U14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU14"
+      ],
+      "date": "2026-11-30",
+      "description": null,
+      "location": null,
+      "title": "S.Utvikling JU14",
+      "type": "s.utvikling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "JU16"
+      ],
+      "date": "2026-12-10",
+      "description": null,
+      "location": null,
+      "title": "RS JU16",
+      "type": "rs",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "date": "2026-12-15",
+      "description": null,
+      "location": null,
+      "title": "RS U15",
+      "type": "rs",
+      "url": null
+    }
+  ],
+  "generated_at": "2026-07-29T18:33:20Z",
+  "year": 2026
+}

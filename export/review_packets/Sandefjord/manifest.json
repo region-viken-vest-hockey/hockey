@@ -1,0 +1,29 @@
+{
+  "club": "Sandefjord",
+  "packet_dir": "export/review_packets/Sandefjord",
+  "summary_workbook": "club_review.xlsx",
+  "spond_import_workbook": "club_review_spond.xlsx",
+  "schedule_attachment": "club_review_spond_games.xlsx",
+  "response_template": "response_template.json",
+  "tournament_count": 12,
+  "hosted_count": 1,
+  "club_names": [
+    "Frisk Asker",
+    "Holmen",
+    "Jar",
+    "Jutul",
+    "Kongsberg",
+    "Ringerike",
+    "Sandefjord",
+    "Skien",
+    "Tønsberg"
+  ],
+  "age_groups": [
+    "U10",
+    "U11"
+  ],
+  "decisions": {
+    "accept": "Godkjenn pakken som den er.",
+    "change_request": "Fyll ut ønskede endringer i response_template.json."
+  }
+}

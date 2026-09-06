@@ -1,0 +1,36 @@
+{
+  "club": "Frisk Asker",
+  "packet_dir": "export/review_packets/Frisk_Asker",
+  "summary_workbook": "club_review.xlsx",
+  "spond_import_workbook": "club_review_spond.xlsx",
+  "schedule_attachment": "club_review_spond_games.xlsx",
+  "response_template": "response_template.json",
+  "tournament_count": 67,
+  "hosted_count": 14,
+  "club_names": [
+    "Frisk Asker",
+    "Holmen",
+    "Jar",
+    "Jutul",
+    "Kongsberg",
+    "Ringerike",
+    "Sandefjord",
+    "Skien",
+    "Tønsberg"
+  ],
+  "age_groups": [
+    "JU10",
+    "JU11",
+    "JU12",
+    "U10",
+    "U11",
+    "U12",
+    "U7",
+    "U8",
+    "U9"
+  ],
+  "decisions": {
+    "accept": "Godkjenn pakken som den er.",
+    "change_request": "Fyll ut ønskede endringer i response_template.json."
+  }
+}
