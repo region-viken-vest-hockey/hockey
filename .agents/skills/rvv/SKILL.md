@@ -177,7 +177,15 @@ reference shared policy rather than duplicating it).
   sufficiency by itself (issue #260 P1) — if `sources_with_events` is 0,
   that is a fact for you to weigh (abort, retry after a fix, or proceed if
   a genuine zero-events season gap is expected), not a Python-decided
-  failure.
+  failure. If any source is (and will remain) blocked and you intend to
+  proceed anyway, pass `--allow-missing-sources` on **this same Stage 2
+  invocation** — the one that actually runs the scrape — not just on later
+  invocations. The checkpoint's `status` field reflects the raw scrape
+  outcome (`failed` when a source is blocked) regardless of your decision;
+  without the flag on the run itself, replaying Stage 2 on a later
+  invocation re-derives `failed` again and any later decision you submit
+  gets validated against this stage's context instead of the one you
+  meant, rejected as `decision_action_not_available`.
 - **Stage 3 (planning) — nested decision loop:** unlike every other stage,
   this context offers `optimize_plan` / `apply_candidate` / `keep_baseline`
   / `request_operator` (plus `abort`), not the generic `proceed`/`abort`
@@ -194,10 +202,23 @@ reference shared policy rather than duplicating it).
   search-budget override (clamped 1–10, issue #260 P1's action-parameter
   schema). The loop is capped at a fixed number of attempts, enforced
   deterministically — `optimize_plan` stops being offered once reached.
-  Applying or keeping resolves the loop; the next `--resume-from 4`
-  invocation advances to Stage 4 as usual. Do not fall back to the
-  non-interactive `run --resume-from 3` for retry/refinement — this loop
-  replaces that need.
+
+  **Every decision about a Stage 3 context — including the first
+  baseline tone judgment and every later candidate comparison — must be
+  submitted with `--resume-from 4`, not `--resume-from 3`.** The CLI
+  validates a decision against the context for stage `resume_from - 1`
+  (`pipeline_orchestrator.py`'s `_cmd_run_interactive`), so `--resume-from
+  3` validates against **Stage 2's** context, not Stage 3's, and any
+  Stage 3 decision submitted that way is silently misrouted and rejected
+  as `decision_action_not_available`. `--resume-from 3` is only correct
+  once, for the invocation that decides on Stage 2 and thereby runs Stage
+  3 for the first time. When you pass `optimize_plan` via `--resume-from
+  4`, the orchestrator internally reruns Stage 3 and pauses again with a
+  new candidate context — decide on *that* again via `--resume-from 4`,
+  not 3. Only `keep_baseline`/`apply_candidate` actually resolves the loop
+  and lets the same `--resume-from 4` invocation continue on into Stage 4.
+  Do not fall back to the non-interactive `run --resume-from 3` for
+  retry/refinement — this loop replaces that need.
 - **Stage 4 (export):** `facts` includes `files_written`, `errors`. There
   is no Stage 5 — report the result to the user; `/rvv-miniputt:publish`
   handles publication separately.

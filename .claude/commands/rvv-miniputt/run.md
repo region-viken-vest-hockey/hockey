@@ -83,6 +83,15 @@ See `.agents/skills/rvv/SKILL.md`'s "Interactive `DecisionContext` reference"
 for what `facts` contains and when `recover_source` is offered — canonical,
 not repeated here.
 
+**If a source is (and will remain) blocked and you're proceeding anyway,**
+pass `--allow-missing-sources` on the Stage 2 invocation itself (the one
+above, that actually runs the scrape) — not just on later invocations. The
+checkpoint's `status` reflects the raw scrape outcome (`failed` when a
+source is blocked); without the flag on the run itself, a later replay of
+Stage 2 re-derives `failed` and any subsequent decision you submit gets
+validated against Stage 2 again instead of the stage you meant, rejected
+as `decision_action_not_available`. See SKILL.md for the full mechanic.
+
 **Recovery, when offered:** for each name in `blocked_sources`, look up its
 URL via:
 
@@ -110,6 +119,27 @@ reflects the recovered data, then decide again from its fresh
 scripts/rvv-miniputt run --interactive --resume-from 3 --input input.xlsx \
   --decision-action '<your decision for Stage 2>'
 ```
+
+That command (deciding on Stage 2, `--resume-from 3`) runs Stage 3 for the
+first time and pauses with a baseline decision context. **Every decision
+about that Stage 3 context from here on — the baseline tone judgment and
+every later candidate comparison — must use `--resume-from 4`, not 3:**
+
+```bash
+scripts/rvv-miniputt run --interactive --resume-from 4 --input input.xlsx \
+  --decision-action '<your decision for Stage 3>'
+```
+
+The CLI validates a decision against the context for stage `resume_from -
+1`, so `--resume-from 3` validates against Stage 2's context, not Stage
+3's — a Stage 3 decision sent with `--resume-from 3` is silently misrouted
+and rejected as `decision_action_not_available`. `--resume-from 3` is only
+correct once: the invocation above that actually runs Stage 3. When you
+pass `optimize_plan` via `--resume-from 4`, the orchestrator internally
+reruns Stage 3 and pauses again with a new candidate context — decide on
+*that* again via `--resume-from 4` too. Only `keep_baseline`/
+`apply_candidate` resolves the loop and lets that same `--resume-from 4`
+invocation continue on into Stage 4.
 
 Stage 3 is a **nested decision loop**, not a single-attempt gate — see
 `.agents/skills/rvv/SKILL.md`'s "Interactive `DecisionContext` reference"
