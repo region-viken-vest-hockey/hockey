@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -203,6 +203,64 @@ def _build_club_calendar_status(scraping_result: dict[str, Any] | None) -> dict[
     if not isinstance(raw, dict):
         return {}
     return {str(club): str(value) for club, value in raw.items()}
+
+
+def _build_club_busy_intervals(
+    scraping_result: dict[str, Any] | None,
+) -> dict[str, list[dict[str, str]]]:
+    """Reconstruct per-club, per-date busy *intervals* from the Stage 2 checkpoint.
+
+    `_build_club_calendar_status`/`club_busy_dates` (see `build_planning_problem`)
+    only carry coarse per-club/per-date "this club has something booked"
+    facts, which is enough to tell a host apart from an unscraped club but not
+    enough to prove that an arbitrary v2-generated start time on that date is
+    actually free (issue #264 P0) -- a club can have one morning booking and
+    still be free all afternoon. This reuses the exact overnight-aware
+    interval math `utils.slot_finder.find_available_slots` already applies to
+    live `CalendarEvent`s (via `_event_busy_range_on_date`) so the JSON
+    `planning_problem` contract carries the same evidence, serialized as
+    plain ``HH:MM`` start/end strings per date.
+
+    Only includes clubs/dates with at least one dropped-in event -- an empty
+    result for a club does NOT mean "free all day"; callers must still gate
+    on `club_calendar_status` (only a `"known"` club's absence of entries here
+    means genuinely free) exactly like `_build_events_by_club`.
+    """
+    events_by_club = _build_events_by_club(scraping_result)
+    if not events_by_club:
+        return {}
+
+    from ..utils.slot_finder import _event_busy_range_on_date, minutes_to_time
+    from ..utils.date_parser import DateParser
+
+    result: dict[str, list[dict[str, str]]] = {}
+    for club_name, events in events_by_club.items():
+        intervals: list[dict[str, str]] = []
+        for event in events:
+            parsed = DateParser.parse(event.date)
+            if not parsed:
+                continue
+            event_date = parsed.date()
+            # A booking can only ever spill into the day right after the one
+            # it's recorded on (see `_event_busy_range_on_date`'s midnight
+            # projection) -- checking exactly those two candidate dates
+            # mirrors that function's own contract instead of re-deriving it.
+            for check_date in (event_date, event_date + timedelta(days=1)):
+                busy_range = _event_busy_range_on_date(event, check_date)
+                if busy_range is None:
+                    continue
+                start_minutes, end_minutes = busy_range
+                intervals.append(
+                    {
+                        "date": check_date.isoformat(),
+                        "start": minutes_to_time(start_minutes),
+                        "end": minutes_to_time(end_minutes),
+                    }
+                )
+        if intervals:
+            intervals.sort(key=lambda entry: (entry["date"], entry["start"]))
+            result[club_name] = intervals
+    return result
 
 
 def _make_planner(

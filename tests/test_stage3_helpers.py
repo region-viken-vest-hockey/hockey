@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from tournament_scheduler.pipeline.stage3_helpers import (
+    _build_club_busy_intervals,
     _build_club_calendar_status,
     _build_events_by_club,
     _plan_to_dict,
@@ -162,6 +163,128 @@ class TestBuildClubCalendarStatus:
             {"club_calendar_status": {"Sandefjord Penguins": "known", "Tønsberg": "unknown"}}
         )
         assert result == {"Sandefjord Penguins": "known", "Tønsberg": "unknown"}
+
+
+# ---------------------------------------------------------------------------
+# _build_club_busy_intervals (issue #264 P0)
+# ---------------------------------------------------------------------------
+
+
+class TestBuildClubBusyIntervals:
+    """club_busy_intervals must carry real interval-level evidence, not just
+    coarse per-club/per-date facts (see club_busy_dates)."""
+
+    def test_returns_empty_dict_for_none_input(self) -> None:
+        assert _build_club_busy_intervals(None) == {}
+
+    def test_returns_empty_dict_for_missing_events_by_club(self) -> None:
+        assert _build_club_busy_intervals({"other_key": "value"}) == {}
+
+    def test_single_event_produces_one_interval(self) -> None:
+        scraping_result = {
+            "events_by_club": {
+                "Jar": [
+                    {
+                        "date": "01.11.2025",
+                        "name": "Trening",
+                        "datetime": "2025-11-01T10:00:00",
+                        "duration_hours": 2.0,
+                    }
+                ]
+            }
+        }
+        result = _build_club_busy_intervals(scraping_result)
+        assert result == {
+            "Jar": [{"date": "2025-11-01", "start": "10:00", "end": "12:00"}]
+        }
+
+    def test_partial_day_leaves_rest_of_day_implicitly_free(self) -> None:
+        """A single morning booking must not make the whole date look busy --
+        callers reading only this club/date's entries must be able to see the
+        booking ends at noon, leaving the afternoon uncovered here."""
+        scraping_result = {
+            "events_by_club": {
+                "Jar": [
+                    {
+                        "date": "01.11.2025",
+                        "name": "Trening",
+                        "datetime": "2025-11-01T08:00:00",
+                        "duration_hours": 4.0,
+                    }
+                ]
+            }
+        }
+        result = _build_club_busy_intervals(scraping_result)
+        assert result["Jar"] == [{"date": "2025-11-01", "start": "08:00", "end": "12:00"}]
+
+    def test_overnight_event_splits_across_two_dates(self) -> None:
+        scraping_result = {
+            "events_by_club": {
+                "Jar": [
+                    {
+                        "date": "01.11.2025",
+                        "name": "Sen trening",
+                        "datetime": "2025-11-01T23:00:00",
+                        "duration_hours": 3.0,
+                    }
+                ]
+            }
+        }
+        result = _build_club_busy_intervals(scraping_result)
+        assert result["Jar"] == [
+            {"date": "2025-11-01", "start": "23:00", "end": "24:00"},
+            {"date": "2025-11-02", "start": "00:00", "end": "02:00"},
+        ]
+
+    def test_zero_duration_event_produces_no_interval(self) -> None:
+        scraping_result = {
+            "events_by_club": {
+                "Jar": [
+                    {
+                        "date": "01.11.2025",
+                        "name": "Placeholder",
+                        "datetime": "2025-11-01T10:00:00",
+                        "duration_hours": 0.0,
+                    }
+                ]
+            }
+        }
+        assert _build_club_busy_intervals(scraping_result) == {}
+
+    def test_sandefjord_fixed_allocation_encodes_as_busy_intervals(self) -> None:
+        """issue #264 P0 acceptance: Sandefjord's fixed weekend allocation
+        (issue #261) must keep working as deterministic availability
+        evidence through the same events_by_club -> busy-intervals path as a
+        real scrape, not a special case."""
+        from datetime import date
+
+        from tournament_scheduler.sandefjord_allocation import (
+            SANDEFJORD_CLUB_NAME,
+            sandefjord_fixed_busy_events,
+        )
+
+        saturday = date(2026, 10, 3)  # a Saturday
+        events = sandefjord_fixed_busy_events(saturday, saturday)
+        scraping_result = {
+            "events_by_club": {
+                SANDEFJORD_CLUB_NAME: [
+                    {
+                        "date": e.date,
+                        "name": e.name,
+                        "datetime": e.datetime.isoformat(),
+                        "duration_hours": e.duration_hours,
+                    }
+                    for e in events
+                ]
+            }
+        }
+        result = _build_club_busy_intervals(scraping_result)
+        intervals = result[SANDEFJORD_CLUB_NAME]
+        # Busy 00:00-15:00 and 18:00-24:00, free 15:00-18:00 (the fixed window).
+        assert intervals == [
+            {"date": "2026-10-03", "start": "00:00", "end": "15:00"},
+            {"date": "2026-10-03", "start": "18:00", "end": "24:00"},
+        ]
 
 
 # ---------------------------------------------------------------------------

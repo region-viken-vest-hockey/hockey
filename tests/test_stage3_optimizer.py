@@ -242,6 +242,31 @@ class TestMoveDates:
         b = optimize_candidate(candidate, iterations=1500, seed=42, move_dates=True)
         assert a["tournaments"] == b["tournaments"]
 
+    def test_never_swaps_a_tournament_onto_an_externally_booked_date(self):
+        """issue #264 P0: a date swap keeps each tournament's own host/arena,
+        but must still reject landing on a date the new host's real calendar
+        shows as busy at that time, not just a sibling-candidate collision."""
+        t1_teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
+        t2_teams = [_team("Ringerike", "C", "U10"), _team("Holmen", "D", "U10")]
+        t1 = _tournament("t1", "2026-01-05", "Jarhallen", "U10", t1_teams)
+        t1["start_time"] = "10:00"
+        t2 = _tournament("t2", "2026-01-19", "Ringerikshallen", "U10", t2_teams)
+        t2["start_time"] = "10:00"
+        candidate = {"schema_version": 1, "tournaments": [t1, t2]}
+        problem = {
+            "round_length_minutes": {"U10": 30},
+            "club_calendar_status": {"Jar": "known", "Ringerike": "known"},
+            # Jar's own hall is externally booked on 2026-01-19 (t2's date),
+            # so swapping t1 onto that date must never be accepted.
+            "club_busy_intervals": {
+                "Jar": [{"date": "2026-01-19", "start": "09:00", "end": "12:00"}],
+            },
+        }
+        optimized = optimize_candidate(
+            candidate, problem, iterations=1000, seed=11, move_dates=True, date_swap_probability=1.0
+        )
+        assert [t["date"] for t in optimized["tournaments"]] == ["2026-01-05", "2026-01-19"]
+
 
 def _host_move_candidate() -> dict:
     teams = [
@@ -315,6 +340,31 @@ class TestMoveHosts:
         b = optimize_candidate(candidate, problem, iterations=300, seed=9, move_hosts=True)
         assert a["tournaments"] == b["tournaments"]
 
+    def test_never_picks_a_host_with_a_conflicting_external_booking(self):
+        """issue #264 P0: 'known' calendar status alone must not be treated
+        as proof every candidate host/time is free -- every other
+        participating club's own hall is externally booked at the
+        tournament's actual time, so the host must stay unchanged even
+        though all of them are otherwise eligible move targets."""
+        candidate = _host_move_candidate()
+        candidate["tournaments"][0]["start_time"] = "10:00"
+        problem = _host_move_problem(
+            club_calendar_status={
+                "Jar": "known",
+                "Kongsberg": "known",
+                "Ringerike": "known",
+                "Holmen": "known",
+            }
+        )
+        problem["club_busy_intervals"] = {
+            club: [{"date": "2026-01-05", "start": "09:00", "end": "11:00"}]
+            for club in ("Kongsberg", "Ringerike", "Holmen")
+        }
+        optimized = optimize_candidate(
+            candidate, problem, iterations=300, seed=2, move_hosts=True, date_swap_probability=1.0
+        )
+        assert optimized["tournaments"][0]["host_club"] == "Jar"
+
 
 class TestMoveSlots:
     """issue #262 P1: reassigning a tournament's start time."""
@@ -371,6 +421,30 @@ class TestMoveSlots:
         a = optimize_candidate(candidate, problem, iterations=300, seed=3, move_slots=True)
         b = optimize_candidate(candidate, problem, iterations=300, seed=3, move_slots=True)
         assert a["tournaments"] == b["tournaments"]
+
+    def test_never_picks_a_time_conflicting_with_external_booking(self):
+        """issue #264 P0: the planning_problem contract does not carry
+        per-time external evidence for sibling-only conflict checks, but it
+        does now carry club_busy_intervals -- a candidate start time must be
+        rejected if it collides with the host's own real booking, not just
+        another tournament in this candidate."""
+        teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
+        t = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)
+        t["start_time"] = "10:00"
+        candidate = {"schema_version": 1, "tournaments": [t]}
+        problem = {
+            "round_length_minutes": {"U10": 30},
+            "club_calendar_status": {"Jar": "known"},
+            # Busy from just after the current start through end of day --
+            # every other candidate window (10:30-15:00) conflicts.
+            "club_busy_intervals": {
+                "Jar": [{"date": "2026-01-05", "start": "10:25", "end": "24:00"}],
+            },
+        }
+        optimized = optimize_candidate(
+            candidate, problem, iterations=300, seed=1, move_slots=True, date_swap_probability=1.0
+        )
+        assert optimized["tournaments"][0]["start_time"] == "10:00"
 
 
 class TestSearchStateIncrementalMatchesFullRecompute:

@@ -51,7 +51,12 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .game_generation import generate_round_robin_games
 from .models import Team
-from .planning_contract import CANDIDATE_SCHEMA_VERSION, _parse_date, _team_identity
+from .planning_contract import (
+    CANDIDATE_SCHEMA_VERSION,
+    _parse_date,
+    _team_identity,
+    external_calendar_conflict,
+)
 from .utils.slot_finder import matchday_duration_minutes, parse_time
 
 # Fixed candidate start times for the move_slots search (issue #262 P1).
@@ -586,10 +591,22 @@ def _date_swap_candidates(
 
 
 def _date_swap_is_valid(
-    slots: List[_Slot], slot_a: int, slot_b: int, state: Optional["_SearchState"] = None
+    slots: List[_Slot],
+    slot_a: int,
+    slot_b: int,
+    state: Optional["_SearchState"] = None,
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
 ) -> bool:
     a, b = slots[slot_a], slots[slot_b]
     new_a_date, new_b_date = b.date, a.date
+
+    # issue #264 P0: a date swap keeps each tournament's own host/arena, but
+    # moving it to the other tournament's date can still walk it into a real
+    # external booking that the sibling-slot-only checks below can't see.
+    if external_calendar_conflict(club_busy_intervals, a.host_club, new_a_date, a.start_time, a.duration_minutes):
+        return False
+    if external_calendar_conflict(club_busy_intervals, b.host_club, new_b_date, b.start_time, b.duration_minutes):
+        return False
 
     if state is not None:
         # issue #265 P0: arena-bucket + per-team-date-index lookups instead
@@ -720,6 +737,7 @@ def _host_move_is_valid(
     club_arenas: Dict[str, str],
     club_calendar_status: Dict[str, str],
     state: Optional["_SearchState"] = None,
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
 ) -> bool:
     # issue #262 P0: a club with no trustworthy calendar evidence this run
     # must never be handed hosting duty by the search either.
@@ -729,8 +747,13 @@ def _host_move_is_valid(
     if not new_arena:
         return False
     slot = slots[index]
-    return not _interval_overlaps(
-        slots, index, new_arena, slot.date, slot.start_time, slot.duration_minutes, state
+    if _interval_overlaps(slots, index, new_arena, slot.date, slot.start_time, slot.duration_minutes, state):
+        return False
+    # issue #264 P0: "known" status only proves the club was scraped this
+    # run, not that this exact date/time is free -- check the new host's
+    # real busy intervals too, not just sibling-candidate collisions.
+    return not external_calendar_conflict(
+        club_busy_intervals, new_host, slot.date, slot.start_time, slot.duration_minutes
     )
 
 
@@ -748,10 +771,20 @@ def _slot_time_move_candidates(slots: List[_Slot], rng: random.Random) -> Option
 
 
 def _slot_time_move_is_valid(
-    slots: List[_Slot], index: int, new_time: str, state: Optional["_SearchState"] = None
+    slots: List[_Slot],
+    index: int,
+    new_time: str,
+    state: Optional["_SearchState"] = None,
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
 ) -> bool:
     slot = slots[index]
-    return not _interval_overlaps(slots, index, slot.arena, slot.date, new_time, slot.duration_minutes, state)
+    if _interval_overlaps(slots, index, slot.arena, slot.date, new_time, slot.duration_minutes, state):
+        return False
+    # issue #264 P0: also reject a new time that collides with the host's
+    # own real external booking on this date, not just sibling candidates.
+    return not external_calendar_conflict(
+        club_busy_intervals, slot.host_club, slot.date, new_time, slot.duration_minutes
+    )
 
 
 def _rebuild_tournament(slot: _Slot) -> Dict[str, Any]:
@@ -888,6 +921,7 @@ def optimize_candidate(
 
     club_arenas: Dict[str, str] = dict((problem or {}).get("clubs") or {})
     club_calendar_status: Dict[str, str] = dict((problem or {}).get("club_calendar_status") or {})
+    club_busy_intervals: Dict[str, List[Dict[str, str]]] = dict((problem or {}).get("club_busy_intervals") or {})
 
     special_moves: List[str] = []
     if move_dates:
@@ -958,7 +992,9 @@ def optimize_candidate(
 
             if kind == "date":
                 date_move = _date_swap_candidates(slots, rng, date_swap_by_age_group)
-                if date_move is None or not _date_swap_is_valid(slots, *date_move, state=state):
+                if date_move is None or not _date_swap_is_valid(
+                    slots, *date_move, state=state, club_busy_intervals=club_busy_intervals
+                ):
                     step += 1
                     continue
                 valid_moves += 1
@@ -980,7 +1016,9 @@ def optimize_candidate(
                     step += 1
                     continue
                 index, new_host = host_move
-                if not _host_move_is_valid(slots, index, new_host, club_arenas, club_calendar_status, state):
+                if not _host_move_is_valid(
+                    slots, index, new_host, club_arenas, club_calendar_status, state, club_busy_intervals
+                ):
                     step += 1
                     continue
                 valid_moves += 1
@@ -1001,7 +1039,7 @@ def optimize_candidate(
                     step += 1
                     continue
                 index, new_time = slot_move
-                if not _slot_time_move_is_valid(slots, index, new_time, state):
+                if not _slot_time_move_is_valid(slots, index, new_time, state, club_busy_intervals):
                     step += 1
                     continue
                 valid_moves += 1

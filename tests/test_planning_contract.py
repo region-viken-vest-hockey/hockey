@@ -261,6 +261,72 @@ class TestVerifyCandidateWithProblem:
         codes = {v["code"] for v in result["violations"]}
         assert "participation_target_mismatch" not in codes
 
+    def test_external_calendar_conflict_flagged(self):
+        """issue #264 P0: a 'known' host calendar status is not itself proof
+        that every start time on that date is free -- an actual overlapping
+        external booking must be independently rejected."""
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {
+            "tournaments": [
+                _tournament(
+                    "t1", "2026-06-01", "Jarhallen", "U10", teams, start_time="10:00"
+                )
+            ]
+        }
+        problem = self._problem(
+            round_length_minutes={"U10": 60},
+            club_calendar_status={"Jar": "known", "Kongsberg": "known"},
+            club_busy_intervals={
+                "Jar": [{"date": "2026-06-01", "start": "10:30", "end": "12:00"}]
+            },
+        )
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "external_calendar_conflict" in codes
+
+    def test_external_calendar_partial_day_availability_not_flagged(self):
+        """A booking that ends before the tournament starts must not be
+        treated as an all-day conflict."""
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {
+            "tournaments": [
+                _tournament(
+                    "t1", "2026-06-01", "Jarhallen", "U10", teams, start_time="13:00"
+                )
+            ]
+        }
+        problem = self._problem(
+            round_length_minutes={"U10": 60},
+            club_calendar_status={"Jar": "known", "Kongsberg": "known"},
+            club_busy_intervals={
+                "Jar": [{"date": "2026-06-01", "start": "08:00", "end": "12:00"}]
+            },
+        )
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "external_calendar_conflict" not in codes
+
+    def test_external_calendar_conflict_skipped_when_host_status_unknown(self):
+        """An unknown host is already rejected via host_calendar_status_unknown
+        -- it must not also be double-flagged as an external conflict just
+        because it happens to have no busy_intervals entry."""
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {
+            "tournaments": [
+                _tournament(
+                    "t1", "2026-06-01", "Jarhallen", "U10", teams, start_time="10:00"
+                )
+            ]
+        }
+        problem = self._problem(
+            round_length_minutes={"U10": 60},
+            club_calendar_status={"Jar": "unknown", "Kongsberg": "known"},
+        )
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "host_calendar_status_unknown" in codes
+        assert "external_calendar_conflict" not in codes
+
     def test_pinned_tournament_missing_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}

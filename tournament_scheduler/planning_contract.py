@@ -55,6 +55,7 @@ def build_planning_problem(
     """
     from tournament_scheduler.pipeline.stage3_helpers import (
         _build_club_arenas,
+        _build_club_busy_intervals,
         _build_club_calendar_status,
         _build_events_by_club,
         _build_parallel_games,
@@ -116,6 +117,7 @@ def build_planning_problem(
         "date_preferences": date_preferences,
         "club_busy_dates": club_busy_dates,
         "club_calendar_status": club_calendar_status,
+        "club_busy_intervals": _build_club_busy_intervals(scraping_result),
     }
 
 
@@ -176,6 +178,74 @@ def _parse_date(value: Any) -> Optional[date]:
 
 
 TeamIdentity = Tuple[str, str, str]
+
+
+def _time_to_minutes(value: str) -> int:
+    """Parse an ``HH:MM`` clock string into minutes since midnight.
+
+    Accepts ``"24:00"`` (and other hour values >= 24) as the end-of-day
+    boundary `pipeline.stage3_helpers._build_club_busy_intervals` emits for
+    events running to/through midnight -- ``datetime.time`` itself rejects
+    an hour of 24, so this can't just reuse `utils.slot_finder.parse_time`.
+    """
+    hour, minute = (int(part) for part in value.split(":", 1))
+    return hour * 60 + minute
+
+
+def external_busy_windows(
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
+    club: Optional[str],
+    on_date: date,
+) -> List[Tuple[int, int]]:
+    """Return ``(start_minutes, end_minutes)`` busy windows for *club* on *on_date*.
+
+    Reads the ``club_busy_intervals`` evidence a ``planning_problem`` carries
+    (issue #264 P0) -- real scraped/fixed-allocation calendar bookings, not
+    just the coarse ``club_busy_dates`` date list. An empty result does NOT
+    mean "free all day": callers must additionally confirm the club's
+    ``club_calendar_status`` is ``"known"`` before treating the absence of
+    entries here as evidence of availability.
+    """
+    if not club_busy_intervals or not club:
+        return []
+    date_str = on_date.isoformat()
+    windows: List[Tuple[int, int]] = []
+    for entry in club_busy_intervals.get(club, []):
+        if entry.get("date") != date_str:
+            continue
+        try:
+            windows.append((_time_to_minutes(entry["start"]), _time_to_minutes(entry["end"])))
+        except (KeyError, ValueError):
+            continue
+    return windows
+
+
+def external_calendar_conflict(
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
+    club: Optional[str],
+    on_date: date,
+    start_time: Optional[str],
+    duration_minutes: int,
+) -> bool:
+    """True if ``[start_time, start_time + duration_minutes)`` on *on_date*
+    overlaps any of *club*'s external busy windows (issue #264 P0).
+
+    Shared by :func:`verify_candidate` (rejecting an already-built candidate)
+    and the Stage 3 v2 optimizer's ``move_dates``/``move_hosts``/``move_slots``
+    (rejecting an infeasible move before it's ever proposed as a candidate)
+    so both enforce exactly the same external-calendar evidence.
+    """
+    if not club or not start_time or duration_minutes <= 0:
+        return False
+    try:
+        new_start = _time_to_minutes(start_time)
+    except ValueError:
+        return False
+    new_end = new_start + duration_minutes
+    for busy_start, busy_end in external_busy_windows(club_busy_intervals, club, on_date):
+        if new_start < busy_end and busy_start < new_end:
+            return True
+    return False
 
 
 def _team_identity(team: Dict[str, Any]) -> TeamIdentity:
@@ -291,6 +361,7 @@ def verify_candidate(
                 "manual_restrictions",
                 "calendar_validity",
                 "arena_interval_conflicts",
+                "external_calendar_conflicts",
             ]
         )
         return {"ok": not violations, "violations": violations, "skipped": skipped}
@@ -315,10 +386,12 @@ def verify_candidate(
     # planner-independent interval-collision logic Stage 3/4 already share
     # (`arena_conflicts.py`) instead of a naive same-arena/same-date check,
     # which would flag normal same-day scheduling as a false positive.
-    from tournament_scheduler.arena_conflicts import find_arena_interval_collisions
+    from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
     from tournament_scheduler.pipeline.stage3_helpers import _tournament_from_dict
 
     round_length_minutes = problem.get("round_length_minutes") or {}
+    club_calendar_status_for_conflicts = problem.get("club_calendar_status") or {}
+    club_busy_intervals = problem.get("club_busy_intervals") or {}
     try:
         tournament_objs = [_tournament_from_dict(t) for t in candidate.get("tournaments", []) if not t.get("cancelled")]
         for collision in find_arena_interval_collisions(tournament_objs, round_length_minutes):
@@ -327,6 +400,38 @@ def verify_candidate(
                 collision["message"],
                 collision.get("tournament_id"),
             )
+        # issue #264 P0: a "known" calendar status only proves the host club
+        # was scraped this run -- it does NOT prove every candidate start
+        # time on a given date is free. Independently check each
+        # tournament's actual hall interval against the host's real busy
+        # windows, so a host/date/time combination the candidate's own
+        # planner never validated against real evidence (e.g. a v2 optimizer
+        # move) is still caught here rather than only by re-running the
+        # planner that produced it.
+        for tournament_obj in tournament_objs:
+            interval = tournament_interval(tournament_obj, round_length_minutes)
+            if interval is None or not interval.host_club:
+                continue
+            if (
+                club_calendar_status_for_conflicts
+                and club_calendar_status_for_conflicts.get(interval.host_club, "unknown") != "known"
+            ):
+                continue  # already reported as host_calendar_status_unknown below
+            duration_minutes = int((interval.end - interval.start).total_seconds() // 60)
+            if external_calendar_conflict(
+                club_busy_intervals,
+                interval.host_club,
+                interval.start.date(),
+                interval.start.strftime("%H:%M"),
+                duration_minutes,
+            ):
+                _violate(
+                    "external_calendar_conflict",
+                    f"Tournament {interval.tournament_id} hosted by {interval.host_club!r} on "
+                    f"{interval.date} ({interval.interval_label}) overlaps a known external "
+                    "calendar booking",
+                    interval.tournament_id,
+                )
     except (KeyError, ValueError) as exc:
         _violate("arena_interval_check_failed", f"Could not evaluate arena interval conflicts: {exc}")
 
