@@ -212,6 +212,9 @@ __marimo__/
 # generated output. Without this exception new fragments silently vanish
 # from every fresh clone (see tests/test_html_exporter.py and friends).
 !tournament_scheduler/html/templates/*.html
+# ...and the manual-schedule review view, which needs to be committed
+# alongside each export so operators can review it without re-running.
+!export/**/manual_schedule.html
 .idea
 
 # Node
