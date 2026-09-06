@@ -109,9 +109,44 @@ _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {
     },
 }
 
+_PARETO_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {
+    "mode": {
+        "type": "string",
+        "enum": ["pareto"],
+        "description": (
+            "Set to \"pareto\" to run a shared multi-objective search returning several "
+            "non-dominated tradeoff candidates instead of one single optimized plan "
+            "(issue #264 P1 / issue #265 P1)."
+        ),
+    },
+    "iterations_per_epoch": {
+        "type": "integer",
+        "minimum": 100,
+        "maximum": 20000,
+        "description": "Simulated-annealing swap-attempt budget for each weight-vector search epoch.",
+    },
+    "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2**31 - 1,
+        "description": "Deterministic RNG seed base (each epoch uses seed + epoch index).",
+    },
+    "max_archive_size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Maximum number of non-dominated candidates to return.",
+    },
+    "move_dates": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA["move_dates"],
+    "move_hosts": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA["move_hosts"],
+    "move_slots": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA["move_slots"],
+    "date_swap_probability": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA["date_swap_probability"],
+}
+
 _OPTIMIZE_PLAN_SCHEMAS: Dict[str, Dict[str, Any]] = {
     "search_budget": _SEARCH_BUDGET_OPTIMIZE_PLAN_SCHEMA,
     "v2_optimizer": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA,
+    "pareto": _PARETO_OPTIMIZE_PLAN_SCHEMA,
 }
 
 

@@ -203,6 +203,22 @@ reference shared policy rather than duplicating it).
   schema). The loop is capped at a fixed number of attempts, enforced
   deterministically — `optimize_plan` stops being offered once reached.
 
+  **Multi-objective (Pareto) search:** pass `optimize_plan` with
+  `arguments.mode: "pareto"` (issue #264 P1 / issue #265 P1) instead of a
+  single rerun to explore several genuinely different tradeoffs at once —
+  e.g. one candidate that minimizes repeated opponents at the cost of more
+  travel, another that minimizes hosting spread instead. The response then
+  lists multiple candidates under `facts.candidates`, each with its own
+  `candidate_ref`, `objective_vector` (lower is better in every dimension),
+  and `dominates_baseline`. `apply_candidate` must set `arguments.candidate_ref`
+  to one of the listed refs (validated against an explicit enum — an
+  invented ref is rejected deterministically); `keep_baseline` discards the
+  whole portfolio; `optimize_plan` again (single or `mode: "pareto"`)
+  requests another epoch/attempt. Prefer this over repeated plain
+  `optimize_plan` calls when you want to compare tradeoffs rather than
+  commit to one weighting up front — it runs one shared search internally,
+  not N independent reruns.
+
   **Every decision about a Stage 3 context — including the first
   baseline tone judgment and every later candidate comparison — must be
   submitted with `--resume-from 4`, not `--resume-from 3`.** The CLI

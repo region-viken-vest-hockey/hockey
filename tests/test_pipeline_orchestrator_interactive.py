@@ -377,6 +377,181 @@ class TestStage3InteractiveDecisionLoop:
         assert "optimize_plan" in interactive_state["last_context"]["action_parameters"]
         assert "weights" in interactive_state["last_context"]["action_parameters"]["optimize_plan"]
 
+    def test_optimize_plan_pareto_mode_offers_a_candidate_choice(self, state, tmp_path):
+        """issue #264 P1 / issue #265 P1: optimize_plan(mode="pareto") runs
+        the shared multi-objective search and offers every non-dominated
+        candidate by candidate_ref, instead of a single rerun."""
+        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        report = build_ab_report(plan1["plan"], plan1["plan"])
+        baseline_context = build_stage3_decision_context(
+            report, run_id="", baseline_ref=None, candidate_ref=None,
+            optimize_plan_schema="v2_optimizer",
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "last_context": baseline_context.to_dict(),
+            },
+        )
+        state.write_stage(StageName.PLANNING, plan1, status=StageStatus.DONE)
+
+        candidate_a = _candidate(seed=2)
+        candidate_b = _candidate(seed=3)
+        fake_portfolio_result = {
+            "schema_version": 1,
+            "baseline_objective_vector": {"max_pair_repeat": 2.0},
+            "baseline_score": {},
+            "candidates": [
+                {
+                    "candidate": candidate_a,
+                    "objective_vector": {"max_pair_repeat": 0.0},
+                    "score": {"opponent_diversity": {}},
+                    "weights_used": {"pair_repeat": 15.0},
+                    "epoch": 0,
+                    "verify_result": {"ok": True, "violations": []},
+                    "dominates_baseline": True,
+                },
+                {
+                    "candidate": candidate_b,
+                    "objective_vector": {"max_pair_repeat": 1.0},
+                    "score": {"opponent_diversity": {}},
+                    "weights_used": {"gap_under_7": 25.0},
+                    "epoch": 1,
+                    "verify_result": {"ok": True, "violations": []},
+                    "dominates_baseline": True,
+                },
+            ],
+            "search_summary": {"epochs": 2, "epoch_summaries": [], "archive_size": 2},
+        }
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {"action_id": "optimize_plan", "rationale": "explore tradeoffs", "arguments": {"mode": "pareto"}}
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+        ) as run_stage3, patch(
+            "tournament_scheduler.stage3_optimizer.optimize_candidate_pareto",
+            return_value=fake_portfolio_result,
+        ) as optimize_candidate_pareto:
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        run_stage3.assert_not_called()
+        optimize_candidate_pareto.assert_called_once()
+        assert optimize_candidate_pareto.call_args.args[0] == plan1["plan"]
+
+        interactive_state = _read_stage3_interactive_state(state)
+        assert interactive_state["attempts_used"] == 2
+        assert interactive_state["best_plan"] == plan1
+        pending = interactive_state["pending_candidates"]
+        assert len(pending) == 2
+        refs = [entry["candidate_ref"] for entry in pending]
+        assert refs == ["pareto:2:0", "pareto:2:1"]
+
+        last_context = interactive_state["last_context"]
+        assert last_context["capability"] == "stage3_pareto"
+        assert len(last_context["facts"]["candidates"]) == 2
+        assert last_context["action_parameters"]["apply_candidate"]["candidate_ref"]["enum"] == refs
+
+    def test_apply_candidate_from_pareto_portfolio_writes_chosen_candidate(self, state, tmp_path):
+        """issue #264 P1: apply_candidate against a Pareto portfolio must
+        write the *chosen* candidate_ref's candidate, not whatever happens
+        to already be on disk (there is no single "just reran" candidate
+        for a multi-candidate Pareto attempt)."""
+        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.stage3_decision import STAGE3_DECISION_ACTIONS
+
+        plan1 = _plan_checkpoint(seed=1)
+        candidate_a = _candidate(seed=2)
+        candidate_b = _candidate(seed=3)
+        pending_candidates = [
+            {
+                "candidate": candidate_a,
+                "objective_vector": {"max_pair_repeat": 0.0},
+                "weights_used": {"pair_repeat": 15.0},
+                "candidate_ref": "pareto:2:0",
+            },
+            {
+                "candidate": candidate_b,
+                "objective_vector": {"max_pair_repeat": 1.0},
+                "weights_used": {"gap_under_7": 25.0},
+                "candidate_ref": "pareto:2:1",
+            },
+        ]
+        from tournament_scheduler.application.decisions import DecisionContext
+
+        pareto_context = DecisionContext(
+            run_id="legacy",
+            capability="stage3_pareto",
+            stage="planning",
+            objective="pick one",
+            available_actions=tuple(STAGE3_DECISION_ACTIONS),
+            action_parameters={
+                "apply_candidate": {
+                    "candidate_ref": {"type": "string", "enum": ["pareto:2:0", "pareto:2:1"]}
+                }
+            },
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 2,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "pending_candidates": pending_candidates,
+                "pending_attempt": 2,
+                "last_context": pareto_context.to_dict(),
+            },
+        )
+        # On-disk checkpoint still holds the pre-search baseline -- the
+        # chosen candidate must be written explicitly by apply_candidate.
+        state.write_stage(StageName.PLANNING, plan1, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {"action_id": "apply_candidate", "arguments": {"candidate_ref": "pareto:2:1"}}
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan1, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        assert _read_stage3_interactive_state(state) == {}
+        assert state.read_stage(StageName.PLANNING)["plan"] == candidate_b
+
     def test_apply_candidate_advances_and_clears_state(self, state, tmp_path):
         from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report

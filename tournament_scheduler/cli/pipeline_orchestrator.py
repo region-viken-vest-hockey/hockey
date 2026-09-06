@@ -1597,6 +1597,196 @@ def _run_stage3_v2_optimize(
     return checkpoint, False
 
 
+def _run_stage3_pareto_optimize(
+    state: "Any",
+    cfg: "dict[str, Any]",
+    scraping: "dict[str, Any]",
+    start: "Any",
+    end: "Any",
+    arguments: "dict[str, Any] | None",
+    log_fn: "Any",
+) -> "tuple[list[dict[str, Any]] | None, bool]":
+    """Execute an accepted interactive ``optimize_plan`` decision with
+    ``arguments.mode == "pareto"`` via the shared multi-objective Stage 3
+    search (issue #264 P1 / issue #265 P1), instead of the single-objective
+    v2 optimizer :func:`_run_stage3_v2_optimize` runs.
+
+    Unlike that function, this never writes a new Stage 3 checkpoint
+    itself -- a Pareto attempt can produce several genuinely different
+    non-dominated candidates, and which one (if any) actually gets adopted
+    is a later ``apply_candidate`` decision the caller resolves against
+    ``candidate_ref`` (see :func:`_emit_stage3_pareto_decision`).
+
+    Returns ``(portfolio, abort)`` -- *portfolio* is
+    :func:`~tournament_scheduler.stage3_optimizer.optimize_candidate_pareto`'s
+    ``"candidates"`` list (each still missing ``candidate_ref``, assigned by
+    the caller), or ``None`` with *abort* ``True`` when there is no baseline
+    candidate to search from.
+    """
+    from ..planning_contract import build_planning_problem, extract_candidate
+    from ..pipeline.state import StageName
+    from ..stage3_optimizer import optimize_candidate_pareto
+
+    arguments = arguments or {}
+    planning_checkpoint = state.read_stage(StageName.PLANNING)
+    if not planning_checkpoint:
+        log_fn("optimize_plan(pareto): no Stage 3 checkpoint (baseline) to search from -- aborting")
+        return None, True
+    try:
+        baseline_candidate = extract_candidate(planning_checkpoint)
+    except ValueError as exc:
+        log_fn(f"optimize_plan(pareto): could not read baseline candidate: {exc}")
+        return None, True
+
+    problem = build_planning_problem(cfg, scraping, start.date(), end.date())
+
+    result = optimize_candidate_pareto(
+        baseline_candidate,
+        problem,
+        iterations_per_epoch=int(arguments.get("iterations_per_epoch", 2000)),
+        seed=int(arguments.get("seed", 0)),
+        move_dates=bool(arguments.get("move_dates", False)),
+        date_swap_probability=float(arguments.get("date_swap_probability", 0.3)),
+        move_hosts=bool(arguments.get("move_hosts", False)),
+        move_slots=bool(arguments.get("move_slots", False)),
+        max_archive_size=int(arguments.get("max_archive_size", 5)),
+    )
+    log_fn(
+        "optimize_plan(pareto): ran multi-objective search "
+        f"({result['search_summary']['epochs']} epochs, "
+        f"archive_size={result['search_summary']['archive_size']})"
+    )
+    return result["candidates"], False
+
+
+def _emit_stage3_pareto_decision(
+    state: "Any",
+    work_dir: str,
+    portfolio: "list[dict[str, Any]] | None",
+    log_fn: "Any",
+) -> int:
+    """Build, persist and print the Stage 3 :class:`DecisionContext` for a
+    completed multi-objective (Pareto) search attempt (issue #264 P1 /
+    issue #265 P1).
+
+    Mirrors :func:`_emit_stage3_interactive_decision`'s attempt-tracking and
+    state persistence, but a Pareto attempt can produce several genuinely
+    different non-dominated candidates instead of one -- the emitted
+    context lists all of them (``candidate_ref``, objective vector, whether
+    each dominates the current best) via ``facts``/``action_parameters``,
+    and ``pending_candidates`` (plural) replaces the single-optimizer path's
+    ``pending_candidate`` in the persisted side-state, so ``apply_candidate``
+    can pick any one of them by ``candidate_ref``.
+
+    A Pareto search is only ever reachable via an ``optimize_plan`` decision
+    on an *existing* Stage 3 attempt (never the first, auto-baselined one),
+    so ``best_plan``/``best_attempt`` are always already present here.
+    """
+    import json as _json
+
+    from ..application.decisions import DecisionContext
+    from ..pipeline.fingerprints import stable_payload_sha256
+    from ..stage3_decision import STAGE3_DECISION_ACTIONS, _OPTIMIZE_PLAN_SCHEMAS
+
+    run_id = _current_run_id(state)
+    interactive_state = _read_stage3_interactive_state(state, expected_run_id=run_id)
+    attempts_used = int(interactive_state.get("attempts_used", 0)) + 1
+
+    if not portfolio:
+        # Nothing non-dominated came back (e.g. every epoch converged to
+        # the same point) -- fall back to keep/abort rather than offer a
+        # choice that doesn't exist.
+        context = DecisionContext(
+            run_id=run_id,
+            capability="stage3_pareto",
+            stage="planning",
+            objective="The Pareto search produced no non-dominated candidates for this attempt.",
+            available_actions=("keep_baseline", "request_operator", "abort"),
+        )
+        interactive_state["run_id"] = run_id
+        interactive_state["attempts_used"] = attempts_used
+        interactive_state["last_context"] = context.to_dict()
+        _write_stage3_interactive_state(state, interactive_state)
+        payload = context.to_dict()
+        print(_json.dumps(payload, indent=2, ensure_ascii=False))
+        return 2
+
+    entries = [{**item, "candidate_ref": f"pareto:{attempts_used}:{index}"} for index, item in enumerate(portfolio)]
+    candidate_refs = [entry["candidate_ref"] for entry in entries]
+
+    available = list(STAGE3_DECISION_ACTIONS)
+    if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
+        available.remove("optimize_plan")
+
+    context = DecisionContext(
+        run_id=run_id,
+        capability="stage3_pareto",
+        stage="planning",
+        objective=(
+            f"Choose one of {len(entries)} non-dominated Stage 3 candidates to apply "
+            "(apply_candidate with its candidate_ref), keep the current best (keep_baseline), "
+            "request another search epoch with narrowed parameters (optimize_plan), or ask the "
+            "operator."
+        ),
+        facts={
+            "epoch_count": len(entries),
+            "candidates": [
+                {
+                    "candidate_ref": entry["candidate_ref"],
+                    "objective_vector": entry["objective_vector"],
+                    "dominates_baseline": entry["dominates_baseline"],
+                    "verification_ok": entry["verify_result"]["ok"],
+                    "weights_used": entry["weights_used"],
+                }
+                for entry in entries
+            ],
+        },
+        available_actions=tuple(available),
+        action_parameters={
+            "apply_candidate": {"candidate_ref": {"type": "string", "enum": candidate_refs}},
+            **({"optimize_plan": _OPTIMIZE_PLAN_SCHEMAS["pareto"]} if "optimize_plan" in available else {}),
+        },
+    )
+
+    interactive_state["run_id"] = run_id
+    interactive_state["attempts_used"] = attempts_used
+    interactive_state["pending_candidates"] = entries
+    interactive_state.pop("pending_candidate", None)
+    interactive_state["pending_attempt"] = attempts_used
+    interactive_state["last_context"] = context.to_dict()
+    _write_stage3_interactive_state(state, interactive_state)
+
+    try:
+        from ..pipeline.evidence_bundle import append_stage3_attempt_log_entry
+
+        for entry in entries:
+            append_stage3_attempt_log_entry(
+                state.work_dir,
+                {
+                    "attempt": attempts_used,
+                    "candidate_ref": entry["candidate_ref"],
+                    "candidate_fingerprint": stable_payload_sha256(entry["candidate"].get("tournaments", [])),
+                    "candidate_source": entry["candidate"].get("source"),
+                    "verify_result": entry["verify_result"],
+                    "score_result": entry["score"],
+                },
+            )
+    except Exception as exc:
+        log_fn(f"stage3_pareto attempt {attempts_used}: could not append attempt-log entries: {exc}")
+
+    payload = context.to_dict()
+    try:
+        log_dir = resolve_active_run_log_dir(work_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        with open(log_dir / "decision_context.json", "w", encoding="utf-8") as fh:
+            _json.dump(payload, fh, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+    print(_json.dumps(payload, indent=2, ensure_ascii=False))
+    return 2
+
+
 def _run_stage3(
     args: "argparse.Namespace",
     cfg: "dict[str, Any]",
@@ -2384,6 +2574,11 @@ def _emit_stage3_interactive_decision(
             )
         interactive_state["attempts_used"] = attempts_used
         interactive_state["pending_candidate"] = plan
+        # A prior attempt may have been a Pareto search (issue #264 P1) --
+        # drop its plural pending_candidates so a later apply_candidate
+        # decision resolves against this attempt's single candidate, not a
+        # stale multi-candidate list from two attempts ago.
+        interactive_state.pop("pending_candidates", None)
         interactive_state["pending_attempt"] = attempts_used
 
     interactive_state["last_context"] = context.to_dict()
@@ -2517,6 +2712,10 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     # optimizer (stage3_optimizer.optimize_candidate) rather than rerunning
     # legacy SeasonPlanner -- see _run_stage3_v2_optimize below.
     use_v2_optimizer_for_stage3 = False
+    # issue #264 P1 / issue #265 P1: optimize_plan(arguments.mode == "pareto")
+    # runs the shared multi-objective search instead -- see
+    # _run_stage3_pareto_optimize/_emit_stage3_pareto_decision.
+    use_pareto_for_stage3 = False
     optimize_plan_arguments: dict[str, Any] | None = None
 
     if decision_payload is not None:
@@ -2575,13 +2774,31 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         if prev_stage_num == 3 and stage3_interactive_state is not None:
             if decision_action.action_id == "optimize_plan":
                 resume_from = 3
-                use_v2_optimizer_for_stage3 = True
                 optimize_plan_arguments = dict(decision_action.arguments or {})
+                if optimize_plan_arguments.get("mode") == "pareto":
+                    use_pareto_for_stage3 = True
+                else:
+                    use_v2_optimizer_for_stage3 = True
             elif decision_action.action_id == "apply_candidate":
-                # The on-disk Stage 3 checkpoint already holds the candidate
-                # that was just rerun (the pending attempt), so no checkpoint
-                # rewrite is needed here — only clear the side-state, the
-                # loop is resolved and we advance to Stage 4.
+                pending_candidates = stage3_interactive_state.get("pending_candidates")
+                if pending_candidates:
+                    # issue #264 P1: a Pareto attempt left several
+                    # candidates pending, not one -- the on-disk checkpoint
+                    # still holds the pre-search baseline, so the chosen
+                    # candidate_ref has to be written explicitly here.
+                    candidate_ref = (decision_action.arguments or {}).get("candidate_ref")
+                    chosen = next(
+                        (entry for entry in pending_candidates if entry.get("candidate_ref") == candidate_ref),
+                        None,
+                    )
+                    if chosen is not None:
+                        checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
+                        checkpoint["plan"] = chosen["candidate"]
+                        state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
+                # else: the on-disk Stage 3 checkpoint already holds the
+                # candidate that was just rerun (the v2-optimizer path's
+                # single pending attempt), so no checkpoint rewrite is
+                # needed here.
                 _clear_stage3_interactive_state(state)
             else:
                 # keep_baseline (or any other accepted action): the on-disk
@@ -2609,6 +2826,14 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         return 1
     if resume_from == 2:
         return _emit_interactive_decision_context(2, state, args.work_dir)
+
+    if resume_from == 3 and use_pareto_for_stage3:
+        portfolio, abort = _run_stage3_pareto_optimize(
+            state, cfg, scraping, start, end, optimize_plan_arguments, _log
+        )
+        if abort:
+            return 1
+        return _emit_stage3_pareto_decision(state, args.work_dir, portfolio, _log)
 
     if resume_from == 3 and use_v2_optimizer_for_stage3:
         plan, abort = _run_stage3_v2_optimize(
