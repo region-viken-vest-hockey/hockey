@@ -187,6 +187,33 @@ class TestVerifyCandidateWithProblem:
         codes = {v["code"] for v in result["violations"]}
         assert "excluded_host_club_used" in codes
 
+    def test_unknown_host_calendar_status_flagged(self):
+        """issue #262 P0: a host with no trustworthy calendar evidence this
+        run must fail deterministic verification, not be silently accepted."""
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        problem = self._problem(club_calendar_status={"Jar": "unknown", "Kongsberg": "known"})
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "host_calendar_status_unknown" in codes
+
+    def test_known_host_calendar_status_not_flagged(self):
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        problem = self._problem(club_calendar_status={"Jar": "known", "Kongsberg": "known"})
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "host_calendar_status_unknown" not in codes
+
+    def test_missing_club_calendar_status_skips_check(self):
+        """No status map at all (older/hand-built problem dicts) must not
+        falsely flag every host as unknown."""
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        result = verify_candidate(candidate, self._problem())
+        codes = {v["code"] for v in result["violations"]}
+        assert "host_calendar_status_unknown" not in codes
+
     def test_capacity_exceeded_flagged(self):
         teams = [
             _team("Jar", "Jar 1", "U10"),

@@ -55,6 +55,7 @@ def build_planning_problem(
     """
     from tournament_scheduler.pipeline.stage3_helpers import (
         _build_club_arenas,
+        _build_club_calendar_status,
         _build_events_by_club,
         _build_parallel_games,
         _build_round_length,
@@ -64,6 +65,7 @@ def build_planning_problem(
     roster = _build_roster(config)
     club_arenas = _build_club_arenas(config)
     events_by_club = _build_events_by_club(scraping_result)
+    club_calendar_status = _build_club_calendar_status(scraping_result)
 
     teams = [
         {
@@ -113,6 +115,7 @@ def build_planning_problem(
         "manual_adjustments": manual_adjustments,
         "date_preferences": date_preferences,
         "club_busy_dates": club_busy_dates,
+        "club_calendar_status": club_calendar_status,
     }
 
 
@@ -366,6 +369,22 @@ def verify_candidate(
             _violate(
                 "excluded_host_club_used",
                 f"Tournament {t_id} is hosted by excluded club {host_club!r}",
+                t_id,
+            )
+
+        # issue #262 P0: a host club with no trustworthy calendar evidence
+        # this run (blocked/skipped/missing scrape) must never be silently
+        # treated as available. Only enforced when the problem actually
+        # carries a (non-empty) calendar-status map -- older/hand-built
+        # problem dicts without it skip this check rather than falsely
+        # flagging every host as unknown.
+        club_calendar_status = problem.get("club_calendar_status") or {}
+        if host_club and club_calendar_status and club_calendar_status.get(host_club, "unknown") != "known":
+            _violate(
+                "host_calendar_status_unknown",
+                f"Tournament {t_id} is hosted by {host_club!r}, whose calendar "
+                "availability is unknown this run (no valid scrape evidence) "
+                "-- it cannot be treated as free to host",
                 t_id,
             )
 

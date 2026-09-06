@@ -122,12 +122,14 @@ class TournamentScheduler:
         required_minutes: int,
         events_by_club: Dict[str, List[CalendarEvent]],
         preferred_start: str = _OPTIMAL_SLOT_START,
+        club_calendar_status: Optional[Dict[str, str]] = None,
     ) -> Optional[Tuple[str, str, str]]:
         """Find a time slot in the host club's own arena on a date.
 
         The planner only books from the assigned host club's own calendar.
-        If the host club has no known calendar source, no matching slot, or
-        no free gap of sufficient length, this returns ``None`` so the caller
+        If the host club has no known calendar source, no matching slot, no
+        free gap of sufficient length, or (issue #262 P0) no trustworthy
+        calendar evidence for this run, this returns ``None`` so the caller
         can keep the original host/arena and fall back to the default start
         time.
 
@@ -139,6 +141,15 @@ class TournamentScheduler:
                 Stage 2's ``events_by_club`` checkpoint output plus any
                 in-memory reservations for tournaments already placed in the
                 current plan).
+            club_calendar_status: Per-club calendar-evidence status
+                (``"known"``/``"unknown"``) from Stage 2's
+                ``club_calendar_status`` checkpoint output. When
+                non-empty, a club missing from this mapping, or explicitly
+                marked ``"unknown"``, is treated as unavailable -- an empty
+                ``events_by_club`` entry is only "known free" when this
+                status says so. An empty/``None`` mapping (the default)
+                skips the check entirely, for callers that don't compute
+                this status (e.g. legacy tests, ad-hoc scheduling calls).
 
         Returns:
             ``(host_club_used, start_HH:MM, end_HH:MM)`` for the best slot in
@@ -153,6 +164,8 @@ class TournamentScheduler:
             # any other "no known calendar source" club, not a crash.
             return None
         if not host_entry.is_known:
+            return None
+        if club_calendar_status and club_calendar_status.get(host_entry.club, "unknown") != "known":
             return None
 
         club_events = events_by_club.get(host_entry.club, [])

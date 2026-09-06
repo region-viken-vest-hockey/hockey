@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from tournament_scheduler.pipeline.stage3_helpers import (
+    _build_club_calendar_status,
     _build_events_by_club,
     _plan_to_dict,
     _resolve_plan_dict,
@@ -137,6 +138,30 @@ class TestBuildEventsByClubLogging:
     def test_returns_empty_dict_for_missing_events_by_club_key(self) -> None:
         result = _build_events_by_club({"other_key": "value"})
         assert result == {}
+
+
+# ---------------------------------------------------------------------------
+# _build_club_calendar_status (issue #262 P0)
+# ---------------------------------------------------------------------------
+
+
+class TestBuildClubCalendarStatus:
+    """A missing/absent status must default to 'unknown', never silently 'known'."""
+
+    def test_returns_empty_dict_for_none_input(self) -> None:
+        assert _build_club_calendar_status(None) == {}
+
+    def test_returns_empty_dict_for_missing_key(self) -> None:
+        assert _build_club_calendar_status({"other_key": "value"}) == {}
+
+    def test_returns_empty_dict_for_non_dict_value(self) -> None:
+        assert _build_club_calendar_status({"club_calendar_status": "not-a-dict"}) == {}
+
+    def test_passes_through_known_and_unknown_values(self) -> None:
+        result = _build_club_calendar_status(
+            {"club_calendar_status": {"Sandefjord Penguins": "known", "Tønsberg": "unknown"}}
+        )
+        assert result == {"Sandefjord Penguins": "known", "Tønsberg": "unknown"}
 
 
 # ---------------------------------------------------------------------------

@@ -23,6 +23,7 @@ from tournament_scheduler.pipeline.stage2_scraping import (
     run,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+from tournament_scheduler.club_registry import club_for_source_name
 from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.utils.calendar_cache import CalendarCache
 
@@ -168,6 +169,9 @@ class TestRunStage2:
         assert "Sandefjord Penguins" in result["events_by_club"]
         events = result["events_by_club"]["Sandefjord Penguins"]
         assert all(e["location"] == "Sandefjord ishall" for e in events)
+        # issue #262 P0: deterministic fixed-allocation availability is
+        # always "known", never treated as missing evidence.
+        assert result["club_calendar_status"]["Sandefjord Penguins"] == "known"
 
     def test_zero_events_strict_false_does_not_raise(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
@@ -219,6 +223,39 @@ class TestRunStage2:
         assert src["llm_fallback"] is True
         assert "BOOKUP_EMAIL" not in src.get("scraper_error", "")
         assert "BOOKUP_PASSWORD" not in src.get("scraper_error", "")
+        # issue #262 P0: a blocked scrape must be recorded as "unknown"
+        # calendar-evidence status, never silently omitted (which downstream
+        # code used to treat as "entire window free").
+        club_name = club_for_source_name("Tønsberg")
+        assert club_name is not None
+        assert result["club_calendar_status"][club_name] == "unknown"
+
+    def test_operator_confirmed_available_clubs_overrides_blocked_status(self, tmp_path):
+        """issue #262 P0: the explicit operator-override escape hatch."""
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources([
+            {
+                "name": "Tønsberg",
+                "type": SOURCE_OUTLOOK,
+                "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
+            },
+        ])
+        club_name = club_for_source_name("Tønsberg")
+        cfg["operator_confirmed_available_clubs"] = [club_name]
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._try_credentialed_scrape",
+            return_value=([], "Kilden krever manuell innlogging"),
+        ):
+            result = run(
+                cfg, state,
+                datetime(2025, 9, 1), datetime(2025, 12, 1),
+                strict=True,
+                allow_missing_sources=True,
+            )
+
+        assert result["blocked"] == ["Tønsberg"]
+        assert result["club_calendar_status"][club_name] == "known"
 
     def test_outlook_source_with_events_passes(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")

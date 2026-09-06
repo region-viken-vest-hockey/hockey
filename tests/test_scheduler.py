@@ -166,6 +166,69 @@ class TestFindArenaSlotForDate:
         assert host_used == "Frisk Asker"
 
 
+class TestClubCalendarStatusGate:
+    """issue #262 P0: an empty events_by_club entry is only "known free"
+    when club_calendar_status says so -- a missing/blocked scrape must not
+    be silently treated as an open calendar."""
+
+    def test_unknown_status_blocks_slot_even_with_empty_events(self):
+        scheduler = _make_scheduler()
+        events_by_club = {"Frisk Asker": []}
+
+        result = scheduler.find_arena_slot_for_date(
+            CHECK_DATE, "Frisk Asker", 120, events_by_club,
+            club_calendar_status={"Frisk Asker": "unknown"},
+        )
+
+        assert result is None
+
+    def test_empty_status_map_disables_check(self):
+        scheduler = _make_scheduler()
+        events_by_club = {"Frisk Asker": []}
+
+        result = scheduler.find_arena_slot_for_date(
+            CHECK_DATE, "Frisk Asker", 120, events_by_club,
+            club_calendar_status={},
+        )
+
+        # An empty status map (no entries at all) disables the check
+        # entirely -- only a non-empty map that omits this specific club
+        # should block it. This exercises that specific case.
+        assert result is not None
+
+    def test_club_absent_from_nonempty_status_map_blocks_slot(self):
+        scheduler = _make_scheduler()
+        events_by_club = {"Frisk Asker": []}
+
+        result = scheduler.find_arena_slot_for_date(
+            CHECK_DATE, "Frisk Asker", 120, events_by_club,
+            club_calendar_status={"Ringerike": "known"},
+        )
+
+        assert result is None
+
+    def test_known_status_with_empty_events_allows_slot(self):
+        scheduler = _make_scheduler()
+        events_by_club = {"Frisk Asker": []}
+
+        result = scheduler.find_arena_slot_for_date(
+            CHECK_DATE, "Frisk Asker", 120, events_by_club,
+            club_calendar_status={"Frisk Asker": "known"},
+        )
+
+        assert result is not None
+
+    def test_no_status_argument_preserves_legacy_behavior(self):
+        scheduler = _make_scheduler()
+        events_by_club = {"Frisk Asker": []}
+
+        result = scheduler.find_arena_slot_for_date(
+            CHECK_DATE, "Frisk Asker", 120, events_by_club,
+        )
+
+        assert result is not None
+
+
 class TestSandefjordFixedAllocation:
     """Issue #261: Sandefjord's fixed weekend allocation feeds slot search
     exactly like a scraped calendar -- no Sandefjord-specific code needed

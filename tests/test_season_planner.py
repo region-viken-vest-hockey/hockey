@@ -2395,7 +2395,7 @@ class TestSlotAwareScheduling:
     """Tests for time-of-day-aware arena slot finding in build_plan."""
 
     @staticmethod
-    def _basic_planner(free_dates, events_by_club=None, round_length=60):
+    def _basic_planner(free_dates, events_by_club=None, round_length=60, club_calendar_status=None):
         roster = Roster(teams=[
             Team(club="Frisk Asker", label="Frisk Asker U10", age_group="U10"),
             Team(club="Ringerike", label="Ringerike U10", age_group="U10"),
@@ -2413,6 +2413,7 @@ class TestSlotAwareScheduling:
             parallel_games_for_age_group={"U10": 3},
             round_length_for_age_group={"U10": round_length},
             events_by_club=events_by_club,
+            club_calendar_status=club_calendar_status,
         )
 
     def test_without_events_by_club_uses_default_start_time(self):
@@ -2458,6 +2459,40 @@ class TestSlotAwareScheduling:
         # should start at or after 10:00.
         assert all(t.start_time >= "10:00" for t in plan.tournaments)
         assert any(t.start_time == DEFAULT_TOURNAMENT_START_TIME for t in plan.tournaments)
+
+    def test_tonsberg_with_unknown_calendar_status_never_hosts(self):
+        """issue #262 P0: a real run where Tønsberg's BookUp calendar was not
+        scraped must never end up with a Tønsberg-hosted tournament, even
+        though Tønsberg fields a team and would otherwise be eligible."""
+        start, end = datetime(2026, 10, 1), datetime(2027, 4, 30)
+        free_dates = all_weekend_dates(start, end)
+
+        roster = Roster(teams=[
+            Team(club="Frisk Asker", label="Frisk Asker U10", age_group="U10"),
+            Team(club="Ringerike", label="Ringerike U10", age_group="U10"),
+            Team(club="Tønsberg", label="Tønsberg U10", age_group="U10"),
+        ])
+        club_arenas = {
+            "Frisk Asker": "Varner Arena",
+            "Ringerike": "Ringerikshallen",
+            "Tønsberg": "Tønsberg ishall",
+        }
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas=club_arenas,
+            parallel_games_for_age_group={"U10": 3},
+            round_length_for_age_group={"U10": 60},
+            club_calendar_status={
+                "Frisk Asker": "known",
+                "Ringerike": "known",
+                "Tønsberg": "unknown",
+            },
+        )
+        plan = planner.build_plan(start, end)
+
+        assert plan.tournaments
+        assert all(t.host_club != "Tønsberg" for t in plan.tournaments)
 
     def test_far_traveling_tournament_prefers_a_later_start(self):
         event_date = datetime(2026, 10, 3)

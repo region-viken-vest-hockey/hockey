@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from tournament_scheduler.club_distances import furthest_traveling_team
 from tournament_scheduler.models import Game, Team, Tournament
@@ -92,6 +92,22 @@ def assign_hosts(planner, scheduled: Sequence[Tuple[date, str]]) -> List[str]:
         if not base_candidate_pool:
             assignments.append("")
             continue
+
+        # issue #262 P0: a club with no trustworthy calendar evidence this
+        # run must not be handed hosting duty at all -- this is a hard
+        # eligibility fact, not part of the heuristic ranking below. Only
+        # enforced when the planner actually carries a (non-empty) status
+        # map; falls back to the unfiltered pool if every candidate would
+        # otherwise be excluded (a genuine infeasibility, not something this
+        # helper should silently paper over by returning no host).
+        club_calendar_status = getattr(planner, "club_calendar_status", None) or {}
+        if club_calendar_status:
+            known_pool = [
+                club for club in base_candidate_pool
+                if club_calendar_status.get(club, "unknown") == "known"
+            ]
+            if known_pool:
+                base_candidate_pool = known_pool
 
         actual_counts = actual_by_age.get(age_group, {})
         if targets:
@@ -266,12 +282,20 @@ def find_slot_for_tournament(
             for club, events in reserved_events_by_club.items():
                 events_by_club.setdefault(club, []).extend(events)
 
+        slot_kwargs: Dict[str, Any] = {"preferred_start": candidate_preferred_start}
+        planner_club_calendar_status = getattr(planner, "club_calendar_status", None)
+        if planner_club_calendar_status:
+            # Only pass this through when the planner actually carries
+            # calendar-status data (issue #262 P0) -- keeps test doubles and
+            # other callers of `find_arena_slot_for_date` that predate this
+            # parameter working unchanged.
+            slot_kwargs["club_calendar_status"] = planner_club_calendar_status
         slot = planner.scheduler.find_arena_slot_for_date(
             tournament_date,
             candidate_host,
             required_minutes,
             events_by_club,
-            preferred_start=candidate_preferred_start,
+            **slot_kwargs,
         )
         if slot is not None:
             return slot

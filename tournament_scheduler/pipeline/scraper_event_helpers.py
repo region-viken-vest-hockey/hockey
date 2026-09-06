@@ -121,3 +121,41 @@ def _group_events_by_club(
             continue
         by_club.setdefault(club_name, []).extend(events)
     return by_club
+
+
+def _group_club_calendar_status(
+    source_results: list[dict[str, Any]],
+) -> dict[str, str]:
+    """Map each RVV club with a configured source to a calendar-evidence status.
+
+    ``"known"`` means the source completed this run without being blocked,
+    skipped, or erroring -- including a source that genuinely came back with
+    zero events (a real "known free" result), and fixed-allocation sources
+    (e.g. Sandefjord, issue #261) whose availability is deterministic rather
+    than scraped.
+
+    ``"unknown"`` means we have no trustworthy evidence for that club this
+    run (blocked, skipped, or a scraper error). Callers (slot search,
+    candidate verification) must treat ``"unknown"`` as *not* available --
+    conflating a missing/blocked scrape with "entire window is free" is the
+    root cause of issue #262's Tønsberg over-scheduling bug.
+
+    A club can have multiple source results (rare, but possible for
+    multi-arena clubs); if any of them is unknown, the whole club is treated
+    as unknown -- partial evidence is not sufficient evidence.
+    """
+    status: dict[str, str] = {}
+    for source_result in source_results:
+        source_name = source_result.get("name", "")
+        club_name = club_for_source_name(source_name)
+        if club_name is None:
+            continue
+        is_unknown = bool(
+            source_result.get("blocked")
+            or source_result.get("skipped")
+            or source_result.get("scraper_error")
+        )
+        if status.get(club_name) == "unknown":
+            continue
+        status[club_name] = "unknown" if is_unknown else "known"
+    return status

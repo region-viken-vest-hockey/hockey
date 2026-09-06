@@ -148,9 +148,13 @@ def _build_events_by_club(scraping_result: dict[str, Any] | None) -> dict[str, l
     for use by `TournamentScheduler.find_arena_slot_for_date`.
 
     Returns an empty dict if *scraping_result* is missing or has no
-    `"events_by_club"` key (e.g. older checkpoints, or partial Stage 2 runs)
-    -- callers should treat this as "no calendar data available" and fall
-    back to default scheduling behavior.
+    `"events_by_club"` key (e.g. older checkpoints, or partial Stage 2 runs).
+    An empty per-club events list here is NOT the same as "this club is free
+    to host" -- callers must additionally consult
+    :func:`_build_club_calendar_status` (issue #262 P0): only a club whose
+    status is `"known"` may be treated as having a genuinely empty calendar.
+    A club missing from this dict entirely, or with `"unknown"` status, must
+    be treated as unavailable, not free.
     """
     if not scraping_result:
         return {}
@@ -181,6 +185,26 @@ def _build_events_by_club(scraping_result: dict[str, Any] | None) -> dict[str, l
     return result
 
 
+def _build_club_calendar_status(scraping_result: dict[str, Any] | None) -> dict[str, str]:
+    """Reconstruct per-club calendar-evidence status from the Stage 2 checkpoint.
+
+    Mirrors `_build_events_by_club`'s checkpoint access, but with the
+    opposite fail-safe default: a missing checkpoint, a missing
+    `"club_calendar_status"` key, or a club absent from that dict all mean
+    "no trustworthy evidence this run" and must be treated as `"unknown"`
+    by callers -- never as `"known"`/free. This is what prevents a club
+    whose scrape was blocked, skipped, or never configured (e.g. Tønsberg's
+    BookUp calendar in the 2026-09-06 run, issue #262) from silently being
+    scheduled as if its whole calendar were open.
+    """
+    if not scraping_result:
+        return {}
+    raw = scraping_result.get("club_calendar_status", {})
+    if not isinstance(raw, dict):
+        return {}
+    return {str(club): str(value) for club, value in raw.items()}
+
+
 def _make_planner(
     roster: Roster,
     pg_config: dict[str, int],
@@ -195,6 +219,8 @@ def _make_planner(
     max_hosting_days_per_month: int | None = None,
     penalty_hints: dict[str, float] | None = None,
     allow_penalty_hint_relaxation: bool = True,
+    *,
+    club_calendar_status: dict[str, str] | None = None,
 ) -> SeasonPlanner:
     """Construct a :class:`SeasonPlanner` with derived tournament sizing.
 
@@ -221,6 +247,7 @@ def _make_planner(
         max_hosting_deviation=max_hosting_deviation,
         max_hosting_days_per_month=max_hosting_days_per_month,
         events_by_club=events_by_club or None,
+        club_calendar_status=club_calendar_status or None,
         fairness_thresholds=fairness_thresholds or None,
         seed=seed,
         penalty_hints=penalty_hints,

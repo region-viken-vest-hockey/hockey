@@ -53,7 +53,7 @@ from .scraper_credentialed import (
     _try_credentialed_scrape,
 )
 from .fixed_allocation_source import run_fixed_allocation_source
-from .scraper_event_helpers import _events_to_dicts, _group_events_by_club
+from .scraper_event_helpers import _events_to_dicts, _group_events_by_club, _group_club_calendar_status
 from .scraper_forumbooking import _run_forumbooking_scraper
 from .scraper_ical import _run_ical_scraper
 from .scraper_outlook import _run_outlook_scraper, _parse_date_param_calendar, _parse_outlook_calendar
@@ -353,6 +353,7 @@ def run(
         result = {
             "sources": [],
             "events_by_club": {},
+            "club_calendar_status": {},
             "blocked": [],
             "empty_sources": [],
             "cached": [],
@@ -516,9 +517,19 @@ def run(
         end_date=end_date,
     )
 
+    club_calendar_status = _group_club_calendar_status(source_results)
+    # Explicit operator override (issue #262 P0): an operator who has
+    # manually confirmed a club's availability out of band can force it to
+    # "known" even though this run's scrape was blocked/skipped/missing.
+    # Deliberately narrow and opt-in -- absence of a scrape must default to
+    # "unknown", never silently to "free".
+    for club_name in config.get("operator_confirmed_available_clubs", []) or []:
+        club_calendar_status[club_name] = "known"
+
     checkpoint: dict[str, Any] = {
         "sources": source_results,
         "events_by_club": _group_events_by_club(source_results),
+        "club_calendar_status": club_calendar_status,
         "blocked": [b["name"] for b in blocked],
         "empty_sources": [e["name"] for e in empty_sources],
         "cached": cached_names,

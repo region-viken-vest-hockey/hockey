@@ -121,6 +121,7 @@ class SeasonPlanner:
         max_hosting_days_per_month: int | None = None,
         max_month_deviation_ratio: float = 0.5,
         events_by_club: Optional[Dict[str, List[CalendarEvent]]] = None,
+        club_calendar_status: Optional[Dict[str, str]] = None,
         fairness_thresholds: Optional[Dict[str, float]] = None,
         fairness_model: Optional[SeasonFairnessModel] = None,
         date_preferences: Optional[List[DatePreference]] = None,
@@ -181,6 +182,10 @@ class SeasonPlanner:
         self.max_month_deviation_ratio = max_month_deviation_ratio
         self.events_by_club = events_by_club or {}
         self.available_calendar_clubs = set(self.events_by_club.keys())
+        # issue #262 P0: per-club calendar-evidence status ("known"/"unknown"),
+        # threaded from the Stage 2 checkpoint through to slot search so a
+        # missing/blocked scrape is never treated as "entire window free".
+        self.club_calendar_status: Dict[str, str] = dict(club_calendar_status or {})
         self.fairness_thresholds = dict(DEFAULT_FAIRNESS_THRESHOLDS)
         if fairness_thresholds:
             self.fairness_thresholds.update(fairness_thresholds)
