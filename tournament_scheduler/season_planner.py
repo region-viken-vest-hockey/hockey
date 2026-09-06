@@ -129,6 +129,7 @@ class SeasonPlanner:
         seed: Optional[int] = None,
         penalty_hints: Optional[Dict[str, float]] = None,
         allow_penalty_hint_relaxation: bool = True,
+        cheap_baseline: bool = False,
     ):
         self.scheduler = scheduler
         self.roster = roster
@@ -230,6 +231,15 @@ class SeasonPlanner:
         self.date_preferences: List[DatePreference] = date_preferences or []
         self.preferanse_vekt_by_age_group: Dict[str, float] = preferanse_vekt_by_age_group or {}
         self._rng: random.Random = random.Random(seed)
+        # issue #265 P1: the canonical #264 architecture only needs a cheap,
+        # deterministic *feasible* baseline to seed the generic Stage 3 v2
+        # optimizer -- it does not need this planner's own second, globally
+        # optimized date schedule (build_plan scores and picks the better of
+        # two schedules by default; that is redundant work when the v2
+        # optimizer will immediately search the result anyway). Off by
+        # default so any caller not aware of this flag keeps the original,
+        # fuller legacy behavior unchanged.
+        self.cheap_baseline = cheap_baseline
 
     def _team_target_tournament_count(self, team: Team) -> int:
         if team.target_tournament_count is not None:
@@ -284,6 +294,19 @@ class SeasonPlanner:
                 target_counts,
             )
             print(f"[plan] Delt dato-plan klar ({len(scheduled)} turneringer)", flush=True)
+        elif self.cheap_baseline:
+            # issue #265 P1: canonical path -- a feasible greedy schedule is
+            # enough to seed the generic v2 optimizer, so skip building and
+            # scoring a second, globally optimized schedule here.
+            print("[plan] Bygger grov dato-plan (cheap_baseline)...", flush=True)
+            scheduled, _ = self._build_greedy_date_schedule(
+                age_groups,
+                free_dates,
+                season_start_date,
+                season_end_date,
+                target_counts,
+            )
+            print(f"[plan] Grov dato-plan klar ({len(scheduled)} turneringer)", flush=True)
         else:
             print("[plan] Bygger grov dato-plan...", flush=True)
             baseline_scheduled, _ = self._build_greedy_date_schedule(

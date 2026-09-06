@@ -42,10 +42,12 @@ from __future__ import annotations
 
 import math
 import random
+import time
+from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import date
 from itertools import combinations
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .game_generation import generate_round_robin_games
 from .models import Team
@@ -224,8 +226,256 @@ def _objective(
     return total
 
 
+class _SearchState:
+    """Incrementally-maintained objective total + feasibility indexes for the
+    weighted-sum simulated-annealing search in :func:`optimize_candidate`
+    (issue #265 P0).
+
+    Rebuilding :func:`_objective` from scratch and rescanning every slot for
+    a feasibility check on every proposed move dominates Stage 3 v2
+    optimizer runtime on a production-sized season (152 tournaments): most
+    proposed moves touch only two tournaments and two teams. This class
+    tracks the handful of counters/indexes each metric and feasibility check
+    actually depends on (pair counts, per-slot club counts, per-team date
+    multisets, an arena/date occupancy index) and updates only the entries a
+    move touches, so per-step cost scales with the size of the *change*, not
+    with the season size.
+
+    Each ``apply_*`` method mutates the underlying slot(s) exactly like the
+    (now-retired) standalone ``_apply_*`` helpers did, and returns the
+    resulting change in the objective total (already added to
+    :attr:`total`); calling the same method again with the same arguments is
+    still its own inverse, so callers revert a rejected move exactly as
+    before. Host and start-time moves never change :attr:`total` -- neither
+    ``host_club``/``arena``/``start_time`` is an input to :func:`_objective`
+    -- so :meth:`move_host`/:meth:`move_slot_time` only maintain the arena
+    occupancy index, with no objective delta to compute.
+
+    :meth:`full_objective` recomputes :func:`_objective` from the live slot
+    state and is used only to cross-check correctness (see
+    ``tests/test_stage3_optimizer.py``'s incremental-vs-full property tests
+    and the ``debug_reference`` escape hatch below) -- never on the hot path.
+    """
+
+    def __init__(
+        self,
+        slots: List[_Slot],
+        weights_by_age_group: Dict[str, Dict[str, float]],
+    ) -> None:
+        self.slots = slots
+        self.weights_by_age_group = weights_by_age_group
+        self.age_group_by_team: Dict[TeamIdentity, str] = {
+            identity: slot.age_group for slot in slots for identity in slot.team_ids
+        }
+        self.pair_counts: Dict[Tuple[TeamIdentity, TeamIdentity], int] = _pair_counts(slots)
+        self.club_counts_by_slot: List[Dict[str, int]] = []
+        for slot in slots:
+            counts: Dict[str, int] = {}
+            for identity in slot.team_ids:
+                counts[identity[0]] = counts.get(identity[0], 0) + 1
+            self.club_counts_by_slot.append(counts)
+        self.dates_by_team: Dict[TeamIdentity, Counter] = {}
+        for slot in slots:
+            for identity in slot.team_ids:
+                self.dates_by_team.setdefault(identity, Counter())[slot.date] += 1
+        self.arena_date_index: Dict[Tuple[str, date], Set[int]] = {}
+        for index, slot in enumerate(slots):
+            if slot.arena:
+                self.arena_date_index.setdefault((slot.arena, slot.date), set()).add(index)
+
+        total = 0.0
+        for pair, count in self.pair_counts.items():
+            total += self._pair_contribution(pair, count)
+        for slot_index, counts in enumerate(self.club_counts_by_slot):
+            age_group = slots[slot_index].age_group
+            for count in counts.values():
+                total += self._club_contribution(age_group, count)
+        for team in self.dates_by_team:
+            total += self._team_gap_contribution(team)
+        self.total = total
+
+    # -- metric-contribution helpers (pure functions of counts) ------------
+
+    def _weights(self, age_group: str) -> Dict[str, float]:
+        return self.weights_by_age_group.get(age_group, DEFAULT_WEIGHTS)
+
+    def _pair_contribution(self, pair: Tuple[TeamIdentity, TeamIdentity], count: int) -> float:
+        if count <= 0:
+            return 0.0
+        a, b = pair
+        weights = self._weights(self.age_group_by_team.get(a, ""))
+        total = 0.0
+        if count > 1:
+            total += weights["pair_repeat"] * (count - 1) ** 2
+        if a[0] == b[0]:
+            total += weights["same_club_pairing"] * count
+        return total
+
+    def _club_contribution(self, age_group: str, count: int) -> float:
+        if count <= 1:
+            return 0.0
+        return self._weights(age_group)["same_club_cluster"] * (count - 1) ** 2
+
+    def _team_gap_contribution(self, team: TeamIdentity) -> float:
+        counter = self.dates_by_team.get(team)
+        if not counter:
+            return 0.0
+        ordered = sorted(counter.keys())
+        if len(ordered) < 2:
+            return 0.0
+        weights = self._weights(self.age_group_by_team.get(team, ""))
+        total = 0.0
+        for prev, nxt in zip(ordered, ordered[1:]):
+            gap = (nxt - prev).days
+            if gap < 7:
+                total += weights["gap_under_7"]
+            elif gap < 14:
+                total += weights["gap_under_14"]
+        return total
+
+    # -- atomic incremental updates -----------------------------------------
+    #
+    # Each of these mutates exactly one counter/index entry and returns the
+    # resulting change in the objective total. Applying a sequence of these
+    # for one proposed move and summing the returned deltas always equals
+    # (full objective after) - (full objective before), by telescoping --
+    # true regardless of move ordering or shared entities between two slots
+    # (e.g. a team common to both tournaments in a date swap), since each
+    # step's delta is computed from the *current* live state, not a cached
+    # snapshot.
+
+    def _adjust_pair(self, pair: Tuple[TeamIdentity, TeamIdentity], delta_count: int) -> float:
+        old_count = self.pair_counts.get(pair, 0)
+        new_count = old_count + delta_count
+        change = self._pair_contribution(pair, new_count) - self._pair_contribution(pair, old_count)
+        if new_count <= 0:
+            self.pair_counts.pop(pair, None)
+        else:
+            self.pair_counts[pair] = new_count
+        return change
+
+    def _adjust_club(self, slot_index: int, club: str, delta_count: int, age_group: str) -> float:
+        counts = self.club_counts_by_slot[slot_index]
+        old_count = counts.get(club, 0)
+        new_count = old_count + delta_count
+        change = self._club_contribution(age_group, new_count) - self._club_contribution(age_group, old_count)
+        if new_count <= 0:
+            counts.pop(club, None)
+        else:
+            counts[club] = new_count
+        return change
+
+    def _move_team_date(self, team: TeamIdentity, old_date: date, new_date: date) -> float:
+        before = self._team_gap_contribution(team)
+        counter = self.dates_by_team.setdefault(team, Counter())
+        counter[old_date] -= 1
+        if counter[old_date] <= 0:
+            del counter[old_date]
+        counter[new_date] += 1
+        after = self._team_gap_contribution(team)
+        return after - before
+
+    def _reindex_arena(self, index: int, old_arena: Optional[str], old_date: date) -> None:
+        if old_arena:
+            bucket = self.arena_date_index.get((old_arena, old_date))
+            if bucket is not None:
+                bucket.discard(index)
+                if not bucket:
+                    del self.arena_date_index[(old_arena, old_date)]
+        slot = self.slots[index]
+        if slot.arena:
+            self.arena_date_index.setdefault((slot.arena, slot.date), set()).add(index)
+
+    # -- feasibility index reads ---------------------------------------------
+
+    def has_team_on_date(self, team: TeamIdentity, when: date) -> bool:
+        return self.dates_by_team.get(team, {}).get(when, 0) > 0
+
+    def arena_bucket(self, arena: Optional[str], when: date) -> Set[int]:
+        if not arena:
+            return set()
+        return self.arena_date_index.get((arena, when), set())
+
+    # -- move application (mirrors the old standalone _apply_* helpers) ------
+
+    def apply_team_swap(self, slot_a: int, pos_a: int, slot_b: int, pos_b: int) -> float:
+        a, b = self.slots[slot_a], self.slots[slot_b]
+        team_a = a.team_ids[pos_a]
+        team_b = b.team_ids[pos_b]
+        delta = 0.0
+
+        for i, other in enumerate(a.team_ids):
+            if i == pos_a:
+                continue
+            delta += self._adjust_pair(tuple(sorted((team_a, other))), -1)
+            delta += self._adjust_pair(tuple(sorted((team_b, other))), 1)
+        for i, other in enumerate(b.team_ids):
+            if i == pos_b:
+                continue
+            delta += self._adjust_pair(tuple(sorted((team_b, other))), -1)
+            delta += self._adjust_pair(tuple(sorted((team_a, other))), 1)
+
+        delta += self._adjust_club(slot_a, team_a[0], -1, a.age_group)
+        delta += self._adjust_club(slot_a, team_b[0], 1, a.age_group)
+        delta += self._adjust_club(slot_b, team_b[0], -1, b.age_group)
+        delta += self._adjust_club(slot_b, team_a[0], 1, b.age_group)
+
+        if a.date != b.date:
+            delta += self._move_team_date(team_a, a.date, b.date)
+            delta += self._move_team_date(team_b, b.date, a.date)
+
+        a.team_ids[pos_a], b.team_ids[pos_b] = team_b, team_a
+        a.changed = True
+        b.changed = True
+        self.total += delta
+        return delta
+
+    def apply_date_swap(self, slot_a: int, slot_b: int) -> float:
+        a, b = self.slots[slot_a], self.slots[slot_b]
+        old_a_date, old_b_date = a.date, b.date
+        delta = 0.0
+        for team in a.team_ids:
+            delta += self._move_team_date(team, old_a_date, old_b_date)
+        for team in b.team_ids:
+            delta += self._move_team_date(team, old_b_date, old_a_date)
+
+        a.date, b.date = old_b_date, old_a_date
+        self._reindex_arena(slot_a, a.arena, old_a_date)
+        self._reindex_arena(slot_b, b.arena, old_b_date)
+        a.date_changed = True
+        b.date_changed = True
+        self.total += delta
+        return delta
+
+    def move_host(self, index: int, new_host: str, new_arena: Optional[str]) -> None:
+        # Host/arena are not inputs to _objective (only team_ids/dates are),
+        # so a host move never changes the objective total -- only the arena
+        # occupancy index needs to move with it.
+        slot = self.slots[index]
+        old_arena, old_date = slot.arena, slot.date
+        slot.host_club = new_host
+        slot.arena = new_arena
+        slot.host_changed = True
+        self._reindex_arena(index, old_arena, old_date)
+
+    def move_slot_time(self, index: int, new_time: str) -> None:
+        # start_time is likewise not an _objective input; no arena/date
+        # index change either, since arena and date are unchanged.
+        slot = self.slots[index]
+        slot.start_time = new_time
+        slot.start_time_changed = True
+
+    def full_objective(
+        self,
+        base_weights: Dict[str, float],
+        per_age_group: Optional[Dict[str, Dict[str, float]]] = None,
+    ) -> float:
+        """Reference recomputation from live slot state (debug/test only)."""
+        return _objective(self.slots, base_weights, per_age_group)
+
+
 def _candidate_swaps(
-    slots: List[_Slot], rng: random.Random
+    slots: List[_Slot], rng: random.Random, by_age_group: Optional[Dict[str, List[int]]] = None
 ) -> Optional[Tuple[int, int, int, int]]:
     """Pick a random pair of (slot_index, team_position) to swap.
 
@@ -233,11 +483,22 @@ def _candidate_swaps(
     group). Only considers swaps between two *different* tournaments in the
     same age group, since participation targets and roster sizes are only
     meaningful to preserve within an age group.
+
+    *by_age_group* (issue #265 P0: "candidate generation does not rebuild
+    age-group slot lists on every move") lets a caller doing many proposals
+    in a row (:func:`optimize_candidate`'s search loop) pass in the
+    slot-index-by-age-group grouping once -- which slot belongs to which age
+    group, and whether it has any teams, never changes over the course of a
+    team-swap/date-swap search, only *which* teams occupy a slot does -- so
+    rebuilding it from a full scan of *slots* on every step is pure waste.
+    Rebuilt from *slots* when omitted, preserving the original standalone
+    behavior for other callers (e.g. :func:`_search_group_bounded`).
     """
-    by_age_group: Dict[str, List[int]] = {}
-    for index, slot in enumerate(slots):
-        if slot.team_ids:
-            by_age_group.setdefault(slot.age_group, []).append(index)
+    if by_age_group is None:
+        by_age_group = {}
+        for index, slot in enumerate(slots):
+            if slot.team_ids:
+                by_age_group.setdefault(slot.age_group, []).append(index)
 
     candidates = [indices for indices in by_age_group.values() if len(indices) >= 2]
     if not candidates:
@@ -249,7 +510,14 @@ def _candidate_swaps(
     return slot_a, pos_a, slot_b, pos_b
 
 
-def _swap_is_valid(slots: List[_Slot], slot_a: int, pos_a: int, slot_b: int, pos_b: int) -> bool:
+def _swap_is_valid(
+    slots: List[_Slot],
+    slot_a: int,
+    pos_a: int,
+    slot_b: int,
+    pos_b: int,
+    state: Optional["_SearchState"] = None,
+) -> bool:
     a, b = slots[slot_a], slots[slot_b]
     team_a = a.team_ids[pos_a]
     team_b = b.team_ids[pos_b]
@@ -260,13 +528,23 @@ def _swap_is_valid(slots: List[_Slot], slot_a: int, pos_a: int, slot_b: int, pos
         return False
     # Neither team may end up double-booked on the other tournament's date.
     if a.date != b.date:
-        for slot in slots:
-            if slot is a or slot is b:
-                continue
-            if slot.date == b.date and team_a in slot.team_ids:
+        if state is not None:
+            # issue #265 P0: O(1) index lookups instead of scanning every
+            # other slot for a date collision -- team_a/team_b's own current
+            # participation dates already include any other tournament they
+            # play on the target date, if one exists.
+            if state.has_team_on_date(team_a, b.date):
                 return False
-            if slot.date == a.date and team_b in slot.team_ids:
+            if state.has_team_on_date(team_b, a.date):
                 return False
+        else:
+            for slot in slots:
+                if slot is a or slot is b:
+                    continue
+                if slot.date == b.date and team_a in slot.team_ids:
+                    return False
+                if slot.date == a.date and team_b in slot.team_ids:
+                    return False
     return True
 
 
@@ -277,17 +555,25 @@ def _apply_swap(slots: List[_Slot], slot_a: int, pos_a: int, slot_b: int, pos_b:
     b.changed = True
 
 
-def _date_swap_candidates(slots: List[_Slot], rng: random.Random) -> Optional[Tuple[int, int]]:
+def _date_swap_candidates(
+    slots: List[_Slot], rng: random.Random, by_age_group: Optional[Dict[str, List[int]]] = None
+) -> Optional[Tuple[int, int]]:
     """Pick two same-age-group slots with different dates to swap dates between.
 
     Only the ``date`` moves; each slot keeps its own arena, host and teams,
     so this move never changes opponent pairings or same-club clustering —
     it only reshuffles *when* a tournament happens, which is what turnaround
     spacing depends on.
+
+    *by_age_group* (issue #265 P0): same precomputed-once grouping as
+    :func:`_candidate_swaps` -- slot-to-age-group membership is static
+    across a search, so a caller doing repeated proposals should pass it in
+    rather than rebuilding it from a full scan of *slots* every step.
     """
-    by_age_group: Dict[str, List[int]] = {}
-    for index, slot in enumerate(slots):
-        by_age_group.setdefault(slot.age_group, []).append(index)
+    if by_age_group is None:
+        by_age_group = {}
+        for index, slot in enumerate(slots):
+            by_age_group.setdefault(slot.age_group, []).append(index)
 
     candidates = [indices for indices in by_age_group.values() if len(indices) >= 2]
     if not candidates:
@@ -299,9 +585,36 @@ def _date_swap_candidates(slots: List[_Slot], rng: random.Random) -> Optional[Tu
     return slot_a, slot_b
 
 
-def _date_swap_is_valid(slots: List[_Slot], slot_a: int, slot_b: int) -> bool:
+def _date_swap_is_valid(
+    slots: List[_Slot], slot_a: int, slot_b: int, state: Optional["_SearchState"] = None
+) -> bool:
     a, b = slots[slot_a], slots[slot_b]
     new_a_date, new_b_date = b.date, a.date
+
+    if state is not None:
+        # issue #265 P0: arena-bucket + per-team-date-index lookups instead
+        # of scanning every other slot in the season.
+        occupants_a = state.arena_bucket(a.arena, new_a_date) - {slot_a, slot_b}
+        if a.arena and occupants_a:
+            return False
+        occupants_b = state.arena_bucket(b.arena, new_b_date) - {slot_a, slot_b}
+        if b.arena and occupants_b:
+            return False
+        # A team that happens to play in *both* a and b (roster membership
+        # is unchanged by a date swap) still ends up on the same two dates
+        # either way -- exclude b's/a's own membership from the collision
+        # check, matching the original "skip slot a/b themselves" scan.
+        if any(
+            state.has_team_on_date(team, new_a_date) and team not in b.team_ids
+            for team in a.team_ids
+        ):
+            return False
+        if any(
+            state.has_team_on_date(team, new_b_date) and team not in a.team_ids
+            for team in b.team_ids
+        ):
+            return False
+        return True
 
     for slot in slots:
         if slot is a or slot is b:
@@ -342,6 +655,7 @@ def _interval_overlaps(
     check_date: date,
     start_time: Optional[str],
     duration_minutes: int,
+    state: Optional["_SearchState"] = None,
 ) -> bool:
     """True if (arena, check_date, [start_time, start_time+duration)) overlaps
     any other slot's own arena/date/time interval.
@@ -352,15 +666,21 @@ def _interval_overlaps(
     hall at overlapping times" check the deterministic verifier
     (``planning_contract.verify_candidate`` via ``arena_conflicts``) already
     enforces at the end of a search.
+
+    When *state* is given (issue #265 P0), only the small bucket of slots
+    already sharing this exact (arena, date) is scanned -- typically one or
+    two tournaments -- instead of every slot in the season.
     """
     if not arena or not start_time or duration_minutes <= 0:
         return False
     new_start = _time_to_minutes(start_time)
     new_end = new_start + duration_minutes
-    for i, other in enumerate(slots):
+    candidates = state.arena_bucket(arena, check_date) if state is not None else range(len(slots))
+    for i in candidates:
         if i == index:
             continue
-        if other.arena != arena or other.date != check_date:
+        other = slots[i]
+        if state is None and (other.arena != arena or other.date != check_date):
             continue
         if not other.start_time or other.duration_minutes <= 0:
             continue
@@ -399,6 +719,7 @@ def _host_move_is_valid(
     new_host: str,
     club_arenas: Dict[str, str],
     club_calendar_status: Dict[str, str],
+    state: Optional["_SearchState"] = None,
 ) -> bool:
     # issue #262 P0: a club with no trustworthy calendar evidence this run
     # must never be handed hosting duty by the search either.
@@ -408,14 +729,9 @@ def _host_move_is_valid(
     if not new_arena:
         return False
     slot = slots[index]
-    return not _interval_overlaps(slots, index, new_arena, slot.date, slot.start_time, slot.duration_minutes)
-
-
-def _apply_host_move(slots: List[_Slot], index: int, new_host: str, club_arenas: Dict[str, str]) -> None:
-    slot = slots[index]
-    slot.host_club = new_host
-    slot.arena = club_arenas.get(new_host, slot.arena)
-    slot.host_changed = True
+    return not _interval_overlaps(
+        slots, index, new_arena, slot.date, slot.start_time, slot.duration_minutes, state
+    )
 
 
 def _slot_time_move_candidates(slots: List[_Slot], rng: random.Random) -> Optional[Tuple[int, str]]:
@@ -431,15 +747,11 @@ def _slot_time_move_candidates(slots: List[_Slot], rng: random.Random) -> Option
     return index, rng.choice(candidates)
 
 
-def _slot_time_move_is_valid(slots: List[_Slot], index: int, new_time: str) -> bool:
+def _slot_time_move_is_valid(
+    slots: List[_Slot], index: int, new_time: str, state: Optional["_SearchState"] = None
+) -> bool:
     slot = slots[index]
-    return not _interval_overlaps(slots, index, slot.arena, slot.date, new_time, slot.duration_minutes)
-
-
-def _apply_slot_time_move(slots: List[_Slot], index: int, new_time: str) -> None:
-    slot = slots[index]
-    slot.start_time = new_time
-    slot.start_time_changed = True
+    return not _interval_overlaps(slots, index, slot.arena, slot.date, new_time, slot.duration_minutes, state)
 
 
 def _rebuild_tournament(slot: _Slot) -> Dict[str, Any]:
@@ -494,6 +806,7 @@ def optimize_candidate(
     date_swap_probability: float = 0.3,
     move_hosts: bool = False,
     move_slots: bool = False,
+    plateau_iterations: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Locally optimize *candidate* by reassigning teams to its existing tournament slots.
 
@@ -538,14 +851,36 @@ def optimize_candidate(
     (*date_swap_probability*); when more than one is enabled, the move kind
     attempted each such step is chosen uniformly at random among them.
 
+    The search stops early once it plateaus -- no improvement to the
+    best-ever score for *plateau_iterations* consecutive proposals (default
+    ``max(500, 50 * number of slots)``) -- rather than always consuming the
+    full *iterations* budget on an already-converged season (issue #265 P0:
+    "make search budget adaptive instead of blindly consuming iterations").
+    ``result["source"]["search_summary"]`` records why the search stopped
+    and how many moves were attempted/valid/accepted/improving;
+    ``result["source"]["timings"]`` records wall-clock phase durations
+    (issue #265 P0 instrumentation).
+
+    Per-step objective/feasibility evaluation is incremental (see
+    :class:`_SearchState`): a proposed move's score delta and validity are
+    computed from indexes covering only the entities that move touches, not
+    by rescanning/rebuilding the whole season, so cost scales with the
+    season size only once (index construction), not on every step.
+
     Deterministic for a given *seed*. Returns a new candidate dict; does not
     mutate *candidate*.
     """
+    timings: Dict[str, float] = {}
+    t_start = time.perf_counter()
+
     resolved_weights = dict(DEFAULT_WEIGHTS)
     if weights:
         resolved_weights.update(weights)
 
+    t0 = time.perf_counter()
     slots, untouched = _build_slots(candidate, problem)
+    timings["baseline_construction"] = time.perf_counter() - t0
+
     rng = random.Random(seed)
 
     if not slots or iterations <= 0:
@@ -562,109 +897,158 @@ def optimize_candidate(
     if move_slots:
         special_moves.append("slot_time")
 
-    current_score = _objective(slots, resolved_weights, per_age_group_weights)
+    t0 = time.perf_counter()
+    weights_by_age_group: Dict[str, Dict[str, float]] = {
+        age_group: _resolve_weights(resolved_weights, per_age_group_weights, age_group)
+        for age_group in {slot.age_group for slot in slots}
+    }
+    state = _SearchState(slots, weights_by_age_group)
+    # issue #265 P0: slot-to-age-group membership is static across the
+    # search (only *which teams* occupy a slot changes), so build it once
+    # instead of rescanning every slot on every proposal.
+    by_age_group: Dict[str, List[int]] = {}
+    for index, slot in enumerate(slots):
+        if slot.team_ids:
+            by_age_group.setdefault(slot.age_group, []).append(index)
+    date_swap_by_age_group: Dict[str, List[int]] = {}
+    for index, slot in enumerate(slots):
+        date_swap_by_age_group.setdefault(slot.age_group, []).append(index)
+    timings["index_construction"] = time.perf_counter() - t0
+
+    initial_score = state.total
+    current_score = state.total
     best_score = current_score
 
-    for step in range(iterations):
+    plateau_limit = plateau_iterations if plateau_iterations is not None else max(500, 50 * len(slots))
+    since_improvement = 0
+    stop_reason = "max_iterations"
+    attempted = 0
+    valid_moves = 0
+    accepted_moves = 0
+    improved_moves = 0
+
+    def _consider(delta: float, step: int) -> bool:
+        nonlocal current_score, best_score, since_improvement
+        temperature = max(1e-6, 1.0 - step / iterations)
+        accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
+        if accept:
+            current_score += delta
+            if current_score < best_score - 1e-9:
+                best_score = current_score
+                since_improvement = 0
+        return accept
+
+    t0 = time.perf_counter()
+    step = 0
+    while step < iterations:
+        if since_improvement >= plateau_limit:
+            stop_reason = "plateau"
+            break
+
+        # issue #265 P0: counts every proposal attempt, valid or not, toward
+        # the plateau window -- "no accepted material improvement for N
+        # proposals" (not just N *valid* proposals), so a run stuck
+        # generating mostly-infeasible moves still stops promptly rather
+        # than silently burning the rest of the iteration budget.
+        since_improvement += 1
+        attempted += 1
         try_special = bool(special_moves) and rng.random() < date_swap_probability
         if try_special:
             kind = rng.choice(special_moves)
 
             if kind == "date":
-                date_move = _date_swap_candidates(slots, rng)
-                if date_move is None or not _date_swap_is_valid(slots, *date_move):
+                date_move = _date_swap_candidates(slots, rng, date_swap_by_age_group)
+                if date_move is None or not _date_swap_is_valid(slots, *date_move, state=state):
+                    step += 1
                     continue
+                valid_moves += 1
                 slot_a, slot_b = date_move
-                _apply_date_swap(slots, slot_a, slot_b)
-                new_score = _objective(slots, resolved_weights, per_age_group_weights)
-                delta = new_score - current_score
-                temperature = max(1e-6, 1.0 - step / iterations)
-                accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
-                if accept:
-                    current_score = new_score
-                    best_score = min(best_score, new_score)
+                delta = state.apply_date_swap(slot_a, slot_b)
+                if _consider(delta, step):
+                    accepted_moves += 1
+                    if delta < -1e-9:
+                        improved_moves += 1
                 else:
                     # Revert: swapping the same pair of dates back is its own inverse.
-                    _apply_date_swap(slots, slot_a, slot_b)
+                    state.apply_date_swap(slot_a, slot_b)
+                step += 1
                 continue
 
             if kind == "host":
                 host_move = _host_move_candidates(slots, rng)
                 if host_move is None:
+                    step += 1
                     continue
                 index, new_host = host_move
-                if not _host_move_is_valid(slots, index, new_host, club_arenas, club_calendar_status):
+                if not _host_move_is_valid(slots, index, new_host, club_arenas, club_calendar_status, state):
+                    step += 1
                     continue
-                old_host, old_arena, old_changed = slots[index].host_club, slots[index].arena, slots[index].host_changed
-                _apply_host_move(slots, index, new_host, club_arenas)
-                new_score = _objective(slots, resolved_weights, per_age_group_weights)
-                delta = new_score - current_score
-                temperature = max(1e-6, 1.0 - step / iterations)
-                accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
-                if accept:
-                    current_score = new_score
-                    best_score = min(best_score, new_score)
-                else:
-                    slots[index].host_club = old_host
-                    slots[index].arena = old_arena
-                    slots[index].host_changed = old_changed
+                valid_moves += 1
+                old_host, old_arena = slots[index].host_club, slots[index].arena
+                new_arena = club_arenas.get(new_host, old_arena)
+                state.move_host(index, new_host, new_arena)
+                # Host/arena are not _objective inputs, so this move never
+                # changes the score -- always "accept" (matches the prior
+                # delta<=0 SA rule, which always accepted a zero delta) and
+                # skip the temperature/acceptance machinery entirely.
+                accepted_moves += 1
+                step += 1
                 continue
 
             if kind == "slot_time":
                 slot_move = _slot_time_move_candidates(slots, rng)
                 if slot_move is None:
+                    step += 1
                     continue
                 index, new_time = slot_move
-                if not _slot_time_move_is_valid(slots, index, new_time):
+                if not _slot_time_move_is_valid(slots, index, new_time, state):
+                    step += 1
                     continue
-                old_time, old_changed = slots[index].start_time, slots[index].start_time_changed
-                _apply_slot_time_move(slots, index, new_time)
-                new_score = _objective(slots, resolved_weights, per_age_group_weights)
-                delta = new_score - current_score
-                temperature = max(1e-6, 1.0 - step / iterations)
-                accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
-                if accept:
-                    current_score = new_score
-                    best_score = min(best_score, new_score)
-                else:
-                    slots[index].start_time = old_time
-                    slots[index].start_time_changed = old_changed
+                valid_moves += 1
+                state.move_slot_time(index, new_time)
+                # start_time is likewise not an _objective input.
+                accepted_moves += 1
+                step += 1
                 continue
 
-        move = _candidate_swaps(slots, rng)
+        move = _candidate_swaps(slots, rng, by_age_group)
         if move is None:
             # With a special move enabled, one may still be possible even
             # when no team swap is (e.g. single-team-per-tournament age
             # groups), so don't give up on the whole search — just skip
             # this step's team-swap attempt.
             if special_moves:
+                step += 1
                 continue
+            stop_reason = "no_moves_possible"
             break
         slot_a, pos_a, slot_b, pos_b = move
-        if not _swap_is_valid(slots, slot_a, pos_a, slot_b, pos_b):
+        if not _swap_is_valid(slots, slot_a, pos_a, slot_b, pos_b, state):
+            step += 1
             continue
+        valid_moves += 1
 
-        _apply_swap(slots, slot_a, pos_a, slot_b, pos_b)
-        new_score = _objective(slots, resolved_weights, per_age_group_weights)
-        delta = new_score - current_score
-
-        temperature = max(1e-6, 1.0 - step / iterations)
-        accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
-
-        if accept:
-            current_score = new_score
-            best_score = min(best_score, new_score)
+        delta = state.apply_team_swap(slot_a, pos_a, slot_b, pos_b)
+        if _consider(delta, step):
+            accepted_moves += 1
+            if delta < -1e-9:
+                improved_moves += 1
         else:
             # Revert: swapping the same pair back is its own inverse.
-            _apply_swap(slots, slot_a, pos_a, slot_b, pos_b)
+            state.apply_team_swap(slot_a, pos_a, slot_b, pos_b)
+        step += 1
 
-    initial_score = _objective(_build_slots(candidate, problem)[0], resolved_weights, per_age_group_weights)
+    timings["search"] = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
     rebuilt_tournaments = [
         _rebuild_tournament(slot)
         if (slot.changed or slot.date_changed or slot.host_changed or slot.start_time_changed)
         else slot.tournament
         for slot in slots
     ]
+    timings["candidate_rebuild"] = time.perf_counter() - t0
+    timings["total"] = time.perf_counter() - t_start
 
     result = dict(candidate)
     result["schema_version"] = candidate.get("schema_version", CANDIDATE_SCHEMA_VERSION)
@@ -681,6 +1065,17 @@ def optimize_candidate(
         "move_dates": move_dates,
         "move_hosts": move_hosts,
         "move_slots": move_slots,
+        "timings": timings,
+        "search_summary": {
+            "iterations_budget": iterations,
+            "iterations_consumed": step,
+            "stop_reason": stop_reason,
+            "attempted_moves": attempted,
+            "valid_moves": valid_moves,
+            "accepted_moves": accepted_moves,
+            "improved_moves": improved_moves,
+            "plateau_iterations": plateau_limit,
+        },
     }
     return result
 

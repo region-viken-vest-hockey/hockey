@@ -1647,6 +1647,12 @@ def _run_stage3(
             merged_cfg["allow_penalty_hint_relaxation"] = not judge_configured
             if judge_configured:
                 log_fn("Stage 3: penalty-hint threshold relaxation disabled (headless judge configured)")
+            # issue #265 P1: on the canonical decision-driven path, the v2
+            # optimizer (stage3_optimizer) will search this baseline anyway,
+            # so SeasonPlanner only needs to produce a cheap feasible seed --
+            # not its own second, globally optimized date schedule. Legacy
+            # no-judge runs keep the fuller behavior unchanged.
+            merged_cfg.setdefault("stage3_cheap_baseline", judge_configured)
             if penalty_hints:
                 merged_cfg["penalty_hints"] = dict(penalty_hints)
                 hint_display = ", ".join(f"{k}={v}" for k, v in penalty_hints.items())
@@ -2806,6 +2812,17 @@ def _cmd_run(args: argparse.Namespace) -> int:
     # When the plan verdict tone is 'rough', attempt automated improvements by
     # applying critic-guided swap suggestions and re-running Stage 4 export.
     # This is a best-effort step — failures here do not abort the pipeline.
+    #
+    # issue #265 P1 ("Stage 4 should export, not plan") flagged this loop as
+    # a candidate for removal from the canonical decision-driven path, but
+    # it is already judge-consulted here (_decide_continue_refinement calls
+    # the same headless judge before falling back to the tone-bucket gate —
+    # issue #260 Phase 4) and tests assert the judge is called for exactly
+    # this continue-decision on a headless run
+    # (test_judge_called_three_times_when_all_proceed et al.). Disabling it
+    # outright on the judge-configured path would remove a decision the
+    # canonical architecture already routes through the judge, not bypass
+    # it, so this is left as a scoped follow-up rather than changed here.
     if not run_failed:
         plan, refinement_calendars, _ = _run_refinement_and_reexport(args, plan, state, strict, _log, resume_from)
         if refinement_calendars:

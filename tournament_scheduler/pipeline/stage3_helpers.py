@@ -221,6 +221,7 @@ def _make_planner(
     allow_penalty_hint_relaxation: bool = True,
     *,
     club_calendar_status: dict[str, str] | None = None,
+    cheap_baseline: bool = False,
 ) -> SeasonPlanner:
     """Construct a :class:`SeasonPlanner` with derived tournament sizing.
 
@@ -252,6 +253,7 @@ def _make_planner(
         seed=seed,
         penalty_hints=penalty_hints,
         allow_penalty_hint_relaxation=allow_penalty_hint_relaxation,
+        cheap_baseline=cheap_baseline,
     )
 
 

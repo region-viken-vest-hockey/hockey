@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import random
+
+import pytest
+
 from tournament_scheduler.planning_contract import score_candidate, verify_candidate
 from tournament_scheduler.stage3_optimizer import optimize_candidate
 
@@ -367,3 +371,146 @@ class TestMoveSlots:
         a = optimize_candidate(candidate, problem, iterations=300, seed=3, move_slots=True)
         b = optimize_candidate(candidate, problem, iterations=300, seed=3, move_slots=True)
         assert a["tournaments"] == b["tournaments"]
+
+
+class TestSearchStateIncrementalMatchesFullRecompute:
+    """issue #265 P0 acceptance: "Delta score/state is bit-for-bit or
+    tolerance-equivalent to recomputing the reference objective" and
+    "Property/regression tests compare incremental state against full
+    recomputation over randomized move sequences." """
+
+    @staticmethod
+    def _season_candidate(rng: random.Random) -> dict:
+        """A season with several age groups, each with enough
+        tournaments/teams that a team plays in several tournaments across
+        the season -- this is what exercises the "a team is a member of
+        both slots in this move" telescoping edge cases in
+        :class:`tournament_scheduler.stage3_optimizer._SearchState`."""
+        tournaments = []
+        base_index = 0
+        for age_group, n_teams, n_tournaments, roster_size in [
+            ("U10", 8, 6, 4),
+            ("U12", 6, 5, 3),
+            ("U14", 5, 4, 4),
+        ]:
+            clubs = [f"Club{age_group}{i}" for i in range(n_teams)]
+            teams = [_team(clubs[i], f"{clubs[i]}-{age_group}", age_group) for i in range(n_teams)]
+            for t_index in range(n_tournaments):
+                roster = rng.sample(teams, k=min(roster_size, len(teams)))
+                base_index += 1
+                tournaments.append(
+                    _tournament(
+                        f"t{base_index}",
+                        f"2026-{1 + (base_index % 9):02d}-{1 + (base_index % 27):02d}",
+                        f"Arena{base_index % 4}",
+                        age_group,
+                        roster,
+                    )
+                )
+        return {"schema_version": 1, "tournaments": tournaments}
+
+    def test_incremental_team_swaps_match_full_objective(self):
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _SearchState,
+            _build_slots,
+            _candidate_swaps,
+            _resolve_weights,
+            _swap_is_valid,
+        )
+
+        rng = random.Random(7)
+        candidate = self._season_candidate(rng)
+        slots, _ = _build_slots(candidate, None)
+        weights_by_age_group = {
+            slot.age_group: _resolve_weights(DEFAULT_WEIGHTS, None, slot.age_group) for slot in slots
+        }
+        state = _SearchState(slots, weights_by_age_group)
+        assert state.total == state.full_objective(DEFAULT_WEIGHTS)
+
+        for _ in range(300):
+            move = _candidate_swaps(slots, rng)
+            if move is None:
+                continue
+            slot_a, pos_a, slot_b, pos_b = move
+            if not _swap_is_valid(slots, slot_a, pos_a, slot_b, pos_b, state):
+                continue
+            state.apply_team_swap(slot_a, pos_a, slot_b, pos_b)
+            assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+
+            # Revert (self-inverse) should also match exactly.
+            state.apply_team_swap(slot_a, pos_a, slot_b, pos_b)
+            assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+
+    def test_incremental_date_swaps_match_full_objective(self):
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _SearchState,
+            _build_slots,
+            _date_swap_candidates,
+            _date_swap_is_valid,
+            _resolve_weights,
+        )
+
+        rng = random.Random(11)
+        candidate = self._season_candidate(rng)
+        slots, _ = _build_slots(candidate, None)
+        weights_by_age_group = {
+            slot.age_group: _resolve_weights(DEFAULT_WEIGHTS, None, slot.age_group) for slot in slots
+        }
+        state = _SearchState(slots, weights_by_age_group)
+
+        for _ in range(300):
+            move = _date_swap_candidates(slots, rng)
+            if move is None:
+                continue
+            slot_a, slot_b = move
+            if not _date_swap_is_valid(slots, slot_a, slot_b, state):
+                continue
+            state.apply_date_swap(slot_a, slot_b)
+            assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+            state.apply_date_swap(slot_a, slot_b)  # revert
+            assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+
+    def test_incremental_matches_full_objective_with_shared_teams_across_slots(self):
+        """A team that plays in *both* tournaments being swapped/date-swapped
+        (issue #265 P0's telescoping-sum correctness argument) must not
+        throw off the incremental total."""
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _SearchState,
+            _build_slots,
+            _date_swap_is_valid,
+            _resolve_weights,
+            _swap_is_valid,
+        )
+
+        shared = _team("SharedClub", "Shared-U10", "U10")
+        other_a = [_team("A1", "A1-U10", "U10"), _team("A2", "A2-U10", "U10")]
+        other_b = [_team("B1", "B1-U10", "U10"), _team("B2", "B2-U10", "U10")]
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("ta", "2026-01-05", "ArenaA", "U10", [shared, *other_a]),
+                _tournament("tb", "2026-02-04", "ArenaB", "U10", [shared, *other_b]),
+            ],
+        }
+        slots, _ = _build_slots(candidate, None)
+        weights_by_age_group = {"U10": _resolve_weights(DEFAULT_WEIGHTS, None, "U10")}
+        state = _SearchState(slots, weights_by_age_group)
+        assert state.total == state.full_objective(DEFAULT_WEIGHTS)
+
+        # Date swap: both slots share `shared` as a common team.
+        assert _date_swap_is_valid(slots, 0, 1, state)
+        state.apply_date_swap(0, 1)
+        assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+        state.apply_date_swap(0, 1)
+        assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+
+        # Team swap: an "other" team from each slot, with `shared` present
+        # in both slots' rosters throughout.
+        pos_a = slots[0].team_ids.index(("A1", "A1-U10", "U10"))
+        pos_b = slots[1].team_ids.index(("B1", "B1-U10", "U10"))
+        assert _swap_is_valid(slots, 0, pos_a, 1, pos_b, state)
+        state.apply_team_swap(0, pos_a, 1, pos_b)
+        assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)

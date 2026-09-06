@@ -215,6 +215,11 @@ def run(
     # thresholds on the canonical path. Defaults True (legacy behavior
     # unchanged) for any caller that doesn't set it.
     allow_penalty_hint_relaxation = bool(config.get("allow_penalty_hint_relaxation", True))
+    # issue #265 P1: cheap-baseline mode skips SeasonPlanner's redundant
+    # globally-optimized date schedule when only a feasible seed for the v2
+    # optimizer is needed. Defaults False so any caller not setting this key
+    # explicitly (tests, standalone `plan run`) keeps prior behavior.
+    cheap_baseline = bool(config.get("stage3_cheap_baseline", False))
 
     config_fingerprint = stable_payload_sha256(config)
     source_fingerprint = stable_payload_sha256(scraping_result)
@@ -284,6 +289,7 @@ def run(
             penalty_hints=penalty_hints,
             allow_penalty_hint_relaxation=allow_penalty_hint_relaxation,
             club_calendar_status=club_calendar_status,
+            cheap_baseline=cheap_baseline,
         )
         stop_heartbeat = threading.Event()
         heartbeat_started = datetime.now()

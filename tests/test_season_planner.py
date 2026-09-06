@@ -4,6 +4,7 @@ from collections import Counter
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 from typing import Dict
+from unittest.mock import patch
 
 import pytest
 
@@ -811,6 +812,53 @@ class TestOpponentHistoryTrackingAndScoring:
         actual = [(t.date, t.age_group) for t in sorted(plan.tournaments, key=lambda t: (t.date, t.age_group))]
 
         assert actual == optimized
+
+    def test_cheap_baseline_skips_the_global_date_schedule(self):
+        """issue #265 P1: cheap_baseline=True must use the greedy date
+        schedule directly, not build+score a second globally optimized one
+        (which the v2 optimizer would immediately search anyway on the
+        canonical path)."""
+        start, end = datetime(2026, 10, 1), datetime(2027, 4, 30)
+        free_dates = [
+            date(2026, 10, 18),
+            date(2026, 11, 1),
+            date(2026, 11, 21),
+            date(2026, 11, 22),
+            date(2027, 1, 9),
+            date(2027, 1, 30),
+            date(2027, 3, 28),
+            date(2027, 4, 18),
+        ]
+        age_groups = ["U10", "JU11", "U11"]
+        clubs = ["Kongsberg", "Jar", "Skien"]
+        roster = Roster(
+            teams=[
+                Team(club=club, label=f"{club} {age_group}", age_group=age_group)
+                for age_group in age_groups
+                for club in clubs
+            ]
+        )
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in clubs},
+            parallel_games_for_age_group={"U10": 2, "JU11": 3, "U11": 4},
+            seed=0,
+            cheap_baseline=True,
+        )
+        target_counts = {age_group: planner._target_tournaments_for_age_group(age_group) for age_group in age_groups}
+        baseline, _ = planner._build_greedy_date_schedule(
+            age_groups, free_dates, start.date(), end.date(), target_counts
+        )
+
+        with patch.object(
+            SeasonPlanner, "_build_global_date_schedule", side_effect=AssertionError("should not be called")
+        ):
+            plan = planner.build_plan(start, end)
+
+        actual = [(t.date, t.age_group) for t in sorted(plan.tournaments, key=lambda t: (t.date, t.age_group))]
+        expected = sorted(baseline, key=lambda item: (item[0], item[1]))
+        assert actual == expected
 
     def test_repair_date_schedule_can_resolve_a_greedy_overlap(self):
         start, end = datetime(2026, 10, 1), datetime(2026, 11, 30)
