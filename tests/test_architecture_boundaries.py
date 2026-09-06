@@ -1,13 +1,14 @@
 """Static import-boundary checks for issue #262 P1.
 
-The canonical LLM-directed decision path (`stage3_optimizer.py`) must not
-depend on the legacy `SeasonPlanner` baseline generator's heuristic policy
-modules (`participant_selection.py`, `host_assignment.py`) -- those modules
-keep serving `SeasonPlanner` as a baseline/fallback, but their heuristic
-weights/rankings must never silently control the canonical search. This is
-checked via the module's actual `ast` import graph, not a text grep, so a
-future refactor that hides the dependency behind a local/deferred import
-still fails the check.
+The canonical LLM-directed decision path must not depend on the legacy
+`SeasonPlanner` baseline generator's heuristic policy modules
+(`participant_selection.py`, `host_assignment.py`) -- those modules keep
+serving `SeasonPlanner` as a baseline/fallback (`season_planner.py` is the
+one module allowed to import them), but their heuristic weights/rankings
+must never silently control the canonical search, decision, or interactive
+orchestration path. This is checked via each module's actual `ast` import
+graph, not a text grep, so a future refactor that hides the dependency
+behind a local/deferred import still fails the check.
 """
 
 from __future__ import annotations
@@ -17,6 +18,13 @@ import importlib.util
 from pathlib import Path
 
 FORBIDDEN_MODULES = {"participant_selection", "host_assignment"}
+
+CANONICAL_PATH_MODULES = [
+    "tournament_scheduler.stage3_optimizer",
+    "tournament_scheduler.stage3_decision",
+    "tournament_scheduler.pipeline.stage3_planning",
+    "tournament_scheduler.cli.pipeline_orchestrator",
+]
 
 
 def _imported_module_names(path: Path) -> set[str]:
@@ -32,18 +40,34 @@ def _imported_module_names(path: Path) -> set[str]:
     return names
 
 
-def _stage3_optimizer_path() -> Path:
-    spec = importlib.util.find_spec("tournament_scheduler.stage3_optimizer")
-    assert spec and spec.origin
+def _module_path(dotted_name: str) -> Path:
+    spec = importlib.util.find_spec(dotted_name)
+    assert spec and spec.origin, f"could not resolve module {dotted_name!r}"
     return Path(spec.origin)
 
 
 def test_stage3_optimizer_does_not_import_legacy_policy_modules() -> None:
-    imported = _imported_module_names(_stage3_optimizer_path())
+    imported = _imported_module_names(_module_path("tournament_scheduler.stage3_optimizer"))
     forbidden_hits = imported & FORBIDDEN_MODULES
     assert not forbidden_hits, (
         f"stage3_optimizer.py must not import legacy SeasonPlanner policy "
         f"modules {sorted(forbidden_hits)} (issue #262 P1) -- the canonical "
         "LLM-directed path must use deterministic facts, not legacy "
         "heuristic weights/rankings."
+    )
+
+
+def test_canonical_path_modules_do_not_import_legacy_policy_modules() -> None:
+    failures: dict[str, set[str]] = {}
+    for dotted_name in CANONICAL_PATH_MODULES:
+        imported = _imported_module_names(_module_path(dotted_name))
+        forbidden_hits = imported & FORBIDDEN_MODULES
+        if forbidden_hits:
+            failures[dotted_name] = forbidden_hits
+    assert not failures, (
+        "canonical LLM-directed path modules must not import legacy "
+        f"SeasonPlanner policy modules (issue #262 P1): {failures} -- those "
+        "modules may only be reached indirectly through season_planner.py's "
+        "baseline/fallback generation, never from the canonical decision, "
+        "optimizer, planning, or interactive-orchestration path."
     )
