@@ -1,4 +1,14 @@
-"""Participant-selection helpers for `SeasonPlanner`."""
+"""Participant-selection helpers for `SeasonPlanner`.
+
+issue #262 P1: this module is the *legacy* `SeasonPlanner` baseline/fallback
+generator's heuristic policy (fixed weight coefficients for deficit, repeat
+matchups, previous grouping, invite counts, club diversity — see
+`participant_selection_score`). It must not be imported by
+`stage3_optimizer.py` or any other canonical LLM-directed decision path;
+those paths get their own explicit, overridable weights (see
+`stage3_optimizer.DEFAULT_WEIGHTS`) rather than depending on this module's
+baked-in constants. `tests/test_architecture_boundaries.py` enforces this.
+"""
 
 from __future__ import annotations
 
