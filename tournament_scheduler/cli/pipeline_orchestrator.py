@@ -1713,6 +1713,69 @@ def _mid_planning_decision_problem(
         return None
 
 
+def _write_run_evidence_bundle(
+    args: "argparse.Namespace",
+    state: "Any",
+    cfg: "dict[str, Any]",
+    scraping: "dict[str, Any]",
+    start: "Any",
+    end: "Any",
+    plan: "dict[str, Any] | None",
+    log_fn: "Any",
+) -> None:
+    """Write the sanitized per-run provenance/evidence bundle (issue #264 P0)
+    alongside the Stage 4 export, best-effort -- a failure here must never
+    fail or roll back an otherwise-successful export, since the bundle is
+    an audit artifact layered on top of the pipeline, not a dependency of it
+    (same posture as ``_manifest_record``/``_manifest_finalize``).
+    """
+    try:
+        from ..pipeline.evidence_bundle import build_run_evidence_bundle, read_stage3_attempt_log
+        from ..pipeline.run_manifest import RunManifest
+        from ..pipeline.state import StageName
+        from ..planning_contract import extract_candidate, score_candidate, verify_candidate
+
+        manifest = RunManifest(state.work_dir).read()
+        export_checkpoint = state.read_stage(StageName.EXPORT) or {}
+
+        final_candidate = None
+        if plan is not None:
+            try:
+                final_candidate = extract_candidate(plan)
+            except ValueError:
+                final_candidate = None
+
+        problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+        verify_result = verify_candidate(final_candidate, problem) if final_candidate is not None else None
+        score_result = score_candidate(final_candidate) if final_candidate is not None else None
+
+        bundle = build_run_evidence_bundle(
+            run_id=str(manifest.get("run_id") or ""),
+            input_fingerprint=manifest.get("input_fingerprint"),
+            decision_log=manifest.get("decision_log"),
+            scraping_checkpoint=scraping,
+            stage3_attempt_log=read_stage3_attempt_log(state.work_dir),
+            final_candidate=final_candidate,
+            final_verify_result=verify_result,
+            final_score_result=score_result,
+            export_dir=export_checkpoint.get("export_dir"),
+            export_output_files=export_checkpoint.get("output_files"),
+        )
+
+        export_dir = export_checkpoint.get("export_dir")
+        target_dir = Path(export_dir) if export_dir else Path(args.work_dir)
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        import json as _json
+
+        (target_dir / "evidence_bundle.json").write_text(
+            _json.dumps(bundle, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
+        )
+        log_fn(f"Evidence bundle written to {target_dir / 'evidence_bundle.json'}")
+    except Exception as exc:
+        log_fn(f"Could not write run evidence bundle: {exc}")
+
+
 def _plan_attempt_quality_adopts(best_plan: "dict[str, Any]", rerun_plan: "dict[str, Any]") -> bool:
     """Legacy deterministic composite-quality rank comparison.
 
@@ -2241,6 +2304,7 @@ def _emit_stage3_interactive_decision(
     run_id = _current_run_id(state)
     interactive_state = _read_stage3_interactive_state(state, expected_run_id=run_id)
     attempts_used = int(interactive_state.get("attempts_used", 0))
+    problem = _mid_planning_decision_problem(cfg, scraping, start, end)
 
     if attempts_used <= 0 or "best_plan" not in interactive_state:
         # First attempt this run: nothing to compare against yet — auto-
@@ -2281,7 +2345,6 @@ def _emit_stage3_interactive_decision(
         attempts_used += 1
         best_plan = interactive_state["best_plan"]
         best_attempt = interactive_state.get("best_attempt", 1)
-        problem = _mid_planning_decision_problem(cfg, scraping, start, end)
         report = None
         try:
             report = build_ab_report(extract_candidate(best_plan), extract_candidate(plan), problem)
@@ -2325,6 +2388,23 @@ def _emit_stage3_interactive_decision(
 
     interactive_state["last_context"] = context.to_dict()
     _write_stage3_interactive_state(state, interactive_state)
+
+    # issue #264 P0: append this attempt's independently-computed
+    # verify/score evidence to the durable, run-scoped attempt log --
+    # unlike interactive_state above, this survives past apply_candidate/
+    # keep_baseline clearing the pending-decision side-state, so a later
+    # Stage 4 evidence bundle can show every attempt that was tried, not
+    # just the one ultimately selected.
+    try:
+        from ..planning_contract import extract_candidate
+        from ..pipeline.evidence_bundle import append_stage3_attempt_log_entry, build_stage3_attempt_entry
+
+        append_stage3_attempt_log_entry(
+            state.work_dir,
+            build_stage3_attempt_entry(attempt=attempts_used, candidate=extract_candidate(plan), problem=problem),
+        )
+    except Exception as exc:
+        log_fn(f"stage3_interactive attempt {attempts_used}: could not append attempt-log entry: {exc}")
 
     payload = context.to_dict()
     try:
@@ -2428,6 +2508,9 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         # decision_payload, so it never re-triggers this branch.
         _manifest_start_run(args.work_dir, args.input, getattr(args, "objective", None))
         _clear_stage3_interactive_state(state)
+        from ..pipeline.evidence_bundle import clear_stage3_attempt_log
+
+        clear_stage3_attempt_log(state.work_dir)
 
     stage3_search_iterations: int | None = None
     # issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
@@ -2548,6 +2631,8 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     )
     if abort:
         return 1
+    if resume_from <= 4:
+        _write_run_evidence_bundle(args, state, cfg, scraping, start, end, plan, _log)
     return _emit_interactive_decision_context(4, state, args.work_dir)
 
 
@@ -2579,6 +2664,10 @@ def _cmd_run(args: argparse.Namespace) -> int:
         _console.print(f"[dim]Gjenopptar fra Stage {resume_from}[/dim]")
 
     _manifest_start_run(args.work_dir, args.input, getattr(args, "objective", None))
+    _clear_stage3_interactive_state(state)
+    from ..pipeline.evidence_bundle import clear_stage3_attempt_log
+
+    clear_stage3_attempt_log(state.work_dir)
 
     plan: dict[str, Any] | None = None
 
@@ -2875,6 +2964,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
     if not stage4_generated_calendars:
         if _regenerate_calendar(args, _log):
             run_failed = True
+
+    _write_run_evidence_bundle(args, state, cfg, scraping, start, end, plan, _log)
 
     if run_failed or plan_needs_attention:
         _console.print("\n[bold yellow]⚠ Pipeline fullført med feil.[/bold yellow]")

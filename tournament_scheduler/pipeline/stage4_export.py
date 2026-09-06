@@ -817,6 +817,7 @@ def run(
     checkpoint: dict[str, Any] = {
         "generated_at": generated_at,
         "input_path": input_path,
+        "export_dir": str(primary_export_path),
         "output_files": output_files,
         "errors": errors,
         "arena_day_collisions": list(plan.arena_day_collisions or []),

@@ -432,6 +432,85 @@ class TestStage3InteractiveDecisionLoop:
         assert _read_stage3_interactive_state(state) == {}
         assert state.read_stage(StageName.PLANNING) == plan2
 
+    def test_apply_candidate_writes_run_evidence_bundle(self, state, tmp_path):
+        """issue #264 P0: every production export carries an auditable
+        decision/search/verification provenance bundle."""
+        import json as _json
+
+        from tournament_scheduler.cli.pipeline_orchestrator import (
+            _emit_stage3_interactive_decision,
+            _write_stage3_interactive_state,
+        )
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        plan2 = _plan_checkpoint(seed=2)
+        report = build_ab_report(plan1["plan"], plan2["plan"])
+        ab_context = build_stage3_decision_context(
+            report,
+            run_id="",
+            baseline_ref="stage3_interactive:attempt_1",
+            candidate_ref="stage3_interactive:attempt_2",
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 2,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "pending_candidate": plan2,
+                "pending_attempt": 2,
+                "last_context": ab_context.to_dict(),
+            },
+        )
+        # Seed the durable per-attempt log as if _emit_stage3_interactive_decision
+        # had already recorded both attempts during this run.
+        from tournament_scheduler.pipeline.evidence_bundle import (
+            append_stage3_attempt_log_entry,
+            build_stage3_attempt_entry,
+        )
+
+        append_stage3_attempt_log_entry(
+            state.work_dir, build_stage3_attempt_entry(attempt=1, candidate=plan1["plan"], problem=None)
+        )
+        append_stage3_attempt_log_entry(
+            state.work_dir, build_stage3_attempt_entry(attempt=2, candidate=plan2["plan"], problem=None)
+        )
+        state.write_stage(StageName.PLANNING, plan2, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {"action_id": "apply_candidate", "arguments": {"candidate_ref": "stage3_interactive:attempt_2"}}
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan2, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        bundle_path = tmp_path / "evidence_bundle.json"
+        assert bundle_path.exists()
+        bundle = _json.loads(bundle_path.read_text())
+        assert len(bundle["stage3_attempt_log"]) == 2
+        assert bundle["final_candidate"] is not None
+        assert isinstance(bundle["final_verify_result"], dict)
+        assert isinstance(bundle["decision_log"], list)
+
     def test_keep_baseline_restores_best_plan_and_clears_state(self, state, tmp_path):
         from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report
