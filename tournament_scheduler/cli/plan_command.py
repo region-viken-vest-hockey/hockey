@@ -560,6 +560,8 @@ def _execute_optimize_plan(
         per_age_group_weights=per_age_group_weights or None,
         move_dates=bool(action_arguments.get("move_dates", args.move_dates)),
         date_swap_probability=float(action_arguments.get("date_swap_probability", 0.3)),
+        move_hosts=bool(action_arguments.get("move_hosts", False)),
+        move_slots=bool(action_arguments.get("move_slots", False)),
     )
     report = build_ab_report(baseline_candidate, new_candidate, problem)
 

@@ -50,6 +50,19 @@ from typing import Any, Dict, List, Optional, Tuple
 from .game_generation import generate_round_robin_games
 from .models import Team
 from .planning_contract import CANDIDATE_SCHEMA_VERSION, _parse_date, _team_identity
+from .utils.slot_finder import matchday_duration_minutes, parse_time
+
+# Fixed candidate start times for the move_slots search (issue #262 P1).
+# The planning_problem contract does not carry per-time-of-day calendar
+# evidence (only per-club/per-date club_busy_dates), so this move can only
+# search a bounded set of plausible windows and rely on interval-overlap
+# checks against sibling tournaments -- it cannot verify a candidate time
+# against a host's real external bookings the way scheduler.find_arena_slot_for_date
+# does. Mirrors the slot_finder default search window (10:00-15:30).
+_SLOT_TIME_CANDIDATES: Tuple[str, ...] = (
+    "10:00", "10:30", "11:00", "11:30", "12:00",
+    "12:30", "13:00", "13:30", "14:00", "14:30", "15:00",
+)
 
 TeamIdentity = Tuple[str, str, str]
 
@@ -73,8 +86,12 @@ class _Slot:
     parallel_games: int
     arena: Optional[str] = None
     team_ids: List[TeamIdentity] = field(default_factory=list)
+    start_time: Optional[str] = None
+    duration_minutes: int = 0
     changed: bool = False
     date_changed: bool = False
+    host_changed: bool = False
+    start_time_changed: bool = False
 
 
 def _infer_parallel_games(tournament: Dict[str, Any], problem: Optional[Dict[str, Any]]) -> int:
@@ -86,6 +103,19 @@ def _infer_parallel_games(tournament: Dict[str, Any], problem: Optional[Dict[str
     if games:
         return max(g.get("parallel_slot", 0) for g in games) + 1
     return 1
+
+
+def _infer_duration_minutes(tournament: Dict[str, Any], problem: Optional[Dict[str, Any]]) -> int:
+    if not problem:
+        return 0
+    round_length = (problem.get("round_length_minutes") or {}).get(tournament.get("age_group"))
+    if not isinstance(round_length, int) or round_length <= 0:
+        return 0
+    games = tournament.get("games") or []
+    max_round = max((g.get("round_number", 0) for g in games), default=0)
+    if max_round <= 0:
+        return 0
+    return matchday_duration_minutes(round_length, max_round)
 
 
 def _build_slots(
@@ -111,6 +141,8 @@ def _build_slots(
                 parallel_games=_infer_parallel_games(tournament, problem),
                 arena=tournament.get("arena"),
                 team_ids=[_team_identity(t) for t in tournament.get("teams", [])],
+                start_time=tournament.get("start_time"),
+                duration_minutes=_infer_duration_minutes(tournament, problem),
             )
         )
     return slots, untouched
@@ -298,13 +330,132 @@ def _apply_date_swap(slots: List[_Slot], slot_a: int, slot_b: int) -> None:
     b.date_changed = True
 
 
+def _time_to_minutes(time_str: str) -> int:
+    t = parse_time(time_str)
+    return t.hour * 60 + t.minute
+
+
+def _interval_overlaps(
+    slots: List[_Slot],
+    index: int,
+    arena: Optional[str],
+    check_date: date,
+    start_time: Optional[str],
+    duration_minutes: int,
+) -> bool:
+    """True if (arena, check_date, [start_time, start_time+duration)) overlaps
+    any other slot's own arena/date/time interval.
+
+    Shared by :func:`_host_move_is_valid` and :func:`_slot_time_move_is_valid`
+    (issue #262 P1) -- both moves change one of arena/host/start_time for a
+    single slot and need the same hard "no two tournaments occupy the same
+    hall at overlapping times" check the deterministic verifier
+    (``planning_contract.verify_candidate`` via ``arena_conflicts``) already
+    enforces at the end of a search.
+    """
+    if not arena or not start_time or duration_minutes <= 0:
+        return False
+    new_start = _time_to_minutes(start_time)
+    new_end = new_start + duration_minutes
+    for i, other in enumerate(slots):
+        if i == index:
+            continue
+        if other.arena != arena or other.date != check_date:
+            continue
+        if not other.start_time or other.duration_minutes <= 0:
+            continue
+        other_start = _time_to_minutes(other.start_time)
+        other_end = other_start + other.duration_minutes
+        if new_start < other_end and other_start < new_end:
+            return True
+    return False
+
+
+def _host_move_candidates(slots: List[_Slot], rng: random.Random) -> Optional[Tuple[int, str]]:
+    """Pick a slot and an alternative host among its own participating clubs.
+
+    Restricted to clubs already fielding a team in *this* tournament (a
+    deterministic fact from the candidate itself, mirroring the existing
+    "a host must field a team in the age group it hosts" hard invariant) --
+    this is a hosting-fairness/travel move ("prefer a different host this
+    weekend"), not a search over every club in the roster.
+    """
+    eligible: List[int] = []
+    for index, slot in enumerate(slots):
+        clubs = {identity[0] for identity in slot.team_ids}
+        if len(clubs - {slot.host_club}) > 0:
+            eligible.append(index)
+    if not eligible:
+        return None
+    index = rng.choice(eligible)
+    slot = slots[index]
+    candidate_hosts = sorted({identity[0] for identity in slot.team_ids} - {slot.host_club})
+    return index, rng.choice(candidate_hosts)
+
+
+def _host_move_is_valid(
+    slots: List[_Slot],
+    index: int,
+    new_host: str,
+    club_arenas: Dict[str, str],
+    club_calendar_status: Dict[str, str],
+) -> bool:
+    # issue #262 P0: a club with no trustworthy calendar evidence this run
+    # must never be handed hosting duty by the search either.
+    if club_calendar_status and club_calendar_status.get(new_host, "unknown") != "known":
+        return False
+    new_arena = club_arenas.get(new_host)
+    if not new_arena:
+        return False
+    slot = slots[index]
+    return not _interval_overlaps(slots, index, new_arena, slot.date, slot.start_time, slot.duration_minutes)
+
+
+def _apply_host_move(slots: List[_Slot], index: int, new_host: str, club_arenas: Dict[str, str]) -> None:
+    slot = slots[index]
+    slot.host_club = new_host
+    slot.arena = club_arenas.get(new_host, slot.arena)
+    slot.host_changed = True
+
+
+def _slot_time_move_candidates(slots: List[_Slot], rng: random.Random) -> Optional[Tuple[int, str]]:
+    """Pick a slot and an alternative start time from the fixed candidate window."""
+    eligible = [i for i, slot in enumerate(slots) if slot.duration_minutes > 0]
+    if not eligible:
+        return None
+    index = rng.choice(eligible)
+    current = slots[index].start_time
+    candidates = [t for t in _SLOT_TIME_CANDIDATES if t != current]
+    if not candidates:
+        return None
+    return index, rng.choice(candidates)
+
+
+def _slot_time_move_is_valid(slots: List[_Slot], index: int, new_time: str) -> bool:
+    slot = slots[index]
+    return not _interval_overlaps(slots, index, slot.arena, slot.date, new_time, slot.duration_minutes)
+
+
+def _apply_slot_time_move(slots: List[_Slot], index: int, new_time: str) -> None:
+    slot = slots[index]
+    slot.start_time = new_time
+    slot.start_time_changed = True
+
+
 def _rebuild_tournament(slot: _Slot) -> Dict[str, Any]:
-    """Regenerate a slot's ``teams``/``games``/``date`` from search state."""
+    """Regenerate a slot's ``teams``/``games``/``date``/``host_club``/
+    ``arena``/``start_time`` from search state."""
     tournament = dict(slot.tournament)
     if slot.date_changed:
         tournament["date"] = slot.date.isoformat()
+    if slot.start_time_changed:
+        tournament["start_time"] = slot.start_time
+    if slot.host_changed:
+        tournament["host_club"] = slot.host_club
+        if slot.arena:
+            tournament["arena"] = slot.arena
 
-    if not slot.changed:
+    if not (slot.changed or slot.host_changed):
         return tournament
 
     teams = [Team(club=club, label=label, age_group=age_group) for club, label, age_group in slot.team_ids]
@@ -341,6 +492,8 @@ def optimize_candidate(
     per_age_group_weights: Optional[Dict[str, Dict[str, float]]] = None,
     move_dates: bool = False,
     date_swap_probability: float = 0.3,
+    move_hosts: bool = False,
+    move_slots: bool = False,
 ) -> Dict[str, Any]:
     """Locally optimize *candidate* by reassigning teams to its existing tournament slots.
 
@@ -365,6 +518,26 @@ def optimize_candidate(
     Off by default, matching the first optimizer version's "skeleton taken
     as given" behavior.
 
+    When *move_hosts* is true (issue #262 P1), the search also considers
+    reassigning a tournament's host club to another club already fielding a
+    team in that same tournament (a deterministic fact, not a heuristic
+    ranking — see :func:`_host_move_candidates`), rejecting any club whose
+    calendar status (``problem["club_calendar_status"]``) is not
+    ``"known"`` and any move that would double-book the new host's arena.
+
+    When *move_slots* is true (issue #262 P1), the search also considers
+    reassigning a tournament's start time among a fixed set of candidate
+    windows (see :data:`_SLOT_TIME_CANDIDATES`), rejecting any move that
+    would double-book its arena. The planning_problem contract does not
+    carry per-time external calendar evidence, so this move only checks
+    for conflicts against sibling tournaments in the same candidate, not a
+    host's real external bookings.
+
+    *move_dates*/*move_hosts*/*move_slots* each add to the same per-step
+    "try a special move instead of a team swap" probability
+    (*date_swap_probability*); when more than one is enabled, the move kind
+    attempted each such step is chosen uniformly at random among them.
+
     Deterministic for a given *seed*. Returns a new candidate dict; does not
     mutate *candidate*.
     """
@@ -378,36 +551,93 @@ def optimize_candidate(
     if not slots or iterations <= 0:
         return dict(candidate)
 
+    club_arenas: Dict[str, str] = dict((problem or {}).get("clubs") or {})
+    club_calendar_status: Dict[str, str] = dict((problem or {}).get("club_calendar_status") or {})
+
+    special_moves: List[str] = []
+    if move_dates:
+        special_moves.append("date")
+    if move_hosts:
+        special_moves.append("host")
+    if move_slots:
+        special_moves.append("slot_time")
+
     current_score = _objective(slots, resolved_weights, per_age_group_weights)
     best_score = current_score
 
     for step in range(iterations):
-        try_date_swap = move_dates and rng.random() < date_swap_probability
-        if try_date_swap:
-            date_move = _date_swap_candidates(slots, rng)
-            if date_move is None or not _date_swap_is_valid(slots, *date_move):
-                continue
-            slot_a, slot_b = date_move
-            _apply_date_swap(slots, slot_a, slot_b)
-            new_score = _objective(slots, resolved_weights, per_age_group_weights)
-            delta = new_score - current_score
-            temperature = max(1e-6, 1.0 - step / iterations)
-            accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
-            if accept:
-                current_score = new_score
-                best_score = min(best_score, new_score)
-            else:
-                # Revert: swapping the same pair of dates back is its own inverse.
+        try_special = bool(special_moves) and rng.random() < date_swap_probability
+        if try_special:
+            kind = rng.choice(special_moves)
+
+            if kind == "date":
+                date_move = _date_swap_candidates(slots, rng)
+                if date_move is None or not _date_swap_is_valid(slots, *date_move):
+                    continue
+                slot_a, slot_b = date_move
                 _apply_date_swap(slots, slot_a, slot_b)
-            continue
+                new_score = _objective(slots, resolved_weights, per_age_group_weights)
+                delta = new_score - current_score
+                temperature = max(1e-6, 1.0 - step / iterations)
+                accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
+                if accept:
+                    current_score = new_score
+                    best_score = min(best_score, new_score)
+                else:
+                    # Revert: swapping the same pair of dates back is its own inverse.
+                    _apply_date_swap(slots, slot_a, slot_b)
+                continue
+
+            if kind == "host":
+                host_move = _host_move_candidates(slots, rng)
+                if host_move is None:
+                    continue
+                index, new_host = host_move
+                if not _host_move_is_valid(slots, index, new_host, club_arenas, club_calendar_status):
+                    continue
+                old_host, old_arena, old_changed = slots[index].host_club, slots[index].arena, slots[index].host_changed
+                _apply_host_move(slots, index, new_host, club_arenas)
+                new_score = _objective(slots, resolved_weights, per_age_group_weights)
+                delta = new_score - current_score
+                temperature = max(1e-6, 1.0 - step / iterations)
+                accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
+                if accept:
+                    current_score = new_score
+                    best_score = min(best_score, new_score)
+                else:
+                    slots[index].host_club = old_host
+                    slots[index].arena = old_arena
+                    slots[index].host_changed = old_changed
+                continue
+
+            if kind == "slot_time":
+                slot_move = _slot_time_move_candidates(slots, rng)
+                if slot_move is None:
+                    continue
+                index, new_time = slot_move
+                if not _slot_time_move_is_valid(slots, index, new_time):
+                    continue
+                old_time, old_changed = slots[index].start_time, slots[index].start_time_changed
+                _apply_slot_time_move(slots, index, new_time)
+                new_score = _objective(slots, resolved_weights, per_age_group_weights)
+                delta = new_score - current_score
+                temperature = max(1e-6, 1.0 - step / iterations)
+                accept = delta <= 0 or rng.random() < math.exp(-delta / (temperature * 5))
+                if accept:
+                    current_score = new_score
+                    best_score = min(best_score, new_score)
+                else:
+                    slots[index].start_time = old_time
+                    slots[index].start_time_changed = old_changed
+                continue
 
         move = _candidate_swaps(slots, rng)
         if move is None:
-            # With move_dates on, a date swap may still be possible even
+            # With a special move enabled, one may still be possible even
             # when no team swap is (e.g. single-team-per-tournament age
             # groups), so don't give up on the whole search — just skip
             # this step's team-swap attempt.
-            if move_dates:
+            if special_moves:
                 continue
             break
         slot_a, pos_a, slot_b, pos_b = move
@@ -430,7 +660,9 @@ def optimize_candidate(
 
     initial_score = _objective(_build_slots(candidate, problem)[0], resolved_weights, per_age_group_weights)
     rebuilt_tournaments = [
-        _rebuild_tournament(slot) if (slot.changed or slot.date_changed) else slot.tournament
+        _rebuild_tournament(slot)
+        if (slot.changed or slot.date_changed or slot.host_changed or slot.start_time_changed)
+        else slot.tournament
         for slot in slots
     ]
 
@@ -447,6 +679,8 @@ def optimize_candidate(
         "objective_after": best_score,
         "per_age_group_weights": per_age_group_weights or None,
         "move_dates": move_dates,
+        "move_hosts": move_hosts,
+        "move_slots": move_slots,
     }
     return result
 

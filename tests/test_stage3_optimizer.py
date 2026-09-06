@@ -237,3 +237,133 @@ class TestMoveDates:
         a = optimize_candidate(candidate, iterations=1500, seed=42, move_dates=True)
         b = optimize_candidate(candidate, iterations=1500, seed=42, move_dates=True)
         assert a["tournaments"] == b["tournaments"]
+
+
+def _host_move_candidate() -> dict:
+    teams = [
+        _team("Jar", "Jar 1", "U10"),
+        _team("Kongsberg", "Kongsberg 1", "U10"),
+        _team("Ringerike", "Ringerike 1", "U10"),
+        _team("Holmen", "Holmen 1", "U10"),
+    ]
+    return {
+        "schema_version": 1,
+        "tournaments": [_tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)],
+    }
+
+
+def _host_move_problem(club_calendar_status: dict | None = None) -> dict:
+    return {
+        "clubs": {
+            "Jar": "Jarhallen",
+            "Kongsberg": "Kongsberghallen",
+            "Ringerike": "Ringerikshallen",
+            "Holmen": "Holmenkollen ishall",
+        },
+        "round_length_minutes": {"U10": 30},
+        "club_calendar_status": club_calendar_status or {},
+    }
+
+
+class TestMoveHosts:
+    """issue #262 P1: reassigning host among a tournament's own participants."""
+
+    def test_off_by_default_hosts_unchanged(self):
+        candidate = _host_move_candidate()
+        optimized = optimize_candidate(candidate, _host_move_problem(), iterations=500, seed=1)
+        assert optimized["tournaments"][0]["host_club"] == "Jar"
+
+    def test_reassigns_to_another_participating_club(self):
+        candidate = _host_move_candidate()
+        problem = _host_move_problem()
+        optimized = optimize_candidate(
+            candidate, problem, iterations=200, seed=2, move_hosts=True, date_swap_probability=1.0
+        )
+        t = optimized["tournaments"][0]
+        assert t["host_club"] != "Jar"
+        assert t["host_club"] in {"Kongsberg", "Ringerike", "Holmen"}
+        assert t["arena"] == problem["clubs"][t["host_club"]]
+        assert t["host_club"] in {team["club"] for team in t["teams"]}
+        # Participation/roster are untouched by a pure host move.
+        assert {team["club"] for team in t["teams"]} == {
+            team["club"] for team in candidate["tournaments"][0]["teams"]
+        }
+
+    def test_never_picks_a_club_with_unknown_calendar_status(self):
+        candidate = _host_move_candidate()
+        problem = _host_move_problem(
+            club_calendar_status={
+                "Jar": "known",
+                "Kongsberg": "unknown",
+                "Ringerike": "unknown",
+                "Holmen": "unknown",
+            }
+        )
+        optimized = optimize_candidate(
+            candidate, problem, iterations=200, seed=1, move_hosts=True, date_swap_probability=1.0
+        )
+        assert optimized["tournaments"][0]["host_club"] == "Jar"
+
+    def test_deterministic_for_fixed_seed(self):
+        candidate = _host_move_candidate()
+        problem = _host_move_problem()
+        a = optimize_candidate(candidate, problem, iterations=300, seed=9, move_hosts=True)
+        b = optimize_candidate(candidate, problem, iterations=300, seed=9, move_hosts=True)
+        assert a["tournaments"] == b["tournaments"]
+
+
+class TestMoveSlots:
+    """issue #262 P1: reassigning a tournament's start time."""
+
+    def test_off_by_default_start_times_unchanged(self):
+        teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
+        t = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)
+        t["start_time"] = "10:00"
+        candidate = {"schema_version": 1, "tournaments": [t]}
+        problem = {"round_length_minutes": {"U10": 30}}
+
+        optimized = optimize_candidate(candidate, problem, iterations=500, seed=1)
+        assert optimized["tournaments"][0]["start_time"] == "10:00"
+
+    def test_reassigns_start_time_within_candidate_window(self):
+        teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
+        t = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)
+        t["start_time"] = "10:00"
+        candidate = {"schema_version": 1, "tournaments": [t]}
+        problem = {"round_length_minutes": {"U10": 30}}
+
+        optimized = optimize_candidate(
+            candidate, problem, iterations=200, seed=1, move_slots=True, date_swap_probability=1.0
+        )
+        result_t = optimized["tournaments"][0]
+        assert result_t["start_time"] != "10:00"
+        assert result_t["date"] == t["date"]
+        assert result_t["arena"] == t["arena"]
+
+    def test_never_creates_arena_double_booking(self):
+        teams1 = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
+        teams2 = [_team("Ringerike", "C", "U10"), _team("Holmen", "D", "U10")]
+        t1 = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams1)
+        t1["start_time"] = "10:00"
+        t2 = _tournament("t2", "2026-01-05", "Jarhallen", "U10", teams2)
+        t2["start_time"] = "13:00"
+        candidate = {"schema_version": 1, "tournaments": [t1, t2]}
+        problem = {"round_length_minutes": {"U10": 30}}
+
+        optimized = optimize_candidate(
+            candidate, problem, iterations=500, seed=5, move_slots=True, date_swap_probability=1.0
+        )
+
+        result = verify_candidate(optimized, problem)
+        assert result["ok"], result["violations"]
+
+    def test_deterministic_for_fixed_seed(self):
+        teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
+        t = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)
+        t["start_time"] = "10:00"
+        candidate = {"schema_version": 1, "tournaments": [t]}
+        problem = {"round_length_minutes": {"U10": 30}}
+
+        a = optimize_candidate(candidate, problem, iterations=300, seed=3, move_slots=True)
+        b = optimize_candidate(candidate, problem, iterations=300, seed=3, move_slots=True)
+        assert a["tournaments"] == b["tournaments"]

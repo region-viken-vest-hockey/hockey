@@ -1582,6 +1582,8 @@ def _run_stage3_v2_optimize(
         weights={k: float(v) for k, v in weights.items()} if isinstance(weights, dict) else None,
         move_dates=bool(arguments.get("move_dates", False)),
         date_swap_probability=float(arguments.get("date_swap_probability", 0.3)),
+        move_hosts=bool(arguments.get("move_hosts", False)),
+        move_slots=bool(arguments.get("move_slots", False)),
     )
 
     checkpoint = dict(planning_checkpoint)

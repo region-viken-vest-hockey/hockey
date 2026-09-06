@@ -80,6 +80,20 @@ _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {
         "type": "boolean",
         "description": "Also let the search swap two same-age-group tournaments' dates, not just teams.",
     },
+    "move_hosts": {
+        "type": "boolean",
+        "description": (
+            "Also let the search reassign a tournament's host club to another club already "
+            "fielding a team in that tournament (issue #262 P1)."
+        ),
+    },
+    "move_slots": {
+        "type": "boolean",
+        "description": (
+            "Also let the search reassign a tournament's start time among a fixed set of "
+            "candidate windows (issue #262 P1)."
+        ),
+    },
     "date_swap_probability": {
         "type": "number",
         "minimum": 0.0,
