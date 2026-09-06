@@ -477,23 +477,35 @@ def _resolve_run_id(explicit: "str | None", work_dir: str) -> str:
         return ""
 
 
-def _execute_optimize_plan(args: argparse.Namespace) -> "str | None":
+def _execute_optimize_plan(
+    args: argparse.Namespace, action_arguments: "Dict[str, Any] | None" = None
+) -> "str | None":
     """Execute an accepted ``optimize_plan`` decision (issue #260 Phase 4).
 
     Re-runs the Stage 3 v2 optimizer against the Stage 3 checkpoint's
     baseline candidate — starting from ``--candidate`` if the LLM/agent
     passed one along (e.g. a previous ``optimize_plan`` pass's
-    ``new_candidate.json``), otherwise from the baseline itself — using the
-    decision's ``--weight``/``--iterations``/``--seed``/``--move-dates``
-    settings, and writes ``old_candidate.json``/``new_candidate.json``/
-    ``ab_report.json`` to ``--output-dir`` exactly like ``plan ab`` does.
-    This is what makes ``optimize_plan`` an executable action instead of a
-    recorded no-op the operator had to act on manually out of band: the
-    returned path is a new ab_report the same LLM/agent loop can immediately
-    feed back into ``plan decision-context`` to choose again (apply_candidate/
-    keep_baseline/optimize_plan/request_operator), closing the
-    optimizer→verifier→LLM loop. Returns the new ab_report.json path, or
-    ``None`` if a required input could not be read.
+    ``new_candidate.json``), otherwise from the baseline itself — and writes
+    ``old_candidate.json``/``new_candidate.json``/``ab_report.json`` to
+    ``--output-dir`` exactly like ``plan ab`` does. This is what makes
+    ``optimize_plan`` an executable action instead of a recorded no-op the
+    operator had to act on manually out of band: the returned path is a new
+    ab_report the same LLM/agent loop can immediately feed back into ``plan
+    decision-context`` to choose again (apply_candidate/keep_baseline/
+    optimize_plan/request_operator), closing the optimizer→verifier→LLM
+    loop. Returns the new ab_report.json path, or ``None`` if a required
+    input could not be read.
+
+    *action_arguments* is the ``DecisionAction.arguments`` the decision was
+    actually made with (issue #260 P1: "optimize_plan needs to be a
+    genuinely parameterized agent action"). When it carries
+    ``iterations``/``seed``/``move_dates``/``date_swap_probability``/
+    ``weights`` (schema-validated by ``application.decisions.decide``
+    against ``stage3_decision``'s ``"v2_optimizer"`` schema before this
+    function ever runs), those take precedence over the
+    ``--iterations``/``--seed``/``--weight``/``--move-dates`` CLI flags —
+    the LLM's own chosen search settings drive the rerun, not just whatever
+    the CLI invocation happened to default to.
     """
     import os
 
@@ -501,6 +513,8 @@ def _execute_optimize_plan(args: argparse.Namespace) -> "str | None":
     from ..planning_contract import extract_candidate
     from ..stage3_ab import build_ab_report
     from ..stage3_optimizer import optimize_candidate
+
+    action_arguments = action_arguments or {}
 
     state = PipelineState(args.work_dir)
     planning_checkpoint = state.read_stage(StageName.PLANNING)
@@ -534,15 +548,18 @@ def _execute_optimize_plan(args: argparse.Namespace) -> "str | None":
     except ValueError as exc:
         _console.print(f"[red]✗[/red] {exc}")
         return None
+    if isinstance(action_arguments.get("weights"), dict):
+        weight_overrides = {**weight_overrides, **{k: float(v) for k, v in action_arguments["weights"].items()}}
 
     new_candidate = optimize_candidate(
         starting_candidate,
         problem,
-        iterations=args.iterations,
-        seed=args.seed,
+        iterations=int(action_arguments.get("iterations", args.iterations)),
+        seed=int(action_arguments.get("seed", args.seed)),
         weights=weight_overrides or None,
         per_age_group_weights=per_age_group_weights or None,
-        move_dates=args.move_dates,
+        move_dates=bool(action_arguments.get("move_dates", args.move_dates)),
+        date_swap_probability=float(action_arguments.get("date_swap_probability", 0.3)),
     )
     report = build_ab_report(baseline_candidate, new_candidate, problem)
 
@@ -581,6 +598,7 @@ def _cmd_plan_decision_context(args: argparse.Namespace) -> int:
         baseline_ref=args.baseline_ref,
         candidate_ref=args.candidate_ref,
         objective=args.objective or "",
+        optimize_plan_schema="v2_optimizer",
     )
     payload = json.dumps(context.to_dict(), indent=2, ensure_ascii=False)
     if args.output:
@@ -627,23 +645,68 @@ def _cmd_plan_decide(args: argparse.Namespace) -> int:
         baseline_ref=args.baseline_ref,
         candidate_ref=args.candidate_ref,
         objective=args.objective or "",
+        optimize_plan_schema="v2_optimizer",
     )
 
-    arguments: Dict[str, Any] = {}
-    if args.action == "apply_candidate":
-        candidate_ref = args.candidate_ref or args.candidate
-        if candidate_ref:
-            arguments["candidate_ref"] = candidate_ref
-    elif args.action == "request_operator":
-        if args.question:
-            arguments["question"] = args.question
+    decision_payload = None
+    if getattr(args, "decision_action", None):
+        try:
+            decision_payload = json.loads(args.decision_action)
+        except json.JSONDecodeError as exc:
+            _console.print(f"[red]✗[/red] Ugyldig --decision-action JSON: {exc}")
+            return 1
+    elif getattr(args, "decision_action_file", None):
+        try:
+            with open(args.decision_action_file, "r", encoding="utf-8") as fh:
+                decision_payload = json.load(fh)
+        except (OSError, json.JSONDecodeError) as exc:
+            _console.print(f"[red]✗[/red] Kunne ikke lese --decision-action-file: {exc}")
+            return 1
 
-    action = DecisionAction(
-        action_id=args.action,
-        target=args.target or "",
-        arguments=arguments,
-        rationale=args.rationale or "",
-    )
+    if decision_payload is not None:
+        # A single structured DecisionAction payload (issue #260 P1) —
+        # arguments (e.g. optimize_plan's iterations/weights/move_dates)
+        # come from here rather than being reconstructed from CLI flags.
+        try:
+            action = DecisionAction.from_dict(decision_payload)
+        except Exception as exc:
+            _console.print(f"[red]✗[/red] Ugyldig DecisionAction: {exc}")
+            return 1
+    else:
+        if not args.action:
+            _console.print("[red]✗[/red] --action (eller --decision-action/--decision-action-file) kreves.")
+            return 1
+        arguments: Dict[str, Any] = {}
+        if args.action == "apply_candidate":
+            candidate_ref = args.candidate_ref or args.candidate
+            if candidate_ref:
+                arguments["candidate_ref"] = candidate_ref
+        elif args.action == "request_operator":
+            if args.question:
+                arguments["question"] = args.question
+        elif args.action == "optimize_plan":
+            # Carry the CLI's own optimizer flags as this action's
+            # arguments too, so a recorded decision's arguments always
+            # reflect what actually executed, regardless of which input
+            # form (flags vs --decision-action) was used to build it.
+            try:
+                weight_overrides, _ = _parse_weight_overrides(args.weights)
+            except ValueError as exc:
+                _console.print(f"[red]✗[/red] {exc}")
+                return 1
+            arguments["iterations"] = args.iterations
+            arguments["seed"] = args.seed
+            arguments["move_dates"] = args.move_dates
+            if weight_overrides:
+                arguments["weights"] = weight_overrides
+
+        action = DecisionAction(
+            action_id=args.action,
+            target=args.target or "",
+            arguments=arguments,
+            rationale=args.rationale or "",
+        )
+
     result = decide(context, action)
     try:
         record_llm_decision(args.work_dir, context, action, result)
@@ -675,7 +738,7 @@ def _cmd_plan_decide(args: argparse.Namespace) -> int:
         if not args.output_dir:
             _console.print("[red]✗[/red] --output-dir kreves for optimize_plan.")
             return 1
-        next_report_path = _execute_optimize_plan(args)
+        next_report_path = _execute_optimize_plan(args, action.arguments)
         if next_report_path is None:
             return 1
         _console.print(

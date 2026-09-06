@@ -403,3 +403,135 @@ class TestDecisionLoopEndToEnd:
         manifest = RunManifest(str(work_dir)).read()
         actions = [entry["action"]["action_id"] for entry in manifest["decision_log"]]
         assert actions == ["optimize_plan", "apply_candidate"]
+
+
+class TestOptimizePlanParameterSchema:
+    """optimize_plan's arguments are schema-described and validated, and the
+    LLM's own chosen search settings — not just CLI flag defaults — drive
+    the rerun (issue #260 P1)."""
+
+    def _seed_baseline(self, tmp_path) -> "tuple[Path, dict]":
+        from pathlib import Path
+
+        work_dir = Path(tmp_path) / "pipeline"
+        work_dir.mkdir()
+        old_candidate = _clustered_candidate()
+        PipelineState(str(work_dir)).write_stage(StageName.PLANNING, {"plan": old_candidate, "warnings": []})
+        return work_dir, old_candidate
+
+    def test_cli_flag_arguments_recorded_on_optimize_plan_decision(self, tmp_path):
+        work_dir, old_candidate = self._seed_baseline(tmp_path)
+        new_candidate = optimize_candidate(old_candidate, iterations=3000, seed=1)
+        report = build_ab_report(old_candidate, new_candidate)
+        report_path = tmp_path / "ab_report.json"
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+
+        args = _decide_args(
+            ab_report=str(report_path),
+            action="optimize_plan",
+            work_dir=str(work_dir),
+            output_dir=str(tmp_path / "out"),
+            seed=7,
+            iterations=5000,
+            weights=["gap_under_7=8.0"],
+        )
+        exit_code = _cmd_plan_decide(args)
+        assert exit_code == 0
+
+        from tournament_scheduler.pipeline.run_manifest import RunManifest
+
+        manifest = RunManifest(str(work_dir)).read()
+        recorded_action = manifest["decision_log"][0]["action"]
+        assert recorded_action["arguments"]["seed"] == 7
+        assert recorded_action["arguments"]["iterations"] == 5000
+        assert recorded_action["arguments"]["weights"] == {"gap_under_7": 8.0}
+
+    def test_decision_action_json_drives_execution_over_cli_defaults(self, tmp_path):
+        work_dir, old_candidate = self._seed_baseline(tmp_path)
+        new_candidate = optimize_candidate(old_candidate, iterations=3000, seed=1)
+        report = build_ab_report(old_candidate, new_candidate)
+        report_path = tmp_path / "ab_report.json"
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        output_dir = tmp_path / "out"
+
+        decision_action = json.dumps(
+            {
+                "action_id": "optimize_plan",
+                "rationale": "try a higher search budget with a different weight",
+                "arguments": {"iterations": 6000, "seed": 42, "weights": {"gap_under_7": 9.0}},
+            }
+        )
+        args = _decide_args(
+            ab_report=str(report_path),
+            action=None,
+            decision_action=decision_action,
+            decision_action_file=None,
+            work_dir=str(work_dir),
+            output_dir=str(output_dir),
+            # CLI defaults deliberately differ from the JSON payload above —
+            # the JSON must be what actually drives execution.
+            seed=1,
+            iterations=3000,
+        )
+        exit_code = _cmd_plan_decide(args)
+        assert exit_code == 0
+
+        from tournament_scheduler.pipeline.run_manifest import RunManifest
+
+        manifest = RunManifest(str(work_dir)).read()
+        recorded_action = manifest["decision_log"][0]["action"]
+        assert recorded_action["arguments"]["seed"] == 42
+        assert recorded_action["arguments"]["iterations"] == 6000
+
+        # Reproduce the same optimizer call directly and confirm the written
+        # candidate matches — proving the JSON arguments, not the CLI seed/
+        # iterations defaults, actually drove the rerun.
+        expected = optimize_candidate(old_candidate, iterations=6000, seed=42, weights={"gap_under_7": 9.0})
+        written = json.loads((output_dir / "new_candidate.json").read_text(encoding="utf-8"))
+        assert written["tournaments"] == expected["tournaments"]
+
+    def test_out_of_range_iterations_in_decision_action_is_rejected(self, tmp_path):
+        work_dir, old_candidate = self._seed_baseline(tmp_path)
+        new_candidate = optimize_candidate(old_candidate, iterations=3000, seed=1)
+        report = build_ab_report(old_candidate, new_candidate)
+        report_path = tmp_path / "ab_report.json"
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+
+        decision_action = json.dumps(
+            {"action_id": "optimize_plan", "arguments": {"iterations": 999999}}
+        )
+        args = _decide_args(
+            ab_report=str(report_path),
+            action=None,
+            decision_action=decision_action,
+            decision_action_file=None,
+            work_dir=str(work_dir),
+            output_dir=str(tmp_path / "out"),
+        )
+        exit_code = _cmd_plan_decide(args)
+
+        assert exit_code == 1
+        assert not (tmp_path / "out").exists()
+
+    def test_unknown_weight_key_in_decision_action_is_rejected(self, tmp_path):
+        work_dir, old_candidate = self._seed_baseline(tmp_path)
+        new_candidate = optimize_candidate(old_candidate, iterations=3000, seed=1)
+        report = build_ab_report(old_candidate, new_candidate)
+        report_path = tmp_path / "ab_report.json"
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+
+        decision_action = json.dumps(
+            {"action_id": "optimize_plan", "arguments": {"weights": {"made_up_weight": 5.0}}}
+        )
+        args = _decide_args(
+            ab_report=str(report_path),
+            action=None,
+            decision_action=decision_action,
+            decision_action_file=None,
+            work_dir=str(work_dir),
+            output_dir=str(tmp_path / "out"),
+        )
+        exit_code = _cmd_plan_decide(args)
+
+        assert exit_code == 1
+        assert not (tmp_path / "out").exists()

@@ -1534,9 +1534,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     plan_decide.add_argument(
         "--action",
-        required=True,
+        required=False,
+        default=None,
         choices=["apply_candidate", "keep_baseline", "optimize_plan", "request_operator"],
-        help="The DecisionAction to validate and execute",
+        help="The DecisionAction to validate and execute. Required unless --decision-action/"
+        "--decision-action-file is given instead",
+    )
+    plan_decide.add_argument(
+        "--decision-action",
+        default=None,
+        metavar="JSON",
+        help="Inline JSON DecisionAction (e.g. '{\"action_id\": \"optimize_plan\", \"arguments\": "
+        "{\"iterations\": 8000, \"weights\": {\"gap_under_7\": 8.0}}}'), an alternative to "
+        "--action/--target/--candidate/--question that lets the LLM/agent pass genuinely "
+        "parameterized optimize_plan search settings in one structured payload instead of "
+        "CLI flags choosing them (issue #260 P1). Overrides --action and friends when given",
+    )
+    plan_decide.add_argument(
+        "--decision-action-file",
+        default=None,
+        metavar="PATH",
+        help="Path to a JSON file containing the DecisionAction, alternative to --decision-action",
     )
     plan_decide.add_argument(
         "--rationale",

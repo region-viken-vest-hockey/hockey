@@ -27,6 +27,79 @@ STAGE3_DECISION_ACTIONS: "tuple[str, ...]" = (
     "request_operator",
 )
 
+# optimize_plan parameter schemas (issue #260 P1: "add explicit parameter
+# schemas to decision actions") — which one applies depends on which
+# execution path actually runs the decided ``optimize_plan`` action, since
+# the two paths that build a Stage 3 DecisionContext from this module run
+# genuinely different search mechanisms:
+#
+# - "search_budget": the legacy SeasonPlanner multi-seed rerun
+#   (``cli.pipeline_orchestrator._run_stage3``/``_decide_plan_adoption`` and
+#   the interactive Stage 3 loop) — its only real tunable is a bounded
+#   iteration/seed-count budget.
+# - "v2_optimizer": the Stage 3 v2 local-search optimizer
+#   (``stage3_optimizer.optimize_candidate``, executed by
+#   ``cli.plan_command._execute_optimize_plan``) — genuinely accepts a
+#   search budget, seed, date-move toggle, and per-weight overrides.
+#
+# Declaring the v2 optimizer's richer schema on a context whose
+# ``optimize_plan`` actually reruns the legacy planner would validate
+# arguments the execution path silently ignores — pick the schema that
+# matches what will actually execute, don't offer parameters as decoration.
+_SEARCH_BUDGET_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {
+    "iterations": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Search budget (multi-seed attempt count) for the next Stage 3 rerun.",
+    },
+}
+
+_V2_OPTIMIZER_WEIGHT_NAMES = (
+    "pair_repeat",
+    "same_club_pairing",
+    "same_club_cluster",
+    "gap_under_7",
+    "gap_under_14",
+)
+
+_V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {
+    "iterations": {
+        "type": "integer",
+        "minimum": 100,
+        "maximum": 20000,
+        "description": "Simulated-annealing swap-attempt budget for the Stage 3 v2 local-search optimizer.",
+    },
+    "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2**31 - 1,
+        "description": "Deterministic RNG seed for reproducible output.",
+    },
+    "move_dates": {
+        "type": "boolean",
+        "description": "Also let the search swap two same-age-group tournaments' dates, not just teams.",
+    },
+    "date_swap_probability": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "description": "Probability of attempting a date swap vs a team swap each step, when move_dates is true.",
+    },
+    "weights": {
+        "type": "object",
+        "properties": {
+            name: {"type": "number", "minimum": 0.0} for name in _V2_OPTIMIZER_WEIGHT_NAMES
+        },
+        "description": "Global overrides for the optimizer's penalty weights (see stage3_optimizer.DEFAULT_WEIGHTS).",
+    },
+}
+
+_OPTIMIZE_PLAN_SCHEMAS: Dict[str, Dict[str, Any]] = {
+    "search_budget": _SEARCH_BUDGET_OPTIMIZE_PLAN_SCHEMA,
+    "v2_optimizer": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA,
+}
+
 
 def build_stage3_decision_context(
     report: Dict[str, Any],
@@ -35,6 +108,7 @@ def build_stage3_decision_context(
     baseline_ref: Optional[str] = None,
     candidate_ref: Optional[str] = None,
     objective: str = "",
+    optimize_plan_schema: Optional[str] = "search_budget",
 ) -> DecisionContext:
     """Build the :class:`DecisionContext` for an old-vs-new Stage 3 A/B *report*.
 
@@ -44,6 +118,12 @@ def build_stage3_decision_context(
     (``report["new"]["verification"]["ok"]`` is ``False``) — a still-invalid
     candidate cannot be adopted by prose, regardless of whether that
     violation is a regression versus the baseline or was already present.
+
+    *optimize_plan_schema* selects which ``action_parameters["optimize_plan"]``
+    schema to attach — ``"search_budget"`` (default, matches the legacy
+    SeasonPlanner rerun path) or ``"v2_optimizer"`` (matches
+    ``_execute_optimize_plan``'s local-search optimizer). Pass ``None`` to
+    attach no schema at all.
     """
     new_verification = (report.get("new") or {}).get("verification") or {}
     old_verification = (report.get("old") or {}).get("verification") or {}
@@ -91,6 +171,11 @@ def build_stage3_decision_context(
         baseline_ref=baseline_ref,
         candidate_ref=candidate_ref,
         available_actions=STAGE3_DECISION_ACTIONS,
+        action_parameters=(
+            {"optimize_plan": _OPTIMIZE_PLAN_SCHEMAS[optimize_plan_schema]}
+            if optimize_plan_schema
+            else {}
+        ),
     )
 
 

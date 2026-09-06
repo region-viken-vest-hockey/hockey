@@ -171,6 +171,110 @@ def test_decide_accepts_valid_action():
     assert result.next_available_actions == ("optimize_plan",)
 
 
+class TestActionParameterSchema:
+    def test_context_round_trips_action_parameters(self):
+        context = _context(
+            available_actions=("optimize_plan",),
+            action_parameters={
+                "optimize_plan": {"iterations": {"type": "integer", "minimum": 1, "maximum": 10}}
+            },
+        )
+
+        restored = DecisionContext.from_dict(context.to_dict())
+
+        assert restored == context
+
+    def test_integer_argument_out_of_range_is_rejected(self):
+        context = _context(
+            available_actions=("optimize_plan",),
+            action_parameters={
+                "optimize_plan": {"iterations": {"type": "integer", "minimum": 1, "maximum": 10}}
+            },
+        )
+        action = DecisionAction(action_id="optimize_plan", arguments={"iterations": 50})
+
+        with pytest.raises(InvalidDecisionArgumentsError):
+            validate_decision_action(context, action)
+
+    def test_integer_argument_within_range_is_valid(self):
+        context = _context(
+            available_actions=("optimize_plan",),
+            action_parameters={
+                "optimize_plan": {"iterations": {"type": "integer", "minimum": 1, "maximum": 10}}
+            },
+        )
+        action = DecisionAction(action_id="optimize_plan", arguments={"iterations": 5})
+
+        validate_decision_action(context, action)  # does not raise
+
+    def test_wrong_type_argument_is_rejected(self):
+        context = _context(
+            available_actions=("optimize_plan",),
+            action_parameters={"optimize_plan": {"move_dates": {"type": "boolean"}}},
+        )
+        action = DecisionAction(action_id="optimize_plan", arguments={"move_dates": "yes"})
+
+        with pytest.raises(InvalidDecisionArgumentsError):
+            validate_decision_action(context, action)
+
+    def test_enum_argument_outside_allowed_values_is_rejected(self):
+        context = _context(
+            available_actions=("optimize_plan",),
+            action_parameters={"optimize_plan": {"strategy": {"type": "string", "enum": ["a", "b"]}}},
+        )
+        action = DecisionAction(action_id="optimize_plan", arguments={"strategy": "c"})
+
+        with pytest.raises(InvalidDecisionArgumentsError):
+            validate_decision_action(context, action)
+
+    def test_object_argument_rejects_unknown_nested_key(self):
+        context = _context(
+            available_actions=("optimize_plan",),
+            action_parameters={
+                "optimize_plan": {
+                    "weights": {
+                        "type": "object",
+                        "properties": {"pair_repeat": {"type": "number", "minimum": 0.0}},
+                    }
+                }
+            },
+        )
+        action = DecisionAction(
+            action_id="optimize_plan", arguments={"weights": {"made_up_weight": 1.0}}
+        )
+
+        with pytest.raises(InvalidDecisionArgumentsError):
+            validate_decision_action(context, action)
+
+    def test_object_argument_validates_known_nested_values(self):
+        context = _context(
+            available_actions=("optimize_plan",),
+            action_parameters={
+                "optimize_plan": {
+                    "weights": {
+                        "type": "object",
+                        "properties": {"pair_repeat": {"type": "number", "minimum": 0.0}},
+                    }
+                }
+            },
+        )
+        valid = DecisionAction(action_id="optimize_plan", arguments={"weights": {"pair_repeat": 3.0}})
+        validate_decision_action(context, valid)  # does not raise
+
+        invalid = DecisionAction(action_id="optimize_plan", arguments={"weights": {"pair_repeat": -1.0}})
+        with pytest.raises(InvalidDecisionArgumentsError):
+            validate_decision_action(context, invalid)
+
+    def test_argument_without_schema_entry_is_unvalidated(self):
+        # Only arguments with a declared entry in action_parameters are
+        # schema-checked; anything else falls back to the pre-existing
+        # required-argument-only behavior.
+        context = _context(available_actions=("optimize_plan",))
+        action = DecisionAction(action_id="optimize_plan", arguments={"anything": object()})
+
+        validate_decision_action(context, action)  # does not raise
+
+
 def test_record_llm_decision_persists_to_manifest_decision_log(tmp_path):
     RunManifest(str(tmp_path)).start_run("objective")
     context = _context(available_actions=("proceed",))

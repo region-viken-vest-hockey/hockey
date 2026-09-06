@@ -130,6 +130,17 @@ class HardViolationBlocksActionError(DecisionActionError):
     code = "hard_violation_blocks_action"
 
 
+class InvalidDecisionArgumentValueError(InvalidDecisionArgumentsError):
+    """Raised when an argument is present but violates its declared schema
+    (:attr:`DecisionContext.action_parameters`) — wrong type, out of range,
+    not an enum member, or an unknown key inside a described object
+    argument. Subclasses :class:`InvalidDecisionArgumentsError` so existing
+    callers that only catch/branch on that base class are unaffected.
+    """
+
+    code = "invalid_decision_arguments"
+
+
 class HumanApprovalRequiredError(DecisionActionError):
     """Raised when the context requires human approval and the action skips it.
 
@@ -158,6 +169,7 @@ _CONTEXT_FIELDS = {
     "baseline_ref",
     "candidate_ref",
     "available_actions",
+    "action_parameters",
     "prior_results",
     "requires_human_approval",
 }
@@ -183,6 +195,15 @@ class DecisionContext:
     baseline_ref: str | None = None
     candidate_ref: str | None = None
     available_actions: tuple[str, ...] = ()
+    # Per-action_id JSON-Schema-ish parameter descriptions for the actions in
+    # ``available_actions`` (issue #260 P1: "add explicit parameter schemas
+    # to decision actions"). Only actions that take meaningful arguments
+    # beyond the required-argument set need an entry here — e.g.
+    # ``{"optimize_plan": {"iterations": {"type": "integer", "minimum": 1,
+    # "maximum": 10}}}``. Validated deterministically by
+    # :func:`validate_decision_action` when present; an action with no entry
+    # here falls back to the required-argument-only check.
+    action_parameters: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     prior_results: tuple[Mapping[str, Any], ...] = ()
     requires_human_approval: bool = False
     schema_version: int = DECISION_CONTEXT_SCHEMA_VERSION
@@ -191,6 +212,7 @@ class DecisionContext:
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "DecisionContext":
         prior_results = data.get("prior_results") or []
+        action_parameters = data.get("action_parameters") or {}
         return cls(
             run_id=str(data.get("run_id") or ""),
             capability=str(data.get("capability") or ""),
@@ -203,6 +225,9 @@ class DecisionContext:
             baseline_ref=_optional_str(data.get("baseline_ref")),
             candidate_ref=_optional_str(data.get("candidate_ref")),
             available_actions=tuple(str(item) for item in (data.get("available_actions") or ())),
+            action_parameters={
+                str(action_id): dict(schema) for action_id, schema in action_parameters.items()
+            },
             prior_results=tuple(dict(item) for item in prior_results),
             requires_human_approval=bool(data.get("requires_human_approval", False)),
             schema_version=int(data.get("schema_version") or DECISION_CONTEXT_SCHEMA_VERSION),
@@ -225,6 +250,9 @@ class DecisionContext:
                 "baseline_ref": self.baseline_ref,
                 "candidate_ref": self.candidate_ref,
                 "available_actions": list(self.available_actions),
+                "action_parameters": {
+                    action_id: dict(schema) for action_id, schema in self.action_parameters.items()
+                },
                 "prior_results": [dict(item) for item in self.prior_results],
                 "requires_human_approval": self.requires_human_approval,
             }
@@ -306,6 +334,13 @@ def validate_decision_action(context: DecisionContext, action: DecisionAction) -
             f"missing required argument(s): {', '.join(missing)}",
         )
 
+    schema = context.action_parameters.get(action.action_id) if context.action_parameters else None
+    if schema:
+        for name, value in action.arguments.items():
+            spec = schema.get(name)
+            if spec is not None:
+                _validate_argument_value(action.action_id, name, value, spec)
+
     if context.hard_violations and action.action_id in _HARD_VIOLATION_BLOCKED_ACTIONS:
         raise HardViolationBlocksActionError(
             action.action_id,
@@ -318,6 +353,72 @@ def validate_decision_action(context: DecisionContext, action: DecisionAction) -
             "context requires human approval; only "
             f"{', '.join(sorted(_HUMAN_APPROVAL_SAFE_ACTIONS))} are permitted",
         )
+
+
+def _validate_argument_value(action_id: str, name: str, value: Any, spec: Mapping[str, Any]) -> None:
+    """Validate one argument *value* against its declared JSON-Schema-ish
+    *spec* (issue #260 P1). Only a small, deliberately narrow subset of
+    JSON Schema is supported — enough to bound search budgets/enums/weight
+    maps, not a general schema engine:
+
+    - ``"type"``: one of ``"integer"``, ``"number"``, ``"boolean"``,
+      ``"string"``, ``"array"``, ``"object"``.
+    - ``"minimum"``/``"maximum"``: inclusive bounds for ``integer``/``number``.
+    - ``"enum"``: an allowed value list, for any type.
+    - ``"items"``: for ``"array"``, a nested spec applied to every element.
+    - ``"properties"``: for ``"object"``, a nested spec per allowed key —
+      any key not listed there is rejected (an LLM cannot invent a new
+      tunable weight/setting the deterministic side never declared).
+
+    Raises :class:`InvalidDecisionArgumentValueError` on any violation.
+    """
+    param_type = spec.get("type")
+    enum = spec.get("enum")
+
+    if param_type == "integer":
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise InvalidDecisionArgumentValueError(action_id, f"argument {name!r} must be an integer")
+    elif param_type == "number":
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise InvalidDecisionArgumentValueError(action_id, f"argument {name!r} must be a number")
+    elif param_type == "boolean":
+        if not isinstance(value, bool):
+            raise InvalidDecisionArgumentValueError(action_id, f"argument {name!r} must be a boolean")
+    elif param_type == "string":
+        if not isinstance(value, str):
+            raise InvalidDecisionArgumentValueError(action_id, f"argument {name!r} must be a string")
+    elif param_type == "array":
+        if not isinstance(value, (list, tuple)):
+            raise InvalidDecisionArgumentValueError(action_id, f"argument {name!r} must be an array")
+        item_spec = spec.get("items")
+        if item_spec:
+            for item in value:
+                _validate_argument_value(action_id, f"{name}[]", item, item_spec)
+    elif param_type == "object":
+        if not isinstance(value, Mapping):
+            raise InvalidDecisionArgumentValueError(action_id, f"argument {name!r} must be an object")
+        properties = spec.get("properties") or {}
+        unknown = [key for key in value if key not in properties]
+        if unknown:
+            raise InvalidDecisionArgumentValueError(
+                action_id, f"argument {name!r} has unknown key(s): {', '.join(sorted(unknown))}"
+            )
+        for key, sub_value in value.items():
+            _validate_argument_value(action_id, f"{name}.{key}", sub_value, properties[key])
+        return  # enum/min/max below don't apply to the object itself
+
+    if enum is not None and value not in enum:
+        raise InvalidDecisionArgumentValueError(
+            action_id, f"argument {name!r} must be one of {enum!r}, got {value!r}"
+        )
+
+    if param_type in ("integer", "number"):
+        minimum = spec.get("minimum")
+        maximum = spec.get("maximum")
+        if minimum is not None and value < minimum:
+            raise InvalidDecisionArgumentValueError(action_id, f"argument {name!r} must be >= {minimum}")
+        if maximum is not None and value > maximum:
+            raise InvalidDecisionArgumentValueError(action_id, f"argument {name!r} must be <= {maximum}")
 
 
 # ---------------------------------------------------------------------------
