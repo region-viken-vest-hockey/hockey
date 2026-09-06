@@ -2032,6 +2032,175 @@ def _emit_interactive_decision_context(
     return 2
 
 
+# Bounded Stage 3 optimize/apply attempt cap for interactive mode (issue #260
+# P0: "make interactive harnesses use the same nested Stage 3 decision loop
+# as headless"). Deterministic and repo-owned, not left to the harness's
+# discretion — mirrors the headless multi-seed loop's ``max_plan_attempts``
+# in ``_cmd_run``. Once reached, ``optimize_plan`` is no longer offered, so
+# a harness that asks anyway is rejected deterministically by
+# ``application.decisions.decide``.
+_MAX_INTERACTIVE_STAGE3_ATTEMPTS = 3
+
+
+def _stage3_interactive_state_path(state: "Any") -> Path:
+    return state.work_dir / "stage3_interactive_state.json"
+
+
+def _read_stage3_interactive_state(state: "Any") -> dict[str, Any]:
+    path = _stage3_interactive_state_path(state)
+    if not path.exists():
+        return {}
+    try:
+        import json as _json
+
+        return _json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _write_stage3_interactive_state(state: "Any", data: dict[str, Any]) -> None:
+    import json as _json
+
+    _stage3_interactive_state_path(state).write_text(
+        _json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def _clear_stage3_interactive_state(state: "Any") -> None:
+    try:
+        _stage3_interactive_state_path(state).unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def _emit_stage3_interactive_decision(
+    state: "Any",
+    work_dir: str,
+    cfg: "dict[str, Any]",
+    scraping: "dict[str, Any]",
+    start: "Any",
+    end: "Any",
+    plan: "dict[str, Any]",
+    log_fn: "Any",
+) -> int:
+    """Build, persist and print the Stage 3 :class:`DecisionContext` for the
+    attempt that just ran (issue #260 P0).
+
+    Unlike every other stage, which only ever offers the coarse
+    proceed/abort-only context from :func:`_emit_interactive_decision_context`,
+    Stage 3 gets the same nested ``optimize_plan``/``apply_candidate``/
+    ``keep_baseline``/``request_operator`` decision loop the headless
+    multi-seed path already drives via ``_decide_plan_adoption`` — the
+    interactive harness itself is now the judge for this loop; deterministic
+    validation and the bounded-attempt cap remain repo code.
+
+    State (the running best attempt, and any not-yet-adopted candidate from
+    the most recent rerun) is persisted to a small JSON side-file next to the
+    stage checkpoints (:func:`_stage3_interactive_state_path`) so it survives
+    across the separate CLI invocations an interactive harness makes between
+    checkpoints.
+    """
+    import json as _json
+    from dataclasses import replace as _dc_replace
+
+    from ..application.decisions import DecisionContext
+    from ..planning_contract import extract_candidate
+    from ..stage3_ab import build_ab_report
+    from ..stage3_decision import STAGE3_DECISION_ACTIONS, build_stage3_decision_context
+
+    interactive_state = _read_stage3_interactive_state(state)
+    attempts_used = int(interactive_state.get("attempts_used", 0))
+    run_id = ""
+    try:
+        from ..pipeline.run_manifest import RunManifest
+
+        run_id = str(RunManifest(state.work_dir).read().get("run_id") or "")
+    except Exception:
+        pass
+
+    if attempts_used <= 0 or "best_plan" not in interactive_state:
+        # First attempt this run: nothing to compare against yet — auto-
+        # baseline, same as the headless multi-seed loop's
+        # "best_plan is None -> adopt" first iteration.
+        attempts_used = 1
+        summary = _decision_summary_for_checkpoint(3, plan)
+        available = ["optimize_plan", "keep_baseline", "request_operator", "abort"]
+        if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
+            available.remove("optimize_plan")
+        context = DecisionContext(
+            run_id=run_id,
+            capability="stage3_interactive",
+            stage="planning",
+            objective=(
+                "Decide whether this Stage 3 plan is good enough to finalize "
+                "(keep_baseline), or another optimization attempt is worth "
+                "the search budget (optimize_plan)."
+            ),
+            facts=summary,
+            available_actions=tuple(available),
+        )
+        interactive_state = {
+            "attempts_used": attempts_used,
+            "best_attempt": attempts_used,
+            "best_plan": plan,
+        }
+    else:
+        attempts_used += 1
+        best_plan = interactive_state["best_plan"]
+        best_attempt = interactive_state.get("best_attempt", 1)
+        problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+        report = None
+        try:
+            report = build_ab_report(extract_candidate(best_plan), extract_candidate(plan), problem)
+        except (ValueError, KeyError) as exc:
+            log_fn(f"stage3_interactive attempt {attempts_used}: could not build A/B report: {exc}")
+
+        available = list(STAGE3_DECISION_ACTIONS)
+        if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
+            available.remove("optimize_plan")
+        if report is not None:
+            context = build_stage3_decision_context(
+                report,
+                run_id=run_id,
+                baseline_ref=f"stage3_interactive:attempt_{best_attempt}",
+                candidate_ref=f"stage3_interactive:attempt_{attempts_used}",
+                objective=(
+                    f"Decide whether Stage 3 attempt {attempts_used} should replace "
+                    f"the current best attempt ({best_attempt}), request another "
+                    "optimization attempt, ask the operator, or keep the current best."
+                ),
+            )
+            context = _dc_replace(context, available_actions=tuple(available) + ("abort",))
+        else:
+            # A/B report couldn't be built — fall back to keep/abort only,
+            # never silently apply an uncompared candidate.
+            context = DecisionContext(
+                run_id=run_id,
+                capability="stage3_optimize",
+                stage="planning",
+                objective="Could not build an old-vs-new comparison report for this attempt.",
+                available_actions=("keep_baseline", "request_operator", "abort"),
+            )
+        interactive_state["attempts_used"] = attempts_used
+        interactive_state["pending_candidate"] = plan
+        interactive_state["pending_attempt"] = attempts_used
+
+    interactive_state["last_context"] = context.to_dict()
+    _write_stage3_interactive_state(state, interactive_state)
+
+    payload = context.to_dict()
+    try:
+        log_dir = resolve_active_run_log_dir(work_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        with open(log_dir / "decision_context.json", "w", encoding="utf-8") as fh:
+            _json.dump(payload, fh, indent=2, ensure_ascii=False)
+    except Exception:
+        pass  # best-effort audit copy; stdout below is authoritative
+
+    print(_json.dumps(payload, indent=2, ensure_ascii=False))
+    return 2
+
+
 def _cmd_run_interactive(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt run --interactive`` (issue #260 Phase 5).
 
@@ -2062,17 +2231,26 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     :func:`~tournament_scheduler.application.decisions.decide` — the same
     validator ``_judge_stage`` uses — before anything runs.
 
-    Single-attempt only: unlike ``rvv-miniputt run``, this does not run
-    Stage 3's multi-seed best-of-N retry loop or the post-Stage4 tone-gated
-    refinement pass. Once a plan looks good enough to finalize, either
-    accept it as-is or invoke the non-interactive ``run --resume-from 3``
-    for the full retry/refinement machinery.
+    Stage 3 is a nested decision loop rather than a single-attempt gate
+    (issue #260 P0): the context offered after Stage 3 is
+    :func:`_emit_stage3_interactive_decision`'s ``optimize_plan``/
+    ``apply_candidate``/``keep_baseline``/``request_operator`` — the same
+    action vocabulary the headless multi-seed loop uses via
+    ``_decide_plan_adoption`` — not the generic proceed/abort context. Passing
+    ``optimize_plan`` (optionally with ``arguments.iterations`` as a bounded
+    search-budget override) re-runs Stage 3 for another attempt and emits a
+    new decision comparing it against the current best, instead of advancing;
+    ``apply_candidate``/``keep_baseline`` resolve the loop and advance to
+    Stage 4. The loop is capped at
+    :data:`_MAX_INTERACTIVE_STAGE3_ATTEMPTS` attempts — ``optimize_plan`` is
+    no longer offered past the cap. There is no longer a need to fall back to
+    the non-interactive ``run --resume-from 3`` for multi-attempt refinement.
     """
     import json as _json
 
-    from ..application.decisions import DecisionAction, decide, record_llm_decision
+    from ..application.decisions import DecisionAction, DecisionContext, decide, record_llm_decision
     from ..llm_judge.prompts import build_decision_context
-    from ..pipeline.state import PipelineState, StageName
+    from ..pipeline.state import PipelineState, StageName, StageStatus
 
     strict = not args.non_strict
     resume_from = _resolve_resume_stage(getattr(args, "resume_from", None))
@@ -2099,6 +2277,8 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             _console.print(f"[red]✗[/red] Kunne ikke lese --decision-action-file: {exc}")
             return 1
 
+    stage3_search_iterations: int | None = None
+
     if decision_payload is not None:
         prev_stage_num = resume_from - 1
         if prev_stage_num < 1:
@@ -2111,21 +2291,33 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         if not state.checkpoint_path(prev_stage_name).exists():
             _console.print(f"[red]✗[/red] Fant ingen sjekkpunkt for Stage {prev_stage_num} å avgjøre.")
             return 1
-        prev_checkpoint = state.read_stage(prev_stage_name)
-        prev_effective_config = None
-        if prev_stage_num == 1:
-            from ..pipeline.stage1_config import load_effective_config
 
-            prev_effective_config = load_effective_config(state, input_path=args.input)
-        prev_summary = _decision_summary_for_checkpoint(
-            prev_stage_num, prev_checkpoint, effective_config=prev_effective_config
-        )
-        prev_context = build_decision_context(_INTERACTIVE_STAGE_KEYS[prev_stage_num], prev_summary)
         try:
             decision_action = DecisionAction.from_dict(decision_payload)
         except Exception as exc:
             _console.print(f"[red]✗[/red] Ugyldig DecisionAction: {exc}")
             return 1
+
+        stage3_interactive_state: dict[str, Any] | None = None
+        if prev_stage_num == 3:
+            stage3_interactive_state = _read_stage3_interactive_state(state)
+            last_context_payload = stage3_interactive_state.get("last_context")
+            if not last_context_payload:
+                _console.print("[red]✗[/red] Fant ingen Stage 3-avgjørelseskontekst å avgjøre.")
+                return 1
+            prev_context = DecisionContext.from_dict(last_context_payload)
+        else:
+            prev_checkpoint = state.read_stage(prev_stage_name)
+            prev_effective_config = None
+            if prev_stage_num == 1:
+                from ..pipeline.stage1_config import load_effective_config
+
+                prev_effective_config = load_effective_config(state, input_path=args.input)
+            prev_summary = _decision_summary_for_checkpoint(
+                prev_stage_num, prev_checkpoint, effective_config=prev_effective_config
+            )
+            prev_context = build_decision_context(_INTERACTIVE_STAGE_KEYS[prev_stage_num], prev_summary)
+
         decision_result = decide(prev_context, decision_action)
         try:
             record_llm_decision(str(state.work_dir), prev_context, decision_action, decision_result)
@@ -2139,7 +2331,31 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         if decision_action.action_id == "abort":
             _console.print("[yellow]Avbrutt etter operatørens avgjørelse.[/yellow]")
             return 1
-        if decision_action.action_id == "retry_stage":
+
+        if prev_stage_num == 3 and stage3_interactive_state is not None:
+            if decision_action.action_id == "optimize_plan":
+                resume_from = 3
+                raw_iterations = decision_action.arguments.get("iterations")
+                try:
+                    stage3_search_iterations = max(1, min(10, int(raw_iterations)))
+                except (TypeError, ValueError):
+                    stage3_search_iterations = None
+            elif decision_action.action_id == "apply_candidate":
+                # The on-disk Stage 3 checkpoint already holds the candidate
+                # that was just rerun (the pending attempt), so no checkpoint
+                # rewrite is needed here — only clear the side-state, the
+                # loop is resolved and we advance to Stage 4.
+                _clear_stage3_interactive_state(state)
+            else:
+                # keep_baseline (or any other accepted action): the on-disk
+                # checkpoint currently holds the just-rejected rerun attempt,
+                # so restore the persisted best plan before advancing —
+                # mirrors the headless loop's re-persist-selected-attempt step.
+                best_plan = stage3_interactive_state.get("best_plan")
+                if best_plan is not None:
+                    state.write_stage(StageName.PLANNING, best_plan, status=StageStatus.DONE)
+                _clear_stage3_interactive_state(state)
+        elif decision_action.action_id == "retry_stage":
             resume_from = prev_stage_num
 
     cfg, abort = _run_stage1(args, state, strict, _log, resume_from)
@@ -2157,11 +2373,13 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     if resume_from == 2:
         return _emit_interactive_decision_context(2, state, args.work_dir)
 
-    plan, abort, _stage3_failed = _run_stage3(args, cfg, scraping, state, start, end, strict, resume_from, _log)
+    plan, abort, _stage3_failed = _run_stage3(
+        args, cfg, scraping, state, start, end, strict, resume_from, _log, stage3_search_iterations
+    )
     if abort:
         return 1
     if resume_from == 3:
-        return _emit_interactive_decision_context(3, state, args.work_dir)
+        return _emit_stage3_interactive_decision(state, args.work_dir, cfg, scraping, start, end, plan, _log)
 
     _generated_calendars, abort, _stage4_failed = _run_stage4_export(
         args, plan, state, strict, _log, resume_from

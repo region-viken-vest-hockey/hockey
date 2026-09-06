@@ -18,8 +18,47 @@ import pytest
 from tournament_scheduler.cli.pipeline_orchestrator import (
     _cmd_run_interactive,
     _decision_summary_for_checkpoint,
+    _read_stage3_interactive_state,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+
+
+def _team(club: str, label: str, age_group: str) -> dict:
+    return {"club": club, "label": label, "age_group": age_group}
+
+
+def _tournament(t_id: str, date_str: str, arena: str, age_group: str, teams: list[dict]) -> dict:
+    game_pairs = [(a["label"], b["label"]) for i, a in enumerate(teams) for b in teams[i + 1 :]]
+    return {
+        "id": t_id,
+        "date": date_str,
+        "arena": arena,
+        "age_group": age_group,
+        "host_club": teams[0]["club"] if teams else None,
+        "teams": teams,
+        "games": [
+            {"home": home, "away": away, "parallel_slot": 0, "round_number": 1} for home, away in game_pairs
+        ],
+    }
+
+
+def _candidate(seed: int) -> dict:
+    """A minimal, verifier-passing candidate (mirrors test_stage3_ab's fixture)."""
+    teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 9)}
+    group_a = [teams["T1"], teams["T2"], teams["T3"], teams["T4"]]
+    group_b = [teams["T5"], teams["T6"], teams["T7"], teams["T8"]]
+    month = 1 + (seed % 4)
+    return {
+        "schema_version": 1,
+        "tournaments": [
+            _tournament(f"t1-{seed}", f"2026-{month:02d}-05", "Arena1", "U10", group_a),
+            _tournament(f"t2-{seed}", f"2026-{month:02d}-12", "Arena1", "U10", group_b),
+        ],
+    }
+
+
+def _plan_checkpoint(seed: int) -> dict[str, Any]:
+    return {"plan": _candidate(seed), "warnings": []}
 
 
 def _args(**overrides: Any) -> SimpleNamespace:
@@ -183,3 +222,236 @@ class TestCmdRunInteractive:
         assert len(decisions) == 1
         assert decisions[0]["action"]["action_id"] == "proceed"
         assert decisions[0]["result"]["accepted"] is True
+
+
+class TestStage3InteractiveDecisionLoop:
+    """Stage 3's nested optimize_plan/apply_candidate/keep_baseline loop
+    (issue #260 P0) — unlike every other stage, which only ever offers the
+    coarse proceed/abort-only context."""
+
+    def test_first_attempt_emits_baseline_context(self, state, tmp_path, capsys):
+        args = _args(work_dir=str(tmp_path), resume_from="3")
+        plan = _plan_checkpoint(seed=1)
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+            out = capsys.readouterr().out
+
+        assert exit_code == 2
+        payload = json.loads(out)
+        assert payload["capability"] == "stage3_interactive"
+        assert set(payload["available_actions"]) == {
+            "optimize_plan",
+            "keep_baseline",
+            "request_operator",
+            "abort",
+        }
+        assert "apply_candidate" not in payload["available_actions"]
+
+        interactive_state = _read_stage3_interactive_state(state)
+        assert interactive_state["attempts_used"] == 1
+        assert interactive_state["best_plan"] == plan
+
+    def test_optimize_plan_reruns_stage3_and_emits_ab_context(self, state, tmp_path):
+        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        report = build_ab_report(plan1["plan"], plan1["plan"])
+        baseline_context = build_stage3_decision_context(
+            report, run_id="", baseline_ref=None, candidate_ref=None
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "last_context": baseline_context.to_dict(),
+            },
+        )
+        state.write_stage(StageName.PLANNING, plan1, status=StageStatus.DONE)
+
+        plan2 = _plan_checkpoint(seed=2)
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps({"action_id": "optimize_plan", "rationale": "try again"}),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan2, False, False),
+        ) as run_stage3:
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        # resume_from was redirected from 4 back to 3 — another attempt, not
+        # advancing straight to Stage 4.
+        assert run_stage3.call_args.args[7] == 3
+
+        interactive_state = _read_stage3_interactive_state(state)
+        assert interactive_state["attempts_used"] == 2
+        assert interactive_state["best_plan"] == plan1
+        assert interactive_state["pending_candidate"] == plan2
+        available = interactive_state["last_context"]["available_actions"]
+        assert "apply_candidate" in available
+        assert "keep_baseline" in available
+
+    def test_apply_candidate_advances_and_clears_state(self, state, tmp_path):
+        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        plan2 = _plan_checkpoint(seed=2)
+        report = build_ab_report(plan1["plan"], plan2["plan"])
+        ab_context = build_stage3_decision_context(
+            report,
+            run_id="",
+            baseline_ref="stage3_interactive:attempt_1",
+            candidate_ref="stage3_interactive:attempt_2",
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "attempts_used": 2,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "pending_candidate": plan2,
+                "pending_attempt": 2,
+                "last_context": ab_context.to_dict(),
+            },
+        )
+        # On-disk checkpoint currently holds the just-rerun candidate.
+        state.write_stage(StageName.PLANNING, plan2, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {"action_id": "apply_candidate", "arguments": {"candidate_ref": "stage3_interactive:attempt_2"}}
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan2, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        assert _read_stage3_interactive_state(state) == {}
+        assert state.read_stage(StageName.PLANNING) == plan2
+
+    def test_keep_baseline_restores_best_plan_and_clears_state(self, state, tmp_path):
+        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        plan2 = _plan_checkpoint(seed=2)
+        report = build_ab_report(plan1["plan"], plan2["plan"])
+        ab_context = build_stage3_decision_context(
+            report,
+            run_id="",
+            baseline_ref="stage3_interactive:attempt_1",
+            candidate_ref="stage3_interactive:attempt_2",
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "attempts_used": 2,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "pending_candidate": plan2,
+                "pending_attempt": 2,
+                "last_context": ab_context.to_dict(),
+            },
+        )
+        # On-disk checkpoint currently holds the just-rejected rerun candidate.
+        state.write_stage(StageName.PLANNING, plan2, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps({"action_id": "keep_baseline", "rationale": "not better"}),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan2, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        assert _read_stage3_interactive_state(state) == {}
+        # The rejected candidate is not what gets exported — the best plan
+        # is restored on disk before advancing.
+        assert state.read_stage(StageName.PLANNING) == plan1
+
+    def test_optimize_plan_not_offered_past_attempt_cap(self, state, tmp_path):
+        from datetime import datetime
+
+        from tournament_scheduler.cli.pipeline_orchestrator import (
+            _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
+            _emit_stage3_interactive_decision,
+            _write_stage3_interactive_state,
+        )
+
+        plan1 = _plan_checkpoint(seed=1)
+        _write_stage3_interactive_state(
+            state,
+            {
+                "attempts_used": _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
+                "best_attempt": 1,
+                "best_plan": plan1,
+            },
+        )
+
+        plan2 = _plan_checkpoint(seed=2)
+        exit_code = _emit_stage3_interactive_decision(
+            state,
+            str(tmp_path),
+            {},
+            {},
+            datetime(2026, 9, 1),
+            datetime(2027, 4, 30),
+            plan2,
+            lambda msg: None,
+        )
+
+        assert exit_code == 2
+        interactive_state = _read_stage3_interactive_state(state)
+        assert "optimize_plan" not in interactive_state["last_context"]["available_actions"]
+        assert "apply_candidate" in interactive_state["last_context"]["available_actions"]

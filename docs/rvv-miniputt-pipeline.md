@@ -297,9 +297,19 @@ rvv-miniputt run --interactive --resume-from 2 --input input.xlsx \
   --decision-action '{"action_id": "proceed", "rationale": "..."}'
 ```
 
-Single-attempt only: it does not run Stage 3's multi-seed retry loop or the
-post-Stage4 refinement pass — those remain available via the non-interactive
-`run` command above once a plan looks good enough to finalize.
+Single-attempt for Stages 1, 2, and 4. Stage 3 is a nested decision loop
+instead (issue #260 P0): the `DecisionContext` after Stage 3 offers
+`optimize_plan` / `apply_candidate` / `keep_baseline` / `request_operator`
+(plus `abort`) rather than the coarse `proceed`/`abort` other stages use.
+Choosing `optimize_plan` reruns Stage 3 for another attempt and pauses again
+with an old-vs-new comparison instead of advancing; `apply_candidate`/
+`keep_baseline` resolve the loop and the next `--resume-from 4` invocation
+advances to Stage 4. This mirrors the same action vocabulary and
+`_decide_plan_adoption` machinery the headless multi-seed loop uses — the
+interactive harness itself is now the judge, with deterministic validation
+and a fixed attempt cap enforced by repo code either way. The post-Stage4
+refinement pass is not yet part of this loop and remains available only via
+the non-interactive `run` command above.
 
 ### Pre-export planning critic vs post-export refinement
 

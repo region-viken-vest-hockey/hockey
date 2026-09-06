@@ -110,14 +110,33 @@ scripts/rvv-miniputt run --interactive --resume-from 3 --input input.xlsx \
   --decision-action '<your decision for Stage 2>'
 ```
 
-`facts` includes `tournaments_planned`, `warnings`, and `tone` (`rough` /
-`mixed` / `strong`, from the plan's fairness/quality scores). This
-single-stage-per-invocation mode runs Stage 3 **once** — it does not run
-the multi-seed best-of-N retry loop or the post-export refinement pass the
-non-interactive `scripts/rvv-miniputt run` command has. If `tone` is
-`rough`, prefer `abort` and re-run the full (non-interactive)
-`scripts/rvv-miniputt run --resume-from 3` for its retry/refinement
-machinery, rather than looping this command by hand.
+Stage 3 is a **nested decision loop**, not a single-attempt gate: the
+`DecisionContext` here offers `optimize_plan` / `apply_candidate` /
+`keep_baseline` / `request_operator` (plus `abort`), not the coarse
+`proceed`/`abort` every other stage uses. Do not fall back to the
+non-interactive `scripts/rvv-miniputt run --resume-from 3` for retry/
+refinement — drive the loop from here instead:
+
+- The first response after Stage 3 runs is a **baseline** decision: `facts`
+  includes `tournaments_planned`, `warnings`, and `tone` (`rough` / `mixed`
+  / `strong`). Choose `optimize_plan` if `tone` is `rough` (or you judge the
+  plan worth another search attempt) — this re-runs Stage 3 for another
+  attempt and pauses again, this time with an old-vs-new comparison, rather
+  than advancing. Choose `keep_baseline` to finalize this attempt and move
+  to Stage 4.
+- Each subsequent response compares the new attempt against the current
+  best via `scorecard`/`hard_violations`/`warnings` (a Stage 3 A/B report).
+  Choose `apply_candidate` (with `arguments.candidate_ref` set to the
+  context's `candidate_ref`) to replace the current best with this attempt,
+  `keep_baseline` to discard it and keep the current best, or `optimize_plan`
+  again for another attempt.
+- `optimize_plan` accepts an optional bounded search-budget override via
+  `arguments.iterations` (clamped to 1–10 by the deterministic validator).
+- The loop is capped at a fixed number of attempts (repo-owned, not the
+  harness's choice) — `optimize_plan` stops being offered once the cap is
+  reached; `apply_candidate`/`keep_baseline` remain available to resolve it.
+- Applying or keeping resolves the loop and the next invocation
+  (`--resume-from 4`) advances to Stage 4, same as any other stage decision.
 
 ### Stage 4 — Export
 

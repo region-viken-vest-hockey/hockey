@@ -62,7 +62,9 @@ A source that can't be recovered this way just stays blocked — don't abort the
 scripts/rvv-miniputt run --interactive --resume-from 3 --input input.xlsx \
   --decision-action '<your decision for Stage 2>'
 ```
-`facts` includes `tournaments_planned`, `warnings`, and `tone` (`rough` / `mixed` / `strong`). This mode runs Stage 3 **once** — it does not run the multi-seed retry loop or post-export refinement pass the non-interactive `scripts/rvv-miniputt run` command has. If `tone` is `rough`, prefer `abort` and re-run the full non-interactive `scripts/rvv-miniputt run --resume-from 3` for its retry/refinement machinery, rather than looping this command by hand.
+Stage 3 is a **nested decision loop**, not a single-attempt gate: this `DecisionContext` offers `optimize_plan` / `apply_candidate` / `keep_baseline` / `request_operator` (plus `abort`), not the coarse `proceed`/`abort` every other stage uses. Do not fall back to the non-interactive `scripts/rvv-miniputt run --resume-from 3` for retry/refinement — drive the loop from here instead.
+
+The first response is a **baseline** decision: `facts` includes `tournaments_planned`, `warnings`, and `tone` (`rough` / `mixed` / `strong`). Choose `optimize_plan` if `tone` is `rough` (or another attempt seems worth it) — this re-runs Stage 3 and pauses again with an old-vs-new comparison instead of advancing. Choose `keep_baseline` to finalize and move to Stage 4. Each subsequent response compares the new attempt against the current best via `scorecard`/`hard_violations`/`warnings`: `apply_candidate` (with `arguments.candidate_ref` set to the context's `candidate_ref`) replaces the best with this attempt, `keep_baseline` discards it, `optimize_plan` tries again (optionally with `arguments.iterations` as a bounded search-budget override, clamped 1-10). The loop is capped at a fixed attempt count — `optimize_plan` stops being offered once reached. Applying or keeping resolves the loop; `--resume-from 4` then advances to Stage 4 as usual.
 
 **Stage 4 — Export**
 ```bash
