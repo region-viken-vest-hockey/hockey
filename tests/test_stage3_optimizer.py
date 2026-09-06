@@ -7,7 +7,7 @@ import random
 import pytest
 
 from tournament_scheduler.planning_contract import score_candidate, verify_candidate
-from tournament_scheduler.stage3_optimizer import optimize_candidate
+from tournament_scheduler.stage3_optimizer import optimize_candidate, optimize_candidate_pareto
 
 
 def _team(club: str, label: str, age_group: str) -> dict:
@@ -588,3 +588,88 @@ class TestSearchStateIncrementalMatchesFullRecompute:
         assert _swap_is_valid(slots, 0, pos_a, 1, pos_b, state)
         state.apply_team_swap(0, pos_a, 1, pos_b)
         assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+
+
+class TestOptimizeCandidatePareto:
+    """issue #264 P1 / issue #265 P1: multi-objective search over a small,
+    shared set of deliberate epochs with a bounded non-dominated archive."""
+
+    def test_returns_non_empty_non_dominated_archive(self):
+        candidate = _clustered_candidate()
+        result = optimize_candidate_pareto(candidate, iterations_per_epoch=500, seed=1)
+
+        assert result["candidates"]
+        assert len(result["candidates"]) <= 5
+        vectors = [entry["objective_vector"] for entry in result["candidates"]]
+        for i, a in enumerate(vectors):
+            for j, b in enumerate(vectors):
+                if i == j:
+                    continue
+                # No archive entry may dominate another -- that would mean
+                # a strictly worse candidate slipped through the filter.
+                assert not all(a[k] <= b[k] for k in a) or not any(a[k] < b[k] for k in a)
+
+    def test_archive_respects_max_archive_size(self):
+        candidate = _clustered_candidate()
+        result = optimize_candidate_pareto(
+            candidate, iterations_per_epoch=300, seed=2, max_archive_size=2
+        )
+        assert len(result["candidates"]) <= 2
+
+    def test_every_candidate_carries_comparable_metrics_and_verification(self):
+        candidate = _clustered_candidate()
+        result = optimize_candidate_pareto(candidate, iterations_per_epoch=500, seed=3)
+
+        assert "baseline_objective_vector" in result
+        assert "baseline_score" in result
+        for entry in result["candidates"]:
+            assert set(entry["objective_vector"].keys()) == set(result["baseline_objective_vector"].keys())
+            assert "score" in entry
+            assert "weights_used" in entry
+            assert "verify_result" in entry
+            assert isinstance(entry["dominates_baseline"], bool)
+            result_check = verify_candidate(entry["candidate"])
+            assert result_check["ok"], result_check["violations"]
+
+    def test_search_summary_reports_one_entry_per_epoch(self):
+        candidate = _clustered_candidate()
+        result = optimize_candidate_pareto(candidate, iterations_per_epoch=200, seed=4)
+
+        assert result["search_summary"]["epochs"] == len(result["search_summary"]["epoch_summaries"])
+        for summary in result["search_summary"]["epoch_summaries"]:
+            assert "weights" in summary
+            assert "objective_vector" in summary
+            assert "search_summary" in summary
+
+    def test_deterministic_for_fixed_seed(self):
+        candidate = _clustered_candidate()
+        a = optimize_candidate_pareto(candidate, iterations_per_epoch=300, seed=5)
+        b = optimize_candidate_pareto(candidate, iterations_per_epoch=300, seed=5)
+        assert [entry["objective_vector"] for entry in a["candidates"]] == [
+            entry["objective_vector"] for entry in b["candidates"]
+        ]
+
+    def test_custom_weight_vectors_control_epoch_count(self):
+        candidate = _clustered_candidate()
+        vectors = [{"pair_repeat": 10.0}, {"gap_under_7": 10.0}]
+        result = optimize_candidate_pareto(
+            candidate, iterations_per_epoch=200, seed=6, weight_vectors=vectors
+        )
+        assert result["search_summary"]["epochs"] == 2
+
+    def test_does_not_mutate_input_candidate(self):
+        candidate = _clustered_candidate()
+        import copy
+
+        before = copy.deepcopy(candidate)
+        optimize_candidate_pareto(candidate, iterations_per_epoch=200, seed=7)
+        assert candidate == before
+
+    def test_preserves_participation_and_roster_skeleton_for_every_candidate(self):
+        candidate = _clustered_candidate()
+        result = optimize_candidate_pareto(candidate, iterations_per_epoch=300, seed=8)
+        before_participation = score_candidate(candidate)["participation"]["counts_by_team"]
+
+        for entry in result["candidates"]:
+            after_participation = score_candidate(entry["candidate"])["participation"]["counts_by_team"]
+            assert after_participation == before_participation

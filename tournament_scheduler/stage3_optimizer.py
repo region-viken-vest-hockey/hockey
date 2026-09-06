@@ -1119,6 +1119,244 @@ def optimize_candidate(
 
 
 # ---------------------------------------------------------------------------
+# Multi-objective (Pareto) search (issue #264 P1 / issue #265 P1)
+# ---------------------------------------------------------------------------
+#
+# optimize_candidate() above reduces every soft dimension to one scalar via
+# a caller-chosen weighted sum, so the caller has to already know the right
+# tradeoff before searching. Producing several genuinely different tradeoff
+# candidates by calling optimize_candidate() N independent times and
+# manually diffing/filtering the results is exactly the "N reruns for N
+# candidates" issue #265 P1 flags. This section instead drives ONE shared,
+# deliberate sequence of search epochs -- each epoch reuses the existing
+# fast, incrementally-scored single-objective annealer with a different
+# weight-vector "corner" -- and maintains a bounded non-dominated archive
+# across all of them, so a caller gets a small representative Pareto
+# portfolio from one call instead of assembling one by hand.
+#
+# Dominance is checked on each epoch's *once-per-epoch* full
+# planning_contract.score_candidate() result, never on the per-step hot
+# path inside optimize_candidate() (which remains untouched and just as
+# fast as before) -- so adding multi-objective awareness does not multiply
+# the cost of the inner search loop itself.
+
+# Objective vector dimensions, all oriented "lower is better" so a single
+# uniform dominance check works across every dimension (score_candidate's
+# inter_club_diversity is a "higher is better" fraction, so it is stored
+# inverted -- see _objective_vector).
+_PARETO_DIMENSIONS: Tuple[str, ...] = (
+    "max_pair_repeat",
+    "same_club_pairing_count",
+    "gaps_under_7",
+    "gaps_under_14",
+    "hosting_spread",
+    "inter_club_diversity_inverted",
+)
+
+
+def _objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
+    """Extract a uniformly "lower is better" objective vector from a
+    :func:`tournament_scheduler.planning_contract.score_candidate` result."""
+    gaps = (score.get("turnaround") or {}).get("gaps_under_days") or {}
+    opponent = score.get("opponent_diversity") or {}
+    hosting = score.get("hosting") or {}
+    return {
+        "max_pair_repeat": float(opponent.get("max_pair_repeat", 0)),
+        "same_club_pairing_count": float(opponent.get("same_club_pairing_count", 0)),
+        "gaps_under_7": float(gaps.get(7, 0)),
+        "gaps_under_14": float(gaps.get(14, 0)),
+        "hosting_spread": float(hosting.get("spread", 0)),
+        "inter_club_diversity_inverted": 1.0 - float(opponent.get("inter_club_diversity", 0.0)),
+    }
+
+
+def _dominates(a: Dict[str, float], b: Dict[str, float], tol: float = 1e-9) -> bool:
+    """True if objective vector *a* Pareto-dominates *b*: weakly better (or
+    equal, within *tol*) in every dimension, and strictly better in at
+    least one."""
+    at_least_as_good = all(a[key] <= b[key] + tol for key in a)
+    strictly_better = any(a[key] < b[key] - tol for key in a)
+    return at_least_as_good and strictly_better
+
+
+def _vectors_equal(a: Dict[str, float], b: Dict[str, float], tol: float = 1e-9) -> bool:
+    return all(abs(a[key] - b[key]) <= tol for key in a)
+
+
+def _default_pareto_weight_vectors(base_weights: Dict[str, float]) -> List[Dict[str, float]]:
+    """Build the default set of search-epoch weight vectors: one "corner"
+    per :data:`DEFAULT_WEIGHTS` key (that dimension emphasized, all others
+    zeroed, so the epoch searches purely for that tradeoff extreme) plus one
+    balanced epoch using *base_weights* unchanged."""
+    vectors: List[Dict[str, float]] = []
+    for key in base_weights:
+        vector = {k: 0.0 for k in base_weights}
+        vector[key] = max(base_weights[key], 1.0) * 5.0
+        vectors.append(vector)
+    vectors.append(dict(base_weights))
+    return vectors
+
+
+def _downselect_archive(archive: List[Dict[str, Any]], max_size: int) -> List[Dict[str, Any]]:
+    """Reduce *archive* to at most *max_size* entries, preferring the
+    per-dimension extremes (issue #264 P1: "return a small representative
+    set — extremes plus useful knee/balanced points") over an arbitrary
+    truncation. A no-op when already within budget."""
+    if len(archive) <= max_size or not archive:
+        return archive
+
+    chosen: List[int] = []
+    chosen_set: set = set()
+    for dim in archive[0]["vector"]:
+        best_index = min(range(len(archive)), key=lambda i: archive[i]["vector"][dim])
+        if best_index not in chosen_set:
+            chosen_set.add(best_index)
+            chosen.append(best_index)
+        if len(chosen) >= max_size:
+            break
+
+    if len(chosen) < max_size:
+        remaining = [i for i in range(len(archive)) if i not in chosen_set]
+        remaining.sort(key=lambda i: sum(archive[i]["vector"].values()))
+        for index in remaining:
+            if len(chosen) >= max_size:
+                break
+            chosen.append(index)
+            chosen_set.add(index)
+
+    return [archive[i] for i in sorted(chosen)]
+
+
+def optimize_candidate_pareto(
+    candidate: Dict[str, Any],
+    problem: Optional[Dict[str, Any]] = None,
+    *,
+    iterations_per_epoch: int = 2000,
+    seed: int = 0,
+    weight_vectors: Optional[List[Dict[str, float]]] = None,
+    per_age_group_weights: Optional[Dict[str, Dict[str, float]]] = None,
+    move_dates: bool = False,
+    date_swap_probability: float = 0.3,
+    move_hosts: bool = False,
+    move_slots: bool = False,
+    max_archive_size: int = 5,
+) -> Dict[str, Any]:
+    """Multi-objective Stage 3 search over a small, deliberate sequence of
+    weight-vector epochs, maintaining one bounded non-dominated archive
+    across all of them (issue #264 P1, issue #265 P1).
+
+    Each epoch calls :func:`optimize_candidate` unchanged (same fast,
+    incrementally-scored inner loop) with *weights* set to that epoch's
+    entry from *weight_vectors* (default: :func:`_default_pareto_weight_vectors`,
+    one corner per :data:`DEFAULT_WEIGHTS` key plus a balanced epoch).
+    After each epoch, the resulting candidate is scored once with
+    :func:`tournament_scheduler.planning_contract.score_candidate` and
+    checked against the running archive: dominated/duplicate results are
+    dropped, and any archive entries the new result dominates are removed.
+
+    Returns a dict with:
+
+    - ``baseline_objective_vector`` / ``baseline_score``: the input
+      candidate's own objective vector, for comparison.
+    - ``candidates``: up to *max_archive_size* non-dominated entries, each
+      with ``candidate``, ``objective_vector``, ``score`` (the full
+      :func:`score_candidate` breakdown), ``weights_used``, ``epoch``,
+      ``dominates_baseline``, and an independent ``verify_result`` --
+      :func:`~tournament_scheduler.planning_contract.verify_candidate` is
+      only ever run on archive candidates that survive dominance
+      filtering, never on every internal per-epoch proposal.
+    - ``search_summary``: epoch count and, per epoch, the weights used and
+      the underlying :func:`optimize_candidate` call's own search summary.
+
+    Deterministic for a given *seed* (each epoch uses ``seed + epoch_index``).
+    Does not mutate *candidate*.
+    """
+    from .planning_contract import score_candidate, verify_candidate
+
+    resolved_weights = dict(DEFAULT_WEIGHTS)
+    resolved_vectors = weight_vectors or _default_pareto_weight_vectors(resolved_weights)
+
+    baseline_score = score_candidate(candidate)
+    baseline_vector = _objective_vector(baseline_score)
+
+    archive: List[Dict[str, Any]] = []
+
+    def _try_add(entry: Dict[str, Any]) -> None:
+        nonlocal archive
+        for existing in archive:
+            if _vectors_equal(existing["vector"], entry["vector"]) or _dominates(existing["vector"], entry["vector"]):
+                return
+        archive = [existing for existing in archive if not _dominates(entry["vector"], existing["vector"])]
+        archive.append(entry)
+
+    epoch_summaries: List[Dict[str, Any]] = []
+    for epoch, weights in enumerate(resolved_vectors):
+        epoch_seed = seed + epoch
+        epoch_result = optimize_candidate(
+            candidate,
+            problem,
+            iterations=iterations_per_epoch,
+            seed=epoch_seed,
+            weights=weights,
+            per_age_group_weights=per_age_group_weights,
+            move_dates=move_dates,
+            date_swap_probability=date_swap_probability,
+            move_hosts=move_hosts,
+            move_slots=move_slots,
+        )
+        epoch_score = score_candidate(epoch_result)
+        epoch_vector = _objective_vector(epoch_score)
+        epoch_summaries.append(
+            {
+                "epoch": epoch,
+                "weights": weights,
+                "seed": epoch_seed,
+                "objective_vector": epoch_vector,
+                "search_summary": (epoch_result.get("source") or {}).get("search_summary"),
+            }
+        )
+        _try_add(
+            {
+                "candidate": epoch_result,
+                "vector": epoch_vector,
+                "score": epoch_score,
+                "weights": weights,
+                "epoch": epoch,
+            }
+        )
+
+    archive = _downselect_archive(archive, max_archive_size)
+
+    candidates_out: List[Dict[str, Any]] = []
+    for entry in archive:
+        candidates_out.append(
+            {
+                "candidate": entry["candidate"],
+                "objective_vector": entry["vector"],
+                "score": entry["score"],
+                "weights_used": entry["weights"],
+                "epoch": entry["epoch"],
+                "verify_result": verify_candidate(entry["candidate"], problem),
+                "dominates_baseline": (
+                    _dominates(entry["vector"], baseline_vector) or _vectors_equal(entry["vector"], baseline_vector)
+                ),
+            }
+        )
+
+    return {
+        "schema_version": CANDIDATE_SCHEMA_VERSION,
+        "baseline_objective_vector": baseline_vector,
+        "baseline_score": baseline_score,
+        "candidates": candidates_out,
+        "search_summary": {
+            "epochs": len(resolved_vectors),
+            "epoch_summaries": epoch_summaries,
+            "archive_size": len(candidates_out),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Baseline-bounded / lexicographic participant optimization (issue #257 Task 2)
 # ---------------------------------------------------------------------------
 #
