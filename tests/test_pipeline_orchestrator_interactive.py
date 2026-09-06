@@ -109,6 +109,7 @@ class TestDecisionSummaryForCheckpoint:
         summary = _decision_summary_for_checkpoint(2, checkpoint)
         assert summary["sources_scanned"] == 2
         assert summary["blocked"] == ["b"]
+        assert summary["source_details"] == checkpoint["sources"]
 
     def test_stage4_lists_output_file_kinds(self):
         checkpoint = {"output_files": {"excel": "a.xlsx", "ical": "a.ics"}, "errors": []}
@@ -222,6 +223,52 @@ class TestCmdRunInteractive:
         assert len(decisions) == 1
         assert decisions[0]["action"]["action_id"] == "proceed"
         assert decisions[0]["result"]["accepted"] is True
+
+
+class TestStage2InteractiveZeroEventsDefersToDecisionContext:
+    """--interactive must not let _check_stage2_checkpoint pre-empt the
+    zero-events sufficiency call with its own hard abort — the harness gets
+    to decide via the Stage 2 DecisionContext instead (issue #260 P1)."""
+
+    def test_zero_events_strict_interactive_proceeds_to_checkpoint(self, state, tmp_path):
+        from tournament_scheduler.cli.pipeline_orchestrator import _run_stage2
+
+        args = _args(work_dir=str(tmp_path), interactive=True, non_strict=False)
+        cfg = {"start_date": "2026-09-01", "end_date": "2027-04-30"}
+        zero_events_checkpoint = {
+            "sources": [{"name": "a", "event_count": 0, "blocked": False}],
+            "blocked": [],
+        }
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping.run",
+            return_value=zero_events_checkpoint,
+        ):
+            scraping, abort, stage_failed = _run_stage2(
+                args, cfg, state, None, None, True, lambda msg: None, resume_from=2
+            )
+
+        assert abort is False
+        assert stage_failed is False
+        assert scraping == zero_events_checkpoint
+
+    def test_zero_events_strict_non_interactive_unattended_aborts(self, state, tmp_path):
+        from tournament_scheduler.cli.pipeline_orchestrator import _run_stage2
+
+        args = _args(work_dir=str(tmp_path), interactive=False, non_strict=False)
+        cfg = {"start_date": "2026-09-01", "end_date": "2027-04-30"}
+        zero_events_checkpoint = {
+            "sources": [{"name": "a", "event_count": 0, "blocked": False}],
+            "blocked": [],
+        }
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping.run",
+            return_value=zero_events_checkpoint,
+        ):
+            scraping, abort, stage_failed = _run_stage2(
+                args, cfg, state, None, None, True, lambda msg: None, resume_from=2
+            )
+
+        assert abort is True
 
 
 class TestStage3InteractiveDecisionLoop:

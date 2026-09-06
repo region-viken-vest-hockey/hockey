@@ -157,6 +157,51 @@ for the full decision-ownership boundary. Do not encode a new fixed
 threshold or magic weight here to answer one of those tradeoffs; expose
 the underlying facts/metrics instead.
 
+### Interactive `DecisionContext` reference
+
+`rvv-miniputt run --interactive` runs exactly one stage, then prints a JSON
+`DecisionContext` (facts, hard violations, warnings, `available_actions`)
+and exits with code `2` — the canonical capability behind every harness
+adapter's (Claude/ChatGPT/OpenCode/Codex) stage-by-stage checkpoint review.
+Each adapter's `run.md` shows the exact command form for that harness; this
+is the single canonical description of what `facts` contain and what the
+actions do, so it is not repeated per adapter (issue #260 — thin adapters
+reference shared policy rather than duplicating it).
+
+- **Stage 1 (config):** `facts` includes `sources`, `start_date`,
+  `end_date`, `age_groups`, `clubs`.
+- **Stage 2 (scraping):** `facts` includes `sources_scanned`,
+  `blocked_count`, `blocked_sources`, `llm_fallback_count`,
+  `sources_with_events`, `total_events`. `recover_source` is offered when
+  `blocked_count > 0`. This gate does not auto-abort on zero-events
+  sufficiency by itself (issue #260 P1) — if `sources_with_events` is 0,
+  that is a fact for you to weigh (abort, retry after a fix, or proceed if
+  a genuine zero-events season gap is expected), not a Python-decided
+  failure.
+- **Stage 3 (planning) — nested decision loop:** unlike every other stage,
+  this context offers `optimize_plan` / `apply_candidate` / `keep_baseline`
+  / `request_operator` (plus `abort`), not the generic `proceed`/`abort`
+  (issue #260 P0). The first response is a **baseline** decision (`facts`:
+  `tournaments_planned`, `warnings`, `tone`) — choose `optimize_plan` if
+  `tone` is `rough` (re-runs Stage 3 for another attempt and pauses again
+  with an old-vs-new comparison instead of advancing) or `keep_baseline` to
+  finalize this attempt and move to Stage 4. Each later response compares
+  the new attempt against the current best via
+  `scorecard`/`hard_violations`/`warnings`: `apply_candidate` (with
+  `arguments.candidate_ref` set to the context's `candidate_ref`) replaces
+  the best with this attempt, `keep_baseline` discards it, `optimize_plan`
+  tries again — optionally with `arguments.iterations` as a bounded
+  search-budget override (clamped 1–10, issue #260 P1's action-parameter
+  schema). The loop is capped at a fixed number of attempts, enforced
+  deterministically — `optimize_plan` stops being offered once reached.
+  Applying or keeping resolves the loop; the next `--resume-from 4`
+  invocation advances to Stage 4 as usual. Do not fall back to the
+  non-interactive `run --resume-from 3` for retry/refinement — this loop
+  replaces that need.
+- **Stage 4 (export):** `facts` includes `files_written`, `errors`. There
+  is no Stage 5 — report the result to the user; `/rvv-miniputt:publish`
+  handles publication separately.
+
 ## LLM-driven scraping (ScraperAgent)
 
 When deterministic scraping fails for a source, the ScraperAgent in `.pi/lib/scraper-agent.ts` handles it:

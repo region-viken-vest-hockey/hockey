@@ -73,6 +73,32 @@ def test_zero_events_non_strict_returns_true():
     assert result is True
 
 
+def test_zero_events_strict_interactive_reviewed_defers_instead_of_failing():
+    """Interactive mode: zero-events sufficiency is not pre-empted by this
+    gate — it defers to the DecisionContext an interactive harness reads
+    right after (issue #260 P1)."""
+    console = _console()
+    log_fn = MagicMock()
+    chk = _make_checkpoint(
+        sources=[{"name": "a", "event_count": 0, "blocked": False}]
+    )
+    with patch("builtins.input", side_effect=AssertionError("input must not be called")):
+        result = _check_stage2_checkpoint(chk, True, console, log_fn, interactive_reviewed=True)
+    assert result is True
+
+
+def test_zero_events_strict_unattended_still_fails():
+    """Not interactive and no judge (fully unattended) keeps the existing
+    hard-fail safety net unchanged."""
+    console = _console()
+    log_fn = MagicMock()
+    chk = _make_checkpoint(
+        sources=[{"name": "a", "event_count": 0, "blocked": False}]
+    )
+    result = _check_stage2_checkpoint(chk, True, console, log_fn, interactive_reviewed=False)
+    assert result is False
+
+
 # ---------------------------------------------------------------------------
 # Blocked sources — with events from at least one source
 # ---------------------------------------------------------------------------

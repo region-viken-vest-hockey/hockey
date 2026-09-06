@@ -1131,6 +1131,7 @@ def _check_stage2_checkpoint(
     log_fn: "Any",
     *,
     harness_active: bool = False,
+    interactive_reviewed: bool = False,
 ) -> bool:
     """Deterministic Stage 2 gate: inspect checkpoint fields directly.
 
@@ -1150,6 +1151,17 @@ def _check_stage2_checkpoint(
         log_fn: Callable that appends a message to the run log.
         harness_active: True when running headless under a harness (no LLM judge
             configured) — skips interactive prompts and uses threshold logic only.
+        interactive_reviewed: True when the caller is ``rvv-miniputt run
+            --interactive`` (issue #260 P1: "remove the Stage 2 hidden
+            sufficiency shortcut"). In that mode this checkpoint's facts
+            (including zero-events) are about to be surfaced through a
+            :class:`~tournament_scheduler.application.decisions.DecisionContext`
+            an interactive harness reads and decides on directly — this
+            gate must not pre-empt that with its own separate zero-events
+            hard-fail, or the canonical decision path never gets a say.
+            Only the "nothing is watching at all" case (no headless judge,
+            not interactive — a fully unattended run) keeps the deterministic
+            zero-events hard-fail as an explicitly-named legacy safety net.
 
     Returns:
         ``True`` if the pipeline should proceed to Stage 3, ``False`` if it should
@@ -1181,6 +1193,13 @@ def _check_stage2_checkpoint(
         log_fn("Stage 2 gate FAIL: zero sources with events")
         if not strict:
             console.print("  [yellow]⚠[/yellow] Fortsetter pga --non-strict")
+            return True
+        if interactive_reviewed:
+            console.print(
+                "  [yellow]⚠[/yellow] Interaktiv modus — avgjørelsen overlates til "
+                "DecisionContext for dette steget, ikke en automatisk avbrytelse."
+            )
+            log_fn("Stage 2 gate: interactive_reviewed — deferring zero-events sufficiency to DecisionContext")
             return True
         return False
 
@@ -1346,6 +1365,7 @@ def _run_stage2(
             stage2_summary = {
                 "sources_scanned": n,
                 "blocked": blocked,
+                "source_details": scraping.get("sources", []),
             }
             if not _judge_stage(2, stage2_summary, state, log_fn, stage_name=StageName.SCRAPING):
                 return None, True, False
@@ -1355,7 +1375,12 @@ def _run_stage2(
             except ValueError:
                 _harness_active = True  # no backend configured — treat as harness
             if not _check_stage2_checkpoint(
-                scraping, strict, _console, log_fn, harness_active=_harness_active
+                scraping,
+                strict,
+                _console,
+                log_fn,
+                harness_active=_harness_active,
+                interactive_reviewed=bool(getattr(args, "interactive", False)),
             ):
                 return None, True, False
         except Exception as exc:
@@ -1979,6 +2004,7 @@ def _decision_summary_for_checkpoint(
         return {
             "sources_scanned": len(checkpoint.get("sources", [])),
             "blocked": checkpoint.get("blocked", []),
+            "source_details": checkpoint.get("sources", []),
         }
     if stage_num == 3:
         plan_obj = checkpoint.get("plan", {})

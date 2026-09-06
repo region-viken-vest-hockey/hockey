@@ -48,6 +48,33 @@ def test_build_decision_context_carries_facts_and_proceed_abort_vocabulary() -> 
     assert context.facts["blocked_count"] == 2
 
 
+def test_build_decision_context_surfaces_sources_with_events_when_source_details_given() -> None:
+    # issue #260 P1: the zero-events sufficiency fact must be visible to
+    # whoever is deciding (headless judge or interactive harness), not just
+    # silently decided by a Python threshold.
+    context = build_decision_context(
+        "scraping",
+        {
+            "sources_scanned": 2,
+            "blocked": [],
+            "source_details": [
+                {"name": "a", "event_count": 0, "blocked": False},
+                {"name": "b", "event_count": 3, "blocked": False},
+            ],
+        },
+    )
+
+    assert context.facts["sources_with_events"] == 1
+    assert context.facts["total_events"] == 3
+
+
+def test_build_decision_context_omits_events_facts_without_source_details() -> None:
+    context = build_decision_context("scraping", {"sources_scanned": 10, "blocked": []})
+
+    assert "sources_with_events" not in context.facts
+    assert "total_events" not in context.facts
+
+
 def test_build_decision_context_omits_recover_source_without_blocked_sources() -> None:
     context = build_decision_context("scraping", {"sources_scanned": 10, "blocked": []})
 

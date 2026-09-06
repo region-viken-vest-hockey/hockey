@@ -45,7 +45,7 @@ scripts/rvv-miniputt run --interactive --resume-from 1 --input input.xlsx
 scripts/rvv-miniputt run --interactive --resume-from 2 --input input.xlsx \
   --decision-action '<your decision for Stage 1>'
 ```
-`facts` includes `sources_scanned`, `blocked_count`, `blocked_sources`, `llm_fallback_count`. If `blocked_count > 0`, `recover_source` is offered.
+See `.agents/skills/rvv/SKILL.md`'s "Interactive `DecisionContext` reference" for what `facts` contains and when `recover_source` is offered — canonical, not repeated here.
 
 Recovery, when offered: for each name in `blocked_sources`, look up its URL via:
 ```bash
@@ -62,16 +62,14 @@ A source that can't be recovered this way just stays blocked — don't abort the
 scripts/rvv-miniputt run --interactive --resume-from 3 --input input.xlsx \
   --decision-action '<your decision for Stage 2>'
 ```
-Stage 3 is a **nested decision loop**, not a single-attempt gate: this `DecisionContext` offers `optimize_plan` / `apply_candidate` / `keep_baseline` / `request_operator` (plus `abort`), not the coarse `proceed`/`abort` every other stage uses. Do not fall back to the non-interactive `scripts/rvv-miniputt run --resume-from 3` for retry/refinement — drive the loop from here instead.
-
-The first response is a **baseline** decision: `facts` includes `tournaments_planned`, `warnings`, and `tone` (`rough` / `mixed` / `strong`). Choose `optimize_plan` if `tone` is `rough` (or another attempt seems worth it) — this re-runs Stage 3 and pauses again with an old-vs-new comparison instead of advancing. Choose `keep_baseline` to finalize and move to Stage 4. Each subsequent response compares the new attempt against the current best via `scorecard`/`hard_violations`/`warnings`: `apply_candidate` (with `arguments.candidate_ref` set to the context's `candidate_ref`) replaces the best with this attempt, `keep_baseline` discards it, `optimize_plan` tries again (optionally with `arguments.iterations` as a bounded search-budget override, clamped 1-10). The loop is capped at a fixed attempt count — `optimize_plan` stops being offered once reached. Applying or keeping resolves the loop; `--resume-from 4` then advances to Stage 4 as usual.
+Stage 3 is a **nested decision loop**, not a single-attempt gate — see `.agents/skills/rvv/SKILL.md`'s "Interactive `DecisionContext` reference" for the full `optimize_plan`/`apply_candidate`/`keep_baseline` mechanics, canonical and not repeated here. Do not fall back to the non-interactive `scripts/rvv-miniputt run --resume-from 3` for retry/refinement — drive the loop from here instead.
 
 **Stage 4 — Export**
 ```bash
 scripts/rvv-miniputt run --interactive --resume-from 4 --input input.xlsx \
   --decision-action '<your decision for Stage 3>'
 ```
-`facts` includes `files_written` and `errors`. There's no Stage 5 — after deciding here, report the result to the user; `/rvv-miniputt:publish` handles publication separately.
+See `.agents/skills/rvv/SKILL.md`'s "Interactive `DecisionContext` reference" for what `facts` contains. There's no Stage 5 — after deciding here, report the result to the user; `/rvv-miniputt:publish` handles publication separately.
 
 Checkpoint review helper:
 ```bash

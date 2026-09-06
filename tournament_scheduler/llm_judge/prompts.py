@@ -115,12 +115,29 @@ def _config_facts(summary: dict[str, Any]) -> dict[str, Any]:
 def _scraping_facts(summary: dict[str, Any]) -> dict[str, Any]:
     blocked = summary.get("blocked", [])
     llm_fallback = summary.get("llm_fallback", [])
-    return {
+    facts = {
         "sources_scanned": summary.get("sources_scanned", summary.get("sources", "?")),
         "blocked_count": len(blocked) if isinstance(blocked, list) else blocked,
         "blocked_sources": blocked if isinstance(blocked, list) else [],
         "llm_fallback_count": len(llm_fallback) if isinstance(llm_fallback, list) else llm_fallback,
     }
+    # sources_with_events/total_events (issue #260 P1: "remove the Stage 2
+    # hidden sufficiency shortcut") — the same zero-events sufficiency facts
+    # _check_stage2_checkpoint computes deterministically, surfaced here so a
+    # headless judge or an interactive harness can weigh in on whether
+    # sparse/zero evidence is acceptable, rather than a Python threshold
+    # silently deciding it. ``source_details`` is the raw per-source list
+    # (with ``event_count``/``blocked``), separate from ``sources`` above
+    # (which may just be a count) — only present when the caller has it.
+    source_details = summary.get("source_details")
+    if isinstance(source_details, list):
+        facts["sources_with_events"] = sum(
+            1 for s in source_details if isinstance(s, dict) and not s.get("blocked") and s.get("event_count", 0) > 0
+        )
+        facts["total_events"] = sum(
+            s.get("event_count", 0) for s in source_details if isinstance(s, dict) and not s.get("blocked")
+        )
+    return facts
 
 
 def _planning_facts(summary: dict[str, Any]) -> dict[str, Any]:
