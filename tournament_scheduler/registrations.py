@@ -19,6 +19,7 @@ from typing import Any, Iterable, Mapping
 
 import openpyxl
 
+from .club_registry import canonicalize_club_name
 from .pipeline.input_workbook import WorkbookInputError, load_workbook_config
 
 
@@ -273,7 +274,7 @@ def _read_registration_rows(path: Path) -> tuple[list[RegistrationRow], list[Reg
         status_original = canonical.get("status", "")
         status = _normalize_status(status_original)
         sharepoint_id = canonical.get("sharepoint_id", "")
-        club = canonical.get("club", "")
+        club = canonicalize_club_name(canonical.get("club", ""))
         label = canonical.get("label", "")
         age_group = canonical.get("age_group", "")
 

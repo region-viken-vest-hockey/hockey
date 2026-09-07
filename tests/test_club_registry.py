@@ -6,9 +6,11 @@ from tournament_scheduler.club_registry import (
     CLUB_REGISTRY,
     CalendarSourceKind,
     build_data_source,
+    canonicalize_club_name,
     get_club,
     known_clubs,
     missing_clubs,
+    suggest_club_name,
 )
 from tournament_scheduler.data_sources.calendar_scraper import OutlookCalendarScraper
 from tournament_scheduler.data_sources.ical_scraper import ICalScraper
@@ -110,3 +112,66 @@ class TestClubRegistry:
 
     def test_known_and_missing_partition_the_registry(self):
         assert len(known_clubs()) + len(missing_clubs()) == len(CLUB_REGISTRY)
+
+
+class TestCanonicalizeClubName:
+    """Tests for the issue #272 canonical club-identity resolver."""
+
+    def test_exact_canonical_match(self):
+        for club in ALL_NINE_CLUBS:
+            assert canonicalize_club_name(club) == club
+
+    def test_known_aliases_resolve_to_canonical(self):
+        assert canonicalize_club_name("Sandefjord") == "Sandefjord Penguins"
+        assert canonicalize_club_name("Sandefjord Penguins Ishockeyklubb") == "Sandefjord Penguins"
+        assert canonicalize_club_name("Tonsberg") == "Tønsberg"
+
+    def test_unicode_case_and_whitespace_normalization(self):
+        assert canonicalize_club_name("  SANDEFJORD PENGUINS  ") == "Sandefjord Penguins"
+        assert canonicalize_club_name("sandefjord   penguins") == "Sandefjord Penguins"
+        assert canonicalize_club_name("tønsberg") == "Tønsberg"
+        assert canonicalize_club_name("TØNSBERG") == "Tønsberg"
+
+    def test_unique_token_containment_match(self):
+        # "Jutul" is contained as a whole token in a longer, unregistered
+        # variant with no ambiguity against any other canonical club.
+        assert canonicalize_club_name("IL Jutul Ishockey") == "Jutul"
+
+    def test_ambiguous_containment_is_not_silently_collapsed(self):
+        # Both "Jutul" and "Jar" could plausibly be "contained" in this
+        # composite name -- must stay unresolved rather than picking either.
+        result = canonicalize_club_name("Jutul/Jar Kittens")
+        assert result not in ("Jutul", "Jar")
+        assert result == "Jutul/Jar Kittens"
+
+    def test_unknown_club_name_stays_unresolved(self):
+        assert canonicalize_club_name("Totally Unknown FC") == "Totally Unknown FC"
+
+    def test_suggest_club_name_is_diagnostic_only(self):
+        # A close typo should surface a suggestion...
+        assert suggest_club_name("Sandefjord Penguns") == "Sandefjord Penguins"
+        # ...but canonicalize_club_name must never apply it automatically.
+        assert canonicalize_club_name("Sandefjord Penguns") == "Sandefjord Penguns"
+
+    def test_suggest_club_name_returns_none_for_unrelated_input(self):
+        assert suggest_club_name("Totally Unrelated Name") is None
+
+    def test_roster_loader_canonicalizes_club_names(self):
+        from tournament_scheduler.roster_loader import RosterLoader
+
+        roster = RosterLoader.from_dict(
+            {"Sandefjord Penguins Ishockeyklubb": {"U10": ["Sandefjord 1"]}}
+        )
+        assert roster.teams[0].club == "Sandefjord Penguins"
+
+    def test_registrations_import_canonicalizes_club_names(self, tmp_path):
+        from tournament_scheduler.registrations import _read_registration_rows
+
+        csv_path = tmp_path / "registrations.csv"
+        csv_path.write_text(
+            "SharePoint ID,Club,Team label,Age group,Status\n"
+            "1,Sandefjord Penguins Ishockeyklubb,Sandefjord 1,U10,Godkjent\n",
+            encoding="utf-8",
+        )
+        active_rows, _rejected = _read_registration_rows(csv_path)
+        assert active_rows[0].club == "Sandefjord Penguins"

@@ -39,8 +39,10 @@ class TestFromDict:
         roster = RosterLoader.from_dict(config)
 
         assert len(roster.teams) == 2
-        assert Team(club="Sandefjord", label="Sandefjord 1", age_group="U10") in roster.teams
-        assert Team(club="Sandefjord", label="Sandefjord 1", age_group="U11") in roster.teams
+        # "Sandefjord" is a known alias (issue #272) canonicalized to
+        # "Sandefjord Penguins" at Team-construction time.
+        assert Team(club="Sandefjord Penguins", label="Sandefjord 1", age_group="U10") in roster.teams
+        assert Team(club="Sandefjord Penguins", label="Sandefjord 1", age_group="U11") in roster.teams
 
     def test_top_level_must_be_a_mapping(self):
         with pytest.raises(RosterConfigError) as exc_info:

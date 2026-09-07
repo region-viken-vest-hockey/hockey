@@ -8,11 +8,15 @@ required-fast CI tier.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from tests.test_stage3_planning import _make_config
 from tournament_scheduler.pipeline.state import PipelineState
 from tournament_scheduler.pipeline.stage3_planning import run
+
+# Pinned "today" (issue #272 effective_start_date) so this fixed 2025 season
+# window stays valid regardless of the real wall clock.
+_TODAY = date(2025, 8, 25)
 
 
 def _run_twice(tmp_path, *, iterations: int) -> tuple[dict, dict]:
@@ -20,10 +24,10 @@ def _run_twice(tmp_path, *, iterations: int) -> tuple[dict, dict]:
     start, end = datetime(2025, 9, 1), datetime(2025, 12, 15)
 
     state_a = PipelineState(tmp_path / "a")
-    result_a = run(cfg, {}, state_a, start, end, iterations=iterations)
+    result_a = run(cfg, {}, state_a, start, end, iterations=iterations, today=_TODAY)
 
     state_b = PipelineState(tmp_path / "b")
-    result_b = run(cfg, {}, state_b, start, end, iterations=iterations)
+    result_b = run(cfg, {}, state_b, start, end, iterations=iterations, today=_TODAY)
 
     return result_a, result_b
 
@@ -70,8 +74,8 @@ class TestPlannerReproducibility:
 
         start, end = datetime(2025, 9, 1), datetime(2025, 12, 15)
         state_a = PipelineState(tmp_path / "a")
-        result_a = run(cfg_a, {}, state_a, start, end, iterations=1)
+        result_a = run(cfg_a, {}, state_a, start, end, iterations=1, today=_TODAY)
         state_b = PipelineState(tmp_path / "b")
-        result_b = run(cfg_b, {}, state_b, start, end, iterations=1)
+        result_b = run(cfg_b, {}, state_b, start, end, iterations=1, today=_TODAY)
 
         assert result_a["candidates"][0]["config_fingerprint"] != result_b["candidates"][0]["config_fingerprint"]

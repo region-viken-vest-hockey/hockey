@@ -8,7 +8,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-from ..club_registry import CLUB_REGISTRY
+from ..club_registry import CLUB_REGISTRY, canonicalize_club_name
 from ..models import CalendarEvent, Game, Roster, SeasonPlan, Team, Tournament
 from ..roster_loader import RosterLoader
 from ..season_planner import SeasonPlanner
@@ -112,7 +112,7 @@ def _build_roster(config: dict[str, Any]) -> Roster:
     teams_data = config.get("teams", [])
     teams = [
         Team(
-            club=t["club"],
+            club=canonicalize_club_name(t["club"]),
             label=t["label"],
             age_group=t["age_group"],
             target_tournament_count=t.get("target_tournament_count"),
@@ -334,7 +334,7 @@ def _tournament_from_dict(data: dict[str, Any]) -> Tournament:
     """Reconstruct a :class:`Tournament` from a serialised dict."""
     teams = [
         Team(
-            club=t["club"],
+            club=canonicalize_club_name(t["club"]),
             label=t["label"],
             age_group=t["age_group"],
             target_tournament_count=t.get("target_tournament_count"),

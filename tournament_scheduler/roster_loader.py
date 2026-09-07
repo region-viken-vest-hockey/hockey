@@ -40,6 +40,7 @@ import os
 import re
 
 
+from tournament_scheduler.club_registry import canonicalize_club_name
 from tournament_scheduler.models import Roster, Team
 from tournament_scheduler.season_config import _YAML_AVAILABLE, yaml
 
@@ -174,7 +175,9 @@ class RosterLoader:
                         )
                     seen_labels_for_club.add(key)
 
-                    teams.append(Team(club=club, label=label, age_group=age_group))
+                    teams.append(
+                        Team(club=canonicalize_club_name(club), label=label, age_group=age_group)
+                    )
 
         return teams
 
