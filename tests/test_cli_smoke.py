@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 import openpyxl
@@ -22,12 +23,18 @@ pytestmark = pytest.mark.integration
 
 
 def _write_minimal_workbook(path: Path) -> None:
+    # issue #272: Stage 3 now clamps planning to a future effective_start_date,
+    # so this fixture's season window must stay ahead of the real wall clock
+    # rather than a fixed past date, or the clamp would leave nothing to plan.
+    start = date.today() + timedelta(days=30)
+    end = start + timedelta(days=105)
+
     wb = openpyxl.Workbook()
     settings = wb.active
     settings.title = "Innstillinger"
     settings.append(["felt", "verdi"])
-    settings.append(["start_date", "2025-09-01"])
-    settings.append(["end_date", "2025-12-15"])
+    settings.append(["start_date", start.isoformat()])
+    settings.append(["end_date", end.isoformat()])
 
     age_groups = wb.create_sheet("Aldersgrupper")
     age_groups.append(["age_group", "parallel_games", "round_length_minutes"])
