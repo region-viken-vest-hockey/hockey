@@ -327,6 +327,41 @@ class TestVerifyCandidateWithProblem:
         assert "host_calendar_status_unknown" in codes
         assert "external_calendar_conflict" not in codes
 
+    def test_club_controlled_allocation_not_flagged_as_hard_conflict(self):
+        """issue #264: a busy interval tagged 'kind': 'club_controlled' is a
+        generic allocation the host club itself may still use, not a genuine
+        external booking -- it must not become a hard external_calendar_conflict,
+        but should still be recorded (non-blocking) for the evidence bundle."""
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {
+            "tournaments": [
+                _tournament(
+                    "t1", "2026-06-01", "Jarhallen", "U10", teams, start_time="10:00"
+                )
+            ]
+        }
+        problem = self._problem(
+            round_length_minutes={"U10": 60},
+            club_calendar_status={"Jar": "known", "Kongsberg": "known"},
+            club_busy_intervals={
+                "Jar": [
+                    {
+                        "date": "2026-06-01",
+                        "start": "10:30",
+                        "end": "12:00",
+                        "kind": "club_controlled",
+                    }
+                ]
+            },
+        )
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "external_calendar_conflict" not in codes
+        used = result["club_controlled_allocations_used"]
+        assert len(used) == 1
+        assert used[0]["tournament_id"] == "t1"
+        assert used[0]["host_club"] == "Jar"
+
     def test_pinned_tournament_missing_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}

@@ -195,7 +195,7 @@ class TestBuildClubBusyIntervals:
         }
         result = _build_club_busy_intervals(scraping_result)
         assert result == {
-            "Jar": [{"date": "2025-11-01", "start": "10:00", "end": "12:00"}]
+            "Jar": [{"date": "2025-11-01", "start": "10:00", "end": "12:00", "kind": "external"}]
         }
 
     def test_partial_day_leaves_rest_of_day_implicitly_free(self) -> None:
@@ -215,7 +215,9 @@ class TestBuildClubBusyIntervals:
             }
         }
         result = _build_club_busy_intervals(scraping_result)
-        assert result["Jar"] == [{"date": "2025-11-01", "start": "08:00", "end": "12:00"}]
+        assert result["Jar"] == [
+            {"date": "2025-11-01", "start": "08:00", "end": "12:00", "kind": "external"}
+        ]
 
     def test_overnight_event_splits_across_two_dates(self) -> None:
         scraping_result = {
@@ -232,8 +234,8 @@ class TestBuildClubBusyIntervals:
         }
         result = _build_club_busy_intervals(scraping_result)
         assert result["Jar"] == [
-            {"date": "2025-11-01", "start": "23:00", "end": "24:00"},
-            {"date": "2025-11-02", "start": "00:00", "end": "02:00"},
+            {"date": "2025-11-01", "start": "23:00", "end": "24:00", "kind": "external"},
+            {"date": "2025-11-02", "start": "00:00", "end": "02:00", "kind": "external"},
         ]
 
     def test_zero_duration_event_produces_no_interval(self) -> None:
@@ -282,8 +284,8 @@ class TestBuildClubBusyIntervals:
         intervals = result[SANDEFJORD_CLUB_NAME]
         # Busy 00:00-15:00 and 18:00-24:00, free 15:00-18:00 (the fixed window).
         assert intervals == [
-            {"date": "2026-10-03", "start": "00:00", "end": "15:00"},
-            {"date": "2026-10-03", "start": "18:00", "end": "24:00"},
+            {"date": "2026-10-03", "start": "00:00", "end": "15:00", "kind": "external"},
+            {"date": "2026-10-03", "start": "18:00", "end": "24:00", "kind": "external"},
         ]
 
 

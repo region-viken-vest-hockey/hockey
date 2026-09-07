@@ -196,6 +196,8 @@ def external_busy_windows(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
     club: Optional[str],
     on_date: date,
+    *,
+    kind: Optional[str] = "external",
 ) -> List[Tuple[int, int]]:
     """Return ``(start_minutes, end_minutes)`` busy windows for *club* on *on_date*.
 
@@ -205,6 +207,15 @@ def external_busy_windows(
     mean "free all day": callers must additionally confirm the club's
     ``club_calendar_status`` is ``"known"`` before treating the absence of
     entries here as evidence of availability.
+
+    *kind* filters by each interval's ``"kind"`` tag (issue #264: hard
+    external bookings vs. a club-controlled allocation the club itself may
+    still use -- see ``ClubCalendarSource.club_controlled_calendar``).
+    Defaults to ``"external"`` -- only genuine external bookings -- since
+    that is what every hard-conflict caller wants; entries with no ``"kind"``
+    key (older checkpoints) are treated as ``"external"`` too, the safe
+    default. Pass ``kind=None`` to return every interval regardless of kind,
+    or ``kind="club_controlled"`` to inspect only club-controlled ones.
     """
     if not club_busy_intervals or not club:
         return []
@@ -212,6 +223,8 @@ def external_busy_windows(
     windows: List[Tuple[int, int]] = []
     for entry in club_busy_intervals.get(club, []):
         if entry.get("date") != date_str:
+            continue
+        if kind is not None and entry.get("kind", "external") != kind:
             continue
         try:
             windows.append((_time_to_minutes(entry["start"]), _time_to_minutes(entry["end"])))
@@ -233,7 +246,12 @@ def external_calendar_conflict(
     Shared by :func:`verify_candidate` (rejecting an already-built candidate)
     and the Stage 3 v2 optimizer's ``move_dates``/``move_hosts``/``move_slots``
     (rejecting an infeasible move before it's ever proposed as a candidate)
-    so both enforce exactly the same external-calendar evidence.
+    so both enforce exactly the same external-calendar evidence. Only
+    ``"external"``-kind intervals count -- a club-controlled allocation
+    (issue #264, ``ClubCalendarSource.club_controlled_calendar``) is not a
+    hard conflict for that same club's own hosted tournaments; see
+    :func:`club_controlled_allocation_conflict` to detect (non-blocking) use
+    of one for the evidence bundle.
     """
     if not club or not start_time or duration_minutes <= 0:
         return False
@@ -243,6 +261,36 @@ def external_calendar_conflict(
         return False
     new_end = new_start + duration_minutes
     for busy_start, busy_end in external_busy_windows(club_busy_intervals, club, on_date):
+        if new_start < busy_end and busy_start < new_end:
+            return True
+    return False
+
+
+def club_controlled_allocation_conflict(
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
+    club: Optional[str],
+    on_date: date,
+    start_time: Optional[str],
+    duration_minutes: int,
+) -> bool:
+    """True if the tournament interval overlaps a *club-controlled* busy
+    window rather than (or in addition to) a genuine external one
+    (issue #264).
+
+    Non-blocking counterpart to :func:`external_calendar_conflict` -- a club
+    placed inside its own controlled allocation is feasible, but
+    :func:`verify_candidate` still records it so the evidence bundle shows
+    when a selected tournament relied on club-controlled allocation rather
+    than an unconditionally free interval.
+    """
+    if not club or not start_time or duration_minutes <= 0:
+        return False
+    try:
+        new_start = _time_to_minutes(start_time)
+    except ValueError:
+        return False
+    new_end = new_start + duration_minutes
+    for busy_start, busy_end in external_busy_windows(club_busy_intervals, club, on_date, kind="club_controlled"):
         if new_start < busy_end and busy_start < new_end:
             return True
     return False
@@ -294,6 +342,11 @@ def verify_candidate(
     """
     violations: List[Dict[str, Any]] = []
     skipped: List[str] = []
+    # issue #264: non-blocking record of tournaments placed inside a
+    # club-controlled allocation window rather than an unconditionally free
+    # interval -- not a violation, but the evidence bundle should show when
+    # a selected candidate relied on one.
+    club_controlled_allocations_used: List[Dict[str, Any]] = []
 
     tournaments = [t for t in candidate.get("tournaments", []) if not t.get("cancelled")]
 
@@ -364,7 +417,12 @@ def verify_candidate(
                 "external_calendar_conflicts",
             ]
         )
-        return {"ok": not violations, "violations": violations, "skipped": skipped}
+        return {
+            "ok": not violations,
+            "violations": violations,
+            "skipped": skipped,
+            "club_controlled_allocations_used": club_controlled_allocations_used,
+        }
 
     # --- problem-dependent checks -------------------------------------------
 
@@ -431,6 +489,21 @@ def verify_candidate(
                     f"{interval.date} ({interval.interval_label}) overlaps a known external "
                     "calendar booking",
                     interval.tournament_id,
+                )
+            elif club_controlled_allocation_conflict(
+                club_busy_intervals,
+                interval.host_club,
+                interval.start.date(),
+                interval.start.strftime("%H:%M"),
+                duration_minutes,
+            ):
+                club_controlled_allocations_used.append(
+                    {
+                        "tournament_id": interval.tournament_id,
+                        "host_club": interval.host_club,
+                        "date": interval.date,
+                        "interval": interval.interval_label,
+                    }
                 )
     except (KeyError, ValueError) as exc:
         _violate("arena_interval_check_failed", f"Could not evaluate arena interval conflicts: {exc}")
@@ -549,7 +622,12 @@ def verify_candidate(
                 f"expected {target}",
             )
 
-    return {"ok": not violations, "violations": violations, "skipped": skipped}
+    return {
+        "ok": not violations,
+        "violations": violations,
+        "skipped": skipped,
+        "club_controlled_allocations_used": club_controlled_allocations_used,
+    }
 
 
 # ---------------------------------------------------------------------------

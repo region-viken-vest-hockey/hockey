@@ -70,6 +70,22 @@ class ClubCalendarSource:
     # does not contain this string (case-insensitive substring match).  Useful
     # when a club's feed covers multiple arenas and only one is relevant.
     location_filter: Optional[str] = None
+    # issue #264: whether this club's *scraped* calendar entries represent a
+    # generic club allocation it controls (busy in the public/arena calendar
+    # so other bookers can't take it, but usable by the club itself for its
+    # own miniputt tournaments) rather than a genuine external booking. When
+    # True, `pipeline.stage3_helpers._build_club_busy_intervals` tags this
+    # club's busy intervals `"kind": "club_controlled"`, and
+    # `planning_contract.external_calendar_conflict` no longer treats them as
+    # a hard conflict for tournaments this same club hosts (though
+    # `verify_candidate` still records their use for the evidence bundle).
+    # Defaults to False -- flip per club only once a run's calendar evidence
+    # has concretely established club control, never as a blanket
+    # assumption. Deliberately independent of Sandefjord Penguins' fixed
+    # weekly allocation (`sandefjord_allocation.py`): that club's busy
+    # windows represent ice genuinely unavailable to it and must stay a hard
+    # conflict, not club-controlled.
+    club_controlled_calendar: bool = False
 
     @property
     def is_known(self) -> bool:

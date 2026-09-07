@@ -235,6 +235,15 @@ def _build_club_busy_intervals(
 
     result: dict[str, list[dict[str, str]]] = {}
     for club_name, events in events_by_club.items():
+        # issue #264: a club whose registry entry declares its scraped
+        # calendar as a generic allocation *it controls* (busy to outside
+        # bookers, usable by the club itself) gets its busy intervals tagged
+        # accordingly, so `planning_contract.external_calendar_conflict` can
+        # tell a genuine external booking apart from the club's own
+        # allocation instead of treating every occupied interval as an
+        # unconditional hard conflict.
+        registry_entry = CLUB_REGISTRY.get(club_name)
+        kind = "club_controlled" if registry_entry and registry_entry.club_controlled_calendar else "external"
         intervals: list[dict[str, str]] = []
         for event in events:
             parsed = DateParser.parse(event.date)
@@ -255,6 +264,7 @@ def _build_club_busy_intervals(
                         "date": check_date.isoformat(),
                         "start": minutes_to_time(start_minutes),
                         "end": minutes_to_time(end_minutes),
+                        "kind": kind,
                     }
                 )
         if intervals:
