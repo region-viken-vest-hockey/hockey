@@ -90,6 +90,9 @@ def _dict_to_plan(d: dict[str, Any]) -> SeasonPlan:
         fairness_gate=dict(d.get("fairness_gate", {})),
         skipped_age_groups=list(d.get("skipped_age_groups", [])),
         arena_day_collisions=list(d.get("arena_day_collisions", [])),
+        unresolved_hosting_obligations=list(d.get("unresolved_hosting_obligations", [])),
+        unresolved_external_conflicts=list(d.get("unresolved_external_conflicts", [])),
+        unresolved_participation_shortfalls=list(d.get("unresolved_participation_shortfalls", [])),
         team_last_game_dates={
             k: date.fromisoformat(v) for k, v in d.get("team_last_game_dates", {}).items()
         },

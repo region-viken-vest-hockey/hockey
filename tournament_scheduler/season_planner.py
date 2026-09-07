@@ -47,8 +47,9 @@ from tournament_scheduler.models import (
     team_key,
 )
 from tournament_scheduler.club_registry import club_for_arena as _club_for_arena
-from tournament_scheduler.arena_conflicts import find_arena_interval_collisions
+from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
 from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
+from tournament_scheduler.planning_contract import external_calendar_conflict
 from tournament_scheduler.participant_selection import (
     age_group_deficit_spread as _age_group_deficit_spread,
     cap_per_club_deficit_aware as _cap_per_club_deficit_aware,
@@ -123,6 +124,7 @@ class SeasonPlanner:
         max_month_deviation_ratio: float = 0.5,
         events_by_club: Optional[Dict[str, List[CalendarEvent]]] = None,
         club_calendar_status: Optional[Dict[str, str]] = None,
+        club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
         fairness_thresholds: Optional[Dict[str, float]] = None,
         fairness_model: Optional[SeasonFairnessModel] = None,
         date_preferences: Optional[List[DatePreference]] = None,
@@ -156,6 +158,8 @@ class SeasonPlanner:
         self._club_load_warnings: List[Tuple[str, str, str, int]] = []
         self._hosting_warnings: List[str] = []
         self._unresolved_hosting_obligations: List[Dict[str, str]] = []
+        self._unresolved_external_conflicts: List[Dict[str, str]] = []
+        self._unresolved_participation_shortfalls: List[Dict[str, str]] = []
         self._game_count_warnings: List[Tuple[str, int, int, str]] = []
         self._grouped_with: Dict[str, Set[str]] = {}
         self._team_game_counts: Dict[str, int] = {}
@@ -189,6 +193,10 @@ class SeasonPlanner:
         # threaded from the Stage 2 checkpoint through to slot search so a
         # missing/blocked scrape is never treated as "entire window free".
         self.club_calendar_status: Dict[str, str] = dict(club_calendar_status or {})
+        # Real external busy intervals per club (issue #264 shape), reused
+        # here to surface unresolved_external_conflicts non-blocking, same
+        # data source as planning_contract.verify_candidate.
+        self.club_busy_intervals: Dict[str, List[Dict[str, str]]] = dict(club_busy_intervals or {})
         self.fairness_thresholds = dict(DEFAULT_FAIRNESS_THRESHOLDS)
         if fairness_thresholds:
             self.fairness_thresholds.update(fairness_thresholds)
@@ -595,6 +603,76 @@ class SeasonPlanner:
         plan.unresolved_hosting_obligations = unresolved_hosting_obligations
         self._unresolved_hosting_obligations = unresolved_hosting_obligations
 
+        # Genuine external calendar conflicts the planner/optimizer couldn't
+        # route around -- non-blocking, surfaced for manual placement
+        # instead of rejecting the whole plan (mirrors verify_candidate's
+        # manual_external_conflict_placements). A tournament already marked
+        # manual_booking_reason has no verified calendar evidence to check
+        # against, so it's skipped here (nothing to compare).
+        unresolved_external_conflicts: List[Dict[str, str]] = []
+        if self.club_busy_intervals:
+            for tournament in plan.tournaments:
+                if tournament.cancelled or tournament.manual_booking_reason:
+                    continue
+                interval = tournament_interval(tournament, self.round_length_for_age_group)
+                if interval is None or not interval.host_club:
+                    continue
+                duration_minutes = int((interval.end - interval.start).total_seconds() // 60)
+                if external_calendar_conflict(
+                    self.club_busy_intervals,
+                    interval.host_club,
+                    interval.start.date(),
+                    interval.start.strftime("%H:%M"),
+                    duration_minutes,
+                ):
+                    unresolved_external_conflicts.append(
+                        {
+                            "tournament_id": tournament.id,
+                            "host_club": interval.host_club,
+                            "age_group": tournament.age_group,
+                            "date": tournament.date.isoformat(),
+                            "reason": (
+                                f"Turnering {tournament.id} hos {interval.host_club} "
+                                f"({interval.interval_label}) overlapper en kjent ekstern "
+                                "kalenderbooking."
+                            ),
+                        }
+                    )
+        plan.unresolved_external_conflicts = unresolved_external_conflicts
+        self._unresolved_external_conflicts = unresolved_external_conflicts
+
+        # Teams whose final participation count doesn't match their target
+        # (usually a slot-scarcity shortfall) -- non-blocking, surfaced for
+        # manual placement instead of rejecting the whole plan (mirrors
+        # verify_candidate's manual_participation_placements). Uses this
+        # planner's own full target-resolution precedence, including the
+        # capacity-inferred fallback the verifier deliberately skips
+        # (issue #257).
+        unresolved_participation_shortfalls: List[Dict[str, str]] = []
+        for team in self.roster.teams:
+            if team.age_group in skipped_age_groups_set:
+                continue
+            key = self._team_key(team)
+            target = self._team_target_tournament_count(team)
+            actual = self._tournament_participations.get(key, 0)
+            if actual != target:
+                unresolved_participation_shortfalls.append(
+                    {
+                        "club": team.club,
+                        "label": team.label,
+                        "age_group": team.age_group,
+                        "actual": str(actual),
+                        "target": str(target),
+                        "reason": (
+                            f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
+                            f"ganger, forventet {target} -- ikke nok ledige turneringsplasser "
+                            "ble funnet denne sesongen."
+                        ),
+                    }
+                )
+        plan.unresolved_participation_shortfalls = unresolved_participation_shortfalls
+        self._unresolved_participation_shortfalls = unresolved_participation_shortfalls
+
         return plan
 
     @property
@@ -616,6 +694,14 @@ class SeasonPlanner:
     @property
     def unresolved_hosting_obligations(self) -> List[Dict[str, str]]:
         return list(self._unresolved_hosting_obligations)
+
+    @property
+    def unresolved_external_conflicts(self) -> List[Dict[str, str]]:
+        return list(self._unresolved_external_conflicts)
+
+    @property
+    def unresolved_participation_shortfalls(self) -> List[Dict[str, str]]:
+        return list(self._unresolved_participation_shortfalls)
 
     @property
     def game_count_warnings(self) -> List[Tuple[str, int, int, str]]:

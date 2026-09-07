@@ -242,6 +242,46 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "kategori": "Hard krav",
         },
         {
+            "regel": "Ekstern kalenderkonflikt håndteres ikke-blokkerende",
+            "forklaring": (
+                "Når en turnerings vertskap har en reell kollisjon med en kjent ekstern "
+                "kalenderbooking som verken planleggeren eller optimeringen klarte å unngå "
+                "innenfor søkebudsjettet, avvises ikke hele planen -- konflikten legges i "
+                "«Må planlegges manuelt»-visningen (manual_schedule.html) som "
+                f"«MANUAL PLACEMENT REQUIRED». {len(planner._unresolved_external_conflicts)} "
+                "slik(e) konflikt(er) er registrert i denne planen"
+                + (
+                    ": " + "; ".join(
+                        f"{item.get('tournament_id')} ({item.get('host_club')})"
+                        for item in planner._unresolved_external_conflicts
+                    )
+                    if planner._unresolved_external_conflicts
+                    else "."
+                )
+            ),
+            "kategori": "Automatisk avgjørelse",
+        },
+        {
+            "regel": "Avvik fra måltall for deltakelse håndteres ikke-blokkerende",
+            "forklaring": (
+                "Når et lags faktiske antall turneringer avviker fra måltallet (som oftest "
+                "fordi det ikke fantes nok ledige turneringsplasser denne sesongen), avvises "
+                "ikke hele planen -- avviket legges i «Må planlegges manuelt»-visningen "
+                "(manual_schedule.html) som «MANUAL PLACEMENT REQUIRED». "
+                f"{len(planner._unresolved_participation_shortfalls)} slik(e) avvik er "
+                "registrert i denne planen"
+                + (
+                    ": " + "; ".join(
+                        f"{item.get('label')} ({item.get('actual')}/{item.get('target')})"
+                        for item in planner._unresolved_participation_shortfalls
+                    )
+                    if planner._unresolved_participation_shortfalls
+                    else "."
+                )
+            ),
+            "kategori": "Automatisk avgjørelse",
+        },
+        {
             "regel": "Kampbalanse og tidlig slutt",
             "forklaring": (
                 f"Kjører en advarsel når kampantall spres for mye mellom lag eller når lag blir ferdige for tidlig; "

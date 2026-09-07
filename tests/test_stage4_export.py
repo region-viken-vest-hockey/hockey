@@ -272,6 +272,50 @@ class TestRunStage4:
         assert "MÅ SJEKKES" in report_html
         assert "Manuell istidsplanlegging" in report_html
 
+    def test_export_lists_external_conflicts_and_participation_shortfalls_as_manual(self, tmp_path):
+        """unresolved_external_conflicts and unresolved_participation_shortfalls
+        (non-blocking, see planning_contract.verify_candidate's
+        manual_external_conflict_placements/manual_participation_placements)
+        must round-trip through the Stage 3 checkpoint dict and render into
+        manual_schedule.html, same as unresolved_hosting_obligations."""
+        state = PipelineState(tmp_path / "pipeline")
+        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        plan_checkpoint = _make_plan_dict()
+        plan_checkpoint["plan"]["unresolved_external_conflicts"] = [
+            {
+                "tournament_id": "t-conflict",
+                "host_club": "Kongsberg",
+                "age_group": "U10",
+                "date": "2025-10-05",
+                "reason": "Turnering t-conflict hos Kongsberg overlapper en kjent ekstern kalenderbooking.",
+            }
+        ]
+        plan_checkpoint["plan"]["unresolved_participation_shortfalls"] = [
+            {
+                "club": "Skien",
+                "label": "Skien U10A",
+                "age_group": "U10",
+                "actual": "1",
+                "target": "3",
+                "reason": "Skien U10A (Skien, U10) deltar 1 ganger, forventet 3 -- ikke nok ledige turneringsplasser ble funnet denne sesongen.",
+            }
+        ]
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        files = result.get("output_files", {})
+        assert "manual_schedule" in files
+        manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
+        assert "ekstern kalenderkonflikt" in manual_html.lower()
+        assert "t-conflict" in manual_html
+        assert "avvik fra måltall".lower() in manual_html.lower()
+        assert "Skien U10A" in manual_html
+
     def test_produces_excel_file(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
         state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)

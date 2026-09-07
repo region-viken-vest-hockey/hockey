@@ -242,13 +242,22 @@ class TestVerifyCandidateWithProblem:
         codes = {v["code"] for v in result["violations"]}
         assert "tournament_over_capacity" in codes
 
-    def test_participation_target_mismatch_flagged(self):
+    def test_participation_target_mismatch_surfaced_for_manual_placement(self):
+        """A participation shortfall doesn't hard-block verification -- it's
+        surfaced non-blocking for manual placement (e.g. an operator
+        arranging an extra game by hand), same as manual_calendar_placements."""
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
         problem = self._problem(target_tournament_count=3)
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
-        assert "participation_target_mismatch" in codes
+        assert "participation_target_mismatch" not in codes
+        assert result["ok"] is True
+        placements = result["manual_participation_placements"]
+        assert len(placements) == 2
+        clubs = {p["club"] for p in placements}
+        assert clubs == {"Jar", "Kongsberg"}
+        assert all(p["actual"] == "1" and p["target"] == "3" for p in placements)
 
     def test_before_after_christmas_split_not_treated_as_participation_target(self):
         # Regression test (issue #257): before_christmas/after_christmas are
@@ -269,11 +278,14 @@ class TestVerifyCandidateWithProblem:
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
         assert "participation_target_mismatch" not in codes
+        assert result["manual_participation_placements"] == []
 
-    def test_external_calendar_conflict_flagged(self):
+    def test_external_calendar_conflict_surfaced_for_manual_placement(self):
         """issue #264 P0: a 'known' host calendar status is not itself proof
         that every start time on that date is free -- an actual overlapping
-        external booking must be independently rejected."""
+        external booking is independently detected, but (unlike before)
+        doesn't hard-block verification -- it's surfaced non-blocking for
+        manual placement instead."""
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {
             "tournaments": [
@@ -291,7 +303,12 @@ class TestVerifyCandidateWithProblem:
         )
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
-        assert "external_calendar_conflict" in codes
+        assert "external_calendar_conflict" not in codes
+        assert result["ok"] is True
+        placements = result["manual_external_conflict_placements"]
+        assert len(placements) == 1
+        assert placements[0]["host_club"] == "Jar"
+        assert placements[0]["tournament_id"] == "t1"
 
     def test_external_calendar_partial_day_availability_not_flagged(self):
         """A booking that ends before the tournament starts must not be

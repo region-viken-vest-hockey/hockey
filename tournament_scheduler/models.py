@@ -284,6 +284,17 @@ class SeasonPlan:
     # "reason": str}. Surfaced in manual_schedule.html as an explicit
     # "MANUAL PLACEMENT REQUIRED" item rather than silently dropped.
     unresolved_hosting_obligations: List[Dict[str, str]] = field(default_factory=list)
+    # Tournaments whose host has a genuine external calendar conflict the
+    # planner/optimizer could not route around. Each entry: {"tournament_id",
+    # "host_club", "age_group", "date", "reason"}. Non-blocking -- surfaced
+    # in manual_schedule.html rather than rejecting the whole plan.
+    unresolved_external_conflicts: List[Dict[str, str]] = field(default_factory=list)
+    # Teams whose final participation count doesn't match their target
+    # tournament count (usually a shortfall from slot scarcity). Each entry:
+    # {"club", "label", "age_group", "actual", "target", "reason"}.
+    # Non-blocking -- surfaced in manual_schedule.html rather than rejecting
+    # the whole plan.
+    unresolved_participation_shortfalls: List[Dict[str, str]] = field(default_factory=list)
 
 
 # Mapping of age groups whose player pools are known to overlap (e.g. a player

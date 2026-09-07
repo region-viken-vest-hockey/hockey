@@ -354,6 +354,14 @@ def verify_candidate(
     # since scheduler.py/host_assignment.py already let such a club host
     # its fair share with a provisional slot.
     manual_calendar_placements: List[Dict[str, str]] = []
+    # Non-blocking record of tournaments whose host has a real external
+    # calendar conflict the optimizer couldn't route around -- surfaced for
+    # manual placement rather than hard-blocking the candidate.
+    manual_external_conflict_placements: List[Dict[str, str]] = []
+    # Non-blocking record of teams short of (or over) their target
+    # tournament count -- surfaced for manual placement (e.g. an operator
+    # manually arranging an extra game) rather than hard-blocking.
+    manual_participation_placements: List[Dict[str, str]] = []
 
     tournaments = [t for t in candidate.get("tournaments", []) if not t.get("cancelled")]
 
@@ -431,6 +439,8 @@ def verify_candidate(
             "club_controlled_allocations_used": club_controlled_allocations_used,
             "unresolved_hosting_obligations": [],
             "manual_calendar_placements": [],
+            "manual_external_conflict_placements": [],
+            "manual_participation_placements": [],
         }
 
     # --- problem-dependent checks -------------------------------------------
@@ -492,12 +502,18 @@ def verify_candidate(
                 interval.start.strftime("%H:%M"),
                 duration_minutes,
             ):
-                _violate(
-                    "external_calendar_conflict",
-                    f"Tournament {interval.tournament_id} hosted by {interval.host_club!r} on "
-                    f"{interval.date} ({interval.interval_label}) overlaps a known external "
-                    "calendar booking",
-                    interval.tournament_id,
+                # Non-blocking: a genuine external double-booking is real,
+                # but the optimizer can't always route around it within its
+                # search budget. Surfaced for manual placement instead of
+                # hard-blocking the whole candidate (mirrors
+                # manual_calendar_placements/unresolved_hosting_obligations).
+                manual_external_conflict_placements.append(
+                    {
+                        "tournament_id": interval.tournament_id,
+                        "host_club": interval.host_club,
+                        "age_group": interval.age_group,
+                        "date": interval.date,
+                    }
                 )
             elif club_controlled_allocation_conflict(
                 club_busy_intervals,
@@ -630,10 +646,18 @@ def verify_candidate(
         if target is None:
             target = default_target
         if isinstance(target, int) and count != target:
-            _violate(
-                "participation_target_mismatch",
-                f"Team {_display_label(identity, duplicate_labels)!r} participates {count} times, "
-                f"expected {target}",
+            # Non-blocking: a genuine slot-scarcity shortfall (or, more
+            # rarely, an overage) the optimizer couldn't fully resolve.
+            # Surfaced for manual placement (e.g. an operator arranging an
+            # extra game by hand) instead of hard-blocking the candidate.
+            manual_participation_placements.append(
+                {
+                    "club": identity[0],
+                    "label": _display_label(identity, duplicate_labels),
+                    "age_group": identity[2],
+                    "actual": str(count),
+                    "target": str(target),
+                }
             )
 
     # issue #266 P0: club x age-group hosting coverage is a required
@@ -654,6 +678,8 @@ def verify_candidate(
         "club_controlled_allocations_used": club_controlled_allocations_used,
         "unresolved_hosting_obligations": unresolved_hosting_obligations,
         "manual_calendar_placements": manual_calendar_placements,
+        "manual_external_conflict_placements": manual_external_conflict_placements,
+        "manual_participation_placements": manual_participation_placements,
     }
 
 

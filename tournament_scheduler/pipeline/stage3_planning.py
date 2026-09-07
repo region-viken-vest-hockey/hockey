@@ -31,7 +31,7 @@ from ..club_registry import CLUB_REGISTRY
 from .fingerprints import stable_payload_sha256
 from .not_started import NOT_STARTED_MESSAGE
 from .state import PipelineState, StageName, StageStatus
-from .stage3_helpers import (_build_club_arenas, _build_club_calendar_status, _build_events_by_club, _build_parallel_games, _build_roster, _build_round_length, _find_team, _make_planner, _plan_to_dict)
+from .stage3_helpers import (_build_club_arenas, _build_club_busy_intervals, _build_club_calendar_status, _build_events_by_club, _build_parallel_games, _build_roster, _build_round_length, _find_team, _make_planner, _plan_to_dict)
 
 # ---------------------------------------------------------------------------
 # Candidate reproducibility and ranking
@@ -199,6 +199,7 @@ def run(
     max_hosting_deviation = config.get("maxHostingDeviation", 1)
     events_by_club = _build_events_by_club(scraping_result)
     club_calendar_status = _build_club_calendar_status(scraping_result)
+    club_busy_intervals = _build_club_busy_intervals(scraping_result)
     fairness_thresholds = config.get("fairness_thresholds", {})
     target_tournament_count = config.get("target_tournament_count")
     max_hosting_days_per_month = config.get("max_hosting_days_per_month")
@@ -289,6 +290,7 @@ def run(
             penalty_hints=penalty_hints,
             allow_penalty_hint_relaxation=allow_penalty_hint_relaxation,
             club_calendar_status=club_calendar_status,
+            club_busy_intervals=club_busy_intervals,
             cheap_baseline=cheap_baseline,
         )
         stop_heartbeat = threading.Event()

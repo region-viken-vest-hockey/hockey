@@ -1946,6 +1946,61 @@ class TestProportionalHosting:
         assert manual
         assert all(t.host_club == "Sandefjord" for t in manual)
 
+    def test_external_calendar_conflict_surfaced_as_manual_placement(self):
+        """A genuine external calendar conflict the planner's own slot
+        search doesn't consult (only club_busy_intervals, checked post-hoc)
+        is surfaced non-blocking via unresolved_external_conflicts,
+        mirroring verify_candidate's manual_external_conflict_placements."""
+        start = datetime(2026, 10, 1)
+        end = datetime(2026, 12, 31)
+        clubs = ["Jar", "Ringerike", "Holmen", "Kongsberg"]
+        roster = _build_roster(clubs, ["U10", "U11", "U7"], teams_per_club_per_age_group=2)
+        club_arenas = {club: f"{club}hallen" for club in clubs}
+        weekend_dates = all_weekend_dates(start, end)
+        all_day_busy = [
+            {"date": d.isoformat(), "start": "00:00", "end": "23:59"} for d in weekend_dates
+        ]
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(weekend_dates),
+            roster=roster,
+            club_arenas=club_arenas,
+            parallel_games_for_age_group={"U10": 3, "U11": 2, "U7": 4},
+            round_length_for_age_group={"U10": 60, "U11": 60, "U7": 60},
+            events_by_club={club: [] for club in clubs},
+            club_calendar_status={club: "known" for club in clubs},
+            club_busy_intervals={club: all_day_busy for club in clubs},
+        )
+        plan = planner.build_plan(start, end)
+        assert plan.tournaments
+        assert not any(t.manual_booking_reason for t in plan.tournaments)
+        assert len(plan.unresolved_external_conflicts) == len(plan.tournaments)
+        conflict_ids = {c["tournament_id"] for c in plan.unresolved_external_conflicts}
+        assert conflict_ids == {t.id for t in plan.tournaments}
+
+    def test_participation_shortfall_surfaced_as_manual_placement(self):
+        """A team that falls short of an unreachable target_tournament_count
+        is surfaced non-blocking via unresolved_participation_shortfalls,
+        mirroring verify_candidate's manual_participation_placements."""
+        start = datetime(2026, 10, 1)
+        end = datetime(2026, 12, 31)
+        clubs = ["Jar", "Ringerike", "Holmen", "Kongsberg"]
+        roster = _build_roster(clubs, ["U10", "U11", "U7"], teams_per_club_per_age_group=2)
+        club_arenas = {club: f"{club}hallen" for club in clubs}
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(all_weekend_dates(start, end)),
+            roster=roster,
+            club_arenas=club_arenas,
+            parallel_games_for_age_group={"U10": 3, "U11": 2, "U7": 4},
+            target_tournament_count=99,
+        )
+        plan = planner.build_plan(start, end)
+        assert plan.tournaments
+        assert plan.unresolved_participation_shortfalls
+        assert all(
+            item["target"] == "99" and int(item["actual"]) < 99
+            for item in plan.unresolved_participation_shortfalls
+        )
+
     def test_all_calendars_available_means_no_manual_booking_marks(self):
         """When every club has calendar data, no tournament is flagged manual."""
         start = datetime(2026, 10, 1)

@@ -75,6 +75,9 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
         },
         "skipped_age_groups": list(plan.skipped_age_groups),
         "arena_day_collisions": list(plan.arena_day_collisions),
+        "unresolved_hosting_obligations": list(plan.unresolved_hosting_obligations),
+        "unresolved_external_conflicts": list(plan.unresolved_external_conflicts),
+        "unresolved_participation_shortfalls": list(plan.unresolved_participation_shortfalls),
         "tournaments": [_tournament_to_dict(t) for t in plan.tournaments],
     }
     if plan.manual_adjustments:
@@ -289,6 +292,7 @@ def _make_planner(
     allow_penalty_hint_relaxation: bool = True,
     *,
     club_calendar_status: dict[str, str] | None = None,
+    club_busy_intervals: dict[str, list[dict[str, str]]] | None = None,
     cheap_baseline: bool = False,
 ) -> SeasonPlanner:
     """Construct a :class:`SeasonPlanner` with derived tournament sizing.
@@ -317,6 +321,7 @@ def _make_planner(
         max_hosting_days_per_month=max_hosting_days_per_month,
         events_by_club=events_by_club or None,
         club_calendar_status=club_calendar_status or None,
+        club_busy_intervals=club_busy_intervals or None,
         fairness_thresholds=fairness_thresholds or None,
         seed=seed,
         penalty_hints=penalty_hints,

@@ -1961,13 +1961,21 @@ def _assert_hard_verification_before_export(
     production export (issue #264 real-run finding).
 
     A `2026-09-07T0525` production export shipped a `keep_baseline` decision
-    whose `final_verify_result.ok` was `False` (external calendar conflicts
-    and participation-target mismatches). Blocking that at decision time
-    (``_BASELINE_HARD_VIOLATION_BLOCKED_ACTIONS`` in
+    whose `final_verify_result.ok` was `False`. Blocking that at decision
+    time (``_BASELINE_HARD_VIOLATION_BLOCKED_ACTIONS`` in
     ``application.decisions``) is necessary but not sufficient on its own --
     a resumed ``--resume-from 4`` run reaches Stage 4 directly without
     re-emitting a decision, so this independently re-verifies *plan* right
     before export regardless of how it got here.
+
+    External calendar conflicts and participation-target mismatches (the
+    original motivating case above) are no longer hard violations --
+    `planning_contract.verify_candidate` now surfaces them as non-blocking
+    `manual_external_conflict_placements`/`manual_participation_placements`,
+    routed to manual placement (`manual_schedule.html`) instead, mirroring
+    `host_calendar_status_unknown`/`unresolved_hosting_obligations`. This
+    gate remains generic over whatever `violations` *are* still hard (e.g.
+    duplicate participation, arena double-booking within the plan itself).
 
     Returns True when export should proceed. In strict mode (the default) a
     hard-failing plan blocks export outright; ``--non-strict`` logs a

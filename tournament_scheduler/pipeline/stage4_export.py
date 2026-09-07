@@ -572,7 +572,51 @@ def run(
                 ),
             }
         )
-    manual_entries = collision_entries + manual_host_entries + unresolved_hosting_entries
+    # Genuine external calendar conflicts the planner/optimizer couldn't
+    # route around (non-blocking, see planning_contract.verify_candidate's
+    # manual_external_conflict_placements) -- surfaced the same way.
+    external_conflict_entries: list[dict[str, str]] = []
+    for item in getattr(plan, "unresolved_external_conflicts", None) or []:
+        external_conflict_entries.append(
+            {
+                "type": "MANUAL PLACEMENT REQUIRED — ekstern kalenderkonflikt",
+                "date": str(item.get("date", "") or ""),
+                "arena": "",
+                "host_club": str(item.get("host_club", "") or ""),
+                "age_group": str(item.get("age_group", "") or ""),
+                "tournament_id": str(item.get("tournament_id", "") or ""),
+                "interval": "",
+                "conflicting_tournament_id": "",
+                "conflicting_age_group": "",
+                "conflicting_interval": "",
+                "message": str(item.get("reason", "") or ""),
+            }
+        )
+    # Teams whose final participation count doesn't match their target
+    # (non-blocking, see verify_candidate's manual_participation_placements)
+    # -- no single tournament to attach this to, so tournament-shaped fields
+    # are left blank, matching unresolved_hosting_entries above.
+    participation_shortfall_entries: list[dict[str, str]] = []
+    for item in getattr(plan, "unresolved_participation_shortfalls", None) or []:
+        participation_shortfall_entries.append(
+            {
+                "type": "MANUAL PLACEMENT REQUIRED — avvik fra måltall",
+                "date": "",
+                "arena": "",
+                "host_club": str(item.get("club", "") or ""),
+                "age_group": str(item.get("age_group", "") or ""),
+                "tournament_id": "",
+                "interval": "",
+                "conflicting_tournament_id": "",
+                "conflicting_age_group": "",
+                "conflicting_interval": "",
+                "message": str(item.get("reason", "") or ""),
+            }
+        )
+    manual_entries = (
+        collision_entries + manual_host_entries + unresolved_hosting_entries
+        + external_conflict_entries + participation_shortfall_entries
+    )
     if collision_entries:
         plan.arena_day_collisions = collision_entries
         first = collision_entries[0]
