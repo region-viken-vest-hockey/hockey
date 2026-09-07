@@ -1,0 +1,2713 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Kongsberg Hockey Scheduler//NO
+CALSCALE:GREGORIAN
+X-WR-CALNAME:RVV Sesongplan
+BEGIN:VEVENT
+SUMMARY:JU12 — Baerum ishall
+DTSTART:20260905T150000Z
+DTEND:20260905T154500Z
+UID:ec40993d-c926-5ef5-a2fe-6fa65104f736
+CATEGORIES:JU12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU12\nVert: Jutul\nDeltake
+ nde lag (4): Jutul/Jar Kittens\, Tønsberg\, Jar\, Kongsberg/Tønsberg\n\n
+ Kamper:\n  Jutul/Jar Kittens vs Kongsberg/Tønsberg\n  Tønsberg vs Jar\n 
+  Jutul/Jar Kittens vs Jar\n  Tønsberg vs Kongsberg/Tønsberg\n  Jutul/Jar
+  Kittens vs Tønsberg\n  Jar vs Kongsberg/Tønsberg
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Varner Arena / Askerhallen
+DTSTART:20260905T130000Z
+DTEND:20260905T134500Z
+UID:f59348ee-9aa5-5d0f-8490-3f552611f090
+CATEGORIES:U12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U12\nVert: Fr
+ isk Asker\nDeltakende lag (4): Frisk Asker 1\, Jar Blå\, Tønsberg Grå\,
+  Holmen Hockey Hvit\n\nKamper:\n  Frisk Asker 1 vs Holmen Hockey Hvit\n  J
+ ar Blå vs Tønsberg Grå\n  Frisk Asker 1 vs Tønsberg Grå\n  Jar Blå v
+ s Holmen Hockey Hvit\n  Frisk Asker 1 vs Jar Blå\n  Tønsberg Grå vs Hol
+ men Hockey Hvit
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Varner Arena / Askerhallen
+DTSTART:20270410T130000Z
+DTEND:20270410T144500Z
+UID:7010e376-0fcc-52cf-b7e8-3cacc0e3c1d1
+CATEGORIES:U8
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U8\nVert: Fri
+ sk Asker\nDeltakende lag (8): Frisk Asker 1\, Frisk Asker 4\, Holmen Hocke
+ y Blå\, Jar Rød\, Jar Hvit\, Ringerike 2\, Jutul Hvit\, Holmen Hockey So
+ rt\n\nKamper:\n  Frisk Asker 1 vs Holmen Hockey Sort\n  Frisk Asker 4 vs J
+ utul Hvit\n  Holmen Hockey Blå vs Ringerike 2\n  Jar Rød vs Jar Hvit\n  
+ Frisk Asker 1 vs Jutul Hvit\n  Ringerike 2 vs Holmen Hockey Sort\n  Jar Hv
+ it vs Frisk Asker 4\n  Jar Rød vs Holmen Hockey Blå\n  Frisk Asker 1 vs 
+ Ringerike 2\n  Jutul Hvit vs Jar Hvit\n  Holmen Hockey Sort vs Jar Rød\n 
+  Frisk Asker 4 vs Holmen Hockey Blå\n  Frisk Asker 1 vs Jar Hvit\n  Jar R
+ ød vs Ringerike 2\n  Holmen Hockey Blå vs Jutul Hvit\n  Frisk Asker 4 vs
+  Holmen Hockey Sort\n  Frisk Asker 1 vs Jar Rød\n  Jar Hvit vs Holmen Hoc
+ key Blå\n  Ringerike 2 vs Frisk Asker 4\n  Jutul Hvit vs Holmen Hockey So
+ rt\n  Frisk Asker 1 vs Holmen Hockey Blå\n  Frisk Asker 4 vs Jar Rød\n  
+ Holmen Hockey Sort vs Jar Hvit\n  Jutul Hvit vs Ringerike 2\n  Frisk Asker
+  1 vs Frisk Asker 4\n  Holmen Hockey Blå vs Holmen Hockey Sort\n  Jar Rø
+ d vs Jutul Hvit\n  Jar Hvit vs Ringerike 2
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Ringerikshallen
+DTSTART:20270123T130000Z
+DTEND:20270123T144500Z
+UID:e88434e5-a7f1-515a-8640-8355ec6a49fd
+CATEGORIES:U9
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U9\nVert: Ringerike\nDel
+ takende lag (8): Ringerike 1\, Jutul Rød\, Holmen Hockey Sort\, Jar Hvit\
+ , Frisk Asker 4\, Frisk Asker 3\, Jutul Gul\, Sandefjord\n\nKamper:\n  Rin
+ gerike 1 vs Sandefjord\n  Jutul Rød vs Jutul Gul\n  Holmen Hockey Sort vs
+  Frisk Asker 3\n  Jar Hvit vs Frisk Asker 4\n  Ringerike 1 vs Jutul Gul\n 
+  Frisk Asker 3 vs Sandefjord\n  Frisk Asker 4 vs Jutul Rød\n  Jar Hvit vs
+  Holmen Hockey Sort\n  Ringerike 1 vs Frisk Asker 3\n  Jutul Gul vs Frisk 
+ Asker 4\n  Sandefjord vs Jar Hvit\n  Jutul Rød vs Holmen Hockey Sort\n  R
+ ingerike 1 vs Frisk Asker 4\n  Jar Hvit vs Frisk Asker 3\n  Holmen Hockey 
+ Sort vs Jutul Gul\n  Jutul Rød vs Sandefjord\n  Ringerike 1 vs Jar Hvit\n
+   Frisk Asker 4 vs Holmen Hockey Sort\n  Frisk Asker 3 vs Jutul Rød\n  Ju
+ tul Gul vs Sandefjord\n  Ringerike 1 vs Holmen Hockey Sort\n  Jutul Rød v
+ s Jar Hvit\n  Sandefjord vs Frisk Asker 4\n  Jutul Gul vs Frisk Asker 3\n 
+  Ringerike 1 vs Jutul Rød\n  Holmen Hockey Sort vs Sandefjord\n  Jar Hvit
+  vs Jutul Gul\n  Frisk Asker 4 vs Frisk Asker 3
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20270131T143000Z
+DTEND:20270131T154500Z
+UID:204e7b11-2e01-57bc-a4db-bad88cb0ae39
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Grønn\, Skien\, Jar Blå\, Frisk Asker 3\, Tønsberg R
+ ød\, Ringerike 2\n\nKamper:\n  Jutul Grønn vs Ringerike 2\n  Skien vs T
+ ønsberg Rød\n  Jar Blå vs Frisk Asker 3\n  Jutul Grønn vs Tønsberg R
+ ød\n  Frisk Asker 3 vs Ringerike 2\n  Jar Blå vs Skien\n  Jutul Grønn v
+ s Frisk Asker 3\n  Tønsberg Rød vs Jar Blå\n  Ringerike 2 vs Skien\n  J
+ utul Grønn vs Jar Blå\n  Skien vs Frisk Asker 3\n  Ringerike 2 vs Tønsb
+ erg Rød\n  Jutul Grønn vs Skien\n  Jar Blå vs Ringerike 2\n  Frisk Aske
+ r 3 vs Tønsberg Rød
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Holmenkollen ishall
+DTSTART:20260906T150000Z
+DTEND:20260906T154500Z
+UID:74eae63c-ee7c-5d2b-bec2-f3db5245df31
+CATEGORIES:U12
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U12\nVert: Holmen\nD
+ eltakende lag (4): Jar Hvit\, Frisk Asker 4\, Tønsberg Hvit\, Ringerike 2
+ \n\nKamper:\n  Jar Hvit vs Ringerike 2\n  Frisk Asker 4 vs Tønsberg Hvit\
+ n  Jar Hvit vs Tønsberg Hvit\n  Frisk Asker 4 vs Ringerike 2\n  Jar Hvit 
+ vs Frisk Asker 4\n  Tønsberg Hvit vs Ringerike 2
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU10 — Baerum ishall
+DTSTART:20260912T100000Z
+DTEND:20260912T111500Z
+UID:55fcbcd6-63fa-5f66-9e9a-9c9702b19506
+CATEGORIES:JU10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU10\nVert: Jutul\nDeltake
+ nde lag (6): Skien\, Jar Rød\, Jar Blå\, Jar Hvit\, Ringerike 1\, Frisk 
+ Asker Orange\n\nKamper:\n  Skien vs Frisk Asker Orange\n  Jar Rød vs Ring
+ erike 1\n  Jar Blå vs Jar Hvit\n  Skien vs Ringerike 1\n  Jar Hvit vs Fri
+ sk Asker Orange\n  Jar Blå vs Jar Rød\n  Skien vs Jar Hvit\n  Ringerike 
+ 1 vs Jar Blå\n  Frisk Asker Orange vs Jar Rød\n  Skien vs Jar Blå\n  Ja
+ r Rød vs Jar Hvit\n  Frisk Asker Orange vs Ringerike 1\n  Skien vs Jar R
+ ød\n  Jar Blå vs Frisk Asker Orange\n  Jar Hvit vs Ringerike 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Sandefjord ishall
+DTSTART:20260912T150000Z
+DTEND:20260912T161500Z
+UID:d1c3cccc-aa8b-5712-9d18-fc75e2b0c78c
+CATEGORIES:U11
+DESCRIPTION:Arena: Sandefjord ishall\nAldersgruppe: U11\nVert: Sandefjord 
+ Penguins\nDeltakende lag (6): Jar Grønn\, Tønsberg Grå\, Jar Rød\, Hol
+ men Hockey Hvit\, Kongsberg\, Frisk Asker 4\n\nKamper:\n  Jar Grønn vs Fr
+ isk Asker 4\n  Tønsberg Grå vs Kongsberg\n  Jar Rød vs Holmen Hockey Hv
+ it\n  Jar Grønn vs Kongsberg\n  Holmen Hockey Hvit vs Frisk Asker 4\n  Ja
+ r Rød vs Tønsberg Grå\n  Jar Grønn vs Holmen Hockey Hvit\n  Kongsberg 
+ vs Jar Rød\n  Frisk Asker 4 vs Tønsberg Grå\n  Jar Grønn vs Jar Rød\n
+   Tønsberg Grå vs Holmen Hockey Hvit\n  Frisk Asker 4 vs Kongsberg\n  Ja
+ r Grønn vs Tønsberg Grå\n  Jar Rød vs Frisk Asker 4\n  Holmen Hockey H
+ vit vs Kongsberg
+LOCATION:Sandefjord ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Baerum ishall
+DTSTART:20260912T120000Z
+DTEND:20260912T124500Z
+UID:7e45096a-4742-5855-a693-96604417218d
+CATEGORIES:U12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U12\nVert: Jutul\nDeltaken
+ de lag (4): Jutul Grønn\, Jar Lilla\, Holmen Hockey Rød\, Tønsberg Rød
+ \n\nKamper:\n  Jutul Grønn vs Tønsberg Rød\n  Jar Lilla vs Holmen Hocke
+ y Rød\n  Jutul Grønn vs Holmen Hockey Rød\n  Jar Lilla vs Tønsberg Rø
+ d\n  Jutul Grønn vs Jar Lilla\n  Holmen Hockey Rød vs Tønsberg Rød
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Baerum ishall
+DTSTART:20260912T150000Z
+DTEND:20260912T164500Z
+UID:03d8f078-7313-5d11-aaee-c45872a2061c
+CATEGORIES:U7
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U7\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Grønn\, Frisk Asker 1\, Jar Blå\, Tønsberg\, Frisk Ask
+ er 2\, Holmen Hockey Rød\, Holmen Hockey Hvit\, Jar Grønn\n\nKamper:\n  
+ Jutul Grønn vs Jar Grønn\n  Frisk Asker 1 vs Holmen Hockey Hvit\n  Jar B
+ lå vs Holmen Hockey Rød\n  Tønsberg vs Frisk Asker 2\n  Jutul Grønn vs
+  Holmen Hockey Hvit\n  Holmen Hockey Rød vs Jar Grønn\n  Frisk Asker 2 v
+ s Frisk Asker 1\n  Tønsberg vs Jar Blå\n  Jutul Grønn vs Holmen Hockey 
+ Rød\n  Holmen Hockey Hvit vs Frisk Asker 2\n  Jar Grønn vs Tønsberg\n  
+ Frisk Asker 1 vs Jar Blå\n  Jutul Grønn vs Frisk Asker 2\n  Tønsberg vs
+  Holmen Hockey Rød\n  Jar Blå vs Holmen Hockey Hvit\n  Frisk Asker 1 vs 
+ Jar Grønn\n  Jutul Grønn vs Tønsberg\n  Frisk Asker 2 vs Jar Blå\n  Ho
+ lmen Hockey Rød vs Frisk Asker 1\n  Holmen Hockey Hvit vs Jar Grønn\n  J
+ utul Grønn vs Jar Blå\n  Frisk Asker 1 vs Tønsberg\n  Jar Grønn vs Fri
+ sk Asker 2\n  Holmen Hockey Hvit vs Holmen Hockey Rød\n  Jutul Grønn vs 
+ Frisk Asker 1\n  Jar Blå vs Jar Grønn\n  Tønsberg vs Holmen Hockey Hvit
+ \n  Frisk Asker 2 vs Holmen Hockey Rød
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Baerum ishall
+DTSTART:20260913T100000Z
+DTEND:20260913T104500Z
+UID:210ac967-dbf6-55cb-9ed4-4cb633dee8f9
+CATEGORIES:JU12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU12\nVert: Jutul\nDeltake
+ nde lag (4): Jutul Kittens\, Jar Hvit\, Frisk Asker Svart\, Ringerike 2\n\
+ nKamper:\n  Jutul Kittens vs Ringerike 2\n  Jar Hvit vs Frisk Asker Svart\
+ n  Jutul Kittens vs Frisk Asker Svart\n  Jar Hvit vs Ringerike 2\n  Jutul 
+ Kittens vs Jar Hvit\n  Frisk Asker Svart vs Ringerike 2
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20260913T113000Z
+DTEND:20260913T124500Z
+UID:51878753-8e65-5e76-9e0f-9419d6524665
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Rød\, Kongsberg\, Frisk Asker 1\, Frisk Asker 2\, Ringe
+ rike 4\, Jar Grønn\n\nKamper:\n  Jutul Rød vs Jar Grønn\n  Kongsberg vs
+  Ringerike 4\n  Frisk Asker 1 vs Frisk Asker 2\n  Jutul Rød vs Ringerike 
+ 4\n  Frisk Asker 2 vs Jar Grønn\n  Frisk Asker 1 vs Kongsberg\n  Jutul R
+ ød vs Frisk Asker 2\n  Ringerike 4 vs Frisk Asker 1\n  Jar Grønn vs Kong
+ sberg\n  Jutul Rød vs Frisk Asker 1\n  Kongsberg vs Frisk Asker 2\n  Jar 
+ Grønn vs Ringerike 4\n  Jutul Rød vs Kongsberg\n  Frisk Asker 1 vs Jar G
+ rønn\n  Frisk Asker 2 vs Ringerike 4
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20260913T143000Z
+DTEND:20260913T154500Z
+UID:4128fb9d-55a5-5a5d-b80d-bffb9dcfeb02
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Grønn\, Frisk Asker 2\, Tønsberg Hvit\, Jar Lilla\, Ja
+ r Oransje\, Sandefjord\n\nKamper:\n  Jutul Grønn vs Sandefjord\n  Frisk A
+ sker 2 vs Jar Oransje\n  Tønsberg Hvit vs Jar Lilla\n  Jutul Grønn vs Ja
+ r Oransje\n  Jar Lilla vs Sandefjord\n  Tønsberg Hvit vs Frisk Asker 2\n 
+  Jutul Grønn vs Jar Lilla\n  Jar Oransje vs Tønsberg Hvit\n  Sandefjord 
+ vs Frisk Asker 2\n  Jutul Grønn vs Tønsberg Hvit\n  Frisk Asker 2 vs Jar
+  Lilla\n  Sandefjord vs Jar Oransje\n  Jutul Grønn vs Frisk Asker 2\n  T
+ ønsberg Hvit vs Sandefjord\n  Jar Lilla vs Jar Oransje
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU8 — Skien ishall
+DTSTART:20261025T123000Z
+DTEND:20261025T141500Z
+UID:c4b18c21-c57f-55a6-8099-8f75a6b5729b
+CATEGORIES:JU8
+DESCRIPTION:Arena: Skien ishall\nAldersgruppe: JU8\nVert: Skien\nDeltakend
+ e lag (7): Skien\, Jutul Grønn\, Jutul Kittens\, Jar\, Frisk Asker\, Ring
+ erike 1\, Jar Rød\n\nKamper:\n  Jutul Grønn vs Jar Rød\n  Jutul Kittens
+  vs Ringerike 1\n  Jar vs Frisk Asker\n  Skien vs Jar Rød\n  Frisk Asker 
+ vs Jutul Grønn\n  Jar vs Jutul Kittens\n  Skien vs Ringerike 1\n  Jar Rø
+ d vs Frisk Asker\n  Jutul Grønn vs Jutul Kittens\n  Skien vs Frisk Asker\
+ n  Jar vs Ringerike 1\n  Jutul Kittens vs Jar Rød\n  Skien vs Jar\n  Fris
+ k Asker vs Jutul Kittens\n  Ringerike 1 vs Jutul Grønn\n  Skien vs Jutul 
+ Kittens\n  Jutul Grønn vs Jar\n  Jar Rød vs Ringerike 1\n  Skien vs Jutu
+ l Grønn\n  Jar vs Jar Rød\n  Frisk Asker vs Ringerike 1
+LOCATION:Skien ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Jarhallen
+DTSTART:20261114T133000Z
+DTEND:20261114T144500Z
+UID:7ad316dd-9bae-5276-8a15-eaecfc305235
+CATEGORIES:U11
+DESCRIPTION:Arena: Jarhallen\nAldersgruppe: U11\nVert: Jar\nDeltakende lag
+  (6): Jar Oransje\, Jar Rød\, Sandefjord\, Frisk Asker 1\, Ringerike 2\, 
+ Skien\n\nKamper:\n  Jar Oransje vs Skien\n  Jar Rød vs Ringerike 2\n  San
+ defjord vs Frisk Asker 1\n  Jar Oransje vs Ringerike 2\n  Frisk Asker 1 vs
+  Skien\n  Sandefjord vs Jar Rød\n  Jar Oransje vs Frisk Asker 1\n  Ringer
+ ike 2 vs Sandefjord\n  Skien vs Jar Rød\n  Jar Oransje vs Sandefjord\n  J
+ ar Rød vs Frisk Asker 1\n  Skien vs Ringerike 2\n  Jar Oransje vs Jar Rø
+ d\n  Sandefjord vs Skien\n  Frisk Asker 1 vs Ringerike 2
+LOCATION:Jarhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Holmenkollen ishall
+DTSTART:20260919T160000Z
+DTEND:20260919T164500Z
+UID:5f03ceed-7f26-557f-85cf-2d481ced3f8b
+CATEGORIES:U12
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U12\nVert: Holmen\nD
+ eltakende lag (4): Jar Svart\, Jar Rød\, Jutul Grønn\, Ringerike 1\n\nKa
+ mper:\n  Jar Svart vs Ringerike 1\n  Jar Rød vs Jutul Grønn\n  Jar Svart
+  vs Jutul Grønn\n  Jar Rød vs Ringerike 1\n  Jar Svart vs Jar Rød\n  Ju
+ tul Grønn vs Ringerike 1
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Sandefjord ishall
+DTSTART:20260919T150000Z
+DTEND:20260919T164500Z
+UID:a5b47d0c-6425-5122-9235-1c63d691ae5d
+CATEGORIES:U8
+DESCRIPTION:Arena: Sandefjord ishall\nAldersgruppe: U8\nVert: Sandefjord P
+ enguins\nDeltakende lag (8): Jar Blå\, Holmen Hockey Hvit\, Jutul Rød\, 
+ Frisk Asker 2\, Jutul Grønn\, Holmen Hockey Rød\, Frisk Asker 3\, Ringer
+ ike 2\n\nKamper:\n  Jar Blå vs Ringerike 2\n  Holmen Hockey Hvit vs Frisk
+  Asker 3\n  Jutul Rød vs Holmen Hockey Rød\n  Frisk Asker 2 vs Jutul Gr
+ ønn\n  Jar Blå vs Frisk Asker 3\n  Holmen Hockey Rød vs Ringerike 2\n  
+ Jutul Grønn vs Holmen Hockey Hvit\n  Frisk Asker 2 vs Jutul Rød\n  Jar B
+ lå vs Holmen Hockey Rød\n  Frisk Asker 3 vs Jutul Grønn\n  Ringerike 2 
+ vs Frisk Asker 2\n  Holmen Hockey Hvit vs Jutul Rød\n  Jar Blå vs Jutul 
+ Grønn\n  Frisk Asker 2 vs Holmen Hockey Rød\n  Jutul Rød vs Frisk Asker
+  3\n  Holmen Hockey Hvit vs Ringerike 2\n  Jar Blå vs Frisk Asker 2\n  Ju
+ tul Grønn vs Jutul Rød\n  Holmen Hockey Rød vs Holmen Hockey Hvit\n  Fr
+ isk Asker 3 vs Ringerike 2\n  Jar Blå vs Jutul Rød\n  Holmen Hockey Hvit
+  vs Frisk Asker 2\n  Ringerike 2 vs Jutul Grønn\n  Frisk Asker 3 vs Holme
+ n Hockey Rød\n  Jar Blå vs Holmen Hockey Hvit\n  Jutul Rød vs Ringerike
+  2\n  Frisk Asker 2 vs Frisk Asker 3\n  Jutul Grønn vs Holmen Hockey Rød
+LOCATION:Sandefjord ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Baerum ishall
+DTSTART:20260920T123000Z
+DTEND:20260920T131500Z
+UID:6564554c-29b1-5245-b58a-20f60340a6ff
+CATEGORIES:JU12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU12\nVert: Jutul\nDeltake
+ nde lag (4): Jutul/Jar Kittens\, Skien\, Frisk Asker Orange\, Kongsberg/T
+ ønsberg\n\nKamper:\n  Jutul/Jar Kittens vs Kongsberg/Tønsberg\n  Skien v
+ s Frisk Asker Orange\n  Jutul/Jar Kittens vs Frisk Asker Orange\n  Skien v
+ s Kongsberg/Tønsberg\n  Jutul/Jar Kittens vs Skien\n  Frisk Asker Orange 
+ vs Kongsberg/Tønsberg
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20260920T100000Z
+DTEND:20260920T111500Z
+UID:4c976fa5-c538-5cdb-a1b8-c9af04823b05
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Grønn\, Jar Grønn\, Frisk Asker 2\, Holmen Hockey Hvit
+ \, Ringerike 1\, Tønsberg\n\nKamper:\n  Jutul Grønn vs Tønsberg\n  Jar 
+ Grønn vs Ringerike 1\n  Frisk Asker 2 vs Holmen Hockey Hvit\n  Jutul Grø
+ nn vs Ringerike 1\n  Holmen Hockey Hvit vs Tønsberg\n  Frisk Asker 2 vs J
+ ar Grønn\n  Jutul Grønn vs Holmen Hockey Hvit\n  Ringerike 1 vs Frisk As
+ ker 2\n  Tønsberg vs Jar Grønn\n  Jutul Grønn vs Frisk Asker 2\n  Jar G
+ rønn vs Holmen Hockey Hvit\n  Tønsberg vs Ringerike 1\n  Jutul Grønn vs
+  Jar Grønn\n  Frisk Asker 2 vs Tønsberg\n  Holmen Hockey Hvit vs Ringeri
+ ke 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Ringerikshallen
+DTSTART:20260920T140000Z
+DTEND:20260920T144500Z
+UID:3ccd6ca9-7753-5217-ac69-70c7c2497c76
+CATEGORIES:U12
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U12\nVert: Ringerike\nDe
+ ltakende lag (4): Ringerike 2\, Holmen Hockey Rød\, Tønsberg Hvit\, Jar 
+ Blå\n\nKamper:\n  Ringerike 2 vs Jar Blå\n  Holmen Hockey Rød vs Tønsb
+ erg Hvit\n  Ringerike 2 vs Tønsberg Hvit\n  Holmen Hockey Rød vs Jar Bl
+ å\n  Ringerike 2 vs Holmen Hockey Rød\n  Tønsberg Hvit vs Jar Blå
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Ringerikshallen
+DTSTART:20260926T140000Z
+DTEND:20260926T151500Z
+UID:332cf927-4454-505c-9697-f02ee0672bc0
+CATEGORIES:U10
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U10\nVert: Ringerike\nDe
+ ltakende lag (6): Ringerike 3\, Holmen Hockey Sort\, Frisk Asker 3\, Jar B
+ lå\, Jutul Rød\, Frisk Asker 4\n\nKamper:\n  Ringerike 3 vs Frisk Asker 
+ 4\n  Holmen Hockey Sort vs Jutul Rød\n  Frisk Asker 3 vs Jar Blå\n  Ring
+ erike 3 vs Jutul Rød\n  Jar Blå vs Frisk Asker 4\n  Frisk Asker 3 vs Hol
+ men Hockey Sort\n  Ringerike 3 vs Jar Blå\n  Jutul Rød vs Frisk Asker 3\
+ n  Frisk Asker 4 vs Holmen Hockey Sort\n  Ringerike 3 vs Frisk Asker 3\n  
+ Holmen Hockey Sort vs Jar Blå\n  Frisk Asker 4 vs Jutul Rød\n  Ringerike
+  3 vs Holmen Hockey Sort\n  Frisk Asker 3 vs Frisk Asker 4\n  Jar Blå vs 
+ Jutul Rød
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Varner Arena / Askerhallen
+DTSTART:20260926T150000Z
+DTEND:20260926T161500Z
+UID:dc8eb673-e206-559b-ae46-e3fcb07ce8a5
+CATEGORIES:U11
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U11\nVert: Fr
+ isk Asker\nDeltakende lag (6): Frisk Asker 1\, Skien\, Jar Rød\, Tønsber
+ g Rød\, Ringerike 1\, Jar Svart\n\nKamper:\n  Frisk Asker 1 vs Jar Svart\
+ n  Skien vs Ringerike 1\n  Jar Rød vs Tønsberg Rød\n  Frisk Asker 1 vs 
+ Ringerike 1\n  Tønsberg Rød vs Jar Svart\n  Jar Rød vs Skien\n  Frisk A
+ sker 1 vs Tønsberg Rød\n  Ringerike 1 vs Jar Rød\n  Jar Svart vs Skien\
+ n  Frisk Asker 1 vs Jar Rød\n  Skien vs Tønsberg Rød\n  Jar Svart vs Ri
+ ngerike 1\n  Frisk Asker 1 vs Skien\n  Jar Rød vs Jar Svart\n  Tønsberg 
+ Rød vs Ringerike 1
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Baerum ishall
+DTSTART:20260926T140000Z
+DTEND:20260926T144500Z
+UID:77748b2e-f202-55f1-b6f4-dcc267632e8d
+CATEGORIES:U12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U12\nVert: Jutul\nDeltaken
+ de lag (4): Jutul Rød\, Jar Lilla\, Frisk Asker 2\, Tønsberg Grå\n\nKam
+ per:\n  Jutul Rød vs Tønsberg Grå\n  Jar Lilla vs Frisk Asker 2\n  Jutu
+ l Rød vs Frisk Asker 2\n  Jar Lilla vs Tønsberg Grå\n  Jutul Rød vs Ja
+ r Lilla\n  Frisk Asker 2 vs Tønsberg Grå
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Holmenkollen ishall
+DTSTART:20260926T140000Z
+DTEND:20260926T154500Z
+UID:5c0b6c57-37e0-535b-b6fc-15a57d0460e4
+CATEGORIES:U9
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U9\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Rød\, Holmen Hockey Sort\, Jutul Grønn\,
+  Jar Blå\, Kongsberg\, Frisk Asker 2\, Sandefjord\, Jar Hvit\n\nKamper:\n
+   Holmen Hockey Rød vs Jar Hvit\n  Holmen Hockey Sort vs Sandefjord\n  Ju
+ tul Grønn vs Frisk Asker 2\n  Jar Blå vs Kongsberg\n  Holmen Hockey Rød
+  vs Sandefjord\n  Frisk Asker 2 vs Jar Hvit\n  Kongsberg vs Holmen Hockey 
+ Sort\n  Jar Blå vs Jutul Grønn\n  Holmen Hockey Rød vs Frisk Asker 2\n 
+  Sandefjord vs Kongsberg\n  Jar Hvit vs Jar Blå\n  Holmen Hockey Sort vs 
+ Jutul Grønn\n  Holmen Hockey Rød vs Kongsberg\n  Jar Blå vs Frisk Asker
+  2\n  Jutul Grønn vs Sandefjord\n  Holmen Hockey Sort vs Jar Hvit\n  Holm
+ en Hockey Rød vs Jar Blå\n  Kongsberg vs Jutul Grønn\n  Frisk Asker 2 v
+ s Holmen Hockey Sort\n  Sandefjord vs Jar Hvit\n  Holmen Hockey Rød vs Ju
+ tul Grønn\n  Holmen Hockey Sort vs Jar Blå\n  Jar Hvit vs Kongsberg\n  S
+ andefjord vs Frisk Asker 2\n  Holmen Hockey Rød vs Holmen Hockey Sort\n  
+ Jutul Grønn vs Jar Hvit\n  Jar Blå vs Sandefjord\n  Kongsberg vs Frisk A
+ sker 2
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Skien ishall
+DTSTART:20261010T140000Z
+DTEND:20261010T144500Z
+UID:7b0d67c0-4f5b-5453-a24d-4b0227849912
+CATEGORIES:JU12
+DESCRIPTION:Arena: Skien ishall\nAldersgruppe: JU12\nVert: Skien\nDeltaken
+ de lag (4): Skien\, Kongsberg/Tønsberg\, Ringerike 1\, Frisk Asker Svart\
+ n\nKamper:\n  Skien vs Frisk Asker Svart\n  Kongsberg/Tønsberg vs Ringeri
+ ke 1\n  Skien vs Ringerike 1\n  Kongsberg/Tønsberg vs Frisk Asker Svart\n
+   Skien vs Kongsberg/Tønsberg\n  Ringerike 1 vs Frisk Asker Svart
+LOCATION:Skien ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20260927T150000Z
+DTEND:20260927T161500Z
+UID:3a3915ae-c518-5ba5-a92d-efe15deef5bc
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Rød\, Holmen Hockey Hvit\, Jar Blå\, Frisk Asker 2\, J
+ ar Hvit\, Tønsberg Grå\n\nKamper:\n  Jutul Rød vs Tønsberg Grå\n  Hol
+ men Hockey Hvit vs Jar Hvit\n  Jar Blå vs Frisk Asker 2\n  Jutul Rød vs 
+ Jar Hvit\n  Frisk Asker 2 vs Tønsberg Grå\n  Jar Blå vs Holmen Hockey H
+ vit\n  Jutul Rød vs Frisk Asker 2\n  Jar Hvit vs Jar Blå\n  Tønsberg Gr
+ å vs Holmen Hockey Hvit\n  Jutul Rød vs Jar Blå\n  Holmen Hockey Hvit v
+ s Frisk Asker 2\n  Tønsberg Grå vs Jar Hvit\n  Jutul Rød vs Holmen Hock
+ ey Hvit\n  Jar Blå vs Tønsberg Grå\n  Frisk Asker 2 vs Jar Hvit
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Varner Arena / Askerhallen
+DTSTART:20270411T143000Z
+DTEND:20270411T161500Z
+UID:b6541892-9833-5607-802b-670da7563d2b
+CATEGORIES:U7
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U7\nVert: Fri
+ sk Asker\nDeltakende lag (8): Frisk Asker 3\, Frisk Asker 1\, Jar Hvit\, H
+ olmen Hockey Sort\, Jutul Hvit\, Sandefjord\, Holmen Hockey Hvit\, Jar Bl
+ å\n\nKamper:\n  Frisk Asker 3 vs Jar Blå\n  Frisk Asker 1 vs Holmen Hock
+ ey Hvit\n  Jar Hvit vs Sandefjord\n  Holmen Hockey Sort vs Jutul Hvit\n  F
+ risk Asker 3 vs Holmen Hockey Hvit\n  Sandefjord vs Jar Blå\n  Jutul Hvit
+  vs Frisk Asker 1\n  Holmen Hockey Sort vs Jar Hvit\n  Frisk Asker 3 vs Sa
+ ndefjord\n  Holmen Hockey Hvit vs Jutul Hvit\n  Jar Blå vs Holmen Hockey 
+ Sort\n  Frisk Asker 1 vs Jar Hvit\n  Frisk Asker 3 vs Jutul Hvit\n  Holmen
+  Hockey Sort vs Sandefjord\n  Jar Hvit vs Holmen Hockey Hvit\n  Frisk Aske
+ r 1 vs Jar Blå\n  Frisk Asker 3 vs Holmen Hockey Sort\n  Jutul Hvit vs Ja
+ r Hvit\n  Sandefjord vs Frisk Asker 1\n  Holmen Hockey Hvit vs Jar Blå\n 
+  Frisk Asker 3 vs Jar Hvit\n  Frisk Asker 1 vs Holmen Hockey Sort\n  Jar B
+ lå vs Jutul Hvit\n  Holmen Hockey Hvit vs Sandefjord\n  Frisk Asker 3 vs 
+ Frisk Asker 1\n  Jar Hvit vs Jar Blå\n  Holmen Hockey Sort vs Holmen Hock
+ ey Hvit\n  Jutul Hvit vs Sandefjord
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Varner Arena / Askerhallen
+DTSTART:20261003T130000Z
+DTEND:20261003T141500Z
+UID:48ea0bdd-3567-566d-8f4b-5d9fb4982579
+CATEGORIES:U11
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U11\nVert: Fr
+ isk Asker\nDeltakende lag (6): Frisk Asker 3\, Jar Grønn\, Jar Svart\, T
+ ønsberg Hvit\, Kongsberg\, Sandefjord\n\nKamper:\n  Frisk Asker 3 vs Sand
+ efjord\n  Jar Grønn vs Kongsberg\n  Jar Svart vs Tønsberg Hvit\n  Frisk 
+ Asker 3 vs Kongsberg\n  Tønsberg Hvit vs Sandefjord\n  Jar Svart vs Jar G
+ rønn\n  Frisk Asker 3 vs Tønsberg Hvit\n  Kongsberg vs Jar Svart\n  Sand
+ efjord vs Jar Grønn\n  Frisk Asker 3 vs Jar Svart\n  Jar Grønn vs Tønsb
+ erg Hvit\n  Sandefjord vs Kongsberg\n  Frisk Asker 3 vs Jar Grønn\n  Jar 
+ Svart vs Sandefjord\n  Tønsberg Hvit vs Kongsberg
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Varner Arena / Askerhallen
+DTSTART:20261003T150000Z
+DTEND:20261003T154500Z
+UID:a9df762f-0803-5307-a205-fc2842f9f55d
+CATEGORIES:U12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U12\nVert: Fr
+ isk Asker\nDeltakende lag (4): Frisk Asker 3\, Jar Hvit\, Tønsberg Grå\,
+  Ringerike 1\n\nKamper:\n  Frisk Asker 3 vs Ringerike 1\n  Jar Hvit vs Tø
+ nsberg Grå\n  Frisk Asker 3 vs Tønsberg Grå\n  Jar Hvit vs Ringerike 1\
+ n  Frisk Asker 3 vs Jar Hvit\n  Tønsberg Grå vs Ringerike 1
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Baerum ishall
+DTSTART:20261003T103000Z
+DTEND:20261003T121500Z
+UID:a3add03c-f1d4-51ca-a130-b2cc757b9c0d
+CATEGORIES:U8
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U8\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Gul\, Jutul Grønn\, Frisk Asker 5\, Kongsberg\, Holmen H
+ ockey Sort\, Ringerike 1\, Jar Hvit\, Frisk Asker 2\n\nKamper:\n  Jutul Gu
+ l vs Frisk Asker 2\n  Jutul Grønn vs Jar Hvit\n  Frisk Asker 5 vs Ringeri
+ ke 1\n  Kongsberg vs Holmen Hockey Sort\n  Jutul Gul vs Jar Hvit\n  Ringer
+ ike 1 vs Frisk Asker 2\n  Holmen Hockey Sort vs Jutul Grønn\n  Kongsberg 
+ vs Frisk Asker 5\n  Jutul Gul vs Ringerike 1\n  Jar Hvit vs Holmen Hockey 
+ Sort\n  Frisk Asker 2 vs Kongsberg\n  Jutul Grønn vs Frisk Asker 5\n  Jut
+ ul Gul vs Holmen Hockey Sort\n  Kongsberg vs Ringerike 1\n  Frisk Asker 5 
+ vs Jar Hvit\n  Jutul Grønn vs Frisk Asker 2\n  Jutul Gul vs Kongsberg\n  
+ Holmen Hockey Sort vs Frisk Asker 5\n  Ringerike 1 vs Jutul Grønn\n  Jar 
+ Hvit vs Frisk Asker 2\n  Jutul Gul vs Frisk Asker 5\n  Jutul Grønn vs Kon
+ gsberg\n  Frisk Asker 2 vs Holmen Hockey Sort\n  Jar Hvit vs Ringerike 1\n
+   Jutul Gul vs Jutul Grønn\n  Frisk Asker 5 vs Frisk Asker 2\n  Kongsberg
+  vs Jar Hvit\n  Holmen Hockey Sort vs Ringerike 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Baerum ishall
+DTSTART:20261003T150000Z
+DTEND:20261003T164500Z
+UID:56faca47-6e77-50ee-b98a-782daf8a6da2
+CATEGORIES:U9
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U9\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Rød\, Jutul Hvit\, Tønsberg\, Holmen Hockey Rød\, Jar 
+ Hvit\, Frisk Asker 1\, Frisk Asker 5\, Ringerike 1\n\nKamper:\n  Jutul Rø
+ d vs Ringerike 1\n  Jutul Hvit vs Frisk Asker 5\n  Tønsberg vs Frisk Aske
+ r 1\n  Holmen Hockey Rød vs Jar Hvit\n  Jutul Rød vs Frisk Asker 5\n  Fr
+ isk Asker 1 vs Ringerike 1\n  Jar Hvit vs Jutul Hvit\n  Holmen Hockey Rød
+  vs Tønsberg\n  Jutul Rød vs Frisk Asker 1\n  Frisk Asker 5 vs Jar Hvit\
+ n  Ringerike 1 vs Holmen Hockey Rød\n  Jutul Hvit vs Tønsberg\n  Jutul R
+ ød vs Jar Hvit\n  Holmen Hockey Rød vs Frisk Asker 1\n  Tønsberg vs Fri
+ sk Asker 5\n  Jutul Hvit vs Ringerike 1\n  Jutul Rød vs Holmen Hockey Rø
+ d\n  Jar Hvit vs Tønsberg\n  Frisk Asker 1 vs Jutul Hvit\n  Frisk Asker 5
+  vs Ringerike 1\n  Jutul Rød vs Tønsberg\n  Jutul Hvit vs Holmen Hockey 
+ Rød\n  Ringerike 1 vs Jar Hvit\n  Frisk Asker 5 vs Frisk Asker 1\n  Jutul
+  Rød vs Jutul Hvit\n  Tønsberg vs Ringerike 1\n  Holmen Hockey Rød vs F
+ risk Asker 5\n  Jar Hvit vs Frisk Asker 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU10 — Varner Arena / Askerhallen
+DTSTART:20261114T130000Z
+DTEND:20261114T141500Z
+UID:7bc685b8-e23a-5883-8454-8e64285b66f8
+CATEGORIES:JU10
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: JU10\nVert: F
+ risk Asker\nDeltakende lag (6): Frisk Asker Orange\, Frisk Asker Svart\, J
+ ar Blå\, Ringerike 1\, Skien\, Jar Hvit\n\nKamper:\n  Frisk Asker Orange 
+ vs Jar Hvit\n  Frisk Asker Svart vs Skien\n  Jar Blå vs Ringerike 1\n  Fr
+ isk Asker Orange vs Skien\n  Ringerike 1 vs Jar Hvit\n  Jar Blå vs Frisk 
+ Asker Svart\n  Frisk Asker Orange vs Ringerike 1\n  Skien vs Jar Blå\n  J
+ ar Hvit vs Frisk Asker Svart\n  Frisk Asker Orange vs Jar Blå\n  Frisk As
+ ker Svart vs Ringerike 1\n  Jar Hvit vs Skien\n  Frisk Asker Orange vs Fri
+ sk Asker Svart\n  Jar Blå vs Jar Hvit\n  Ringerike 1 vs Skien
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20261004T150000Z
+DTEND:20261004T161500Z
+UID:0d66b497-f0e1-536f-bb7b-cc9c96515064
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Sort\, Frisk Asker 6\, Jar Hvit\, Tønsbe
+ rg\, Ringerike 4\, Jutul Hvit\n\nKamper:\n  Holmen Hockey Sort vs Jutul Hv
+ it\n  Frisk Asker 6 vs Ringerike 4\n  Jar Hvit vs Tønsberg\n  Holmen Hock
+ ey Sort vs Ringerike 4\n  Tønsberg vs Jutul Hvit\n  Jar Hvit vs Frisk Ask
+ er 6\n  Holmen Hockey Sort vs Tønsberg\n  Ringerike 4 vs Jar Hvit\n  Jutu
+ l Hvit vs Frisk Asker 6\n  Holmen Hockey Sort vs Jar Hvit\n  Frisk Asker 6
+  vs Tønsberg\n  Jutul Hvit vs Ringerike 4\n  Holmen Hockey Sort vs Frisk 
+ Asker 6\n  Jar Hvit vs Jutul Hvit\n  Tønsberg vs Ringerike 4
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20261004T100000Z
+DTEND:20261004T111500Z
+UID:3b06ea09-4b83-5980-b621-5a93a86ab61e
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Rød\, Jar Gul\, Frisk Asker 4\, Ringerike 2\, Jar Orans
+ je\, Holmen Hockey Rød\n\nKamper:\n  Jutul Rød vs Holmen Hockey Rød\n  
+ Jar Gul vs Jar Oransje\n  Frisk Asker 4 vs Ringerike 2\n  Jutul Rød vs Ja
+ r Oransje\n  Ringerike 2 vs Holmen Hockey Rød\n  Frisk Asker 4 vs Jar Gul
+ \n  Jutul Rød vs Ringerike 2\n  Jar Oransje vs Frisk Asker 4\n  Holmen Ho
+ ckey Rød vs Jar Gul\n  Jutul Rød vs Frisk Asker 4\n  Jar Gul vs Ringerik
+ e 2\n  Holmen Hockey Rød vs Jar Oransje\n  Jutul Rød vs Jar Gul\n  Frisk
+  Asker 4 vs Holmen Hockey Rød\n  Ringerike 2 vs Jar Oransje
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Holmenkollen ishall
+DTSTART:20261004T140000Z
+DTEND:20261004T144500Z
+UID:8ef57b1c-29b5-5e1a-8d4d-9093d7b4c159
+CATEGORIES:U12
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U12\nVert: Holmen\nD
+ eltakende lag (4): Holmen Hockey Hvit\, Jar Rød\, Frisk Asker 4\, Tønsbe
+ rg Hvit\n\nKamper:\n  Holmen Hockey Hvit vs Tønsberg Hvit\n  Jar Rød vs 
+ Frisk Asker 4\n  Holmen Hockey Hvit vs Frisk Asker 4\n  Jar Rød vs Tønsb
+ erg Hvit\n  Holmen Hockey Hvit vs Jar Rød\n  Frisk Asker 4 vs Tønsberg H
+ vit
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Skien ishall
+DTSTART:20260927T113000Z
+DTEND:20260927T121500Z
+UID:c6ef87b0-8ea5-5c5e-a0b1-d7d7a1558465
+CATEGORIES:JU12
+DESCRIPTION:Arena: Skien ishall\nAldersgruppe: JU12\nVert: Skien\nDeltaken
+ de lag (4): Skien\, Ringerike 2\, Jar Hvit\, Tønsberg\n\nKamper:\n  Skien
+  vs Tønsberg\n  Ringerike 2 vs Jar Hvit\n  Skien vs Jar Hvit\n  Ringerike
+  2 vs Tønsberg\n  Skien vs Ringerike 2\n  Jar Hvit vs Tønsberg
+LOCATION:Skien ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20261010T103000Z
+DTEND:20261010T114500Z
+UID:4e02454f-8c3e-5430-9ec4-0266a2726cd9
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Grønn\, Frisk Asker 3\, Jar Blå\, Holmen Hockey Hvit\,
+  Ringerike 3\, Kongsberg\n\nKamper:\n  Jutul Grønn vs Kongsberg\n  Frisk 
+ Asker 3 vs Ringerike 3\n  Jar Blå vs Holmen Hockey Hvit\n  Jutul Grønn v
+ s Ringerike 3\n  Holmen Hockey Hvit vs Kongsberg\n  Jar Blå vs Frisk Aske
+ r 3\n  Jutul Grønn vs Holmen Hockey Hvit\n  Ringerike 3 vs Jar Blå\n  Ko
+ ngsberg vs Frisk Asker 3\n  Jutul Grønn vs Jar Blå\n  Frisk Asker 3 vs H
+ olmen Hockey Hvit\n  Kongsberg vs Ringerike 3\n  Jutul Grønn vs Frisk Ask
+ er 3\n  Jar Blå vs Kongsberg\n  Holmen Hockey Hvit vs Ringerike 3
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Varner Arena / Askerhallen
+DTSTART:20261010T130000Z
+DTEND:20261010T134500Z
+UID:77d8b63d-3e35-5533-8ea3-a51fb7c4fd7c
+CATEGORIES:U12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U12\nVert: Fr
+ isk Asker\nDeltakende lag (4): Frisk Asker 1\, Jar Svart\, Kongsberg\, Rin
+ gerike 2\n\nKamper:\n  Frisk Asker 1 vs Ringerike 2\n  Jar Svart vs Kongsb
+ erg\n  Frisk Asker 1 vs Kongsberg\n  Jar Svart vs Ringerike 2\n  Frisk Ask
+ er 1 vs Jar Svart\n  Kongsberg vs Ringerike 2
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Holmenkollen ishall
+DTSTART:20270110T100000Z
+DTEND:20270110T104500Z
+UID:64051b11-d2ce-5852-b728-ede585021c79
+CATEGORIES:U12
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U12\nVert: Holmen\nD
+ eltakende lag (4): Holmen Hockey Rød\, Jar Rød\, Tønsberg Rød\, Frisk 
+ Asker 2\n\nKamper:\n  Holmen Hockey Rød vs Frisk Asker 2\n  Jar Rød vs T
+ ønsberg Rød\n  Holmen Hockey Rød vs Tønsberg Rød\n  Jar Rød vs Frisk
+  Asker 2\n  Holmen Hockey Rød vs Jar Rød\n  Tønsberg Rød vs Frisk Aske
+ r 2
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Baerum ishall
+DTSTART:20261101T123000Z
+DTEND:20261101T141500Z
+UID:e8a1098a-ea8c-510e-bb8b-d0ca23030b8b
+CATEGORIES:U8
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U8\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Rød\, Jutul Gul\, Sandefjord\, Frisk Asker 3\, Holmen Ho
+ ckey Blå\, Jar Rød\, Jar Blå\, Frisk Asker 5\n\nKamper:\n  Jutul Rød v
+ s Frisk Asker 5\n  Jutul Gul vs Jar Blå\n  Sandefjord vs Jar Rød\n  Fris
+ k Asker 3 vs Holmen Hockey Blå\n  Jutul Rød vs Jar Blå\n  Jar Rød vs F
+ risk Asker 5\n  Holmen Hockey Blå vs Jutul Gul\n  Frisk Asker 3 vs Sandef
+ jord\n  Jutul Rød vs Jar Rød\n  Jar Blå vs Holmen Hockey Blå\n  Frisk 
+ Asker 5 vs Frisk Asker 3\n  Jutul Gul vs Sandefjord\n  Jutul Rød vs Holme
+ n Hockey Blå\n  Frisk Asker 3 vs Jar Rød\n  Sandefjord vs Jar Blå\n  Ju
+ tul Gul vs Frisk Asker 5\n  Jutul Rød vs Frisk Asker 3\n  Holmen Hockey B
+ lå vs Sandefjord\n  Jar Rød vs Jutul Gul\n  Jar Blå vs Frisk Asker 5\n 
+  Jutul Rød vs Sandefjord\n  Jutul Gul vs Frisk Asker 3\n  Frisk Asker 5 v
+ s Holmen Hockey Blå\n  Jar Blå vs Jar Rød\n  Jutul Rød vs Jutul Gul\n 
+  Sandefjord vs Frisk Asker 5\n  Frisk Asker 3 vs Jar Blå\n  Holmen Hockey
+  Blå vs Jar Rød
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Skien ishall
+DTSTART:20260919T100000Z
+DTEND:20260919T114500Z
+UID:f9130b35-f20e-5772-af78-ec6095a4b31d
+CATEGORIES:U9
+DESCRIPTION:Arena: Skien ishall\nAldersgruppe: U9\nVert: Skien\nDeltakende
+  lag (8): Skien\, Frisk Asker 3\, Holmen Hockey Hvit\, Jutul Gul\, Jar Sva
+ rt\, Jutul Rød\, Frisk Asker 2\, Holmen Hockey Rød\n\nKamper:\n  Skien v
+ s Holmen Hockey Rød\n  Frisk Asker 3 vs Frisk Asker 2\n  Holmen Hockey Hv
+ it vs Jutul Rød\n  Jutul Gul vs Jar Svart\n  Skien vs Frisk Asker 2\n  Ju
+ tul Rød vs Holmen Hockey Rød\n  Jar Svart vs Frisk Asker 3\n  Jutul Gul 
+ vs Holmen Hockey Hvit\n  Skien vs Jutul Rød\n  Frisk Asker 2 vs Jar Svart
+ \n  Holmen Hockey Rød vs Jutul Gul\n  Frisk Asker 3 vs Holmen Hockey Hvit
+ \n  Skien vs Jar Svart\n  Jutul Gul vs Jutul Rød\n  Holmen Hockey Hvit vs
+  Frisk Asker 2\n  Frisk Asker 3 vs Holmen Hockey Rød\n  Skien vs Jutul Gu
+ l\n  Jar Svart vs Holmen Hockey Hvit\n  Jutul Rød vs Frisk Asker 3\n  Fri
+ sk Asker 2 vs Holmen Hockey Rød\n  Skien vs Holmen Hockey Hvit\n  Frisk A
+ sker 3 vs Jutul Gul\n  Holmen Hockey Rød vs Jar Svart\n  Frisk Asker 2 vs
+  Jutul Rød\n  Skien vs Frisk Asker 3\n  Holmen Hockey Hvit vs Holmen Hock
+ ey Rød\n  Jutul Gul vs Frisk Asker 2\n  Jar Svart vs Jutul Rød
+LOCATION:Skien ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Baerum ishall
+DTSTART:20261017T120000Z
+DTEND:20261017T124500Z
+UID:e4c73236-5a81-5bf8-b3ff-fa557a57bcc7
+CATEGORIES:JU12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU12\nVert: Jutul\nDeltake
+ nde lag (4): Tønsberg\, Ringerike 1\, Frisk Asker Orange\, Jar Hvit\n\nKa
+ mper:\n  Tønsberg vs Jar Hvit\n  Ringerike 1 vs Frisk Asker Orange\n  Tø
+ nsberg vs Frisk Asker Orange\n  Ringerike 1 vs Jar Hvit\n  Tønsberg vs Ri
+ ngerike 1\n  Frisk Asker Orange vs Jar Hvit
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20261017T120000Z
+DTEND:20261017T131500Z
+UID:56fcaaf2-43a0-51db-a334-fcedc3283483
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Rød\, Ringerike 4\, Jar Svart\, Frisk As
+ ker 5\, Ringerike 2\, Frisk Asker 1\n\nKamper:\n  Holmen Hockey Rød vs Fr
+ isk Asker 1\n  Ringerike 4 vs Ringerike 2\n  Jar Svart vs Frisk Asker 5\n 
+  Holmen Hockey Rød vs Ringerike 2\n  Frisk Asker 5 vs Frisk Asker 1\n  Ja
+ r Svart vs Ringerike 4\n  Holmen Hockey Rød vs Frisk Asker 5\n  Ringerike
+  2 vs Jar Svart\n  Frisk Asker 1 vs Ringerike 4\n  Holmen Hockey Rød vs J
+ ar Svart\n  Ringerike 4 vs Frisk Asker 5\n  Frisk Asker 1 vs Ringerike 2\n
+   Holmen Hockey Rød vs Ringerike 4\n  Jar Svart vs Frisk Asker 1\n  Frisk
+  Asker 5 vs Ringerike 2
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Baerum ishall
+DTSTART:20261017T150000Z
+DTEND:20261017T154500Z
+UID:e3dc0ae9-2cb0-5226-b4c6-47aaf5e8f161
+CATEGORIES:U12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U12\nVert: Jutul\nDeltaken
+ de lag (4): Jutul Rød\, Holmen Hockey Rød\, Jar Blå\, Frisk Asker 3\n\n
+ Kamper:\n  Jutul Rød vs Frisk Asker 3\n  Holmen Hockey Rød vs Jar Blå\n
+   Jutul Rød vs Jar Blå\n  Holmen Hockey Rød vs Frisk Asker 3\n  Jutul R
+ ød vs Holmen Hockey Rød\n  Jar Blå vs Frisk Asker 3
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Holmenkollen ishall
+DTSTART:20261018T120000Z
+DTEND:20261018T124500Z
+UID:f9f21a38-1d20-54e9-94fe-f0bdaaec47ca
+CATEGORIES:U12
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U12\nVert: Holmen\nD
+ eltakende lag (4): Holmen Hockey Hvit\, Jar Hvit\, Kongsberg\, Frisk Asker
+  4\n\nKamper:\n  Holmen Hockey Hvit vs Frisk Asker 4\n  Jar Hvit vs Kongsb
+ erg\n  Holmen Hockey Hvit vs Kongsberg\n  Jar Hvit vs Frisk Asker 4\n  Hol
+ men Hockey Hvit vs Jar Hvit\n  Kongsberg vs Frisk Asker 4
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Baerum ishall
+DTSTART:20270116T113000Z
+DTEND:20270116T131500Z
+UID:58a70302-f6e7-53a6-a6e3-a28e4c3d315b
+CATEGORIES:U7
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U7\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Hvit\, Holmen Hockey Rød\, Tønsberg\, Sandefjord\, Jar 
+ Grønn\, Frisk Asker 2\, Jar Rød\, Jar Hvit\n\nKamper:\n  Jutul Hvit vs J
+ ar Hvit\n  Holmen Hockey Rød vs Jar Rød\n  Tønsberg vs Frisk Asker 2\n 
+  Sandefjord vs Jar Grønn\n  Jutul Hvit vs Jar Rød\n  Frisk Asker 2 vs Ja
+ r Hvit\n  Jar Grønn vs Holmen Hockey Rød\n  Sandefjord vs Tønsberg\n  J
+ utul Hvit vs Frisk Asker 2\n  Jar Rød vs Jar Grønn\n  Jar Hvit vs Sandef
+ jord\n  Holmen Hockey Rød vs Tønsberg\n  Jutul Hvit vs Jar Grønn\n  San
+ defjord vs Frisk Asker 2\n  Tønsberg vs Jar Rød\n  Holmen Hockey Rød vs
+  Jar Hvit\n  Jutul Hvit vs Sandefjord\n  Jar Grønn vs Tønsberg\n  Frisk 
+ Asker 2 vs Holmen Hockey Rød\n  Jar Rød vs Jar Hvit\n  Jutul Hvit vs Tø
+ nsberg\n  Holmen Hockey Rød vs Sandefjord\n  Jar Hvit vs Jar Grønn\n  Ja
+ r Rød vs Frisk Asker 2\n  Jutul Hvit vs Holmen Hockey Rød\n  Tønsberg v
+ s Jar Hvit\n  Sandefjord vs Jar Rød\n  Jar Grønn vs Frisk Asker 2
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Varner Arena / Askerhallen
+DTSTART:20260905T143000Z
+DTEND:20260905T161500Z
+UID:82b5d3f6-1136-5234-b617-30d89dda2e70
+CATEGORIES:U9
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U9\nVert: Fri
+ sk Asker\nDeltakende lag (8): Frisk Asker 4\, Frisk Asker 2\, Kongsberg\, 
+ Jutul Hvit\, Holmen Hockey Sort\, Jar Rød\, Tønsberg\, Holmen Hockey Rø
+ d\n\nKamper:\n  Frisk Asker 4 vs Holmen Hockey Rød\n  Frisk Asker 2 vs T
+ ønsberg\n  Kongsberg vs Jar Rød\n  Jutul Hvit vs Holmen Hockey Sort\n  F
+ risk Asker 4 vs Tønsberg\n  Jar Rød vs Holmen Hockey Rød\n  Holmen Hock
+ ey Sort vs Frisk Asker 2\n  Jutul Hvit vs Kongsberg\n  Frisk Asker 4 vs Ja
+ r Rød\n  Tønsberg vs Holmen Hockey Sort\n  Holmen Hockey Rød vs Jutul H
+ vit\n  Frisk Asker 2 vs Kongsberg\n  Frisk Asker 4 vs Holmen Hockey Sort\n
+   Jutul Hvit vs Jar Rød\n  Kongsberg vs Tønsberg\n  Frisk Asker 2 vs Hol
+ men Hockey Rød\n  Frisk Asker 4 vs Jutul Hvit\n  Holmen Hockey Sort vs Ko
+ ngsberg\n  Jar Rød vs Frisk Asker 2\n  Tønsberg vs Holmen Hockey Rød\n 
+  Frisk Asker 4 vs Kongsberg\n  Frisk Asker 2 vs Jutul Hvit\n  Holmen Hocke
+ y Rød vs Holmen Hockey Sort\n  Tønsberg vs Jar Rød\n  Frisk Asker 4 vs 
+ Frisk Asker 2\n  Kongsberg vs Holmen Hockey Rød\n  Jutul Hvit vs Tønsber
+ g\n  Holmen Hockey Sort vs Jar Rød
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Baerum ishall
+DTSTART:20261024T110000Z
+DTEND:20261024T114500Z
+UID:60f50de2-69e5-5f6f-95c7-758ebdda193e
+CATEGORIES:JU12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU12\nVert: Jutul\nDeltake
+ nde lag (4): Jutul/Jar Kittens\, Frisk Asker Svart\, Jar\, Ringerike 2\n\n
+ Kamper:\n  Jutul/Jar Kittens vs Ringerike 2\n  Frisk Asker Svart vs Jar\n 
+  Jutul/Jar Kittens vs Jar\n  Frisk Asker Svart vs Ringerike 2\n  Jutul/Jar
+  Kittens vs Frisk Asker Svart\n  Jar vs Ringerike 2
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20261024T150000Z
+DTEND:20261024T161500Z
+UID:5d228fc5-cfa7-5dc0-90ec-4ba45835a258
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Rød\, Jar Rød\, Holmen Hockey Blå\, Jar Gul\, Ringeri
+ ke 1\, Frisk Asker 5\n\nKamper:\n  Jutul Rød vs Frisk Asker 5\n  Jar Rød
+  vs Ringerike 1\n  Holmen Hockey Blå vs Jar Gul\n  Jutul Rød vs Ringerik
+ e 1\n  Jar Gul vs Frisk Asker 5\n  Holmen Hockey Blå vs Jar Rød\n  Jutul
+  Rød vs Jar Gul\n  Ringerike 1 vs Holmen Hockey Blå\n  Frisk Asker 5 vs 
+ Jar Rød\n  Jutul Rød vs Holmen Hockey Blå\n  Jar Rød vs Jar Gul\n  Fri
+ sk Asker 5 vs Ringerike 1\n  Jutul Rød vs Jar Rød\n  Holmen Hockey Blå 
+ vs Frisk Asker 5\n  Jar Gul vs Ringerike 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Varner Arena / Askerhallen
+DTSTART:20261024T143000Z
+DTEND:20261024T151500Z
+UID:b1ff9d0c-4cc5-57e7-9a22-0d972eb7547c
+CATEGORIES:U12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U12\nVert: Fr
+ isk Asker\nDeltakende lag (4): Frisk Asker 1\, Jar Lilla\, Ringerike 2\, J
+ utul Rød\n\nKamper:\n  Frisk Asker 1 vs Jutul Rød\n  Jar Lilla vs Ringer
+ ike 2\n  Frisk Asker 1 vs Ringerike 2\n  Jar Lilla vs Jutul Rød\n  Frisk 
+ Asker 1 vs Jar Lilla\n  Ringerike 2 vs Jutul Rød
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU8 — Ringerikshallen
+DTSTART:20270117T113000Z
+DTEND:20270117T131500Z
+UID:b543f997-1bfc-523e-88c9-35c9515b4256
+CATEGORIES:JU8
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: JU8\nVert: Ringerike\nDe
+ ltakende lag (7): Ringerike 1\, Skien\, Jar\, Jutul Grønn\, Frisk Asker\,
+  Jar Rød\, Jutul Kittens\n\nKamper:\n  Skien vs Jutul Kittens\n  Jar vs J
+ ar Rød\n  Jutul Grønn vs Frisk Asker\n  Ringerike 1 vs Jutul Kittens\n  
+ Frisk Asker vs Skien\n  Jutul Grønn vs Jar\n  Ringerike 1 vs Jar Rød\n  
+ Jutul Kittens vs Frisk Asker\n  Skien vs Jar\n  Ringerike 1 vs Frisk Asker
+ \n  Jutul Grønn vs Jar Rød\n  Jar vs Jutul Kittens\n  Ringerike 1 vs Jut
+ ul Grønn\n  Frisk Asker vs Jar\n  Jar Rød vs Skien\n  Ringerike 1 vs Jar
+ \n  Skien vs Jutul Grønn\n  Jutul Kittens vs Jar Rød\n  Ringerike 1 vs S
+ kien\n  Jutul Grønn vs Jutul Kittens\n  Frisk Asker vs Jar Rød
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20261025T150000Z
+DTEND:20261025T161500Z
+UID:35bcc869-8452-53ab-919f-4618645c8494
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Rød\, Frisk Asker 2\, Jar Grønn\, Skien\, Holmen Hocke
+ y Rød\, Jar Lilla\n\nKamper:\n  Jutul Rød vs Jar Lilla\n  Frisk Asker 2 
+ vs Holmen Hockey Rød\n  Jar Grønn vs Skien\n  Jutul Rød vs Holmen Hocke
+ y Rød\n  Skien vs Jar Lilla\n  Jar Grønn vs Frisk Asker 2\n  Jutul Rød 
+ vs Skien\n  Holmen Hockey Rød vs Jar Grønn\n  Jar Lilla vs Frisk Asker 2
+ \n  Jutul Rød vs Jar Grønn\n  Frisk Asker 2 vs Skien\n  Jar Lilla vs Hol
+ men Hockey Rød\n  Jutul Rød vs Frisk Asker 2\n  Jar Grønn vs Jar Lilla\
+ n  Skien vs Holmen Hockey Rød
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Ringerikshallen
+DTSTART:20261025T120000Z
+DTEND:20261025T124500Z
+UID:8d360696-6db5-5c4d-876d-09ef56964aff
+CATEGORIES:U12
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U12\nVert: Ringerike\nDe
+ ltakende lag (4): Ringerike 1\, Jar Rød\, Jutul Grønn\, Frisk Asker 4\n\
+ nKamper:\n  Ringerike 1 vs Frisk Asker 4\n  Jar Rød vs Jutul Grønn\n  Ri
+ ngerike 1 vs Jutul Grønn\n  Jar Rød vs Frisk Asker 4\n  Ringerike 1 vs J
+ ar Rød\n  Jutul Grønn vs Frisk Asker 4
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Kongsberghallen
+DTSTART:20260905T143000Z
+DTEND:20260905T161500Z
+UID:27cda5ec-afc7-5a88-953b-833ba6726d7b
+CATEGORIES:U8
+DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U8\nVert: Kongsberg\nDel
+ takende lag (8): Jutul Gul\, Ringerike 1\, Frisk Asker 2\, Sandefjord\, Ja
+ r Rød\, Holmen Hockey Rød\, Frisk Asker 4\, Skien\n\nKamper:\n  Jutul Gu
+ l vs Skien\n  Ringerike 1 vs Frisk Asker 4\n  Frisk Asker 2 vs Holmen Hock
+ ey Rød\n  Sandefjord vs Jar Rød\n  Jutul Gul vs Frisk Asker 4\n  Holmen 
+ Hockey Rød vs Skien\n  Jar Rød vs Ringerike 1\n  Sandefjord vs Frisk Ask
+ er 2\n  Jutul Gul vs Holmen Hockey Rød\n  Frisk Asker 4 vs Jar Rød\n  Sk
+ ien vs Sandefjord\n  Ringerike 1 vs Frisk Asker 2\n  Jutul Gul vs Jar Rød
+ \n  Sandefjord vs Holmen Hockey Rød\n  Frisk Asker 2 vs Frisk Asker 4\n  
+ Ringerike 1 vs Skien\n  Jutul Gul vs Sandefjord\n  Jar Rød vs Frisk Asker
+  2\n  Holmen Hockey Rød vs Ringerike 1\n  Frisk Asker 4 vs Skien\n  Jutul
+  Gul vs Frisk Asker 2\n  Ringerike 1 vs Sandefjord\n  Skien vs Jar Rød\n 
+  Frisk Asker 4 vs Holmen Hockey Rød\n  Jutul Gul vs Ringerike 1\n  Frisk 
+ Asker 2 vs Skien\n  Sandefjord vs Frisk Asker 4\n  Jar Rød vs Holmen Hock
+ ey Rød
+LOCATION:Kongsberghallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Baerum ishall
+DTSTART:20261031T110000Z
+DTEND:20261031T114500Z
+UID:730453b5-555a-5561-85fc-5ed577b9172b
+CATEGORIES:JU12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU12\nVert: Jutul\nDeltake
+ nde lag (4): Jutul Kittens\, Frisk Asker Orange\, Ringerike 1\, Kongsberg/
+ Tønsberg\n\nKamper:\n  Jutul Kittens vs Kongsberg/Tønsberg\n  Frisk Aske
+ r Orange vs Ringerike 1\n  Jutul Kittens vs Ringerike 1\n  Frisk Asker Ora
+ nge vs Kongsberg/Tønsberg\n  Jutul Kittens vs Frisk Asker Orange\n  Ringe
+ rike 1 vs Kongsberg/Tønsberg
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Jarhallen
+DTSTART:20270220T123000Z
+DTEND:20270220T134500Z
+UID:ff8846a8-5eb4-5966-9746-f883d5f90bcf
+CATEGORIES:U10
+DESCRIPTION:Arena: Jarhallen\nAldersgruppe: U10\nVert: Jar\nDeltakende lag
+  (6): Jar Hvit\, Jar Rød\, Holmen Hockey Hvit\, Frisk Asker 3\, Ringerike
+  2\, Frisk Asker 6\n\nKamper:\n  Jar Hvit vs Frisk Asker 6\n  Jar Rød vs 
+ Ringerike 2\n  Holmen Hockey Hvit vs Frisk Asker 3\n  Jar Hvit vs Ringerik
+ e 2\n  Frisk Asker 3 vs Frisk Asker 6\n  Holmen Hockey Hvit vs Jar Rød\n 
+  Jar Hvit vs Frisk Asker 3\n  Ringerike 2 vs Holmen Hockey Hvit\n  Frisk A
+ sker 6 vs Jar Rød\n  Jar Hvit vs Holmen Hockey Hvit\n  Jar Rød vs Frisk 
+ Asker 3\n  Frisk Asker 6 vs Ringerike 2\n  Jar Hvit vs Jar Rød\n  Holmen 
+ Hockey Hvit vs Frisk Asker 6\n  Frisk Asker 3 vs Ringerike 2
+LOCATION:Jarhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Baerum ishall
+DTSTART:20261031T123000Z
+DTEND:20261031T131500Z
+UID:36a08e76-0e4f-56d4-9388-042d6afa7724
+CATEGORIES:U12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U12\nVert: Jutul\nDeltaken
+ de lag (4): Jutul Rød\, Frisk Asker 2\, Jar Svart\, Tønsberg Hvit\n\nKam
+ per:\n  Jutul Rød vs Tønsberg Hvit\n  Frisk Asker 2 vs Jar Svart\n  Jutu
+ l Rød vs Jar Svart\n  Frisk Asker 2 vs Tønsberg Hvit\n  Jutul Rød vs Fr
+ isk Asker 2\n  Jar Svart vs Tønsberg Hvit
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20261108T123000Z
+DTEND:20261108T134500Z
+UID:53129e0c-50cd-56eb-be57-1bfb9aea1858
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Blå\, Jutul Hvit\, Jar Rød\, Frisk Aske
+ r 1\, Ringerike 2\, Frisk Asker 3\n\nKamper:\n  Holmen Hockey Blå vs Fris
+ k Asker 3\n  Jutul Hvit vs Ringerike 2\n  Jar Rød vs Frisk Asker 1\n  Hol
+ men Hockey Blå vs Ringerike 2\n  Frisk Asker 1 vs Frisk Asker 3\n  Jar R
+ ød vs Jutul Hvit\n  Holmen Hockey Blå vs Frisk Asker 1\n  Ringerike 2 vs
+  Jar Rød\n  Frisk Asker 3 vs Jutul Hvit\n  Holmen Hockey Blå vs Jar Rød
+ \n  Jutul Hvit vs Frisk Asker 1\n  Frisk Asker 3 vs Ringerike 2\n  Holmen 
+ Hockey Blå vs Jutul Hvit\n  Jar Rød vs Frisk Asker 3\n  Frisk Asker 1 vs
+  Ringerike 2
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Holmenkollen ishall
+DTSTART:20261101T140000Z
+DTEND:20261101T151500Z
+UID:5d9f5c95-a5a1-5fa9-bea1-2bcb8aff7c90
+CATEGORIES:U11
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U11\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Hvit\, Frisk Asker 3\, Jar Svart\, Jutul 
+ Grønn\, Ringerike 2\, Kongsberg\n\nKamper:\n  Holmen Hockey Hvit vs Kongs
+ berg\n  Frisk Asker 3 vs Ringerike 2\n  Jar Svart vs Jutul Grønn\n  Holme
+ n Hockey Hvit vs Ringerike 2\n  Jutul Grønn vs Kongsberg\n  Jar Svart vs 
+ Frisk Asker 3\n  Holmen Hockey Hvit vs Jutul Grønn\n  Ringerike 2 vs Jar 
+ Svart\n  Kongsberg vs Frisk Asker 3\n  Holmen Hockey Hvit vs Jar Svart\n  
+ Frisk Asker 3 vs Jutul Grønn\n  Kongsberg vs Ringerike 2\n  Holmen Hockey
+  Hvit vs Frisk Asker 3\n  Jar Svart vs Kongsberg\n  Jutul Grønn vs Ringer
+ ike 2
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Holmenkollen ishall
+DTSTART:20261101T110000Z
+DTEND:20261101T114500Z
+UID:653642ba-de2c-5811-a5d5-5b530b9f4141
+CATEGORIES:U12
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U12\nVert: Holmen\nD
+ eltakende lag (4): Tønsberg Rød\, Kongsberg\, Frisk Asker 3\, Jar Hvit\n
+ \nKamper:\n  Tønsberg Rød vs Jar Hvit\n  Kongsberg vs Frisk Asker 3\n  T
+ ønsberg Rød vs Frisk Asker 3\n  Kongsberg vs Jar Hvit\n  Tønsberg Rød 
+ vs Kongsberg\n  Frisk Asker 3 vs Jar Hvit
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Varner Arena / Askerhallen
+DTSTART:20261101T150000Z
+DTEND:20261101T164500Z
+UID:760ffe03-ef48-5441-b135-8744ac251947
+CATEGORIES:U9
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U9\nVert: Fri
+ sk Asker\nDeltakende lag (8): Frisk Asker 3\, Kongsberg\, Jutul Hvit\, Hol
+ men Hockey Hvit\, Jutul Rød\, Jar Blå\, Sandefjord\, Jar Rød\n\nKamper:
+ \n  Frisk Asker 3 vs Jar Rød\n  Kongsberg vs Sandefjord\n  Jutul Hvit vs 
+ Jar Blå\n  Holmen Hockey Hvit vs Jutul Rød\n  Frisk Asker 3 vs Sandefjor
+ d\n  Jar Blå vs Jar Rød\n  Jutul Rød vs Kongsberg\n  Holmen Hockey Hvit
+  vs Jutul Hvit\n  Frisk Asker 3 vs Jar Blå\n  Sandefjord vs Jutul Rød\n 
+  Jar Rød vs Holmen Hockey Hvit\n  Kongsberg vs Jutul Hvit\n  Frisk Asker 
+ 3 vs Jutul Rød\n  Holmen Hockey Hvit vs Jar Blå\n  Jutul Hvit vs Sandefj
+ ord\n  Kongsberg vs Jar Rød\n  Frisk Asker 3 vs Holmen Hockey Hvit\n  Jut
+ ul Rød vs Jutul Hvit\n  Jar Blå vs Kongsberg\n  Sandefjord vs Jar Rød\n
+   Frisk Asker 3 vs Jutul Hvit\n  Kongsberg vs Holmen Hockey Hvit\n  Jar R
+ ød vs Jutul Rød\n  Sandefjord vs Jar Blå\n  Frisk Asker 3 vs Kongsberg\
+ n  Jutul Hvit vs Jar Rød\n  Holmen Hockey Hvit vs Sandefjord\n  Jutul Rø
+ d vs Jar Blå
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU10 — Varner Arena / Askerhallen
+DTSTART:20270306T120000Z
+DTEND:20270306T131500Z
+UID:60f58660-5090-5629-9ee6-f76d133bdc0e
+CATEGORIES:JU10
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: JU10\nVert: F
+ risk Asker\nDeltakende lag (6): Frisk Asker Svart\, Skien\, Jar Blå\, Jar
+  Rød\, Ringerike 1\, Jar Hvit\n\nKamper:\n  Frisk Asker Svart vs Jar Hvit
+ \n  Skien vs Ringerike 1\n  Jar Blå vs Jar Rød\n  Frisk Asker Svart vs R
+ ingerike 1\n  Jar Rød vs Jar Hvit\n  Jar Blå vs Skien\n  Frisk Asker Sva
+ rt vs Jar Rød\n  Ringerike 1 vs Jar Blå\n  Jar Hvit vs Skien\n  Frisk As
+ ker Svart vs Jar Blå\n  Skien vs Jar Rød\n  Jar Hvit vs Ringerike 1\n  F
+ risk Asker Svart vs Skien\n  Jar Blå vs Jar Hvit\n  Jar Rød vs Ringerike
+  1
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20261107T113000Z
+DTEND:20261107T124500Z
+UID:d38d69c7-4919-5239-be57-e57d5bf498b9
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Grønn\, Ringerike 1\, Jar Svart\, Jar Grønn\, Holmen H
+ ockey Sort\, Frisk Asker 5\n\nKamper:\n  Jutul Grønn vs Frisk Asker 5\n  
+ Ringerike 1 vs Holmen Hockey Sort\n  Jar Svart vs Jar Grønn\n  Jutul Grø
+ nn vs Holmen Hockey Sort\n  Jar Grønn vs Frisk Asker 5\n  Jar Svart vs Ri
+ ngerike 1\n  Jutul Grønn vs Jar Grønn\n  Holmen Hockey Sort vs Jar Svart
+ \n  Frisk Asker 5 vs Ringerike 1\n  Jutul Grønn vs Jar Svart\n  Ringerike
+  1 vs Jar Grønn\n  Frisk Asker 5 vs Holmen Hockey Sort\n  Jutul Grønn vs
+  Ringerike 1\n  Jar Svart vs Frisk Asker 5\n  Jar Grønn vs Holmen Hockey 
+ Sort
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20261107T140000Z
+DTEND:20261107T151500Z
+UID:c8638911-3717-57f2-9cae-3a399a71ed82
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Hvit\, Frisk Asker 4\, Jar Blå\, Sandefjord\, Jar Gul\,
+  Ringerike 1\n\nKamper:\n  Jutul Hvit vs Ringerike 1\n  Frisk Asker 4 vs J
+ ar Gul\n  Jar Blå vs Sandefjord\n  Jutul Hvit vs Jar Gul\n  Sandefjord vs
+  Ringerike 1\n  Jar Blå vs Frisk Asker 4\n  Jutul Hvit vs Sandefjord\n  J
+ ar Gul vs Jar Blå\n  Ringerike 1 vs Frisk Asker 4\n  Jutul Hvit vs Jar Bl
+ å\n  Frisk Asker 4 vs Sandefjord\n  Ringerike 1 vs Jar Gul\n  Jutul Hvit 
+ vs Frisk Asker 4\n  Jar Blå vs Ringerike 1\n  Sandefjord vs Jar Gul
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Baerum ishall
+DTSTART:20261122T140000Z
+DTEND:20261122T154500Z
+UID:1866f37e-c1fc-5dc8-acdc-c987c9364d88
+CATEGORIES:U7
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U7\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Rød\, Jutul Grønn\, Jar Hvit\, Sandefjord\, Holmen Hock
+ ey Rød\, Frisk Asker 3\, Jar Blå\, Jar Rød\n\nKamper:\n  Jutul Rød vs 
+ Jar Rød\n  Jutul Grønn vs Jar Blå\n  Jar Hvit vs Frisk Asker 3\n  Sande
+ fjord vs Holmen Hockey Rød\n  Jutul Rød vs Jar Blå\n  Frisk Asker 3 vs 
+ Jar Rød\n  Holmen Hockey Rød vs Jutul Grønn\n  Sandefjord vs Jar Hvit\n
+   Jutul Rød vs Frisk Asker 3\n  Jar Blå vs Holmen Hockey Rød\n  Jar Rø
+ d vs Sandefjord\n  Jutul Grønn vs Jar Hvit\n  Jutul Rød vs Holmen Hockey
+  Rød\n  Sandefjord vs Frisk Asker 3\n  Jar Hvit vs Jar Blå\n  Jutul Grø
+ nn vs Jar Rød\n  Jutul Rød vs Sandefjord\n  Holmen Hockey Rød vs Jar Hv
+ it\n  Frisk Asker 3 vs Jutul Grønn\n  Jar Blå vs Jar Rød\n  Jutul Rød 
+ vs Jar Hvit\n  Jutul Grønn vs Sandefjord\n  Jar Rød vs Holmen Hockey Rø
+ d\n  Jar Blå vs Frisk Asker 3\n  Jutul Rød vs Jutul Grønn\n  Jar Hvit v
+ s Jar Rød\n  Sandefjord vs Jar Blå\n  Holmen Hockey Rød vs Frisk Asker 
+ 3
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Ringerikshallen
+DTSTART:20261108T113000Z
+DTEND:20261108T121500Z
+UID:b2976f56-2a7d-5b2c-9e7d-794161d7436d
+CATEGORIES:JU12
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: JU12\nVert: Ringerike\nD
+ eltakende lag (4): Ringerike 2\, Jutul/Jar Kittens\, Frisk Asker Svart\, S
+ kien\n\nKamper:\n  Ringerike 2 vs Skien\n  Jutul/Jar Kittens vs Frisk Aske
+ r Svart\n  Ringerike 2 vs Frisk Asker Svart\n  Jutul/Jar Kittens vs Skien\
+ n  Ringerike 2 vs Jutul/Jar Kittens\n  Frisk Asker Svart vs Skien
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Holmenkollen ishall
+DTSTART:20261108T110000Z
+DTEND:20261108T114500Z
+UID:520d4f8d-6c65-5ad9-9104-5c8aa767248f
+CATEGORIES:U12
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U12\nVert: Holmen\nD
+ eltakende lag (4): Holmen Hockey Rød\, Jar Rød\, Frisk Asker 1\, Tønsbe
+ rg Grå\n\nKamper:\n  Holmen Hockey Rød vs Tønsberg Grå\n  Jar Rød vs 
+ Frisk Asker 1\n  Holmen Hockey Rød vs Frisk Asker 1\n  Jar Rød vs Tønsb
+ erg Grå\n  Holmen Hockey Rød vs Jar Rød\n  Frisk Asker 1 vs Tønsberg G
+ rå
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Holmenkollen ishall
+DTSTART:20270109T110000Z
+DTEND:20270109T124500Z
+UID:bab8bc9a-199e-51d1-bb5b-b7c404ed6da8
+CATEGORIES:U8
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U8\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Blå\, Jutul Rød\, Ringerike 2\, Frisk As
+ ker 2\, Jar Hvit\, Frisk Asker 5\, Tønsberg\, Skien\n\nKamper:\n  Holmen 
+ Hockey Blå vs Skien\n  Jutul Rød vs Tønsberg\n  Ringerike 2 vs Frisk As
+ ker 5\n  Frisk Asker 2 vs Jar Hvit\n  Holmen Hockey Blå vs Tønsberg\n  F
+ risk Asker 5 vs Skien\n  Jar Hvit vs Jutul Rød\n  Frisk Asker 2 vs Ringer
+ ike 2\n  Holmen Hockey Blå vs Frisk Asker 5\n  Tønsberg vs Jar Hvit\n  S
+ kien vs Frisk Asker 2\n  Jutul Rød vs Ringerike 2\n  Holmen Hockey Blå v
+ s Jar Hvit\n  Frisk Asker 2 vs Frisk Asker 5\n  Ringerike 2 vs Tønsberg\n
+   Jutul Rød vs Skien\n  Holmen Hockey Blå vs Frisk Asker 2\n  Jar Hvit v
+ s Ringerike 2\n  Frisk Asker 5 vs Jutul Rød\n  Tønsberg vs Skien\n  Holm
+ en Hockey Blå vs Ringerike 2\n  Jutul Rød vs Frisk Asker 2\n  Skien vs J
+ ar Hvit\n  Tønsberg vs Frisk Asker 5\n  Holmen Hockey Blå vs Jutul Rød\
+ n  Ringerike 2 vs Skien\n  Frisk Asker 2 vs Tønsberg\n  Jar Hvit vs Frisk
+  Asker 5
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20261114T140000Z
+DTEND:20261114T151500Z
+UID:b7233ca7-19f8-5605-afae-75edee10c645
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Hvit\, Frisk Asker 2\, Jar Blå\, Ringeri
+ ke 4\, Jutul Rød\, Jar Hvit\n\nKamper:\n  Holmen Hockey Hvit vs Jar Hvit\
+ n  Frisk Asker 2 vs Jutul Rød\n  Jar Blå vs Ringerike 4\n  Holmen Hockey
+  Hvit vs Jutul Rød\n  Ringerike 4 vs Jar Hvit\n  Jar Blå vs Frisk Asker 
+ 2\n  Holmen Hockey Hvit vs Ringerike 4\n  Jutul Rød vs Jar Blå\n  Jar Hv
+ it vs Frisk Asker 2\n  Holmen Hockey Hvit vs Jar Blå\n  Frisk Asker 2 vs 
+ Ringerike 4\n  Jar Hvit vs Jutul Rød\n  Holmen Hockey Hvit vs Frisk Asker
+  2\n  Jar Blå vs Jar Hvit\n  Ringerike 4 vs Jutul Rød
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20261011T103000Z
+DTEND:20261011T114500Z
+UID:be6bb2f4-829a-50cd-8827-306c6d882d32
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Grønn\, Ringerike 1\, Tønsberg Rød\, Jar Grønn\, Hol
+ men Hockey Rød\, Jar Hvit\n\nKamper:\n  Jutul Grønn vs Jar Hvit\n  Ringe
+ rike 1 vs Holmen Hockey Rød\n  Tønsberg Rød vs Jar Grønn\n  Jutul Grø
+ nn vs Holmen Hockey Rød\n  Jar Grønn vs Jar Hvit\n  Tønsberg Rød vs Ri
+ ngerike 1\n  Jutul Grønn vs Jar Grønn\n  Holmen Hockey Rød vs Tønsberg
+  Rød\n  Jar Hvit vs Ringerike 1\n  Jutul Grønn vs Tønsberg Rød\n  Ring
+ erike 1 vs Jar Grønn\n  Jar Hvit vs Holmen Hockey Rød\n  Jutul Grønn vs
+  Ringerike 1\n  Tønsberg Rød vs Jar Hvit\n  Jar Grønn vs Holmen Hockey 
+ Rød
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Jarhallen
+DTSTART:20270109T150000Z
+DTEND:20270109T154500Z
+UID:df23f8e8-3474-5f8e-a0f3-947dd67b2659
+CATEGORIES:U12
+DESCRIPTION:Arena: Jarhallen\nAldersgruppe: U12\nVert: Jar\nDeltakende lag
+  (4): Jar Lilla\, Tønsberg Grå\, Kongsberg\, Frisk Asker 4\n\nKamper:\n 
+  Jar Lilla vs Frisk Asker 4\n  Tønsberg Grå vs Kongsberg\n  Jar Lilla vs
+  Kongsberg\n  Tønsberg Grå vs Frisk Asker 4\n  Jar Lilla vs Tønsberg Gr
+ å\n  Kongsberg vs Frisk Asker 4
+LOCATION:Jarhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Skien ishall
+DTSTART:20261129T113000Z
+DTEND:20261129T131500Z
+UID:16d90dca-5317-5f0f-bf00-a3fe89fcec86
+CATEGORIES:U9
+DESCRIPTION:Arena: Skien ishall\nAldersgruppe: U9\nVert: Skien\nDeltakende
+  lag (8): Frisk Asker 1\, Frisk Asker 3\, Jar Rød\, Jar Svart\, Holmen Ho
+ ckey Rød\, Ringerike 1\, Sandefjord\, Jutul Grønn\n\nKamper:\n  Frisk As
+ ker 1 vs Jutul Grønn\n  Frisk Asker 3 vs Sandefjord\n  Jar Rød vs Ringer
+ ike 1\n  Jar Svart vs Holmen Hockey Rød\n  Frisk Asker 1 vs Sandefjord\n 
+  Ringerike 1 vs Jutul Grønn\n  Holmen Hockey Rød vs Frisk Asker 3\n  Jar
+  Svart vs Jar Rød\n  Frisk Asker 1 vs Ringerike 1\n  Sandefjord vs Holmen
+  Hockey Rød\n  Jutul Grønn vs Jar Svart\n  Frisk Asker 3 vs Jar Rød\n  
+ Frisk Asker 1 vs Holmen Hockey Rød\n  Jar Svart vs Ringerike 1\n  Jar Rø
+ d vs Sandefjord\n  Frisk Asker 3 vs Jutul Grønn\n  Frisk Asker 1 vs Jar S
+ vart\n  Holmen Hockey Rød vs Jar Rød\n  Ringerike 1 vs Frisk Asker 3\n  
+ Sandefjord vs Jutul Grønn\n  Frisk Asker 1 vs Jar Rød\n  Frisk Asker 3 v
+ s Jar Svart\n  Jutul Grønn vs Holmen Hockey Rød\n  Sandefjord vs Ringeri
+ ke 1\n  Frisk Asker 1 vs Frisk Asker 3\n  Jar Rød vs Jutul Grønn\n  Jar 
+ Svart vs Sandefjord\n  Holmen Hockey Rød vs Ringerike 1
+LOCATION:Skien ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Ringerikshallen
+DTSTART:20261115T140000Z
+DTEND:20261115T144500Z
+UID:2081b100-7793-5952-b47a-e99645872b9a
+CATEGORIES:JU12
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: JU12\nVert: Ringerike\nD
+ eltakende lag (4): Ringerike 2\, Frisk Asker Orange\, Jar\, Tønsberg\n\nK
+ amper:\n  Ringerike 2 vs Tønsberg\n  Frisk Asker Orange vs Jar\n  Ringeri
+ ke 2 vs Jar\n  Frisk Asker Orange vs Tønsberg\n  Ringerike 2 vs Frisk Ask
+ er Orange\n  Jar vs Tønsberg
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20261115T133000Z
+DTEND:20261115T144500Z
+UID:7984526f-fe9b-56ed-9c38-305040647bde
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Rød\, Jar Grønn\, Jar Rød\, Kongsberg\
+ , Ringerike 3\, Frisk Asker 6\n\nKamper:\n  Holmen Hockey Rød vs Frisk As
+ ker 6\n  Jar Grønn vs Ringerike 3\n  Jar Rød vs Kongsberg\n  Holmen Hock
+ ey Rød vs Ringerike 3\n  Kongsberg vs Frisk Asker 6\n  Jar Rød vs Jar Gr
+ ønn\n  Holmen Hockey Rød vs Kongsberg\n  Ringerike 3 vs Jar Rød\n  Fris
+ k Asker 6 vs Jar Grønn\n  Holmen Hockey Rød vs Jar Rød\n  Jar Grønn vs
+  Kongsberg\n  Frisk Asker 6 vs Ringerike 3\n  Holmen Hockey Rød vs Jar Gr
+ ønn\n  Jar Rød vs Frisk Asker 6\n  Kongsberg vs Ringerike 3
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20261115T120000Z
+DTEND:20261115T131500Z
+UID:bfb15f2f-8efc-5b21-9930-4f96e247ac5e
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Hvit\, Jar Lilla\, Jar Hvit\, Frisk Asker 3\, Tønsberg 
+ Grå\, Kongsberg\n\nKamper:\n  Jutul Hvit vs Kongsberg\n  Jar Lilla vs Tø
+ nsberg Grå\n  Jar Hvit vs Frisk Asker 3\n  Jutul Hvit vs Tønsberg Grå\n
+   Frisk Asker 3 vs Kongsberg\n  Jar Hvit vs Jar Lilla\n  Jutul Hvit vs Fri
+ sk Asker 3\n  Tønsberg Grå vs Jar Hvit\n  Kongsberg vs Jar Lilla\n  Jutu
+ l Hvit vs Jar Hvit\n  Jar Lilla vs Frisk Asker 3\n  Kongsberg vs Tønsberg
+  Grå\n  Jutul Hvit vs Jar Lilla\n  Jar Hvit vs Kongsberg\n  Frisk Asker 3
+  vs Tønsberg Grå
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Holmenkollen ishall
+DTSTART:20261115T110000Z
+DTEND:20261115T114500Z
+UID:761cbea1-002b-5f6b-ba44-b974c64435ce
+CATEGORIES:U12
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U12\nVert: Holmen\nD
+ eltakende lag (4): Holmen Hockey Hvit\, Jar Lilla\, Ringerike 1\, Frisk As
+ ker 2\n\nKamper:\n  Holmen Hockey Hvit vs Frisk Asker 2\n  Jar Lilla vs Ri
+ ngerike 1\n  Holmen Hockey Hvit vs Ringerike 1\n  Jar Lilla vs Frisk Asker
+  2\n  Holmen Hockey Hvit vs Jar Lilla\n  Ringerike 1 vs Frisk Asker 2
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Baerum ishall
+DTSTART:20261128T113000Z
+DTEND:20261128T121500Z
+UID:b992156c-f30f-5410-ba4b-91a43e1f87b6
+CATEGORIES:JU12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU12\nVert: Jutul\nDeltake
+ nde lag (4): Jutul Kittens\, Skien\, Jar\, Ringerike 1\n\nKamper:\n  Jutul
+  Kittens vs Ringerike 1\n  Skien vs Jar\n  Jutul Kittens vs Jar\n  Skien v
+ s Ringerike 1\n  Jutul Kittens vs Skien\n  Jar vs Ringerike 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Varner Arena / Askerhallen
+DTSTART:20261121T140000Z
+DTEND:20261121T151500Z
+UID:20689c37-3e1c-5623-8031-a1f31b6ca12d
+CATEGORIES:U11
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U11\nVert: Fr
+ isk Asker\nDeltakende lag (6): Frisk Asker 4\, Jar Rød\, Jar Svart\, Jutu
+ l Rød\, Holmen Hockey Hvit\, Tønsberg Hvit\n\nKamper:\n  Frisk Asker 4 v
+ s Tønsberg Hvit\n  Jar Rød vs Holmen Hockey Hvit\n  Jar Svart vs Jutul R
+ ød\n  Frisk Asker 4 vs Holmen Hockey Hvit\n  Jutul Rød vs Tønsberg Hvit
+ \n  Jar Svart vs Jar Rød\n  Frisk Asker 4 vs Jutul Rød\n  Holmen Hockey 
+ Hvit vs Jar Svart\n  Tønsberg Hvit vs Jar Rød\n  Frisk Asker 4 vs Jar Sv
+ art\n  Jar Rød vs Jutul Rød\n  Tønsberg Hvit vs Holmen Hockey Hvit\n  F
+ risk Asker 4 vs Jar Rød\n  Jar Svart vs Tønsberg Hvit\n  Jutul Rød vs H
+ olmen Hockey Hvit
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Holmenkollen ishall
+DTSTART:20261025T143000Z
+DTEND:20261025T161500Z
+UID:50ca99e2-8019-513f-9963-97a46f83bb32
+CATEGORIES:U8
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U8\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Hvit\, Kongsberg\, Jar Rød\, Frisk Asker 
+ 2\, Jutul Hvit\, Tønsberg\, Jar Blå\, Ringerike 2\n\nKamper:\n  Holmen H
+ ockey Hvit vs Ringerike 2\n  Kongsberg vs Jar Blå\n  Jar Rød vs Tønsber
+ g\n  Frisk Asker 2 vs Jutul Hvit\n  Holmen Hockey Hvit vs Jar Blå\n  Tøn
+ sberg vs Ringerike 2\n  Jutul Hvit vs Kongsberg\n  Frisk Asker 2 vs Jar R
+ ød\n  Holmen Hockey Hvit vs Tønsberg\n  Jar Blå vs Jutul Hvit\n  Ringer
+ ike 2 vs Frisk Asker 2\n  Kongsberg vs Jar Rød\n  Holmen Hockey Hvit vs J
+ utul Hvit\n  Frisk Asker 2 vs Tønsberg\n  Jar Rød vs Jar Blå\n  Kongsbe
+ rg vs Ringerike 2\n  Holmen Hockey Hvit vs Frisk Asker 2\n  Jutul Hvit vs 
+ Jar Rød\n  Tønsberg vs Kongsberg\n  Jar Blå vs Ringerike 2\n  Holmen Ho
+ ckey Hvit vs Jar Rød\n  Kongsberg vs Frisk Asker 2\n  Ringerike 2 vs Jutu
+ l Hvit\n  Jar Blå vs Tønsberg\n  Holmen Hockey Hvit vs Kongsberg\n  Jar 
+ Rød vs Ringerike 2\n  Frisk Asker 2 vs Jar Blå\n  Jutul Hvit vs Tønsber
+ g
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Baerum ishall
+DTSTART:20270417T120000Z
+DTEND:20270417T134500Z
+UID:926ab940-6d96-56a1-827e-a3547afcf250
+CATEGORIES:U9
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U9\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Gul\, Holmen Hockey Hvit\, Frisk Asker 1\, Tønsberg\, Ko
+ ngsberg\, Frisk Asker 5\, Sandefjord\, Jar Svart\n\nKamper:\n  Jutul Gul v
+ s Jar Svart\n  Holmen Hockey Hvit vs Sandefjord\n  Frisk Asker 1 vs Frisk 
+ Asker 5\n  Tønsberg vs Kongsberg\n  Jutul Gul vs Sandefjord\n  Frisk Aske
+ r 5 vs Jar Svart\n  Kongsberg vs Holmen Hockey Hvit\n  Tønsberg vs Frisk 
+ Asker 1\n  Jutul Gul vs Frisk Asker 5\n  Sandefjord vs Kongsberg\n  Jar Sv
+ art vs Tønsberg\n  Holmen Hockey Hvit vs Frisk Asker 1\n  Jutul Gul vs Ko
+ ngsberg\n  Tønsberg vs Frisk Asker 5\n  Frisk Asker 1 vs Sandefjord\n  Ho
+ lmen Hockey Hvit vs Jar Svart\n  Jutul Gul vs Tønsberg\n  Kongsberg vs Fr
+ isk Asker 1\n  Frisk Asker 5 vs Holmen Hockey Hvit\n  Sandefjord vs Jar Sv
+ art\n  Jutul Gul vs Frisk Asker 1\n  Holmen Hockey Hvit vs Tønsberg\n  Ja
+ r Svart vs Kongsberg\n  Sandefjord vs Frisk Asker 5\n  Jutul Gul vs Holmen
+  Hockey Hvit\n  Frisk Asker 1 vs Jar Svart\n  Tønsberg vs Sandefjord\n  K
+ ongsberg vs Frisk Asker 5
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Baerum ishall
+DTSTART:20261205T110000Z
+DTEND:20261205T114500Z
+UID:6604e383-8f30-5d4c-83b0-a411c2a31d3a
+CATEGORIES:JU12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU12\nVert: Jutul\nDeltake
+ nde lag (4): Jutul/Jar Kittens\, Jar Hvit\, Frisk Asker Orange\, Ringerike
+  1\n\nKamper:\n  Jutul/Jar Kittens vs Ringerike 1\n  Jar Hvit vs Frisk Ask
+ er Orange\n  Jutul/Jar Kittens vs Frisk Asker Orange\n  Jar Hvit vs Ringer
+ ike 1\n  Jutul/Jar Kittens vs Jar Hvit\n  Frisk Asker Orange vs Ringerike 
+ 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Holmenkollen ishall
+DTSTART:20261122T140000Z
+DTEND:20261122T151500Z
+UID:c9ac7e7b-b4f6-5276-b877-ec174200991b
+CATEGORIES:U11
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U11\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Rød\, Jar Blå\, Tønsberg Rød\, Ringer
+ ike 2\, Frisk Asker 1\, Jar Lilla\n\nKamper:\n  Holmen Hockey Rød vs Jar 
+ Lilla\n  Jar Blå vs Frisk Asker 1\n  Tønsberg Rød vs Ringerike 2\n  Hol
+ men Hockey Rød vs Frisk Asker 1\n  Ringerike 2 vs Jar Lilla\n  Tønsberg 
+ Rød vs Jar Blå\n  Holmen Hockey Rød vs Ringerike 2\n  Frisk Asker 1 vs 
+ Tønsberg Rød\n  Jar Lilla vs Jar Blå\n  Holmen Hockey Rød vs Tønsberg
+  Rød\n  Jar Blå vs Ringerike 2\n  Jar Lilla vs Frisk Asker 1\n  Holmen H
+ ockey Rød vs Jar Blå\n  Tønsberg Rød vs Jar Lilla\n  Ringerike 2 vs Fr
+ isk Asker 1
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Varner Arena / Askerhallen
+DTSTART:20261122T130000Z
+DTEND:20261122T134500Z
+UID:f56d73bc-6054-5aad-9f40-a2319017f31c
+CATEGORIES:U12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U12\nVert: Fr
+ isk Asker\nDeltakende lag (4): Frisk Asker 4\, Jar Svart\, Tønsberg Rød\
+ , Jutul Rød\n\nKamper:\n  Frisk Asker 4 vs Jutul Rød\n  Jar Svart vs Tø
+ nsberg Rød\n  Frisk Asker 4 vs Tønsberg Rød\n  Jar Svart vs Jutul Rød\
+ n  Frisk Asker 4 vs Jar Svart\n  Tønsberg Rød vs Jutul Rød
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Varner Arena / Askerhallen
+DTSTART:20270307T123000Z
+DTEND:20270307T141500Z
+UID:3b1925f4-ce67-5e71-95d1-ba2ee2ee9c3b
+CATEGORIES:U7
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U7\nVert: Fri
+ sk Asker\nDeltakende lag (8): Frisk Asker 3\, Frisk Asker 1\, Tønsberg\, 
+ Jutul Rød\, Jutul Hvit\, Jar Svart\, Jar Rød\, Holmen Hockey Rød\n\nKam
+ per:\n  Frisk Asker 3 vs Holmen Hockey Rød\n  Frisk Asker 1 vs Jar Rød\n
+   Tønsberg vs Jar Svart\n  Jutul Rød vs Jutul Hvit\n  Frisk Asker 3 vs J
+ ar Rød\n  Jar Svart vs Holmen Hockey Rød\n  Jutul Hvit vs Frisk Asker 1\
+ n  Jutul Rød vs Tønsberg\n  Frisk Asker 3 vs Jar Svart\n  Jar Rød vs Ju
+ tul Hvit\n  Holmen Hockey Rød vs Jutul Rød\n  Frisk Asker 1 vs Tønsberg
+ \n  Frisk Asker 3 vs Jutul Hvit\n  Jutul Rød vs Jar Svart\n  Tønsberg vs
+  Jar Rød\n  Frisk Asker 1 vs Holmen Hockey Rød\n  Frisk Asker 3 vs Jutul
+  Rød\n  Jutul Hvit vs Tønsberg\n  Jar Svart vs Frisk Asker 1\n  Jar Rød
+  vs Holmen Hockey Rød\n  Frisk Asker 3 vs Tønsberg\n  Frisk Asker 1 vs J
+ utul Rød\n  Holmen Hockey Rød vs Jutul Hvit\n  Jar Rød vs Jar Svart\n  
+ Frisk Asker 3 vs Frisk Asker 1\n  Tønsberg vs Holmen Hockey Rød\n  Jutul
+  Rød vs Jar Rød\n  Jutul Hvit vs Jar Svart
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU10 — Skien ishall
+DTSTART:20270214T123000Z
+DTEND:20270214T134500Z
+UID:e793cf79-31ef-5e36-b943-a3049326f397
+CATEGORIES:JU10
+DESCRIPTION:Arena: Skien ishall\nAldersgruppe: JU10\nVert: Skien\nDeltaken
+ de lag (6): Skien\, Ringerike 1\, Jar Blå\, Jar Rød\, Frisk Asker Svart\
+ , Frisk Asker Orange\n\nKamper:\n  Skien vs Frisk Asker Orange\n  Ringerik
+ e 1 vs Frisk Asker Svart\n  Jar Blå vs Jar Rød\n  Skien vs Frisk Asker S
+ vart\n  Jar Rød vs Frisk Asker Orange\n  Jar Blå vs Ringerike 1\n  Skien
+  vs Jar Rød\n  Frisk Asker Svart vs Jar Blå\n  Frisk Asker Orange vs Rin
+ gerike 1\n  Skien vs Jar Blå\n  Ringerike 1 vs Jar Rød\n  Frisk Asker Or
+ ange vs Frisk Asker Svart\n  Skien vs Ringerike 1\n  Jar Blå vs Frisk Ask
+ er Orange\n  Jar Rød vs Frisk Asker Svart
+LOCATION:Skien ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Ringerikshallen
+DTSTART:20261129T130000Z
+DTEND:20261129T141500Z
+UID:b598dd26-2156-5966-9904-eb731bd2825b
+CATEGORIES:U10
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U10\nVert: Ringerike\nDe
+ ltakende lag (6): Ringerike 3\, Jar Rød\, Frisk Asker 4\, Jar Svart\, Hol
+ men Hockey Blå\, Frisk Asker 2\n\nKamper:\n  Ringerike 3 vs Frisk Asker 2
+ \n  Jar Rød vs Holmen Hockey Blå\n  Frisk Asker 4 vs Jar Svart\n  Ringer
+ ike 3 vs Holmen Hockey Blå\n  Jar Svart vs Frisk Asker 2\n  Frisk Asker 4
+  vs Jar Rød\n  Ringerike 3 vs Jar Svart\n  Holmen Hockey Blå vs Frisk As
+ ker 4\n  Frisk Asker 2 vs Jar Rød\n  Ringerike 3 vs Frisk Asker 4\n  Jar 
+ Rød vs Jar Svart\n  Frisk Asker 2 vs Holmen Hockey Blå\n  Ringerike 3 vs
+  Jar Rød\n  Frisk Asker 4 vs Frisk Asker 2\n  Jar Svart vs Holmen Hockey 
+ Blå
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Holmenkollen ishall
+DTSTART:20261128T133000Z
+DTEND:20261128T144500Z
+UID:4fcfa1c6-c408-5728-b23e-019baafb14cc
+CATEGORIES:U11
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U11\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Hvit\, Skien\, Frisk Asker 2\, Ringerike 
+ 1\, Jar Oransje\, Jar Grønn\n\nKamper:\n  Holmen Hockey Hvit vs Jar Grøn
+ n\n  Skien vs Jar Oransje\n  Frisk Asker 2 vs Ringerike 1\n  Holmen Hockey
+  Hvit vs Jar Oransje\n  Ringerike 1 vs Jar Grønn\n  Frisk Asker 2 vs Skie
+ n\n  Holmen Hockey Hvit vs Ringerike 1\n  Jar Oransje vs Frisk Asker 2\n  
+ Jar Grønn vs Skien\n  Holmen Hockey Hvit vs Frisk Asker 2\n  Skien vs Rin
+ gerike 1\n  Jar Grønn vs Jar Oransje\n  Holmen Hockey Hvit vs Skien\n  Fr
+ isk Asker 2 vs Jar Grønn\n  Ringerike 1 vs Jar Oransje
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Kongsberghallen
+DTSTART:20261128T120000Z
+DTEND:20261128T124500Z
+UID:c5e866da-b67e-5e8d-b7a4-d666b3e0f73c
+CATEGORIES:U12
+DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U12\nVert: Kongsberg\nDe
+ ltakende lag (4): Kongsberg\, Jutul Grønn\, Jar Blå\, Tønsberg Hvit\n\n
+ Kamper:\n  Kongsberg vs Tønsberg Hvit\n  Jutul Grønn vs Jar Blå\n  Kong
+ sberg vs Jar Blå\n  Jutul Grønn vs Tønsberg Hvit\n  Kongsberg vs Jutul 
+ Grønn\n  Jar Blå vs Tønsberg Hvit
+LOCATION:Kongsberghallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Varner Arena / Askerhallen
+DTSTART:20261121T123000Z
+DTEND:20261121T131500Z
+UID:99a448d2-2819-51e4-81f9-f8b9ba36fe67
+CATEGORIES:JU12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: JU12\nVert: F
+ risk Asker\nDeltakende lag (4): Frisk Asker Svart\, Jar Hvit\, Kongsberg/T
+ ønsberg\, Jutul Kittens\n\nKamper:\n  Frisk Asker Svart vs Jutul Kittens\
+ n  Jar Hvit vs Kongsberg/Tønsberg\n  Frisk Asker Svart vs Kongsberg/Tøns
+ berg\n  Jar Hvit vs Jutul Kittens\n  Frisk Asker Svart vs Jar Hvit\n  Kong
+ sberg/Tønsberg vs Jutul Kittens
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Varner Arena / Askerhallen
+DTSTART:20261129T140000Z
+DTEND:20261129T151500Z
+UID:b4771d52-8144-5ba9-8c4c-bdc39698e757
+CATEGORIES:U10
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U10\nVert: Fr
+ isk Asker\nDeltakende lag (6): Frisk Asker 3\, Jar Gul\, Jar Grønn\, Ring
+ erike 4\, Holmen Hockey Rød\, Tønsberg\n\nKamper:\n  Frisk Asker 3 vs T
+ ønsberg\n  Jar Gul vs Holmen Hockey Rød\n  Jar Grønn vs Ringerike 4\n  
+ Frisk Asker 3 vs Holmen Hockey Rød\n  Ringerike 4 vs Tønsberg\n  Jar Gr
+ ønn vs Jar Gul\n  Frisk Asker 3 vs Ringerike 4\n  Holmen Hockey Rød vs J
+ ar Grønn\n  Tønsberg vs Jar Gul\n  Frisk Asker 3 vs Jar Grønn\n  Jar Gu
+ l vs Ringerike 4\n  Tønsberg vs Holmen Hockey Rød\n  Frisk Asker 3 vs Ja
+ r Gul\n  Jar Grønn vs Tønsberg\n  Ringerike 4 vs Holmen Hockey Rød
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Holmenkollen ishall
+DTSTART:20261129T103000Z
+DTEND:20261129T114500Z
+UID:d648d319-f8f3-547f-8f1e-1eaa265d80b8
+CATEGORIES:U11
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U11\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Rød\, Jar Gul\, Jutul Grønn\, Frisk Ask
+ er 2\, Sandefjord\, Tønsberg Grå\n\nKamper:\n  Holmen Hockey Rød vs Tø
+ nsberg Grå\n  Jar Gul vs Sandefjord\n  Jutul Grønn vs Frisk Asker 2\n  H
+ olmen Hockey Rød vs Sandefjord\n  Frisk Asker 2 vs Tønsberg Grå\n  Jutu
+ l Grønn vs Jar Gul\n  Holmen Hockey Rød vs Frisk Asker 2\n  Sandefjord v
+ s Jutul Grønn\n  Tønsberg Grå vs Jar Gul\n  Holmen Hockey Rød vs Jutul
+  Grønn\n  Jar Gul vs Frisk Asker 2\n  Tønsberg Grå vs Sandefjord\n  Hol
+ men Hockey Rød vs Jar Gul\n  Jutul Grønn vs Tønsberg Grå\n  Frisk Aske
+ r 2 vs Sandefjord
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Holmenkollen ishall
+DTSTART:20261205T133000Z
+DTEND:20261205T141500Z
+UID:3abb4f2f-8240-5aff-9487-1ffd9d42ab07
+CATEGORIES:U12
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U12\nVert: Holmen\nD
+ eltakende lag (4): Holmen Hockey Hvit\, Jar Lilla\, Frisk Asker 3\, Ringer
+ ike 2\n\nKamper:\n  Holmen Hockey Hvit vs Ringerike 2\n  Jar Lilla vs Fris
+ k Asker 3\n  Holmen Hockey Hvit vs Frisk Asker 3\n  Jar Lilla vs Ringerike
+  2\n  Holmen Hockey Hvit vs Jar Lilla\n  Frisk Asker 3 vs Ringerike 2
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU10 — Varner Arena / Askerhallen
+DTSTART:20261004T143000Z
+DTEND:20261004T154500Z
+UID:ce3a05bc-bc4b-5944-b33e-eddb064c45ff
+CATEGORIES:JU10
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: JU10\nVert: F
+ risk Asker\nDeltakende lag (6): Frisk Asker Svart\, Frisk Asker Orange\, J
+ ar Hvit\, Jar Blå\, Jar Rød\, Skien\n\nKamper:\n  Frisk Asker Svart vs S
+ kien\n  Frisk Asker Orange vs Jar Rød\n  Jar Hvit vs Jar Blå\n  Frisk As
+ ker Svart vs Jar Rød\n  Jar Blå vs Skien\n  Jar Hvit vs Frisk Asker Oran
+ ge\n  Frisk Asker Svart vs Jar Blå\n  Jar Rød vs Jar Hvit\n  Skien vs Fr
+ isk Asker Orange\n  Frisk Asker Svart vs Jar Hvit\n  Frisk Asker Orange vs
+  Jar Blå\n  Skien vs Jar Rød\n  Frisk Asker Svart vs Frisk Asker Orange\
+ n  Jar Hvit vs Skien\n  Jar Blå vs Jar Rød
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU8 — Ringerikshallen
+DTSTART:20270207T123000Z
+DTEND:20270207T141500Z
+UID:5bb467dc-ba1d-5d92-b65d-573aaca34926
+CATEGORIES:JU8
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: JU8\nVert: Ringerike\nDe
+ ltakende lag (7): Ringerike 1\, Frisk Asker\, Jar\, Jutul Grønn\, Skien\,
+  Jar Rød\, Jutul Kittens\n\nKamper:\n  Frisk Asker vs Jutul Kittens\n  Ja
+ r vs Jar Rød\n  Jutul Grønn vs Skien\n  Ringerike 1 vs Jutul Kittens\n  
+ Skien vs Frisk Asker\n  Jutul Grønn vs Jar\n  Ringerike 1 vs Jar Rød\n  
+ Jutul Kittens vs Skien\n  Frisk Asker vs Jar\n  Ringerike 1 vs Skien\n  Ju
+ tul Grønn vs Jar Rød\n  Jar vs Jutul Kittens\n  Ringerike 1 vs Jutul Gr
+ ønn\n  Skien vs Jar\n  Jar Rød vs Frisk Asker\n  Ringerike 1 vs Jar\n  F
+ risk Asker vs Jutul Grønn\n  Jutul Kittens vs Jar Rød\n  Ringerike 1 vs 
+ Frisk Asker\n  Jutul Grønn vs Jutul Kittens\n  Skien vs Jar Rød
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20261122T120000Z
+DTEND:20261122T131500Z
+UID:97c0791e-5e00-5c1c-a5b6-ce0ac60cb652
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Grønn\, Ringerike 1\, Frisk Asker 2\, Frisk Asker 3\, H
+ olmen Hockey Sort\, Jar Gul\n\nKamper:\n  Jutul Grønn vs Jar Gul\n  Ringe
+ rike 1 vs Holmen Hockey Sort\n  Frisk Asker 2 vs Frisk Asker 3\n  Jutul Gr
+ ønn vs Holmen Hockey Sort\n  Frisk Asker 3 vs Jar Gul\n  Frisk Asker 2 vs
+  Ringerike 1\n  Jutul Grønn vs Frisk Asker 3\n  Holmen Hockey Sort vs Fri
+ sk Asker 2\n  Jar Gul vs Ringerike 1\n  Jutul Grønn vs Frisk Asker 2\n  R
+ ingerike 1 vs Frisk Asker 3\n  Jar Gul vs Holmen Hockey Sort\n  Jutul Grø
+ nn vs Ringerike 1\n  Frisk Asker 2 vs Jar Gul\n  Frisk Asker 3 vs Holmen H
+ ockey Sort
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20261205T123000Z
+DTEND:20261205T134500Z
+UID:04229f14-140c-561c-a59b-385145a304d3
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Hvit\, Jar Hvit\, Frisk Asker 3\, Jar Rød\, Tønsberg H
+ vit\, Skien\n\nKamper:\n  Jutul Hvit vs Skien\n  Jar Hvit vs Tønsberg Hvi
+ t\n  Frisk Asker 3 vs Jar Rød\n  Jutul Hvit vs Tønsberg Hvit\n  Jar Rød
+  vs Skien\n  Frisk Asker 3 vs Jar Hvit\n  Jutul Hvit vs Jar Rød\n  Tønsb
+ erg Hvit vs Frisk Asker 3\n  Skien vs Jar Hvit\n  Jutul Hvit vs Frisk Aske
+ r 3\n  Jar Hvit vs Jar Rød\n  Skien vs Tønsberg Hvit\n  Jutul Hvit vs Ja
+ r Hvit\n  Frisk Asker 3 vs Skien\n  Jar Rød vs Tønsberg Hvit
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Baerum ishall
+DTSTART:20261205T143000Z
+DTEND:20261205T161500Z
+UID:a0279d79-3e7b-570e-9e12-612f6a74acae
+CATEGORIES:U8
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U8\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Grønn\, Kongsberg\, Frisk Asker 2\, Jar Hvit\, Holmen Ho
+ ckey Hvit\, Frisk Asker 4\, Skien\, Holmen Hockey Blå\n\nKamper:\n  Jutul
+  Grønn vs Holmen Hockey Blå\n  Kongsberg vs Skien\n  Frisk Asker 2 vs Fr
+ isk Asker 4\n  Jar Hvit vs Holmen Hockey Hvit\n  Jutul Grønn vs Skien\n  
+ Frisk Asker 4 vs Holmen Hockey Blå\n  Holmen Hockey Hvit vs Kongsberg\n  
+ Jar Hvit vs Frisk Asker 2\n  Jutul Grønn vs Frisk Asker 4\n  Skien vs Hol
+ men Hockey Hvit\n  Holmen Hockey Blå vs Jar Hvit\n  Kongsberg vs Frisk As
+ ker 2\n  Jutul Grønn vs Holmen Hockey Hvit\n  Jar Hvit vs Frisk Asker 4\n
+   Frisk Asker 2 vs Skien\n  Kongsberg vs Holmen Hockey Blå\n  Jutul Grøn
+ n vs Jar Hvit\n  Holmen Hockey Hvit vs Frisk Asker 2\n  Frisk Asker 4 vs K
+ ongsberg\n  Skien vs Holmen Hockey Blå\n  Jutul Grønn vs Frisk Asker 2\n
+   Kongsberg vs Jar Hvit\n  Holmen Hockey Blå vs Holmen Hockey Hvit\n  Ski
+ en vs Frisk Asker 4\n  Jutul Grønn vs Kongsberg\n  Frisk Asker 2 vs Holme
+ n Hockey Blå\n  Jar Hvit vs Skien\n  Holmen Hockey Hvit vs Frisk Asker 4
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Ringerikshallen
+DTSTART:20270110T103000Z
+DTEND:20270110T114500Z
+UID:f0b15a1f-7e36-5a31-8dc3-ab54e9959f1f
+CATEGORIES:U10
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U10\nVert: Ringerike\nDe
+ ltakende lag (6): Ringerike 2\, Tønsberg\, Frisk Asker 5\, Frisk Asker 2\
+ , Holmen Hockey Rød\, Jar Svart\n\nKamper:\n  Ringerike 2 vs Jar Svart\n 
+  Tønsberg vs Holmen Hockey Rød\n  Frisk Asker 5 vs Frisk Asker 2\n  Ring
+ erike 2 vs Holmen Hockey Rød\n  Frisk Asker 2 vs Jar Svart\n  Frisk Asker
+  5 vs Tønsberg\n  Ringerike 2 vs Frisk Asker 2\n  Holmen Hockey Rød vs F
+ risk Asker 5\n  Jar Svart vs Tønsberg\n  Ringerike 2 vs Frisk Asker 5\n  
+ Tønsberg vs Frisk Asker 2\n  Jar Svart vs Holmen Hockey Rød\n  Ringerike
+  2 vs Tønsberg\n  Frisk Asker 5 vs Jar Svart\n  Frisk Asker 2 vs Holmen H
+ ockey Rød
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Baerum ishall
+DTSTART:20261212T143000Z
+DTEND:20261212T154500Z
+UID:2682bee8-7612-5c15-8761-399513a3be0a
+CATEGORIES:U11
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U11\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Hvit\, Jar Blå\, Kongsberg\, Frisk Asker 4\, Jar Oransj
+ e\, Tønsberg Rød\n\nKamper:\n  Jutul Hvit vs Tønsberg Rød\n  Jar Blå 
+ vs Jar Oransje\n  Kongsberg vs Frisk Asker 4\n  Jutul Hvit vs Jar Oransje\
+ n  Frisk Asker 4 vs Tønsberg Rød\n  Kongsberg vs Jar Blå\n  Jutul Hvit 
+ vs Frisk Asker 4\n  Jar Oransje vs Kongsberg\n  Tønsberg Rød vs Jar Blå
+ \n  Jutul Hvit vs Kongsberg\n  Jar Blå vs Frisk Asker 4\n  Tønsberg Rød
+  vs Jar Oransje\n  Jutul Hvit vs Jar Blå\n  Kongsberg vs Tønsberg Rød\n
+   Frisk Asker 4 vs Jar Oransje
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Baerum ishall
+DTSTART:20261206T100000Z
+DTEND:20261206T104500Z
+UID:0e98c92e-ec92-58f1-bb57-f23eaca99a90
+CATEGORIES:U12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U12\nVert: Jutul\nDeltaken
+ de lag (4): Jutul Grønn\, Jar Hvit\, Tønsberg Rød\, Frisk Asker 1\n\nKa
+ mper:\n  Jutul Grønn vs Frisk Asker 1\n  Jar Hvit vs Tønsberg Rød\n  Ju
+ tul Grønn vs Tønsberg Rød\n  Jar Hvit vs Frisk Asker 1\n  Jutul Grønn 
+ vs Jar Hvit\n  Tønsberg Rød vs Frisk Asker 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Baerum ishall
+DTSTART:20261114T150000Z
+DTEND:20261114T164500Z
+UID:ac46c048-ec42-5a85-abaa-6127da781ce5
+CATEGORIES:U9
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U9\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Gul\, Frisk Asker 1\, Frisk Asker 4\, Holmen Hockey Rød\
+ , Jar Blå\, Skien\, Jar Rød\, Ringerike 1\n\nKamper:\n  Jutul Gul vs Rin
+ gerike 1\n  Frisk Asker 1 vs Jar Rød\n  Frisk Asker 4 vs Skien\n  Holmen 
+ Hockey Rød vs Jar Blå\n  Jutul Gul vs Jar Rød\n  Skien vs Ringerike 1\n
+   Jar Blå vs Frisk Asker 1\n  Holmen Hockey Rød vs Frisk Asker 4\n  Jutu
+ l Gul vs Skien\n  Jar Rød vs Jar Blå\n  Ringerike 1 vs Holmen Hockey Rø
+ d\n  Frisk Asker 1 vs Frisk Asker 4\n  Jutul Gul vs Jar Blå\n  Holmen Hoc
+ key Rød vs Skien\n  Frisk Asker 4 vs Jar Rød\n  Frisk Asker 1 vs Ringeri
+ ke 1\n  Jutul Gul vs Holmen Hockey Rød\n  Jar Blå vs Frisk Asker 4\n  Sk
+ ien vs Frisk Asker 1\n  Jar Rød vs Ringerike 1\n  Jutul Gul vs Frisk Aske
+ r 4\n  Frisk Asker 1 vs Holmen Hockey Rød\n  Ringerike 1 vs Jar Blå\n  J
+ ar Rød vs Skien\n  Jutul Gul vs Frisk Asker 1\n  Frisk Asker 4 vs Ringeri
+ ke 1\n  Holmen Hockey Rød vs Jar Rød\n  Jar Blå vs Skien
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Jarhallen
+DTSTART:20261213T120000Z
+DTEND:20261213T124500Z
+UID:2c6d5409-6733-541b-9ae4-cc8a60c415f7
+CATEGORIES:JU12
+DESCRIPTION:Arena: Jarhallen\nAldersgruppe: JU12\nVert: Jar\nDeltakende la
+ g (4): Jar\, Skien\, Tønsberg\, Jutul Kittens\n\nKamper:\n  Jar vs Jutul 
+ Kittens\n  Skien vs Tønsberg\n  Jar vs Tønsberg\n  Skien vs Jutul Kitten
+ s\n  Jar vs Skien\n  Tønsberg vs Jutul Kittens
+LOCATION:Jarhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Jarhallen
+DTSTART:20261212T150000Z
+DTEND:20261212T161500Z
+UID:563884bb-41e7-5fc8-b92e-b1510eb6efca
+CATEGORIES:U11
+DESCRIPTION:Arena: Jarhallen\nAldersgruppe: U11\nVert: Jar\nDeltakende lag
+  (6): Jar Hvit\, Jar Lilla\, Frisk Asker 1\, Jutul Rød\, Ringerike 1\, T
+ ønsberg Grå\n\nKamper:\n  Jar Hvit vs Tønsberg Grå\n  Jar Lilla vs Rin
+ gerike 1\n  Frisk Asker 1 vs Jutul Rød\n  Jar Hvit vs Ringerike 1\n  Jutu
+ l Rød vs Tønsberg Grå\n  Frisk Asker 1 vs Jar Lilla\n  Jar Hvit vs Jutu
+ l Rød\n  Ringerike 1 vs Frisk Asker 1\n  Tønsberg Grå vs Jar Lilla\n  J
+ ar Hvit vs Frisk Asker 1\n  Jar Lilla vs Jutul Rød\n  Tønsberg Grå vs R
+ ingerike 1\n  Jar Hvit vs Jar Lilla\n  Frisk Asker 1 vs Tønsberg Grå\n  
+ Jutul Rød vs Ringerike 1
+LOCATION:Jarhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Kongsberghallen
+DTSTART:20261212T143000Z
+DTEND:20261212T151500Z
+UID:87c4b4bc-3a2d-57ba-86bb-438f3bafa31a
+CATEGORIES:U12
+DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U12\nVert: Kongsberg\nDe
+ ltakende lag (4): Kongsberg\, Holmen Hockey Rød\, Tønsberg Grå\, Ringer
+ ike 1\n\nKamper:\n  Kongsberg vs Ringerike 1\n  Holmen Hockey Rød vs Tøn
+ sberg Grå\n  Kongsberg vs Tønsberg Grå\n  Holmen Hockey Rød vs Ringeri
+ ke 1\n  Kongsberg vs Holmen Hockey Rød\n  Tønsberg Grå vs Ringerike 1
+LOCATION:Kongsberghallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Holmenkollen ishall
+DTSTART:20261212T123000Z
+DTEND:20261212T141500Z
+UID:935965c6-fd17-5a3b-bbb1-39b592626fc0
+CATEGORIES:U7
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U7\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Rød\, Holmen Hockey Hvit\, Jar Grønn\, J
+ ar Hvit\, Frisk Asker 3\, Jar Svart\, Jutul Grønn\, Jutul Hvit\n\nKamper:
+ \n  Holmen Hockey Rød vs Jutul Hvit\n  Holmen Hockey Hvit vs Jutul Grønn
+ \n  Jar Grønn vs Jar Svart\n  Jar Hvit vs Frisk Asker 3\n  Holmen Hockey 
+ Rød vs Jutul Grønn\n  Jar Svart vs Jutul Hvit\n  Frisk Asker 3 vs Holmen
+  Hockey Hvit\n  Jar Hvit vs Jar Grønn\n  Holmen Hockey Rød vs Jar Svart\
+ n  Jutul Grønn vs Frisk Asker 3\n  Jutul Hvit vs Jar Hvit\n  Holmen Hocke
+ y Hvit vs Jar Grønn\n  Holmen Hockey Rød vs Frisk Asker 3\n  Jar Hvit vs
+  Jar Svart\n  Jar Grønn vs Jutul Grønn\n  Holmen Hockey Hvit vs Jutul Hv
+ it\n  Holmen Hockey Rød vs Jar Hvit\n  Frisk Asker 3 vs Jar Grønn\n  Jar
+  Svart vs Holmen Hockey Hvit\n  Jutul Grønn vs Jutul Hvit\n  Holmen Hocke
+ y Rød vs Jar Grønn\n  Holmen Hockey Hvit vs Jar Hvit\n  Jutul Hvit vs Fr
+ isk Asker 3\n  Jutul Grønn vs Jar Svart\n  Holmen Hockey Rød vs Holmen H
+ ockey Hvit\n  Jar Grønn vs Jutul Hvit\n  Jar Hvit vs Jutul Grønn\n  Fris
+ k Asker 3 vs Jar Svart
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20261213T133000Z
+DTEND:20261213T144500Z
+UID:b1c656fa-c54e-589e-abad-3fcf946ba80e
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Blå\, Jutul Grønn\, Jar Gul\, Frisk Ask
+ er 1\, Frisk Asker 6\, Tønsberg\n\nKamper:\n  Holmen Hockey Blå vs Tøns
+ berg\n  Jutul Grønn vs Frisk Asker 6\n  Jar Gul vs Frisk Asker 1\n  Holme
+ n Hockey Blå vs Frisk Asker 6\n  Frisk Asker 1 vs Tønsberg\n  Jar Gul vs
+  Jutul Grønn\n  Holmen Hockey Blå vs Frisk Asker 1\n  Frisk Asker 6 vs J
+ ar Gul\n  Tønsberg vs Jutul Grønn\n  Holmen Hockey Blå vs Jar Gul\n  Ju
+ tul Grønn vs Frisk Asker 1\n  Tønsberg vs Frisk Asker 6\n  Holmen Hockey
+  Blå vs Jutul Grønn\n  Jar Gul vs Tønsberg\n  Frisk Asker 1 vs Frisk As
+ ker 6
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Jarhallen
+DTSTART:20270124T130000Z
+DTEND:20270124T141500Z
+UID:cbd02f6d-27c0-5b96-be83-7995672c1ea2
+CATEGORIES:U11
+DESCRIPTION:Arena: Jarhallen\nAldersgruppe: U11\nVert: Jar\nDeltakende lag
+  (6): Jar Gul\, Jar Oransje\, Jutul Hvit\, Tønsberg Hvit\, Frisk Asker 1\
+ , Holmen Hockey Rød\n\nKamper:\n  Jar Gul vs Holmen Hockey Rød\n  Jar Or
+ ansje vs Frisk Asker 1\n  Jutul Hvit vs Tønsberg Hvit\n  Jar Gul vs Frisk
+  Asker 1\n  Tønsberg Hvit vs Holmen Hockey Rød\n  Jutul Hvit vs Jar Oran
+ sje\n  Jar Gul vs Tønsberg Hvit\n  Frisk Asker 1 vs Jutul Hvit\n  Holmen 
+ Hockey Rød vs Jar Oransje\n  Jar Gul vs Jutul Hvit\n  Jar Oransje vs Tøn
+ sberg Hvit\n  Holmen Hockey Rød vs Frisk Asker 1\n  Jar Gul vs Jar Oransj
+ e\n  Jutul Hvit vs Holmen Hockey Rød\n  Tønsberg Hvit vs Frisk Asker 1
+LOCATION:Jarhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Jarhallen
+DTSTART:20270213T130000Z
+DTEND:20270213T144500Z
+UID:4f5d2e07-6ea9-5000-b765-99ee255037a3
+CATEGORIES:U8
+DESCRIPTION:Arena: Jarhallen\nAldersgruppe: U8\nVert: Jar\nDeltakende lag 
+ (8): Jar Svart\, Frisk Asker 3\, Kongsberg\, Jutul Hvit\, Holmen Hockey R
+ ød\, Frisk Asker 1\, Skien\, Jutul Rød\n\nKamper:\n  Jar Svart vs Jutul 
+ Rød\n  Frisk Asker 3 vs Skien\n  Kongsberg vs Frisk Asker 1\n  Jutul Hvit
+  vs Holmen Hockey Rød\n  Jar Svart vs Skien\n  Frisk Asker 1 vs Jutul Rø
+ d\n  Holmen Hockey Rød vs Frisk Asker 3\n  Jutul Hvit vs Kongsberg\n  Jar
+  Svart vs Frisk Asker 1\n  Skien vs Holmen Hockey Rød\n  Jutul Rød vs Ju
+ tul Hvit\n  Frisk Asker 3 vs Kongsberg\n  Jar Svart vs Holmen Hockey Rød\
+ n  Jutul Hvit vs Frisk Asker 1\n  Kongsberg vs Skien\n  Frisk Asker 3 vs J
+ utul Rød\n  Jar Svart vs Jutul Hvit\n  Holmen Hockey Rød vs Kongsberg\n 
+  Frisk Asker 1 vs Frisk Asker 3\n  Skien vs Jutul Rød\n  Jar Svart vs Kon
+ gsberg\n  Frisk Asker 3 vs Jutul Hvit\n  Jutul Rød vs Holmen Hockey Rød\
+ n  Skien vs Frisk Asker 1\n  Jar Svart vs Frisk Asker 3\n  Kongsberg vs Ju
+ tul Rød\n  Jutul Hvit vs Skien\n  Holmen Hockey Rød vs Frisk Asker 1
+LOCATION:Jarhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Holmenkollen ishall
+DTSTART:20261206T113000Z
+DTEND:20261206T131500Z
+UID:5d8bd084-2f57-5147-9754-1bf4747e5d3a
+CATEGORIES:U9
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U9\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Hvit\, Skien\, Frisk Asker 1\, Kongsberg\,
+  Jutul Rød\, Jutul Hvit\, Jar Hvit\, Frisk Asker 4\n\nKamper:\n  Holmen H
+ ockey Hvit vs Frisk Asker 4\n  Skien vs Jar Hvit\n  Frisk Asker 1 vs Jutul
+  Hvit\n  Kongsberg vs Jutul Rød\n  Holmen Hockey Hvit vs Jar Hvit\n  Jutu
+ l Hvit vs Frisk Asker 4\n  Jutul Rød vs Skien\n  Kongsberg vs Frisk Asker
+  1\n  Holmen Hockey Hvit vs Jutul Hvit\n  Jar Hvit vs Jutul Rød\n  Frisk 
+ Asker 4 vs Kongsberg\n  Skien vs Frisk Asker 1\n  Holmen Hockey Hvit vs Ju
+ tul Rød\n  Kongsberg vs Jutul Hvit\n  Frisk Asker 1 vs Jar Hvit\n  Skien 
+ vs Frisk Asker 4\n  Holmen Hockey Hvit vs Kongsberg\n  Jutul Rød vs Frisk
+  Asker 1\n  Jutul Hvit vs Skien\n  Jar Hvit vs Frisk Asker 4\n  Holmen Hoc
+ key Hvit vs Frisk Asker 1\n  Skien vs Kongsberg\n  Frisk Asker 4 vs Jutul 
+ Rød\n  Jar Hvit vs Jutul Hvit\n  Holmen Hockey Hvit vs Skien\n  Frisk Ask
+ er 1 vs Frisk Asker 4\n  Kongsberg vs Jar Hvit\n  Jutul Rød vs Jutul Hvit
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20261206T150000Z
+DTEND:20261206T161500Z
+UID:bbe4260d-3e71-5f95-91ca-b237fd005a0a
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Hvit\, Holmen Hockey Rød\, Frisk Asker 4\, Jar Rød\, R
+ ingerike 1\, Kongsberg\n\nKamper:\n  Jutul Hvit vs Kongsberg\n  Holmen Hoc
+ key Rød vs Ringerike 1\n  Frisk Asker 4 vs Jar Rød\n  Jutul Hvit vs Ring
+ erike 1\n  Jar Rød vs Kongsberg\n  Frisk Asker 4 vs Holmen Hockey Rød\n 
+  Jutul Hvit vs Jar Rød\n  Ringerike 1 vs Frisk Asker 4\n  Kongsberg vs Ho
+ lmen Hockey Rød\n  Jutul Hvit vs Frisk Asker 4\n  Holmen Hockey Rød vs J
+ ar Rød\n  Kongsberg vs Ringerike 1\n  Jutul Hvit vs Holmen Hockey Rød\n 
+  Frisk Asker 4 vs Kongsberg\n  Jar Rød vs Ringerike 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Varner Arena / Askerhallen
+DTSTART:20270109T143000Z
+DTEND:20270109T154500Z
+UID:60fbbd51-1006-5719-be4b-7b66a527545b
+CATEGORIES:U11
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U11\nVert: Fr
+ isk Asker\nDeltakende lag (6): Frisk Asker 1\, Sandefjord\, Jar Gul\, Jutu
+ l Rød\, Tønsberg Rød\, Jar Svart\n\nKamper:\n  Frisk Asker 1 vs Jar Sva
+ rt\n  Sandefjord vs Tønsberg Rød\n  Jar Gul vs Jutul Rød\n  Frisk Asker
+  1 vs Tønsberg Rød\n  Jutul Rød vs Jar Svart\n  Jar Gul vs Sandefjord\n
+   Frisk Asker 1 vs Jutul Rød\n  Tønsberg Rød vs Jar Gul\n  Jar Svart vs
+  Sandefjord\n  Frisk Asker 1 vs Jar Gul\n  Sandefjord vs Jutul Rød\n  Jar
+  Svart vs Tønsberg Rød\n  Frisk Asker 1 vs Sandefjord\n  Jar Gul vs Jar 
+ Svart\n  Jutul Rød vs Tønsberg Rød
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Varner Arena / Askerhallen
+DTSTART:20270124T143000Z
+DTEND:20270124T151500Z
+UID:c1625a91-95d4-5995-aa2e-e763d5cec685
+CATEGORIES:U12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U12\nVert: Fr
+ isk Asker\nDeltakende lag (4): Frisk Asker 2\, Jar Svart\, Holmen Hockey H
+ vit\, Jutul Grønn\n\nKamper:\n  Frisk Asker 2 vs Jutul Grønn\n  Jar Svar
+ t vs Holmen Hockey Hvit\n  Frisk Asker 2 vs Holmen Hockey Hvit\n  Jar Svar
+ t vs Jutul Grønn\n  Frisk Asker 2 vs Jar Svart\n  Holmen Hockey Hvit vs J
+ utul Grønn
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Varner Arena / Askerhallen
+DTSTART:20270110T140000Z
+DTEND:20270110T151500Z
+UID:e77d6230-9f4f-53e5-ba7b-62d4c960cd25
+CATEGORIES:U11
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U11\nVert: Fr
+ isk Asker\nDeltakende lag (6): Frisk Asker 3\, Tønsberg Hvit\, Jar Blå\,
+  Jar Lilla\, Ringerike 1\, Holmen Hockey Hvit\n\nKamper:\n  Frisk Asker 3 
+ vs Holmen Hockey Hvit\n  Tønsberg Hvit vs Ringerike 1\n  Jar Blå vs Jar 
+ Lilla\n  Frisk Asker 3 vs Ringerike 1\n  Jar Lilla vs Holmen Hockey Hvit\n
+   Jar Blå vs Tønsberg Hvit\n  Frisk Asker 3 vs Jar Lilla\n  Ringerike 1 
+ vs Jar Blå\n  Holmen Hockey Hvit vs Tønsberg Hvit\n  Frisk Asker 3 vs Ja
+ r Blå\n  Tønsberg Hvit vs Jar Lilla\n  Holmen Hockey Hvit vs Ringerike 1
+ \n  Frisk Asker 3 vs Tønsberg Hvit\n  Jar Blå vs Holmen Hockey Hvit\n  J
+ ar Lilla vs Ringerike 1
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Ringerikshallen
+DTSTART:20261011T133000Z
+DTEND:20261011T141500Z
+UID:b993e051-027a-512f-8cbb-b2644470b874
+CATEGORIES:U12
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U12\nVert: Ringerike\nDe
+ ltakende lag (4): Ringerike 1\, Jar Blå\, Frisk Asker 2\, Tønsberg Rød\
+ n\nKamper:\n  Ringerike 1 vs Tønsberg Rød\n  Jar Blå vs Frisk Asker 2\n
+   Ringerike 1 vs Frisk Asker 2\n  Jar Blå vs Tønsberg Rød\n  Ringerike 
+ 1 vs Jar Blå\n  Frisk Asker 2 vs Tønsberg Rød
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Holmenkollen ishall
+DTSTART:20270116T113000Z
+DTEND:20270116T131500Z
+UID:1a625d1e-8084-5e53-9edd-9b87178c0866
+CATEGORIES:U8
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U8\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Sort\, Holmen Hockey Rød\, Jutul Gul\, Sa
+ ndefjord\, Jar Svart\, Kongsberg\, Ringerike 2\, Frisk Asker 3\n\nKamper:\
+ n  Holmen Hockey Sort vs Frisk Asker 3\n  Holmen Hockey Rød vs Ringerike 
+ 2\n  Jutul Gul vs Kongsberg\n  Sandefjord vs Jar Svart\n  Holmen Hockey So
+ rt vs Ringerike 2\n  Kongsberg vs Frisk Asker 3\n  Jar Svart vs Holmen Hoc
+ key Rød\n  Sandefjord vs Jutul Gul\n  Holmen Hockey Sort vs Kongsberg\n  
+ Ringerike 2 vs Jar Svart\n  Frisk Asker 3 vs Sandefjord\n  Holmen Hockey R
+ ød vs Jutul Gul\n  Holmen Hockey Sort vs Jar Svart\n  Sandefjord vs Kongs
+ berg\n  Jutul Gul vs Ringerike 2\n  Holmen Hockey Rød vs Frisk Asker 3\n 
+  Holmen Hockey Sort vs Sandefjord\n  Jar Svart vs Jutul Gul\n  Kongsberg v
+ s Holmen Hockey Rød\n  Ringerike 2 vs Frisk Asker 3\n  Holmen Hockey Sort
+  vs Jutul Gul\n  Holmen Hockey Rød vs Sandefjord\n  Frisk Asker 3 vs Jar 
+ Svart\n  Ringerike 2 vs Kongsberg\n  Holmen Hockey Sort vs Holmen Hockey R
+ ød\n  Jutul Gul vs Frisk Asker 3\n  Sandefjord vs Ringerike 2\n  Jar Svar
+ t vs Kongsberg
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Holmenkollen ishall
+DTSTART:20270110T123000Z
+DTEND:20270110T141500Z
+UID:b449cb1d-423e-5e5d-b3e4-18fd9418c100
+CATEGORIES:U9
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U9\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Sort\, Jar Blå\, Tønsberg\, Frisk Asker 
+ 1\, Frisk Asker 3\, Kongsberg\, Skien\, Jutul Grønn\n\nKamper:\n  Holmen 
+ Hockey Sort vs Jutul Grønn\n  Jar Blå vs Skien\n  Tønsberg vs Kongsberg
+ \n  Frisk Asker 1 vs Frisk Asker 3\n  Holmen Hockey Sort vs Skien\n  Kongs
+ berg vs Jutul Grønn\n  Frisk Asker 3 vs Jar Blå\n  Frisk Asker 1 vs Tøn
+ sberg\n  Holmen Hockey Sort vs Kongsberg\n  Skien vs Frisk Asker 3\n  Jutu
+ l Grønn vs Frisk Asker 1\n  Jar Blå vs Tønsberg\n  Holmen Hockey Sort v
+ s Frisk Asker 3\n  Frisk Asker 1 vs Kongsberg\n  Tønsberg vs Skien\n  Jar
+  Blå vs Jutul Grønn\n  Holmen Hockey Sort vs Frisk Asker 1\n  Frisk Aske
+ r 3 vs Tønsberg\n  Kongsberg vs Jar Blå\n  Skien vs Jutul Grønn\n  Holm
+ en Hockey Sort vs Tønsberg\n  Jar Blå vs Frisk Asker 1\n  Jutul Grønn v
+ s Frisk Asker 3\n  Skien vs Kongsberg\n  Holmen Hockey Sort vs Jar Blå\n 
+  Tønsberg vs Jutul Grønn\n  Frisk Asker 1 vs Skien\n  Frisk Asker 3 vs K
+ ongsberg
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Baerum ishall
+DTSTART:20270116T150000Z
+DTEND:20270116T154500Z
+UID:254aaea6-3aae-5ade-8e91-845b2ee067ee
+CATEGORIES:JU12
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU12\nVert: Jutul\nDeltake
+ nde lag (4): Jutul Kittens\, Frisk Asker Orange\, Ringerike 2\, Jar\n\nKam
+ per:\n  Jutul Kittens vs Jar\n  Frisk Asker Orange vs Ringerike 2\n  Jutul
+  Kittens vs Ringerike 2\n  Frisk Asker Orange vs Jar\n  Jutul Kittens vs F
+ risk Asker Orange\n  Ringerike 2 vs Jar
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Ringerikshallen
+DTSTART:20270116T130000Z
+DTEND:20270116T141500Z
+UID:4558784a-3c2f-594b-9062-2309b2486691
+CATEGORIES:U11
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U11\nVert: Ringerike\nDe
+ ltakende lag (6): Ringerike 2\, Jar Grønn\, Frisk Asker 4\, Tønsberg Gr
+ å\, Jar Svart\, Jutul Hvit\n\nKamper:\n  Ringerike 2 vs Jutul Hvit\n  Jar
+  Grønn vs Jar Svart\n  Frisk Asker 4 vs Tønsberg Grå\n  Ringerike 2 vs 
+ Jar Svart\n  Tønsberg Grå vs Jutul Hvit\n  Frisk Asker 4 vs Jar Grønn\n
+   Ringerike 2 vs Tønsberg Grå\n  Jar Svart vs Frisk Asker 4\n  Jutul Hvi
+ t vs Jar Grønn\n  Ringerike 2 vs Frisk Asker 4\n  Jar Grønn vs Tønsberg
+  Grå\n  Jutul Hvit vs Jar Svart\n  Ringerike 2 vs Jar Grønn\n  Frisk Ask
+ er 4 vs Jutul Hvit\n  Tønsberg Grå vs Jar Svart
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Varner Arena / Askerhallen
+DTSTART:20270123T130000Z
+DTEND:20270123T134500Z
+UID:2c05c080-a8f4-54ef-b304-93f49883cc6a
+CATEGORIES:U12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U12\nVert: Fr
+ isk Asker\nDeltakende lag (4): Frisk Asker 1\, Jar Hvit\, Jutul Rød\, Tø
+ nsberg Hvit\n\nKamper:\n  Frisk Asker 1 vs Tønsberg Hvit\n  Jar Hvit vs J
+ utul Rød\n  Frisk Asker 1 vs Jutul Rød\n  Jar Hvit vs Tønsberg Hvit\n  
+ Frisk Asker 1 vs Jar Hvit\n  Jutul Rød vs Tønsberg Hvit
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Jarhallen
+DTSTART:20261121T133000Z
+DTEND:20261121T151500Z
+UID:cabe43c7-9a04-5953-8d9f-d20e19bb9cf2
+CATEGORIES:U8
+DESCRIPTION:Arena: Jarhallen\nAldersgruppe: U8\nVert: Jar\nDeltakende lag 
+ (8): Jar Blå\, Holmen Hockey Sort\, Ringerike 1\, Frisk Asker 5\, Skien\,
+  Jutul Hvit\, Frisk Asker 3\, Holmen Hockey Blå\n\nKamper:\n  Jar Blå vs
+  Holmen Hockey Blå\n  Holmen Hockey Sort vs Frisk Asker 3\n  Ringerike 1 
+ vs Jutul Hvit\n  Frisk Asker 5 vs Skien\n  Jar Blå vs Frisk Asker 3\n  Ju
+ tul Hvit vs Holmen Hockey Blå\n  Skien vs Holmen Hockey Sort\n  Frisk Ask
+ er 5 vs Ringerike 1\n  Jar Blå vs Jutul Hvit\n  Frisk Asker 3 vs Skien\n 
+  Holmen Hockey Blå vs Frisk Asker 5\n  Holmen Hockey Sort vs Ringerike 1\
+ n  Jar Blå vs Skien\n  Frisk Asker 5 vs Jutul Hvit\n  Ringerike 1 vs Fris
+ k Asker 3\n  Holmen Hockey Sort vs Holmen Hockey Blå\n  Jar Blå vs Frisk
+  Asker 5\n  Skien vs Ringerike 1\n  Jutul Hvit vs Holmen Hockey Sort\n  Fr
+ isk Asker 3 vs Holmen Hockey Blå\n  Jar Blå vs Ringerike 1\n  Holmen Hoc
+ key Sort vs Frisk Asker 5\n  Holmen Hockey Blå vs Skien\n  Frisk Asker 3 
+ vs Jutul Hvit\n  Jar Blå vs Holmen Hockey Sort\n  Ringerike 1 vs Holmen H
+ ockey Blå\n  Frisk Asker 5 vs Frisk Asker 3\n  Skien vs Jutul Hvit
+LOCATION:Jarhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU12 — Varner Arena / Askerhallen
+DTSTART:20270117T140000Z
+DTEND:20270117T144500Z
+UID:77a75290-8ad1-5005-9744-a1d2bf3818d7
+CATEGORIES:JU12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: JU12\nVert: F
+ risk Asker\nDeltakende lag (4): Frisk Asker Svart\, Jutul/Jar Kittens\, T
+ ønsberg\, Ringerike 1\n\nKamper:\n  Frisk Asker Svart vs Ringerike 1\n  J
+ utul/Jar Kittens vs Tønsberg\n  Frisk Asker Svart vs Tønsberg\n  Jutul/J
+ ar Kittens vs Ringerike 1\n  Frisk Asker Svart vs Jutul/Jar Kittens\n  Tø
+ nsberg vs Ringerike 1
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU8 — Baerum ishall
+DTSTART:20260919T143000Z
+DTEND:20260919T161500Z
+UID:b3183c8e-b3bd-5b4a-a153-0a620bf3cafc
+CATEGORIES:JU8
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU8\nVert: Jutul\nDeltaken
+ de lag (7): Jutul Grønn\, Jutul Kittens\, Jar\, Jar Rød\, Frisk Asker\, 
+ Ringerike 1\, Skien\n\nKamper:\n  Jutul Kittens vs Skien\n  Jar vs Ringeri
+ ke 1\n  Jar Rød vs Frisk Asker\n  Jutul Grønn vs Skien\n  Frisk Asker vs
+  Jutul Kittens\n  Jar Rød vs Jar\n  Jutul Grønn vs Ringerike 1\n  Skien 
+ vs Frisk Asker\n  Jutul Kittens vs Jar\n  Jutul Grønn vs Frisk Asker\n  J
+ ar Rød vs Ringerike 1\n  Jar vs Skien\n  Jutul Grønn vs Jar Rød\n  Fris
+ k Asker vs Jar\n  Ringerike 1 vs Jutul Kittens\n  Jutul Grønn vs Jar\n  J
+ utul Kittens vs Jar Rød\n  Skien vs Ringerike 1\n  Jutul Grønn vs Jutul 
+ Kittens\n  Jar Rød vs Skien\n  Frisk Asker vs Ringerike 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20270117T113000Z
+DTEND:20270117T124500Z
+UID:6def15ec-246b-5a52-b5ca-bce17c9ced21
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Blå\, Ringerike 2\, Jar Blå\, Jutul Hvi
+ t\, Jar Grønn\, Frisk Asker 6\n\nKamper:\n  Holmen Hockey Blå vs Frisk A
+ sker 6\n  Ringerike 2 vs Jar Grønn\n  Jar Blå vs Jutul Hvit\n  Holmen Ho
+ ckey Blå vs Jar Grønn\n  Jutul Hvit vs Frisk Asker 6\n  Jar Blå vs Ring
+ erike 2\n  Holmen Hockey Blå vs Jutul Hvit\n  Jar Grønn vs Jar Blå\n  F
+ risk Asker 6 vs Ringerike 2\n  Holmen Hockey Blå vs Jar Blå\n  Ringerike
+  2 vs Jutul Hvit\n  Frisk Asker 6 vs Jar Grønn\n  Holmen Hockey Blå vs R
+ ingerike 2\n  Jar Blå vs Frisk Asker 6\n  Jutul Hvit vs Jar Grønn
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U11 — Kongsberghallen
+DTSTART:20270117T123000Z
+DTEND:20270117T134500Z
+UID:4fc16cf4-eb28-50d2-b9a3-86a8c3a022ff
+CATEGORIES:U11
+DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U11\nVert: Kongsberg\nDe
+ ltakende lag (6): Kongsberg\, Jar Gul\, Jar Rød\, Jar Hvit\, Jutul Grønn
+ \, Frisk Asker 2\n\nKamper:\n  Kongsberg vs Frisk Asker 2\n  Jar Gul vs Ju
+ tul Grønn\n  Jar Rød vs Jar Hvit\n  Kongsberg vs Jutul Grønn\n  Jar Hvi
+ t vs Frisk Asker 2\n  Jar Rød vs Jar Gul\n  Kongsberg vs Jar Hvit\n  Jutu
+ l Grønn vs Jar Rød\n  Frisk Asker 2 vs Jar Gul\n  Kongsberg vs Jar Rød\
+ n  Jar Gul vs Jar Hvit\n  Frisk Asker 2 vs Jutul Grønn\n  Kongsberg vs Ja
+ r Gul\n  Jar Rød vs Frisk Asker 2\n  Jar Hvit vs Jutul Grønn
+LOCATION:Kongsberghallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U12 — Varner Arena / Askerhallen
+DTSTART:20270131T150000Z
+DTEND:20270131T154500Z
+UID:9c459cab-ba76-50a3-b332-e292a8ed295f
+CATEGORIES:U12
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U12\nVert: Fr
+ isk Asker\nDeltakende lag (4): Frisk Asker 3\, Jar Rød\, Ringerike 2\, Ja
+ r Blå\n\nKamper:\n  Frisk Asker 3 vs Jar Blå\n  Jar Rød vs Ringerike 2\
+ n  Frisk Asker 3 vs Ringerike 2\n  Jar Rød vs Jar Blå\n  Frisk Asker 3 v
+ s Jar Rød\n  Ringerike 2 vs Jar Blå
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU10 — Ringerikshallen
+DTSTART:20261107T133000Z
+DTEND:20261107T144500Z
+UID:13f407f3-d776-591d-9d92-4c9e8ada3d9a
+CATEGORIES:JU10
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: JU10\nVert: Ringerike\nD
+ eltakende lag (6): Ringerike 1\, Jar Hvit\, Frisk Asker Orange\, Skien\, F
+ risk Asker Svart\, Jar Rød\n\nKamper:\n  Ringerike 1 vs Jar Rød\n  Jar H
+ vit vs Frisk Asker Svart\n  Frisk Asker Orange vs Skien\n  Ringerike 1 vs 
+ Frisk Asker Svart\n  Skien vs Jar Rød\n  Frisk Asker Orange vs Jar Hvit\n
+   Ringerike 1 vs Skien\n  Frisk Asker Svart vs Frisk Asker Orange\n  Jar R
+ ød vs Jar Hvit\n  Ringerike 1 vs Frisk Asker Orange\n  Jar Hvit vs Skien\
+ n  Jar Rød vs Frisk Asker Svart\n  Ringerike 1 vs Jar Hvit\n  Frisk Asker
+  Orange vs Jar Rød\n  Skien vs Frisk Asker Svart
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Baerum ishall
+DTSTART:20270213T110000Z
+DTEND:20270213T124500Z
+UID:d971f3af-7542-5de9-b237-3519c995705e
+CATEGORIES:U9
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U9\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Grønn\, Jutul Rød\, Frisk Asker 5\, Ringerike 1\, Holme
+ n Hockey Hvit\, Jar Svart\, Frisk Asker 2\, Jar Blå\n\nKamper:\n  Jutul G
+ rønn vs Jar Blå\n  Jutul Rød vs Frisk Asker 2\n  Frisk Asker 5 vs Jar S
+ vart\n  Ringerike 1 vs Holmen Hockey Hvit\n  Jutul Grønn vs Frisk Asker 2
+ \n  Jar Svart vs Jar Blå\n  Holmen Hockey Hvit vs Jutul Rød\n  Ringerike
+  1 vs Frisk Asker 5\n  Jutul Grønn vs Jar Svart\n  Frisk Asker 2 vs Holme
+ n Hockey Hvit\n  Jar Blå vs Ringerike 1\n  Jutul Rød vs Frisk Asker 5\n 
+  Jutul Grønn vs Holmen Hockey Hvit\n  Ringerike 1 vs Jar Svart\n  Frisk A
+ sker 5 vs Frisk Asker 2\n  Jutul Rød vs Jar Blå\n  Jutul Grønn vs Ringe
+ rike 1\n  Holmen Hockey Hvit vs Frisk Asker 5\n  Jar Svart vs Jutul Rød\n
+   Frisk Asker 2 vs Jar Blå\n  Jutul Grønn vs Frisk Asker 5\n  Jutul Rød
+  vs Ringerike 1\n  Jar Blå vs Holmen Hockey Hvit\n  Frisk Asker 2 vs Jar 
+ Svart\n  Jutul Grønn vs Jutul Rød\n  Frisk Asker 5 vs Jar Blå\n  Ringer
+ ike 1 vs Frisk Asker 2\n  Holmen Hockey Hvit vs Jar Svart
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20270117T140000Z
+DTEND:20270117T151500Z
+UID:295191d6-ed0e-5949-a542-fadbf21e84bf
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Rød\, Frisk Asker 1\, Holmen Hockey Rød\, Frisk Asker 
+ 4\, Ringerike 3\, Jar Hvit\n\nKamper:\n  Jutul Rød vs Jar Hvit\n  Frisk A
+ sker 1 vs Ringerike 3\n  Holmen Hockey Rød vs Frisk Asker 4\n  Jutul Rød
+  vs Ringerike 3\n  Frisk Asker 4 vs Jar Hvit\n  Holmen Hockey Rød vs Fris
+ k Asker 1\n  Jutul Rød vs Frisk Asker 4\n  Ringerike 3 vs Holmen Hockey R
+ ød\n  Jar Hvit vs Frisk Asker 1\n  Jutul Rød vs Holmen Hockey Rød\n  Fr
+ isk Asker 1 vs Frisk Asker 4\n  Jar Hvit vs Ringerike 3\n  Jutul Rød vs F
+ risk Asker 1\n  Holmen Hockey Rød vs Jar Hvit\n  Frisk Asker 4 vs Ringeri
+ ke 3
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Baerum ishall
+DTSTART:20261213T143000Z
+DTEND:20261213T161500Z
+UID:d2fa2979-63dd-5998-aee6-d71a570c7d76
+CATEGORIES:U7
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U7\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Rød\, Holmen Hockey Sort\, Jar Hvit\, Jar Rød\, Frisk A
+ sker 1\, Sandefjord\, Holmen Hockey Hvit\, Tønsberg\n\nKamper:\n  Jutul R
+ ød vs Tønsberg\n  Holmen Hockey Sort vs Holmen Hockey Hvit\n  Jar Hvit v
+ s Sandefjord\n  Jar Rød vs Frisk Asker 1\n  Jutul Rød vs Holmen Hockey H
+ vit\n  Sandefjord vs Tønsberg\n  Frisk Asker 1 vs Holmen Hockey Sort\n  J
+ ar Rød vs Jar Hvit\n  Jutul Rød vs Sandefjord\n  Holmen Hockey Hvit vs F
+ risk Asker 1\n  Tønsberg vs Jar Rød\n  Holmen Hockey Sort vs Jar Hvit\n 
+  Jutul Rød vs Frisk Asker 1\n  Jar Rød vs Sandefjord\n  Jar Hvit vs Holm
+ en Hockey Hvit\n  Holmen Hockey Sort vs Tønsberg\n  Jutul Rød vs Jar Rø
+ d\n  Frisk Asker 1 vs Jar Hvit\n  Sandefjord vs Holmen Hockey Sort\n  Holm
+ en Hockey Hvit vs Tønsberg\n  Jutul Rød vs Jar Hvit\n  Holmen Hockey Sor
+ t vs Jar Rød\n  Tønsberg vs Frisk Asker 1\n  Holmen Hockey Hvit vs Sande
+ fjord\n  Jutul Rød vs Holmen Hockey Sort\n  Jar Hvit vs Tønsberg\n  Jar 
+ Rød vs Holmen Hockey Hvit\n  Frisk Asker 1 vs Sandefjord
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Holmenkollen ishall
+DTSTART:20261011T140000Z
+DTEND:20261011T154500Z
+UID:331b5a51-a52e-5963-8b24-397fdd0fdab9
+CATEGORIES:U8
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U8\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Hvit\, Tønsberg\, Frisk Asker 4\, Jar Hvi
+ t\, Jutul Rød\, Jutul Hvit\, Sandefjord\, Ringerike 1\n\nKamper:\n  Holme
+ n Hockey Hvit vs Ringerike 1\n  Tønsberg vs Sandefjord\n  Frisk Asker 4 v
+ s Jutul Hvit\n  Jar Hvit vs Jutul Rød\n  Holmen Hockey Hvit vs Sandefjord
+ \n  Jutul Hvit vs Ringerike 1\n  Jutul Rød vs Tønsberg\n  Jar Hvit vs Fr
+ isk Asker 4\n  Holmen Hockey Hvit vs Jutul Hvit\n  Sandefjord vs Jutul Rø
+ d\n  Ringerike 1 vs Jar Hvit\n  Tønsberg vs Frisk Asker 4\n  Holmen Hocke
+ y Hvit vs Jutul Rød\n  Jar Hvit vs Jutul Hvit\n  Frisk Asker 4 vs Sandefj
+ ord\n  Tønsberg vs Ringerike 1\n  Holmen Hockey Hvit vs Jar Hvit\n  Jutul
+  Rød vs Frisk Asker 4\n  Jutul Hvit vs Tønsberg\n  Sandefjord vs Ringeri
+ ke 1\n  Holmen Hockey Hvit vs Frisk Asker 4\n  Tønsberg vs Jar Hvit\n  Ri
+ ngerike 1 vs Jutul Rød\n  Sandefjord vs Jutul Hvit\n  Holmen Hockey Hvit 
+ vs Tønsberg\n  Frisk Asker 4 vs Ringerike 1\n  Jar Hvit vs Sandefjord\n  
+ Jutul Rød vs Jutul Hvit
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU10 — Ringerikshallen
+DTSTART:20261205T120000Z
+DTEND:20261205T131500Z
+UID:cccc65b2-4168-51c2-a07f-6494d469aec0
+CATEGORIES:JU10
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: JU10\nVert: Ringerike\nD
+ eltakende lag (6): Ringerike 1\, Jar Hvit\, Jar Rød\, Frisk Asker Svart\,
+  Jar Blå\, Frisk Asker Orange\n\nKamper:\n  Ringerike 1 vs Frisk Asker Or
+ ange\n  Jar Hvit vs Jar Blå\n  Jar Rød vs Frisk Asker Svart\n  Ringerike
+  1 vs Jar Blå\n  Frisk Asker Svart vs Frisk Asker Orange\n  Jar Rød vs J
+ ar Hvit\n  Ringerike 1 vs Frisk Asker Svart\n  Jar Blå vs Jar Rød\n  Fri
+ sk Asker Orange vs Jar Hvit\n  Ringerike 1 vs Jar Rød\n  Jar Hvit vs Fris
+ k Asker Svart\n  Frisk Asker Orange vs Jar Blå\n  Ringerike 1 vs Jar Hvit
+ \n  Jar Rød vs Frisk Asker Orange\n  Frisk Asker Svart vs Jar Blå
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20260906T130000Z
+DTEND:20260906T141500Z
+UID:351a2112-3d37-58e1-9121-225f7d065e61
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Hvit\, Holmen Hockey Hvit\, Jar Svart\, Jar Gul\, Frisk 
+ Asker 4\, Kongsberg\n\nKamper:\n  Jutul Hvit vs Kongsberg\n  Holmen Hockey
+  Hvit vs Frisk Asker 4\n  Jar Svart vs Jar Gul\n  Jutul Hvit vs Frisk Aske
+ r 4\n  Jar Gul vs Kongsberg\n  Jar Svart vs Holmen Hockey Hvit\n  Jutul Hv
+ it vs Jar Gul\n  Frisk Asker 4 vs Jar Svart\n  Kongsberg vs Holmen Hockey 
+ Hvit\n  Jutul Hvit vs Jar Svart\n  Holmen Hockey Hvit vs Jar Gul\n  Kongsb
+ erg vs Frisk Asker 4\n  Jutul Hvit vs Holmen Hockey Hvit\n  Jar Svart vs K
+ ongsberg\n  Jar Gul vs Frisk Asker 4
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Varner Arena / Askerhallen
+DTSTART:20270227T140000Z
+DTEND:20270227T154500Z
+UID:175e41ce-d402-530c-99f4-1fe65f264550
+CATEGORIES:U9
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U9\nVert: Fri
+ sk Asker\nDeltakende lag (8): Frisk Asker 5\, Frisk Asker 2\, Tønsberg\, 
+ Jar Rød\, Skien\, Jutul Hvit\, Jar Hvit\, Sandefjord\n\nKamper:\n  Frisk 
+ Asker 5 vs Sandefjord\n  Frisk Asker 2 vs Jar Hvit\n  Tønsberg vs Jutul H
+ vit\n  Jar Rød vs Skien\n  Frisk Asker 5 vs Jar Hvit\n  Jutul Hvit vs San
+ defjord\n  Skien vs Frisk Asker 2\n  Jar Rød vs Tønsberg\n  Frisk Asker 
+ 5 vs Jutul Hvit\n  Jar Hvit vs Skien\n  Sandefjord vs Jar Rød\n  Frisk As
+ ker 2 vs Tønsberg\n  Frisk Asker 5 vs Skien\n  Jar Rød vs Jutul Hvit\n  
+ Tønsberg vs Jar Hvit\n  Frisk Asker 2 vs Sandefjord\n  Frisk Asker 5 vs J
+ ar Rød\n  Skien vs Tønsberg\n  Jutul Hvit vs Frisk Asker 2\n  Jar Hvit v
+ s Sandefjord\n  Frisk Asker 5 vs Tønsberg\n  Frisk Asker 2 vs Jar Rød\n 
+  Sandefjord vs Skien\n  Jar Hvit vs Jutul Hvit\n  Frisk Asker 5 vs Frisk A
+ sker 2\n  Tønsberg vs Sandefjord\n  Jar Rød vs Jar Hvit\n  Skien vs Jutu
+ l Hvit
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20270206T133000Z
+DTEND:20270206T144500Z
+UID:1b1c6193-7482-576c-bc74-b9a305c75563
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Hvit\, Holmen Hockey Sort\, Jar Gul\, Fri
+ sk Asker 5\, Ringerike 3\, Jutul Hvit\n\nKamper:\n  Holmen Hockey Hvit vs 
+ Jutul Hvit\n  Holmen Hockey Sort vs Ringerike 3\n  Jar Gul vs Frisk Asker 
+ 5\n  Holmen Hockey Hvit vs Ringerike 3\n  Frisk Asker 5 vs Jutul Hvit\n  J
+ ar Gul vs Holmen Hockey Sort\n  Holmen Hockey Hvit vs Frisk Asker 5\n  Rin
+ gerike 3 vs Jar Gul\n  Jutul Hvit vs Holmen Hockey Sort\n  Holmen Hockey H
+ vit vs Jar Gul\n  Holmen Hockey Sort vs Frisk Asker 5\n  Jutul Hvit vs Rin
+ gerike 3\n  Holmen Hockey Hvit vs Holmen Hockey Sort\n  Jar Gul vs Jutul H
+ vit\n  Frisk Asker 5 vs Ringerike 3
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Holmenkollen ishall
+DTSTART:20261121T130000Z
+DTEND:20261121T144500Z
+UID:c9490da3-f8fa-58bd-902b-a1d5ff3959ab
+CATEGORIES:U9
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U9\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Sort\, Jutul Hvit\, Frisk Asker 4\, Frisk 
+ Asker 5\, Jar Blå\, Skien\, Ringerike 1\, Jar Svart\n\nKamper:\n  Holmen 
+ Hockey Sort vs Jar Svart\n  Jutul Hvit vs Ringerike 1\n  Frisk Asker 4 vs 
+ Skien\n  Frisk Asker 5 vs Jar Blå\n  Holmen Hockey Sort vs Ringerike 1\n 
+  Skien vs Jar Svart\n  Jar Blå vs Jutul Hvit\n  Frisk Asker 5 vs Frisk As
+ ker 4\n  Holmen Hockey Sort vs Skien\n  Ringerike 1 vs Jar Blå\n  Jar Sva
+ rt vs Frisk Asker 5\n  Jutul Hvit vs Frisk Asker 4\n  Holmen Hockey Sort v
+ s Jar Blå\n  Frisk Asker 5 vs Skien\n  Frisk Asker 4 vs Ringerike 1\n  Ju
+ tul Hvit vs Jar Svart\n  Holmen Hockey Sort vs Frisk Asker 5\n  Jar Blå v
+ s Frisk Asker 4\n  Skien vs Jutul Hvit\n  Ringerike 1 vs Jar Svart\n  Holm
+ en Hockey Sort vs Frisk Asker 4\n  Jutul Hvit vs Frisk Asker 5\n  Jar Svar
+ t vs Jar Blå\n  Ringerike 1 vs Skien\n  Holmen Hockey Sort vs Jutul Hvit\
+ n  Frisk Asker 4 vs Jar Svart\n  Frisk Asker 5 vs Ringerike 1\n  Jar Blå 
+ vs Skien
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU8 — Varner Arena / Askerhallen
+DTSTART:20261128T123000Z
+DTEND:20261128T141500Z
+UID:59fef8e3-5e5a-5c55-a2a7-9385a6770504
+CATEGORIES:JU8
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: JU8\nVert: Fr
+ isk Asker\nDeltakende lag (7): Frisk Asker\, Jutul Grønn\, Jutul Kittens\
+ , Jar\, Ringerike 1\, Skien\, Jar Rød\n\nKamper:\n  Jutul Grønn vs Jar R
+ ød\n  Jutul Kittens vs Skien\n  Jar vs Ringerike 1\n  Frisk Asker vs Jar 
+ Rød\n  Ringerike 1 vs Jutul Grønn\n  Jar vs Jutul Kittens\n  Frisk Asker
+  vs Skien\n  Jar Rød vs Ringerike 1\n  Jutul Grønn vs Jutul Kittens\n  F
+ risk Asker vs Ringerike 1\n  Jar vs Skien\n  Jutul Kittens vs Jar Rød\n  
+ Frisk Asker vs Jar\n  Ringerike 1 vs Jutul Kittens\n  Skien vs Jutul Grøn
+ n\n  Frisk Asker vs Jutul Kittens\n  Jutul Grønn vs Jar\n  Jar Rød vs Sk
+ ien\n  Frisk Asker vs Jutul Grønn\n  Jar vs Jar Rød\n  Ringerike 1 vs Sk
+ ien
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Baerum ishall
+DTSTART:20270207T133000Z
+DTEND:20270207T144500Z
+UID:4bd41747-ea29-5e2a-936a-0ede6dee82f8
+CATEGORIES:U10
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U10\nVert: Jutul\nDeltaken
+ de lag (6): Jutul Rød\, Jar Svart\, Frisk Asker 1\, Ringerike 1\, Jar Bl
+ å\, Frisk Asker 6\n\nKamper:\n  Jutul Rød vs Frisk Asker 6\n  Jar Svart 
+ vs Jar Blå\n  Frisk Asker 1 vs Ringerike 1\n  Jutul Rød vs Jar Blå\n  R
+ ingerike 1 vs Frisk Asker 6\n  Frisk Asker 1 vs Jar Svart\n  Jutul Rød vs
+  Ringerike 1\n  Jar Blå vs Frisk Asker 1\n  Frisk Asker 6 vs Jar Svart\n 
+  Jutul Rød vs Frisk Asker 1\n  Jar Svart vs Ringerike 1\n  Frisk Asker 6 
+ vs Jar Blå\n  Jutul Rød vs Jar Svart\n  Frisk Asker 1 vs Frisk Asker 6\n
+   Ringerike 1 vs Jar Blå
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20270213T143000Z
+DTEND:20270213T154500Z
+UID:f52a369f-eccf-5528-b458-ff288f352e6e
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Blå\, Jar Hvit\, Frisk Asker 5\, Ringeri
+ ke 4\, Jutul Grønn\, Frisk Asker 4\n\nKamper:\n  Holmen Hockey Blå vs Fr
+ isk Asker 4\n  Jar Hvit vs Jutul Grønn\n  Frisk Asker 5 vs Ringerike 4\n 
+  Holmen Hockey Blå vs Jutul Grønn\n  Ringerike 4 vs Frisk Asker 4\n  Fri
+ sk Asker 5 vs Jar Hvit\n  Holmen Hockey Blå vs Ringerike 4\n  Jutul Grøn
+ n vs Frisk Asker 5\n  Frisk Asker 4 vs Jar Hvit\n  Holmen Hockey Blå vs F
+ risk Asker 5\n  Jar Hvit vs Ringerike 4\n  Frisk Asker 4 vs Jutul Grønn\n
+   Holmen Hockey Blå vs Jar Hvit\n  Frisk Asker 5 vs Frisk Asker 4\n  Ring
+ erike 4 vs Jutul Grønn
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Holmenkollen ishall
+DTSTART:20270130T120000Z
+DTEND:20270130T134500Z
+UID:c27bb495-3e31-50ae-8247-fa91e2a8a050
+CATEGORIES:U8
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U8\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Rød\, Frisk Asker 1\, Tønsberg\, Jutul G
+ ul\, Jar Hvit\, Jutul Grønn\, Jar Blå\, Frisk Asker 4\n\nKamper:\n  Holm
+ en Hockey Rød vs Frisk Asker 4\n  Frisk Asker 1 vs Jar Blå\n  Tønsberg 
+ vs Jutul Grønn\n  Jutul Gul vs Jar Hvit\n  Holmen Hockey Rød vs Jar Blå
+ \n  Jutul Grønn vs Frisk Asker 4\n  Jar Hvit vs Frisk Asker 1\n  Jutul Gu
+ l vs Tønsberg\n  Holmen Hockey Rød vs Jutul Grønn\n  Jar Blå vs Jar Hv
+ it\n  Frisk Asker 4 vs Jutul Gul\n  Frisk Asker 1 vs Tønsberg\n  Holmen H
+ ockey Rød vs Jar Hvit\n  Jutul Gul vs Jutul Grønn\n  Tønsberg vs Jar Bl
+ å\n  Frisk Asker 1 vs Frisk Asker 4\n  Holmen Hockey Rød vs Jutul Gul\n 
+  Jar Hvit vs Tønsberg\n  Jutul Grønn vs Frisk Asker 1\n  Jar Blå vs Fri
+ sk Asker 4\n  Holmen Hockey Rød vs Tønsberg\n  Frisk Asker 1 vs Jutul Gu
+ l\n  Frisk Asker 4 vs Jar Hvit\n  Jar Blå vs Jutul Grønn\n  Holmen Hocke
+ y Rød vs Frisk Asker 1\n  Tønsberg vs Frisk Asker 4\n  Jutul Gul vs Jar 
+ Blå\n  Jar Hvit vs Jutul Grønn
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Baerum ishall
+DTSTART:20261018T130000Z
+DTEND:20261018T144500Z
+UID:3b8b2445-3790-5cf2-83d8-3f7df2d20075
+CATEGORIES:U9
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U9\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Grønn\, Jutul Gul\, Jar Rød\, Holmen Hockey Sort\, Fris
+ k Asker 3\, Jar Hvit\, Holmen Hockey Hvit\, Frisk Asker 5\n\nKamper:\n  Ju
+ tul Grønn vs Frisk Asker 5\n  Jutul Gul vs Holmen Hockey Hvit\n  Jar Rød
+  vs Jar Hvit\n  Holmen Hockey Sort vs Frisk Asker 3\n  Jutul Grønn vs Hol
+ men Hockey Hvit\n  Jar Hvit vs Frisk Asker 5\n  Frisk Asker 3 vs Jutul Gul
+ \n  Holmen Hockey Sort vs Jar Rød\n  Jutul Grønn vs Jar Hvit\n  Holmen H
+ ockey Hvit vs Frisk Asker 3\n  Frisk Asker 5 vs Holmen Hockey Sort\n  Jutu
+ l Gul vs Jar Rød\n  Jutul Grønn vs Frisk Asker 3\n  Holmen Hockey Sort v
+ s Jar Hvit\n  Jar Rød vs Holmen Hockey Hvit\n  Jutul Gul vs Frisk Asker 5
+ \n  Jutul Grønn vs Holmen Hockey Sort\n  Frisk Asker 3 vs Jar Rød\n  Jar
+  Hvit vs Jutul Gul\n  Holmen Hockey Hvit vs Frisk Asker 5\n  Jutul Grønn 
+ vs Jar Rød\n  Jutul Gul vs Holmen Hockey Sort\n  Frisk Asker 5 vs Frisk A
+ sker 3\n  Holmen Hockey Hvit vs Jar Hvit\n  Jutul Grønn vs Jutul Gul\n  J
+ ar Rød vs Frisk Asker 5\n  Holmen Hockey Sort vs Holmen Hockey Hvit\n  Fr
+ isk Asker 3 vs Jar Hvit
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Holmenkollen ishall
+DTSTART:20270131T130000Z
+DTEND:20270131T144500Z
+UID:5dfae018-51d5-53c6-b075-2df22fe407cb
+CATEGORIES:U7
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U7\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Hvit\, Frisk Asker 2\, Jar Hvit\, Jutul Gr
+ ønn\, Frisk Asker 3\, Tønsberg\, Jar Rød\, Jar Svart\n\nKamper:\n  Holm
+ en Hockey Hvit vs Jar Svart\n  Frisk Asker 2 vs Jar Rød\n  Jar Hvit vs T
+ ønsberg\n  Jutul Grønn vs Frisk Asker 3\n  Holmen Hockey Hvit vs Jar Rø
+ d\n  Tønsberg vs Jar Svart\n  Frisk Asker 3 vs Frisk Asker 2\n  Jutul Gr
+ ønn vs Jar Hvit\n  Holmen Hockey Hvit vs Tønsberg\n  Jar Rød vs Frisk A
+ sker 3\n  Jar Svart vs Jutul Grønn\n  Frisk Asker 2 vs Jar Hvit\n  Holmen
+  Hockey Hvit vs Frisk Asker 3\n  Jutul Grønn vs Tønsberg\n  Jar Hvit vs 
+ Jar Rød\n  Frisk Asker 2 vs Jar Svart\n  Holmen Hockey Hvit vs Jutul Grø
+ nn\n  Frisk Asker 3 vs Jar Hvit\n  Tønsberg vs Frisk Asker 2\n  Jar Rød 
+ vs Jar Svart\n  Holmen Hockey Hvit vs Jar Hvit\n  Frisk Asker 2 vs Jutul G
+ rønn\n  Jar Svart vs Frisk Asker 3\n  Jar Rød vs Tønsberg\n  Holmen Hoc
+ key Hvit vs Frisk Asker 2\n  Jar Hvit vs Jar Svart\n  Jutul Grønn vs Jar 
+ Rød\n  Frisk Asker 3 vs Tønsberg
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Holmenkollen ishall
+DTSTART:20261031T133000Z
+DTEND:20261031T144500Z
+UID:5b575c38-fba2-51f6-bba2-9dccb9215d73
+CATEGORIES:U10
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U10\nVert: Holmen\nD
+ eltakende lag (6): Holmen Hockey Sort\, Kongsberg\, Jar Hvit\, Jar Blå\, 
+ Ringerike 2\, Tønsberg\n\nKamper:\n  Holmen Hockey Sort vs Tønsberg\n  K
+ ongsberg vs Ringerike 2\n  Jar Hvit vs Jar Blå\n  Holmen Hockey Sort vs R
+ ingerike 2\n  Jar Blå vs Tønsberg\n  Jar Hvit vs Kongsberg\n  Holmen Hoc
+ key Sort vs Jar Blå\n  Ringerike 2 vs Jar Hvit\n  Tønsberg vs Kongsberg\
+ n  Holmen Hockey Sort vs Jar Hvit\n  Kongsberg vs Jar Blå\n  Tønsberg vs
+  Ringerike 2\n  Holmen Hockey Sort vs Kongsberg\n  Jar Hvit vs Tønsberg\n
+   Jar Blå vs Ringerike 2
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Ringerikshallen
+DTSTART:20270313T123000Z
+DTEND:20270313T141500Z
+UID:5ecf8255-e954-5477-a5dc-8880f4201f21
+CATEGORIES:U8
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U8\nVert: Ringerike\nDel
+ takende lag (8): Ringerike 2\, Sandefjord\, Frisk Asker 5\, Jutul Hvit\, H
+ olmen Hockey Hvit\, Skien\, Jutul Grønn\, Jar Svart\n\nKamper:\n  Ringeri
+ ke 2 vs Jar Svart\n  Sandefjord vs Jutul Grønn\n  Frisk Asker 5 vs Skien\
+ n  Jutul Hvit vs Holmen Hockey Hvit\n  Ringerike 2 vs Jutul Grønn\n  Skie
+ n vs Jar Svart\n  Holmen Hockey Hvit vs Sandefjord\n  Jutul Hvit vs Frisk 
+ Asker 5\n  Ringerike 2 vs Skien\n  Jutul Grønn vs Holmen Hockey Hvit\n  J
+ ar Svart vs Jutul Hvit\n  Sandefjord vs Frisk Asker 5\n  Ringerike 2 vs Ho
+ lmen Hockey Hvit\n  Jutul Hvit vs Skien\n  Frisk Asker 5 vs Jutul Grønn\n
+   Sandefjord vs Jar Svart\n  Ringerike 2 vs Jutul Hvit\n  Holmen Hockey Hv
+ it vs Frisk Asker 5\n  Skien vs Sandefjord\n  Jutul Grønn vs Jar Svart\n 
+  Ringerike 2 vs Frisk Asker 5\n  Sandefjord vs Jutul Hvit\n  Jar Svart vs 
+ Holmen Hockey Hvit\n  Jutul Grønn vs Skien\n  Ringerike 2 vs Sandefjord\n
+   Frisk Asker 5 vs Jar Svart\n  Jutul Hvit vs Jutul Grønn\n  Holmen Hocke
+ y Hvit vs Skien
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U9 — Baerum ishall
+DTSTART:20261213T110000Z
+DTEND:20261213T121500Z
+UID:ae6d7bf0-edd6-5a4e-9475-725df2769327
+CATEGORIES:U9
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U9\nVert: Jutul\nDeltakend
+ e lag (6): Jutul Gul\, Jutul Grønn\, Tønsberg\, Frisk Asker 4\, Frisk As
+ ker 2\, Jar Svart\n\nKamper:\n  Jutul Gul vs Jar Svart\n  Jutul Grønn vs 
+ Frisk Asker 2\n  Tønsberg vs Frisk Asker 4\n  Jutul Gul vs Frisk Asker 2\
+ n  Frisk Asker 4 vs Jar Svart\n  Tønsberg vs Jutul Grønn\n  Jutul Gul vs
+  Frisk Asker 4\n  Frisk Asker 2 vs Tønsberg\n  Jar Svart vs Jutul Grønn\
+ n  Jutul Gul vs Tønsberg\n  Jutul Grønn vs Frisk Asker 4\n  Jar Svart vs
+  Frisk Asker 2\n  Jutul Gul vs Jutul Grønn\n  Tønsberg vs Jar Svart\n  F
+ risk Asker 4 vs Frisk Asker 2
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:JU8 — Baerum ishall
+DTSTART:20270228T103000Z
+DTEND:20270228T121500Z
+UID:5840d7c2-1b26-5541-b4b4-5bf194478a61
+CATEGORIES:JU8
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU8\nVert: Jutul\nDeltaken
+ de lag (7): Jutul Grønn\, Jutul Kittens\, Jar\, Jar Rød\, Frisk Asker\, 
+ Ringerike 1\, Skien\n\nKamper:\n  Jutul Kittens vs Skien\n  Jar vs Ringeri
+ ke 1\n  Jar Rød vs Frisk Asker\n  Jutul Grønn vs Skien\n  Frisk Asker vs
+  Jutul Kittens\n  Jar Rød vs Jar\n  Jutul Grønn vs Ringerike 1\n  Skien 
+ vs Frisk Asker\n  Jutul Kittens vs Jar\n  Jutul Grønn vs Frisk Asker\n  J
+ ar Rød vs Ringerike 1\n  Jar vs Skien\n  Jutul Grønn vs Jar Rød\n  Fris
+ k Asker vs Jar\n  Ringerike 1 vs Jutul Kittens\n  Jutul Grønn vs Jar\n  J
+ utul Kittens vs Jar Rød\n  Skien vs Ringerike 1\n  Jutul Grønn vs Jutul 
+ Kittens\n  Jar Rød vs Skien\n  Frisk Asker vs Ringerike 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Baerum ishall
+DTSTART:20261018T103000Z
+DTEND:20261018T121500Z
+UID:0fbcff6a-7855-515f-a588-e7d0916d8abf
+CATEGORIES:U7
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U7\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Grønn\, Jutul Rød\, Holmen Hockey Sort\, Frisk Asker 2\
+ , Frisk Asker 3\, Jar Grønn\, Sandefjord\, Jar Svart\n\nKamper:\n  Jutul 
+ Grønn vs Jar Svart\n  Jutul Rød vs Sandefjord\n  Holmen Hockey Sort vs J
+ ar Grønn\n  Frisk Asker 2 vs Frisk Asker 3\n  Jutul Grønn vs Sandefjord\
+ n  Jar Grønn vs Jar Svart\n  Frisk Asker 3 vs Jutul Rød\n  Frisk Asker 2
+  vs Holmen Hockey Sort\n  Jutul Grønn vs Jar Grønn\n  Sandefjord vs Fris
+ k Asker 3\n  Jar Svart vs Frisk Asker 2\n  Jutul Rød vs Holmen Hockey Sor
+ t\n  Jutul Grønn vs Frisk Asker 3\n  Frisk Asker 2 vs Jar Grønn\n  Holme
+ n Hockey Sort vs Sandefjord\n  Jutul Rød vs Jar Svart\n  Jutul Grønn vs 
+ Frisk Asker 2\n  Frisk Asker 3 vs Holmen Hockey Sort\n  Jar Grønn vs Jutu
+ l Rød\n  Sandefjord vs Jar Svart\n  Jutul Grønn vs Holmen Hockey Sort\n 
+  Jutul Rød vs Frisk Asker 2\n  Jar Svart vs Frisk Asker 3\n  Sandefjord v
+ s Jar Grønn\n  Jutul Grønn vs Jutul Rød\n  Holmen Hockey Sort vs Jar Sv
+ art\n  Frisk Asker 2 vs Sandefjord\n  Frisk Asker 3 vs Jar Grønn
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Holmenkollen ishall
+DTSTART:20260927T123000Z
+DTEND:20260927T141500Z
+UID:c2f862ef-6615-5b29-a56c-4787e6466e47
+CATEGORIES:U7
+DESCRIPTION:Arena: Holmenkollen ishall\nAldersgruppe: U7\nVert: Holmen\nDe
+ ltakende lag (8): Holmen Hockey Sort\, Frisk Asker 2\, Jar Svart\, Jutul H
+ vit\, Frisk Asker 1\, Jutul Grønn\, Jar Blå\, Tønsberg\n\nKamper:\n  Ho
+ lmen Hockey Sort vs Tønsberg\n  Frisk Asker 2 vs Jar Blå\n  Jar Svart vs
+  Jutul Grønn\n  Jutul Hvit vs Frisk Asker 1\n  Holmen Hockey Sort vs Jar 
+ Blå\n  Jutul Grønn vs Tønsberg\n  Frisk Asker 1 vs Frisk Asker 2\n  Jut
+ ul Hvit vs Jar Svart\n  Holmen Hockey Sort vs Jutul Grønn\n  Jar Blå vs 
+ Frisk Asker 1\n  Tønsberg vs Jutul Hvit\n  Frisk Asker 2 vs Jar Svart\n  
+ Holmen Hockey Sort vs Frisk Asker 1\n  Jutul Hvit vs Jutul Grønn\n  Jar S
+ vart vs Jar Blå\n  Frisk Asker 2 vs Tønsberg\n  Holmen Hockey Sort vs Ju
+ tul Hvit\n  Frisk Asker 1 vs Jar Svart\n  Jutul Grønn vs Frisk Asker 2\n 
+  Jar Blå vs Tønsberg\n  Holmen Hockey Sort vs Jar Svart\n  Frisk Asker 2
+  vs Jutul Hvit\n  Tønsberg vs Frisk Asker 1\n  Jar Blå vs Jutul Grønn\n
+   Holmen Hockey Sort vs Frisk Asker 2\n  Jar Svart vs Tønsberg\n  Jutul H
+ vit vs Jar Blå\n  Frisk Asker 1 vs Jutul Grønn
+LOCATION:Holmenkollen ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Kongsberghallen
+DTSTART:20261206T103000Z
+DTEND:20261206T121500Z
+UID:a34b81ab-a8ea-5725-b00b-5cedcba8005c
+CATEGORIES:U8
+DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U8\nVert: Kongsberg\nDel
+ takende lag (8): Frisk Asker 5\, Jar Rød\, Holmen Hockey Sort\, Holmen Ho
+ ckey Rød\, Jar Svart\, Frisk Asker 1\, Sandefjord\, Tønsberg\n\nKamper:\
+ n  Frisk Asker 5 vs Tønsberg\n  Jar Rød vs Sandefjord\n  Holmen Hockey S
+ ort vs Frisk Asker 1\n  Holmen Hockey Rød vs Jar Svart\n  Frisk Asker 5 v
+ s Sandefjord\n  Frisk Asker 1 vs Tønsberg\n  Jar Svart vs Jar Rød\n  Hol
+ men Hockey Rød vs Holmen Hockey Sort\n  Frisk Asker 5 vs Frisk Asker 1\n 
+  Sandefjord vs Jar Svart\n  Tønsberg vs Holmen Hockey Rød\n  Jar Rød vs
+  Holmen Hockey Sort\n  Frisk Asker 5 vs Jar Svart\n  Holmen Hockey Rød vs
+  Frisk Asker 1\n  Holmen Hockey Sort vs Sandefjord\n  Jar Rød vs Tønsber
+ g\n  Frisk Asker 5 vs Holmen Hockey Rød\n  Jar Svart vs Holmen Hockey Sor
+ t\n  Frisk Asker 1 vs Jar Rød\n  Sandefjord vs Tønsberg\n  Frisk Asker 5
+  vs Holmen Hockey Sort\n  Jar Rød vs Holmen Hockey Rød\n  Tønsberg vs J
+ ar Svart\n  Sandefjord vs Frisk Asker 1\n  Frisk Asker 5 vs Jar Rød\n  Ho
+ lmen Hockey Sort vs Tønsberg\n  Holmen Hockey Rød vs Sandefjord\n  Jar S
+ vart vs Frisk Asker 1
+LOCATION:Kongsberghallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Baerum ishall
+DTSTART:20270227T120000Z
+DTEND:20270227T134500Z
+UID:a62e8e6a-ed64-5c21-8151-c3905d078844
+CATEGORIES:U8
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U8\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Gul\, Holmen Hockey Hvit\, Frisk Asker 3\, Frisk Asker 1\
+ , Holmen Hockey Blå\, Ringerike 1\, Jar Svart\, Tønsberg\n\nKamper:\n  J
+ utul Gul vs Tønsberg\n  Holmen Hockey Hvit vs Jar Svart\n  Frisk Asker 3 
+ vs Ringerike 1\n  Frisk Asker 1 vs Holmen Hockey Blå\n  Jutul Gul vs Jar 
+ Svart\n  Ringerike 1 vs Tønsberg\n  Holmen Hockey Blå vs Holmen Hockey H
+ vit\n  Frisk Asker 1 vs Frisk Asker 3\n  Jutul Gul vs Ringerike 1\n  Jar S
+ vart vs Holmen Hockey Blå\n  Tønsberg vs Frisk Asker 1\n  Holmen Hockey 
+ Hvit vs Frisk Asker 3\n  Jutul Gul vs Holmen Hockey Blå\n  Frisk Asker 1 
+ vs Ringerike 1\n  Frisk Asker 3 vs Jar Svart\n  Holmen Hockey Hvit vs Tøn
+ sberg\n  Jutul Gul vs Frisk Asker 1\n  Holmen Hockey Blå vs Frisk Asker 3
+ \n  Ringerike 1 vs Holmen Hockey Hvit\n  Jar Svart vs Tønsberg\n  Jutul G
+ ul vs Frisk Asker 3\n  Holmen Hockey Hvit vs Frisk Asker 1\n  Tønsberg vs
+  Holmen Hockey Blå\n  Jar Svart vs Ringerike 1\n  Jutul Gul vs Holmen Hoc
+ key Hvit\n  Frisk Asker 3 vs Tønsberg\n  Frisk Asker 1 vs Jar Svart\n  Ho
+ lmen Hockey Blå vs Ringerike 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U8 — Kongsberghallen
+DTSTART:20270314T120000Z
+DTEND:20270314T134500Z
+UID:4cf63b17-7f1b-5247-bc89-dd627829b0f2
+CATEGORIES:U8
+DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U8\nVert: Kongsberg\nDel
+ takende lag (8): Kongsberg\, Jar Rød\, Frisk Asker 4\, Jar Blå\, Holmen 
+ Hockey Sort\, Ringerike 1\, Jutul Rød\, Frisk Asker 1\n\nKamper:\n  Kongs
+ berg vs Frisk Asker 1\n  Jar Rød vs Jutul Rød\n  Frisk Asker 4 vs Ringer
+ ike 1\n  Jar Blå vs Holmen Hockey Sort\n  Kongsberg vs Jutul Rød\n  Ring
+ erike 1 vs Frisk Asker 1\n  Holmen Hockey Sort vs Jar Rød\n  Jar Blå vs 
+ Frisk Asker 4\n  Kongsberg vs Ringerike 1\n  Jutul Rød vs Holmen Hockey S
+ ort\n  Frisk Asker 1 vs Jar Blå\n  Jar Rød vs Frisk Asker 4\n  Kongsberg
+  vs Holmen Hockey Sort\n  Jar Blå vs Ringerike 1\n  Frisk Asker 4 vs Jutu
+ l Rød\n  Jar Rød vs Frisk Asker 1\n  Kongsberg vs Jar Blå\n  Holmen Hoc
+ key Sort vs Frisk Asker 4\n  Ringerike 1 vs Jar Rød\n  Jutul Rød vs Fris
+ k Asker 1\n  Kongsberg vs Frisk Asker 4\n  Jar Rød vs Jar Blå\n  Frisk A
+ sker 1 vs Holmen Hockey Sort\n  Jutul Rød vs Ringerike 1\n  Kongsberg vs 
+ Jar Rød\n  Frisk Asker 4 vs Frisk Asker 1\n  Jar Blå vs Jutul Rød\n  Ho
+ lmen Hockey Sort vs Ringerike 1
+LOCATION:Kongsberghallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Baerum ishall
+DTSTART:20270206T110000Z
+DTEND:20270206T124500Z
+UID:01873205-3f21-555c-88eb-02994b3f766f
+CATEGORIES:U7
+DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U7\nVert: Jutul\nDeltakend
+ e lag (8): Jutul Rød\, Jar Blå\, Holmen Hockey Sort\, Holmen Hockey Rød
+ \, Sandefjord\, Frisk Asker 1\, Jar Svart\, Jar Grønn\n\nKamper:\n  Jutul
+  Rød vs Jar Grønn\n  Jar Blå vs Jar Svart\n  Holmen Hockey Sort vs Fris
+ k Asker 1\n  Holmen Hockey Rød vs Sandefjord\n  Jutul Rød vs Jar Svart\n
+   Frisk Asker 1 vs Jar Grønn\n  Sandefjord vs Jar Blå\n  Holmen Hockey R
+ ød vs Holmen Hockey Sort\n  Jutul Rød vs Frisk Asker 1\n  Jar Svart vs S
+ andefjord\n  Jar Grønn vs Holmen Hockey Rød\n  Jar Blå vs Holmen Hockey
+  Sort\n  Jutul Rød vs Sandefjord\n  Holmen Hockey Rød vs Frisk Asker 1\n
+   Holmen Hockey Sort vs Jar Svart\n  Jar Blå vs Jar Grønn\n  Jutul Rød 
+ vs Holmen Hockey Rød\n  Sandefjord vs Holmen Hockey Sort\n  Frisk Asker 1
+  vs Jar Blå\n  Jar Svart vs Jar Grønn\n  Jutul Rød vs Holmen Hockey Sor
+ t\n  Jar Blå vs Holmen Hockey Rød\n  Jar Grønn vs Sandefjord\n  Jar Sva
+ rt vs Frisk Asker 1\n  Jutul Rød vs Jar Blå\n  Holmen Hockey Sort vs Jar
+  Grønn\n  Holmen Hockey Rød vs Jar Svart\n  Sandefjord vs Frisk Asker 1
+LOCATION:Baerum ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U7 — Varner Arena / Askerhallen
+DTSTART:20261107T123000Z
+DTEND:20261107T141500Z
+UID:613ebd89-f95a-5127-8e4b-60d9c13def48
+CATEGORIES:U7
+DESCRIPTION:Arena: Varner Arena / Askerhallen\nAldersgruppe: U7\nVert: Fri
+ sk Asker\nDeltakende lag (8): Frisk Asker 2\, Jar Rød\, Holmen Hockey Hvi
+ t\, Jar Blå\, Jar Grønn\, Jutul Hvit\, Jutul Rød\, Holmen Hockey Sort\n
+ \nKamper:\n  Frisk Asker 2 vs Holmen Hockey Sort\n  Jar Rød vs Jutul Rød
+ \n  Holmen Hockey Hvit vs Jutul Hvit\n  Jar Blå vs Jar Grønn\n  Frisk As
+ ker 2 vs Jutul Rød\n  Jutul Hvit vs Holmen Hockey Sort\n  Jar Grønn vs J
+ ar Rød\n  Jar Blå vs Holmen Hockey Hvit\n  Frisk Asker 2 vs Jutul Hvit\n
+   Jutul Rød vs Jar Grønn\n  Holmen Hockey Sort vs Jar Blå\n  Jar Rød v
+ s Holmen Hockey Hvit\n  Frisk Asker 2 vs Jar Grønn\n  Jar Blå vs Jutul H
+ vit\n  Holmen Hockey Hvit vs Jutul Rød\n  Jar Rød vs Holmen Hockey Sort\
+ n  Frisk Asker 2 vs Jar Blå\n  Jar Grønn vs Holmen Hockey Hvit\n  Jutul 
+ Hvit vs Jar Rød\n  Jutul Rød vs Holmen Hockey Sort\n  Frisk Asker 2 vs H
+ olmen Hockey Hvit\n  Jar Rød vs Jar Blå\n  Holmen Hockey Sort vs Jar Gr
+ ønn\n  Jutul Rød vs Jutul Hvit\n  Frisk Asker 2 vs Jar Rød\n  Holmen Ho
+ ckey Hvit vs Holmen Hockey Sort\n  Jar Blå vs Jutul Rød\n  Jar Grønn vs
+  Jutul Hvit
+LOCATION:Varner Arena / Askerhallen
+END:VEVENT
+END:VCALENDAR
