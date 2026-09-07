@@ -170,6 +170,27 @@ class TestJointClubHostNames:
         slot = find_slot_for_tournament(planner, event_date, "Jar/Jutul", "U10", self._games())
         assert slot is None
 
+    def test_explicit_shared_host_decision_is_not_overridden_by_calendar_convenience(self):
+        """issue #274: once an LLM/controller decision has chosen Jar for
+        this (registration, age_group), a free Jutul calendar must not
+        silently win -- the search stays scoped to the chosen constituent,
+        falling through to manual placement instead of switching hosts."""
+        event_date = datetime(2026, 10, 3).date()
+        full_day = CalendarEvent(
+            date=event_date.strftime("%d.%m.%Y"),
+            name="Booket hele dagen",
+            datetime=datetime(event_date.year, event_date.month, event_date.day, 0, 0),
+            duration_hours=24.0,
+        )
+        # Jar is full, Jutul is free -- the old alphabetical fallback would
+        # pick Jutul; the recorded decision must keep it with Jar instead.
+        planner = self._planner(jar_events=[full_day], jutul_events=[])
+        planner.shared_host_decisions = {("Jar/Jutul", "U10"): "Jar"}
+
+        slot = find_slot_for_tournament(planner, event_date, "Jar/Jutul", "U10", self._games())
+
+        assert slot is None
+
 
 # ---------------------------------------------------------------------------
 # Host-first participant ordering -> game.home invariant

@@ -90,6 +90,18 @@ class ClubCalendarSource:
     # windows represent ice genuinely unavailable to it and must stay a hard
     # conflict, not club-controlled.
     club_controlled_calendar: bool = False
+    # issue #274: whether a successful scrape of `source` is trustworthy
+    # enough evidence for *automatic* tournament placement. Separate from
+    # `is_known` on purpose -- a source can return real rows (so the scraper
+    # itself "succeeds") while still not being the calendar that actually
+    # needs to be trusted for booking decisions (e.g. Tønsberg's BookUp URL
+    # currently only exposes generic/public placeholder data, not the full
+    # authenticated booking calendar). Defaults to True; flip to False only
+    # when a club's returned data is known not to be the real, complete
+    # calendar. The club still counts fully toward hosting fairness/coverage
+    # -- this only forces every one of its hosted tournaments into manual
+    # placement (`pipeline.scraper_event_helpers._group_club_calendar_status`).
+    trusted_for_auto_placement: bool = True
 
     @property
     def is_known(self) -> bool:
@@ -118,8 +130,14 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         skip=False,
         note=(
             "BookUp SPA -- full Tønsberg ishall availability is behind "
-            "BookUp login and requires BOOKUP_EMAIL/BOOKUP_PASSWORD."
+            "BookUp login and requires BOOKUP_EMAIL/BOOKUP_PASSWORD. Until an "
+            "authenticated full-calendar scrape is proven trustworthy, a "
+            "successful scrape of this URL only returns BookUp's generic/"
+            "public placeholder data, not real availability -- issue #274 "
+            "requires every Tønsberg-hosted tournament to be manual until "
+            "that is fixed (trusted_for_auto_placement=False)."
         ),
+        trusted_for_auto_placement=False,
     ),
     "Frisk Asker": ClubCalendarSource(
         club="Frisk Asker",

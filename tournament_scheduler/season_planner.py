@@ -124,6 +124,7 @@ class SeasonPlanner:
         max_month_deviation_ratio: float = 0.5,
         events_by_club: Optional[Dict[str, List[CalendarEvent]]] = None,
         club_calendar_status: Optional[Dict[str, str]] = None,
+        shared_host_decisions: Optional[Dict[Tuple[str, str], str]] = None,
         club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
         fairness_thresholds: Optional[Dict[str, float]] = None,
         fairness_model: Optional[SeasonFairnessModel] = None,
@@ -193,6 +194,14 @@ class SeasonPlanner:
         # threaded from the Stage 2 checkpoint through to slot search so a
         # missing/blocked scrape is never treated as "entire window free".
         self.club_calendar_status: Dict[str, str] = dict(club_calendar_status or {})
+        # issue #274: explicit LLM/controller decisions choosing which
+        # constituent of a shared/joint registration (e.g.
+        # "Kongsberg/Tønsberg") carries a specific (registration, age_group)
+        # hosting obligation. Keyed by (registration, age_group) -> chosen
+        # constituent club. Consulted by
+        # `host_assignment.find_slot_for_tournament` so calendar convenience
+        # never picks the winner once a decision has been made.
+        self.shared_host_decisions: Dict[Tuple[str, str], str] = dict(shared_host_decisions or {})
         # Real external busy intervals per club (issue #264 shape), reused
         # here to surface unresolved_external_conflicts non-blocking, same
         # data source as planning_contract.verify_candidate.

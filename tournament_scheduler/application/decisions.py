@@ -53,6 +53,10 @@ DECISION_ACTION_IDS: frozenset[str] = frozenset(
         "keep_baseline",
         "request_operator",
         "present_for_review",
+        # issue #274: a genuinely new capability (which constituent club of a
+        # shared/joint registration carries a hosting obligation), not soft
+        # policy -- distinct from growing the vocabulary for a policy tweak.
+        "assign_shared_host",
     }
 )
 
@@ -62,12 +66,13 @@ _REQUIRED_ARGUMENTS: dict[str, tuple[str, ...]] = {
     "recover_source": ("source",),
     "apply_candidate": ("candidate_ref",),
     "request_operator": ("question",),
+    "assign_shared_host": ("chosen_club",),
 }
 
 # Actions that may proceed even when the context carries human-approval
 # requirements — everything else must route through a human gate first.
 _HUMAN_APPROVAL_SAFE_ACTIONS: frozenset[str] = frozenset(
-    {"abort", "keep_baseline", "request_operator", "present_for_review"}
+    {"abort", "keep_baseline", "request_operator", "present_for_review", "assign_shared_host"}
 )
 
 # Actions that could move the run past a hard violation and are therefore

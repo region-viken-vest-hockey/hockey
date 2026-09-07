@@ -22,6 +22,20 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Tuple
 
 
+def _constituent_clubs(club: str) -> List[str]:
+    """Split a joint-registration club label (``"Kongsberg/Tønsberg"``) into
+    its constituent clubs. A plain single-club label returns itself.
+
+    Generic on purpose -- issue #274 explicitly forbids hardcoding any
+    specific pair of clubs. Mirrors the ``"/"``-splitting convention already
+    used by ``host_assignment.py``/``season_planner.py`` for joint hosts.
+    """
+    if "/" not in club:
+        return [club]
+    parts = [part.strip() for part in club.split("/") if part.strip()]
+    return parts or [club]
+
+
 def required_club_age_group_pairs(teams: Iterable[Dict[str, Any]]) -> List[Tuple[str, str]]:
     """Every distinct (club, age_group) with at least one registered team."""
     seen: set[Tuple[str, str]] = set()
@@ -71,7 +85,14 @@ def hosting_coverage_matrix(
 
     rows: List[Dict[str, Any]] = []
     for club, age_group in required_club_age_group_pairs(teams):
-        hosted = hosted_counts.get((club, age_group), 0)
+        # A joint registration (e.g. "Kongsberg/Tønsberg") is always
+        # resolved to a single physical host club by the time a real
+        # tournament exists (season_planner.py never leaves "A/B" as a
+        # literal host_club) -- so a joint row's obligation is satisfied by
+        # *any* of its constituents hosting that age group, not by an exact
+        # string match on the joint label itself (issue #274).
+        constituents = _constituent_clubs(club)
+        hosted = sum(hosted_counts.get((constituent, age_group), 0) for constituent in constituents)
         rows.append(
             {
                 "club": club,
@@ -109,6 +130,71 @@ def hosting_breakdown_by_club_and_age_group(rows: Iterable[Dict[str, Any]]) -> D
         age_entry["hosted"] += hosted
         age_entry["unresolved"] += unresolved
     return {"by_club": by_club, "by_age_group": by_age_group}
+
+
+def shared_registration_facts(
+    teams: Iterable[Dict[str, Any]],
+    tournaments: Iterable[Dict[str, Any]],
+    club_calendar_status: Dict[str, str] | None = None,
+) -> List[Dict[str, Any]]:
+    """Deterministic facts for every joint-club registration (issue #274).
+
+    A joint registration such as ``"Kongsberg/Tønsberg"`` has more than one
+    legitimate physical host; *which* constituent should carry a given
+    ``(registration, age_group)`` obligation is a contextual fairness
+    judgement this module deliberately does not make (see
+    ``shared_host_decision.py`` -- Python's job here stops at exposing the
+    facts an LLM/controller needs to make that call).
+
+    Returns one entry per joint-club ``(club, age_group)`` row with a
+    registered team: ``{"registration", "age_group", "constituents": [...],
+    "hosted_by_constituent": {club: count in this age group},
+    "hosted_by_constituent_total": {club: count across all age groups},
+    "calendar_trust": {club: status}, "automatic_placement_possible":
+    {club: bool}}``. Rows whose club label has no ``"/"`` are omitted --
+    those are ordinary single-club obligations with nothing to decide.
+    """
+    teams = list(teams)
+    tournaments = list(tournaments)
+    club_calendar_status = club_calendar_status or {}
+
+    total_hosted_by_club: Dict[str, int] = {}
+    hosted_by_club_and_age: Dict[Tuple[str, str], int] = {}
+    for tournament in tournaments:
+        if tournament.get("cancelled"):
+            continue
+        host = tournament.get("host_club")
+        age_group = tournament.get("age_group")
+        if not host or not age_group:
+            continue
+        total_hosted_by_club[host] = total_hosted_by_club.get(host, 0) + 1
+        hosted_by_club_and_age[(host, age_group)] = hosted_by_club_and_age.get((host, age_group), 0) + 1
+
+    facts: List[Dict[str, Any]] = []
+    for club, age_group in required_club_age_group_pairs(teams):
+        if "/" not in club:
+            continue
+        constituents = _constituent_clubs(club)
+        facts.append(
+            {
+                "registration": club,
+                "age_group": age_group,
+                "constituents": constituents,
+                "hosted_by_constituent": {
+                    part: hosted_by_club_and_age.get((part, age_group), 0) for part in constituents
+                },
+                "hosted_by_constituent_total": {
+                    part: total_hosted_by_club.get(part, 0) for part in constituents
+                },
+                "calendar_trust": {
+                    part: club_calendar_status.get(part, "unknown") for part in constituents
+                },
+                "automatic_placement_possible": {
+                    part: club_calendar_status.get(part, "unknown") == "known" for part in constituents
+                },
+            }
+        )
+    return facts
 
 
 def hosting_targets_with_coverage_floor(

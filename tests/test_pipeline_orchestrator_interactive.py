@@ -560,12 +560,15 @@ class TestStage3InteractiveDecisionLoop:
         assert state.read_stage(StageName.PLANNING)["plan"] == candidate_b
 
     def test_apply_candidate_advances_and_clears_state(self, state, tmp_path):
+        import copy
+
         from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report
         from tournament_scheduler.stage3_decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         plan2 = _plan_checkpoint(seed=2)
+        expected_plan2 = copy.deepcopy(plan2)
         report = build_ab_report(plan1["plan"], plan2["plan"])
         ab_context = build_stage3_decision_context(
             report,
@@ -612,7 +615,7 @@ class TestStage3InteractiveDecisionLoop:
 
         assert exit_code == 2
         assert _read_stage3_interactive_state(state) == {}
-        assert state.read_stage(StageName.PLANNING) == plan2
+        assert state.read_stage(StageName.PLANNING) == expected_plan2
 
     def test_apply_candidate_writes_run_evidence_bundle(self, state, tmp_path):
         """issue #264 P0: every production export carries an auditable

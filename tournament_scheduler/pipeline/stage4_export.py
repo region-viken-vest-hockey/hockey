@@ -592,9 +592,10 @@ def run(
                 "conflicting_age_group": "",
                 "conflicting_interval": "",
                 "message": (
-                    f"MANUAL PLACEMENT REQUIRED. Klubb: {club}. Aldersgruppe: {age_group}. "
-                    f"Årsak: {reason} Nødvendig handling: {club} må stille med istid til minst "
-                    f"én {age_group}-turnering."
+                    "MANUAL PLACEMENT REQUIRED. "
+                    f"Club: {club}. Age group: {age_group}. "
+                    f"Reason: {reason or 'required hosting obligation has no verified feasible automatic slot'}. "
+                    f"Action: {club}/RVV must provide or confirm a suitable {age_group} tournament slot."
                 ),
             }
         )

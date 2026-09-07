@@ -295,6 +295,14 @@ class SeasonPlan:
     # Non-blocking -- surfaced in manual_schedule.html rather than rejecting
     # the whole plan.
     unresolved_participation_shortfalls: List[Dict[str, str]] = field(default_factory=list)
+    # issue #274: explicit LLM/controller decisions for shared/joint-club
+    # registrations (e.g. "Kongsberg/Tønsberg") choosing which constituent
+    # club carries a specific hosting obligation. Each entry: {"registration",
+    # "age_group", "chosen_club", "rationale", "decided_by", "decided_at"}.
+    # Provenance only -- no chain-of-thought, matching
+    # `application.decisions.DecisionResult`'s posture. See
+    # `shared_host_decision.py`.
+    shared_host_decisions: List[Dict[str, str]] = field(default_factory=list)
 
 
 # Mapping of age groups whose player pools are known to overlap (e.g. a player

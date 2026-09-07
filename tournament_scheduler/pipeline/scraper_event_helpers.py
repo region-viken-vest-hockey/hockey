@@ -140,10 +140,22 @@ def _group_club_calendar_status(
     conflating a missing/blocked scrape with "entire window is free" is the
     root cause of issue #262's Tønsberg over-scheduling bug.
 
+    ``"untrusted"`` means the source completed successfully, but the club's
+    registry entry (``club_registry.CLUB_REGISTRY[club].
+    trusted_for_auto_placement``) says that success is not, itself,
+    trustworthy evidence for automatic placement -- e.g. Tønsberg's BookUp
+    source currently only returns generic/public placeholder data, not the
+    real authenticated booking calendar (issue #274). Every existing
+    ``!= "known"`` check already treats this the same as ``"unknown"`` for
+    placement purposes; the distinct label exists so evidence/logs can show
+    *why* (missing scrape vs. proven-untrustworthy scrape).
+
     A club can have multiple source results (rare, but possible for
     multi-arena clubs); if any of them is unknown, the whole club is treated
     as unknown -- partial evidence is not sufficient evidence.
     """
+    from ..club_registry import CLUB_REGISTRY
+
     status: dict[str, str] = {}
     for source_result in source_results:
         source_name = source_result.get("name", "")
@@ -158,4 +170,11 @@ def _group_club_calendar_status(
         if status.get(club_name) == "unknown":
             continue
         status[club_name] = "unknown" if is_unknown else "known"
+
+    for club_name, club_status in status.items():
+        if club_status != "known":
+            continue
+        registry_entry = CLUB_REGISTRY.get(club_name)
+        if registry_entry is not None and not registry_entry.trusted_for_auto_placement:
+            status[club_name] = "untrusted"
     return status

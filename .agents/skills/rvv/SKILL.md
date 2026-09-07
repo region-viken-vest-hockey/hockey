@@ -239,6 +239,23 @@ reference shared policy rather than duplicating it).
   is no Stage 5 — report the result to the user; `/rvv-miniputt:publish`
   handles publication separately.
 
+**Hosting-obligation policy (issue #274, canonical — see
+`tournament_scheduler/hosting_coverage.py`, `planning_contract.verify_candidate`,
+`shared_host_decision.py` for the actual logic, not this summary):** decide
+who owes hosting first, then try to place it with trustworthy calendar
+evidence, then — only if that fails — keep the obligation and surface it as
+manual work. Calendar convenience never decides away or silently transfers a
+hosting obligation. A club with `club_calendar_status` `"unknown"` or
+`"untrusted"` (a successful scrape whose registry entry says the data isn't
+trustworthy enough for automatic placement, e.g. Tønsberg's current BookUp
+source) still counts fully toward hosting fairness — it just means every
+tournament it hosts must be manual. For a shared/joint-club registration
+(e.g. `"Kongsberg/Tønsberg"`), the `assign_shared_host` decision is the one
+place an LLM/controller picks which constituent club carries a given
+obligation, using the deterministic facts Python exposes — never a fixed
+"alphabetically first with a free slot" heuristic, and never biased by which
+constituent's calendar happens to be easier.
+
 ## LLM-driven scraping (ScraperAgent)
 
 When deterministic scraping fails for a source, the ScraperAgent in `.pi/lib/scraper-agent.ts` handles it:

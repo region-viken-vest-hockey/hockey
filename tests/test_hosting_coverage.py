@@ -6,6 +6,7 @@ from tournament_scheduler.hosting_coverage import (
     hosting_targets_with_coverage_floor,
     proportional_integer_targets,
     required_club_age_group_pairs,
+    shared_registration_facts,
     unresolved_from_matrix,
 )
 
@@ -66,6 +67,83 @@ class TestHostingCoverageMatrix:
             [_tournament("Jar", "U10")],
         )
         assert unresolved_from_matrix(rows) == [{"club": "Jutul", "age_group": "U10"}]
+
+
+class TestJointClubCoverage:
+    """issue #274: a joint registration's obligation is satisfied when any
+    constituent hosts it, since the planner always resolves "A/B" to a
+    single physical host club before a real tournament exists."""
+
+    def test_hosted_by_either_constituent_resolves_the_joint_row(self):
+        teams = [_team("Kongsberg/Tønsberg", "JU12")]
+        tournaments = [_tournament("Kongsberg", "JU12")]
+
+        rows = hosting_coverage_matrix(teams, tournaments)
+
+        assert rows == [
+            {
+                "club": "Kongsberg/Tønsberg",
+                "age_group": "JU12",
+                "teams": 1,
+                "hosted": 1,
+                "unresolved": False,
+            }
+        ]
+
+    def test_unresolved_when_neither_constituent_hosts(self):
+        teams = [_team("Kongsberg/Tønsberg", "JU12")]
+        tournaments = [_tournament("Jar", "JU12")]
+
+        rows = hosting_coverage_matrix(teams, tournaments)
+
+        assert rows[0]["hosted"] == 0
+        assert rows[0]["unresolved"] is True
+
+    def test_kongsberg_own_obligation_is_independent_of_the_joint_row(self):
+        # Kongsberg's own U9 registration must not be satisfied by a
+        # Kongsberg/Tønsberg JU12 hosting -- different age groups.
+        teams = [_team("Kongsberg", "U9"), _team("Kongsberg/Tønsberg", "JU12")]
+        tournaments = [_tournament("Kongsberg", "JU12")]
+
+        rows = hosting_coverage_matrix(teams, tournaments)
+
+        by_key = {(row["club"], row["age_group"]): row for row in rows}
+        assert by_key[("Kongsberg", "U9")]["unresolved"] is True
+        assert by_key[("Kongsberg/Tønsberg", "JU12")]["unresolved"] is False
+
+
+class TestSharedRegistrationFacts:
+    def test_omits_plain_single_club_rows(self):
+        teams = [_team("Jar", "U10")]
+        assert shared_registration_facts(teams, []) == []
+
+    def test_reports_constituent_hosted_counts_and_trust(self):
+        teams = [_team("Kongsberg/Tønsberg", "JU12")]
+        tournaments = [
+            _tournament("Kongsberg", "JU12"),
+            _tournament("Kongsberg", "U10"),
+        ]
+        club_calendar_status = {"Kongsberg": "known", "Tønsberg": "untrusted"}
+
+        facts = shared_registration_facts(teams, tournaments, club_calendar_status)
+
+        assert facts == [
+            {
+                "registration": "Kongsberg/Tønsberg",
+                "age_group": "JU12",
+                "constituents": ["Kongsberg", "Tønsberg"],
+                "hosted_by_constituent": {"Kongsberg": 1, "Tønsberg": 0},
+                "hosted_by_constituent_total": {"Kongsberg": 2, "Tønsberg": 0},
+                "calendar_trust": {"Kongsberg": "known", "Tønsberg": "untrusted"},
+                "automatic_placement_possible": {"Kongsberg": True, "Tønsberg": False},
+            }
+        ]
+
+    def test_missing_calendar_status_defaults_to_unknown_and_not_placeable(self):
+        teams = [_team("Kongsberg/Tønsberg", "JU12")]
+        facts = shared_registration_facts(teams, [])
+        assert facts[0]["calendar_trust"] == {"Kongsberg": "unknown", "Tønsberg": "unknown"}
+        assert facts[0]["automatic_placement_possible"] == {"Kongsberg": False, "Tønsberg": False}
 
 
 class TestHostingBreakdown:

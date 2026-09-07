@@ -412,3 +412,36 @@ class TestUnresolvedManualPlacementFieldsRoundTrip:
         assert plan.unresolved_hosting_obligations == []
         assert plan.unresolved_external_conflicts == []
         assert plan.unresolved_participation_shortfalls == []
+
+
+class TestSharedHostDecisionsRoundTrip:
+    """issue #274: shared_host_decisions (LLM/controller provenance for
+    joint-club registrations) must survive the same checkpoint round-trip
+    as the unresolved_* manual-placement lists."""
+
+    def _make_minimal_plan(self, **kwargs) -> SeasonPlan:
+        return SeasonPlan(tournaments=[], team_game_counts={}, game_count_spread=0, **kwargs)
+
+    def test_survives_round_trip(self):
+        decisions = [
+            {
+                "registration": "Kongsberg/Tønsberg",
+                "age_group": "JU12",
+                "chosen_club": "Tønsberg",
+                "rationale": "Kongsberg already carries materially more hosting burden.",
+                "decided_by": "llm",
+                "decided_at": "2026-09-07T00:00:00",
+            }
+        ]
+        plan = self._make_minimal_plan(shared_host_decisions=decisions)
+
+        d = _plan_to_dict(plan)
+        assert d["shared_host_decisions"] == decisions
+
+        restored = _dict_to_plan(d)
+        assert restored.shared_host_decisions == decisions
+
+    def test_missing_key_defaults_to_empty_list_on_deserialize(self):
+        d = {"tournaments": [], "game_count_spread": 0}
+        plan = _dict_to_plan(d)
+        assert plan.shared_host_decisions == []

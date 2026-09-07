@@ -1998,6 +1998,78 @@ def _assert_hard_verification_before_export(
     return True
 
 
+def _reconcile_verified_manual_state(
+    plan: "dict[str, Any] | None",
+    problem: "dict[str, Any] | None",
+    log_fn: "Any",
+) -> None:
+    """Make the final hard-verifier's manual/unresolved findings authoritative
+    on *plan* before Stage 4 renders it (issue #274 P0).
+
+    ``SeasonPlanner`` computes ``unresolved_hosting_obligations``/
+    ``unresolved_external_conflicts``/``unresolved_participation_shortfalls``
+    while it builds the plan, but later pipeline steps (optimizer passes,
+    A/B adoption, mid-planning decisions) can change the final candidate
+    without recomputing those lists. ``_assert_hard_verification_before_export``
+    already independently re-runs :func:`planning_contract.verify_candidate`
+    on the true final candidate for the hard-violation gate; this reuses that
+    same canonical recomputation and writes its non-blocking findings back
+    onto *plan* so ``manual_schedule.html`` can never omit something the
+    verifier -- and the evidence bundle's ``final_verify_result`` -- already
+    found. Best-effort: any failure leaves *plan* untouched rather than
+    blocking export, matching :func:`_write_run_evidence_bundle`'s posture.
+    """
+    if not isinstance(plan, dict) or not isinstance(plan.get("plan"), dict):
+        return
+    try:
+        from ..planning_contract import extract_candidate, verify_candidate
+
+        candidate = extract_candidate(plan)
+        result = verify_candidate(candidate, problem)
+    except Exception as exc:  # noqa: BLE001 - best-effort, never blocks export
+        log_fn(f"Stage 4 manual-state reconciliation skipped: {exc}")
+        return
+
+    plan_dict = plan["plan"]
+    plan_dict["unresolved_hosting_obligations"] = [
+        {
+            "club": item.get("club", ""),
+            "age_group": item.get("age_group", ""),
+            "reason": (
+                "required hosting obligation has no verified feasible automatic slot"
+            ),
+        }
+        for item in result.get("unresolved_hosting_obligations") or []
+    ]
+    plan_dict["unresolved_external_conflicts"] = [
+        {
+            "tournament_id": item.get("tournament_id", ""),
+            "host_club": item.get("host_club", ""),
+            "age_group": item.get("age_group", ""),
+            "date": item.get("date", ""),
+            "reason": "external calendar conflict requires manual resolution",
+        }
+        for item in result.get("manual_external_conflict_placements") or []
+    ]
+    plan_dict["unresolved_participation_shortfalls"] = [
+        {
+            "club": item.get("club", ""),
+            "label": item.get("label", ""),
+            "age_group": item.get("age_group", ""),
+            "actual": item.get("actual", ""),
+            "target": item.get("target", ""),
+            "reason": "actual participation count does not match target",
+        }
+        for item in result.get("manual_participation_placements") or []
+    ]
+    log_fn(
+        "Stage 4 manual-state reconciled from final verification: "
+        f"{len(plan_dict['unresolved_hosting_obligations'])} unresolved hosting, "
+        f"{len(plan_dict['unresolved_external_conflicts'])} external conflicts, "
+        f"{len(plan_dict['unresolved_participation_shortfalls'])} participation shortfalls"
+    )
+
+
 def _write_run_evidence_bundle(
     args: "argparse.Namespace",
     state: "Any",
@@ -2956,6 +3028,10 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         plan, _mid_planning_decision_problem(cfg, scraping, start, end), strict, _console, _log
     ):
         return 1
+    if resume_from <= 4:
+        _reconcile_verified_manual_state(
+            plan, _mid_planning_decision_problem(cfg, scraping, start, end), _log
+        )
 
     _generated_calendars, abort, _stage4_failed = _run_stage4_export(
         args, plan, state, strict, _log, resume_from
@@ -3255,6 +3331,9 @@ def _cmd_run(args: argparse.Namespace) -> int:
         _manifest_finalize(args.work_dir, "blocked")
         _write_run_log(args, state, log_start, log_lines, success=False)
         return 1
+    _reconcile_verified_manual_state(
+        plan, _mid_planning_decision_problem(cfg, scraping, start, end), _log
+    )
 
     _manifest_set_active(args.work_dir, "export")
     stage4_generated_calendars, abort, stage4_failed = _run_stage4_export(

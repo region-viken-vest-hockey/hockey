@@ -242,6 +242,34 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "kategori": "Hard krav",
         },
         {
+            "regel": "Kalendertillit er skilt fra vellykket skraping (issue #274)",
+            "forklaring": (
+                "En klubbs kalenderstatus kan være «known» (nok bevis for automatisk plassering), "
+                "«unknown» (blokkert/hoppet over/feilet skraping), eller «untrusted» (skrapingen "
+                "lyktes, men klubbens registeroppføring sier at dataene ikke er den reelle, "
+                "fullstendige kalenderen -- for eksempel Tønsbergs BookUp-kilde, som i dag kun "
+                "returnerer generiske/offentlige plassholderdata). En klubb med «untrusted» eller "
+                "«unknown» status beholder sin fulle andel av vertskapsansvaret, men enhver "
+                "turnering den er vertskap for må planlegges manuelt inntil et fullstendig, "
+                "autentisert kalendersøk er bevist pålitelig."
+            ),
+            "kategori": "Hard krav",
+        },
+        {
+            "regel": "Delt vertskap for felles klubbregistreringer avgjøres av LLM (issue #274)",
+            "forklaring": (
+                "En registrering som «Kongsberg/Tønsberg» har mer enn én gyldig fysisk vert. Hvilken "
+                "av de to klubbene som skal bære et konkret vertskapsansvar for en aldersgruppe er "
+                "en kontekstuell rettferdighetsvurdering -- Python eksponerer kun de deterministiske "
+                "fakta (antall vertskap per klubb, kalendertillit per klubb, om automatisk plassering "
+                "er mulig), og en LLM/kontroller velger blant registreringens egne deltakerklubber. "
+                "Kalenderutilgjengelighet kan aldri i seg selv avgjøre valget; hvis den valgte klubben "
+                "mangler en pålitelig automatisk ledig tid, blir turneringen manuell for akkurat den "
+                "klubben i stedet for at ansvaret stille overføres til den andre."
+            ),
+            "kategori": "Hard krav",
+        },
+        {
             "regel": "Ekstern kalenderkonflikt håndteres ikke-blokkerende",
             "forklaring": (
                 "Når en turnerings vertskap har en reell kollisjon med en kjent ekstern "
