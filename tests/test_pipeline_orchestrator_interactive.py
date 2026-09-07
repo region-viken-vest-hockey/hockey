@@ -43,11 +43,18 @@ def _tournament(t_id: str, date_str: str, arena: str, age_group: str, teams: lis
 
 
 def _candidate(seed: int) -> dict:
-    """A minimal, verifier-passing candidate (mirrors test_stage3_ab's fixture)."""
+    """A minimal, verifier-passing candidate (mirrors test_stage3_ab's fixture).
+
+    Months are chosen from the 2026-09-01..2027-04-30 config window used
+    throughout this file's fixtures (see ``_args``/effective-config helpers)
+    so the full hard verifier (including ``date_outside_window``) passes,
+    not just the self-consistency-only checks (issue #264 real-run
+    finding's Stage 4 hard-verification gate).
+    """
     teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 9)}
     group_a = [teams["T1"], teams["T2"], teams["T3"], teams["T4"]]
     group_b = [teams["T5"], teams["T6"], teams["T7"], teams["T8"]]
-    month = 1 + (seed % 4)
+    month = 9 + (seed % 4)
     return {
         "schema_version": 1,
         "tournaments": [

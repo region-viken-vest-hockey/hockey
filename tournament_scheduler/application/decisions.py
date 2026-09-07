@@ -74,6 +74,15 @@ _HUMAN_APPROVAL_SAFE_ACTIONS: frozenset[str] = frozenset(
 # blocked while any hard violation is outstanding.
 _HARD_VIOLATION_BLOCKED_ACTIONS: frozenset[str] = frozenset({"proceed", "apply_candidate"})
 
+# ``keep_baseline`` is validated against the *baseline's own* hard-violation
+# status (``DecisionContext.baseline_hard_violations``), not the candidate's
+# (``hard_violations`` above blocks ``apply_candidate`` instead). A baseline
+# that already fails the canonical hard verifier must not be finalized by a
+# ``keep_baseline``/operator decision -- see issue #264's real-run finding:
+# a `2026-09-07T0525` export shipped `keep_baseline` over a candidate whose
+# `final_verify_result.ok` was `False`.
+_BASELINE_HARD_VIOLATION_BLOCKED_ACTIONS: frozenset[str] = frozenset({"keep_baseline"})
+
 
 # ---------------------------------------------------------------------------
 # Structured errors
@@ -130,6 +139,20 @@ class HardViolationBlocksActionError(DecisionActionError):
     code = "hard_violation_blocks_action"
 
 
+class BaselineHardViolationBlocksActionError(DecisionActionError):
+    """Raised when ``keep_baseline`` would finalize a baseline that already
+    fails the canonical hard verifier (issue #264 real-run finding).
+
+    Hard-feasibility verification is authoritative regardless of operator/LLM
+    tradeoff ownership: a baseline that fails ``verify_candidate`` may not be
+    kept as the final answer via ``keep_baseline`` -- only ``optimize_plan``,
+    ``request_operator``, or ``abort`` remain available while
+    :attr:`DecisionContext.baseline_hard_violations` is non-empty.
+    """
+
+    code = "baseline_hard_violation_blocks_action"
+
+
 class InvalidDecisionArgumentValueError(InvalidDecisionArgumentsError):
     """Raised when an argument is present but violates its declared schema
     (:attr:`DecisionContext.action_parameters`) — wrong type, out of range,
@@ -164,6 +187,7 @@ _CONTEXT_FIELDS = {
     "objective",
     "facts",
     "hard_violations",
+    "baseline_hard_violations",
     "warnings",
     "scorecard",
     "baseline_ref",
@@ -190,6 +214,13 @@ class DecisionContext:
     objective: str = ""
     facts: Mapping[str, Any] = field(default_factory=dict)
     hard_violations: tuple[str, ...] = ()
+    # Hard-verifier violations of the *current baseline* (what ``keep_baseline``
+    # would finalize), as opposed to ``hard_violations`` which describes the
+    # candidate ``apply_candidate`` would adopt. Non-empty blocks
+    # ``keep_baseline`` (issue #264 real-run finding: a `keep_baseline`
+    # decision must not turn a hard-verification failure into an exportable
+    # production candidate).
+    baseline_hard_violations: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
     scorecard: Mapping[str, Any] = field(default_factory=dict)
     baseline_ref: str | None = None
@@ -220,6 +251,9 @@ class DecisionContext:
             objective=str(data.get("objective") or ""),
             facts=dict(data.get("facts") or {}),
             hard_violations=tuple(str(item) for item in (data.get("hard_violations") or ())),
+            baseline_hard_violations=tuple(
+                str(item) for item in (data.get("baseline_hard_violations") or ())
+            ),
             warnings=tuple(str(item) for item in (data.get("warnings") or ())),
             scorecard=dict(data.get("scorecard") or {}),
             baseline_ref=_optional_str(data.get("baseline_ref")),
@@ -245,6 +279,7 @@ class DecisionContext:
                 "objective": self.objective,
                 "facts": dict(self.facts),
                 "hard_violations": list(self.hard_violations),
+                "baseline_hard_violations": list(self.baseline_hard_violations),
                 "warnings": list(self.warnings),
                 "scorecard": dict(self.scorecard),
                 "baseline_ref": self.baseline_ref,
@@ -345,6 +380,15 @@ def validate_decision_action(context: DecisionContext, action: DecisionAction) -
         raise HardViolationBlocksActionError(
             action.action_id,
             f"outstanding hard violations: {', '.join(context.hard_violations)}",
+        )
+
+    if (
+        context.baseline_hard_violations
+        and action.action_id in _BASELINE_HARD_VIOLATION_BLOCKED_ACTIONS
+    ):
+        raise BaselineHardViolationBlocksActionError(
+            action.action_id,
+            f"baseline fails hard verification: {', '.join(context.baseline_hard_violations)}",
         )
 
     if context.requires_human_approval and action.action_id not in _HUMAN_APPROVAL_SAFE_ACTIONS:

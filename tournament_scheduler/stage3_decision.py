@@ -167,6 +167,13 @@ def build_stage3_decision_context(
     (``report["new"]["verification"]["ok"]`` is ``False``) — a still-invalid
     candidate cannot be adopted by prose, regardless of whether that
     violation is a regression versus the baseline or was already present.
+    Symmetrically, ``keep_baseline`` is blocked whenever the *baseline*
+    itself fails the verifier (``report["old"]["verification"]["ok"]`` is
+    ``False``) — see issue #264's real-run finding: a
+    `2026-09-07T0525` export finalized `keep_baseline` over a baseline whose
+    `final_verify_result.ok` was `False`. Hard-feasibility verification
+    remains authoritative; only ``optimize_plan``, ``request_operator``, or
+    ``abort`` stay available in that case.
 
     *optimize_plan_schema* selects which ``action_parameters["optimize_plan"]``
     schema to attach — ``"search_budget"`` (default, matches the legacy
@@ -181,6 +188,11 @@ def build_stage3_decision_context(
     if not new_verification.get("ok", True):
         for violation in new_verification.get("violations", []) or []:
             hard_violations.append(f"{violation.get('code')}: {violation.get('message')}")
+
+    baseline_hard_violations: List[str] = []
+    if not old_verification.get("ok", True):
+        for violation in old_verification.get("violations", []) or []:
+            baseline_hard_violations.append(f"{violation.get('code')}: {violation.get('message')}")
 
     warnings: List[str] = [
         f"{age_group}: {', '.join(regressions)}"
@@ -215,6 +227,7 @@ def build_stage3_decision_context(
             "hard_constraint_regressed": bool(report.get("hard_constraint_regressed", False)),
         },
         hard_violations=tuple(hard_violations),
+        baseline_hard_violations=tuple(baseline_hard_violations),
         warnings=tuple(warnings),
         scorecard=scorecard,
         baseline_ref=baseline_ref,

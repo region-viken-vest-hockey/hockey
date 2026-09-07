@@ -1662,6 +1662,10 @@ def _run_stage3_pareto_optimize(
 def _emit_stage3_pareto_decision(
     state: "Any",
     work_dir: str,
+    cfg: "dict[str, Any]",
+    scraping: "dict[str, Any]",
+    start: "Any",
+    end: "Any",
     portfolio: "list[dict[str, Any]] | None",
     log_fn: "Any",
 ) -> int:
@@ -1695,12 +1699,17 @@ def _emit_stage3_pareto_decision(
     if not portfolio:
         # Nothing non-dominated came back (e.g. every epoch converged to
         # the same point) -- fall back to keep/abort rather than offer a
-        # choice that doesn't exist.
+        # choice that doesn't exist. Still independently verify the current
+        # best plan so a hard-failing baseline can't be finalized via
+        # keep_baseline just because the search produced no candidates.
+        problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+        best_plan = interactive_state.get("best_plan")
         context = DecisionContext(
             run_id=run_id,
             capability="stage3_pareto",
             stage="planning",
             objective="The Pareto search produced no non-dominated candidates for this attempt.",
+            baseline_hard_violations=tuple(_baseline_hard_violations_for_plan(best_plan, problem)),
             available_actions=("keep_baseline", "request_operator", "abort"),
         )
         interactive_state["run_id"] = run_id
@@ -1718,6 +1727,11 @@ def _emit_stage3_pareto_decision(
     if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
         available.remove("optimize_plan")
 
+    problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+    baseline_hard_violations = _baseline_hard_violations_for_plan(
+        interactive_state.get("best_plan"), problem
+    )
+
     context = DecisionContext(
         run_id=run_id,
         capability="stage3_pareto",
@@ -1728,6 +1742,7 @@ def _emit_stage3_pareto_decision(
             "request another search epoch with narrowed parameters (optimize_plan), or ask the "
             "operator."
         ),
+        baseline_hard_violations=tuple(baseline_hard_violations),
         facts={
             "epoch_count": len(entries),
             "candidates": [
@@ -1901,6 +1916,78 @@ def _mid_planning_decision_problem(
         return build_planning_problem(cfg, scraping, start.date(), end.date())
     except Exception:
         return None
+
+
+def _baseline_hard_violations_for_plan(
+    plan: "dict[str, Any] | None", problem: "dict[str, Any] | None"
+) -> "list[str]":
+    """Independently verify *plan* against the canonical hard verifier and
+    return its violations as ``"code: message"`` strings (empty when *plan*
+    passes or can't be extracted/verified).
+
+    Used to populate ``DecisionContext.baseline_hard_violations`` for the
+    Stage 3 interactive/Pareto contexts that construct a
+    :class:`~..application.decisions.DecisionContext` directly rather than
+    via :func:`..stage3_decision.build_stage3_decision_context` (which
+    derives it from an A/B report's ``old`` verification instead) -- a
+    ``keep_baseline`` decision must not finalize a plan that already fails
+    hard verification (issue #264 real-run finding).
+    """
+    if plan is None:
+        return []
+    try:
+        from ..planning_contract import extract_candidate, verify_candidate
+
+        candidate = extract_candidate(plan)
+    except (ValueError, KeyError):
+        return []
+    try:
+        result = verify_candidate(candidate, problem)
+    except Exception:
+        return []
+    if result.get("ok", True):
+        return []
+    return [f"{v.get('code')}: {v.get('message')}" for v in (result.get("violations") or [])]
+
+
+def _assert_hard_verification_before_export(
+    plan: "dict[str, Any] | None",
+    problem: "dict[str, Any] | None",
+    strict: bool,
+    console: "Console",
+    log_fn: "Any",
+) -> bool:
+    """Hard-verifier gate immediately before Stage 4 materializes a
+    production export (issue #264 real-run finding).
+
+    A `2026-09-07T0525` production export shipped a `keep_baseline` decision
+    whose `final_verify_result.ok` was `False` (external calendar conflicts
+    and participation-target mismatches). Blocking that at decision time
+    (``_BASELINE_HARD_VIOLATION_BLOCKED_ACTIONS`` in
+    ``application.decisions``) is necessary but not sufficient on its own --
+    a resumed ``--resume-from 4`` run reaches Stage 4 directly without
+    re-emitting a decision, so this independently re-verifies *plan* right
+    before export regardless of how it got here.
+
+    Returns True when export should proceed. In strict mode (the default) a
+    hard-failing plan blocks export outright; ``--non-strict`` logs a
+    warning and continues, matching every other pipeline gate's non-strict
+    posture (e.g. :func:`_run_approval_gate`).
+    """
+    violations = _baseline_hard_violations_for_plan(plan, problem)
+    if not violations:
+        return True
+    console.print(
+        f"  [red]✗[/red] Planen feiler hard verifisering ({len(violations)} brudd) — "
+        "kan ikke materialiseres som produksjonseksport."
+    )
+    for violation in violations:
+        console.print(f"    • {violation}")
+    log_fn(f"Stage 4 hard-verification gate FAILED: {'; '.join(violations)}")
+    if strict:
+        return False
+    console.print("  [yellow]⚠[/yellow] Fortsetter pga --non-strict")
+    return True
 
 
 def _write_run_evidence_bundle(
@@ -2502,6 +2589,7 @@ def _emit_stage3_interactive_decision(
         # "best_plan is None -> adopt" first iteration.
         attempts_used = 1
         summary = _decision_summary_for_checkpoint(3, plan)
+        baseline_hard_violations = _baseline_hard_violations_for_plan(plan, problem)
         available = ["optimize_plan", "keep_baseline", "request_operator", "abort"]
         if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
             available.remove("optimize_plan")
@@ -2515,6 +2603,7 @@ def _emit_stage3_interactive_decision(
                 "the search budget (optimize_plan)."
             ),
             facts=summary,
+            baseline_hard_violations=tuple(baseline_hard_violations),
             available_actions=tuple(available),
             # issue #262 P0: optimize_plan on this first attempt already
             # runs the Stage 3 v2 optimizer too (see _run_stage3_v2_optimize),
@@ -2564,12 +2653,16 @@ def _emit_stage3_interactive_decision(
             context = _dc_replace(context, available_actions=tuple(available) + ("abort",))
         else:
             # A/B report couldn't be built — fall back to keep/abort only,
-            # never silently apply an uncompared candidate.
+            # never silently apply an uncompared candidate. Still
+            # independently verify the current best plan so a hard-failing
+            # baseline can't be finalized via keep_baseline just because the
+            # A/B comparison itself broke.
             context = DecisionContext(
                 run_id=run_id,
                 capability="stage3_optimize",
                 stage="planning",
                 objective="Could not build an old-vs-new comparison report for this attempt.",
+                baseline_hard_violations=tuple(_baseline_hard_violations_for_plan(best_plan, problem)),
                 available_actions=("keep_baseline", "request_operator", "abort"),
             )
         interactive_state["attempts_used"] = attempts_used
@@ -2833,7 +2926,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         )
         if abort:
             return 1
-        return _emit_stage3_pareto_decision(state, args.work_dir, portfolio, _log)
+        return _emit_stage3_pareto_decision(state, args.work_dir, cfg, scraping, start, end, portfolio, _log)
 
     if resume_from == 3 and use_v2_optimizer_for_stage3:
         plan, abort = _run_stage3_v2_optimize(
@@ -2850,6 +2943,11 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         return 1
     if resume_from == 3:
         return _emit_stage3_interactive_decision(state, args.work_dir, cfg, scraping, start, end, plan, _log)
+
+    if resume_from <= 4 and not _assert_hard_verification_before_export(
+        plan, _mid_planning_decision_problem(cfg, scraping, start, end), strict, _console, _log
+    ):
+        return 1
 
     _generated_calendars, abort, _stage4_failed = _run_stage4_export(
         args, plan, state, strict, _log, resume_from
@@ -3136,6 +3234,16 @@ def _cmd_run(args: argparse.Namespace) -> int:
     # the gate is skipped silently so non-LLM deployments are unaffected.
     if not _run_approval_gate(args, plan, state, strict, _console, _log):
         _manifest_record(args.work_dir, "planning", "blocked", "LLM approval gate rejected the plan.")
+        _manifest_finalize(args.work_dir, "blocked")
+        _write_run_log(args, state, log_start, log_lines, success=False)
+        return 1
+
+    if not _assert_hard_verification_before_export(
+        plan, _mid_planning_decision_problem(cfg, scraping, start, end), strict, _console, _log
+    ):
+        _manifest_record(
+            args.work_dir, "export", "blocked", "Hard-verification gate rejected the plan before export."
+        )
         _manifest_finalize(args.work_dir, "blocked")
         _write_run_log(args, state, log_start, log_lines, success=False)
         return 1
