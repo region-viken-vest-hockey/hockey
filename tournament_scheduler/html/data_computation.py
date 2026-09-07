@@ -18,6 +18,7 @@ from typing import Any
 from tournament_scheduler.club_distances import (
     compute_team_travel_distances as _compute_team_travel_distances,
 )
+from tournament_scheduler.club_registry import canonicalize_club_name as _canonicalize_club_name
 from tournament_scheduler.models import team_key as _team_key
 
 # ---------------------------------------------------------------------------
@@ -53,18 +54,15 @@ _RVV_CLUBS = (
     "Kongsberg",
 )
 
-_CLUB_ALIASES = {
-    "sandefjord": "Sandefjord Penguins",
-    "sandefjord penguins": "Sandefjord Penguins",
-    "tonsberg": "Tønsberg",
-    "tønsberg": "Tønsberg",
-}
-
 
 def canonical_rvv_club_name(club_name: str) -> str:
-    """Return the canonical RVV display name for a known club alias."""
-    normalized = " ".join(club_name.strip().casefold().split())
-    return _CLUB_ALIASES.get(normalized, club_name.strip())
+    """Return the canonical RVV display name for a known club alias.
+
+    Delegates to `club_registry.canonicalize_club_name` (issue #272) so
+    reporting/export code shares one canonicalization source of truth with
+    the rest of the pipeline instead of maintaining its own alias table.
+    """
+    return _canonicalize_club_name(club_name)
 
 
 # ---------------------------------------------------------------------------

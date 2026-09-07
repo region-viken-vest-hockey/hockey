@@ -32,7 +32,6 @@ from .data_computation import (
     ICON_FILE_SPREADSHEET,
     ICON_CLOCK,
     _RVV_CLUBS,
-    _CLUB_ALIASES,
     canonical_rvv_club_name,
     season_label,
     fmt_date,

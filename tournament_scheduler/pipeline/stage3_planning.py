@@ -23,6 +23,7 @@ from datetime import date, datetime
 from typing import Any
 import threading
 
+from ..effective_start_date import compute_effective_start_date
 from ..fairness_scoring import build_fairness_gate as _build_fairness_gate
 from ..models import CalendarEvent, Game, Roster, SeasonPlan, Team, Tournament
 from ..season_planner import SeasonPlanner
@@ -115,6 +116,7 @@ def run(
     *,
     strict: bool = True,
     iterations: int = 1,
+    today: date | None = None,
 ) -> dict[str, Any]:
     """Build a season plan using the deterministic Python algorithm.
 
@@ -136,6 +138,11 @@ def run(
         The attempt with the highest composite fairness score is kept.
         When ``1`` (default), behaviour is identical to the original
         deterministic single-pass run (seed=None).
+    today:
+        Override for "today" (issue #272 `effective_start_date` derivation).
+        Defaults to the real `Europe/Oslo` date. Tests that model a fixed
+        historical season window should pass this explicitly instead of
+        relying on the real wall clock.
 
     Returns
     -------
@@ -148,6 +155,14 @@ def run(
         or existing_checkpoint.get("manual_adjustments", {})
     )
 
+    # issue #272: never let a configured start_date that has already passed
+    # (or lets a same-day Saturday run create a tournament later that same
+    # day) produce a newly generated tournament dated before "today". Derived
+    # once per run() call so every candidate/iteration below uses the same
+    # clamped window.
+    effective = compute_effective_start_date(start_date.date(), today=today)
+    planning_start = datetime.combine(effective.effective_start_date, datetime.min.time())
+
     state.write_stage(StageName.PLANNING, {}, status=StageStatus.RUNNING)
 
     roster = _build_roster(config)
@@ -155,7 +170,7 @@ def run(
         print(f"[plan] {NOT_STARTED_MESSAGE}", flush=True)
         plan = SeasonPlan(
             tournaments=[],
-            start_date=start_date.date(),
+            start_date=planning_start.date(),
             end_date=end_date.date(),
             fairness_gate={
                 "status": "not_started",
@@ -169,6 +184,9 @@ def run(
         plan_dict["message"] = NOT_STARTED_MESSAGE
         checkpoint: dict[str, Any] = {
             "plan": plan_dict,
+            "configured_start_date": effective.configured_start_date.isoformat(),
+            "effective_start_date": effective.effective_start_date.isoformat(),
+            "start_date_adjustment": effective.start_date_adjustment,
             "rules_report": {
                 "status": "not_started",
                 "message": NOT_STARTED_MESSAGE,
@@ -306,7 +324,7 @@ def run(
 
         heartbeat_thread = threading.Thread(target=_heartbeat, daemon=True)
         heartbeat_thread.start()
-        plan = planner.build_plan(start_date, end_date)
+        plan = planner.build_plan(planning_start, end_date)
         stop_heartbeat.set()
         heartbeat_thread.join(timeout=1)
         if plan is None or not plan.tournaments:
@@ -390,6 +408,9 @@ def run(
 
     checkpoint: dict[str, Any] = {
         "plan": plan_dict,
+        "configured_start_date": effective.configured_start_date.isoformat(),
+        "effective_start_date": effective.effective_start_date.isoformat(),
+        "start_date_adjustment": effective.start_date_adjustment,
         "rules_report": rules_report,
         "candidates": candidates,
         "selected_candidate_attempt": best_attempt,

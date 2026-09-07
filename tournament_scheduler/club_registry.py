@@ -36,9 +36,13 @@ CLI tools that still build a live `CalendarDataSource` from the registry --
 the Stage 1-4 pipeline never scrapes it.
 """
 
+import logging
+import unicodedata
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class CalendarSourceKind(Enum):
@@ -215,6 +219,10 @@ def club_for_source_name(source_name: str) -> Optional[str]:
     if source_name in CLUB_REGISTRY:
         return source_name
 
+    canonical = canonicalize_club_name(source_name)
+    if canonical in CLUB_REGISTRY:
+        return canonical
+
     lowered = source_name.strip().lower()
     for club_name in CLUB_REGISTRY:
         if lowered.startswith(club_name.lower()):
@@ -281,11 +289,94 @@ def arenas_for_date_search(host_club: str) -> List[ClubCalendarSource]:
     return candidates
 
 
-# Short-name aliases that some config files use instead of the full registry name
-_CLUB_ALIASES: Dict[str, str] = {
-    "Sandefjord": "Sandefjord Penguins",
-    "Sandefjord Penguins Ishockeyklubb": "Sandefjord Penguins",
+# Known name variants per canonical RVV club (issue #272). This is the single
+# source of truth for club-identity aliases across the whole pipeline --
+# registration/team import, workbook/Stage 1 roster, Stage 2 calendar/source
+# data, arena lookup, Stage 3 host assignment/fairness, manual-placement
+# diagnostics, and exports/reports all resolve through
+# `canonicalize_club_name`/`get_club` instead of maintaining their own alias
+# tables.
+CLUB_ALIASES: Dict[str, List[str]] = {
+    "Ringerike": [],
+    "Tønsberg": ["Tonsberg"],
+    "Frisk Asker": [],
+    "Sandefjord Penguins": ["Sandefjord", "Sandefjord Penguins Ishockeyklubb"],
+    "Jar": [],
+    "Holmen": [],
+    "Skien": [],
+    "Jutul": [],
+    "Kongsberg": [],
 }
+
+
+def _normalize(text: str) -> str:
+    """Unicode NFKC + casefold + collapsed whitespace."""
+    return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+
+# normalized alias/canonical-name -> canonical name, built once at import time
+_NORMALIZED_LOOKUP: Dict[str, str] = {}
+for _canonical, _aliases in CLUB_ALIASES.items():
+    _NORMALIZED_LOOKUP[_normalize(_canonical)] = _canonical
+    for _alias in _aliases:
+        _NORMALIZED_LOOKUP[_normalize(_alias)] = _canonical
+
+# normalized token set per canonical club, for unique-containment matching
+_CANONICAL_TOKENS: Dict[str, set] = {
+    canonical: set(_normalize(canonical).split()) for canonical in CLUB_ALIASES
+}
+
+
+def canonicalize_club_name(raw: str) -> str:
+    """Resolve *raw* to a canonical RVV club name (issue #272).
+
+    Deterministic resolution order:
+      1. Unicode/case/whitespace normalization.
+      2. Exact canonical-name match.
+      3. Exact alias match.
+      4. Unique word/token containment match (every token of exactly one
+         canonical name is present in *raw*'s tokens).
+      5. Otherwise the name is left unresolved: the whitespace-trimmed
+         original is returned unchanged, and an ambiguous containment match
+         is logged rather than silently guessed at. Fuzzy/Levenshtein
+         matching is intentionally never used here -- see
+         :func:`suggest_club_name` for diagnostics-only suggestions.
+    """
+    cleaned = raw.strip()
+    normalized = _normalize(cleaned)
+    if normalized in _NORMALIZED_LOOKUP:
+        return _NORMALIZED_LOOKUP[normalized]
+
+    raw_tokens = set(normalized.split())
+    matches = [
+        canonical
+        for canonical, tokens in _CANONICAL_TOKENS.items()
+        if tokens and tokens <= raw_tokens
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        logger.warning(
+            "Ambiguous club name %r matches multiple canonical clubs %s; leaving unresolved",
+            raw,
+            sorted(matches),
+        )
+    return cleaned
+
+
+def suggest_club_name(raw: str) -> Optional[str]:
+    """Diagnostic-only fuzzy suggestion for an unresolved club name.
+
+    E.g. ``suggest_club_name("Sandefjord Penguns")`` may suggest
+    ``"Sandefjord Penguins"``. This is never used to resolve identity
+    automatically -- only :func:`canonicalize_club_name`'s deterministic
+    steps do that.
+    """
+    import difflib
+
+    normalized = _normalize(raw.strip())
+    best = difflib.get_close_matches(normalized, _NORMALIZED_LOOKUP.keys(), n=1, cutoff=0.75)
+    return _NORMALIZED_LOOKUP[best[0]] if best else None
 
 
 def get_club(name: str) -> ClubCalendarSource:
@@ -293,7 +384,7 @@ def get_club(name: str) -> ClubCalendarSource:
 
     Raises KeyError with a helpful message if the club is not in the registry.
     """
-    resolved = _CLUB_ALIASES.get(name, name)
+    resolved = canonicalize_club_name(name)
     try:
         return CLUB_REGISTRY[resolved]
     except KeyError:

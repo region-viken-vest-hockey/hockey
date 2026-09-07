@@ -23,6 +23,7 @@ Usage::
 import math
 from typing import Dict, Optional, Tuple
 
+from tournament_scheduler.club_registry import canonicalize_club_name
 from tournament_scheduler.models import SeasonPlan, Tournament, Team
 
 # ---------------------------------------------------------------------------
@@ -108,23 +109,16 @@ _ARENA_TO_CLUB: Dict[str, str] = {
     "Sandefjord ishall": "Sandefjord Penguins",
 }
 
-# ---------------------------------------------------------------------------
-# Club aliases
-#
-# Some inputs and exports use shortened or legacy club names. Normalize them
-# before comparing or looking up coordinates so travel metrics stay correct.
-# ---------------------------------------------------------------------------
-
-_CLUB_ALIASES: Dict[str, str] = {
-    "Sandefjord": "Sandefjord Penguins",
-    "Tonsberg": "Tønsberg",
-}
-
-
 def _normalize_club_name(club: Optional[str]) -> Optional[str]:
+    """Resolve shortened/legacy club names before distance/coordinate lookups.
+
+    Delegates to `club_registry.canonicalize_club_name` (issue #272) so travel
+    metrics share one canonicalization source of truth with the rest of the
+    pipeline instead of maintaining a separate alias table.
+    """
     if club is None:
         return None
-    return _CLUB_ALIASES.get(club, club)
+    return canonicalize_club_name(club)
 
 
 # ---------------------------------------------------------------------------

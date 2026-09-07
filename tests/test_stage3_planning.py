@@ -16,6 +16,27 @@ from tournament_scheduler.pipeline.state import PipelineState, StageName, StageS
 from tournament_scheduler.season_planner import _normalize_penalty_hints
 
 
+class _FixedDatetime(datetime):
+    """`datetime` subclass with `.now()` pinned, for effective_start_date tests."""
+
+    @classmethod
+    def now(cls, tz=None):
+        return datetime(2025, 8, 25, tzinfo=tz)
+
+
+@pytest.fixture(autouse=True)
+def _stable_effective_start_date_today(monkeypatch):
+    """Pin issue #272's effective-start-date "today" boundary.
+
+    Without this, `run()`'s default real-clock "today" would clamp these
+    tests' fixed 2025 season windows forward as real time passes, since the
+    configured start_date would eventually be in the past relative to the
+    real wall clock. 2025-08-25 is safely before every fixed `start_date`
+    used in this module.
+    """
+    monkeypatch.setattr("tournament_scheduler.effective_start_date.datetime", _FixedDatetime)
+
+
 def _make_config():
     clubs = [
         "Kongsberg", "Skien", "Ringerike", "Tønsberg",
@@ -132,6 +153,50 @@ class TestRunStage3:
         assert "diversity_score" in plan
         assert "month_balance_score" in plan
         assert "arena_day_collisions" in plan
+
+    def test_checkpoint_records_configured_and_effective_start_date(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        result = run(
+            _make_config(), {},
+            state,
+            datetime(2025, 9, 1), datetime(2025, 12, 15),
+        )
+        assert result["configured_start_date"] == "2025-09-01"
+        # 2025-09-01 is a Monday, after the pinned "today" (2025-08-25) -- a
+        # future configured date, so it's aligned to the next tournament
+        # weekend (2025-09-06, a Saturday) rather than clamped for being past.
+        assert result["effective_start_date"] == "2025-09-06"
+        assert result["start_date_adjustment"] == "configured date aligned to next tournament weekend"
+        assert all(
+            date.fromisoformat(t["date"]) >= date(2025, 9, 6)
+            for t in result["plan"]["tournaments"]
+        )
+
+    def test_checkpoint_clamps_past_configured_start_date_to_a_future_weekend(self, tmp_path, monkeypatch):
+        # Pin "today" to *after* the configured start_date so the past-date
+        # clamping path is exercised.
+        monkeypatch.setattr(
+            "tournament_scheduler.effective_start_date.datetime",
+            type("_LaterFixedDatetime", (datetime,), {
+                "now": classmethod(lambda cls, tz=None: datetime(2025, 9, 10, tzinfo=tz))
+            }),
+        )
+        state = PipelineState(tmp_path / "pipeline")
+        result = run(
+            _make_config(), {},
+            state,
+            datetime(2025, 9, 1), datetime(2025, 12, 15),
+        )
+        assert result["configured_start_date"] == "2025-09-01"
+        assert result["effective_start_date"] != "2025-09-01"
+        effective = date.fromisoformat(result["effective_start_date"])
+        assert effective > date(2025, 9, 10)
+        assert effective.weekday() in (5, 6)
+        assert result["start_date_adjustment"] == "configured start date was in the past"
+        assert all(
+            date.fromisoformat(t["date"]) >= effective
+            for t in result["plan"]["tournaments"]
+        )
 
     def test_structured_planning_critic_hints_are_persisted_and_flattened(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
