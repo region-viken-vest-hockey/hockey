@@ -187,15 +187,22 @@ class TestVerifyCandidateWithProblem:
         codes = {v["code"] for v in result["violations"]}
         assert "excluded_host_club_used" in codes
 
-    def test_unknown_host_calendar_status_flagged(self):
-        """issue #262 P0: a host with no trustworthy calendar evidence this
-        run must fail deterministic verification, not be silently accepted."""
+    def test_unknown_host_calendar_status_surfaced_for_manual_placement(self):
+        """A host with no trustworthy calendar evidence this run is not
+        silently treated as available, but it also does not hard-block
+        verification -- it's surfaced non-blocking for manual placement,
+        mirroring unresolved_hosting_obligations (issue #266)."""
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
         problem = self._problem(club_calendar_status={"Jar": "unknown", "Kongsberg": "known"})
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
-        assert "host_calendar_status_unknown" in codes
+        assert "host_calendar_status_unknown" not in codes
+        assert result["ok"] is True
+        placements = result["manual_calendar_placements"]
+        assert len(placements) == 1
+        assert placements[0]["host_club"] == "Jar"
+        assert placements[0]["tournament_id"] == "t1"
 
     def test_known_host_calendar_status_not_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
@@ -204,6 +211,7 @@ class TestVerifyCandidateWithProblem:
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
         assert "host_calendar_status_unknown" not in codes
+        assert result["manual_calendar_placements"] == []
 
     def test_missing_club_calendar_status_skips_check(self):
         """No status map at all (older/hand-built problem dicts) must not
@@ -213,6 +221,7 @@ class TestVerifyCandidateWithProblem:
         result = verify_candidate(candidate, self._problem())
         codes = {v["code"] for v in result["violations"]}
         assert "host_calendar_status_unknown" not in codes
+        assert result["manual_calendar_placements"] == []
 
     def test_capacity_exceeded_flagged(self):
         teams = [
@@ -307,7 +316,7 @@ class TestVerifyCandidateWithProblem:
         assert "external_calendar_conflict" not in codes
 
     def test_external_calendar_conflict_skipped_when_host_status_unknown(self):
-        """An unknown host is already rejected via host_calendar_status_unknown
+        """An unknown host is already surfaced via manual_calendar_placements
         -- it must not also be double-flagged as an external conflict just
         because it happens to have no busy_intervals entry."""
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
@@ -324,8 +333,9 @@ class TestVerifyCandidateWithProblem:
         )
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
-        assert "host_calendar_status_unknown" in codes
+        assert "host_calendar_status_unknown" not in codes
         assert "external_calendar_conflict" not in codes
+        assert len(result["manual_calendar_placements"]) == 1
 
     def test_club_controlled_allocation_not_flagged_as_hard_conflict(self):
         """issue #264: a busy interval tagged 'kind': 'club_controlled' is a

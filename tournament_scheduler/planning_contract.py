@@ -347,6 +347,13 @@ def verify_candidate(
     # interval -- not a violation, but the evidence bundle should show when
     # a selected candidate relied on one.
     club_controlled_allocations_used: List[Dict[str, Any]] = []
+    # Non-blocking record of tournaments hosted by a club with no
+    # trustworthy calendar evidence this run -- surfaced for manual
+    # placement (see hosting_coverage.py's unresolved_hosting_obligations
+    # for the equivalent pattern) rather than hard-blocking the candidate,
+    # since scheduler.py/host_assignment.py already let such a club host
+    # its fair share with a provisional slot.
+    manual_calendar_placements: List[Dict[str, str]] = []
 
     tournaments = [t for t in candidate.get("tournaments", []) if not t.get("cancelled")]
 
@@ -423,6 +430,7 @@ def verify_candidate(
             "skipped": skipped,
             "club_controlled_allocations_used": club_controlled_allocations_used,
             "unresolved_hosting_obligations": [],
+            "manual_calendar_placements": [],
         }
 
     # --- problem-dependent checks -------------------------------------------
@@ -475,7 +483,7 @@ def verify_candidate(
                 club_calendar_status_for_conflicts
                 and club_calendar_status_for_conflicts.get(interval.host_club, "unknown") != "known"
             ):
-                continue  # already reported as host_calendar_status_unknown below
+                continue  # already surfaced in manual_calendar_placements below
             duration_minutes = int((interval.end - interval.start).total_seconds() // 60)
             if external_calendar_conflict(
                 club_busy_intervals,
@@ -551,20 +559,25 @@ def verify_candidate(
                 t_id,
             )
 
-        # issue #262 P0: a host club with no trustworthy calendar evidence
-        # this run (blocked/skipped/missing scrape) must never be silently
-        # treated as available. Only enforced when the problem actually
-        # carries a (non-empty) calendar-status map -- older/hand-built
-        # problem dicts without it skip this check rather than falsely
-        # flagging every host as unknown.
+        # A host club with no trustworthy calendar evidence this run
+        # (blocked/skipped/missing scrape) is never silently treated as
+        # verified-free, but it is also not hard-blocked -- it hosts its
+        # fair share with a provisional slot (scheduler.py/
+        # host_assignment.py) and is surfaced here for manual placement
+        # instead, mirroring unresolved_hosting_obligations below. Only
+        # enforced when the problem actually carries a (non-empty)
+        # calendar-status map -- older/hand-built problem dicts without it
+        # skip this check rather than falsely flagging every host as
+        # unknown.
         club_calendar_status = problem.get("club_calendar_status") or {}
         if host_club and club_calendar_status and club_calendar_status.get(host_club, "unknown") != "known":
-            _violate(
-                "host_calendar_status_unknown",
-                f"Tournament {t_id} is hosted by {host_club!r}, whose calendar "
-                "availability is unknown this run (no valid scrape evidence) "
-                "-- it cannot be treated as free to host",
-                t_id,
+            manual_calendar_placements.append(
+                {
+                    "tournament_id": t_id,
+                    "host_club": host_club,
+                    "age_group": t.get("age_group", ""),
+                    "date": t_date.isoformat() if t_date else "",
+                }
             )
 
         max_teams = parallel_games.get(t.get("age_group"))
@@ -640,6 +653,7 @@ def verify_candidate(
         "skipped": skipped,
         "club_controlled_allocations_used": club_controlled_allocations_used,
         "unresolved_hosting_obligations": unresolved_hosting_obligations,
+        "manual_calendar_placements": manual_calendar_placements,
     }
 
 

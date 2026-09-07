@@ -91,6 +91,7 @@ class OfflineScheduler:
         required_minutes,
         events_by_club,
         preferred_start="11:00",
+        club_calendar_status=None,
     ):
         return self._real_scheduler.find_arena_slot_for_date(
             check_date,
@@ -98,6 +99,7 @@ class OfflineScheduler:
             required_minutes,
             events_by_club,
             preferred_start=preferred_start,
+            club_calendar_status=club_calendar_status,
         )
 
 

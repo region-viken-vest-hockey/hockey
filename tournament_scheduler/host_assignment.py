@@ -108,21 +108,12 @@ def assign_hosts(planner, scheduled: Sequence[Tuple[date, str]]) -> List[str]:
             assignments.append("")
             continue
 
-        # issue #262 P0: a club with no trustworthy calendar evidence this
-        # run must not be handed hosting duty at all -- this is a hard
-        # eligibility fact, not part of the heuristic ranking below. Only
-        # enforced when the planner actually carries a (non-empty) status
-        # map; falls back to the unfiltered pool if every candidate would
-        # otherwise be excluded (a genuine infeasibility, not something this
-        # helper should silently paper over by returning no host).
-        club_calendar_status = getattr(planner, "club_calendar_status", None) or {}
-        if club_calendar_status:
-            known_pool = [
-                club for club in base_candidate_pool
-                if club_calendar_status.get(club, "unknown") == "known"
-            ]
-            if known_pool:
-                base_candidate_pool = known_pool
+        # A club with no trustworthy calendar evidence this run still
+        # competes normally for hosting duty here -- excluding it would
+        # just shift its share onto other clubs (see scheduler.py's
+        # find_arena_slot_for_date, which returns a provisional slot for
+        # such a club instead of a real one, and season_planner.py's
+        # manual_booking_reason flagging for the resulting tournament).
 
         actual_counts = actual_by_age.get(age_group, {})
         if targets:

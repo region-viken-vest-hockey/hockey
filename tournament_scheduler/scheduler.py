@@ -11,7 +11,7 @@ from tournament_scheduler.models import (
 )
 from tournament_scheduler.club_registry import get_club
 from tournament_scheduler.utils.date_parser import DateParser
-from tournament_scheduler.utils.slot_finder import find_available_slots, parse_time
+from tournament_scheduler.utils.slot_finder import find_available_slots, parse_time, minutes_to_time
 from tournament_scheduler.excel.tournament_reader import ExcelTournamentReader
 
 # "Optimal" time-of-day window for tournament start times. Slots starting
@@ -127,11 +127,15 @@ class TournamentScheduler:
         """Find a time slot in the host club's own arena on a date.
 
         The planner only books from the assigned host club's own calendar.
-        If the host club has no known calendar source, no matching slot, no
-        free gap of sufficient length, or (issue #262 P0) no trustworthy
-        calendar evidence for this run, this returns ``None`` so the caller
+        If the host club has no known calendar source or no matching slot /
+        free gap of sufficient length, this returns ``None`` so the caller
         can keep the original host/arena and fall back to the default start
-        time.
+        time. If the host club has no trustworthy calendar evidence for this
+        run, this returns a *provisional* slot at ``preferred_start`` instead
+        of searching real (nonexistent) event data -- the club still gets to
+        host, but the caller (``season_planner.py``) flags the tournament's
+        ``manual_booking_reason`` so the istid gets booked/verified by hand,
+        rather than this helper silently forcing a host substitution.
 
         Args:
             check_date: The candidate tournament date.
@@ -143,17 +147,20 @@ class TournamentScheduler:
                 current plan).
             club_calendar_status: Per-club calendar-evidence status
                 (``"known"``/``"unknown"``) from Stage 2's
-                ``club_calendar_status`` checkpoint output. When
-                non-empty, a club missing from this mapping, or explicitly
-                marked ``"unknown"``, is treated as unavailable -- an empty
-                ``events_by_club`` entry is only "known free" when this
-                status says so. An empty/``None`` mapping (the default)
-                skips the check entirely, for callers that don't compute
-                this status (e.g. legacy tests, ad-hoc scheduling calls).
+                ``club_calendar_status`` checkpoint output. When non-empty, a
+                club missing from this mapping, or explicitly marked
+                ``"unknown"``, gets a provisional slot instead of a real
+                conflict-checked one -- an empty ``events_by_club`` entry is
+                only searched as "known free" when this status says so. An
+                empty/``None`` mapping (the default) skips the check
+                entirely, for callers that don't compute this status (e.g.
+                legacy tests, ad-hoc scheduling calls).
 
         Returns:
             ``(host_club_used, start_HH:MM, end_HH:MM)`` for the best slot in
-            the host club's own hall, or ``None`` if no sufficient slot exists.
+            the host club's own hall, a provisional slot when the host's
+            calendar status is unknown, or ``None`` if no sufficient slot
+            exists.
         """
         try:
             host_entry = get_club(host_club)
@@ -166,7 +173,12 @@ class TournamentScheduler:
         if not host_entry.is_known:
             return None
         if club_calendar_status and club_calendar_status.get(host_entry.club, "unknown") != "known":
-            return None
+            try:
+                preferred_minutes = _time_to_minutes(parse_time(preferred_start))
+            except Exception:
+                preferred_minutes = _time_to_minutes(parse_time(_OPTIMAL_SLOT_START))
+            end_str = minutes_to_time(preferred_minutes + required_minutes)
+            return host_entry.club, preferred_start, end_str
 
         club_events = events_by_club.get(host_entry.club, [])
         slots = find_available_slots(

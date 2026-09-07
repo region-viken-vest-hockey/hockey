@@ -1918,6 +1918,34 @@ class TestProportionalHosting:
         non_manual = [t for t in plan.tournaments if not t.manual_booking_reason]
         assert all(t.host_club != "Sandefjord" for t in non_manual)
 
+    def test_unknown_club_calendar_status_still_gets_hosting_share(self):
+        """A club marked 'unknown' in club_calendar_status (e.g. a blocked
+        scrape this run, as opposed to simply missing from events_by_club)
+        must still compete normally for hosting -- it is not excluded from
+        the candidate pool, just flagged for manual istid booking."""
+        start = datetime(2026, 10, 1)
+        end = datetime(2026, 12, 31)
+        clubs = ["Jar", "Sandefjord", "Holmen", "Kongsberg"]
+        roster = _build_roster(clubs, ["U10", "U11", "U7"], teams_per_club_per_age_group=2)
+        club_arenas = {club: f"{club}hallen" for club in clubs}
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(all_weekend_dates(start, end)),
+            roster=roster,
+            club_arenas=club_arenas,
+            parallel_games_for_age_group={"U10": 3, "U11": 2, "U7": 4},
+            events_by_club={"Jar": [], "Sandefjord": [], "Holmen": [], "Kongsberg": []},
+            club_calendar_status={
+                "Jar": "known", "Sandefjord": "unknown", "Holmen": "known", "Kongsberg": "known",
+            },
+        )
+        plan = planner.build_plan(start, end)
+        assert len(plan.tournaments) >= 3
+        hosts = {t.host_club for t in plan.tournaments}
+        assert "Sandefjord" in hosts, "unknown-status club should still receive a share of hosting"
+        manual = [t for t in plan.tournaments if t.manual_booking_reason]
+        assert manual
+        assert all(t.host_club == "Sandefjord" for t in manual)
+
     def test_all_calendars_available_means_no_manual_booking_marks(self):
         """When every club has calendar data, no tournament is flagged manual."""
         start = datetime(2026, 10, 1)

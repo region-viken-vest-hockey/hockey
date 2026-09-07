@@ -167,20 +167,28 @@ class TestFindArenaSlotForDate:
 
 
 class TestClubCalendarStatusGate:
-    """issue #262 P0: an empty events_by_club entry is only "known free"
-    when club_calendar_status says so -- a missing/blocked scrape must not
-    be silently treated as an open calendar."""
+    """An empty events_by_club entry is only searched as "known free" when
+    club_calendar_status says so -- a missing/blocked scrape must not be
+    silently treated as a verified-free calendar. Instead of blocking the
+    slot outright, an unknown-status club gets a *provisional* slot at
+    preferred_start, so it still gets to host (flagged for manual booking
+    downstream) rather than being excluded."""
 
-    def test_unknown_status_blocks_slot_even_with_empty_events(self):
+    def test_unknown_status_returns_provisional_slot_at_preferred_start(self):
         scheduler = _make_scheduler()
         events_by_club = {"Frisk Asker": []}
 
         result = scheduler.find_arena_slot_for_date(
             CHECK_DATE, "Frisk Asker", 120, events_by_club,
+            preferred_start="12:00",
             club_calendar_status={"Frisk Asker": "unknown"},
         )
 
-        assert result is None
+        assert result is not None
+        host_used, start, end = result
+        assert host_used == "Frisk Asker"
+        assert start == "12:00"
+        assert end == "14:00"
 
     def test_empty_status_map_disables_check(self):
         scheduler = _make_scheduler()
@@ -196,7 +204,7 @@ class TestClubCalendarStatusGate:
         # should block it. This exercises that specific case.
         assert result is not None
 
-    def test_club_absent_from_nonempty_status_map_blocks_slot(self):
+    def test_club_absent_from_nonempty_status_map_returns_provisional_slot(self):
         scheduler = _make_scheduler()
         events_by_club = {"Frisk Asker": []}
 
@@ -205,7 +213,9 @@ class TestClubCalendarStatusGate:
             club_calendar_status={"Ringerike": "known"},
         )
 
-        assert result is None
+        assert result is not None
+        host_used, _start, _end = result
+        assert host_used == "Frisk Asker"
 
     def test_known_status_with_empty_events_allows_slot(self):
         scheduler = _make_scheduler()

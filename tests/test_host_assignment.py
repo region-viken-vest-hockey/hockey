@@ -351,3 +351,27 @@ class TestAgeGroupAwareHostStreak:
 
         assert len(assignments) == 2
         assert all(a != "" for a in assignments), "Both slots should be assigned"
+
+    def test_unknown_calendar_status_club_not_excluded_from_candidate_pool(self):
+        """A club with unknown calendar status this run still competes for
+        hosting duty -- it must not be silently dropped from the candidate
+        pool (that would just shift its share onto other clubs)."""
+        teams = [
+            Team(club="Jar", label="Jar U10", age_group="U10"),
+            Team(club="Kongsberg", label="Kongsberg U10", age_group="U10"),
+        ]
+        planner = self._make_planner(teams)
+        planner.club_calendar_status = {"Jar": "known", "Kongsberg": "unknown"}
+
+        scheduled = [
+            (date(2026, 10, 3), "U10"),
+            (date(2026, 10, 10), "U10"),
+            (date(2026, 10, 17), "U10"),
+            (date(2026, 10, 24), "U10"),
+        ]
+        assignments = assign_hosts(planner, scheduled)
+
+        assert "Kongsberg" in assignments, (
+            "unknown-status club should still be selectable as host, not "
+            "excluded up front"
+        )

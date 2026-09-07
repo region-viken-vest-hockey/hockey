@@ -431,8 +431,21 @@ class SeasonPlanner:
             # placeholder because the planner cannot validate hall availability.
             # Mark it so the club knows the istid must be booked by hand (see
             # the "Må planlegges manuelt" export view).
+            calendar_verified = _club_calendar_available(final_host_club, self.available_calendar_clubs)
+            if calendar_verified and self.club_calendar_status:
+                # A club can have an (empty) events_by_club entry from a
+                # partial/blocked scrape and still fail club_calendar_status's
+                # stricter "known" evidence check -- both signals must agree
+                # the club is verified before skipping the manual-booking flag.
+                constituents = [
+                    part.strip() for part in final_host_club.split("/") if part.strip()
+                ] or [final_host_club]
+                calendar_verified = any(
+                    self.club_calendar_status.get(part, "unknown") == "known"
+                    for part in constituents
+                )
             manual_booking_reason: Optional[str] = None
-            if not _club_calendar_available(final_host_club, self.available_calendar_clubs):
+            if not calendar_verified:
                 manual_booking_reason = (
                     f"Kalender utilgjengelig for {final_host_club} — "
                     "istid må bookes/verifiseres manuelt."
