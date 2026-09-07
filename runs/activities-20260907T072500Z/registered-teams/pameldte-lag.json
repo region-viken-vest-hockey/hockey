@@ -1,0 +1,587 @@
+{
+  "age_groups": [
+    {
+      "age_group": "U7",
+      "club_count": 6,
+      "clubs": [
+        {
+          "club": "Frisk Asker",
+          "team_count": 3,
+          "teams": [
+            "Frisk Asker 1",
+            "Frisk Asker 2",
+            "Frisk Asker 3"
+          ]
+        },
+        {
+          "club": "Holmen",
+          "team_count": 3,
+          "teams": [
+            "Holmen Hockey Hvit",
+            "Holmen Hockey Rød",
+            "Holmen Hockey Sort"
+          ]
+        },
+        {
+          "club": "Jar",
+          "team_count": 5,
+          "teams": [
+            "Jar Blå",
+            "Jar Grønn",
+            "Jar Hvit",
+            "Jar Rød",
+            "Jar Svart"
+          ]
+        },
+        {
+          "club": "Jutul",
+          "team_count": 3,
+          "teams": [
+            "Jutul Grønn",
+            "Jutul Hvit",
+            "Jutul Rød"
+          ]
+        },
+        {
+          "club": "Sandefjord Penguins Ishockeyklubb",
+          "team_count": 1,
+          "teams": [
+            "Sandefjord"
+          ]
+        },
+        {
+          "club": "Tønsberg",
+          "team_count": 1,
+          "teams": [
+            "Tønsberg"
+          ]
+        }
+      ],
+      "team_count": 16
+    },
+    {
+      "age_group": "JU8",
+      "club_count": 5,
+      "clubs": [
+        {
+          "club": "Frisk Asker",
+          "team_count": 1,
+          "teams": [
+            "Frisk Asker"
+          ]
+        },
+        {
+          "club": "Jar",
+          "team_count": 1,
+          "teams": [
+            "Jar"
+          ]
+        },
+        {
+          "club": "Jutul",
+          "team_count": 1,
+          "teams": [
+            "Jutul Kittens"
+          ]
+        },
+        {
+          "club": "Ringerike",
+          "team_count": 1,
+          "teams": [
+            "Ringerike 1"
+          ]
+        },
+        {
+          "club": "Skien",
+          "team_count": 1,
+          "teams": [
+            "Skien"
+          ]
+        }
+      ],
+      "team_count": 5
+    },
+    {
+      "age_group": "U8",
+      "club_count": 9,
+      "clubs": [
+        {
+          "club": "Frisk Asker",
+          "team_count": 5,
+          "teams": [
+            "Frisk Asker 1",
+            "Frisk Asker 2",
+            "Frisk Asker 3",
+            "Frisk Asker 4",
+            "Frisk Asker 5"
+          ]
+        },
+        {
+          "club": "Holmen",
+          "team_count": 4,
+          "teams": [
+            "Holmen Hockey Blå",
+            "Holmen Hockey Hvit",
+            "Holmen Hockey Rød",
+            "Holmen Hockey Sort"
+          ]
+        },
+        {
+          "club": "Jar",
+          "team_count": 4,
+          "teams": [
+            "Jar Blå",
+            "Jar Hvit",
+            "Jar Rød",
+            "Jar Svart"
+          ]
+        },
+        {
+          "club": "Jutul",
+          "team_count": 4,
+          "teams": [
+            "Jutul Grønn",
+            "Jutul Gul",
+            "Jutul Hvit",
+            "Jutul Rød"
+          ]
+        },
+        {
+          "club": "Kongsberg",
+          "team_count": 1,
+          "teams": [
+            "Kongsberg"
+          ]
+        },
+        {
+          "club": "Ringerike",
+          "team_count": 2,
+          "teams": [
+            "Ringerike 1",
+            "Ringerike 2"
+          ]
+        },
+        {
+          "club": "Sandefjord Penguins Ishockeyklubb",
+          "team_count": 1,
+          "teams": [
+            "Sandefjord"
+          ]
+        },
+        {
+          "club": "Skien",
+          "team_count": 1,
+          "teams": [
+            "Skien"
+          ]
+        },
+        {
+          "club": "Tønsberg",
+          "team_count": 1,
+          "teams": [
+            "Tønsberg"
+          ]
+        }
+      ],
+      "team_count": 23
+    },
+    {
+      "age_group": "U9",
+      "club_count": 9,
+      "clubs": [
+        {
+          "club": "Frisk Asker",
+          "team_count": 4,
+          "teams": [
+            "Frisk Asker 1",
+            "Frisk Asker 2",
+            "Frisk Asker 3",
+            "Frisk Asker 4"
+          ]
+        },
+        {
+          "club": "Holmen",
+          "team_count": 3,
+          "teams": [
+            "Holmen Hockey Hvit",
+            "Holmen Hockey Rød",
+            "Holmen Hockey Sort"
+          ]
+        },
+        {
+          "club": "Jar",
+          "team_count": 3,
+          "teams": [
+            "Jar Blå",
+            "Jar Hvit",
+            "Jar Rød"
+          ]
+        },
+        {
+          "club": "Jutul",
+          "team_count": 3,
+          "teams": [
+            "Jutul Grønn",
+            "Jutul Hvit",
+            "Jutul Rød"
+          ]
+        },
+        {
+          "club": "Kongsberg",
+          "team_count": 1,
+          "teams": [
+            "Kongsberg"
+          ]
+        },
+        {
+          "club": "Ringerike",
+          "team_count": 1,
+          "teams": [
+            "Ringerike 1"
+          ]
+        },
+        {
+          "club": "Sandefjord Penguins Ishockeyklubb",
+          "team_count": 1,
+          "teams": [
+            "Sandefjord"
+          ]
+        },
+        {
+          "club": "Skien",
+          "team_count": 1,
+          "teams": [
+            "Skien"
+          ]
+        },
+        {
+          "club": "Tønsberg",
+          "team_count": 1,
+          "teams": [
+            "Tønsberg"
+          ]
+        }
+      ],
+      "team_count": 18
+    },
+    {
+      "age_group": "JU10",
+      "club_count": 4,
+      "clubs": [
+        {
+          "club": "Frisk Asker",
+          "team_count": 2,
+          "teams": [
+            "Frisk Asker Orange",
+            "Frisk Asker Svart"
+          ]
+        },
+        {
+          "club": "Jar",
+          "team_count": 3,
+          "teams": [
+            "Jar Blå",
+            "Jar Hvit",
+            "Jar Rød"
+          ]
+        },
+        {
+          "club": "Ringerike",
+          "team_count": 1,
+          "teams": [
+            "Ringerike 1"
+          ]
+        },
+        {
+          "club": "Skien",
+          "team_count": 1,
+          "teams": [
+            "Skien"
+          ]
+        }
+      ],
+      "team_count": 7
+    },
+    {
+      "age_group": "U10",
+      "club_count": 7,
+      "clubs": [
+        {
+          "club": "Frisk Asker",
+          "team_count": 6,
+          "teams": [
+            "Frisk Asker 1",
+            "Frisk Asker 2",
+            "Frisk Asker 3",
+            "Frisk Asker 4",
+            "Frisk Asker 5",
+            "Frisk Asker 6"
+          ]
+        },
+        {
+          "club": "Holmen",
+          "team_count": 4,
+          "teams": [
+            "Holmen Hockey Blå",
+            "Holmen Hockey Hvit",
+            "Holmen Hockey Rød",
+            "Holmen Hockey Sort"
+          ]
+        },
+        {
+          "club": "Jar",
+          "team_count": 6,
+          "teams": [
+            "Jar Blå",
+            "Jar Grønn",
+            "Jar Gul",
+            "Jar Hvit",
+            "Jar Rød",
+            "Jar Svart"
+          ]
+        },
+        {
+          "club": "Jutul",
+          "team_count": 3,
+          "teams": [
+            "Jutul Grønn",
+            "Jutul Hvit",
+            "Jutul Rød"
+          ]
+        },
+        {
+          "club": "Kongsberg",
+          "team_count": 1,
+          "teams": [
+            "Kongsberg"
+          ]
+        },
+        {
+          "club": "Ringerike",
+          "team_count": 4,
+          "teams": [
+            "Ringerike 1",
+            "Ringerike 2",
+            "Ringerike 3",
+            "Ringerike 4"
+          ]
+        },
+        {
+          "club": "Tønsberg",
+          "team_count": 1,
+          "teams": [
+            "Tønsberg"
+          ]
+        }
+      ],
+      "team_count": 25
+    },
+    {
+      "age_group": "U11",
+      "club_count": 9,
+      "clubs": [
+        {
+          "club": "Frisk Asker",
+          "team_count": 4,
+          "teams": [
+            "Frisk Asker 1",
+            "Frisk Asker 2",
+            "Frisk Asker 3",
+            "Frisk Asker 4"
+          ]
+        },
+        {
+          "club": "Holmen",
+          "team_count": 2,
+          "teams": [
+            "Holmen Hockey Hvit",
+            "Holmen Hockey Rød"
+          ]
+        },
+        {
+          "club": "Jar",
+          "team_count": 8,
+          "teams": [
+            "Jar Blå",
+            "Jar Grønn",
+            "Jar Gul",
+            "Jar Hvit",
+            "Jar Lilla",
+            "Jar Oransje",
+            "Jar Rød",
+            "Jar Svart"
+          ]
+        },
+        {
+          "club": "Jutul",
+          "team_count": 2,
+          "teams": [
+            "Jutul Grønn",
+            "Jutul Rød"
+          ]
+        },
+        {
+          "club": "Kongsberg",
+          "team_count": 1,
+          "teams": [
+            "Kongsberg"
+          ]
+        },
+        {
+          "club": "Ringerike",
+          "team_count": 2,
+          "teams": [
+            "Ringerike 1",
+            "Ringerike 2"
+          ]
+        },
+        {
+          "club": "Sandefjord Penguins Ishockeyklubb",
+          "team_count": 1,
+          "teams": [
+            "Sandefjord"
+          ]
+        },
+        {
+          "club": "Skien",
+          "team_count": 1,
+          "teams": [
+            "Skien"
+          ]
+        },
+        {
+          "club": "Tønsberg",
+          "team_count": 3,
+          "teams": [
+            "Tønsberg Grå",
+            "Tønsberg Hvit",
+            "Tønsberg Rød"
+          ]
+        }
+      ],
+      "team_count": 24
+    },
+    {
+      "age_group": "JU12",
+      "club_count": 6,
+      "clubs": [
+        {
+          "club": "Frisk Asker",
+          "team_count": 2,
+          "teams": [
+            "Frisk Asker Orange",
+            "Frisk Asker Svart"
+          ]
+        },
+        {
+          "club": "Jutul",
+          "team_count": 1,
+          "teams": [
+            "Jutul/Jar Kittens"
+          ]
+        },
+        {
+          "club": "Kongsberg/Tønsberg",
+          "team_count": 1,
+          "teams": [
+            "Kongsberg/Tønsberg"
+          ]
+        },
+        {
+          "club": "Ringerike",
+          "team_count": 2,
+          "teams": [
+            "Ringerike 1",
+            "Ringerike 2"
+          ]
+        },
+        {
+          "club": "Skien",
+          "team_count": 1,
+          "teams": [
+            "Skien"
+          ]
+        },
+        {
+          "club": "Tønsberg",
+          "team_count": 1,
+          "teams": [
+            "Tønsberg"
+          ]
+        }
+      ],
+      "team_count": 8
+    },
+    {
+      "age_group": "U12",
+      "club_count": 7,
+      "clubs": [
+        {
+          "club": "Frisk Asker",
+          "team_count": 3,
+          "teams": [
+            "Frisk Asker 1",
+            "Frisk Asker 2",
+            "Frisk Asker 3"
+          ]
+        },
+        {
+          "club": "Holmen",
+          "team_count": 2,
+          "teams": [
+            "Holmen Hockey Hvit",
+            "Holmen Hockey Rød"
+          ]
+        },
+        {
+          "club": "Jar",
+          "team_count": 4,
+          "teams": [
+            "Jar Blå",
+            "Jar Hvit",
+            "Jar Rød",
+            "Jar Svart"
+          ]
+        },
+        {
+          "club": "Jutul",
+          "team_count": 2,
+          "teams": [
+            "Jutul Grønn",
+            "Jutul Rød"
+          ]
+        },
+        {
+          "club": "Kongsberg",
+          "team_count": 1,
+          "teams": [
+            "Kongsberg"
+          ]
+        },
+        {
+          "club": "Ringerike",
+          "team_count": 2,
+          "teams": [
+            "Ringerike 1",
+            "Ringerike 2"
+          ]
+        },
+        {
+          "club": "Tønsberg",
+          "team_count": 3,
+          "teams": [
+            "Tønsberg Grå",
+            "Tønsberg Hvit",
+            "Tønsberg Rød"
+          ]
+        }
+      ],
+      "team_count": 17
+    }
+  ],
+  "generated_at": "2026-08-24T06:31:32Z",
+  "schema_version": 1,
+  "title": "Påmeldte lag",
+  "total_clubs": 10,
+  "total_teams": 143
+}
