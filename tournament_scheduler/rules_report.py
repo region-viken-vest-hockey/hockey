@@ -220,6 +220,28 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "kategori": "Advarsel",
         },
         {
+            "regel": "Klubb x aldersgruppe-dekning av hjemmeturneringer (issue #266)",
+            "forklaring": (
+                "Hver klubb med minst ett registrert lag i en aldersgruppe skal ha minst én "
+                "hjemmeturnering i akkurat den aldersgruppen denne sesongen -- ekstra "
+                "hjemmeturneringer i en annen aldersgruppe teller ikke. Når planleggeren ikke "
+                "finner en godkjent ledig arenatid for et slikt krav, holdes kravet uløst i "
+                "stedet for å stille en annen klubb som vert i stedet, og legges i "
+                "«Må planlegges manuelt»-visningen (manual_schedule.html) som "
+                f"«MANUAL PLACEMENT REQUIRED». {len(planner._unresolved_hosting_obligations)} "
+                "uløst(e) krav er registrert i denne planen"
+                + (
+                    ": " + "; ".join(
+                        f"{item.get('club')} ({item.get('age_group')})"
+                        for item in planner._unresolved_hosting_obligations
+                    )
+                    if planner._unresolved_hosting_obligations
+                    else "."
+                )
+            ),
+            "kategori": "Hard krav",
+        },
+        {
             "regel": "Kampbalanse og tidlig slutt",
             "forklaring": (
                 f"Kjører en advarsel når kampantall spres for mye mellom lag eller når lag blir ferdige for tidlig; "

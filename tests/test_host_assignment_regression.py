@@ -37,8 +37,13 @@ def test_host_assignment_is_proportional_within_age_group():
     assert Counter(hosts) == Counter({"Jar": 3, "Jutul": 2, "Kongsberg": 1})
 
 
-def test_zero_target_club_does_not_steal_large_club_hosting_share():
-    """Rounded target zero must stay zero while other clubs are below target."""
+def test_zero_target_club_gets_a_coverage_floor_of_one():
+    """issue #266: a club with a registered team must be targeted to host at
+    least once in that age group, even when plain proportional rounding
+    would floor its share to 0 -- borrowed from whichever club currently
+    holds the largest target, not left uncovered while a bigger club is
+    merely under its own (larger) target.
+    """
     roster = Roster(
         teams=[
             _team("Jar", "Jar 1", "U10"),
@@ -53,8 +58,8 @@ def test_zero_target_club_does_not_steal_large_club_hosting_share():
     scheduled = [(date(2026, 9, 5) + timedelta(days=7 * i), "U10") for i in range(3)]
 
     targets = hosting_targets_for_age_group(planner, "U10", 3)
-    assert targets == {"Jar": 2, "Jutul": 1, "Kongsberg": 0}
-    assert Counter(assign_hosts(planner, scheduled)) == Counter({"Jar": 2, "Jutul": 1})
+    assert targets == {"Jar": 1, "Jutul": 1, "Kongsberg": 1}
+    assert Counter(assign_hosts(planner, scheduled)) == Counter({"Jar": 1, "Jutul": 1, "Kongsberg": 1})
 
 
 def test_club_without_team_in_age_group_cannot_host_that_age_group():

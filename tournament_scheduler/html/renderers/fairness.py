@@ -68,19 +68,24 @@ def render_fairness_gate_html(fairness_gate: dict[str, Any] | None) -> str:
             threshold = f"{threshold} {unit}"
         breakdown_rows = metric.get("age_group_breakdown", [])
         if isinstance(breakdown_rows, list) and breakdown_rows:
+            # issue #266 P0: a club with 0 hjemmeturneringer in this age
+            # group is an unresolved coverage obligation, not just a
+            # deviation from its proportional share -- flag it distinctly
+            # from a club that merely hosts fewer than "expected".
             row_html = "".join(
                 "<tr>"
                 f"<td>{_html.escape(str(row.get('age_group', '')))}</td>"
                 f"<td>{_html.escape(str(row.get('club', '')))}</td>"
-                f"<td class=\"numeric-cell\">{_html.escape(str(row.get('actual', '')))}</td>"
+                f"<td class=\"numeric-cell{' fairness-breakdown-unresolved' if int(row.get('actual', 0) or 0) == 0 else ''}\">"
+                f"{_html.escape(str(row.get('actual', '')))}{' ⚠' if int(row.get('actual', 0) or 0) == 0 else ''}</td>"
                 f"<td class=\"numeric-cell\">{float(row.get('expected', 0.0)):.1f}</td>"
                 "</tr>"
-                for row in breakdown_rows[:12]
+                for row in breakdown_rows
                 if isinstance(row, dict)
             )
             breakdown_blocks.append(
                 '<div class="fairness-breakdown-row">'
-                '<div class="fairness-breakdown-label">Per aldersgruppe og klubb: faktisk vs forventet hjemmeturneringer</div>'
+                '<div class="fairness-breakdown-label">Per aldersgruppe og klubb: faktisk vs forventet hjemmeturneringer (⚠ = ingen hjemmeturnering ennå)</div>'
                 '<div class="fairness-breakdown-scroll">'
                 '<table class="fairness-breakdown-table"><thead><tr>'
                 '<th>Aldersgruppe</th><th>Klubb</th><th>Faktisk</th><th>Forventet</th>'

@@ -422,6 +422,7 @@ def verify_candidate(
             "violations": violations,
             "skipped": skipped,
             "club_controlled_allocations_used": club_controlled_allocations_used,
+            "unresolved_hosting_obligations": [],
         }
 
     # --- problem-dependent checks -------------------------------------------
@@ -622,11 +623,23 @@ def verify_candidate(
                 f"expected {target}",
             )
 
+    # issue #266 P0: club x age-group hosting coverage is a required
+    # planning obligation, not a hard `violation` -- a candidate with an
+    # unresolved obligation is still `ok` (it must not silently give the
+    # hosting burden to another club and be rejected outright), but the
+    # obligation must be visible so it can be surfaced as a manual-placement
+    # item rather than swallowed.
+    from tournament_scheduler.hosting_coverage import hosting_coverage_matrix, unresolved_from_matrix
+
+    coverage_rows = hosting_coverage_matrix(problem.get("teams", []), tournaments)
+    unresolved_hosting_obligations = unresolved_from_matrix(coverage_rows)
+
     return {
         "ok": not violations,
         "violations": violations,
         "skipped": skipped,
         "club_controlled_allocations_used": club_controlled_allocations_used,
+        "unresolved_hosting_obligations": unresolved_hosting_obligations,
     }
 
 
@@ -635,13 +648,26 @@ def verify_candidate(
 # ---------------------------------------------------------------------------
 
 
-def score_candidate(candidate: Dict[str, Any], gap_thresholds: Iterable[int] = (7, 14)) -> Dict[str, Any]:
+def score_candidate(
+    candidate: Dict[str, Any],
+    gap_thresholds: Iterable[int] = (7, 14),
+    *,
+    problem: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """Compute deterministic quality metrics for *candidate*.
 
     Self-contained: needs no ``planning_problem`` and no LLM. Metrics are
     grouped to mirror issue #257's scope: participation, opponent
     diversity (inter-club vs. same-club kept separate), turnaround
     spacing, and hosting fairness.
+
+    *problem* is optional (issue #266) -- when given, ``hosting`` also
+    reports a club x age-group coverage matrix (every registered club x
+    age-group pair, hosted count, and whether it is an unresolved
+    obligation). Without it, only the pre-existing club-level
+    ``counts_by_host``/``spread`` are returned, since the full registered
+    roster (including clubs with zero hosted tournaments) isn't derivable
+    from the candidate's tournaments alone.
     """
     tournaments = sorted(
         (t for t in candidate.get("tournaments", []) if not t.get("cancelled")),
@@ -748,6 +774,25 @@ def score_candidate(candidate: Dict[str, Any], gap_thresholds: Iterable[int] = (
             host_counts[host] = host_counts.get(host, 0) + 1
     hosting_spread = (max(host_counts.values()) - min(host_counts.values())) if host_counts else 0
 
+    # issue #266 P0: a single global spread scalar hides a club that hosts
+    # nothing in one age group while over-hosting in another. When *problem*
+    # carries the registered roster, report the full club x age-group
+    # coverage matrix (and its per-club/per-age-group rollups) alongside it.
+    hosting_coverage: Dict[str, Any] = {}
+    if problem is not None:
+        from tournament_scheduler.hosting_coverage import (
+            hosting_breakdown_by_club_and_age_group,
+            hosting_coverage_matrix,
+            unresolved_from_matrix,
+        )
+
+        coverage_rows = hosting_coverage_matrix(problem.get("teams", []), tournaments)
+        hosting_coverage = {
+            "club_age_group_matrix": coverage_rows,
+            "unresolved_obligations": unresolved_from_matrix(coverage_rows),
+            **hosting_breakdown_by_club_and_age_group(coverage_rows),
+        }
+
     # --- month distribution --------------------------------------------------
     month_counts: Dict[str, int] = {}
     for t in tournaments:
@@ -781,6 +826,7 @@ def score_candidate(candidate: Dict[str, Any], gap_thresholds: Iterable[int] = (
         "hosting": {
             "counts_by_host": host_counts,
             "spread": hosting_spread,
+            **hosting_coverage,
         },
         "month_distribution": month_counts,
     }

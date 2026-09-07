@@ -48,6 +48,7 @@ from tournament_scheduler.models import (
 )
 from tournament_scheduler.club_registry import club_for_arena as _club_for_arena
 from tournament_scheduler.arena_conflicts import find_arena_interval_collisions
+from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
 from tournament_scheduler.participant_selection import (
     age_group_deficit_spread as _age_group_deficit_spread,
     cap_per_club_deficit_aware as _cap_per_club_deficit_aware,
@@ -154,6 +155,7 @@ class SeasonPlanner:
         self._duplicate_team_labels = duplicate_labels
         self._club_load_warnings: List[Tuple[str, str, str, int]] = []
         self._hosting_warnings: List[str] = []
+        self._unresolved_hosting_obligations: List[Dict[str, str]] = []
         self._game_count_warnings: List[Tuple[str, int, int, str]] = []
         self._grouped_with: Dict[str, Set[str]] = {}
         self._team_game_counts: Dict[str, int] = {}
@@ -541,6 +543,45 @@ class SeasonPlanner:
         else:
             self._collisions = []
 
+        # issue #266 P0: measure club x age-group hosting coverage against
+        # the *final* plan (post host-substitution) -- the coverage-floor
+        # target guarantees every club a shot at hosting, but the slot
+        # search can still substitute the host away every time a real
+        # arena/date conflict blocks it. A club left at 0 actual hosted
+        # tournaments here is a genuine unresolved obligation: it must be
+        # surfaced for manual placement, never silently treated as covered
+        # because another club hosted instead.
+        coverage_teams = [
+            {"club": team.club, "age_group": team.age_group}
+            for team in self.roster.teams
+            if team.age_group not in skipped_age_groups_set
+        ]
+        coverage_tournaments = [
+            {"host_club": t.host_club, "age_group": t.age_group} for t in plan.tournaments
+        ]
+        substituted_away = {
+            (age_group, original_host)
+            for _date, age_group, original_host, _final_host in self.fallback_host_substitutions
+        }
+        unresolved_hosting_obligations: List[Dict[str, str]] = []
+        for row in _hosting_coverage_matrix(coverage_teams, coverage_tournaments):
+            if not row["unresolved"]:
+                continue
+            club, age_group = row["club"], row["age_group"]
+            if (age_group, club) in substituted_away:
+                reason = (
+                    f"Ingen ledig arenatid ble funnet for {club} som vertskap i {age_group} "
+                    "denne sesongen -- vertskapet ble overført til en annen klubb hver gang."
+                )
+            else:
+                reason = (
+                    f"{club} har lag i {age_group}, men fikk ikke tildelt vertskap for noen "
+                    "turnering i denne aldersgruppen denne sesongen."
+                )
+            unresolved_hosting_obligations.append({"club": club, "age_group": age_group, "reason": reason})
+        plan.unresolved_hosting_obligations = unresolved_hosting_obligations
+        self._unresolved_hosting_obligations = unresolved_hosting_obligations
+
         return plan
 
     @property
@@ -558,6 +599,10 @@ class SeasonPlanner:
     @property
     def hosting_warnings(self) -> List[str]:
         return list(self._hosting_warnings)
+
+    @property
+    def unresolved_hosting_obligations(self) -> List[Dict[str, str]]:
+        return list(self._unresolved_hosting_obligations)
 
     @property
     def game_count_warnings(self) -> List[Tuple[str, int, int, str]]:

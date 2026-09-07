@@ -1299,6 +1299,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to a candidate.json, or a Stage 3 checkpoint file containing a 'plan' key",
     )
     plan_score.add_argument(
+        "--problem",
+        default=None,
+        help="Path to a planning_problem.json to also report club x age-group hosting "
+        "coverage (issue #266). Without it, hosting metrics only include the "
+        "club-level counts/spread.",
+    )
+    plan_score.add_argument(
         "--json",
         action="store_true",
         help="Print the score report as JSON instead of a human-readable summary",

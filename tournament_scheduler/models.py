@@ -276,6 +276,14 @@ class SeasonPlan:
     # Each entry mirrors a DatePreference: {"fra": ISO date, "til": ISO date, "vekt": float}.
     # Populated from the Datopreferanser sheet; empty when no preferences were configured.
     date_preference_weights: List[Dict[str, object]] = field(default_factory=list)
+    # issue #266 P0: club x age-group hosting obligations the planner could
+    # not place after exhausting every legitimate availability tier (fixed
+    # allocations, confirmed free windows, club-controlled allocation
+    # windows, operator overrides) -- never resolved by letting another
+    # club host instead. Each entry: {"club": str, "age_group": str,
+    # "reason": str}. Surfaced in manual_schedule.html as an explicit
+    # "MANUAL PLACEMENT REQUIRED" item rather than silently dropped.
+    unresolved_hosting_obligations: List[Dict[str, str]] = field(default_factory=list)
 
 
 # Mapping of age groups whose player pools are known to overlap (e.g. a player

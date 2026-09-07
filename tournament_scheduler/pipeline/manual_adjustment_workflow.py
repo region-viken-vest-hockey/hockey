@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Optional
 
+from ..hosting_coverage import hosting_coverage_matrix, unresolved_from_matrix
 from ..models import SeasonPlan, Tournament
 from ..warnings import (
     scan_arena_day_collision_warnings,
@@ -392,6 +393,37 @@ class ManualAdjustmentWorkflow:
 
         # --- arena day collision warnings ---
         warnings.extend(scan_arena_day_collision_warnings(plan))
+
+        # --- club x age-group hosting coverage (issue #266 P0) ---
+        # A manual patch (e.g. cancelling a club's only tournament in an age
+        # group) can turn a previously-covered obligation into an unresolved
+        # one -- recompute against the patched plan so `manual_schedule.html`
+        # (rendered from `plan.unresolved_hosting_obligations`) stays correct
+        # after operator edits, not just after the original Stage 3 run.
+        coverage_teams = [
+            {"club": team.club, "age_group": team.age_group} for team in planner.roster.teams
+        ]
+        coverage_tournaments = [
+            {"host_club": t.host_club, "age_group": t.age_group}
+            for t in plan.tournaments
+            if not t.cancelled
+        ]
+        unresolved_rows = unresolved_from_matrix(hosting_coverage_matrix(coverage_teams, coverage_tournaments))
+        plan.unresolved_hosting_obligations = [
+            {
+                "club": row["club"],
+                "age_group": row["age_group"],
+                "reason": (
+                    f"{row['club']} har lag i {row['age_group']}, men har ingen hjemmeturnering "
+                    "i denne aldersgruppen etter manuell justering."
+                ),
+            }
+            for row in unresolved_rows
+        ]
+        for item in plan.unresolved_hosting_obligations:
+            warnings.append(
+                f"Uløst vertskapskrav: {item['club']} / {item['age_group']} har ingen hjemmeturnering"
+            )
 
         # Deduplicate while preserving order.
         seen: set[str] = set()

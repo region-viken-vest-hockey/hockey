@@ -17,6 +17,10 @@ from datetime import date
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from tournament_scheduler.club_distances import furthest_traveling_team
+from tournament_scheduler.hosting_coverage import (
+    hosting_targets_with_coverage_floor as _hosting_targets_with_coverage_floor,
+    proportional_integer_targets as _shared_proportional_integer_targets,
+)
 from tournament_scheduler.models import Game, Team, Tournament
 from tournament_scheduler.utils.slot_finder import matchday_duration_minutes
 from tournament_scheduler.warnings import holiday_heavy_weekend_dates
@@ -180,35 +184,50 @@ def assign_hosts(planner, scheduled: Sequence[Tuple[date, str]]) -> List[str]:
 
 
 def hosting_targets_for_age_group(planner, age_group: str, tournament_count: int) -> Dict[str, int]:
-    """Return integer host targets for one age group."""
+    """Return integer host targets for one age group.
+
+    issue #266: guarantees every club with a team in this age group a
+    coverage-floor target of at least 1 whenever the age group has at least
+    as many scheduled tournaments as clubs needing coverage (see
+    `hosting_coverage.hosting_targets_with_coverage_floor`). Callers that
+    also need the structural-shortfall list (fewer tournaments than clubs)
+    should call `hosting_coverage_unmet_for_age_group` instead of/alongside
+    this.
+    """
+    club_team_counts = _club_team_counts_for_age_group(planner, age_group)
+    targets, _unmet = _hosting_targets_with_coverage_floor(club_team_counts, tournament_count)
+    return targets
+
+
+def hosting_coverage_unmet_for_age_group(planner, age_group: str, tournament_count: int) -> List[str]:
+    """Clubs with a team in *age_group* that cannot get a coverage-floor
+    target of 1 because there are fewer scheduled tournaments than clubs
+    needing coverage this age group this season (issue #266) -- a
+    structural shortfall, not something a slot search could fix.
+    """
+    club_team_counts = _club_team_counts_for_age_group(planner, age_group)
+    _targets, unmet = _hosting_targets_with_coverage_floor(club_team_counts, tournament_count)
+    return unmet
+
+
+def _club_team_counts_for_age_group(planner, age_group: str) -> Dict[str, int]:
     teams = planner.roster.by_age_group(age_group)
     club_team_counts: Dict[str, int] = {}
     for team in teams:
         club_team_counts[team.club] = club_team_counts.get(team.club, 0) + 1
-    return proportional_integer_targets(club_team_counts, tournament_count)
+    return club_team_counts
 
 
 def proportional_integer_targets(weights: Dict[str, int], total: int) -> Dict[str, int]:
-    """Round weighted quotas to integers that sum to `total`."""
-    if total <= 0 or not weights:
-        return {club: 0 for club in weights}
-    weight_sum = sum(max(0, weight) for weight in weights.values()) or 1
-    raw_targets = {
-        club: max(0, weight) / weight_sum * total
-        for club, weight in weights.items()
-    }
-    targets: Dict[str, int] = {}
-    remainders: List[Tuple[float, str]] = []
-    assigned = 0
-    for club, raw in raw_targets.items():
-        rounded = int(raw)
-        targets[club] = rounded
-        assigned += rounded
-        remainders.append((raw - rounded, club))
-    remainders.sort(key=lambda item: (-item[0], item[1]))
-    for _, club in remainders[: max(0, total - assigned)]:
-        targets[club] += 1
-    return targets
+    """Round weighted quotas to integers that sum to `total`.
+
+    Delegates to `hosting_coverage.proportional_integer_targets` -- the
+    canonical (non-legacy) path needs the same largest-remainder rounding
+    for its own proportional-burden metrics (issue #266) but cannot import
+    this module (`tests/test_architecture_boundaries.py`), so the math
+    lives there and this is a thin compatibility wrapper.
+    """
+    return _shared_proportional_integer_targets(weights, total)
 
 
 def find_slot_for_tournament(

@@ -542,7 +542,37 @@ def run(
                 "message": tournament.manual_booking_reason,
             }
         )
-    manual_entries = collision_entries + manual_host_entries
+    # issue #266 P0: a club x age-group hosting obligation the planner
+    # could not resolve after exhausting every legitimate availability tier
+    # -- no tournament exists to attach this to (that's the point: nothing
+    # was placed), so most tournament-shaped fields are left blank. The
+    # club must make room for a slot; do not treat another club's hosting
+    # as satisfying this obligation.
+    unresolved_hosting_entries: list[dict[str, str]] = []
+    for item in getattr(plan, "unresolved_hosting_obligations", None) or []:
+        club = str(item.get("club", "") or "")
+        age_group = str(item.get("age_group", "") or "")
+        reason = str(item.get("reason", "") or "")
+        unresolved_hosting_entries.append(
+            {
+                "type": "MANUAL PLACEMENT REQUIRED — manglende vertskap",
+                "date": "",
+                "arena": "",
+                "host_club": club,
+                "age_group": age_group,
+                "tournament_id": "",
+                "interval": "",
+                "conflicting_tournament_id": "",
+                "conflicting_age_group": "",
+                "conflicting_interval": "",
+                "message": (
+                    f"MANUAL PLACEMENT REQUIRED. Klubb: {club}. Aldersgruppe: {age_group}. "
+                    f"Årsak: {reason} Nødvendig handling: {club} må stille med istid til minst "
+                    f"én {age_group}-turnering."
+                ),
+            }
+        )
+    manual_entries = collision_entries + manual_host_entries + unresolved_hosting_entries
     if collision_entries:
         plan.arena_day_collisions = collision_entries
         first = collision_entries[0]

@@ -99,7 +99,7 @@ def build_stage3_attempt_entry(
         "candidate_fingerprint": stable_payload_sha256(candidate.get("tournaments", [])),
         "candidate_source": candidate.get("source"),
         "verify_result": verify_candidate(candidate, problem),
-        "score_result": score_candidate(candidate),
+        "score_result": score_candidate(candidate, problem=problem),
     }
 
 

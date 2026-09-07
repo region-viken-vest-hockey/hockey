@@ -122,7 +122,15 @@ def _cmd_plan_score(args: argparse.Namespace) -> int:
         _console.print(f"[red]✗[/red] Kunne ikke lese kandidatplan: {exc}")
         return 1
 
-    report = score_candidate(candidate)
+    problem = None
+    if getattr(args, "problem", None):
+        try:
+            problem = _load_json_file(args.problem)
+        except (OSError, json.JSONDecodeError) as exc:
+            _console.print(f"[red]✗[/red] Kunne ikke lese planning_problem: {exc}")
+            return 1
+
+    report = score_candidate(candidate, problem=problem)
 
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
@@ -149,6 +157,14 @@ def _cmd_plan_score(args: argparse.Namespace) -> int:
         _console.print(f"  Pauser under {threshold} dager: {count}")
     _console.print("[bold]Vertskap[/bold]")
     _console.print(f"  Spredning (maks-min turneringer som vert): {hosting['spread']}")
+    unresolved = hosting.get("unresolved_obligations")
+    if unresolved is not None:
+        if unresolved:
+            _console.print(f"  [red]Uløste vertskapskrav (0 hjemmeturneringer): {len(unresolved)}[/red]")
+            for item in unresolved:
+                _console.print(f"    [red]•[/red] {item['club']} / {item['age_group']}")
+        else:
+            _console.print("  [green]Alle klubb x aldersgruppe-kombinasjoner har minst én hjemmeturnering[/green]")
     _console.print("[bold]Månedsfordeling[/bold]")
     for month, count in sorted(report["month_distribution"].items()):
         _console.print(f"  {month}: {count}")

@@ -2024,7 +2024,7 @@ def _write_run_evidence_bundle(
 
         problem = _mid_planning_decision_problem(cfg, scraping, start, end)
         verify_result = verify_candidate(final_candidate, problem) if final_candidate is not None else None
-        score_result = score_candidate(final_candidate) if final_candidate is not None else None
+        score_result = score_candidate(final_candidate, problem=problem) if final_candidate is not None else None
 
         bundle = build_run_evidence_bundle(
             run_id=str(manifest.get("run_id") or ""),
