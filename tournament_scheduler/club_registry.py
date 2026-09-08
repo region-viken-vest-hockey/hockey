@@ -38,9 +38,9 @@ the Stage 1-4 pipeline never scrapes it.
 
 import logging
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +105,14 @@ class ClubCalendarSource:
     # -- this only forces every one of its hosted tournaments into manual
     # placement (`pipeline.scraper_event_helpers._group_club_calendar_status`).
     trusted_for_auto_placement: bool = True
+    # issue #279: non-schedulable arena/ownership aliases -- physical venues
+    # this club owns or is historically associated with, but which RVV can
+    # never select as a schedulable tournament arena (e.g. Varner Arena for
+    # Frisk Asker). `club_for_arena()` still resolves these for
+    # ownership/reporting/home-team reverse lookups, but they must never be
+    # written into `arena` itself, since `arena` is what the season planner
+    # and Stage 3 treat as schedulable.
+    non_schedulable_arena_aliases: Tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def is_known(self) -> bool:
@@ -159,6 +167,7 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
             "availability evidence."
         ),
         location_filter="Idrettshallen",
+        non_schedulable_arena_aliases=("Varner Arena",),
     ),
     "Sandefjord Penguins": ClubCalendarSource(
         club="Sandefjord Penguins",
@@ -265,6 +274,12 @@ def club_for_arena(arena_name: str) -> Optional[str]:
     on a match, or ``None`` if no entry matches. Multi-arena labels that are
     stored as ``"Arena A / Arena B"`` are treated as aliases for each
     individual component.
+
+    Also resolves ``non_schedulable_arena_aliases`` (issue #279): physical
+    venues a club owns historically/for reporting purposes but that are not
+    schedulable RVV tournament arenas (e.g. Varner Arena for Frisk Asker).
+    This lets ownership/reverse-lookup callers keep working without ever
+    making the alias a schedulable ``arena``.
     """
     lowered = arena_name.strip().lower()
     for club_name, entry in CLUB_REGISTRY.items():
@@ -273,6 +288,8 @@ def club_for_arena(arena_name: str) -> Optional[str]:
             return club_name
         parts = [part.strip() for part in entry_lower.split("/")]
         if lowered in parts:
+            return club_name
+        if lowered in (alias.strip().lower() for alias in entry.non_schedulable_arena_aliases):
             return club_name
     return None
 
