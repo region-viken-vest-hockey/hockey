@@ -861,3 +861,230 @@ class TestStage3InteractiveDecisionLoop:
         assert interactive_state["attempts_used"] == 1
         assert interactive_state["best_plan"] == plan_this_run
         assert "optimize_plan" in interactive_state["last_context"]["available_actions"]
+
+
+def _joint_club_cfg(**overrides: Any) -> dict[str, Any]:
+    """A config with one shared/joint-club registration (issue #274),
+    resolved against real dates safely in the future so
+    `compute_shared_registration_facts`'s probe pass never hits the
+    past-date clamp regardless of when this test runs.
+    """
+    from datetime import date, timedelta
+
+    start = date.today() + timedelta(days=60)
+    end = start + timedelta(days=150)
+    clubs = ["Kongsberg", "Skien", "Ringerike", "Tønsberg", "Frisk Asker", "Sandefjord Penguins", "Jar"]
+    teams = [{"club": c, "label": f"{c} U10A", "age_group": "U10"} for c in clubs]
+    teams.append({"club": "Kongsberg/Tønsberg", "label": "Kongsberg/Tønsberg U10", "age_group": "U10"})
+    cfg = {
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+        "age_groups": ["U10"],
+        "parallel_games": {"U10": 2},
+        "teams": teams,
+    }
+    cfg.update(overrides)
+    return cfg
+
+
+class TestSharedHostInteractiveDecision:
+    """issue #274: a shared/joint-club hosting decision must pause for the
+    interactive harness the same way every other Stage 3 decision point
+    does — not silently fall back to the deterministic heuristic just
+    because a harness is active (issue #260's closed "harness-active vs
+    headless must differ by transport, not decision rules" mandate).
+    """
+
+    def test_pending_decision_pauses_before_stage3_runs(self, state, tmp_path):
+        cfg = _joint_club_cfg()
+        args = _args(work_dir=str(tmp_path), resume_from="3")
+
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+        ) as run_stage3:
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        run_stage3.assert_not_called()
+
+        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
+
+        shared_state = _read_shared_host_state(state)
+        pending = shared_state["pending"]
+        assert pending == {"registration": "Kongsberg/Tønsberg", "age_group": "U10"}
+        assert shared_state["last_context"]["capability"] == "shared_host_assignment"
+        assert set(shared_state["last_context"]["available_actions"]) == {
+            "assign_shared_host", "request_operator",
+        }
+
+    def test_answering_the_decision_resumes_and_threads_it_into_stage3(self, state, tmp_path):
+        cfg = _joint_club_cfg()
+
+        # First call: reach the pause and persist shared_host_decision_state.json.
+        args1 = _args(work_dir=str(tmp_path), resume_from="3")
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+        ):
+            assert _cmd_run_interactive(args1) == 2
+
+        # Second call: harness answers assign_shared_host -> Tønsberg. No
+        # other joint registration is pending, so this must fall straight
+        # through into Stage 3 within the same invocation (no extra round
+        # trip), carrying the decision in shared_host_decisions.
+        plan = _plan_checkpoint(seed=1)
+        args2 = _args(
+            work_dir=str(tmp_path),
+            resume_from="3",
+            decision_action=json.dumps({
+                "action_id": "assign_shared_host",
+                "arguments": {"chosen_club": "Tønsberg"},
+                "rationale": "Kongsberg already hosts materially more this season.",
+            }),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan, False, False),
+        ) as run_stage3:
+            exit_code = _cmd_run_interactive(args2)
+
+        assert exit_code == 2  # advances into Stage 3's own promote/reject context
+        run_stage3.assert_called_once()
+        threaded = run_stage3.call_args.kwargs["shared_host_decisions"]
+        assert len(threaded) == 1
+        assert threaded[0]["registration"] == "Kongsberg/Tønsberg"
+        assert threaded[0]["age_group"] == "U10"
+        assert threaded[0]["chosen_club"] == "Tønsberg"
+        assert threaded[0]["decided_by"] == "harness"
+        assert "Kongsberg already hosts materially more" in threaded[0]["rationale"]
+
+        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
+
+        # Resolved -- the pause-tracking state was cleared, not merely
+        # left with pending=None (compute_shared_registration_facts must
+        # not be asked about this registration again on a future resume).
+        assert _read_shared_host_state(state) == {}
+
+    def test_rejected_decision_action_does_not_advance(self, state, tmp_path):
+        cfg = _joint_club_cfg()
+        args1 = _args(work_dir=str(tmp_path), resume_from="3")
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+        ):
+            assert _cmd_run_interactive(args1) == 2
+
+        # A non-constituent chosen_club must be rejected deterministically,
+        # not silently accepted or misapplied.
+        args2 = _args(
+            work_dir=str(tmp_path),
+            resume_from="3",
+            decision_action=json.dumps({
+                "action_id": "assign_shared_host",
+                "arguments": {"chosen_club": "Jar"},
+            }),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+        ) as run_stage3:
+            exit_code = _cmd_run_interactive(args2)
+
+        assert exit_code == 1
+        run_stage3.assert_not_called()
+
+        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
+
+        # Still pending -- a rejected action must not consume the decision.
+        assert _read_shared_host_state(state)["pending"] == {
+            "registration": "Kongsberg/Tønsberg", "age_group": "U10",
+        }
+
+    def test_headless_judge_auto_resolves_without_pausing(self, state, tmp_path):
+        """The non-interactive path (`interactive=False`, used by `_cmd_run`
+        for the auto-confirmed `run`/`publish` command) auto-calls a
+        configured headless judge instead of ever pausing."""
+        from datetime import datetime
+
+        from tournament_scheduler.cli.pipeline_orchestrator import _resolve_shared_host_decisions
+
+        judge_mock = MagicMock()
+        judge_mock.judge.return_value = "assign_shared_host\nTønsberg\nfairness rationale"
+        cfg = _joint_club_cfg()
+        start = datetime.fromisoformat(cfg["start_date"])
+        end = datetime.fromisoformat(cfg["end_date"])
+
+        with patch("tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge_mock):
+            pause_code, decisions = _resolve_shared_host_decisions(
+                state, cfg, {}, start, end, lambda msg: None, interactive=False,
+            )
+
+        assert pause_code is None
+        assert judge_mock.judge.call_count == 1
+        assert len(decisions) == 1
+        assert decisions[0]["registration"] == "Kongsberg/Tønsberg"
+        assert decisions[0]["chosen_club"] == "Tønsberg"
+        assert decisions[0]["decided_by"] == "llm"
+
+        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
+
+        # Fully resolved -- no leftover pending/side-state for next run.
+        assert _read_shared_host_state(state) == {}
+
+    def test_no_judge_and_non_interactive_falls_back_without_pausing(self, state, tmp_path):
+        """`_cmd_run` (never interactive) with no headless judge configured:
+        matches every other decision point's no-judge legacy fallback --
+        empty decisions, host_assignment.py's deterministic order applies,
+        no pause (there is nothing to pause for in this entrypoint)."""
+        from datetime import datetime
+
+        from tournament_scheduler.cli.pipeline_orchestrator import _resolve_shared_host_decisions
+
+        cfg = _joint_club_cfg()
+        start = datetime.fromisoformat(cfg["start_date"])
+        end = datetime.fromisoformat(cfg["end_date"])
+
+        with patch("tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None):
+            pause_code, decisions = _resolve_shared_host_decisions(
+                state, cfg, {}, start, end, lambda msg: None, interactive=False,
+            )
+
+        assert pause_code is None
+        assert decisions == []

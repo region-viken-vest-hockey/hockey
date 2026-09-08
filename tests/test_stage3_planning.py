@@ -10,6 +10,7 @@ from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
 from tournament_scheduler.pipeline.stage3_planning import (
     Stage3Error,
     _plan_to_dict,
+    compute_shared_registration_facts,
     run,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
@@ -502,56 +503,65 @@ def _make_joint_club_config():
     return config
 
 
-class TestSharedHostDecisionWiring:
-    """issue #274: `shared_host_decision.py`'s LLM-decision scaffolding must
-    actually be called from the canonical planning path, not sit unused.
+class TestComputeSharedRegistrationFacts:
+    """issue #274: `compute_shared_registration_facts` is the judge-free,
+    side-effect-free fact-gathering half of the shared-host decision.
+    Decision-making itself lives in cli/pipeline_orchestrator.py, not here
+    (see stage3_planning.py's module docstring for why).
     """
 
-    def test_no_judge_configured_leaves_legacy_fallback_behavior_unchanged(self, tmp_path):
+    def test_returns_empty_without_a_joint_registration(self):
+        facts = compute_shared_registration_facts(
+            _make_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+        )
+        assert facts == []
+
+    def test_returns_facts_row_for_a_joint_registration(self):
+        facts = compute_shared_registration_facts(
+            _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+        )
+        assert len(facts) == 1
+        assert facts[0]["registration"] == "Kongsberg/Tønsberg"
+        assert facts[0]["age_group"] == "U10"
+        assert set(facts[0]["constituents"]) == {"Kongsberg", "Tønsberg"}
+
+
+class TestSharedHostDecisionWiring:
+    """issue #274: `run()` must consume an externally-made shared-host
+    decision from config, and must never make that decision itself (see
+    `TestComputeSharedRegistrationFacts` and stage3_planning.py's module
+    docstring for why the judge call was moved out of this module).
+    """
+
+    def test_no_decision_in_config_leaves_legacy_fallback_behavior_unchanged(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
-        with patch("tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None):
-            result = run(
-                _make_joint_club_config(), {},
-                state,
-                datetime(2025, 9, 1), datetime(2025, 12, 15),
-            )
+        result = run(
+            _make_joint_club_config(), {},
+            state,
+            datetime(2025, 9, 1), datetime(2025, 12, 15),
+        )
 
         assert state.is_done(StageName.PLANNING)
         assert result["plan"]["shared_host_decisions"] == []
 
-    def test_judge_decision_is_recorded_and_threaded_into_the_final_plan(self, tmp_path):
+    def test_decision_from_config_is_recorded_and_threaded_into_the_final_plan(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
-        judge_mock = MagicMock()
-        judge_mock.judge.return_value = (
-            "assign_shared_host\nTønsberg\n"
-            "Kongsberg already hosts materially more tournaments this season."
-        )
-
-        with patch("tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge_mock):
-            result = run(
-                _make_joint_club_config(), {},
-                state,
-                datetime(2025, 9, 1), datetime(2025, 12, 15),
-            )
-
-        assert judge_mock.judge.call_count == 1
-        decisions = result["plan"]["shared_host_decisions"]
-        assert len(decisions) == 1
-        decision = decisions[0]
-        assert decision["registration"] == "Kongsberg/Tønsberg"
-        assert decision["age_group"] == "U10"
-        assert decision["chosen_club"] == "Tønsberg"
-        assert decision["decided_by"] == "llm"
-        assert "Kongsberg already hosts materially more" in decision["rationale"]
-
-    def test_decision_is_passed_to_the_real_planning_seed(self, tmp_path):
-        """Simpler, direct version of the above: only the real seed's
-        ``_make_planner`` call is intercepted (via ``wraps``), so the probe
-        pass still runs the real algorithm to produce believable facts.
-        """
-        state = PipelineState(tmp_path / "pipeline")
-        judge_mock = MagicMock()
-        judge_mock.judge.return_value = "assign_shared_host\nTønsberg\nfairness rationale"
+        cfg = {
+            **_make_joint_club_config(),
+            "shared_host_decisions": [
+                {"registration": "Kongsberg/Tønsberg", "age_group": "U10", "chosen_club": "Tønsberg"},
+            ],
+            "shared_host_decision_provenance": [
+                {
+                    "registration": "Kongsberg/Tønsberg",
+                    "age_group": "U10",
+                    "chosen_club": "Tønsberg",
+                    "rationale": "Kongsberg already hosts materially more tournaments this season.",
+                    "decided_by": "llm",
+                    "decided_at": "2026-09-08T00:00:00+00:00",
+                },
+            ],
+        }
 
         from tournament_scheduler.pipeline import stage3_planning as stage3_planning_module
 
@@ -562,33 +572,19 @@ class TestSharedHostDecisionWiring:
             calls.append(kwargs)
             return real_make_planner(*args, **kwargs)
 
-        with patch("tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge_mock), \
-                patch(
-                    "tournament_scheduler.pipeline.stage3_planning._make_planner",
-                    side_effect=_spy_make_planner,
-                ):
-            run(
-                _make_joint_club_config(), {},
-                state,
-                datetime(2025, 9, 1), datetime(2025, 12, 15),
-            )
+        with patch(
+            "tournament_scheduler.pipeline.stage3_planning._make_planner",
+            side_effect=_spy_make_planner,
+        ):
+            result = run(cfg, {}, state, datetime(2025, 9, 1), datetime(2025, 12, 15))
 
-        # First call is the probe pass (no decisions yet); a later call is
-        # the real seed attempt, which must carry the judge's decision.
-        assert calls[0].get("shared_host_decisions") is None
-        assert any(
+        decisions = result["plan"]["shared_host_decisions"]
+        assert decisions == cfg["shared_host_decision_provenance"]
+        assert calls
+        assert all(
             kwargs.get("shared_host_decisions") == {("Kongsberg/Tønsberg", "U10"): "Tønsberg"}
-            for kwargs in calls[1:]
+            for kwargs in calls
         )
-
-    def test_no_probe_pass_or_judge_call_without_a_joint_registration(self, tmp_path):
-        state = PipelineState(tmp_path / "pipeline")
-        judge_mock = MagicMock()
-
-        with patch("tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge_mock):
-            run(_make_config(), {}, state, datetime(2025, 9, 1), datetime(2025, 12, 15))
-
-        judge_mock.judge.assert_not_called()
 
 
 class TestIterationsFlag:

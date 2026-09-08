@@ -235,6 +235,27 @@ reference shared policy rather than duplicating it).
   and lets the same `--resume-from 4` invocation continue on into Stage 4.
   Do not fall back to the non-interactive `run --resume-from 3` for
   retry/refinement — this loop replaces that need.
+- **Shared/joint-club hosting decision (issue #274) — before Stage 3 runs
+  for the first time:** if the roster has any joint registration (e.g.
+  `"Kongsberg/Tønsberg"`) without a resolved hosting decision yet, the
+  invocation that would otherwise run Stage 3 instead pauses with
+  `capability: "shared_host_assignment"` and `available_actions:
+  ["assign_shared_host", "request_operator"]` — submit **exactly one**
+  decision per invocation, at the **same** `--resume-from 3` you used to
+  reach it (not `--resume-from 4` — unlike Stage 3's own nested loop below,
+  this decision happens *before* Stage 3 has produced anything to compare
+  against). `facts` includes `constituents` (the only legal
+  `arguments.chosen_club` values — an invented club is rejected
+  deterministically), `hosted_by_constituent`/`hosted_by_constituent_total`
+  (this age group vs. every age group), `calendar_trust`, and
+  `automatic_placement_possible` per constituent — weigh current hosting
+  burden/fairness first; calendar availability must not by itself decide
+  the winner (a chosen constituent with no trustworthy calendar still keeps
+  the obligation and becomes a manual placement instead of silently
+  switching to the other one). If more than one joint registration needs a
+  decision, resubmitting at `--resume-from 3` after each answer pauses
+  again for the next one; once all are resolved, that same invocation falls
+  straight through into Stage 3 without an extra round trip.
 - **Stage 4 (export):** `facts` includes `files_written`, `errors`. There
   is no Stage 5 — report the result to the user; `/rvv-miniputt:publish`
   handles publication separately.

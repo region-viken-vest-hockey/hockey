@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -1815,8 +1815,14 @@ def _run_stage3(
     iterations: int | None = None,
     penalty_hints: "dict[str, float] | None" = None,
     planning_critic_hints: "dict[str, Any] | None" = None,
+    shared_host_decisions: "list[dict[str, Any]] | None" = None,
 ) -> "tuple[dict[str, Any] | None, bool, bool]":
     """Run Stage 3 (planning) or skip it when resuming from a later stage.
+
+    *shared_host_decisions* (issue #274) is the already-resolved list from
+    :func:`_resolve_shared_host_decisions` — this only threads it into the
+    config Stage 3 consumes (``stage3_planning.py`` never makes this
+    decision itself, see that module's docstring).
 
     Returns ``(plan, abort, run_failed)`` where *plan* is the planning checkpoint
     dict, *abort* is True when the pipeline should stop (caller writes the run log
@@ -1870,6 +1876,12 @@ def _run_stage3(
                     f"source={planning_critic_hints.get('source', 'unknown')} "
                     f"iteration={planning_critic_hints.get('iteration', '?')}"
                 )
+            if shared_host_decisions:
+                # Same list doubles as both the chosen_club lookup and the
+                # provenance record — see
+                # stage3_planning._shared_host_choices_from_config.
+                merged_cfg["shared_host_decisions"] = list(shared_host_decisions)
+                merged_cfg["shared_host_decision_provenance"] = list(shared_host_decisions)
             plan = stage3_run(merged_cfg, scraping, state, start, end, strict=strict, iterations=iterations or getattr(args, "iterations", 1))
             n_tournaments = len(plan.get("plan", {}).get("tournaments", []))
             _console.print(f"  [green]✓[/green] {n_tournaments} turneringer planlagt")
@@ -2619,6 +2631,209 @@ def _clear_stage3_interactive_state(state: "Any") -> None:
         pass
 
 
+# ---------------------------------------------------------------------------
+# Shared/joint-club hosting decision (issue #274)
+# ---------------------------------------------------------------------------
+#
+# This is the ONE place in the pipeline that decides which constituent club
+# of a shared registration (e.g. "Kongsberg/Tønsberg") carries a hosting
+# obligation — deliberately not tournament_scheduler.pipeline.stage3_planning,
+# which only ever consumes an already-made decision via
+# config["shared_host_decisions"]. An earlier version called a headless
+# judge inline from inside stage3_planning.run(), which meant an
+# interactive harness session (the realistic way this pipeline is actually
+# run) never got asked at all -- get_judge_if_headless() deliberately
+# returns None whenever a harness is active, so the decision silently
+# reverted to a Python heuristic, reproducing the exact bug #274 exists to
+# kill and violating issue #260's closed mandate that "harness-active vs
+# headless must differ by transport, not decision rules." Do not move this
+# decision back into a stage runner module — any new in-stage sub-decision
+# belongs here, next to every other headless/interactive decision point in
+# this file, using the same DecisionContext pause/resume contract.
+
+
+def _shared_host_state_path(state: "Any") -> Path:
+    return state.work_dir / "shared_host_decision_state.json"
+
+
+def _read_shared_host_state(state: "Any", expected_run_id: str | None = None) -> dict[str, Any]:
+    path = _shared_host_state_path(state)
+    if not path.exists():
+        return {}
+    try:
+        import json as _json
+
+        data = _json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    if expected_run_id and data.get("run_id") != expected_run_id:
+        return {}
+    return data
+
+
+def _write_shared_host_state(state: "Any", data: dict[str, Any]) -> None:
+    import json as _json
+
+    _shared_host_state_path(state).write_text(
+        _json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def _clear_shared_host_state(state: "Any") -> None:
+    try:
+        _shared_host_state_path(state).unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def _resolve_shared_host_decisions(
+    state: "Any",
+    cfg: "dict[str, Any]",
+    scraping: "dict[str, Any]",
+    start: "Any",
+    end: "Any",
+    log_fn: "Any",
+    *,
+    interactive: bool,
+) -> "tuple[int | None, list[dict[str, Any]]]":
+    """Resolve every shared/joint-club hosting decision for this run.
+
+    The same :class:`~..application.decisions.DecisionContext` either gets
+    auto-answered by a headless judge or pauses (exit code 2) for the
+    harness to answer via ``run --interactive --decision-action`` — never
+    silently defaulted, matching every other decision point in this module.
+
+    Returns ``(pause_exit_code, shared_host_decisions)``:
+
+    - ``pause_exit_code`` is ``None`` when every joint registration this run
+      is resolved (the common case — no joint registrations at all resolves
+      immediately with an empty list). Callers thread ``shared_host_decisions``
+      into Stage 3's config (it doubles as both the ``chosen_club`` lookup
+      and the provenance list — see
+      ``stage3_planning._shared_host_choices_from_config``).
+    - When not ``None`` (only possible when *interactive* is True and no
+      headless judge is configured), the caller must return that exit code
+      immediately without running Stage 3 — the pending decision's context
+      has already been printed/persisted.
+
+    *interactive* False (the auto-confirmed ``run`` / ``_cmd_run`` path,
+    never paused): with no headless judge configured, this matches every
+    other decision point's established no-judge legacy fallback —
+    deterministic constituent order, unchanged existing behavior.
+    """
+    import json as _json
+
+    from ..application.decisions import decide, record_llm_decision
+    from ..llm_judge import get_judge_if_headless
+    from ..pipeline.run_log_paths import resolve_active_run_log_dir
+    from ..pipeline.stage3_planning import compute_shared_registration_facts
+    from ..shared_host_decision import (
+        build_shared_host_decision_context,
+        build_shared_host_decision_prompt,
+        parse_shared_host_verdict,
+        shared_host_decision_record,
+    )
+
+    run_id = _current_run_id(state)
+    work_dir = str(state.work_dir)
+    saved = _read_shared_host_state(state, expected_run_id=run_id)
+    decisions: list[dict[str, Any]] = list(saved.get("decisions") or [])
+    unresolved: list[dict[str, str]] = list(saved.get("unresolved") or [])
+    considered_keys = {(d.get("registration"), d.get("age_group")) for d in decisions}
+    considered_keys |= {(u.get("registration"), u.get("age_group")) for u in unresolved}
+
+    try:
+        facts_rows = compute_shared_registration_facts(cfg, scraping, start, end)
+    except Exception as exc:
+        log_fn(f"Delt vertskap: kunne ikke beregne fakta — hopper over: {exc}")
+        facts_rows = []
+    pending_rows = [
+        row for row in facts_rows
+        if (row.get("registration"), row.get("age_group")) not in considered_keys
+    ]
+
+    if not pending_rows:
+        _clear_shared_host_state(state)
+        return None, decisions
+
+    try:
+        judge = get_judge_if_headless()
+    except ValueError:
+        judge = None
+
+    if judge is not None:
+        for facts in pending_rows:
+            registration = str(facts.get("registration", ""))
+            age_group = str(facts.get("age_group", ""))
+            context = build_shared_host_decision_context(run_id, registration, age_group, facts)
+            try:
+                raw_verdict = judge.judge(build_shared_host_decision_prompt(context))
+            except RuntimeError as exc:
+                log_fn(f"Delt vertskap {registration} ({age_group}): dommer-kall feilet — hopper over: {exc}")
+                unresolved.append({"registration": registration, "age_group": age_group})
+                continue
+            action = parse_shared_host_verdict(context, raw_verdict)
+            result = decide(context, action)
+            try:
+                record_llm_decision(work_dir, context, action, result)
+            except Exception as exc:
+                log_fn(f"Delt vertskap {registration} ({age_group}): record_llm_decision feilet: {exc}")
+            if not result.accepted or action.action_id != "assign_shared_host":
+                log_fn(
+                    f"Delt vertskap {registration} ({age_group}): dommer valgte "
+                    f"{action.action_id!r} ({result.rejection_reason or 'ingen automatisk plassering'}) "
+                    "— faller tilbake til deterministisk rekkefølge."
+                )
+                unresolved.append({"registration": registration, "age_group": age_group})
+                continue
+            chosen_club = str(action.arguments.get("chosen_club", ""))
+            decisions.append(
+                shared_host_decision_record(
+                    registration, age_group, chosen_club, str(action.rationale or ""),
+                    decided_by="llm", decided_at=datetime.now(timezone.utc).isoformat(),
+                )
+            )
+            log_fn(
+                f"Delt vertskap {registration} ({age_group}): dommer valgte {chosen_club} "
+                f"({(action.rationale or '')[:200]})"
+            )
+        _clear_shared_host_state(state)
+        return None, decisions
+
+    if not interactive:
+        return None, decisions
+
+    # Interactive harness, no headless judge: pause for exactly one pending
+    # decision per invocation, same one-decision-per-call contract as every
+    # other Stage 3 interactive decision point in this module.
+    facts = pending_rows[0]
+    registration = str(facts.get("registration", ""))
+    age_group = str(facts.get("age_group", ""))
+    context = build_shared_host_decision_context(run_id, registration, age_group, facts)
+    _write_shared_host_state(
+        state,
+        {
+            "run_id": run_id,
+            "decisions": decisions,
+            "unresolved": unresolved,
+            "pending": {"registration": registration, "age_group": age_group},
+            "last_context": context.to_dict(),
+        },
+    )
+    payload = context.to_dict()
+    try:
+        log_dir = resolve_active_run_log_dir(work_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        with open(log_dir / "decision_context.json", "w", encoding="utf-8") as fh:
+            _json.dump(payload, fh, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+    print(_json.dumps(payload, indent=2, ensure_ascii=False))
+    return 2, []
+
+
 def _emit_stage3_interactive_decision(
     state: "Any",
     work_dir: str,
@@ -2876,6 +3091,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         # decision_payload, so it never re-triggers this branch.
         _manifest_start_run(args.work_dir, args.input, getattr(args, "objective", None))
         _clear_stage3_interactive_state(state)
+        _clear_shared_host_state(state)
         from ..pipeline.evidence_bundle import clear_stage3_attempt_log
 
         clear_stage3_attempt_log(state.work_dir)
@@ -2890,6 +3106,73 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     # _run_stage3_pareto_optimize/_emit_stage3_pareto_decision.
     use_pareto_for_stage3 = False
     optimize_plan_arguments: dict[str, Any] | None = None
+
+    # issue #274: a pending shared/joint-club hosting decision
+    # (_resolve_shared_host_decisions) is a distinct in-Stage-3 sub-decision
+    # that happens *before* Stage 3 has produced a candidate at all, so it
+    # cannot reuse the prev_stage_num = resume_from - 1 contract below (that
+    # contract assumes the decision belongs to a just-completed stage/Stage-3
+    # attempt). The harness answers it with the same --resume-from it used
+    # to reach here (still 3 — we have not logically advanced past Stage 3
+    # yet) plus --decision-action; detected here by checking for
+    # shared_host_decision_state.json's "pending" entry rather than by
+    # resume_from's value.
+    pending_shared_host = (
+        _read_shared_host_state(state, expected_run_id=_current_run_id(state)).get("pending")
+        if decision_payload is not None
+        else None
+    )
+    if decision_payload is not None and pending_shared_host is not None:
+        try:
+            shared_host_action = DecisionAction.from_dict(decision_payload)
+        except Exception as exc:
+            _console.print(f"[red]✗[/red] Ugyldig DecisionAction: {exc}")
+            return 1
+
+        shared_host_state = _read_shared_host_state(state, expected_run_id=_current_run_id(state))
+        shared_host_context = DecisionContext.from_dict(shared_host_state.get("last_context") or {})
+        shared_host_result = decide(shared_host_context, shared_host_action)
+        try:
+            record_llm_decision(str(state.work_dir), shared_host_context, shared_host_action, shared_host_result)
+        except Exception as exc:
+            _log(f"record_llm_decision failed: {exc}")
+        if not shared_host_result.accepted:
+            _console.print(f"[red]✗[/red] Avgjørelse avvist: {shared_host_result.rejection_reason}")
+            return 1
+
+        decisions_list = list(shared_host_state.get("decisions") or [])
+        unresolved_list = list(shared_host_state.get("unresolved") or [])
+        if shared_host_action.action_id == "assign_shared_host":
+            from ..shared_host_decision import shared_host_decision_record
+
+            decisions_list.append(
+                shared_host_decision_record(
+                    pending_shared_host["registration"],
+                    pending_shared_host["age_group"],
+                    str(shared_host_action.arguments.get("chosen_club", "")),
+                    str(shared_host_action.rationale or ""),
+                    decided_by="harness",
+                    decided_at=datetime.now(timezone.utc).isoformat(),
+                )
+            )
+        else:
+            unresolved_list.append(dict(pending_shared_host))
+        _write_shared_host_state(
+            state,
+            {
+                "run_id": _current_run_id(state),
+                "decisions": decisions_list,
+                "unresolved": unresolved_list,
+                "pending": None,
+                "last_context": None,
+            },
+        )
+        # Answered — fall through as if this invocation carried no decision
+        # payload at all, so execution below re-checks for another pending
+        # shared-host decision (pauses again if one remains) or proceeds
+        # straight into Stage 3 once none remain, without an extra harness
+        # round trip once everything is resolved.
+        decision_payload = None
 
     if decision_payload is not None:
         prev_stage_num = resume_from - 1
@@ -3016,8 +3299,26 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             return 1
         return _emit_stage3_interactive_decision(state, args.work_dir, cfg, scraping, start, end, plan, _log)
 
+    shared_host_decisions: list[dict[str, Any]] = []
+    if resume_from == 3:
+        # issue #274: resolve every shared/joint-club hosting decision
+        # before Stage 3 actually builds a plan — pauses (returns here) for
+        # the harness to answer one at a time if no headless judge is
+        # configured, exactly like every other interactive decision point
+        # in this function. Only reachable for the plain (non-Pareto,
+        # non-v2-optimizer) first-time Stage 3 pass — those two branches
+        # above already returned, and a resumed `--resume-from 4` run skips
+        # this entirely (shared-host decisions were already resolved and
+        # baked into the checkpoint the first time Stage 3 ran).
+        pause_code, shared_host_decisions = _resolve_shared_host_decisions(
+            state, cfg, scraping, start, end, _log, interactive=True,
+        )
+        if pause_code is not None:
+            return pause_code
+
     plan, abort, _stage3_failed = _run_stage3(
-        args, cfg, scraping, state, start, end, strict, resume_from, _log, stage3_search_iterations
+        args, cfg, scraping, state, start, end, strict, resume_from, _log, stage3_search_iterations,
+        shared_host_decisions=shared_host_decisions,
     )
     if abort:
         return 1
@@ -3072,6 +3373,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
     _manifest_start_run(args.work_dir, args.input, getattr(args, "objective", None))
     _clear_stage3_interactive_state(state)
+    _clear_shared_host_state(state)
     from ..pipeline.evidence_bundle import clear_stage3_attempt_log
 
     clear_stage3_attempt_log(state.work_dir)
@@ -3154,6 +3456,17 @@ def _cmd_run(args: argparse.Namespace) -> int:
     except Exception:
         multi_seed_run_id = ""
 
+    # issue #274: resolve shared/joint-club hosting decisions once, before
+    # any Stage 3 attempt, so every attempt in the retry loop below sees the
+    # same decision (never re-asked/re-decided per attempt). This is the
+    # non-interactive `run` path (never `--interactive`, see the top of this
+    # function) — `interactive=False` means a missing headless judge falls
+    # back to the deterministic legacy order rather than pausing, matching
+    # every other decision point's no-judge behavior here.
+    _, shared_host_decisions = _resolve_shared_host_decisions(
+        state, cfg, scraping, start, end, _log, interactive=False,
+    )
+
     _manifest_set_active(args.work_dir, "planning")
     for attempt in range(1, max_plan_attempts + 1):
         last_attempt = attempt
@@ -3187,6 +3500,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         plan, abort, stage3_failed = _run_stage3(
             args, cfg, scraping, state, start, end, strict, resume_from,
             _log, attempt_iterations, penalty_hints,
+            shared_host_decisions=shared_host_decisions,
         )
         if abort:
             _manifest_record(args.work_dir, "planning", "failed", "Stage 3 (planning) failed or aborted the run.")

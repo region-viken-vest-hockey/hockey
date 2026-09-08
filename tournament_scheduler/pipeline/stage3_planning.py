@@ -7,6 +7,26 @@ quality scores (diversity, balance, pairwise-matchup).
 The accepted plan is written to the Stage 3 checkpoint as JSON.
 LLM-based quality gates are handled by the pi extension, not by this module.
 
+Shared-host decisions (issue #274): this module deliberately never calls a
+headless judge or pauses for an interactive harness decision itself. An
+earlier version of :func:`run` called ``get_judge_if_headless()`` inline to
+decide which constituent club of a joint/shared registration (e.g.
+``"Kongsberg/Tønsberg"``) carries a hosting obligation. That meant an
+interactive harness session — the realistic way this pipeline is actually
+run — could never be asked at all, since ``get_judge_if_headless()``
+deliberately returns ``None`` whenever a harness is active; the decision
+silently reverted to a Python heuristic, reproducing the exact bug #274
+exists to kill, and violating issue #260's closed mandate that
+"harness-active vs headless must differ by transport, not decision rules."
+Decision-making for this and any future in-stage sub-decision belongs in
+``cli/pipeline_orchestrator.py`` (see ``_resolve_shared_host_decisions``),
+which already owns every other headless/interactive decision point in this
+pipeline. Do not add another inline judge call here — use
+:func:`compute_shared_registration_facts` to expose the deterministic facts
+and thread the resulting decision back in via
+``config["shared_host_decisions"]``/``config["shared_host_decision_provenance"]``
+instead.
+
 Minimal usage::
 
     from tournament_scheduler.pipeline.stage3_planning import run
@@ -19,7 +39,7 @@ Minimal usage::
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from typing import Any
 import threading
 
@@ -102,134 +122,89 @@ def _extract_planning_critic_hints(config: dict[str, Any]) -> tuple[dict[str, An
     return structured if isinstance(structured, dict) else None, penalties or None
 
 
-def _current_run_id(state: "PipelineState") -> str:
-    """Return the active run manifest's ``run_id``, or ``""`` if unreadable."""
-    try:
-        from .run_manifest import RunManifest
-
-        return str(RunManifest(str(state.work_dir)).read().get("run_id") or "")
-    except Exception:
-        return ""
-
-
-def _decide_shared_host_assignments(
-    roster: Roster,
-    club_calendar_status: dict[str, str],
-    build_probe_plan: "Any",
+def compute_shared_registration_facts(
+    config: dict[str, Any],
+    scraping_result: dict[str, Any],
+    start_date: datetime,
+    end_date: datetime,
     *,
-    run_id: str,
-    work_dir: str,
-    log_fn: "Any",
-) -> "tuple[dict[tuple[str, str], str], list[dict[str, str]]]":
-    """Decide which constituent club carries each shared/joint hosting
-    obligation (issue #274: "LLM/controller chooses which constituent club
-    hosts", never a fixed Python heuristic).
+    today: date | None = None,
+) -> list[dict[str, Any]]:
+    """Deterministic facts for every joint/shared-club registration that
+    needs a hosting-assignment decision (issue #274).
 
-    Wires the previously-unused :mod:`..shared_host_decision` scaffolding
-    into the canonical planning path: for every joint registration (e.g.
-    ``"Kongsberg/Tønsberg"``) with a registered team, ask the headless judge
-    (:func:`..llm_judge.get_judge_if_headless`) to pick a constituent using
-    deterministic hosting-burden facts (:func:`..hosting_coverage.shared_registration_facts`)
-    gathered from a cheap probe plan built with today's existing deterministic
-    fallback order (``host_assignment.py``'s alphabetical-then-first-free-slot
-    search). The probe plan is discarded — it exists only to produce
-    realistic "who already hosts how much" facts for the decision.
+    DELIBERATELY judge-free and side-effect-free: this module never calls a
+    headless judge or pauses for a harness decision itself (see the module
+    docstring's "Shared-host decisions" note for why an earlier version of
+    this file did exactly that, inline, and why it was removed). Callers —
+    ``cli/pipeline_orchestrator.py``'s headless and interactive decision
+    points, never this module — use this to gather the facts, obtain the
+    decision through whichever transport applies (auto-call the judge when
+    headless; pause/emit a ``DecisionContext`` and wait for the harness
+    otherwise), and pass the result back into :func:`run` via
+    ``config["shared_host_decisions"]``/``config["shared_host_decision_provenance"]``.
 
-    Mirrors ``_decide_refinement_candidate``'s no-judge fallback: when no
-    headless judge is configured (e.g. an interactive harness session is
-    driving the run), this returns empty results and callers keep today's
-    deterministic constituent-selection behavior unchanged. There is no
-    interactive-harness prompt for this narrow decision — only genuinely
-    headless/CI runs (``RVV_JUDGE_BACKEND`` configured, no harness env var)
-    exercise the LLM path.
-
-    Returns ``(choices, records)``:
-    - ``choices``: ``{(registration, age_group): chosen_club}``, fed into
-      every seed's :class:`~..season_planner.SeasonPlanner` via
-      ``shared_host_decisions`` so ``host_assignment.py`` searches only the
-      chosen constituent instead of falling through to the other one.
-    - ``records``: provenance dicts (:func:`..shared_host_decision.shared_host_decision_record`)
-      to attach to the final :class:`~..models.SeasonPlan` for audit/export
-      (``rules_model.py`` renders these into the canonical rules report).
+    Runs a cheap probe plan using today's deterministic host-assignment
+    fallback order purely to gather realistic "who already hosts how much"
+    facts — the probe plan itself is discarded, never persisted. Returns
+    ``[]`` immediately, without paying for a probe build, when the roster
+    has no joint/shared-club registration (the common case).
     """
+    roster = _build_roster(config)
     team_dicts = [{"club": t.club, "age_group": t.age_group} for t in roster.teams]
     if not any("/" in str(d.get("club") or "") for d in team_dicts):
-        return {}, []
+        return []
 
-    from ..application.decisions import decide, record_llm_decision
     from ..hosting_coverage import shared_registration_facts
-    from ..llm_judge import get_judge_if_headless
-    from ..shared_host_decision import (
-        build_shared_host_decision_context,
-        build_shared_host_decision_prompt,
-        parse_shared_host_verdict,
-        shared_host_decision_record,
+
+    effective = compute_effective_start_date(start_date.date(), today=today)
+    planning_start = datetime.combine(effective.effective_start_date, datetime.min.time())
+    club_calendar_status = _build_club_calendar_status(scraping_result)
+
+    probe_planner = _make_planner(
+        roster,
+        _build_parallel_games(config),
+        _build_club_arenas(config),
+        config.get("maxHostingDeviation", 1),
+        _build_round_length(config),
+        _build_events_by_club(scraping_result),
+        config.get("fairness_thresholds", {}),
+        config.get("target_tournament_count"),
+        config.get("target_tournament_counts_by_age_group"),
+        seed=None,
+        max_hosting_days_per_month=config.get("max_hosting_days_per_month"),
+        penalty_hints=None,
+        allow_penalty_hint_relaxation=bool(config.get("allow_penalty_hint_relaxation", True)),
+        club_calendar_status=club_calendar_status,
+        club_busy_intervals=_build_club_busy_intervals(scraping_result),
+        cheap_baseline=bool(config.get("stage3_cheap_baseline", False)),
     )
-
-    try:
-        judge = get_judge_if_headless()
-    except ValueError:
-        judge = None
-    if judge is None:
-        return {}, []
-
-    probe_plan = build_probe_plan()
+    probe_plan = probe_planner.build_plan(planning_start, end_date)
     if probe_plan is None or not probe_plan.tournaments:
-        return {}, []
+        return []
 
     tournament_dicts = [
         {"host_club": t.host_club, "age_group": t.age_group, "cancelled": t.cancelled}
         for t in probe_plan.tournaments
     ]
-    facts_rows = shared_registration_facts(team_dicts, tournament_dicts, club_calendar_status)
-    if not facts_rows:
-        return {}, []
+    return shared_registration_facts(team_dicts, tournament_dicts, club_calendar_status)
 
+
+def _shared_host_choices_from_config(config: dict[str, Any]) -> dict[tuple[str, str], str]:
+    """Convert ``config["shared_host_decisions"]`` (a JSON-safe list, since
+    config must round-trip through checkpoints) into the
+    ``{(registration, age_group): chosen_club}`` shape
+    :class:`~..season_planner.SeasonPlanner` expects."""
     choices: dict[tuple[str, str], str] = {}
-    records: list[dict[str, str]] = []
-    for facts in facts_rows:
-        registration = str(facts.get("registration", ""))
-        age_group = str(facts.get("age_group", ""))
-        context = build_shared_host_decision_context(run_id, registration, age_group, facts)
-        try:
-            raw_verdict = judge.judge(build_shared_host_decision_prompt(context))
-        except RuntimeError as exc:
-            log_fn(f"[plan] Delt vertskap {registration} ({age_group}): dommer-kall feilet — hopper over: {exc}")
+    for entry in config.get("shared_host_decisions") or []:
+        if not isinstance(entry, dict):
             continue
-
-        action = parse_shared_host_verdict(context, raw_verdict)
-        result = decide(context, action)
-        try:
-            record_llm_decision(work_dir, context, action, result)
-        except Exception as exc:
-            log_fn(f"[plan] Delt vertskap {registration} ({age_group}): record_llm_decision feilet: {exc}")
-
-        if not result.accepted or action.action_id != "assign_shared_host":
-            log_fn(
-                f"[plan] Delt vertskap {registration} ({age_group}): dommer valgte "
-                f"{action.action_id!r} ({result.rejection_reason or 'ingen automatisk plassering'}) "
-                "— faller tilbake til deterministisk rekkefølge.",
-            )
-            continue
-
-        chosen_club = str(action.arguments.get("chosen_club", ""))
-        choices[(registration, age_group)] = chosen_club
-        records.append(
-            shared_host_decision_record(
-                registration,
-                age_group,
-                chosen_club,
-                str(action.rationale or ""),
-                decided_by="llm",
-                decided_at=datetime.now(timezone.utc).isoformat(),
-            )
-        )
-        log_fn(
-            f"[plan] Delt vertskap {registration} ({age_group}): dommer valgte {chosen_club} "
-            f"({(action.rationale or '')[:200]})",
-        )
-
-    return choices, records
+        registration = str(entry.get("registration", ""))
+        age_group = str(entry.get("age_group", ""))
+        chosen_club = entry.get("chosen_club")
+        if registration and age_group and chosen_club:
+            choices[(registration, age_group)] = str(chosen_club)
+    return choices
 
 
 # ---------------------------------------------------------------------------
@@ -373,35 +348,16 @@ def run(
     config_fingerprint = stable_payload_sha256(config)
     source_fingerprint = stable_payload_sha256(scraping_result)
 
-    def _build_probe_plan() -> SeasonPlan | None:
-        probe_planner = _make_planner(
-            roster,
-            pg_config,
-            club_arenas,
-            max_hosting_deviation,
-            round_length_config,
-            events_by_club,
-            fairness_thresholds,
-            target_tournament_count,
-            target_tournament_counts_by_age_group,
-            seed=None,
-            max_hosting_days_per_month=max_hosting_days_per_month,
-            penalty_hints=dict(penalty_hints) if penalty_hints else None,
-            allow_penalty_hint_relaxation=allow_penalty_hint_relaxation,
-            club_calendar_status=club_calendar_status,
-            club_busy_intervals=club_busy_intervals,
-            cheap_baseline=cheap_baseline,
-        )
-        return probe_planner.build_plan(planning_start, end_date)
-
-    shared_host_choices, shared_host_decision_records = _decide_shared_host_assignments(
-        roster,
-        club_calendar_status,
-        _build_probe_plan,
-        run_id=_current_run_id(state),
-        work_dir=str(state.work_dir),
-        log_fn=lambda msg: print(msg, flush=True),
-    )
+    # issue #274: the shared/joint-club hosting decision itself is made by
+    # cli/pipeline_orchestrator.py (headless judge or interactive harness
+    # pause, per config["shared_host_decisions"]/compute_shared_registration_facts)
+    # — never here. An earlier version called a headless judge inline from
+    # this module; that meant an interactive harness session (the realistic
+    # way this pipeline is actually run) could never be asked at all,
+    # silently reproducing the exact "Python heuristic decides fairness"
+    # bug issue #274 exists to kill. Do not reintroduce a judge call here.
+    shared_host_choices = _shared_host_choices_from_config(config)
+    shared_host_decision_records = list(config.get("shared_host_decision_provenance") or [])
 
     best_plan: SeasonPlan | None = None
     best_planner: SeasonPlanner | None = None
