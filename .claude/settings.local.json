@@ -33,5 +33,25 @@
       "Bash(~/.claude/bin/ps-next-plan-validate \"/Users/niclasl/src/hockey/.ps-next/PLAN-151.md\")",
       "Bash(echo \"EXIT=$?\")"
     ]
+  },
+  "skillOverrides": {
+    "PS-agent-comms": "off",
+    "PS-confluence": "off",
+    "PS-database": "off",
+    "PS-debugging": "off",
+    "PS-deps": "off",
+    "PS-dotnet": "off",
+    "PS-e2e": "off",
+    "PS-frontend": "off",
+    "PS-improve-prompt": "off",
+    "PS-infra": "off",
+    "PS-java": "off",
+    "PS-jira": "off",
+    "PS-php": "off",
+    "PS-recover": "off",
+    "PS-smells": "off",
+    "PS-vitest": "off",
+    "PS-warcouncil": "off",
+    "rvv-miniputt:calendars": "off"
   }
 }
