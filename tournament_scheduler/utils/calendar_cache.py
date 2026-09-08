@@ -100,15 +100,21 @@ class CalendarCache:
             if datetime.now() - cached_time > self.ttl:
                 return None
 
-            # Reconstruct CalendarEvent objects
+            # Reconstruct CalendarEvent objects. Preserve source audit fields
+            # (LOCATION and iCal all-day semantics) instead of dropping them on
+            # a cache hit; otherwise a fresh scrape and cached scrape would
+            # produce different calendars.html evidence.
             events = []
             for event_data in data['events']:
                 event = CalendarEvent(
                     date=event_data['date'],
                     name=event_data['name'],
                     datetime=datetime.fromisoformat(event_data['datetime']),
-                    duration_hours=event_data['duration_hours']
+                    duration_hours=event_data['duration_hours'],
+                    location=event_data.get('location', ''),
                 )
+                if event_data.get('all_day'):
+                    event.all_day = True
                 events.append(event)
 
             return events
@@ -141,15 +147,21 @@ class CalendarCache:
         cache_key = self._get_cache_key(url, calendar_name, start_date, end_date, location_filter)
         cache_file = self.cache_dir / f"{cache_key}.json"
 
-        # Serialize events
+        # Serialize events. Keep audit metadata so cached and live iCal
+        # results are semantically identical for Stage 2 and calendars.html.
         events_data = []
         for event in events:
-            events_data.append({
+            event_data = {
                 'date': event.date,
                 'name': event.name,
                 'datetime': event.datetime.isoformat(),
-                'duration_hours': event.duration_hours
-            })
+                'duration_hours': event.duration_hours,
+            }
+            if event.location:
+                event_data['location'] = event.location
+            if bool(getattr(event, 'all_day', False)):
+                event_data['all_day'] = True
+            events_data.append(event_data)
 
         data = {
             'timestamp': datetime.now().isoformat(),
