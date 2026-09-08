@@ -24,6 +24,36 @@ def _load_json_file(path: str) -> Dict[str, Any]:
         return json.load(fh)
 
 
+def _engine_id(cli_engine: str) -> str:
+    """Map the CLI's ``--engine`` choice (hyphenated) to the internal engine id."""
+    return cli_engine.replace("-", "_")
+
+
+def _run_engine_or_report_error(
+    console: Console, *, engine: str, problem: Optional[Dict[str, Any]], baseline: Dict[str, Any], request: Dict[str, Any]
+) -> "Dict[str, Any] | None":
+    """Call :func:`stage3_engine.run_planner`, printing a clear error instead of a traceback.
+
+    ``cp_sat`` is still shadow/experimental (issue #276): missing OR-Tools or an
+    infeasible/timed-out solve are expected outcomes, not bugs, so they get a
+    one-line message rather than propagating as an unhandled exception.
+    """
+    from ..stage3_cpsat import CpSatNoCandidate, CpSatUnavailable
+    from ..stage3_engine import run_planner
+
+    try:
+        return run_planner(engine=engine, problem=problem, baseline=baseline, request=request)
+    except CpSatUnavailable as exc:
+        console.print(f"[red]✗[/red] {exc}")
+        return None
+    except CpSatNoCandidate as exc:
+        console.print(
+            f"[red]✗[/red] CP-SAT fant ingen kandidat innen budsjettet "
+            f"({exc.status}, {exc.runtime_seconds:.1f}s)"
+        )
+        return None
+
+
 def _parse_weight_overrides(raw: Any) -> "tuple[Dict[str, float], Dict[str, Dict[str, float]]]":
     """Parse repeated ``--weight`` args into global and per-age-group overrides.
 
@@ -179,7 +209,6 @@ def _cmd_plan_optimize(args: argparse.Namespace) -> int:
     for while it's being A/B tested against ``SeasonPlanner``.
     """
     from ..planning_contract import extract_candidate, verify_candidate
-    from ..stage3_optimizer import optimize_candidate
 
     try:
         candidate = extract_candidate(_load_json_file(args.candidate))
@@ -201,15 +230,22 @@ def _cmd_plan_optimize(args: argparse.Namespace) -> int:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
 
-    optimized = optimize_candidate(
-        candidate,
-        problem,
-        iterations=args.iterations,
-        seed=args.seed,
-        weights=weight_overrides or None,
-        per_age_group_weights=per_age_group_weights or None,
-        move_dates=args.move_dates,
+    optimized = _run_engine_or_report_error(
+        _console,
+        engine=_engine_id(args.engine),
+        problem=problem,
+        baseline=candidate,
+        request={
+            "iterations": args.iterations,
+            "seed": args.seed,
+            "weights": weight_overrides or None,
+            "per_age_group_weights": per_age_group_weights or None,
+            "move_dates": args.move_dates,
+            "solve_budget_seconds": args.solve_budget_seconds,
+        },
     )
+    if optimized is None:
+        return 1
 
     payload = json.dumps(optimized, indent=2, ensure_ascii=False)
     if args.output:
@@ -251,7 +287,6 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
     from ..planning_contract import build_planning_problem, extract_candidate
     from ..pipeline.state import PipelineState, StageName
     from ..stage3_ab import build_ab_report
-    from ..stage3_optimizer import optimize_candidate
 
     state = PipelineState(args.work_dir)
     config = state.read_stage(StageName.CONFIG)
@@ -290,15 +325,22 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
         return 1
 
     problem = build_planning_problem(config, scraping_result, start_date, end_date)
-    new_candidate = optimize_candidate(
-        old_candidate,
-        problem,
-        iterations=args.iterations,
-        seed=args.seed,
-        weights=weight_overrides or None,
-        per_age_group_weights=per_age_group_weights or None,
-        move_dates=args.move_dates,
+    new_candidate = _run_engine_or_report_error(
+        _console,
+        engine=_engine_id(args.engine),
+        problem=problem,
+        baseline=old_candidate,
+        request={
+            "iterations": args.iterations,
+            "seed": args.seed,
+            "weights": weight_overrides or None,
+            "per_age_group_weights": per_age_group_weights or None,
+            "move_dates": args.move_dates,
+            "solve_budget_seconds": args.solve_budget_seconds,
+        },
     )
+    if new_candidate is None:
+        return 1
 
     report = build_ab_report(old_candidate, new_candidate, problem)
 
@@ -528,7 +570,6 @@ def _execute_optimize_plan(
     from ..pipeline.state import PipelineState, StageName
     from ..planning_contract import extract_candidate
     from ..stage3_ab import build_ab_report
-    from ..stage3_optimizer import optimize_candidate
 
     action_arguments = action_arguments or {}
 
@@ -567,18 +608,25 @@ def _execute_optimize_plan(
     if isinstance(action_arguments.get("weights"), dict):
         weight_overrides = {**weight_overrides, **{k: float(v) for k, v in action_arguments["weights"].items()}}
 
-    new_candidate = optimize_candidate(
-        starting_candidate,
-        problem,
-        iterations=int(action_arguments.get("iterations", args.iterations)),
-        seed=int(action_arguments.get("seed", args.seed)),
-        weights=weight_overrides or None,
-        per_age_group_weights=per_age_group_weights or None,
-        move_dates=bool(action_arguments.get("move_dates", args.move_dates)),
-        date_swap_probability=float(action_arguments.get("date_swap_probability", 0.3)),
-        move_hosts=bool(action_arguments.get("move_hosts", False)),
-        move_slots=bool(action_arguments.get("move_slots", False)),
+    new_candidate = _run_engine_or_report_error(
+        _console,
+        engine=_engine_id(getattr(args, "engine", "local-search")),
+        problem=problem,
+        baseline=starting_candidate,
+        request={
+            "iterations": int(action_arguments.get("iterations", args.iterations)),
+            "seed": int(action_arguments.get("seed", args.seed)),
+            "weights": weight_overrides or None,
+            "per_age_group_weights": per_age_group_weights or None,
+            "move_dates": bool(action_arguments.get("move_dates", args.move_dates)),
+            "date_swap_probability": float(action_arguments.get("date_swap_probability", 0.3)),
+            "move_hosts": bool(action_arguments.get("move_hosts", False)),
+            "move_slots": bool(action_arguments.get("move_slots", False)),
+            "solve_budget_seconds": getattr(args, "solve_budget_seconds", 30.0),
+        },
     )
+    if new_candidate is None:
+        return None
     report = build_ab_report(baseline_candidate, new_candidate, problem)
 
     os.makedirs(args.output_dir, exist_ok=True)

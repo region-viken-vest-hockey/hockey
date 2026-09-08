@@ -1361,6 +1361,20 @@ def build_parser() -> argparse.ArgumentParser:
         "teams stay put), not just teams between tournaments. Off by default — the "
         "skeleton (dates/arenas/hosts) is otherwise taken as given",
     )
+    plan_optimize.add_argument(
+        "--engine",
+        choices=["local-search", "cp-sat"],
+        default="local-search",
+        help="Search engine to use (issue #276 Phase 1): 'local-search' (default, existing "
+        "simulated-annealing repair pass) or 'cp-sat' (fixed-skeleton participant-only "
+        "shadow engine — requires OR-Tools; --iterations/--weight/--move-dates are ignored)",
+    )
+    plan_optimize.add_argument(
+        "--solve-budget-seconds",
+        type=float,
+        default=30.0,
+        help="For --engine cp-sat: bounded wall-clock solve budget in seconds (default: 30.0)",
+    )
 
     plan_ab = plan_sub.add_parser(
         "ab",
@@ -1420,6 +1434,20 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Also let the new candidate's search swap two same-age-group tournaments' "
         "dates, not just teams between tournaments. Off by default",
+    )
+    plan_ab.add_argument(
+        "--engine",
+        choices=["local-search", "cp-sat"],
+        default="local-search",
+        help="Search engine to use for the new candidate (issue #276 Phase 1): 'local-search' "
+        "(default) or 'cp-sat' (fixed-skeleton participant-only shadow engine — requires "
+        "OR-Tools; --iterations/--weight/--move-dates are ignored)",
+    )
+    plan_ab.add_argument(
+        "--solve-budget-seconds",
+        type=float,
+        default=30.0,
+        help="For --engine cp-sat: bounded wall-clock solve budget in seconds (default: 30.0)",
     )
 
     plan_ab_participants = plan_sub.add_parser(
@@ -1626,6 +1654,20 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="For --action optimize_plan: also let the search swap two same-age-group "
         "tournaments' dates, not just teams between tournaments. Off by default",
+    )
+    plan_decide.add_argument(
+        "--engine",
+        choices=["local-search", "cp-sat"],
+        default="local-search",
+        help="For --action optimize_plan: search engine to re-run (issue #276 Phase 1). "
+        "'local-search' (default) or 'cp-sat' (requires OR-Tools)",
+    )
+    plan_decide.add_argument(
+        "--solve-budget-seconds",
+        type=float,
+        default=30.0,
+        help="For --action optimize_plan with --engine cp-sat: bounded wall-clock solve "
+        "budget in seconds (default: 30.0)",
     )
     plan_decide.add_argument(
         "--work-dir",
