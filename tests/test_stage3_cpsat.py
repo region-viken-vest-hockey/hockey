@@ -7,6 +7,7 @@ import pytest
 ortools = pytest.importorskip(
     "ortools", reason="OR-Tools is the optional 'cpsat' extra; skip when not installed"
 )
+from ortools.sat.python import cp_model
 
 from tournament_scheduler.planning_contract import score_candidate, verify_candidate
 from tournament_scheduler.stage3_cpsat import (
@@ -175,3 +176,68 @@ class TestOptimizeCandidateCpSat:
 
         assert optimized["tournaments"] == []
         assert optimized["source"]["status"] == "EMPTY"
+
+    def test_raises_cp_sat_no_candidate_on_solver_timeout(self, monkeypatch):
+        """Simulate the solver exhausting its time budget without reaching
+        OPTIMAL/FEASIBLE. A real wall-clock timeout on a small enough model to
+        run in CI would be flaky (the solver may finish before the budget
+        expires); forcing ``Solve`` to return UNKNOWN exercises the exact
+        status-handling branch a genuine timeout takes, deterministically."""
+        candidate = _clustered_candidate()
+
+        def _fake_solve(self, model):
+            return cp_model.UNKNOWN
+
+        monkeypatch.setattr(cp_model.CpSolver, "Solve", _fake_solve)
+
+        with pytest.raises(CpSatNoCandidate) as excinfo:
+            optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=0.1, seed=1)
+
+        assert excinfo.value.status == "UNKNOWN"
+        assert excinfo.value.runtime_seconds >= 0.0
+
+    def test_no_candidate_error_carries_reproducible_fingerprints(self):
+        only_team = _team("Club1", "T1", "U10")
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U10", [only_team]),
+                _tournament("t2", "2026-01-05", "Arena2", "U10", [only_team]),
+            ],
+        }
+        problem = {"teams": [only_team]}
+
+        with pytest.raises(CpSatNoCandidate) as excinfo:
+            optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+
+        from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+
+        assert excinfo.value.baseline_candidate_fingerprint == stable_payload_sha256(
+            candidate["tournaments"]
+        )
+        assert excinfo.value.problem_fingerprint == stable_payload_sha256(problem)
+
+    def test_source_metadata_includes_reproducible_fingerprints(self):
+        candidate = _clustered_candidate()
+        problem = {"teams": []}
+
+        optimized = optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+
+        from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+
+        source = optimized["source"]
+        assert source["baseline_candidate_fingerprint"] == stable_payload_sha256(
+            candidate["tournaments"]
+        )
+        assert source["problem_fingerprint"] == stable_payload_sha256(problem)
+        assert source["candidate_fingerprint"] == stable_payload_sha256(optimized["tournaments"])
+
+    def test_empty_candidate_source_includes_fingerprints(self):
+        candidate = {"schema_version": 1, "tournaments": []}
+
+        optimized = optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
+
+        source = optimized["source"]
+        assert source["baseline_candidate_fingerprint"] is not None
+        assert source["problem_fingerprint"] is None
+        assert source["candidate_fingerprint"] is not None

@@ -32,9 +32,18 @@ class CpSatUnavailable(RuntimeError):
 class CpSatNoCandidate(RuntimeError):
     """Raised when CP-SAT cannot return a feasible candidate within its budget."""
 
-    def __init__(self, status: str, runtime_seconds: float) -> None:
+    def __init__(
+        self,
+        status: str,
+        runtime_seconds: float,
+        *,
+        baseline_candidate_fingerprint: Optional[str] = None,
+        problem_fingerprint: Optional[str] = None,
+    ) -> None:
         self.status = status
         self.runtime_seconds = runtime_seconds
+        self.baseline_candidate_fingerprint = baseline_candidate_fingerprint
+        self.problem_fingerprint = problem_fingerprint
         super().__init__(f"CP-SAT returned no candidate ({status})")
 
 
@@ -168,6 +177,11 @@ def optimize_candidate_cp_sat(
             "OR-Tools is required for engine='cp-sat' (install the cpsat extra)"
         ) from exc
 
+    from .pipeline.fingerprints import stable_payload_sha256
+
+    baseline_fingerprint = stable_payload_sha256(candidate.get("tournaments", []))
+    problem_fingerprint = stable_payload_sha256(problem) if problem is not None else None
+
     started = perf_counter()
     slots = _active_slots(candidate, problem)
     if not slots:
@@ -181,6 +195,9 @@ def optimize_candidate_cp_sat(
             "solve_budget_seconds": float(solve_budget_seconds),
             "fixed_skeleton": True,
             "base_source": candidate.get("source"),
+            "baseline_candidate_fingerprint": baseline_fingerprint,
+            "problem_fingerprint": problem_fingerprint,
+            "candidate_fingerprint": stable_payload_sha256(result.get("tournaments", [])),
         }
         return result
 
@@ -347,7 +364,12 @@ def optimize_candidate_cp_sat(
     status_name = solver.StatusName(status_code)
 
     if status_code not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        raise CpSatNoCandidate(status_name, runtime_seconds)
+        raise CpSatNoCandidate(
+            status_name,
+            runtime_seconds,
+            baseline_candidate_fingerprint=baseline_fingerprint,
+            problem_fingerprint=problem_fingerprint,
+        )
 
     result = deepcopy(candidate)
     result.setdefault("schema_version", CANDIDATE_SCHEMA_VERSION)
@@ -392,6 +414,9 @@ def optimize_candidate_cp_sat(
         "seed": int(seed),
         "protected_same_club_pairings_baseline": baseline_same_club,
         "base_source": candidate.get("source"),
+        "baseline_candidate_fingerprint": baseline_fingerprint,
+        "problem_fingerprint": problem_fingerprint,
+        "candidate_fingerprint": stable_payload_sha256(result.get("tournaments", [])),
         "encoded_scope": {
             "moves": ["participant_assignment"],
             "fixed": ["dates", "hosts", "arenas", "start_times", "roster_sizes", "tournament_count"],

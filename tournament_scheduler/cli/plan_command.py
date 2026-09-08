@@ -345,16 +345,25 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
     report = build_ab_report(old_candidate, new_candidate, problem)
 
     if args.output_dir:
+        from ..stage3_shadow import build_shadow_report
+
         os.makedirs(args.output_dir, exist_ok=True)
+        shadow_report = build_shadow_report(
+            old_candidate, new_candidate, problem, engine=_engine_id(args.engine)
+        )
         for name, payload in (
             ("old_candidate.json", old_candidate),
             ("new_candidate.json", new_candidate),
             ("ab_report.json", report),
+            ("shadow_evidence.json", shadow_report),
         ):
             with open(os.path.join(args.output_dir, name), "w", encoding="utf-8") as fh:
                 json.dump(payload, fh, indent=2, ensure_ascii=False)
         if not args.json:
-            _console.print(f"[green]✓[/green] Skrev old_candidate.json/new_candidate.json/ab_report.json til {args.output_dir}")
+            _console.print(
+                "[green]✓[/green] Skrev old_candidate.json/new_candidate.json/ab_report.json/"
+                f"shadow_evidence.json til {args.output_dir}"
+            )
 
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
