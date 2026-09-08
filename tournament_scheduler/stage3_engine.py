@@ -66,6 +66,7 @@ def run_planner(
             per_age_group_weights=request.get("per_age_group_weights"),
             move_dates=bool(request.get("move_dates", False)),
             date_swap_probability=float(request.get("date_swap_probability", 0.3)),
+            move_dates_within_half=bool(request.get("move_dates_within_half", False)),
             move_hosts=bool(request.get("move_hosts", False)),
             move_slots=bool(request.get("move_slots", False)),
             plateau_iterations=request.get("plateau_iterations"),

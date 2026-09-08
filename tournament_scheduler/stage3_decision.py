@@ -80,6 +80,15 @@ _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {
         "type": "boolean",
         "description": "Also let the search swap two same-age-group tournaments' dates, not just teams.",
     },
+    "move_dates_within_half": {
+        "type": "boolean",
+        "description": (
+            "Also let the search move a single tournament to a genuinely new free date "
+            "(not just swap with another scheduled date), restricted to the same side of the "
+            "Christmas split as its current date (issue #293). Moving a tournament across the "
+            "Christmas boundary is never a side effect of this move."
+        ),
+    },
     "move_hosts": {
         "type": "boolean",
         "description": (
@@ -156,6 +165,7 @@ _PARETO_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {
         "description": "Maximum number of non-dominated candidates to return.",
     },
     "move_dates": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA["move_dates"],
+    "move_dates_within_half": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA["move_dates_within_half"],
     "move_hosts": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA["move_hosts"],
     "move_slots": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA["move_slots"],
     "date_swap_probability": _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA["date_swap_probability"],
