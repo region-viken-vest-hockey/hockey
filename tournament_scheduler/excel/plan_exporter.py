@@ -22,6 +22,7 @@ from openpyxl.styles import PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 from rich.console import Console
 
+from tournament_scheduler import planning_half
 from tournament_scheduler.club_distances import furthest_traveling_team
 from tournament_scheduler.fairness_model import SeasonFairnessModel
 from tournament_scheduler.models import SeasonPlan, Tournament
@@ -39,6 +40,7 @@ _OVERVIEW_HEADERS = ["Dato", "Ukedag", "Aldersgruppe", "Arena", "Vertsklubb", "L
 _GAMES_HEADERS = ["Runde", "Hjemmelag", "Bortelag", "Parallellbane"]
 _CLUB_SUMMARY_HEADERS = ["Lag", "Aldersgruppe", "Dato", "Ukedag", "Motstander(e)", "Vertsarena"]
 _RULES_HEADERS = ["Regel", "Forklaring", "Kategori"]
+_HALF_DISTRIBUTION_HEADERS = ["Halvdel", "Antall turneringer", "Andel"]
 _FAIRNESS_HEADERS = ["Metrikk", "Verdi", "Terskel", "Score", "Status", "Detalj"]
 _FAIRNESS_ADJUSTMENT_HEADERS = ["Lag", "Klubb", "Aldersgruppe", "Faktisk", "Mål", "Justering", "Status", "Kommentar"]
 
@@ -89,6 +91,10 @@ class SeasonPlanExporter:
             rules_sheet = self.workbook.create_sheet(title="Regler og avgjørelser")
             used_titles.add(rules_sheet.title)
             self._write_rules_sheet(rules_sheet, rules_report)
+
+        half_sheet = self.workbook.create_sheet(title="Sesonghalvdeler")
+        used_titles.add(half_sheet.title)
+        self._write_half_distribution_sheet(half_sheet, plan)
 
         if plan.fairness_gate:
             fairness_sheet = self.workbook.create_sheet(title="Rettferdighetskontroll")
@@ -149,6 +155,41 @@ class SeasonPlanExporter:
             if tournament.cancelled:
                 for cell in sheet[sheet.max_row]:
                     cell.fill = _cancelled_fill
+
+        self._autosize_columns(sheet)
+
+    # ------------------------------------------------------------------
+    # Season-half distribution sheet (issue #293)
+    # ------------------------------------------------------------------
+
+    def _write_half_distribution_sheet(self, sheet: Worksheet, plan: SeasonPlan) -> None:
+        """Report the before/after-Christmas tournament split (issue #293).
+
+        Gives operators visibility into the 50/50 volume guardrail directly
+        in the exported workbook, using the same ``christmas_split_date``/
+        ``tournament_half`` helpers Stage 3 and ``planning_contract`` share,
+        so this sheet can never disagree with what the planner/verifier
+        actually used.
+        """
+        sheet.append(_HALF_DISTRIBUTION_HEADERS)
+        self._style_header_row(sheet)
+
+        split_date = None
+        if plan.start_date and plan.end_date:
+            split_date = planning_half.christmas_split_date(plan.start_date, plan.end_date)
+
+        active = [t for t in plan.tournaments if not t.cancelled]
+        counts: Dict[str, int] = {"before_christmas": 0, "after_christmas": 0, "unsplit": 0}
+        for tournament in active:
+            counts[planning_half.tournament_half(tournament.date, split_date)] += 1
+
+        total = len(active)
+        for half in ("before_christmas", "after_christmas", "unsplit"):
+            count = counts[half]
+            if half == "unsplit" and count == 0:
+                continue
+            share = f"{count / total * 100:.0f}%" if total else "0%"
+            sheet.append([planning_half.half_label(half), count, share])
 
         self._autosize_columns(sheet)
 

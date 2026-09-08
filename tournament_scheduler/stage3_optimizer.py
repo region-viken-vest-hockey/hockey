@@ -45,12 +45,13 @@ import random
 import time
 from collections import Counter
 from dataclasses import asdict, dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from itertools import combinations
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .game_generation import generate_round_robin_games
 from .models import Team
+from . import planning_half
 from .planning_contract import (
     CANDIDATE_SCHEMA_VERSION,
     _parse_date,
@@ -452,6 +453,26 @@ class _SearchState:
         self.total += delta
         return delta
 
+    def move_date(self, index: int, new_date: date) -> float:
+        """Move a single slot to *new_date* (issue #293's within-half move).
+
+        Unlike :meth:`apply_date_swap`, this doesn't pair with another slot
+        -- the caller draws *new_date* from the free calendar, not from
+        another tournament's date. Calling this again with the slot's prior
+        date is its own inverse, exactly like the other ``apply_*``/``move_*``
+        methods, so a rejected proposal can be reverted the same way.
+        """
+        slot = self.slots[index]
+        old_date = slot.date
+        delta = 0.0
+        for team in slot.team_ids:
+            delta += self._move_team_date(team, old_date, new_date)
+        slot.date = new_date
+        self._reindex_arena(index, slot.arena, old_date)
+        slot.date_changed = True
+        self.total += delta
+        return delta
+
     def move_host(self, index: int, new_host: str, new_arena: Optional[str]) -> None:
         # Host/arena are not inputs to _objective (only team_ids/dates are),
         # so a host move never changes the objective total -- only the arena
@@ -596,9 +617,20 @@ def _date_swap_is_valid(
     slot_b: int,
     state: Optional["_SearchState"] = None,
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
+    split_date: Optional[date] = None,
+    allow_cross_half_moves: bool = False,
 ) -> bool:
     a, b = slots[slot_a], slots[slot_b]
     new_a_date, new_b_date = b.date, a.date
+
+    # issue #293: a date swap is a date *move* for both slots (each ends up
+    # on the other's date) -- reject it if that would carry either
+    # tournament across the Christmas boundary. Cross-half movement must be
+    # an explicit policy override (`problem["allow_cross_half_moves"]`), not
+    # a side effect of the optimizer chasing a better score.
+    if split_date is not None and not allow_cross_half_moves:
+        if planning_half.tournament_half(a.date, split_date) != planning_half.tournament_half(b.date, split_date):
+            return False
 
     # issue #264 P0: a date swap keeps each tournament's own host/arena, but
     # moving it to the other tournament's date can still walk it into a real
@@ -658,6 +690,81 @@ def _apply_date_swap(slots: List[_Slot], slot_a: int, slot_b: int) -> None:
     a.date, b.date = b.date, a.date
     a.date_changed = True
     b.date_changed = True
+
+
+def _within_half_date_move_candidates(
+    slots: List[_Slot],
+    rng: random.Random,
+    problem: Optional[Dict[str, Any]],
+    split_date: Optional[date],
+) -> Optional[Tuple[int, date]]:
+    """Propose moving one slot to a genuinely new date within its own half.
+
+    Unlike :func:`_date_swap_candidates` (which only reshuffles dates
+    already in use by two existing slots), this draws a candidate date from
+    the full planning window (``problem["start_date"]..["end_date"]``),
+    restricted to the same side of *split_date* as the slot's current date
+    -- issue #293's "first safe expansion": consider verified alternative
+    dates for the same host/arena inside the same half, rather than moving a
+    tournament across the Christmas boundary.
+    """
+    if not slots or not problem:
+        return None
+    window_start = _parse_date(problem.get("start_date"))
+    window_end = _parse_date(problem.get("end_date"))
+    if window_start is None or window_end is None:
+        return None
+
+    index = rng.randrange(len(slots))
+    slot = slots[index]
+    current_half = planning_half.tournament_half(slot.date, split_date)
+    if split_date is None:
+        half_start, half_end = window_start, window_end
+    elif current_half == "before_christmas":
+        half_start, half_end = window_start, split_date - timedelta(days=1)
+    else:
+        half_start, half_end = split_date, window_end
+
+    span = (half_end - half_start).days
+    if span <= 0:
+        return None
+    new_date = half_start + timedelta(days=rng.randrange(span + 1))
+    if new_date == slot.date:
+        return None
+    return index, new_date
+
+
+def _within_half_date_move_is_valid(
+    slots: List[_Slot],
+    index: int,
+    new_date: date,
+    state: Optional["_SearchState"] = None,
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
+) -> bool:
+    slot = slots[index]
+
+    if external_calendar_conflict(
+        club_busy_intervals, slot.host_club, new_date, slot.start_time, slot.duration_minutes
+    ):
+        return False
+
+    if state is not None:
+        occupants = state.arena_bucket(slot.arena, new_date) - {index}
+        if slot.arena and occupants:
+            return False
+        if any(state.has_team_on_date(team, new_date) for team in slot.team_ids):
+            return False
+        return True
+
+    for other_index, other in enumerate(slots):
+        if other_index == index:
+            continue
+        if slot.arena and other.arena == slot.arena and other.date == new_date:
+            return False
+        if other.age_group == slot.age_group and other.date == new_date:
+            if any(team in other.team_ids for team in slot.team_ids):
+                return False
+    return True
 
 
 def _time_to_minutes(time_str: str) -> int:
@@ -837,6 +944,7 @@ def optimize_candidate(
     per_age_group_weights: Optional[Dict[str, Dict[str, float]]] = None,
     move_dates: bool = False,
     date_swap_probability: float = 0.3,
+    move_dates_within_half: bool = False,
     move_hosts: bool = False,
     move_slots: bool = False,
     plateau_iterations: Optional[int] = None,
@@ -863,6 +971,14 @@ def optimize_candidate(
     probability *date_swap_probability* each step and a team swap otherwise.
     Off by default, matching the first optimizer version's "skeleton taken
     as given" behavior.
+
+    When *move_dates_within_half* is true (issue #293), the search also
+    considers moving a single tournament to a genuinely new date drawn from
+    the planning window (not just swapping between two already-scheduled
+    dates), restricted to the same side of ``problem["christmas_split_date"]``
+    as its current date -- see :func:`_within_half_date_move_candidates`.
+    Like *move_dates*, moving a tournament across the Christmas boundary is
+    rejected unless ``problem["allow_cross_half_moves"]`` is set.
 
     When *move_hosts* is true (issue #262 P1), the search also considers
     reassigning a tournament's host club to another club already fielding a
@@ -922,10 +1038,14 @@ def optimize_candidate(
     club_arenas: Dict[str, str] = dict((problem or {}).get("clubs") or {})
     club_calendar_status: Dict[str, str] = dict((problem or {}).get("club_calendar_status") or {})
     club_busy_intervals: Dict[str, List[Dict[str, str]]] = dict((problem or {}).get("club_busy_intervals") or {})
+    split_date = _parse_date((problem or {}).get("christmas_split_date"))
+    allow_cross_half_moves = bool((problem or {}).get("allow_cross_half_moves"))
 
     special_moves: List[str] = []
     if move_dates:
         special_moves.append("date")
+    if move_dates_within_half:
+        special_moves.append("within_half_date")
     if move_hosts:
         special_moves.append("host")
     if move_slots:
@@ -993,7 +1113,12 @@ def optimize_candidate(
             if kind == "date":
                 date_move = _date_swap_candidates(slots, rng, date_swap_by_age_group)
                 if date_move is None or not _date_swap_is_valid(
-                    slots, *date_move, state=state, club_busy_intervals=club_busy_intervals
+                    slots,
+                    *date_move,
+                    state=state,
+                    club_busy_intervals=club_busy_intervals,
+                    split_date=split_date,
+                    allow_cross_half_moves=allow_cross_half_moves,
                 ):
                     step += 1
                     continue
@@ -1007,6 +1132,30 @@ def optimize_candidate(
                 else:
                     # Revert: swapping the same pair of dates back is its own inverse.
                     state.apply_date_swap(slot_a, slot_b)
+                step += 1
+                continue
+
+            if kind == "within_half_date":
+                within_half_move = _within_half_date_move_candidates(slots, rng, problem, split_date)
+                if within_half_move is None or not _within_half_date_move_is_valid(
+                    slots,
+                    *within_half_move,
+                    state=state,
+                    club_busy_intervals=club_busy_intervals,
+                ):
+                    step += 1
+                    continue
+                valid_moves += 1
+                index, new_date = within_half_move
+                old_date = slots[index].date
+                delta = state.move_date(index, new_date)
+                if _consider(delta, step):
+                    accepted_moves += 1
+                    if delta < -1e-9:
+                        improved_moves += 1
+                else:
+                    # Revert: moving the slot back to its prior date is its own inverse.
+                    state.move_date(index, old_date)
                 step += 1
                 continue
 
@@ -1237,6 +1386,7 @@ def optimize_candidate_pareto(
     per_age_group_weights: Optional[Dict[str, Dict[str, float]]] = None,
     move_dates: bool = False,
     date_swap_probability: float = 0.3,
+    move_dates_within_half: bool = False,
     move_hosts: bool = False,
     move_slots: bool = False,
     max_archive_size: int = 5,
@@ -1301,6 +1451,7 @@ def optimize_candidate_pareto(
             per_age_group_weights=per_age_group_weights,
             move_dates=move_dates,
             date_swap_probability=date_swap_probability,
+            move_dates_within_half=move_dates_within_half,
             move_hosts=move_hosts,
             move_slots=move_slots,
         )
@@ -1816,6 +1967,9 @@ def _repair_search(
     """
     from .planning_contract import verify_candidate
 
+    split_date = _parse_date((problem or {}).get("christmas_split_date"))
+    allow_cross_half_moves = bool((problem or {}).get("allow_cross_half_moves"))
+
     def _materialize() -> Dict[str, Any]:
         result = dict(base_candidate_template)
         result["tournaments"] = [
@@ -1843,7 +1997,9 @@ def _repair_search(
         i, j = rng.sample(range(len(slots)), 2)
         if slots[i].date == slots[j].date:
             continue
-        if not _date_swap_is_valid(slots, i, j):
+        if not _date_swap_is_valid(
+            slots, i, j, split_date=split_date, allow_cross_half_moves=allow_cross_half_moves
+        ):
             continue
 
         _apply_date_swap(slots, i, j)

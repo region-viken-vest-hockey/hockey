@@ -13,6 +13,7 @@ from collections import Counter
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from tournament_scheduler import planning_half
 from tournament_scheduler.fairness_model import SeasonFairnessModel
 from tournament_scheduler.game_generation import (
     arena_counts as _arena_counts,
@@ -1312,10 +1313,7 @@ class SeasonPlanner:
 
     @staticmethod
     def _christmas_split_date(window_start: date, window_end: date) -> Optional[date]:
-        split = date(window_start.year, 12, 24)
-        if window_start <= split <= window_end:
-            return split
-        return None
+        return planning_half.christmas_split_date(window_start, window_end)
 
     def _has_split_tournament_targets(self) -> bool:
         return any(

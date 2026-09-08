@@ -60,9 +60,10 @@ class TestSeasonPlanExporter:
         assert "Rettferdighetsjusteringer" in workbook.sheetnames
         assert old_adjustment_sheet not in workbook.sheetnames
         # One sheet per tournament, plus the overview sheet, plus the
-        # fairness overview, plus one summary sheet per distinct club.
+        # fairness overview, plus the season-half distribution sheet
+        # (issue #293), plus one summary sheet per distinct club.
         distinct_clubs = {team.club for tournament in sample_plan.tournaments for team in tournament.teams}
-        assert len(workbook.sheetnames) == 2 + len(sample_plan.tournaments) + len(distinct_clubs)
+        assert len(workbook.sheetnames) == 3 + len(sample_plan.tournaments) + len(distinct_clubs)
 
     def test_overview_rows_match_plan_tournaments(self, sample_plan, tmp_path):
         output_path = tmp_path / "season_plan.xlsx"
