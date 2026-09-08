@@ -392,6 +392,44 @@ class TestStage3InteractiveDecisionLoop:
         assert shadow_facts["available"] is False
         assert shadow_facts["error"]["type"] == "CpSatUnavailable"
 
+    def test_first_attempt_continues_safely_when_cp_sat_times_out(self, state, tmp_path, capsys):
+        """issue #288: distinct from the "OR-Tools not installed" case above
+        -- the solver being *available* but exhausting its budget without a
+        feasible candidate (``CpSatNoCandidate`` with an ``UNKNOWN``/timeout
+        status) must degrade the same way: the normal Stage 3 decision still
+        gets emitted, with the timeout recorded as shadow evidence rather
+        than interrupting `/run`."""
+        from tournament_scheduler.stage3_cpsat import CpSatNoCandidate
+
+        args = _args(work_dir=str(tmp_path), resume_from="3")
+        plan = _plan_checkpoint(seed=1)
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan, False, False),
+        ), patch(
+            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            side_effect=CpSatNoCandidate("UNKNOWN", 15.0),
+        ):
+            exit_code = _cmd_run_interactive(args)
+            out = capsys.readouterr().out
+
+        assert exit_code == 2
+        payload = json.loads(out)
+        assert payload["capability"] == "stage3_interactive"
+        assert set(payload["available_actions"]) >= {"optimize_plan", "keep_baseline"}
+        shadow_facts = payload["facts"]["cp_sat_shadow"]
+        assert shadow_facts["attempted"] is True
+        assert shadow_facts["available"] is True
+        assert shadow_facts["error"]["type"] == "CpSatNoCandidate"
+        assert shadow_facts["error"]["status"] == "UNKNOWN"
+        assert shadow_facts["error"]["runtime_seconds"] == 15.0
+
     def test_optimize_plan_runs_v2_optimizer_not_legacy_stage3(self, state, tmp_path):
         """issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
         optimizer, not rerun the legacy SeasonPlanner via _run_stage3."""
