@@ -14,6 +14,8 @@ from tournament_scheduler.application.decisions import (
 from tournament_scheduler.hosting_coverage import shared_registration_facts
 from tournament_scheduler.shared_host_decision import (
     build_shared_host_decision_context,
+    build_shared_host_decision_prompt,
+    parse_shared_host_verdict,
     shared_host_decision_record,
 )
 
@@ -68,6 +70,64 @@ class TestBuildSharedHostDecisionContext:
         context = build_shared_host_decision_context("run-1", "Kongsberg/Tønsberg", "JU12", _facts())
         action = DecisionAction(action_id="assign_shared_host", arguments={"chosen_club": "Tønsberg"})
         validate_decision_action(context, action)  # must not raise
+
+
+class TestSharedHostDecisionPromptAndVerdict:
+    """The generic application.decisions/llm_judge action-verdict parser only
+    ever extracts an action id, never its arguments -- meaningless for
+    ``assign_shared_host``, whose entire point is the ``chosen_club``
+    argument. These are the decision-specific prompt/parser pair that fill
+    that gap.
+    """
+
+    def test_prompt_lists_constituents_and_asks_for_chosen_club_line(self):
+        context = build_shared_host_decision_context("run-1", "Kongsberg/Tønsberg", "JU12", _facts())
+        prompt = build_shared_host_decision_prompt(context)
+
+        assert "assign_shared_host" in prompt
+        assert "request_operator" in prompt
+        assert "Kongsberg" in prompt
+        assert "Tønsberg" in prompt
+
+    def test_parses_assign_shared_host_with_chosen_club_on_line_two(self):
+        context = build_shared_host_decision_context("run-1", "Kongsberg/Tønsberg", "JU12", _facts())
+        verdict = "assign_shared_host\nTønsberg\nKongsberg already hosts materially more this season."
+
+        action = parse_shared_host_verdict(context, verdict)
+
+        assert action.action_id == "assign_shared_host"
+        assert action.arguments == {"chosen_club": "Tønsberg"}
+        assert "Kongsberg already hosts" in action.rationale
+
+    def test_falls_back_to_scanning_whole_reply_for_a_constituent_name(self):
+        context = build_shared_host_decision_context("run-1", "Kongsberg/Tønsberg", "JU12", _facts())
+        verdict = "assign_shared_host\nGiven the current burden, Tønsberg should take this one."
+
+        action = parse_shared_host_verdict(context, verdict)
+
+        assert action.action_id == "assign_shared_host"
+        assert action.arguments == {"chosen_club": "Tønsberg"}
+
+    def test_degrades_to_request_operator_when_no_constituent_is_named(self):
+        context = build_shared_host_decision_context("run-1", "Kongsberg/Tønsberg", "JU12", _facts())
+        verdict = "assign_shared_host\nI cannot decide."
+
+        action = parse_shared_host_verdict(context, verdict)
+
+        assert action.action_id == "request_operator"
+
+    def test_degrades_to_request_operator_on_unparseable_first_line(self):
+        context = build_shared_host_decision_context("run-1", "Kongsberg/Tønsberg", "JU12", _facts())
+        action = parse_shared_host_verdict(context, "garbage response")
+
+        assert action.action_id == "request_operator"
+
+    def test_passes_through_request_operator_verdict(self):
+        context = build_shared_host_decision_context("run-1", "Kongsberg/Tønsberg", "JU12", _facts())
+        action = parse_shared_host_verdict(context, "request_operator\nneed a human call here")
+
+        assert action.action_id == "request_operator"
+        assert action.arguments == {}
 
 
 class TestSharedHostDecisionRecord:

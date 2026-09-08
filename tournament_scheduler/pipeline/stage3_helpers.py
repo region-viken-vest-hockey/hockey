@@ -295,6 +295,7 @@ def _make_planner(
     club_calendar_status: dict[str, str] | None = None,
     club_busy_intervals: dict[str, list[dict[str, str]]] | None = None,
     cheap_baseline: bool = False,
+    shared_host_decisions: dict[tuple[str, str], str] | None = None,
 ) -> SeasonPlanner:
     """Construct a :class:`SeasonPlanner` with derived tournament sizing.
 
@@ -328,6 +329,7 @@ def _make_planner(
         penalty_hints=penalty_hints,
         allow_penalty_hint_relaxation=allow_penalty_hint_relaxation,
         cheap_baseline=cheap_baseline,
+        shared_host_decisions=shared_host_decisions,
     )
 
 
