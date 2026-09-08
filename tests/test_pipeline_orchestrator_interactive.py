@@ -1248,6 +1248,86 @@ class TestSharedHostInteractiveDecision:
         # not be asked about this registration again on a future resume).
         assert _read_shared_host_state(state) == {}
 
+    def test_shared_host_resolution_falls_through_to_stage3_context_with_cp_sat_shadow(
+        self, state, tmp_path,
+    ):
+        """issue #289: reproduces the exact production sequence -- Stage 2 ->
+        shared-host pause -> accepted decision -> fresh Stage 3 -- and pins
+        that the same invocation's printed `DecisionContext` is a genuine
+        `stage3_interactive` context (not a reused/stale checkpoint) whose
+        `facts` already contain `cp_sat_shadow`, without a second round
+        trip. This is what the Claude adapter's `run.md` capability-branch
+        table (`--resume-from 3` for `shared_host_assignment`, `4` only once
+        `capability` is `stage3_interactive`/`stage3_pareto`) exists to get
+        right; a harness that instead special-cases "Stage 3" text rather
+        than the printed `capability` field is the bug this test guards
+        against.
+        """
+        cfg = _joint_club_cfg()
+
+        # First call: reach the shared-host pause.
+        args1 = _args(work_dir=str(tmp_path), resume_from="3")
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+        ):
+            assert _cmd_run_interactive(args1) == 2
+
+        # Second call: answer assign_shared_host at the SAME --resume-from 3
+        # (the shared-host exception) and let it fall through into a fresh
+        # Stage 3 run within this one invocation. The automatic CP-SAT
+        # shadow evaluation (issue #288) is stubbed so the test stays fast
+        # and deterministic while still proving it lands in `facts`.
+        plan = _plan_checkpoint(seed=1)
+        shadow_evidence = {"engine": "cp_sat", "status": "ok", "fingerprint": "shadow-fp-1"}
+        args2 = _args(
+            work_dir=str(tmp_path),
+            resume_from="3",
+            decision_action=json.dumps({
+                "action_id": "assign_shared_host",
+                "arguments": {"chosen_club": "Tønsberg"},
+                "rationale": "Kongsberg already hosts materially more this season.",
+            }),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan, False, False),
+        ) as run_stage3, patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._maybe_run_stage3_cp_sat_shadow",
+            return_value=shadow_evidence,
+        ) as cp_sat_shadow_mock:
+            exit_code = _cmd_run_interactive(args2)
+
+        assert exit_code == 2
+        run_stage3.assert_called_once()
+        cp_sat_shadow_mock.assert_called_once()
+
+        interactive_state = _read_stage3_interactive_state(state)
+        fresh_context = interactive_state["last_context"]
+        # Not Stage 4, not a reused baseline -- a genuine fresh Stage 3
+        # decision context produced within this same invocation.
+        assert fresh_context["capability"] == "stage3_interactive"
+        assert fresh_context["facts"]["cp_sat_shadow"] == shadow_evidence
+
+        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
+
+        assert _read_shared_host_state(state) == {}
+
     def test_rejected_decision_action_does_not_advance(self, state, tmp_path):
         cfg = _joint_club_cfg()
         args1 = _args(work_dir=str(tmp_path), resume_from="3")
