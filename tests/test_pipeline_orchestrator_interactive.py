@@ -1428,3 +1428,188 @@ class TestSharedHostInteractiveDecision:
 
         assert pause_code is None
         assert decisions == []
+
+
+class TestStage4StaleCheckpointGuard:
+    """issue #290: a Stage 3 checkpoint file existing on disk is not proof
+    it belongs to the active run's own finished planning/decision loop --
+    ``PipelineState.write_stage(..., status=DONE)`` already marks every
+    downstream checkpoint ``stale`` (``_invalidate_downstream``) whenever
+    an earlier stage actually (re)runs, but nothing consulted that flag
+    before treating a skipped Stage 3 as good enough to export. These tests
+    pin the independent safety invariant added on top of the #289 harness
+    sequencing fix: Stage 4 must refuse to export from a stale checkpoint
+    even if the adapter/harness makes the same resume mistake again.
+    """
+
+    def test_stale_checkpoint_blocks_stage3_skip(self, state, tmp_path):
+        from datetime import datetime
+
+        from tournament_scheduler.cli.pipeline_orchestrator import _run_stage3
+
+        stale_plan = _plan_checkpoint(seed=99)
+        state.write_stage(StageName.PLANNING, stale_plan, status=StageStatus.DONE)
+        # Simulate this run's own Stage 1 actually (re)running fresh --
+        # exactly what invalidates the leftover Stage 3 checkpoint above.
+        state.write_stage(StageName.CONFIG, {"start_date": "2026-09-01", "end_date": "2027-04-30"}, status=StageStatus.DONE)
+        assert state.is_stale(StageName.PLANNING)
+
+        args = _args(work_dir=str(tmp_path), resume_from="4")
+        plan, abort, run_failed = _run_stage3(
+            args, {}, {}, state,
+            datetime.strptime("2026-09-01", "%Y-%m-%d"), datetime.strptime("2027-04-30", "%Y-%m-%d"),
+            strict=True, resume_from=4, log_fn=lambda msg: None,
+        )
+
+        assert abort is True
+        assert plan is None
+        assert run_failed is False
+
+    def test_fresh_checkpoint_allows_stage3_skip(self, state, tmp_path):
+        """A checkpoint written DONE by this same run's own Stage 3 pass
+        (e.g. via the interactive decision loop's keep_baseline/
+        apply_candidate finalization) is not stale and must still resume
+        cleanly into Stage 4 -- the guard must not block legitimate
+        multi-invocation resume within the same logical run."""
+        from datetime import datetime
+
+        from tournament_scheduler.cli.pipeline_orchestrator import _run_stage3
+
+        fresh_plan = _plan_checkpoint(seed=1)
+        state.write_stage(StageName.PLANNING, fresh_plan, status=StageStatus.DONE)
+        assert not state.is_stale(StageName.PLANNING)
+
+        args = _args(work_dir=str(tmp_path), resume_from="4")
+        plan, abort, run_failed = _run_stage3(
+            args, {}, {}, state,
+            datetime.strptime("2026-09-01", "%Y-%m-%d"), datetime.strptime("2027-04-30", "%Y-%m-%d"),
+            strict=True, resume_from=4, log_fn=lambda msg: None,
+        )
+
+        assert abort is False
+        assert run_failed is False
+        assert plan == fresh_plan
+
+    def test_shared_host_resolved_but_wrongly_resumed_to_stage4_is_blocked(self, state, tmp_path):
+        """Reproduces the #289 production bug shape at #290's independent
+        safety boundary: even if a harness answers the shared-host decision
+        correctly but then (incorrectly) advances straight to
+        ``--resume-from 4`` instead of keeping ``--resume-from 3``, Stage 4
+        must not export -- regardless of a valid-looking old Stage 3
+        checkpoint sitting on disk from an earlier run.
+        """
+        cfg = _joint_club_cfg()
+
+        # A previous run's finished (and otherwise perfectly valid) Stage 3
+        # checkpoint is already on disk in this work directory.
+        stale_plan = _plan_checkpoint(seed=99)
+        state.write_stage(StageName.PLANNING, stale_plan, status=StageStatus.DONE)
+        # This run's own Stage 1 has (per the harness) already run fresh --
+        # invalidates the leftover checkpoint above, same as production.
+        state.write_stage(StageName.CONFIG, cfg, status=StageStatus.DONE)
+        assert state.is_stale(StageName.PLANNING)
+
+        # First call: reach the shared-host pause (mirrors
+        # TestSharedHostInteractiveDecision's pattern).
+        args1 = _args(work_dir=str(tmp_path), resume_from="3")
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+        ):
+            assert _cmd_run_interactive(args1) == 2
+
+        # Second call: harness answers assign_shared_host correctly but
+        # makes the #289-shaped mistake of jumping to --resume-from 4
+        # instead of staying at 3. _run_stage3 is intentionally left
+        # unmocked here so the new stale-checkpoint guard actually runs.
+        args2 = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps({
+                "action_id": "assign_shared_host",
+                "arguments": {"chosen_club": "Tønsberg"},
+                "rationale": "Kongsberg already hosts materially more this season.",
+            }),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+        ) as run_stage4_export:
+            exit_code = _cmd_run_interactive(args2)
+
+        assert exit_code == 1
+        run_stage4_export.assert_not_called()
+        # The stale checkpoint on disk is untouched/unexported.
+        assert state.read_stage(StageName.PLANNING) == stale_plan
+
+    def test_keep_baseline_finalization_clears_staleness_and_allows_export(self, state, tmp_path):
+        """Item 2/3 of the regression matrix: once this run's Stage 3
+        decision loop actually finalizes a selection (keep_baseline here,
+        apply_candidate follows the identical write_stage(...,status=DONE)
+        path), the checkpoint is no longer stale and the very next
+        invocation's --resume-from 4 must be allowed to reach Stage 4."""
+        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        plan2 = _plan_checkpoint(seed=2)
+        report = build_ab_report(plan1["plan"], plan2["plan"])
+        ab_context = build_stage3_decision_context(
+            report, run_id="", baseline_ref="stage3_interactive:attempt_1",
+            candidate_ref="stage3_interactive:attempt_2",
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 2,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "pending_candidate": plan2,
+                "pending_attempt": 2,
+                "last_context": ab_context.to_dict(),
+            },
+        )
+        # On-disk checkpoint currently holds the just-rejected rerun
+        # candidate, marked stale by an upstream write to simulate a prior
+        # invalidation -- keep_baseline's restore must still clear it.
+        state.write_stage(StageName.PLANNING, plan2, status=StageStatus.DONE)
+        state.write_stage(StageName.CONFIG, {"start_date": "2026-09-01", "end_date": "2027-04-30"}, status=StageStatus.DONE)
+        assert state.is_stale(StageName.PLANNING)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps({"action_id": "keep_baseline", "rationale": "not better"}),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            return_value=(False, False, False),
+        ) as run_stage4_export:
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        run_stage4_export.assert_called_once()
+        assert not state.is_stale(StageName.PLANNING)
+        assert state.read_stage(StageName.PLANNING) == plan1

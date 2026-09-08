@@ -260,6 +260,19 @@ reference shared policy rather than duplicating it).
   is no Stage 5 — report the result to the user; `/rvv-miniputt:publish`
   handles publication separately.
 
+**Stale Stage 3 checkpoint guard (issue #290):** if a harness/resume
+mistake reaches `--resume-from 4` without this run having actually
+finished its own Stage 3 decision loop (e.g. the #289 shape — answering
+`shared_host_assignment` and then advancing to `--resume-from 4` instead
+of keeping `--resume-from 3`), the run fails deterministically with a
+"Stage 3-checkpointet er foreldet" error instead of silently exporting an
+older run's plan. `PipelineState.write_stage(..., status=DONE)` already
+marks every downstream checkpoint `stale` whenever an earlier stage
+actually reruns; Stage 3's own skip-and-resume branch now refuses to treat
+a stale on-disk checkpoint as this run's finished planning state. The fix
+is to resume from Stage 3 (`--resume-from 3`), not to force past this
+error.
+
 **Hosting-obligation policy (issue #274, canonical — see
 `tournament_scheduler/hosting_coverage.py`, `planning_contract.verify_candidate`,
 `shared_host_decision.py` for the actual logic, not this summary):** decide
