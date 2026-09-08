@@ -499,10 +499,19 @@ class TestRunStage4:
         assert 'id="clubReviewSummary"' in report_html
         assert 'id="teamStats"' in report_html
         assert 'id="travelStats"' in report_html
-        assert 'id="heatmapSection"' in report_html
-        # Heatmap must appear immediately after the hero block — before the card-grid and all other sections.
-        assert report_html.index('id="heatmapSection"') < report_html.index('class="report-card-grid"')
-        assert report_html.index('id="heatmapSection"') < report_html.index('id="priorityActions"')
+        # issue #277: the heatmap is the operational season-plan view's
+        # concern now, not repeated on the report by default.
+        assert 'id="heatmapSection"' not in report_html
+        assert 'id="heatmapSection"' in html
+        # Heatmap must appear near the top of the schedule page, before the
+        # filters/timeline detailed view.
+        assert html.index('id="heatmapSection"') < html.index('class="filters"')
+        assert html.index('id="heatmapSection"') < html.index('id="timeline"')
+        # A first-class canonical Rules table is visible near the top of
+        # the report, before the collapsed technical details.
+        assert 'id="rulesTable"' in report_html
+        assert report_html.index('id="rulesTable"') < report_html.index('id="detaljerAccordion"')
+        assert 'rules-table' in report_html
         assert 'id="clubDashboard"' not in report_html
         assert 'style="display:none' not in report_html
         assert 'id="timeline"' not in report_html

@@ -11,45 +11,33 @@
     <span class="report-status-pill report-status-pill--$REPORT_STATUS$">$REPORT_STATUS_LABEL$ · $REPORT_ACTION_COUNT$ punkt(er)</span>
   </div>
 
-  $REPORT_HEATMAP$
-
   <div class="report-card-grid">
     $REPORT_STATUS_CARDS$
   </div>
 
   $REPORT_PRIORITY_SECTION$
 
-  <section class="report-section" id="ageGroupSummary">
+  <section class="report-section" id="rulesTable">
     <div class="section-head">
       <div>
-        <p class="eyebrow">Aldersgrupper</p>
-        <h2>Hva skjer per aldersgruppe?</h2>
+        <p class="eyebrow">Regler</p>
+        <h2>Hvilke regler styrte planen?</h2>
       </div>
-      <p class="section-note">Se turneringer, vertskap og kampbredde per gruppe.</p>
+      <p class="section-note">Hard/påkrevd/myk/rådgivende — og hvem eier hver regel, deterministisk kode eller LLM/kontroller.</p>
     </div>
-    $REPORT_AGE_SUMMARY$
+    $REPORT_RULES_TABLE$
   </section>
 
-  <section class="report-section" id="clubReviewSummary">
+  <section class="report-section report-section--metrics" id="keyMetrics">
     <div class="section-head">
       <div>
-        <p class="eyebrow">Klubber</p>
-        <h2>Hva må hver klubb vurdere?</h2>
+        <p class="eyebrow">Nøkkeltall</p>
+        <h2>Hvor god er planen?</h2>
       </div>
-      <p class="section-note">Oppsummerer vertskap, deltakelse og reise per klubb.</p>
+      <p class="section-note">De få måltallene som trengs for å vurdere kvaliteten.</p>
     </div>
-    $REPORT_CLUB_SUMMARY$
-  </section>
-
-  <section class="report-section" id="tournamentReviewTable">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">Detaljert plan</p>
-        <h2>Turneringer som skal gjennomgås</h2>
-      </div>
-      <p class="section-note">Kondensert tabell; åpne sesongplanen for kampoppsett per turnering.</p>
-    </div>
-    $REPORT_TOURNAMENT_TABLE$
+    $REPORT_SCORES$
+    $REPORT_METRICS$
   </section>
 
   <details class="report-section report-section--collapsible" id="detaljerAccordion">
@@ -57,14 +45,43 @@
     <summary class="section-head">
       <div>
         <p class="eyebrow">Mer informasjon</p>
-        <h2>Detaljer</h2>
+        <h2>Tekniske detaljer</h2>
       </div>
-      <p class="section-note">Regler, kontroller og diagnostikk samlet for den som vil grave dypere.</p>
+      <p class="section-note">Aldersgrupper, klubber, diagnostikk og regelgrunnlag for den som vil grave dypere.</p>
     </summary>
 
-    $REPORT_SCORES$
+    <section class="report-section" id="ageGroupSummary">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Aldersgrupper</p>
+          <h2>Hva skjer per aldersgruppe?</h2>
+        </div>
+        <p class="section-note">Se turneringer, vertskap og kampbredde per gruppe.</p>
+      </div>
+      $REPORT_AGE_SUMMARY$
+    </section>
 
-    $REPORT_METRICS$
+    <section class="report-section" id="clubReviewSummary">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Klubber</p>
+          <h2>Hva må hver klubb vurdere?</h2>
+        </div>
+        <p class="section-note">Oppsummerer vertskap, deltakelse og reise per klubb.</p>
+      </div>
+      $REPORT_CLUB_SUMMARY$
+    </section>
+
+    <section class="report-section" id="tournamentReviewTable">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Detaljert plan</p>
+          <h2>Turneringer som skal gjennomgås</h2>
+        </div>
+        <p class="section-note">Kondensert tabell; åpne sesongplanen for kampoppsett og varmekart per turnering.</p>
+      </div>
+      $REPORT_TOURNAMENT_TABLE$
+    </section>
 
     $REPORT_CLUB_DASHBOARD$
 

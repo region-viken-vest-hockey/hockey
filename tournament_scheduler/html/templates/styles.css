@@ -150,6 +150,17 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .report-table th { padding: 8px 10px; background: var(--bg); color: var(--text-muted); font-weight: 750; text-align: left; border-bottom: 1px solid var(--border-dim); }
 .report-table td { padding: 7px 10px; color: var(--text-secondary); border-bottom: 1px solid var(--border-dim); vertical-align: top; }
 .report-table tr:last-child td { border-bottom: 0; }
+.rules-description { margin-top: 3px; font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.rules-type-badge { display: inline-flex; align-items: center; white-space: nowrap; padding: 2px 8px; border-radius: var(--radius-pill); border: 1px solid var(--border-dim); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.rules-type-badge--hard { color: var(--rose); background: rgba(244,63,94,.08); }
+.rules-type-badge--required_obligation { color: var(--amber); background: rgba(245,158,11,.08); }
+.rules-type-badge--soft { color: var(--accent); background: var(--accent-glow); }
+.rules-type-badge--advisory { color: var(--violet); background: rgba(139,92,246,.08); }
+.rules-type-badge--default { color: var(--text-muted); background: var(--bg); }
+.rules-status { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: var(--radius-pill); border: 1px solid var(--border-dim); font-size: 10px; font-weight: 650; }
+.rules-status--ok { color: var(--emerald); background: rgba(16,185,129,.08); }
+.rules-status--warn { color: var(--amber); background: rgba(245,158,11,.08); }
+.rules-status--attention { color: var(--rose); background: rgba(244,63,94,.08); }
 
 /* Scores */
 .score-bar { display: flex; gap: 12px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 14px; background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: var(--radius); }

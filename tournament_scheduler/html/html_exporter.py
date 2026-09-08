@@ -50,6 +50,8 @@ from .renderers.fairness import (
 from .renderers.review import analyze_review_summary, render_review_summary_html
 from .renderers.judgment import analyze_opinionated_judgment, render_judgment_cards_html
 from .renderers.heatmap import build_club_color_maps
+from .renderers.rules_table import render_rules_table_html
+from ..rules_model import build_rules_model
 
 # ---------------------------------------------------------------------------
 # Load template fragments
@@ -210,6 +212,7 @@ class HtmlExporter:
             team_travel=team_travel,
         )
         judgment_cards_html = render_judgment_cards_html(list(judgment["cards"]))
+        rules_table_html = render_rules_table_html(build_rules_model(plan))
         report_overview_html = self._report_overview_html(
             plan,
             source_count=source_count,
@@ -226,7 +229,7 @@ class HtmlExporter:
             judgment_cards_html=judgment_cards_html,
             team_stats_html=TEAM_STATS,
             travel_stats_html=TRAVEL_STATS,
-            heatmap_html=HEATMAP,
+            rules_table_html=rules_table_html,
             judgment=judgment,
             scores_html=SCORES,
             metrics_html=METRICS,
@@ -261,8 +264,11 @@ class HtmlExporter:
                 "$CLUB_DASHBOARD$": "",
                 "$TEAM_STATS$": "",
                 "$TRAVEL_STATS$": "",
-                "$HEATMAP$": "",
-                "$REPORT_HEATMAP$": "",
+                # Heatmap belongs on the operational season-plan view near the
+                # top, not repeated on the report (issue #277). It renders via
+                # the same $HEATMAP_JSON$ data/script on both pages, so this
+                # only controls whether the markup slot is present.
+                "$HEATMAP$": HEATMAP if not include_diagnostics else "",
                 "$JUDGMENT$": "",
                 "$FILTERS$": FILTERS if include_timeline else "",
                 "$COUNT_BAR$": COUNT_BAR if include_timeline else "",
@@ -390,7 +396,7 @@ class HtmlExporter:
         judgment_cards_html: str,
         team_stats_html: str,
         travel_stats_html: str,
-        heatmap_html: str,
+        rules_table_html: str,
         judgment: dict[str, object],
         scores_html: str,
         metrics_html: str,
@@ -667,7 +673,7 @@ class HtmlExporter:
             "$REPORT_ADVISORY$": advisory_html,
             "$REPORT_TOURNAMENT_TABLE$": tournament_table,
             "$REPORT_DIAGNOSTICS$": diagnostics_html,
-            "$REPORT_HEATMAP$": heatmap_html,
+            "$REPORT_RULES_TABLE$": rules_table_html,
             "$REPORT_JUDGMENT_CARDS$": judgment_cards_html,
             "$REPORT_SCORES$": scores_html,
             "$REPORT_METRICS$": metrics_html,
