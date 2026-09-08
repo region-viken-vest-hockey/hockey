@@ -105,9 +105,16 @@ class ICalScraper(CalendarScraper):
                     if location_filter.lower() not in location.lower():
                         continue
 
-                # Handle both date and datetime objects
-                if hasattr(start, 'hour'):
-                    # Event has time
+                # iCal distinguishes a date-only DTSTART (all-day event) from
+                # a real timed event. Keep that semantic distinction explicit
+                # instead of making a date-only row look like a literal 00:00
+                # booking in the human audit calendar. CalendarEvent is not a
+                # slots dataclass, so ``all_day`` is attached as backward-
+                # compatible event metadata until the model contract is next
+                # versioned.
+                all_day = not hasattr(start, 'hour')
+
+                if not all_day:
                     event_datetime = start
                     event_date_str = start.strftime('%d.%m.%Y')
 
@@ -117,24 +124,32 @@ class ICalScraper(CalendarScraper):
                     else:
                         duration_hours = 0
                 else:
-                    # All-day event
                     event_datetime = datetime.combine(start, datetime.min.time())
                     event_date_str = start.strftime('%d.%m.%Y')
                     duration_hours = 0
 
-                events.append(CalendarEvent(
+                calendar_event = CalendarEvent(
                     date=event_date_str,
                     name=summary,
                     datetime=event_datetime,
                     duration_hours=duration_hours,
                     location=location,
-                ))
+                )
+                calendar_event.all_day = all_day
+                events.append(calendar_event)
 
-            # Deduplicate
+            # Deduplicate. all-day vs genuinely timed-midnight events are
+            # intentionally distinct even when date/name/hour happen to match.
             unique_events = []
             seen = set()
             for event in events:
-                key = (event.date, event.name, event.datetime.hour if hasattr(event.datetime, 'hour') else 0)
+                key = (
+                    event.date,
+                    event.name,
+                    event.datetime.hour if hasattr(event.datetime, 'hour') else 0,
+                    bool(getattr(event, "all_day", False)),
+                    event.location,
+                )
                 if key not in seen:
                     seen.add(key)
                     unique_events.append(event)
