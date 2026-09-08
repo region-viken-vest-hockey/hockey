@@ -120,10 +120,40 @@ scripts/rvv-miniputt run --interactive --resume-from 3 --input input.xlsx \
   --decision-action '<your decision for Stage 2>'
 ```
 
-That command (deciding on Stage 2, `--resume-from 3`) runs Stage 3 for the
-first time and pauses with a baseline decision context. **Every decision
-about that Stage 3 context from here on — the baseline tone judgment and
-every later candidate comparison — must use `--resume-from 4`, not 3:**
+**Branch on the printed `DecisionContext.capability` — do not infer the
+next `--resume-from` from "this looks like Stage 3":**
+
+| `capability` | What it means | Next command's `--resume-from` |
+|---|---|---|
+| `shared_host_assignment` | Pre-Stage-3 pause (issue #274) — a joint-club registration (e.g. `"Kongsberg/Tønsberg"`) needs a hosting decision *before* Stage 3 has run at all. | **3** (same stage you're already on) |
+| `stage3_interactive` | Stage 3 baseline (or a re-run's) tone judgment. | 4 |
+| `stage3_pareto` | Stage 3 multi-candidate comparison. | 4 |
+
+**If `capability` is `shared_host_assignment`:** answer with
+`assign_shared_host` (`arguments.chosen_club` set to one of the listed
+`constituents`) or `request_operator`, and resubmit at the **same**
+`--resume-from 3` — not 4:
+
+```bash
+scripts/rvv-miniputt run --interactive --resume-from 3 --input input.xlsx \
+  --decision-action '{
+    "action_id": "assign_shared_host",
+    "arguments": {"chosen_club": "Tønsberg"},
+    "rationale": "Kongsberg already hosts materially more this season."
+  }'
+```
+
+If more joint registrations are still pending, that same `--resume-from 3`
+invocation pauses again with another `shared_host_assignment` context —
+keep answering at `--resume-from 3` until none remain. Only once every
+joint registration is resolved does that invocation fall straight through
+into a **fresh** Stage 3 run and print a `stage3_interactive` (or
+`stage3_pareto`) context — that fresh context's `facts` should include
+`cp_sat_shadow` when the automatic CP-SAT shadow evaluation ran.
+
+**Once `capability` is `stage3_interactive` or `stage3_pareto`, every
+decision about that context — the baseline tone judgment and every later
+candidate comparison — uses `--resume-from 4`:**
 
 ```bash
 scripts/rvv-miniputt run --interactive --resume-from 4 --input input.xlsx \
@@ -131,22 +161,22 @@ scripts/rvv-miniputt run --interactive --resume-from 4 --input input.xlsx \
 ```
 
 The CLI validates a decision against the context for stage `resume_from -
-1`, so `--resume-from 3` validates against Stage 2's context, not Stage
-3's — a Stage 3 decision sent with `--resume-from 3` is silently misrouted
-and rejected as `decision_action_not_available`. `--resume-from 3` is only
-correct once: the invocation above that actually runs Stage 3. When you
-pass `optimize_plan` via `--resume-from 4`, the orchestrator internally
-reruns Stage 3 and pauses again with a new candidate context — decide on
-*that* again via `--resume-from 4` too. Only `keep_baseline`/
-`apply_candidate` resolves the loop and lets that same `--resume-from 4`
-invocation continue on into Stage 4.
+1`, so a `stage3_interactive`/`stage3_pareto` decision sent with
+`--resume-from 3` is silently misrouted (it validates against Stage 2's or
+the shared-host context instead) and rejected as
+`decision_action_not_available`. When you pass `optimize_plan` via
+`--resume-from 4`, the orchestrator internally reruns Stage 3 and pauses
+again with a new candidate context — decide on *that* again via
+`--resume-from 4` too. Only `keep_baseline`/`apply_candidate` resolves the
+loop and lets that same `--resume-from 4` invocation continue on into
+Stage 4.
 
 Stage 3 is a **nested decision loop**, not a single-attempt gate — see
 `.agents/skills/rvv/SKILL.md`'s "Interactive `DecisionContext` reference"
-for the full `optimize_plan`/`apply_candidate`/`keep_baseline` mechanics,
-canonical and not repeated here. Do not fall back to the non-interactive
-`scripts/rvv-miniputt run --resume-from 3` for retry/refinement — drive the
-loop from here instead.
+for the full `optimize_plan`/`apply_candidate`/`keep_baseline` mechanics
+and the shared-host exception, canonical and not repeated here. Do not
+fall back to the non-interactive `scripts/rvv-miniputt run --resume-from 3`
+for retry/refinement — drive the loop from here instead.
 
 ### Stage 4 — Export
 
