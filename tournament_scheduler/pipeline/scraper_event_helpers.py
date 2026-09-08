@@ -13,10 +13,10 @@ from typing import Any
 from ..club_registry import club_for_source_name
 from ..models import CalendarEvent
 
-# Frisk Asker's TeamUp feed uses room/surface names rather than arena names.
-# "Idrettshallen" (and variants) is Askerhallen; numbered surfaces and "FA"-prefixed
-# rooms belong to Varner Arena. Away-game entries ("FA 1 - Opponent 5") are also at
-# Varner Arena. Locker-room-only entries ("Jentegarderoben" etc.) are not classified.
+# Frisk Asker's Teamup feed exposes both Askerhallen and Varner Arena. RVV can
+# book Askerhallen only, and the registry location_filter now removes Varner
+# before these helpers run. The classifier remains useful audit metadata and a
+# regression guard for recovered/injected events.
 _FRISK_ASKER_ASKERHALLEN_MARKERS = {"idrettshallen"}
 _FRISK_ASKER_VARNER_MARKERS = {"1", "2", "4", "5"}  # standalone ice-surface numbers
 
@@ -51,6 +51,12 @@ def _events_to_dicts(
             "datetime": e.datetime.isoformat(),
             "duration_hours": e.duration_hours,
         }
+        # iCal date-only DTSTART values are all-day events, not literal
+        # midnight bookings. Preserve that distinction in Stage 2/checkpoint
+        # evidence so calendars.html can show "Hele dagen" and operators can
+        # cross-check the source without being misled by a synthetic 00:00.
+        if bool(getattr(e, "all_day", False)):
+            d["all_day"] = True
         if e.location:
             d["location"] = e.location
             if club_name == "Frisk Asker":
@@ -103,9 +109,10 @@ def _group_events_by_club(
     e.g. ``"Kongsberg ishall"`` or ``"Frisk Asker"``) and an ``"events"`` list
     of event dicts (as produced by :func:`_events_to_dicts`). This maps each
     source's events to the matching :data:`CLUB_REGISTRY` club name (via
-    :func:`club_for_source_name`) so downstream code can look up
-    "all events for Frisk Asker's Varner Arena" without re-filtering the flat
-    per-source list.
+    :func:`club_for_source_name`) so downstream code can look up all trusted
+    events for a club without re-filtering the flat per-source list. For Frisk
+    Asker, the registry's `Idrettshallen` location filter means these grouped
+    events represent Askerhallen only.
 
     Sources that don't match any known club (or carry no events) are simply
     omitted -- existing flat-list (``"sources"``) consumers are unaffected.
