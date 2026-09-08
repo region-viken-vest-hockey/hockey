@@ -7,7 +7,8 @@ a month-by-month calendar grid with:
 
   - Colour-coded events per club
   - Checkbox filters to toggle clubs on/off
-  - Source links on each event
+  - Human-readable calendar links on each event
+  - Separate iCal/feed links when the scraper uses a machine feed
   - Scrape timestamp and data-age indicator
 """
 
@@ -18,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from tournament_scheduler.club_registry import CLUB_REGISTRY, CalendarSourceKind, club_for_source_name
 from tournament_scheduler.html.data_computation import timestamp_string
 from tournament_scheduler.html.templates import CALENDAR_VIEWER
 
@@ -77,6 +79,7 @@ _ICON_CLOCK = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" strok
 _ICON_TERMINAL = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 6.5 8.5 4 11"/><line x1="8" y1="11" x2="12" y2="11"/><rect x="1" y="2" width="14" height="12" rx="2"/></svg>'
 _ICON_BAR_CHART = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="14" x2="2" y2="6"/><line x1="6" y1="14" x2="6" y2="10"/><line x1="10" y1="14" x2="10" y2="4"/><line x1="14" y1="14" x2="14" y2="8"/></svg>'
 
+
 def _cache_status(entry: dict[str, Any], ttl_hours: float = 6.0) -> str:
     """Return a freshness badge label for a cache entry.
 
@@ -108,6 +111,28 @@ def _cache_status(entry: dict[str, Any], ttl_hours: float = 6.0) -> str:
 
 def _escape_html(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+def _source_urls(source_name: str, entry: dict[str, Any]) -> tuple[str, str]:
+    """Return ``(human_calendar_url, machine_feed_url)`` for one source.
+
+    The cache's ``url`` is the URL actually used by Stage 2. For an iCal
+    source that is intentionally machine-readable, the registry may also
+    expose a separate human calendar page for visual cross-checking. Event
+    links should always prefer that human page; the source overview shows the
+    raw iCal URL separately so operators can inspect both representations.
+    """
+    raw_url = str(entry.get("url", "") or "").strip()
+    club_name = club_for_source_name(source_name)
+    registry_entry = CLUB_REGISTRY.get(club_name) if club_name else None
+    if registry_entry is None:
+        return raw_url, ""
+
+    human_url = str(registry_entry.human_url or raw_url or "").strip()
+    machine_url = ""
+    if registry_entry.kind is CalendarSourceKind.ICAL and raw_url and raw_url != human_url:
+        machine_url = raw_url
+    return human_url, machine_url
 
 
 def _month_name(m: int, locale: str = "nb") -> str:
@@ -194,7 +219,9 @@ def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> st
             y += 1
 
     def _format_time(ev: dict[str, Any]) -> str:
-        """Extract start and end time string from event."""
+        """Extract a human-readable time label from an event."""
+        if ev.get("all_day"):
+            return "Hele dagen"
         dt_str = ev.get("datetime", "")
         dur = ev.get("duration_hours", 0)
         if not dt_str:
@@ -253,13 +280,19 @@ def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> st
                     lines.append('          <div class="events">')
                     for ev in day_events:
                         src = ev.get("_source", "?")
-                        src_url = ev.get("_source_url", "")
+                        human_url, _machine_url = _source_urls(src, sources.get(src, {}))
                         color = color_map.get(src, CLUB_COLORS[-1])
                         name = _escape_html(ev.get("name", "?"))
                         time_str = _format_time(ev)
-                        link = f'<a class="ev-ext-link" href="{_escape_html(src_url)}" target="_blank" title="Åpne {_escape_html(src)} sin kalender">{_ICON_EXTERNAL}</a>' if src_url else ""
+                        location = str(ev.get("location", "") or "").strip()
+                        location_title = f" — {_escape_html(location)}" if location else ""
+                        link = (
+                            f'<a class="ev-ext-link" href="{_escape_html(human_url)}" target="_blank" '
+                            f'rel="noopener noreferrer" title="Åpne {_escape_html(src)} sin kalender">{_ICON_EXTERNAL}</a>'
+                            if human_url else ""
+                        )
                         lines.append(
-                            f'<div class="event" data-source="{_escape_html(src)}" style="background:{color["bg"]};border-left:3px solid {color["border"]};color:{color["text"]}" title="{_escape_html(src)} — {name}">'
+                            f'<div class="event" data-source="{_escape_html(src)}" style="background:{color["bg"]};border-left:3px solid {color["border"]};color:{color["text"]}" title="{_escape_html(src)} — {name}{location_title}">'
                             + (f'<span class="ev-time">{time_str}</span> ' if time_str else '')
                             + f'<span class="ev-name">{name}</span> '
                             + f'<span class="ev-meta">{_escape_html(src)} {link}</span>'
@@ -278,7 +311,9 @@ def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> st
     for y, m in all_months:
         months_html.append(_month_html(y, m))
 
-    # Build club filter controls
+    # Build club filter controls. iCal sources expose both the human calendar
+    # and the machine feed so the operator can compare scraped rows with the
+    # source visually while still seeing exactly which feed Stage 2 consumed.
     club_filter_lines: list[str] = []
     for name in source_names:
         color = color_map[name]
@@ -287,13 +322,20 @@ def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> st
         ts = entry.get("scrape_timestamp", "")
         age = _age_string(ts)
         freshness = _cache_status(entry)
-        source_url = str(entry.get("url", "") or "").strip()
-        source_link = (
-            f'<a class="source-link" href="{_escape_html(source_url)}" target="_blank" '
+        human_url, machine_url = _source_urls(name, entry)
+        human_link = (
+            f'<a class="source-link" href="{_escape_html(human_url)}" target="_blank" '
             f'rel="noopener noreferrer" onclick="event.stopPropagation();" '
-            f'title="Åpne {_escape_html(name)} sin kalender">'
-            f'{_ICON_EXTERNAL}<span>Kilde</span></a>'
-            if source_url else ""
+            f'title="Åpne human-readable kalender: {_escape_html(human_url)}">'
+            f'{_ICON_EXTERNAL}<span>Kalender</span></a>'
+            if human_url else ""
+        )
+        feed_link = (
+            f'<a class="source-link" href="{_escape_html(machine_url)}" target="_blank" '
+            f'rel="noopener noreferrer" onclick="event.stopPropagation();" '
+            f'title="Åpne iCal-feed brukt av skraperen: {_escape_html(machine_url)}">'
+            f'{_ICON_EXTERNAL}<span>iCal</span></a>'
+            if machine_url else ""
         )
         club_filter_lines.append(
             f'<label class="filter-item" style="--cbg:{color["bg"]};--cborder:{color["border"]}">'
@@ -301,7 +343,7 @@ def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> st
             f'<span class="club-label">{_escape_html(name)}</span> '
             f'<span class="club-stats">({cnt} hendelser, {age})</span> '
             f'<span class="club-freshness">{_escape_html(freshness)}</span>'
-            f'{source_link}'
+            f'{human_link}{feed_link}'
             f'</label>'
         )
     club_filter_html = "\n".join(club_filter_lines)
