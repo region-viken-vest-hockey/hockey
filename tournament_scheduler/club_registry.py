@@ -63,16 +63,19 @@ class ClubCalendarSource:
     club: str
     arena: str
     kind: CalendarSourceKind
-    # For OUTLOOK / generic-feed sources: the calendar URL.
-    # For ICAL sources: the calendar_id (e.g. a Google Calendar email-style ID, or feed URL).
+    # Machine-readable source used by the scraper. For ICAL sources this can
+    # be a Google Calendar ID or direct iCal feed URL.
     source: Optional[str] = None
+    # Human-readable calendar page used for operator audit/cross-checking.
+    # When omitted, callers should fall back to ``source``.
+    human_url: Optional[str] = None
     # True when no usable source is known yet — pipeline should skip this club
     # rather than fail, and surface a TODO so the source can be added later.
     skip: bool = False
     note: Optional[str] = None
     # When set, the iCal scraper will discard any event whose LOCATION field
-    # does not contain this string (case-insensitive substring match).  Useful
-    # when a club's feed covers multiple arenas and only one is relevant.
+    # does not contain this string (case-insensitive substring match). Useful
+    # when a feed covers multiple arenas but RVV can only use one of them.
     location_filter: Optional[str] = None
     # issue #264: whether this club's *scraped* calendar entries represent a
     # generic club allocation it controls (busy in the public/arena calendar
@@ -115,12 +118,12 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         club="Ringerike",
         arena="Ringerikshallen",
         kind=CalendarSourceKind.ICAL,
-        # The public calendar page (https://teamup.com/ksr8bg1tpn5s3npskw) is an
-        # HTML/JS view, not a feed — Teamup exposes the actual iCal export at
-        # ics.teamup.com using the same calendar key (verified: returns
-        # text/calendar with hundreds of parseable VEVENTs).
+        # The public calendar page is the operator-audit view; Teamup exposes
+        # the actual machine-readable iCal export at ics.teamup.com using the
+        # same calendar key.
         source="https://ics.teamup.com/feed/ksr8bg1tpn5s3npskw/0.ics",
-        note="Teamup iCal export feed (verified working — confirm parses via icalendar/recurring_ical_events).",
+        human_url="https://teamup.com/ksr8bg1tpn5s3npskw",
+        note="Teamup iCal export feed with explicit human calendar URL for audit/cross-checking.",
     ),
     "Tønsberg": ClubCalendarSource(
         club="Tønsberg",
@@ -141,19 +144,21 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
     ),
     "Frisk Asker": ClubCalendarSource(
         club="Frisk Asker",
-        arena="Varner Arena / Askerhallen",
+        # RVV can book Askerhallen only. Varner Arena appears in the same
+        # Teamup calendar but must never become RVV scheduling evidence.
+        arena="Askerhallen",
         kind=CalendarSourceKind.ICAL,
         source="https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics",
+        human_url="https://teamup.com/ksdwpwxysmxwnuftoy",
         skip=False,
         note=(
-            "Teamup iCal export feed. Feed covers both Varner Arena and Askerhallen. "
-            "The LOCATION field uses room/surface numbers ('1', '2', '4', '5') for "
-            "Varner Arena ice surfaces, and 'Idrettshallen' for Askerhallen. "
-            "Away-game entries use 'FA <rink> - <opponent> <locker>' format. "
-            "No location_filter — previous filter 'Askerhallen' matched nothing in "
-            "the feed (the name does not appear in LOCATION values)."
+            "Teamup feed covers both Varner Arena and Askerhallen, but RVV can "
+            "book Askerhallen only. In the feed Askerhallen is represented by "
+            "LOCATION values containing 'Idrettshallen'; numbered surfaces and "
+            "'FA ...' rooms belong to Varner Arena and are excluded from RVV "
+            "availability evidence."
         ),
-        location_filter=None,
+        location_filter="Idrettshallen",
     ),
     "Sandefjord Penguins": ClubCalendarSource(
         club="Sandefjord Penguins",
