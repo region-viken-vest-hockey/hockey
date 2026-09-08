@@ -1530,6 +1530,100 @@ def _build_mid_planning_critic_hints(
     }
 
 
+# issue #288: default solve budget for the *automatic* CP-SAT shadow
+# evaluation every interactive Stage 3 decision point runs -- deliberately
+# smaller than plan_command's 30s default since this runs on the critical
+# path of a normal `/rvv-miniputt:run` invocation, not a developer-invoked
+# `plan ab --engine cp-sat` session.
+_CP_SAT_AUTO_SHADOW_BUDGET_SECONDS = 15.0
+
+
+def _maybe_run_stage3_cp_sat_shadow(
+    cfg: "dict[str, Any]",
+    problem: "dict[str, Any] | None",
+    baseline_candidate: "dict[str, Any] | None",
+    log_fn: "Any",
+) -> "dict[str, Any] | None":
+    """Best-effort automatic CP-SAT shadow evaluation for a Stage 3 candidate
+    (issue #288: "CP-SAT shadow evaluation must be reachable automatically
+    from `/rvv-miniputt:run`; the operator should not need to know or invoke
+    `plan ab --engine cp-sat`").
+
+    Runs the CP-SAT engine through the same :func:`stage3_engine.run_planner`
+    boundary the interactive ``optimize_plan(engine="cp_sat")`` path uses, and
+    wraps the result with :func:`stage3_shadow.build_shadow_report` so the
+    comparison is fingerprinted/reproducible evidence, not just a prose
+    summary. Returns ``None`` only when shadow evaluation is disabled via
+    config (``cp_sat_shadow_enabled: false``) or there is no candidate to
+    shadow yet -- every other outcome, including a missing OR-Tools
+    dependency or an infeasible/timed-out solve, returns a dict describing
+    what happened rather than raising, so this can never interrupt or fail
+    the production ``/run`` workflow. Never applies or publishes the shadow
+    candidate -- this is comparison evidence for the existing
+    apply_candidate/keep_baseline decision only.
+    """
+    if baseline_candidate is None or not bool(cfg.get("cp_sat_shadow_enabled", True)):
+        return None
+
+    from ..stage3_cpsat import CpSatNoCandidate, CpSatUnavailable
+    from ..stage3_engine import run_planner
+    from ..stage3_shadow import build_shadow_report
+
+    budget = float(cfg.get("cp_sat_shadow_budget_seconds", _CP_SAT_AUTO_SHADOW_BUDGET_SECONDS))
+    try:
+        shadow_candidate = run_planner(
+            engine="cp_sat",
+            problem=problem,
+            baseline=baseline_candidate,
+            request={"solve_budget_seconds": budget},
+        )
+    except CpSatUnavailable as exc:
+        log_fn(f"stage3 cp_sat shadow: unavailable ({exc}) -- skipping automatic shadow evaluation")
+        return {"attempted": True, "available": False, "engine": "cp_sat", "error": {"type": "CpSatUnavailable", "message": str(exc)}}
+    except CpSatNoCandidate as exc:
+        log_fn(f"stage3 cp_sat shadow: no feasible candidate within budget ({exc})")
+        return {
+            "attempted": True,
+            "available": True,
+            "engine": "cp_sat",
+            "error": {
+                "type": "CpSatNoCandidate",
+                "message": str(exc),
+                "status": getattr(exc, "status", None),
+                "runtime_seconds": getattr(exc, "runtime_seconds", None),
+            },
+        }
+    except Exception as exc:  # defensive: shadow evaluation must never break /run
+        log_fn(f"stage3 cp_sat shadow: unexpected error ({exc}) -- skipping")
+        return {"attempted": True, "available": False, "engine": "cp_sat", "error": {"type": type(exc).__name__, "message": str(exc)}}
+
+    try:
+        report = build_shadow_report(baseline_candidate, shadow_candidate, problem, engine="cp_sat")
+    except Exception as exc:
+        log_fn(f"stage3 cp_sat shadow: could not build shadow report ({exc})")
+        return {
+            "attempted": True,
+            "available": True,
+            "engine": "cp_sat",
+            "candidate_source": shadow_candidate.get("source"),
+            "report_error": str(exc),
+        }
+
+    log_fn(
+        "stage3 cp_sat shadow: evaluated automatically "
+        f"(dominates_baseline={report['ab_report'].get('dominates_baseline')})"
+    )
+    return {
+        "attempted": True,
+        "available": True,
+        "engine": "cp_sat",
+        "dominates_baseline": report["ab_report"].get("dominates_baseline"),
+        "production_ready": report["ab_report"].get("production_ready"),
+        "candidate_source": shadow_candidate.get("source"),
+        "fingerprints": report["fingerprints"],
+    }
+
+
 def _run_stage3_v2_optimize(
     state: "Any",
     cfg: "dict[str, Any]",
@@ -1540,12 +1634,12 @@ def _run_stage3_v2_optimize(
     log_fn: "Any",
 ) -> "tuple[dict[str, Any] | None, bool]":
     """Execute an accepted interactive ``optimize_plan`` decision via the
-    Stage 3 v2 optimizer (issue #262 P0), instead of rerunning the legacy
-    ``SeasonPlanner`` multi-seed loop.
+    Stage 3 engine-dispatch boundary (issue #262 P0 / issue #276), instead of
+    rerunning the legacy ``SeasonPlanner`` multi-seed loop.
 
     Mirrors ``cli.plan_command._execute_optimize_plan``'s headless behavior:
     takes the current best Stage 3 candidate, runs
-    ``stage3_optimizer.optimize_candidate`` against it with the LLM-selected
+    ``stage3_engine.run_planner`` against it with the LLM-selected engine and
     search arguments (already schema-validated by
     ``application.decisions.decide`` against the ``"v2_optimizer"`` schema
     before this function ever runs), and writes the result as the new Stage
@@ -1553,12 +1647,24 @@ def _run_stage3_v2_optimize(
     generator for the *first* Stage 3 attempt only — this is only reached
     for a subsequent ``optimize_plan`` decision on an already-planned run.
 
+    *arguments.get("engine")* selects the search engine (``"local_search"``
+    default, or ``"cp_sat"`` for the shadow/experimental CP-SAT participant
+    optimizer). A ``cp_sat`` failure (``CpSatUnavailable``/``CpSatNoCandidate``
+    -- missing OR-Tools, or the solver ran out of budget without a feasible
+    candidate) is an expected shadow-mode outcome, not a bug: it is recorded
+    as an attempt-log entry for evidence and the existing checkpoint is
+    returned unchanged (never written, never aborted), so the interactive
+    loop simply re-presents the unchanged baseline for another decision
+    instead of silently adopting or publishing a solver candidate.
+
     Returns ``(checkpoint, abort)`` -- *checkpoint* is ``None`` and *abort*
     is ``True`` when there is no baseline candidate to optimize.
     """
     from ..planning_contract import build_planning_problem, extract_candidate
+    from ..pipeline.evidence_bundle import append_stage3_attempt_log_entry
     from ..pipeline.state import StageName, StageStatus
-    from ..stage3_optimizer import optimize_candidate
+    from ..stage3_cpsat import CpSatNoCandidate, CpSatUnavailable
+    from ..stage3_engine import run_planner
 
     arguments = arguments or {}
     planning_checkpoint = state.read_stage(StageName.PLANNING)
@@ -1573,25 +1679,50 @@ def _run_stage3_v2_optimize(
 
     problem = build_planning_problem(cfg, scraping, start.date(), end.date())
 
+    engine = str(arguments.get("engine") or "local_search").replace("-", "_")
     weights = arguments.get("weights")
-    new_candidate = optimize_candidate(
-        baseline_candidate,
-        problem,
-        iterations=int(arguments.get("iterations", 4000)),
-        seed=int(arguments.get("seed", 0)),
-        weights={k: float(v) for k, v in weights.items()} if isinstance(weights, dict) else None,
-        move_dates=bool(arguments.get("move_dates", False)),
-        date_swap_probability=float(arguments.get("date_swap_probability", 0.3)),
-        move_hosts=bool(arguments.get("move_hosts", False)),
-        move_slots=bool(arguments.get("move_slots", False)),
-    )
+    request = {
+        "iterations": int(arguments.get("iterations", 4000)),
+        "seed": int(arguments.get("seed", 0)),
+        "weights": {k: float(v) for k, v in weights.items()} if isinstance(weights, dict) else None,
+        "move_dates": bool(arguments.get("move_dates", False)),
+        "date_swap_probability": float(arguments.get("date_swap_probability", 0.3)),
+        "move_hosts": bool(arguments.get("move_hosts", False)),
+        "move_slots": bool(arguments.get("move_slots", False)),
+        "solve_budget_seconds": float(arguments.get("solve_budget_seconds", 30.0)),
+    }
+
+    try:
+        new_candidate = run_planner(engine=engine, problem=problem, baseline=baseline_candidate, request=request)
+    except (CpSatUnavailable, CpSatNoCandidate) as exc:
+        interactive_state = _read_stage3_interactive_state(state, expected_run_id=_current_run_id(state))
+        attempt_preview = int(interactive_state.get("attempts_used", 0)) + 1
+        log_fn(f"optimize_plan: engine={engine} produced no candidate ({exc}) -- keeping current baseline")
+        try:
+            append_stage3_attempt_log_entry(
+                state.work_dir,
+                {
+                    "attempt": attempt_preview,
+                    "engine": engine,
+                    "candidate_source": None,
+                    "engine_error": {
+                        "type": type(exc).__name__,
+                        "message": str(exc),
+                        "status": getattr(exc, "status", None),
+                        "runtime_seconds": getattr(exc, "runtime_seconds", None),
+                    },
+                },
+            )
+        except Exception as log_exc:
+            log_fn(f"optimize_plan: could not append engine-failure attempt-log entry: {log_exc}")
+        return planning_checkpoint, False
 
     checkpoint = dict(planning_checkpoint)
     checkpoint["plan"] = new_candidate
-    checkpoint["source"] = "stage3_optimizer_v2"
+    checkpoint["source"] = f"stage3_optimizer_v2:{engine}"
     log_fn(
-        "optimize_plan: ran Stage 3 v2 optimizer "
-        f"(iterations={arguments.get('iterations', 4000)}, seed={arguments.get('seed', 0)})"
+        f"optimize_plan: ran Stage 3 v2 optimizer (engine={engine}, "
+        f"iterations={arguments.get('iterations', 4000)}, seed={arguments.get('seed', 0)})"
     )
     state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
     return checkpoint, False
@@ -2878,12 +3009,20 @@ def _emit_stage3_interactive_decision(
     attempts_used = int(interactive_state.get("attempts_used", 0))
     problem = _mid_planning_decision_problem(cfg, scraping, start, end)
 
+    try:
+        shadow_source_candidate = extract_candidate(plan)
+    except (ValueError, KeyError):
+        shadow_source_candidate = None
+    cp_sat_shadow = _maybe_run_stage3_cp_sat_shadow(cfg, problem, shadow_source_candidate, log_fn)
+
     if attempts_used <= 0 or "best_plan" not in interactive_state:
         # First attempt this run: nothing to compare against yet — auto-
         # baseline, same as the headless multi-seed loop's
         # "best_plan is None -> adopt" first iteration.
         attempts_used = 1
         summary = _decision_summary_for_checkpoint(3, plan)
+        if cp_sat_shadow is not None:
+            summary = {**summary, "cp_sat_shadow": cp_sat_shadow}
         baseline_hard_violations = _baseline_hard_violations_for_plan(plan, problem)
         available = ["optimize_plan", "keep_baseline", "request_operator", "abort"]
         if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
@@ -2960,6 +3099,8 @@ def _emit_stage3_interactive_decision(
                 baseline_hard_violations=tuple(_baseline_hard_violations_for_plan(best_plan, problem)),
                 available_actions=("keep_baseline", "request_operator", "abort"),
             )
+        if cp_sat_shadow is not None:
+            context = _dc_replace(context, facts={**context.facts, "cp_sat_shadow": cp_sat_shadow})
         interactive_state["attempts_used"] = attempts_used
         interactive_state["pending_candidate"] = plan
         # A prior attempt may have been a Pareto search (issue #264 P1) --
@@ -2988,6 +3129,19 @@ def _emit_stage3_interactive_decision(
         )
     except Exception as exc:
         log_fn(f"stage3_interactive attempt {attempts_used}: could not append attempt-log entry: {exc}")
+
+    if cp_sat_shadow is not None:
+        # issue #288: the automatic CP-SAT shadow comparison is evidence
+        # alongside the attempt that was actually decided on, not a
+        # candidate of its own -- record it as its own entry so a reviewer
+        # sees it was attempted even though it never became pending_candidate.
+        try:
+            append_stage3_attempt_log_entry(
+                state.work_dir,
+                {**cp_sat_shadow, "attempt": attempts_used, "engine": "cp_sat_shadow"},
+            )
+        except Exception as exc:
+            log_fn(f"stage3_interactive attempt {attempts_used}: could not append cp_sat shadow attempt-log entry: {exc}")
 
     payload = context.to_dict()
     try:

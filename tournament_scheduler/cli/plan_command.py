@@ -4,6 +4,37 @@ These commands operate only on the stable ``planning_problem``/``candidate``
 contracts in :mod:`tournament_scheduler.planning_contract`. They do not call
 into ``SeasonPlanner`` and do not require an LLM, so any planner
 implementation's output can be checked the same way.
+
+Command-surface classification (issue #288): ``/rvv-miniputt:run`` is the
+canonical product workflow for planning -- its interactive Stage 3 loop
+(``cli.pipeline_orchestrator._emit_stage3_interactive_decision`` /
+``_run_stage3_v2_optimize``) already reaches every engine
+(``local_search``/``cp_sat``) through the same :func:`stage3_engine.run_planner`
+boundary these commands use, and automatically evaluates a CP-SAT shadow
+candidate without the operator invoking ``plan ab --engine cp-sat``. None of
+the commands below hold unique *production* planning semantics an operator
+needs -- they are kept as internal developer/test surfaces only:
+
+- ``plan verify``, ``plan score``, ``plan problem`` -- internal diagnostic
+  tools: inspect/validate a candidate or the normalized planning problem
+  outside a full pipeline run. No canonical-workflow equivalent needed --
+  ``/run`` does this verification/scoring internally already.
+- ``plan optimize``, ``plan ab``, ``plan ab-participants`` -- thin wrappers
+  around the same engine boundary/A-B comparison the interactive loop uses;
+  kept for reproducible, no-pipeline-required debugging of one engine's
+  output (e.g. regression-testing :mod:`stage3_cpsat` in isolation), not
+  because they add behavior ``/run`` lacks.
+- ``plan decision-context``, ``plan decide`` -- a standalone decision-loop
+  harness over a saved ``ab_report.json``, useful for unit-testing
+  :func:`application.decisions.decide`/:func:`stage3_decision.build_stage3_decision_context`
+  without driving the whole interactive pipeline; not a second orchestration
+  model an operator should reach for -- ``/rvv-miniputt:run --interactive``
+  is that loop for real runs.
+
+Keep all of the above for tests/reproducibility per issue #288's non-goals
+("do not remove low-level commands merely because they are low-level"); do
+not add new unique planning behavior to this module that ``/run`` cannot
+also reach.
 """
 
 from __future__ import annotations

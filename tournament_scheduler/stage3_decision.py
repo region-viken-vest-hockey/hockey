@@ -107,6 +107,24 @@ _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {
         },
         "description": "Global overrides for the optimizer's penalty weights (see stage3_optimizer.DEFAULT_WEIGHTS).",
     },
+    "engine": {
+        "type": "string",
+        "enum": ["local_search", "cp_sat"],
+        "description": (
+            "Search engine to run this optimize_plan attempt with (issue #276): "
+            "'local_search' (default) is the existing simulated-annealing optimizer; "
+            "'cp_sat' is the shadow/experimental fixed-skeleton CP-SAT participant "
+            "optimizer. A cp_sat failure (missing OR-Tools, infeasible/timeout) "
+            "never replaces the current best plan -- it is recorded as evidence "
+            "and this attempt falls back to comparing the unchanged baseline."
+        ),
+    },
+    "solve_budget_seconds": {
+        "type": "number",
+        "minimum": 1.0,
+        "maximum": 300.0,
+        "description": "CP-SAT solver wall-clock budget in seconds; ignored when engine is 'local_search'.",
+    },
 }
 
 _PARETO_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {

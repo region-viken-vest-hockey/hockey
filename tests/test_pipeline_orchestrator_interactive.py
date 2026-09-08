@@ -319,6 +319,79 @@ class TestStage3InteractiveDecisionLoop:
         assert interactive_state["attempts_used"] == 1
         assert interactive_state["best_plan"] == plan
 
+    def test_first_attempt_automatically_evaluates_cp_sat_shadow(self, state, tmp_path, capsys):
+        """issue #288: "CP-SAT shadow evaluation must be reachable
+        automatically from `/rvv-miniputt:run`; the operator should not need
+        to know or invoke `plan ab --engine cp-sat`" -- the very first Stage
+        3 baseline decision must already carry CP-SAT shadow evidence in its
+        facts, with no optimize_plan(engine=...) request from the caller."""
+        from tournament_scheduler.pipeline.evidence_bundle import read_stage3_attempt_log
+
+        args = _args(work_dir=str(tmp_path), resume_from="3")
+        plan = _plan_checkpoint(seed=1)
+        shadow_candidate = dict(_candidate(seed=2))
+        shadow_candidate["source"] = {"planner": "cp_sat", "status": "OPTIMAL", "runtime_seconds": 0.4}
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan, False, False),
+        ), patch(
+            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            return_value=shadow_candidate,
+        ) as optimize_candidate_cp_sat:
+            exit_code = _cmd_run_interactive(args)
+            out = capsys.readouterr().out
+
+        assert exit_code == 2
+        optimize_candidate_cp_sat.assert_called_once()
+        payload = json.loads(out)
+        shadow_facts = payload["facts"]["cp_sat_shadow"]
+        assert shadow_facts["attempted"] is True
+        assert shadow_facts["available"] is True
+        assert shadow_facts["candidate_source"]["planner"] == "cp_sat"
+
+        attempt_log = read_stage3_attempt_log(state.work_dir)
+        assert any(entry.get("engine") == "cp_sat_shadow" for entry in attempt_log)
+
+    def test_first_attempt_continues_safely_when_cp_sat_unavailable(self, state, tmp_path, capsys):
+        """issue #288: "Solver failure/timeout/unavailable dependency must
+        degrade safely inside `/run` ... never break the production
+        workflow unnecessarily" -- a missing OR-Tools dependency must not
+        stop the normal Stage 3 decision from being emitted."""
+        from tournament_scheduler.stage3_cpsat import CpSatUnavailable
+
+        args = _args(work_dir=str(tmp_path), resume_from="3")
+        plan = _plan_checkpoint(seed=1)
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            return_value=(plan, False, False),
+        ), patch(
+            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            side_effect=CpSatUnavailable("OR-Tools not installed"),
+        ):
+            exit_code = _cmd_run_interactive(args)
+            out = capsys.readouterr().out
+
+        assert exit_code == 2
+        payload = json.loads(out)
+        assert payload["capability"] == "stage3_interactive"
+        assert set(payload["available_actions"]) >= {"optimize_plan", "keep_baseline"}
+        shadow_facts = payload["facts"]["cp_sat_shadow"]
+        assert shadow_facts["attempted"] is True
+        assert shadow_facts["available"] is False
+        assert shadow_facts["error"]["type"] == "CpSatUnavailable"
+
     def test_optimize_plan_runs_v2_optimizer_not_legacy_stage3(self, state, tmp_path):
         """issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
         optimizer, not rerun the legacy SeasonPlanner via _run_stage3."""
@@ -383,6 +456,155 @@ class TestStage3InteractiveDecisionLoop:
         # The offered optimize_plan schema must match what actually executes.
         assert "optimize_plan" in interactive_state["last_context"]["action_parameters"]
         assert "weights" in interactive_state["last_context"]["action_parameters"]["optimize_plan"]
+
+    def test_optimize_plan_engine_cp_sat_routes_through_engine_boundary(self, state, tmp_path):
+        """issue #276: optimize_plan(arguments={"engine": "cp_sat"}) must
+        dispatch through stage3_engine.run_planner to the CP-SAT shadow
+        optimizer, and the resulting pending candidate's source must record
+        which engine actually produced it."""
+        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.pipeline.evidence_bundle import read_stage3_attempt_log
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        report = build_ab_report(plan1["plan"], plan1["plan"])
+        baseline_context = build_stage3_decision_context(
+            report, run_id="", baseline_ref=None, candidate_ref=None,
+            optimize_plan_schema="v2_optimizer",
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "last_context": baseline_context.to_dict(),
+            },
+        )
+        state.write_stage(StageName.PLANNING, plan1, status=StageStatus.DONE)
+
+        plan2_candidate = dict(_candidate(seed=2))
+        plan2_candidate["source"] = {"planner": "cp_sat", "status": "OPTIMAL", "runtime_seconds": 1.2}
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {
+                    "action_id": "optimize_plan",
+                    "rationale": "try CP-SAT shadow engine",
+                    "arguments": {"engine": "cp_sat", "solve_budget_seconds": 5},
+                }
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(
+                {"start_date": "2026-09-01", "end_date": "2027-04-30", "cp_sat_shadow_enabled": False},
+                False,
+            ),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+        ) as run_stage3, patch(
+            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            return_value=plan2_candidate,
+        ) as optimize_candidate_cp_sat:
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        run_stage3.assert_not_called()
+        # issue #288: automatic CP-SAT shadow evaluation is disabled above
+        # (cp_sat_shadow_enabled: False) so this call is unambiguously the
+        # explicit optimize_plan(engine="cp_sat") dispatch under test.
+        optimize_candidate_cp_sat.assert_called_once()
+        assert optimize_candidate_cp_sat.call_args.kwargs["solve_budget_seconds"] == 5
+        assert optimize_candidate_cp_sat.call_args.args[0] == plan1["plan"]
+
+        interactive_state = _read_stage3_interactive_state(state)
+        assert interactive_state["pending_candidate"]["plan"]["source"]["planner"] == "cp_sat"
+
+        attempt_log = read_stage3_attempt_log(state.work_dir)
+        assert any(
+            isinstance(entry.get("candidate_source"), dict)
+            and entry["candidate_source"].get("planner") == "cp_sat"
+            for entry in attempt_log
+        )
+
+    def test_optimize_plan_engine_cp_sat_failure_preserves_baseline(self, state, tmp_path):
+        """issue #276: a CP-SAT shadow-mode failure (no OR-Tools, or the
+        solver timing out without a feasible candidate) must never abort the
+        run or silently publish a solver candidate -- the existing best plan
+        stays the Stage 3 checkpoint, and the failure is recorded as an
+        attempt-log evidence entry."""
+        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.pipeline.evidence_bundle import read_stage3_attempt_log
+        from tournament_scheduler.pipeline.state import StageName as _StageName
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_cpsat import CpSatNoCandidate
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        report = build_ab_report(plan1["plan"], plan1["plan"])
+        baseline_context = build_stage3_decision_context(
+            report, run_id="", baseline_ref=None, candidate_ref=None,
+            optimize_plan_schema="v2_optimizer",
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "last_context": baseline_context.to_dict(),
+            },
+        )
+        state.write_stage(StageName.PLANNING, plan1, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {
+                    "action_id": "optimize_plan",
+                    "rationale": "try CP-SAT shadow engine",
+                    "arguments": {"engine": "cp_sat"},
+                }
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            return_value=(
+                {"start_date": "2026-09-01", "end_date": "2027-04-30", "cp_sat_shadow_enabled": False},
+                False,
+            ),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+        ) as run_stage3, patch(
+            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            side_effect=CpSatNoCandidate("INFEASIBLE", 5.0),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        run_stage3.assert_not_called()
+
+        # The on-disk Stage 3 checkpoint must still be the unchanged baseline.
+        checkpoint = state.read_stage(_StageName.PLANNING)
+        assert checkpoint == plan1
+
+        attempt_log = read_stage3_attempt_log(state.work_dir)
+        assert any(
+            entry.get("engine") == "cp_sat" and entry.get("engine_error", {}).get("type") == "CpSatNoCandidate"
+            for entry in attempt_log
+        )
 
     def test_optimize_plan_pareto_mode_offers_a_candidate_choice(self, state, tmp_path):
         """issue #264 P1 / issue #265 P1: optimize_plan(mode="pareto") runs
