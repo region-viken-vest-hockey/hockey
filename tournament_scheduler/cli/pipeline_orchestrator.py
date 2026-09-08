@@ -2032,6 +2032,28 @@ def _run_stage3(
             plan = state.read_stage(StageName.PLANNING) or {}
             return plan, False, True
     else:
+        # issue #290: a checkpoint file existing on disk is not proof it
+        # belongs to *this* run's Stage 3 decision -- ``write_stage(...,
+        # status=DONE)`` for Stage 1/2 already marks every downstream
+        # checkpoint (including this one) ``stale`` via
+        # ``PipelineState._invalidate_downstream`` whenever an earlier
+        # stage actually (re)ran in this invocation/run. A harness/resume
+        # sequencing mistake that reaches Stage 4 without Stage 3 ever
+        # having run fresh in this run must not silently export that stale
+        # data -- it must be treated the same as a missing checkpoint.
+        # Once Stage 3 actually runs (the ``if resume_from <= 3`` branch
+        # above), its ``write_stage(..., status=DONE)`` call replaces the
+        # envelope wholesale and clears this flag, so a legitimate
+        # multi-invocation resume within the same logical run is
+        # unaffected.
+        if state.is_stale(StageName.PLANNING):
+            _console.print(
+                "[red]✗[/red] Stage 3-checkpointet er foreldet (stale) -- det tilhører "
+                "ikke denne kjørens fullførte planleggingsbeslutning. Gjenoppta fra "
+                "Stage 3 (--resume-from 3) i stedet for å eksportere gammel tilstand."
+            )
+            log_fn("Stage 3 skip aborted: on-disk checkpoint is stale for this run")
+            return None, True, False
         plan = state.read_stage(StageName.PLANNING)
         if not plan:
             _console.print("[red]✗[/red] Kan ikke gjenoppta: Stage 3-checkpoint mangler.")
