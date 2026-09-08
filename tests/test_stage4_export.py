@@ -267,11 +267,6 @@ class TestRunStage4:
         html = Path(files["html"]).read_text(encoding="utf-8")
         assert 'href="manual_schedule.html"' in html
 
-        # The report must present the plan as usable-but-needs-manual-followup.
-        report_html = Path(files["html_report"]).read_text(encoding="utf-8")
-        assert "MÅ SJEKKES" in report_html
-        assert "Manuell istidsplanlegging" in report_html
-
     def test_export_lists_external_conflicts_and_participation_shortfalls_as_manual(self, tmp_path):
         """unresolved_external_conflicts and unresolved_participation_shortfalls
         (non-blocking, see planning_contract.verify_candidate's
@@ -478,20 +473,18 @@ class TestRunStage4:
         assert 'Per aldersgruppe og klubb: faktisk vs forventet hjemmeturneringer' in report_html
         assert 'Aldersgruppevis fordeling av hjemmeturneringer: U10 Kongsberg 1 vs ~1.0.' in report_html
         assert 'id="reportOverview"' in report_html
-        assert 'Kan planen brukes?' in report_html
-        assert 'Hva må sjekkes eller endres?' in report_html
-        assert 'Ja — planen kan brukes' in report_html or 'Nei — planen bør stoppes' in report_html
+        assert 'Kan planen brukes?' not in report_html
+        assert 'Hva må sjekkes eller endres?' not in report_html
+        assert 'Hvilke regler styrte planen?' in report_html
         assert 'Hva skjer per aldersgruppe?' in report_html
         assert 'Hva må hver klubb vurdere?' in report_html
         assert 'Turneringer som skal gjennomgås' in report_html
         assert 'Detaljerte måltall og kontroller' in report_html
         assert 'Klubben bør sjekke' in report_html
-        assert 'Vis hvorfor' in report_html
-        assert 'report-status-pill' in report_html
+        assert report_html.index('id="reportOverview"') < report_html.index('Hvilke regler styrte planen?')
         assert report_html.index('id="reportOverview"') < report_html.index('Ser planen jevn ut?')
-        assert report_html.index('Hva må sjekkes eller endres?') < report_html.index('Detaljerte måltall og kontroller')
+        assert report_html.index('Hvilke regler styrte planen?') < report_html.index('Detaljerte måltall og kontroller')
         assert report_html.index('Ser planen jevn ut?') < report_html.index('Detaljerte måltall og kontroller')
-        assert report_html.index('id="reportOverview"') < report_html.index('Vis hvorfor')
         assert old_gate_label not in report_html
         assert old_adjustment_label not in report_html
         assert 'Rådgivende kontroll' in report_html
@@ -532,9 +525,6 @@ class TestRunStage4:
         assert 'debug-dashboard' not in html.lower()
         assert not re.search(r"[\U0001F300-\U0001FAFF]", html)
         assert not re.search(r"[\U0001F300-\U0001FAFF]", report_html)
-        # Hero verdict pill should be present and use a plain-language decision.
-        assert 'report-status-pill' in report_html
-        assert 'KAN BRUKES' in report_html or 'BLOKKER' in report_html
 
     def test_review_summary_collapses_when_it_only_repeats_main_assessment(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
@@ -939,17 +929,6 @@ class TestRunStage4:
         report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
         # Weakest metric is "Hjemmebanebelastning" (status=fail, score=40)
         assert "Svakeste metrikk: Hjemmebanebelastning" in report_html
-        # Hero pill must show the issue count: gate warn (1) + 2 metric warnings (2) + missing hosts (1) = 4.
-        assert "4 punkt(er)" in report_html
-
-    def test_conclusion_injects_tournament_count(self, tmp_path):
-        """Conclusion must include tournament count from active_tournaments."""
-        data = _make_plan_dict()
-        state = PipelineState(tmp_path / "pipeline")
-        result = run(data, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
-        report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        # Plan has 1 active tournament; the answer string embeds "1 turneringer"
-        assert "1 turneringer" in report_html
 
     def test_conclusion_injects_month_span(self, tmp_path):
         """Conclusion must include the Norwegian month-span derived from plan dates."""
@@ -1032,9 +1011,6 @@ class TestRunStage4:
         html = Path(files["html"]).read_text(encoding="utf-8")
         assert 'href="manual_schedule.html"' in html
         assert "MÅ BOOKES MANUELT" in html
-        report_html = Path(files["html_report"]).read_text(encoding="utf-8")
-        assert "MÅ SJEKKES" in report_html
-        assert "Manuell istidsplanlegging" in report_html
 
     def test_calendars_html_generated_when_scrape_cache_populated(self, tmp_path):
         """stage4 should write calendars.html when the scrape cache contains events and link it in the navbar."""

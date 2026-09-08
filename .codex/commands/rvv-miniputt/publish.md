@@ -1,11 +1,11 @@
-Run the full RVV Miniputt pipeline and publish the result to GitHub Pages.
+Publish the most recently generated RVV Miniputt export to GitHub Pages. Never runs or reruns the pipeline.
 
 Use:
 
 ```bash
-scripts/rvv-miniputt operator run --resume-from 1 --publish --confirm-public <user-args>
+scripts/rvv-miniputt operator publish --confirm-public <user-args>
 ```
 
-`--resume-from 1` is intentional: it prevents the operator from short-circuiting as “nothing to do” when checkpoints are already fresh, so the Pages publish step actually runs. Do not run `/rvv-miniputt publish` in the shell.
+Before publishing, confirm `.pipeline/stage4_export.json` exists and its `errors` list is empty; if not, stop and tell the user to run `/rvv-miniputt run` first instead of running the pipeline yourself. Do not run `/rvv-miniputt publish` in the shell.
 
-Report the published URL, any verification warning, and any pipeline/export failure.
+Report which export bundle was published, the published URL, any verification warning, and any publish failure.

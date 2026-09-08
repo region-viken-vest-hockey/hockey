@@ -101,37 +101,41 @@ class TestNoJudgmentSection:
         )
 
 
-class TestHeroStatusFromDirectDecision:
-    """Hero section should surface a direct can-use decision."""
+class TestHeroSectionRemoved:
+    """The 'Kort svar'/'Kan planen brukes?' hero must not appear in the report.
 
-    def test_hero_class_contains_pass_for_usable_plan(self, tmp_path):
-        """A plan without hard blockers should yield status 'pass'."""
+    Removed at the user's request: the hero's yes/no verdict wasn't useful,
+    and the report now starts directly at the rules table.
+    """
+
+    def test_hero_class_absent(self, tmp_path):
         html = _export_report_html(tmp_path)
-        assert 'report-hero--pass' in html, (
-            "Hero div should carry report-hero--pass class for a usable plan"
+        assert 'class="report-hero' not in html, "Hero div should no longer be rendered"
+
+    def test_hero_verdict_language_absent(self, tmp_path):
+        html = _export_report_html(tmp_path)
+        assert "Kort svar" not in html
+        assert "Kan planen brukes?" not in html
+        assert "Ja — planen kan brukes" not in html
+        assert "Nei — planen bør stoppes" not in html
+
+    def test_report_overview_starts_at_rules_section(self, tmp_path):
+        html = _export_report_html(tmp_path)
+        assert html.index('id="reportOverview"') < html.index('id="rulesTable"')
+        assert html.index('id="rulesTable"') - html.index('id="reportOverview"') < 200, (
+            "Nothing but the rules section should follow reportOverview's opening tag"
         )
 
-    def test_hero_uses_simple_yes_no_language(self, tmp_path):
+
+class TestJudgmentCardsRemoved:
+    """The judgment cards (and their toggle) lived inside the removed hero and
+    must not appear in the report either."""
+
+    def test_no_judgment_cards_present(self, tmp_path):
         html = _export_report_html(tmp_path)
-        assert "Ja — planen kan brukes" in html or "Nei — planen bør stoppes" in html, (
-            "Hero should display a direct yes/no decision"
-        )
-        assert "KAN BRUKES" in html or "BLOKKER" in html, (
-            "Hero pill should use plain-language decision labels"
-        )
+        assert 'class="judgment-card"' not in html, "Judgment cards unexpectedly found in report HTML"
 
-
-class TestJudgmentCardsHiddenBehindToggle:
-    """The 4 judgment cards should be tucked behind an expandable toggle."""
-
-    CARD_LABELS = ["Matchup", "Belastning", "Hjemmeturneringer", "Reise"]
-
-    def test_all_card_labels_present(self, tmp_path):
+    def test_toggle_absent(self, tmp_path):
         html = _export_report_html(tmp_path)
-        for label in self.CARD_LABELS:
-            assert label in html, f"Judgment card label '{label}' not found in report HTML"
-
-    def test_cards_are_hidden_under_toggle(self, tmp_path):
-        html = _export_report_html(tmp_path)
-        assert 'judgment-toggle' in html, "Judgment cards should be wrapped in an expandable toggle"
-        assert 'Vis hvorfor' in html, "Toggle summary text should explain that more detail is available"
+        assert 'class="judgment-toggle"' not in html
+        assert 'Vis hvorfor' not in html
