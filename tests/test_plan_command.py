@@ -5,10 +5,14 @@ import json
 
 import pytest
 
+from rich.console import Console
+
 from tournament_scheduler.cli.plan_command import (
     _cmd_plan_decide,
     _cmd_plan_decision_context,
+    _engine_id,
     _parse_weight_overrides,
+    _run_engine_or_report_error,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName
 from tournament_scheduler.stage3_ab import build_ab_report
@@ -77,6 +81,77 @@ def _clustered_candidate() -> dict:
             _tournament("t4", "2026-04-05", "Arena5", "U10", group_b),
         ],
     }
+
+
+def test_engine_id_maps_cli_hyphens_to_internal_underscores():
+    assert _engine_id("local-search") == "local_search"
+    assert _engine_id("cp-sat") == "cp_sat"
+
+
+class TestRunEngineOrReportError:
+    def test_local_search_returns_a_candidate(self):
+        candidate = _clustered_candidate()
+        console = Console()
+
+        result = _run_engine_or_report_error(
+            console,
+            engine="local_search",
+            problem=None,
+            baseline=candidate,
+            request={"iterations": 200, "seed": 1},
+        )
+
+        assert result is not None
+        assert result["schema_version"] == candidate["schema_version"]
+
+    def test_unavailable_cp_sat_engine_prints_a_clean_message_instead_of_a_traceback(self, monkeypatch):
+        import builtins
+
+        real_import = builtins.__import__
+
+        def _blocked_import(name, *args, **kwargs):
+            if name.startswith("ortools"):
+                raise ImportError("no ortools in this test")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", _blocked_import)
+
+        candidate = _clustered_candidate()
+        console = Console()
+
+        result = _run_engine_or_report_error(
+            console,
+            engine="cp_sat",
+            problem=None,
+            baseline=candidate,
+            request={},
+        )
+
+        assert result is None
+
+    def test_infeasible_cp_sat_reports_no_candidate_instead_of_raising(self):
+        pytest.importorskip(
+            "ortools", reason="OR-Tools is the optional 'cpsat' extra; skip when not installed"
+        )
+        only_team = _team("Club1", "T1", "U10")
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U10", [only_team]),
+                _tournament("t2", "2026-01-05", "Arena2", "U10", [only_team]),
+            ],
+        }
+        console = Console()
+
+        result = _run_engine_or_report_error(
+            console,
+            engine="cp_sat",
+            problem=None,
+            baseline=candidate,
+            request={"solve_budget_seconds": 5.0},
+        )
+
+        assert result is None
 
 
 def _decision_context_args(**overrides) -> argparse.Namespace:

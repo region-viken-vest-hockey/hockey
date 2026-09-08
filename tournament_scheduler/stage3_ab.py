@@ -34,6 +34,7 @@ _METRIC_PATHS: List[Tuple[str, str]] = [
     ("turnaround.gaps_under_days.7", "lower"),
     ("turnaround.gaps_under_days.14", "lower"),
     ("hosting.spread", "lower"),
+    ("hosting.unresolved_obligations_count", "lower"),
 ]
 
 
@@ -52,6 +53,23 @@ def _get_path(report: Dict[str, Any], path: str) -> Any:
         else:
             return None
     return value
+
+
+def _with_unresolved_count(report: Dict[str, Any]) -> Dict[str, Any]:
+    """Fold ``hosting.unresolved_obligations`` (a list) into a comparable count.
+
+    ``score_candidate(..., problem=problem)`` reports the unresolved
+    club x age-group hosting rows as a list; ``_compare_scores`` only diffs
+    numeric leaves, so surface the count alongside it rather than teaching
+    the generic path-walker about list-valued metrics.
+    """
+    hosting = report.get("hosting")
+    unresolved = hosting.get("unresolved_obligations") if isinstance(hosting, dict) else None
+    if not isinstance(unresolved, list):
+        return report
+    report = dict(report)
+    report["hosting"] = {**hosting, "unresolved_obligations_count": len(unresolved)}
+    return report
 
 
 def _compare_scores(old_report: Dict[str, Any], new_report: Dict[str, Any]) -> Dict[str, Any]:
@@ -101,6 +119,25 @@ def _age_groups(candidate: Dict[str, Any]) -> List[str]:
     return sorted(groups)
 
 
+def _problem_for_age_group(
+    problem: Optional[Dict[str, Any]], age_group: str
+) -> Optional[Dict[str, Any]]:
+    """Filter *problem*'s registered teams down to a single age group.
+
+    Without this, the per-age-group hosting coverage matrix would carry
+    every other age group's registered clubs too, and (since the candidate
+    passed alongside it is already filtered to one age group) report them
+    as unresolved hosting obligations they never had a chance to satisfy.
+    """
+    if problem is None:
+        return None
+    filtered = dict(problem)
+    filtered["teams"] = [
+        team for team in problem.get("teams", []) or [] if team.get("age_group") == age_group
+    ]
+    return filtered
+
+
 def build_ab_report(
     old_candidate: Dict[str, Any],
     new_candidate: Dict[str, Any],
@@ -115,19 +152,28 @@ def build_ab_report(
     old_verification = verify_candidate(old_candidate, problem)
     new_verification = verify_candidate(new_candidate, problem)
 
-    old_overall = score_candidate(old_candidate)
-    new_overall = score_candidate(new_candidate)
-    overall_comparison = _compare_scores(old_overall, new_overall)
+    old_overall = score_candidate(old_candidate, problem=problem)
+    new_overall = score_candidate(new_candidate, problem=problem)
+    overall_comparison = _compare_scores(
+        _with_unresolved_count(old_overall), _with_unresolved_count(new_overall)
+    )
 
     age_groups = sorted(set(_age_groups(old_candidate)) | set(_age_groups(new_candidate)))
     by_age_group: Dict[str, Any] = {}
     for age_group in age_groups:
-        old_ag = score_candidate(_candidate_for_age_group(old_candidate, age_group))
-        new_ag = score_candidate(_candidate_for_age_group(new_candidate, age_group))
+        age_group_problem = _problem_for_age_group(problem, age_group)
+        old_ag = score_candidate(
+            _candidate_for_age_group(old_candidate, age_group), problem=age_group_problem
+        )
+        new_ag = score_candidate(
+            _candidate_for_age_group(new_candidate, age_group), problem=age_group_problem
+        )
         by_age_group[age_group] = {
             "old": old_ag,
             "new": new_ag,
-            "comparison": _compare_scores(old_ag, new_ag),
+            "comparison": _compare_scores(
+                _with_unresolved_count(old_ag), _with_unresolved_count(new_ag)
+            ),
         }
 
     # A hard-constraint regression is specifically: old passed, new fails.

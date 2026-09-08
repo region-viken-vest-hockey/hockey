@@ -167,6 +167,33 @@ class TestBuildAbReport:
         assert not report["dominates_baseline"]
         assert not report["production_ready"]
 
+    def test_scoring_is_problem_aware_and_catches_unresolved_hosting_regressions(self):
+        """issue #276 Phase 1 correctness cleanup: build_ab_report must pass
+        *problem* through to score_candidate, so a candidate can't look
+        better merely because a club's hosting obligation was dropped -- a
+        regression the candidate-only ``hosting.spread``/``counts_by_host``
+        metrics can't see (a club hosting 0 tournaments just doesn't appear
+        in those dicts at all)."""
+        old_candidate = _clustered_candidate()
+        # Club9 has a registered U10 team but never hosts in either
+        # candidate -- an unresolved obligation present on both sides, so it
+        # must not by itself count as a *new* regression.
+        problem = {
+            "teams": [
+                _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 9)
+            ]
+            + [_team("Club9", "T9", "U10")]
+        }
+
+        report_without_problem = build_ab_report(old_candidate, dict(old_candidate))
+        report_with_problem = build_ab_report(old_candidate, dict(old_candidate), problem=problem)
+
+        assert "unresolved_obligations" not in report_without_problem["old"]["score"]["hosting"]
+        unresolved = report_with_problem["old"]["score"]["hosting"]["unresolved_obligations"]
+        assert {"club": "Club9", "age_group": "U10"} in unresolved
+        assert report_with_problem["overall_comparison"]["regressions"] == []
+        assert report_with_problem["production_ready"] == report_without_problem["production_ready"]
+
     def test_pre_existing_violation_dominates_baseline_but_not_production_ready(self):
         """dominates_baseline only asks for "no worse than baseline"; a
         candidate that keeps a pre-existing baseline violation dominates but

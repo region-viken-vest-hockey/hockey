@@ -24,6 +24,12 @@ test = [
     "pytest-cov>=5.0",
     "PyYAML>=6.0",
 ]
+# Shadow/experimental CP-SAT Stage 3 engine (issue #276). Not a runtime
+# dependency: engine="local_search" stays the default and works without it;
+# engine="cp_sat" raises a clean CpSatUnavailable error without this extra.
+cpsat = [
+    "ortools>=9.10",
+]
 
 [project.scripts]
 rvv-miniputt = "tournament_scheduler.cli.rvv_cli:main"
