@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Sequence
 
+from tournament_scheduler import planning_half
 
 
 def rules_report(planner) -> List[Dict[str, str]]:
@@ -42,6 +43,19 @@ def rules_report(planner) -> List[Dict[str, str]]:
             ),
             "kategori": "Hard krav",
         })
+
+    report.append({
+        "regel": "Sesongen deles i to uavhengige planleggingshalvdeler (før/etter jul)",
+        "forklaring": (
+            f"Juleskillet ({planning_half.half_label('before_christmas')}/"
+            f"{planning_half.half_label('after_christmas')}) beregnes én gang som "
+            "`christmas_split_date` (24. desember) i planleggingsproblemet og deles av verify_candidate, "
+            "score_candidate og Stage 3-søket. En turnering kan flyttes til en ny dato innenfor sin egen "
+            "halvdel, men flytting over juleskillet krever et eksplisitt `allow_cross_half_moves`-unntak "
+            "og skjer aldri som en bieffekt av optimaliseringssøket."
+        ),
+        "kategori": "Hard krav",
+    })
 
     fairness_thresholds = planner.fairness_thresholds
     thresholds_text = ", ".join(

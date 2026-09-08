@@ -18,6 +18,7 @@ It is based on the planner code, not on the marketing/docs wording, so it calls 
 | Parallelle kamper for U7: 4 | For aldersgruppen U7 spilles det 4 kamper samtidig per runde. Det gir plass til opptil 8 lag per turnering, og hvis lagetallet er oddetall får ett lag pause i hver runde. | Hard krav |
 | Parallelle kamper for U8: 4 | For aldersgruppen U8 spilles det 4 kamper samtidig per runde. Det gir plass til opptil 8 lag per turnering, og hvis lagetallet er oddetall får ett lag pause i hver runde. | Hard krav |
 | Parallelle kamper for U9: 3 | For aldersgruppen U9 spilles det 3 kamper samtidig per runde. Det gir plass til opptil 6 lag per turnering, og hvis lagetallet er oddetall får ett lag pause i hver runde. | Hard krav |
+| Sesongen deles i to uavhengige planleggingshalvdeler (før/etter jul) | Juleskillet (Før jul/Etter jul) beregnes én gang som `christmas_split_date` (24. desember) i planleggingsproblemet og deles av verify_candidate, score_candidate og Stage 3-søket. En turnering kan flyttes til en ny dato innenfor sin egen halvdel, men flytting over juleskillet krever et eksplisitt `allow_cross_half_moves`-unntak og skjer aldri som en bieffekt av optimaliseringssøket. | Hard krav |
 | Deltakelsesmål per aldersgruppe kan splittes før/etter jul | Når en aldersgruppe har et eksplisitt mål, kan det settes som `before_christmas` / `after_christmas`. Planleggeren fordeler da målet over sesongen rundt juleskillet i stedet for å behandle hele sesongen som ett samlet mål. | Hard krav |
 
 ### Configuration and guardrails

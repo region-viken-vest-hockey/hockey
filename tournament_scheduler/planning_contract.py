@@ -31,6 +31,8 @@ from datetime import date
 from itertools import combinations
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from tournament_scheduler import planning_half
+
 PLANNING_PROBLEM_SCHEMA_VERSION = 1
 CANDIDATE_SCHEMA_VERSION = 1
 
@@ -101,10 +103,13 @@ def build_planning_problem(
         if dates:
             club_busy_dates[club] = dates
 
+    split_date = planning_half.christmas_split_date(start_date, end_date)
+
     return {
         "schema_version": PLANNING_PROBLEM_SCHEMA_VERSION,
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
+        "christmas_split_date": split_date.isoformat() if split_date else None,
         "teams": teams,
         "age_groups": roster.age_groups(),
         "clubs": dict(club_arenas),
@@ -841,6 +846,35 @@ def score_candidate(
             key = f"{t_date.year:04d}-{t_date.month:02d}"
             month_counts[key] = month_counts.get(key, 0) + 1
 
+    # --- planning-half distribution (issue #293) ----------------------------
+    # `problem["christmas_split_date"]` is the shared boundary every engine
+    # (Stage 3 local search, CP-SAT, this scorer) reads from, set once in
+    # `build_planning_problem`. Falls back to deriving it from the
+    # candidate's own tournament dates when no problem is supplied, so this
+    # metric still degrades gracefully for the problem-less verification
+    # path instead of silently omitting half reporting.
+    split_date: Optional[date] = None
+    if problem is not None and problem.get("christmas_split_date"):
+        split_date = _parse_date(problem["christmas_split_date"])
+    elif tournaments:
+        dated = [d for d in (_parse_date(t.get("date")) for t in tournaments) if d is not None]
+        if dated:
+            split_date = planning_half.christmas_split_date(min(dated), max(dated))
+
+    half_counts: Dict[str, int] = {"before_christmas": 0, "after_christmas": 0, "unsplit": 0}
+    for t in tournaments:
+        t_date = _parse_date(t.get("date"))
+        if t_date is None:
+            continue
+        half_counts[planning_half.tournament_half(t_date, split_date)] += 1
+
+    split_total = half_counts["before_christmas"] + half_counts["after_christmas"]
+    half_deviation_pct = (
+        abs(half_counts["before_christmas"] - half_counts["after_christmas"]) / split_total * 100.0
+        if split_total
+        else 0.0
+    )
+
     return {
         "participation": {
             "counts_by_team": {
@@ -869,4 +903,6 @@ def score_candidate(
             **hosting_coverage,
         },
         "month_distribution": month_counts,
+        "half_distribution": half_counts,
+        "half_deviation_pct": half_deviation_pct,
     }
