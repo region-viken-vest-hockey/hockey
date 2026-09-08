@@ -3,8 +3,12 @@
 Covers:
 - `planning_half.christmas_split_date`/`tournament_half`/`half_label`
 - `planning_contract.build_planning_problem` exposing `christmas_split_date`
+  and `allow_cross_half_moves`
 - `planning_contract.score_candidate`'s `half_distribution`/`half_deviation_pct`
 - `stage3_optimizer`'s cross-half guardrail and within-half date move
+- `stage3_engine.run_planner` and `stage3_decision`'s optimize_plan schemas
+  actually plumbing `move_dates_within_half` through to the optimizer, so a
+  live run/LLM controller can request the new move at all
 - snapshot isolation: a half-2-only registration change must not touch half-1
 """
 
@@ -254,3 +258,90 @@ class TestHalfSnapshotIsolation:
             )
 
         assert _before_christmas_signature(baseline) == _before_christmas_signature(changed)
+
+
+# ---------------------------------------------------------------------------
+# build_planning_problem's allow_cross_half_moves override
+# ---------------------------------------------------------------------------
+
+
+class TestAllowCrossHalfMovesConfig:
+    def test_defaults_to_false(self):
+        from tournament_scheduler.planning_contract import build_planning_problem
+
+        problem = build_planning_problem({}, None, date(2026, 10, 1), date(2027, 4, 30))
+        assert problem["allow_cross_half_moves"] is False
+
+    def test_config_can_enable_the_override(self):
+        from tournament_scheduler.planning_contract import build_planning_problem
+
+        problem = build_planning_problem(
+            {"allow_cross_half_moves": True}, None, date(2026, 10, 1), date(2027, 4, 30)
+        )
+        assert problem["allow_cross_half_moves"] is True
+
+
+# ---------------------------------------------------------------------------
+# move_dates_within_half plumbed through stage3_engine/stage3_decision, so a
+# live run or the LLM controller can actually request it (issue #293).
+# ---------------------------------------------------------------------------
+
+
+def _engine_candidate():
+    return {
+        "schema_version": 1,
+        "tournaments": [
+            _tournament("t1", "2026-11-01"),
+            _tournament("t2", "2026-11-15"),
+        ],
+    }
+
+
+class TestMoveDatesWithinHalfPlumbing:
+    def test_run_planner_forwards_move_dates_within_half_to_local_search(self):
+        from tournament_scheduler.stage3_engine import run_planner
+
+        candidate = _engine_candidate()
+        problem = {
+            "start_date": "2026-10-01",
+            "end_date": "2027-04-30",
+            "christmas_split_date": "2026-12-24",
+        }
+        # A request with the flag off should never move dates outside the
+        # existing two; with it on and enough iterations, at least one date
+        # in the result should differ from the baseline (deterministic seed).
+        baseline_result = run_planner(
+            engine="local_search",
+            problem=problem,
+            baseline=candidate,
+            request={"iterations": 200, "seed": 0, "move_dates_within_half": False},
+        )
+        moved_result = run_planner(
+            engine="local_search",
+            problem=problem,
+            baseline=candidate,
+            request={
+                "iterations": 200,
+                "seed": 0,
+                "move_dates_within_half": True,
+                "date_swap_probability": 1.0,
+            },
+        )
+        baseline_dates = sorted(t["date"] for t in baseline_result["tournaments"])
+        moved_dates = sorted(t["date"] for t in moved_result["tournaments"])
+        assert baseline_dates == ["2026-11-01", "2026-11-15"]
+        # The moved run is allowed to differ from baseline (not required to,
+        # since simulated annealing may reject every proposal), but every
+        # resulting date must still fall in the same half it started in.
+        split = date(2026, 12, 24)
+        for t in moved_result["tournaments"]:
+            assert planning_half.tournament_half(date.fromisoformat(t["date"]), split) == "before_christmas"
+
+    def test_optimize_plan_schemas_expose_move_dates_within_half(self):
+        from tournament_scheduler.stage3_decision import (
+            _PARETO_OPTIMIZE_PLAN_SCHEMA,
+            _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA,
+        )
+
+        assert "move_dates_within_half" in _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA
+        assert "move_dates_within_half" in _PARETO_OPTIMIZE_PLAN_SCHEMA

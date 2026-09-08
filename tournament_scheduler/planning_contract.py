@@ -110,6 +110,11 @@ def build_planning_problem(
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
         "christmas_split_date": split_date.isoformat() if split_date else None,
+        # issue #293: cross-half date movement is an explicit operator/policy
+        # override, never an optimizer side effect -- config-driven so an
+        # operator can actually turn it on, since nothing else in the
+        # pipeline sets this flag.
+        "allow_cross_half_moves": bool(config.get("allow_cross_half_moves", False)),
         "teams": teams,
         "age_groups": roster.age_groups(),
         "clubs": dict(club_arenas),
