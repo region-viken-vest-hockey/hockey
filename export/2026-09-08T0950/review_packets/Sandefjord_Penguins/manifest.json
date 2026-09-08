@@ -1,0 +1,31 @@
+{
+  "club": "Sandefjord Penguins",
+  "packet_dir": "Sandefjord_Penguins",
+  "summary_workbook": "club_review.xlsx",
+  "spond_import_workbook": "club_review_spond.xlsx",
+  "schedule_attachment": "club_review_spond_games.xlsx",
+  "response_template": "response_template.json",
+  "tournament_count": 24,
+  "hosted_count": 3,
+  "club_names": [
+    "Frisk Asker",
+    "Holmen",
+    "Jar",
+    "Jutul",
+    "Kongsberg",
+    "Ringerike",
+    "Sandefjord Penguins",
+    "Skien",
+    "Tønsberg"
+  ],
+  "age_groups": [
+    "U11",
+    "U7",
+    "U8",
+    "U9"
+  ],
+  "decisions": {
+    "accept": "Godkjenn pakken som den er.",
+    "change_request": "Fyll ut ønskede endringer i response_template.json."
+  }
+}
