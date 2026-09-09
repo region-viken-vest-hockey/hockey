@@ -41,11 +41,17 @@ Exit codes:
 
 Read the printed `DecisionContext`. Its `available_actions` lists what's
 valid right now; `application/decisions.py` rejects anything else
-deterministically, so don't guess — use only listed actions. Pass your
-decision on the **next** invocation as `--decision-action '<JSON>'`
-(`{"action_id": "proceed"}` at minimum; `rationale` is a concise one-line
-summary, never chain-of-thought) together with `--resume-from` set to the
-stage number **after** the one you're deciding:
+deterministically, so don't guess — use only listed actions. See
+`.agents/skills/rvv/SKILL.md`'s "The generic `DecisionAction` envelope"
+section (issue #282) for the canonical envelope shape — every parameter an
+action declares nests under `arguments`, never top-level — and don't infer
+it by hand: the printed context's own `decision_action_template` key
+already has one ready-to-fill skeleton per available action, so fill in its
+placeholders rather than guessing the shape. Pass your decision on the
+**next** invocation as `--decision-action '<JSON>'` (`{"action_id":
+"proceed"}` at minimum; `rationale` is a concise one-line summary, never
+chain-of-thought) together with `--resume-from` set to the stage number
+**after** the one you're deciding:
 
 ```bash
 scripts/rvv-miniputt run --interactive --resume-from 2 \
@@ -119,6 +125,16 @@ reflects the recovered data, then decide again from its fresh
 scripts/rvv-miniputt run --interactive --resume-from 3 --input input.xlsx \
   --decision-action '<your decision for Stage 2>'
 ```
+
+Stage 3 can run for several minutes (constraint search). Run this command
+in the foreground and just wait for it to exit — do **not** background it
+(e.g. `run_in_background`) or poll a task-monitor tool for it. It is a
+one-shot, non-interactive-until-it-pauses CLI call, not a long-lived
+process with progress events to stream; backgrounding it only adds
+tool-invocation risk (issue #282: a prior run hit `prompt is required when
+stop is not true` trying to control it as a background task) for no
+benefit — the command itself blocks until it prints the next
+`DecisionContext` and exits `2`.
 
 **Branch on the printed `DecisionContext.capability` — do not infer the
 next `--resume-from` from "this looks like Stage 3":**

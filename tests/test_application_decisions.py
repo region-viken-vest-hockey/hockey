@@ -9,6 +9,7 @@ from tournament_scheduler.application.decisions import (
     HumanApprovalRequiredError,
     InvalidDecisionArgumentsError,
     UnknownDecisionActionError,
+    build_decision_action_template,
     decide,
     record_llm_decision,
     validate_decision_action,
@@ -96,6 +97,52 @@ def test_recover_source_with_required_argument_is_valid():
     action = DecisionAction(action_id="recover_source", arguments={"source": "kongsberg"})
 
     validate_decision_action(context, action)  # does not raise
+
+
+def test_decision_action_template_nests_declared_arguments_under_arguments_key():
+    """issue #282: the template's shape must itself demonstrate that every
+    declared parameter nests under ``arguments``, never top-level, and the
+    resulting skeleton must validate cleanly once placeholders are filled."""
+    context = _context(
+        available_actions=("assign_shared_host", "request_operator"),
+        action_parameters={
+            "assign_shared_host": {
+                "chosen_club": {"type": "string", "enum": ["Kongsberg", "Tønsberg"]},
+            },
+        },
+    )
+
+    templates = build_decision_action_template(context)
+
+    assert set(templates) == {"assign_shared_host", "request_operator"}
+    shared_host_template = templates["assign_shared_host"]
+    assert shared_host_template["action_id"] == "assign_shared_host"
+    assert "chosen_club" not in shared_host_template
+    assert shared_host_template["arguments"] == {
+        "chosen_club": "<one of: Kongsberg|Tønsberg>"
+    }
+
+    # request_operator has no declared schema but does have a required
+    # argument ("question") -- the template must still surface it.
+    assert templates["request_operator"]["arguments"] == {"question": "<question>"}
+
+    filled = DecisionAction(
+        action_id="assign_shared_host",
+        arguments={"chosen_club": "Kongsberg"},
+        rationale="fairness balance favors Kongsberg this round",
+    )
+    validate_decision_action(context, filled)  # does not raise
+
+
+def test_decision_context_to_dict_includes_decision_action_template():
+    context = _context(available_actions=("proceed", "abort"))
+
+    payload = context.to_dict()
+
+    assert payload["decision_action_template"] == {
+        "proceed": {"action_id": "proceed", "arguments": {}, "rationale": "<concise audit summary>"},
+        "abort": {"action_id": "abort", "arguments": {}, "rationale": "<concise audit summary>"},
+    }
 
 
 def test_hard_violation_blocks_proceed_and_apply_candidate():

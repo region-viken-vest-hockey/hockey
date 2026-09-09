@@ -168,6 +168,48 @@ is the single canonical description of what `facts` contain and what the
 actions do, so it is not repeated per adapter (issue #260 — thin adapters
 reference shared policy rather than duplicating it).
 
+#### The generic `DecisionAction` envelope (issue #282)
+
+Every decision you submit back — regardless of stage or `capability` — is
+one JSON object in this exact shape:
+
+```json
+{
+  "action_id": "<one of this context's available_actions>",
+  "arguments": {"<keys declared in action_parameters[action_id]>": "..."},
+  "rationale": "concise audit summary"
+}
+```
+
+**Every parameter declared under `action_parameters[action_id]` (and every
+bare required argument, e.g. `retry_stage`'s `stage` or `recover_source`'s
+`source`) nests under `arguments` — never top-level.** A top-level
+`chosen_club`, `candidate_ref`, `stage`, etc. is rejected deterministically
+as `invalid_decision_arguments` (missing the actual required key) rather
+than silently accepted.
+
+You do not have to infer this shape by hand: the printed `DecisionContext`
+JSON always carries a `decision_action_template` key — one ready-to-fill
+skeleton per entry in `available_actions`, mechanically derived from
+`action_parameters`, with placeholder values (e.g. `"<one of:
+Kongsberg|Tønsberg>"` for an enum, `"<string>"` for an untyped declared
+argument, `"<chosen_club>"` for a bare-required argument with no declared
+schema). Pick the template for the action you want, replace its
+placeholders, and pass the result as `--decision-action` /
+`--decision-action-file` unchanged in shape.
+
+One exact worked example — the shared-host decision below is the first
+required-argument decision a run typically reaches, before Stage 3 ever
+runs:
+
+```json
+{
+  "action_id": "assign_shared_host",
+  "arguments": {"chosen_club": "Kongsberg"},
+  "rationale": "Kongsberg is under its hosting share this age group; Tønsberg's calendar is unknown regardless."
+}
+```
+
 - **Stage 1 (config):** `facts` includes `sources`, `start_date`,
   `end_date`, `age_groups`, `clubs`.
 - **Stage 2 (scraping):** `facts` includes `sources_scanned`,

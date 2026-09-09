@@ -18,7 +18,7 @@ Exit codes:
 - `1` — hard failure, or the pipeline aborted after a decision. Stop and report.
 - (never `0` in `--interactive` mode — there is always a decision or a failure.)
 
-Deciding: read the printed `DecisionContext`. Its `available_actions` lists what's valid right now; `application/decisions.py` rejects anything else deterministically, so don't guess — use only listed actions. Pass your decision on the **next** invocation as `--decision-action '<JSON>'` (`{"action_id": "proceed"}` at minimum; `rationale` is a concise one-line summary, never chain-of-thought) together with `--resume-from` set to the stage number **after** the one you're deciding:
+Deciding: read the printed `DecisionContext`. Its `available_actions` lists what's valid right now; `application/decisions.py` rejects anything else deterministically, so don't guess — use only listed actions. See `.agents/skills/rvv/SKILL.md`'s "The generic `DecisionAction` envelope" section (issue #282) for the canonical envelope shape — every parameter an action declares nests under `arguments`, never top-level — and don't infer it by hand: the printed context's own `decision_action_template` key already has one ready-to-fill skeleton per available action, so fill in its placeholders rather than guessing the shape. Pass your decision on the **next** invocation as `--decision-action '<JSON>'` (`{"action_id": "proceed"}` at minimum; `rationale` is a concise one-line summary, never chain-of-thought) together with `--resume-from` set to the stage number **after** the one you're deciding:
 
 ```bash
 scripts/rvv-miniputt run --interactive --resume-from 2 \

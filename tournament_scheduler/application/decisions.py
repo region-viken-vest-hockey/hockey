@@ -201,6 +201,7 @@ _CONTEXT_FIELDS = {
     "action_parameters",
     "prior_results",
     "requires_human_approval",
+    "decision_action_template",
 }
 
 
@@ -295,9 +296,59 @@ class DecisionContext:
                 },
                 "prior_results": [dict(item) for item in self.prior_results],
                 "requires_human_approval": self.requires_human_approval,
+                # issue #282: a ready-to-fill DecisionAction skeleton per
+                # available action, derived mechanically from
+                # ``available_actions``/``action_parameters`` so a harness can
+                # serialize the resume command instead of inferring the
+                # envelope shape (every declared parameter always nests under
+                # ``arguments``, never top-level).
+                "decision_action_template": build_decision_action_template(self),
             }
         )
         return payload
+
+
+def _placeholder_for_spec(spec: Mapping[str, Any]) -> Any:
+    """Build a human-readable placeholder value for one argument's declared spec."""
+    enum = spec.get("enum")
+    if enum is not None:
+        return "<one of: " + "|".join(str(item) for item in enum) + ">"
+    param_type = spec.get("type")
+    if param_type == "object":
+        properties = spec.get("properties") or {}
+        return {name: _placeholder_for_spec(sub_spec) for name, sub_spec in properties.items()}
+    if param_type == "array":
+        item_spec = spec.get("items")
+        return [_placeholder_for_spec(item_spec)] if item_spec else []
+    return f"<{param_type or 'value'}>"
+
+
+def build_decision_action_template(context: "DecisionContext") -> dict[str, dict[str, Any]]:
+    """Derive a ready-to-fill :class:`DecisionAction` skeleton per available action (issue #282).
+
+    A harness must never have to guess how ``action_parameters`` nests into
+    the ``DecisionAction`` envelope -- every declared parameter belongs under
+    ``arguments``, never top-level. This mechanically builds one template per
+    entry in ``context.available_actions`` from ``context.action_parameters``
+    (declared schemas) and :data:`_REQUIRED_ARGUMENTS` (bare-required actions
+    with no declared schema, e.g. ``retry_stage``'s ``stage``), so callers can
+    serialize a resume command by filling in placeholders instead of
+    inferring the shape.
+    """
+    templates: dict[str, dict[str, Any]] = {}
+    for action_id in context.available_actions:
+        arguments: dict[str, Any] = {}
+        schema = context.action_parameters.get(action_id) or {}
+        for name, spec in schema.items():
+            arguments[name] = _placeholder_for_spec(spec)
+        for name in _REQUIRED_ARGUMENTS.get(action_id, ()):
+            arguments.setdefault(name, f"<{name}>")
+        templates[action_id] = {
+            "action_id": action_id,
+            "arguments": arguments,
+            "rationale": "<concise audit summary>",
+        }
+    return templates
 
 
 # ---------------------------------------------------------------------------

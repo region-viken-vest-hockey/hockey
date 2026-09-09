@@ -8,6 +8,8 @@ Rules:
 
 Each invocation runs exactly one stage, then prints a JSON `DecisionContext` (facts, hard violations, warnings, `available_actions`) and exits with code `2`. Decide using only an action listed in `available_actions`, then re-invoke with `--resume-from` set to the next stage and `--decision-action '<JSON>'` (e.g. `{"action_id": "proceed", "rationale": "..."}`). Exit `1` means a hard failure or an abort decision — stop and report.
 
+Every parameter an action declares nests under `arguments`, never top-level (e.g. `{"action_id": "assign_shared_host", "arguments": {"chosen_club": "Kongsberg"}, "rationale": "..."}`, not a top-level `chosen_club`) — see `.agents/skills/rvv/SKILL.md`'s "The generic `DecisionAction` envelope" section (issue #282), canonical. Don't infer this by hand: the printed context's own `decision_action_template` key already has one ready-to-fill skeleton per available action — fill in its placeholders instead of guessing the shape.
+
 If stage 2 reports blocked sources (`recover_source` offered), use `recovery-targets`/`scrape-llm`/`recovery-inject` per blocked club, then decide `retry_stage` to re-run stage 2 against the recovered data before proceeding.
 
 Report the actual command used and summarize the result.
