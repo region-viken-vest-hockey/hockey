@@ -1946,6 +1946,37 @@ class TestProportionalHosting:
         assert manual
         assert all(t.host_club == "Sandefjord" for t in manual)
 
+    def test_known_calendar_with_zero_filtered_events_is_not_manual(self):
+        """issue #296: a club whose source was successfully scraped this run
+        (club_calendar_status == "known") but whose events were filtered down
+        to zero (e.g. Frisk Asker's Teamup feed filtered to LOCATION=
+        Idrettshallen, see #279) is verified *empty* evidence, not
+        unavailable evidence -- it must not be flagged for manual booking
+        just because it has no key/events in events_by_club."""
+        start = datetime(2026, 10, 1)
+        end = datetime(2026, 12, 31)
+        clubs = ["Jar", "Sandefjord", "Holmen", "Kongsberg"]
+        roster = _build_roster(clubs, ["U10", "U11", "U7"], teams_per_club_per_age_group=2)
+        club_arenas = {club: f"{club}hallen" for club in clubs}
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(all_weekend_dates(start, end)),
+            roster=roster,
+            club_arenas=club_arenas,
+            parallel_games_for_age_group={"U10": 3, "U11": 2, "U7": 4},
+            # Sandefjord is "known" (scraped successfully) but its filtered
+            # event list is empty, so it has no key at all in events_by_club
+            # -- mirroring _group_events_by_club's "if not events: continue".
+            events_by_club={"Jar": [], "Holmen": [], "Kongsberg": []},
+            club_calendar_status={
+                "Jar": "known", "Sandefjord": "known", "Holmen": "known", "Kongsberg": "known",
+            },
+        )
+        plan = planner.build_plan(start, end)
+        assert len(plan.tournaments) >= 3
+        hosts = {t.host_club for t in plan.tournaments}
+        assert "Sandefjord" in hosts
+        assert not any(t.manual_booking_reason for t in plan.tournaments)
+
     def test_external_calendar_conflict_surfaced_as_manual_placement(self):
         """A genuine external calendar conflict the planner's own slot
         search doesn't consult (only club_busy_intervals, checked post-hoc)

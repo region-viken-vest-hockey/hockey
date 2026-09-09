@@ -449,19 +449,27 @@ class SeasonPlanner:
             # placeholder because the planner cannot validate hall availability.
             # Mark it so the club knows the istid must be booked by hand (see
             # the "Må planlegges manuelt" export view).
-            calendar_verified = _club_calendar_available(final_host_club, self.available_calendar_clubs)
-            if calendar_verified and self.club_calendar_status:
-                # A club can have an (empty) events_by_club entry from a
-                # partial/blocked scrape and still fail club_calendar_status's
-                # stricter "known" evidence check -- both signals must agree
-                # the club is verified before skipping the manual-booking flag.
+            # issue #296: `club_calendar_status[club] == "known"` is the
+            # authoritative evidence that a source was successfully scraped
+            # this run -- a known club with zero matching events (e.g. Frisk's
+            # Teamup feed filtered to LOCATION=Idrettshallen, see #279) is
+            # verified *empty* evidence, not unavailable evidence. Event
+            # presence in `available_calendar_clubs` is busy-time evidence,
+            # not proof the calendar source itself exists, so it must not
+            # override a "known" status. Only fall back to the legacy
+            # events-presence check when no status tracking is available at
+            # all (older callers/tests that never populate
+            # club_calendar_status).
+            if self.club_calendar_status:
                 constituents = [
                     part.strip() for part in final_host_club.split("/") if part.strip()
                 ] or [final_host_club]
                 calendar_verified = any(
-                    self.club_calendar_status.get(part, "unknown") == "known"
+                    self.club_calendar_status.get(part) == "known"
                     for part in constituents
                 )
+            else:
+                calendar_verified = _club_calendar_available(final_host_club, self.available_calendar_clubs)
             manual_booking_reason: Optional[str] = None
             if not calendar_verified:
                 manual_booking_reason = (
