@@ -11,6 +11,7 @@ import math
 import random
 from collections import Counter
 from datetime import date, datetime, timedelta
+from time import perf_counter
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from tournament_scheduler import planning_half
@@ -267,6 +268,14 @@ class SeasonPlanner:
         # default so any caller not aware of this flag keeps the original,
         # fuller legacy behavior unchanged.
         self.cheap_baseline = cheap_baseline
+        # issue #300: wall-clock evidence for each build_plan phase so
+        # baseline performance is judged from a production artifact instead
+        # of console feel. Populated fresh by every build_plan() call.
+        self._baseline_timings: Dict[str, float] = {}
+
+    @property
+    def baseline_timings(self) -> Dict[str, float]:
+        return dict(self._baseline_timings)
 
     def _team_target_tournament_count(self, team: Team, period: Optional[str] = None) -> int:
         # issue #297: an explicit per-team/global override always wins,
@@ -301,16 +310,25 @@ class SeasonPlanner:
         return team_key(team, self._duplicate_team_labels)
 
     def build_plan(self, start_date: datetime, end_date: datetime) -> SeasonPlan:
+        # issue #300: wall-clock evidence per build phase, so canonical
+        # baseline performance is judged from a production artifact instead
+        # of console feel. See `baseline_timings`.
+        build_started = perf_counter()
+        self._baseline_timings = {}
+
+        t = perf_counter()
         print("[plan] Henter tilgjengelige datoer...", flush=True)
         scheduling_result = self.scheduler.find_available_dates(start_date, end_date)
         free_dates = sorted(scheduling_result.available_dates)
         print(f"[plan] Fant {len(free_dates)} fridager i vinduet {start_date.date()}–{end_date.date()}", flush=True)
+        self._baseline_timings["free_date_discovery"] = round(perf_counter() - t, 6)
 
         plan = SeasonPlan(tournaments=[], start_date=start_date.date(), end_date=end_date.date())
 
         age_groups = self.roster.age_groups()
         if not age_groups:
             print("[plan] Ingen aldersgrupper i rosteren — returnerer tom plan.", flush=True)
+            self._baseline_timings["total_seconds"] = round(perf_counter() - build_started, 6)
             return plan
 
         self._rng.shuffle(age_groups)
@@ -322,6 +340,7 @@ class SeasonPlanner:
         target_counts = {age_group: self._target_tournaments_for_age_group(age_group) for age_group in age_groups}
         print(f"[plan] Mål per aldersgruppe: {', '.join(f'{ag}={target_counts[ag]}' for ag in age_groups)}", flush=True)
 
+        t = perf_counter()
         season_start_date = start_date.date()
         season_end_date = end_date.date()
         # issue #297: computed once and reused by the per-tournament
@@ -329,8 +348,32 @@ class SeasonPlanner:
         # (`_team_at_target(team, period=...)`) agrees with the same
         # before/after-New-Year boundary the date skeleton itself used.
         split_date = self._christmas_split_date(season_start_date, season_end_date)
-        if self._has_split_tournament_targets() and split_date is not None:
+        has_split_targets = self._has_split_tournament_targets()
+        self._baseline_timings["half_target_derivation"] = round(perf_counter() - t, 6)
+
+        # issue #300: split-season targets (#297) previously always took the
+        # legacy `_build_split_date_schedule()` path regardless of
+        # `cheap_baseline`, which internally calls the legacy globally-
+        # optimized date search (with its hill-climbing repair pass) once
+        # per half -- exactly the redundant work `cheap_baseline` (#265 P1)
+        # exists to skip on the canonical path. `cheap_baseline` now takes
+        # priority: a split-aware greedy builder keeps the half targets and
+        # independence, but never runs the legacy global search/repair.
+        if has_split_targets and split_date is not None and self.cheap_baseline:
+            print("[plan] Bruker delt før/etter-jul-planlegging (cheap_baseline)...", flush=True)
+            t = perf_counter()
+            scheduled = self._build_split_greedy_date_schedule(
+                age_groups,
+                free_dates,
+                season_start_date,
+                season_end_date,
+                target_counts,
+            )
+            self._baseline_timings["date_schedule_construction"] = round(perf_counter() - t, 6)
+            print(f"[plan] Delt grov dato-plan klar ({len(scheduled)} turneringer)", flush=True)
+        elif has_split_targets and split_date is not None:
             print("[plan] Bruker delt før/etter-jul-planlegging...", flush=True)
+            t = perf_counter()
             scheduled = self._build_split_date_schedule(
                 age_groups,
                 free_dates,
@@ -338,12 +381,14 @@ class SeasonPlanner:
                 season_end_date,
                 target_counts,
             )
+            self._baseline_timings["date_schedule_construction"] = round(perf_counter() - t, 6)
             print(f"[plan] Delt dato-plan klar ({len(scheduled)} turneringer)", flush=True)
         elif self.cheap_baseline:
             # issue #265 P1: canonical path -- a feasible greedy schedule is
             # enough to seed the generic v2 optimizer, so skip building and
             # scoring a second, globally optimized schedule here.
             print("[plan] Bygger grov dato-plan (cheap_baseline)...", flush=True)
+            t = perf_counter()
             scheduled, _ = self._build_greedy_date_schedule(
                 age_groups,
                 free_dates,
@@ -351,9 +396,12 @@ class SeasonPlanner:
                 season_end_date,
                 target_counts,
             )
+            self._baseline_timings["date_schedule_construction"] = round(perf_counter() - t, 6)
+            self._baseline_timings["legacy_global_optimization_and_repair"] = False
             print(f"[plan] Grov dato-plan klar ({len(scheduled)} turneringer)", flush=True)
         else:
             print("[plan] Bygger grov dato-plan...", flush=True)
+            t = perf_counter()
             baseline_scheduled, _ = self._build_greedy_date_schedule(
                 age_groups,
                 free_dates,
@@ -361,8 +409,10 @@ class SeasonPlanner:
                 season_end_date,
                 target_counts,
             )
+            self._baseline_timings["date_schedule_construction"] = round(perf_counter() - t, 6)
             print(f"[plan] Grov dato-plan klar ({len(baseline_scheduled)} turneringer)", flush=True)
             print("[plan] Bygger sesong-optimalisert dato-plan...", flush=True)
+            t = perf_counter()
             optimized_scheduled, _ = self._build_global_date_schedule(
                 age_groups,
                 free_dates,
@@ -370,6 +420,7 @@ class SeasonPlanner:
                 season_end_date,
                 target_counts,
             )
+            self._baseline_timings["legacy_global_optimization_and_repair"] = round(perf_counter() - t, 6)
             print(f"[plan] Optimalisert dato-plan klar ({len(optimized_scheduled)} turneringer)", flush=True)
             print("[plan] Optimalisering: ferdig — kjører finjustering og forbedringsanalyse...", flush=True)
             baseline_score = self._score_date_schedule(baseline_scheduled, season_start_date, season_end_date)
@@ -395,6 +446,11 @@ class SeasonPlanner:
         self._team_game_counts = {}
         self._club_cap_overrides = 0
         scheduled.sort(key=lambda item: (item[0], item[1]))
+        # issue #300: host/slot placement, participant selection/
+        # materialization and game generation are interleaved per tournament
+        # in the loop below rather than separable passes, so they are timed
+        # together as a single phase.
+        t_tournament_building = perf_counter()
         print("[plan] Fordeler verter og tidspunkter (kan ta litt tid)...", flush=True)
         host_assignments = self._assign_hosts(scheduled)
         print(f"[plan] Verter fordelt ({len(host_assignments)}/{len(scheduled)})", flush=True)
@@ -566,6 +622,7 @@ class SeasonPlanner:
             ).add(tournament_date)
             host_counts_by_age.setdefault(age_group, {})
             host_counts_by_age[age_group][final_host_club] = host_counts_by_age[age_group].get(final_host_club, 0) + 1
+        self._baseline_timings["tournament_building_loop"] = round(perf_counter() - t_tournament_building, 6)
 
         expected_per_month = self._expected_monthly_load(start_date.date(), end_date.date(), len(scheduled))
         sequence_failures = self._sequence_same_arena_day_start_times(plan)
@@ -622,6 +679,7 @@ class SeasonPlanner:
         elif public_team_game_counts:
             plan.game_count_spread = max(public_team_game_counts.values()) - min(public_team_game_counts.values())
 
+        t_warnings = perf_counter()
         plan.fairness_gate = self._build_fairness_gate(plan)
         self._scan_club_load_warnings(plan.tournaments)
         self._scan_hosting_warnings(plan)
@@ -629,6 +687,7 @@ class SeasonPlanner:
         self._scan_per_team_share_warnings(skipped_age_groups=plan.skipped_age_groups)
         self._scan_month_load_warnings(expected_per_month, plan.start_date)
         self._scan_feasibility_warnings(free_dates)
+        self._baseline_timings["warning_report_scans"] = round(perf_counter() - t_warnings, 6)
 
         if collisions:
             plan.arena_counts["_age_group_overlap_collisions"] = len(collisions)
@@ -745,6 +804,7 @@ class SeasonPlanner:
         plan.unresolved_participation_shortfalls = unresolved_participation_shortfalls
         self._unresolved_participation_shortfalls = unresolved_participation_shortfalls
 
+        self._baseline_timings["total_seconds"] = round(perf_counter() - build_started, 6)
         return plan
 
     @property
@@ -1453,6 +1513,7 @@ class SeasonPlanner:
         self._team_game_counts = {}
         self._club_cap_overrides = 0
 
+        t_half1 = perf_counter()
         scheduled_before, _ = self._build_global_date_schedule(
             age_groups,
             before_dates,
@@ -1461,6 +1522,8 @@ class SeasonPlanner:
             before_counts,
             continue_from_current_state=True,
         )
+        self._baseline_timings["half_1_date_schedule"] = round(perf_counter() - t_half1, 6)
+        t_half2 = perf_counter()
         scheduled_after, _ = self._build_global_date_schedule(
             age_groups,
             after_dates,
@@ -1469,6 +1532,77 @@ class SeasonPlanner:
             after_counts,
             continue_from_current_state=True,
         )
+        self._baseline_timings["half_2_date_schedule"] = round(perf_counter() - t_half2, 6)
+        self._baseline_timings["legacy_global_optimization_and_repair"] = True
+        return sorted(scheduled_before + scheduled_after, key=lambda item: (item[0], item[1]))
+
+    def _build_split_greedy_date_schedule(
+        self,
+        age_groups: Sequence[str],
+        free_dates: Sequence[date],
+        window_start: date,
+        window_end: date,
+        target_counts: Dict[str, int],
+    ) -> List[Tuple[date, str]]:
+        """Split-aware, cheap-baseline date skeleton (issue #300).
+
+        Mirrors :meth:`_build_split_date_schedule`'s half-target derivation
+        and before/after-Christmas independence, but builds each half with
+        :meth:`_build_greedy_date_schedule` instead of
+        :meth:`_build_global_date_schedule` -- the canonical `cheap_baseline`
+        path only needs a cheap, deterministic *feasible* skeleton to seed
+        the generic Stage 3 v2 optimizer (issue #265 P1), so it must not pay
+        for the legacy global best-first search or its hill-climbing repair
+        pass just to produce a seed. Half-aware participant eligibility
+        still comes from the single per-tournament building loop in
+        :meth:`build_plan`, which threads ``period`` through independently
+        of which date-schedule builder produced *scheduled* here.
+        """
+        split_date = self._christmas_split_date(window_start, window_end)
+        if split_date is None:
+            scheduled, _ = self._build_greedy_date_schedule(
+                age_groups,
+                free_dates,
+                window_start,
+                window_end,
+                target_counts,
+            )
+            return scheduled
+
+        before_counts, after_counts = self._split_tournament_counts_for_age_groups(age_groups, free_dates, split_date)
+        before_dates = [d for d in free_dates if d < split_date]
+        after_dates = [d for d in free_dates if d >= split_date]
+
+        self._month_counts = {}
+        self._hosting_days_by_club_month = {}
+        self._tournament_participations = {self._team_key(team): 0 for team in self.roster.teams}
+        self._running_game_counts = {}
+        self._opponent_history = {}
+        self._invite_counts = {self._team_key(team): 0 for team in self.roster.teams}
+        self._grouped_with = {}
+        self._team_last_date = {}
+        self._team_game_counts = {}
+        self._club_cap_overrides = 0
+
+        t_half1 = perf_counter()
+        scheduled_before, _ = self._build_greedy_date_schedule(
+            age_groups,
+            before_dates,
+            window_start,
+            split_date - timedelta(days=1),
+            before_counts,
+        )
+        self._baseline_timings["half_1_date_schedule"] = round(perf_counter() - t_half1, 6)
+        t_half2 = perf_counter()
+        scheduled_after, _ = self._build_greedy_date_schedule(
+            age_groups,
+            after_dates,
+            split_date,
+            window_end,
+            after_counts,
+        )
+        self._baseline_timings["half_2_date_schedule"] = round(perf_counter() - t_half2, 6)
+        self._baseline_timings["legacy_global_optimization_and_repair"] = False
         return sorted(scheduled_before + scheduled_after, key=lambda item: (item[0], item[1]))
 
     def _record_month(self, tournament_date: date) -> None:

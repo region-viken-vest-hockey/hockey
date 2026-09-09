@@ -524,6 +524,13 @@ def run(
         best_plan.shared_host_decisions = list(shared_host_decision_records)
     plan_dict = _plan_to_dict(best_plan)
     rules_report = best_planner.rules_report()
+    # issue #300: wall-clock evidence per build_plan phase for the winning
+    # attempt, so canonical baseline performance is judged from a production
+    # artifact instead of console feel. `getattr`/type-guarded because tests
+    # substitute a bare `MagicMock()` planner with no real timings recorded.
+    baseline_timings = getattr(best_planner, "baseline_timings", {})
+    if not isinstance(baseline_timings, dict):
+        baseline_timings = {}
 
     checkpoint: dict[str, Any] = {
         "plan": plan_dict,
@@ -533,6 +540,7 @@ def run(
         "rules_report": rules_report,
         "candidates": candidates,
         "selected_candidate_attempt": best_attempt,
+        "baseline_timings": baseline_timings,
     }
     if planning_critic_hints is not None:
         checkpoint["planning_critic_hints"] = planning_critic_hints

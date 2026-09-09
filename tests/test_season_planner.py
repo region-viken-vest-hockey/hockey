@@ -154,6 +154,109 @@ class TestSeasonPlanner:
         assert len(before) == 2
         assert len(after) == 4
 
+    def test_cheap_baseline_split_targets_skip_legacy_global_optimization_and_repair(self, season_window):
+        """issue #300: split-season targets (#297) previously always took
+        `_build_split_date_schedule()`, which calls the legacy globally-
+        optimized date search (with its hill-climbing repair pass) once per
+        half regardless of `cheap_baseline` -- exactly the redundant work
+        `cheap_baseline` (#265 P1) exists to skip on the canonical path.
+        `cheap_baseline=True` must now use a split-aware greedy builder that
+        never calls either legacy routine."""
+        start, end = season_window
+        free_dates = all_weekend_dates(start, end)
+        clubs = ["Jar", "Holmen", "Kongsberg", "Skien", "Jutul", "Ringerike"]
+        roster = _build_roster(clubs, ["U10"])
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in clubs},
+            parallel_games_for_age_group={"U10": 3},
+            target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 4}},
+            cheap_baseline=True,
+        )
+
+        with patch.object(
+            SeasonPlanner, "_build_global_date_schedule", side_effect=AssertionError("should not be called")
+        ), patch.object(
+            SeasonPlanner, "_repair_date_schedule", side_effect=AssertionError("should not be called")
+        ):
+            plan = planner.build_plan(start, end)
+
+        split_date = planning_half.christmas_split_date(start.date(), end.date())
+        before = [t for t in plan.tournaments if t.date < split_date]
+        after = [t for t in plan.tournaments if t.date >= split_date]
+        assert len(before) == 2
+        assert len(after) == 4
+
+    def test_cheap_baseline_split_targets_still_half_aware(self, season_window):
+        """issue #300/#297: whichever date-schedule builder produced
+        `scheduled`, the per-tournament participant-selection loop in
+        `build_plan()` must still resolve half-aware eligibility (a team
+        that hit its before-Christmas target must not be silently excluded
+        from after-Christmas selection, and vice versa) and every
+        participant must land in the half the tournament's own date implies."""
+        start, end = season_window
+        free_dates = all_weekend_dates(start, end)
+        clubs = ["Jar", "Holmen", "Kongsberg", "Skien", "Jutul", "Ringerike"]
+        roster = _build_roster(clubs, ["U10"])
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in clubs},
+            parallel_games_for_age_group={"U10": 3},
+            target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 4}},
+            cheap_baseline=True,
+        )
+
+        plan = planner.build_plan(start, end)
+
+        split_date = planning_half.christmas_split_date(start.date(), end.date())
+        before_participations: Counter = Counter()
+        after_participations: Counter = Counter()
+        for tournament in plan.tournaments:
+            bucket = before_participations if tournament.date < split_date else after_participations
+            for team in tournament.teams:
+                bucket[team_key(team, set())] += 1
+
+        for club in clubs:
+            key = team_key(Team(club=club, label=f"{club} U10", age_group="U10"), set())
+            assert before_participations[key] == 2
+            assert after_participations[key] == 4
+
+    def test_cheap_baseline_split_records_per_half_timings(self, season_window):
+        """issue #300: instrumentation must make baseline cost a production
+        artifact -- at minimum each half's date-schedule construction time
+        and the overall total are recorded on `baseline_timings`, and legacy
+        global-optimization/repair is recorded as not having run."""
+        start, end = season_window
+        free_dates = all_weekend_dates(start, end)
+        clubs = ["Jar", "Holmen", "Kongsberg"]
+        roster = _build_roster(clubs, ["U10"])
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in clubs},
+            parallel_games_for_age_group={"U10": 2},
+            target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 2}},
+            cheap_baseline=True,
+        )
+
+        planner.build_plan(start, end)
+        timings = planner.baseline_timings
+
+        for key in (
+            "free_date_discovery",
+            "half_target_derivation",
+            "date_schedule_construction",
+            "half_1_date_schedule",
+            "half_2_date_schedule",
+            "tournament_building_loop",
+            "warning_report_scans",
+            "total_seconds",
+        ):
+            assert key in timings, key
+        assert timings["legacy_global_optimization_and_repair"] is False
+
     def test_every_arena_hosts_at_least_one_tournament_before_any_repeats(self, planner_and_plan):
         _, plan, roster, clubs, club_arenas = planner_and_plan
 
