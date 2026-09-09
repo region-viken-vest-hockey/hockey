@@ -22,13 +22,18 @@ _HALF_LABELS_NO: dict[Half, str] = {
 
 
 def christmas_split_date(window_start: date, window_end: date) -> Optional[date]:
-    """Return the Christmas cutoff date for a planning window, or ``None``.
+    """Return the before/after-New-Year cutoff date for a planning window, or ``None``.
 
-    The cutoff is December 24 of ``window_start``'s year. Returns ``None``
-    when the window doesn't span that date (e.g. a spring-only run), in
-    which case the season has no meaningful before/after split.
+    The cutoff is January 1 -- the first one on or after ``window_start``.
+    Registration changes happen over the New Year break, not Christmas
+    itself, so that is the boundary that separates the two planning halves.
+    Returns ``None`` when the window doesn't span that date (e.g. a
+    spring-only run), in which case the season has no meaningful
+    before/after split.
     """
-    split = date(window_start.year, 12, 24)
+    split = date(window_start.year, 1, 1)
+    if split < window_start:
+        split = date(window_start.year + 1, 1, 1)
     if window_start <= split <= window_end:
         return split
     return None

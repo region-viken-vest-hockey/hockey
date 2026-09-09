@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tournament_scheduler import participant_selection
+from tournament_scheduler import participant_selection, planning_half
 from tournament_scheduler.fairness_scoring import DEFAULT_FAIRNESS_THRESHOLDS
 from tournament_scheduler.models import (
     AGE_GROUP_OVERLAP,
@@ -144,7 +144,7 @@ class TestSeasonPlanner:
         )
 
         plan = planner.build_plan(start, end)
-        split_date = date(start.year, 12, 24)
+        split_date = planning_half.christmas_split_date(start.date(), end.date())
         before = [t for t in plan.tournaments if t.date < split_date]
         after = [t for t in plan.tournaments if t.date >= split_date]
 

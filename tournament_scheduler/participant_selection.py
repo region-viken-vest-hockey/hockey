@@ -158,18 +158,26 @@ def next_age_group(
     return age_groups[start_index % len(age_groups)]
 
 
-def select_participants(planner, age_group: str) -> List[Team]:
-    """Select the teams to invite to a tournament for the given age group."""
+def select_participants(planner, age_group: str, period: Optional[str] = None) -> List[Team]:
+    """Select the teams to invite to a tournament for the given age group.
+
+    issue #297: `period` (``"before_christmas"``/``"after_christmas"``) makes
+    eligibility and deficit ranking half-aware. Without it, a team that used
+    up its season-wide target during the front-loaded before-Christmas half
+    gets excluded from every after-Christmas candidate pool too, starving
+    the second half of eligible participants even when the date skeleton
+    itself was built with a balanced half split.
+    """
     candidates = planner.roster.by_age_group(age_group)
     if not candidates:
         return []
 
-    candidates = [t for t in candidates if not planner._team_at_target(t)]
+    candidates = [t for t in candidates if not planner._team_at_target(t, period)]
     if not candidates:
         return []
 
     max_teams = participant_limit_for(planner, age_group, len(candidates))
-    return pick_scored_participants(planner, candidates, max_teams, age_group)
+    return pick_scored_participants(planner, candidates, max_teams, age_group, period)
 
 
 def cap_per_club_deficit_aware(planner, teams: Sequence[Team], age_group: str) -> List[Team]:
@@ -235,9 +243,9 @@ def expected_average_for(planner, age_group: str) -> float:
     return sum(counts) / len(counts)
 
 
-def deficit_score(planner, team: Team, age_group: str) -> float:
+def deficit_score(planner, team: Team, age_group: str, period: Optional[str] = None) -> float:
     """Return how far below the fairness target `team` is."""
-    if planner._team_at_target(team):
+    if planner._team_at_target(team, period):
         return -1.0
     age_group_teams = planner.roster.by_age_group(age_group)
     if not age_group_teams:
@@ -298,6 +306,7 @@ def pick_scored_participants(
     candidates: Sequence[Team],
     count: int,
     age_group: str,
+    period: Optional[str] = None,
 ) -> List[Team]:
     """Greedily build a subset by minimizing a single balance score."""
     remaining = list(candidates)
@@ -311,7 +320,7 @@ def pick_scored_participants(
         chosen = min(
             remaining,
             key=lambda team: (
-                participant_selection_score(planner, selected, remaining, team, age_group),
+                participant_selection_score(planner, selected, remaining, team, age_group, period),
                 candidate_order[planner._team_key(team)],
             ),
         )
@@ -331,6 +340,7 @@ def participant_selection_score(
     remaining: Sequence[Team],
     team: Team,
     age_group: str,
+    period: Optional[str] = None,
 ) -> float:
     """Return a single score for a candidate team (lower is better)."""
     team_key = planner._team_key(team)
@@ -344,7 +354,7 @@ def participant_selection_score(
         else:
             score += club_count * 20.0
 
-    deficit = deficit_score(planner, team, age_group)
+    deficit = deficit_score(planner, team, age_group, period)
     score -= deficit * 350.0
 
     score += normalized_invite_count(planner, team) * 8.0

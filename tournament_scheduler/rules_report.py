@@ -47,11 +47,11 @@ def rules_report(planner) -> List[Dict[str, str]]:
     report.append({
         "regel": "Sesongen deles i to uavhengige planleggingshalvdeler (før/etter jul)",
         "forklaring": (
-            f"Juleskillet ({planning_half.half_label('before_christmas')}/"
+            f"Nyttårsskillet ({planning_half.half_label('before_christmas')}/"
             f"{planning_half.half_label('after_christmas')}) beregnes én gang som "
-            "`christmas_split_date` (24. desember) i planleggingsproblemet og deles av verify_candidate, "
+            "`christmas_split_date` (1. januar) i planleggingsproblemet og deles av verify_candidate, "
             "score_candidate og Stage 3-søket. En turnering kan flyttes til en ny dato innenfor sin egen "
-            "halvdel, men flytting over juleskillet krever et eksplisitt `allow_cross_half_moves`-unntak "
+            "halvdel, men flytting over nyttårsskillet krever et eksplisitt `allow_cross_half_moves`-unntak "
             "og skjer aldri som en bieffekt av optimaliseringssøket."
         ),
         "kategori": "Hard krav",

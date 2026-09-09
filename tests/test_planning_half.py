@@ -30,23 +30,23 @@ from tournament_scheduler.stage3_optimizer import (
 
 
 class TestChristmasSplitDate:
-    def test_returns_dec_24_when_window_spans_christmas(self):
+    def test_returns_jan_1_when_window_spans_new_year(self):
         assert planning_half.christmas_split_date(
             date(2026, 10, 1), date(2027, 4, 30)
-        ) == date(2026, 12, 24)
+        ) == date(2027, 1, 1)
 
     def test_returns_none_for_spring_only_window(self):
         assert planning_half.christmas_split_date(date(2027, 1, 5), date(2027, 4, 30)) is None
 
-    def test_returns_none_for_autumn_only_window_ending_before_christmas(self):
-        assert planning_half.christmas_split_date(date(2026, 9, 1), date(2026, 12, 1)) is None
+    def test_returns_none_for_autumn_only_window_ending_before_new_year(self):
+        assert planning_half.christmas_split_date(date(2026, 9, 1), date(2026, 12, 31)) is None
 
     def test_boundary_dates_are_inclusive(self):
-        assert planning_half.christmas_split_date(date(2026, 12, 24), date(2026, 12, 24)) == date(2026, 12, 24)
+        assert planning_half.christmas_split_date(date(2027, 1, 1), date(2027, 1, 1)) == date(2027, 1, 1)
 
 
 class TestTournamentHalf:
-    split = date(2026, 12, 24)
+    split = date(2027, 1, 1)
 
     def test_before_split_is_before_christmas(self):
         assert planning_half.tournament_half(date(2026, 11, 1), self.split) == "before_christmas"
@@ -128,7 +128,7 @@ class TestBuildPlanningProblemSplitDate:
         from tournament_scheduler.planning_contract import build_planning_problem
 
         problem = build_planning_problem({}, None, date(2026, 10, 1), date(2027, 4, 30))
-        assert problem["christmas_split_date"] == "2026-12-24"
+        assert problem["christmas_split_date"] == "2027-01-01"
 
     def test_split_date_is_none_for_spring_only_window(self):
         from tournament_scheduler.planning_contract import build_planning_problem
@@ -155,7 +155,7 @@ def _slot(t_id, iso_date, age_group="U10", host="Jar", arena="Jarhallen"):
 
 
 class TestDateSwapCrossHalfGuardrail:
-    split = date(2026, 12, 24)
+    split = date(2027, 1, 1)
 
     def test_swap_within_same_half_is_allowed(self):
         slots = [_slot("t1", "2026-11-01"), _slot("t2", "2026-11-15")]
@@ -183,7 +183,7 @@ class TestWithinHalfDateMove:
 
         slots = [_slot("t1", "2026-11-01")]
         problem = {"start_date": "2026-10-01", "end_date": "2027-04-30"}
-        split = date(2026, 12, 24)
+        split = date(2027, 1, 1)
         rng = random.Random(0)
         seen_halves = set()
         for _ in range(50):
@@ -198,7 +198,7 @@ class TestWithinHalfDateMove:
         slots = [_slot("t1", "2026-11-01")]
         import random
 
-        assert _within_half_date_move_candidates(slots, random.Random(0), None, date(2026, 12, 24)) is None
+        assert _within_half_date_move_candidates(slots, random.Random(0), None, date(2027, 1, 1)) is None
 
     def test_move_rejected_on_arena_double_booking(self):
         slots = [_slot("t1", "2026-11-01"), _slot("t2", "2026-11-10")]
@@ -333,7 +333,7 @@ class TestMoveDatesWithinHalfPlumbing:
         # The moved run is allowed to differ from baseline (not required to,
         # since simulated annealing may reject every proposal), but every
         # resulting date must still fall in the same half it started in.
-        split = date(2026, 12, 24)
+        split = date(2027, 1, 1)
         for t in moved_result["tournaments"]:
             assert planning_half.tournament_half(date.fromisoformat(t["date"]), split) == "before_christmas"
 

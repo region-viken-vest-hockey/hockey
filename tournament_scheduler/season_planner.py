@@ -183,6 +183,13 @@ class SeasonPlanner:
         self._per_team_share_warnings: List[Tuple[str, str, str, int, float]] = []
         self._feasibility_warnings: List[str] = []
         self._tournament_participations: Dict[str, int] = {self._team_key(team): 0 for team in roster.teams}
+        # issue #297: per-half participation counters so a team that used up
+        # its season-wide budget in one half doesn't get excluded from the
+        # other half's candidate pool (see `_team_at_target`).
+        self._tournament_participations_by_half: Dict[str, Dict[str, int]] = {
+            "before_christmas": {self._team_key(team): 0 for team in roster.teams},
+            "after_christmas": {self._team_key(team): 0 for team in roster.teams},
+        }
         # Tracks distinct hosting dates per (club, year, month) during date selection
         # so _score_candidate_date can penalise dates that would exceed
         # max_hosting_days_per_month for the predicted host club.
@@ -261,7 +268,10 @@ class SeasonPlanner:
         # fuller legacy behavior unchanged.
         self.cheap_baseline = cheap_baseline
 
-    def _team_target_tournament_count(self, team: Team) -> int:
+    def _team_target_tournament_count(self, team: Team, period: Optional[str] = None) -> int:
+        # issue #297: an explicit per-team/global override always wins,
+        # regardless of period -- those are season-wide by definition and
+        # don't have a before/after-Christmas split to consult.
         if team.target_tournament_count is not None:
             return team.target_tournament_count
         if self.target_tournament_count is not None:
@@ -270,11 +280,21 @@ class SeasonPlanner:
         age_group = team.age_group
         team_count = max(1, len(self.roster.by_age_group(age_group)))
         capacity = max(1, self._max_teams_for(age_group))
-        tournament_count = self._target_tournaments_for_age_group(age_group) or 1
+        tournament_count = self._target_tournaments_for_age_group(age_group, period=period) or 1
         return max(1, math.ceil(tournament_count * capacity / team_count))
 
-    def _team_at_target(self, team: Team) -> bool:
+    def _team_at_target(self, team: Team, period: Optional[str] = None) -> bool:
         key = self._team_key(team)
+        # issue #297: a team that has used up its season-wide participation
+        # budget during the (chronologically-first) before-Christmas half
+        # must not be excluded from after-Christmas selection too -- that
+        # starves the second half of eligible participants even when the
+        # date skeleton itself was built with a balanced half split. When a
+        # half is known, compare against that half's own count/target
+        # instead of the season-wide cumulative ones.
+        if period in ("before_christmas", "after_christmas"):
+            participations = self._tournament_participations_by_half.get(period, {})
+            return participations.get(key, 0) >= self._team_target_tournament_count(team, period)
         return self._tournament_participations.get(key, 0) >= self._team_target_tournament_count(team)
 
     def _team_key(self, team: Team) -> str:
@@ -304,7 +324,12 @@ class SeasonPlanner:
 
         season_start_date = start_date.date()
         season_end_date = end_date.date()
-        if self._has_split_tournament_targets() and self._christmas_split_date(season_start_date, season_end_date) is not None:
+        # issue #297: computed once and reused by the per-tournament
+        # participant-selection loop below, so half-aware eligibility
+        # (`_team_at_target(team, period=...)`) agrees with the same
+        # before/after-New-Year boundary the date skeleton itself used.
+        split_date = self._christmas_split_date(season_start_date, season_end_date)
+        if self._has_split_tournament_targets() and split_date is not None:
             print("[plan] Bruker delt før/etter-jul-planlegging...", flush=True)
             scheduled = self._build_split_date_schedule(
                 age_groups,
@@ -358,6 +383,10 @@ class SeasonPlanner:
         self._month_counts = {}
         self._hosting_days_by_club_month = {}
         self._tournament_participations = {self._team_key(team): 0 for team in self.roster.teams}
+        self._tournament_participations_by_half = {
+            "before_christmas": {self._team_key(team): 0 for team in self.roster.teams},
+            "after_christmas": {self._team_key(team): 0 for team in self.roster.teams},
+        }
         self._running_game_counts = {}
         self._opponent_history = {}
         self._invite_counts = {self._team_key(team): 0 for team in self.roster.teams}
@@ -391,7 +420,19 @@ class SeasonPlanner:
                 collisions.append((tournament_date, age_group, collision))
             scheduled_age_groups_by_date.setdefault(tournament_date, []).append(age_group)
 
-            participants = self._select_participants(age_group)
+            half = planning_half.tournament_half(tournament_date, split_date)
+            # Only apply half-aware eligibility when the caller actually
+            # configured a before/after-Christmas split target -- otherwise
+            # `_team_target_tournament_count(team, period)` falls back to the
+            # same season-wide magnitude for either half (see
+            # `target_tournaments_for_age_group`), which would silently let
+            # a team reach that target separately in *each* half.
+            period = (
+                half
+                if self._has_split_tournament_targets() and half in ("before_christmas", "after_christmas")
+                else None
+            )
+            participants = self._select_participants(age_group, period)
 
             if len(participants) < MIN_TEAMS_PER_TOURNAMENT:
                 plan.skipped_age_groups.append(
@@ -403,7 +444,7 @@ class SeasonPlanner:
                 )
                 continue
 
-            self._record_grouping(participants)
+            self._record_grouping(participants, period)
             parallel_games = self._parallel_games_for(age_group)
             provisional_games = self.generate_round_robin_games(participants, parallel_games)
 
@@ -1498,13 +1539,20 @@ class SeasonPlanner:
                 return existing
         return None
 
-    def _record_grouping(self, participants: Sequence[Team]) -> None:
+    def _record_grouping(self, participants: Sequence[Team], period: Optional[str] = None) -> None:
         labels = [self._team_key(team) for team in participants]
         games_added = max(0, len(participants) - 1)
+        half_participations = (
+            self._tournament_participations_by_half.get(period)
+            if period in ("before_christmas", "after_christmas")
+            else None
+        )
         for team in participants:
             key = self._team_key(team)
             self._invite_counts[key] = self._invite_counts.get(key, 0) + 1
             self._tournament_participations[key] = self._tournament_participations.get(key, 0) + 1
+            if half_participations is not None:
+                half_participations[key] = half_participations.get(key, 0) + 1
             grouped = self._grouped_with.setdefault(key, set())
             grouped.update(label for label in labels if label != key)
             self._running_game_counts[key] = self._running_game_counts.get(key, 0) + games_added
