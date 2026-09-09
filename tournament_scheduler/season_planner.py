@@ -801,6 +801,36 @@ class SeasonPlanner:
                         ),
                     }
                 )
+        # issue #297: a team's season-wide total can match its season-wide
+        # target even when one half under-delivered and the other
+        # over-delivered to compensate -- that masks a genuine half-specific
+        # slot-scarcity shortfall. When a before/after-Christmas split target
+        # is configured, check each half's own participation against that
+        # half's own target too, independent of the season-wide check above.
+        if self._has_split_tournament_targets():
+            for team in self.roster.teams:
+                if team.age_group in skipped_age_groups_set:
+                    continue
+                key = self._team_key(team)
+                for period in ("before_christmas", "after_christmas"):
+                    target = self._team_target_tournament_count(team, period)
+                    actual = self._tournament_participations_by_half.get(period, {}).get(key, 0)
+                    if actual != target:
+                        unresolved_participation_shortfalls.append(
+                            {
+                                "club": team.club,
+                                "label": team.label,
+                                "age_group": team.age_group,
+                                "period": period,
+                                "actual": str(actual),
+                                "target": str(target),
+                                "reason": (
+                                    f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
+                                    f"ganger i {period} -- ikke nok ledige turneringsplasser "
+                                    "ble funnet i denne halvdelen av sesongen."
+                                ),
+                            }
+                        )
         plan.unresolved_participation_shortfalls = unresolved_participation_shortfalls
         self._unresolved_participation_shortfalls = unresolved_participation_shortfalls
 
@@ -834,6 +864,22 @@ class SeasonPlanner:
     @property
     def unresolved_participation_shortfalls(self) -> List[Dict[str, str]]:
         return list(self._unresolved_participation_shortfalls)
+
+    @property
+    def tournament_participations_by_half(self) -> Dict[str, Dict[str, int]]:
+        """Per-team participation counts for each planning half.
+
+        issue #297: reported separately from the season-wide
+        `_tournament_participations` counter so a half that under- or
+        over-delivers against its own target is visible even when the
+        season-wide total happens to still match (the two halves
+        compensating for each other would otherwise hide a genuine
+        half-specific shortfall).
+        """
+        return {
+            period: dict(counts)
+            for period, counts in self._tournament_participations_by_half.items()
+        }
 
     @property
     def game_count_warnings(self) -> List[Tuple[str, int, int, str]]:

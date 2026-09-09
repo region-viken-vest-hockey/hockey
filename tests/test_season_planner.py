@@ -257,6 +257,111 @@ class TestSeasonPlanner:
             assert key in timings, key
         assert timings["legacy_global_optimization_and_repair"] is False
 
+    def test_symmetric_split_targets_produce_summed_season_total(self, season_window):
+        """issue #297: equal before/after weights must sum to the season
+        total (3 + 3 = 6 tournaments per team), not collapse to a single
+        half's count or double into an unrelated inflated total -- the two
+        halves are independently-configured absolute per-team targets, not
+        a ratio splitting some other pre-existing season total."""
+        start, end = season_window
+        free_dates = all_weekend_dates(start, end)
+        clubs = ["Jar", "Holmen", "Kongsberg", "Skien", "Jutul", "Ringerike"]
+        roster = _build_roster(clubs, ["U10"])
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in clubs},
+            parallel_games_for_age_group={"U10": 3},
+            target_tournament_counts_by_age_group={"U10": {"before_christmas": 3, "after_christmas": 3}},
+        )
+
+        plan = planner.build_plan(start, end)
+        split_date = planning_half.christmas_split_date(start.date(), end.date())
+        before = [t for t in plan.tournaments if t.date < split_date]
+        after = [t for t in plan.tournaments if t.date >= split_date]
+
+        assert planner._target_tournaments_for_age_group("U10") == 6
+        assert planner._target_tournaments_for_age_group("U10", period="before_christmas") == 3
+        assert planner._target_tournaments_for_age_group("U10", period="after_christmas") == 3
+        assert len(before) == 3
+        assert len(after) == 3
+        assert len(plan.tournaments) == 6
+
+    def test_changing_after_christmas_target_does_not_alter_before_christmas_count(self, season_window):
+        """issue #297: a spring (after-Christmas) target change must never
+        silently convert into extra autumn (before-Christmas) tournaments --
+        each half's date-schedule count is derived from that half's own
+        weight only."""
+        start, end = season_window
+        free_dates = all_weekend_dates(start, end)
+        clubs = ["Jar", "Holmen", "Kongsberg", "Skien", "Jutul", "Ringerike"]
+
+        def make_planner(after_target):
+            roster = _build_roster(clubs, ["U10"])
+            return SeasonPlanner(
+                scheduler=FakeScheduler(free_dates),
+                roster=roster,
+                club_arenas={club: f"{club}hallen" for club in clubs},
+                parallel_games_for_age_group={"U10": 3},
+                target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": after_target}},
+            )
+
+        split_date = planning_half.christmas_split_date(start.date(), end.date())
+        before_counts = []
+        for after_target in (3, 6):
+            plan = make_planner(after_target).build_plan(start, end)
+            before_counts.append(len([t for t in plan.tournaments if t.date < split_date]))
+
+        assert before_counts == [2, 2]
+
+    def test_half_specific_participation_shortfall_reported_separately_from_season_total(self):
+        """issue #297: a team's season-wide participation total can match
+        its season-wide target even when one half under-delivered -- that
+        would mask a genuine half-specific slot-scarcity shortfall. Per-half
+        participation must be exposed separately (`tournament_participations_by_half`)
+        and a per-half shortfall must be reported with its own `period`,
+        independent of the season-wide `unresolved_participation_shortfalls`
+        check."""
+        start = datetime(2026, 10, 1)
+        end = datetime(2027, 1, 31)
+        split_date = planning_half.christmas_split_date(start.date(), end.date())
+        assert split_date == date(2027, 1, 1)
+
+        # Only one free date before Christmas -- every team can participate
+        # at most once before Christmas even though the configured target is 2.
+        before_date = date(2026, 10, 3)
+        after_dates = [date(2027, 1, 2), date(2027, 1, 9), date(2027, 1, 16), date(2027, 1, 23)]
+        free_dates = [before_date] + after_dates
+
+        # Four clubs with parallel_games=2 (capacity 4) so the per-team
+        # target equals the age-group-level target exactly (no rounding
+        # slack from capacity exceeding team count).
+        clubs = ["Jar", "Holmen", "Kongsberg", "Skien"]
+        roster = _build_roster(clubs, ["U10"])
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in clubs},
+            parallel_games_for_age_group={"U10": 2},
+            target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 2}},
+        )
+
+        planner.build_plan(start, end)
+
+        half_participations = planner.tournament_participations_by_half
+        for team in roster.teams:
+            key = team_key(team, set())
+            assert half_participations["before_christmas"][key] == 1
+            assert half_participations["after_christmas"][key] == 2
+
+        period_shortfalls = {
+            (s["label"], s["period"])
+            for s in planner.unresolved_participation_shortfalls
+            if "period" in s
+        }
+        assert all((team.label, "before_christmas") in period_shortfalls for team in roster.teams)
+        assert not any((team.label, "after_christmas") in period_shortfalls for team in roster.teams)
+
     def test_every_arena_hosts_at_least_one_tournament_before_any_repeats(self, planner_and_plan):
         _, plan, roster, clubs, club_arenas = planner_and_plan
 
