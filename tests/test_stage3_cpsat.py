@@ -59,6 +59,22 @@ def _clustered_candidate() -> dict:
     }
 
 
+def _half_split_candidate() -> dict:
+    """Tournaments spanning both sides of the Christmas boundary (issue #298)."""
+    teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 9)}
+    group_a = [teams["T1"], teams["T2"], teams["T3"], teams["T4"]]
+    group_b = [teams["T5"], teams["T6"], teams["T7"], teams["T8"]]
+    return {
+        "schema_version": 1,
+        "tournaments": [
+            _tournament("t1", "2026-11-01", "Arena1", "U10", group_a),
+            _tournament("t2", "2026-12-06", "Arena1", "U10", group_a),
+            _tournament("t3", "2027-01-10", "Arena5", "U10", group_b),
+            _tournament("t4", "2027-02-14", "Arena5", "U10", group_b),
+        ],
+    }
+
+
 class TestOptimizeCandidateCpSat:
     def test_preserves_participation_counts(self):
         candidate = _clustered_candidate()
@@ -283,3 +299,96 @@ class TestOptimizeCandidateCpSat:
         assert source["baseline_candidate_fingerprint"] is not None
         assert source["problem_fingerprint"] is None
         assert source["candidate_fingerprint"] is not None
+
+    def test_source_metadata_includes_half_diagnostics_for_combined_mode(self):
+        """issue #298: solver diagnostics (team/slot/variable/constraint/
+        hint counts, half, budget, status, runtime) are always persisted,
+        even when not decomposed by half."""
+        candidate = _clustered_candidate()
+
+        optimized = optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
+
+        source = optimized["source"]
+        assert source["decompose_by_half"] is False
+        assert len(source["half_diagnostics"]) == 1
+        diag = source["half_diagnostics"][0]
+        assert diag["half"] == "combined"
+        assert diag["mode"] == "quality"
+        assert diag["team_count"] == 8
+        assert diag["slot_count"] == 4
+        assert diag["assignment_var_count"] > 0
+        assert diag["pair_var_count"] > 0
+        assert diag["constraint_count"] > 0
+        assert diag["hint_count"] == diag["assignment_var_count"]
+        assert diag["status"] in ("OPTIMAL", "FEASIBLE")
+        assert diag["runtime_seconds"] >= 0.0
+
+    def test_feasibility_only_skips_objective_and_pair_variables(self):
+        """issue #298 Phase 1: feasibility_only proves the baseline
+        reproduces cleanly without the pair/co-occurrence/objective
+        machinery that exists purely for quality optimization."""
+        candidate = _clustered_candidate()
+
+        optimized = optimize_candidate_cp_sat(
+            candidate, None, solve_budget_seconds=5.0, seed=1, feasibility_only=True
+        )
+
+        source = optimized["source"]
+        assert source["mode"] == "feasibility_only"
+        diag = source["half_diagnostics"][0]
+        assert diag["mode"] == "feasibility_only"
+        assert diag["pair_var_count"] == 0
+        assert source["objective_value"] == 0.0
+        verification = verify_candidate(optimized, None)
+        assert verification["ok"], verification
+
+    def test_decompose_by_half_splits_into_independent_solver_groups(self):
+        """issue #298 Phase 2: participant assignment is solved
+        independently per planning-half rather than one monolithic model."""
+        candidate = _half_split_candidate()
+        problem = {"christmas_split_date": "2026-12-24"}
+
+        optimized = optimize_candidate_cp_sat(
+            candidate, problem, solve_budget_seconds=5.0, seed=1, decompose_by_half=True
+        )
+
+        source = optimized["source"]
+        assert source["decompose_by_half"] is True
+        halves = {d["half"] for d in source["half_diagnostics"]}
+        assert halves == {"before_christmas", "after_christmas"}
+        for diag in source["half_diagnostics"]:
+            assert diag["slot_count"] == 2
+            assert diag["status"] in ("OPTIMAL", "FEASIBLE")
+
+        verification = verify_candidate(optimized, None)
+        assert verification["ok"], verification
+        before = score_candidate(
+            {"tournaments": [t for t in optimized["tournaments"] if t["date"] < "2026-12-24"]}
+        )
+        after = score_candidate(
+            {"tournaments": [t for t in optimized["tournaments"] if t["date"] >= "2026-12-24"]}
+        )
+        # Each half's own baseline participation (2 appearances per team,
+        # one per half) must be preserved independently.
+        assert set(before["participation"]["counts_by_team"].values()) == {2}
+        assert set(after["participation"]["counts_by_team"].values()) == {2}
+
+    def test_no_candidate_error_carries_diagnostics(self, monkeypatch):
+        """issue #298: a no-candidate result carries explainable solver
+        evidence rather than an opaque timeout."""
+        candidate = _clustered_candidate()
+
+        def _fake_solve(self, model):
+            return cp_model.UNKNOWN
+
+        monkeypatch.setattr(cp_model.CpSolver, "Solve", _fake_solve)
+
+        with pytest.raises(CpSatNoCandidate) as excinfo:
+            optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=0.1, seed=1)
+
+        diagnostics = excinfo.value.diagnostics
+        assert diagnostics["half"] == "combined"
+        assert diagnostics["status"] == "UNKNOWN"
+        assert diagnostics["slot_count"] == 4
+        assert diagnostics["team_count"] == 8
+        assert diagnostics["objective_value"] == 0.0

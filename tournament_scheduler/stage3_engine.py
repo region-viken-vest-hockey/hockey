@@ -42,7 +42,8 @@ def run_planner(
 
     *request* carries engine-specific tuning knobs (e.g. ``iterations``/
     ``seed``/``weights``/``move_dates`` for ``local_search``,
-    ``solve_budget_seconds``/``seed`` for ``cp_sat``); unrecognized keys for
+    ``solve_budget_seconds``/``seed``/``feasibility_only``/``decompose_by_half``
+    for ``cp_sat``); unrecognized keys for
     the selected engine are ignored rather than rejected, so one request dict
     can be built once by a caller that does not need to know which engine
     ends up handling it.
@@ -80,6 +81,8 @@ def run_planner(
             problem,
             solve_budget_seconds=float(request.get("solve_budget_seconds", 30.0)),
             seed=int(request.get("seed", 0)),
+            feasibility_only=bool(request.get("feasibility_only", False)),
+            decompose_by_half=bool(request.get("decompose_by_half", False)),
         )
 
     raise UnknownEngineError(engine)
