@@ -232,6 +232,48 @@ class TestOptimizeCandidateCpSat:
         assert source["problem_fingerprint"] == stable_payload_sha256(problem)
         assert source["candidate_fingerprint"] == stable_payload_sha256(optimized["tournaments"])
 
+    def test_records_baseline_hints_used(self):
+        candidate = _clustered_candidate()
+
+        optimized = optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
+
+        assert optimized["source"]["baseline_hints"] is True
+
+    def test_hints_every_decision_variable_at_its_baseline_value(self, monkeypatch):
+        """issue #298: the baseline is always a feasible starting point for
+        this model -- every x[slot, team] decision variable must be hinted
+        at 1 when that team is in the slot's baseline roster, 0 otherwise,
+        so CP-SAT can validate/repair a known-feasible solution immediately
+        instead of rediscovering it from scratch."""
+        candidate = _clustered_candidate()
+        captured_models: list = []
+        original_solve = cp_model.CpSolver.Solve
+
+        def _capturing_solve(self, model):
+            captured_models.append(model)
+            return original_solve(self, model)
+
+        monkeypatch.setattr(cp_model.CpSolver, "Solve", _capturing_solve)
+
+        optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
+
+        assert len(captured_models) == 1
+        proto = captured_models[0].Proto()
+        hinted_names = [proto.variables[idx].name for idx in proto.solution_hint.vars]
+        hinted_values = list(proto.solution_hint.values)
+        hints_by_name = dict(zip(hinted_names, hinted_values))
+
+        x_hints = {name: value for name, value in hints_by_name.items() if name.startswith("x_t")}
+        assert x_hints
+        # Every tournament's baseline roster is 4 teams out of the full
+        # 8-team U10 pool -- exactly 4 of that tournament's x-vars must be
+        # hinted 1, the rest 0.
+        for t_index in range(len(candidate["tournaments"])):
+            prefix = f"x_t{t_index}_team"
+            values = [value for name, value in x_hints.items() if name.startswith(prefix)]
+            assert sum(values) == 4
+            assert len(values) == 8
+
     def test_empty_candidate_source_includes_fingerprints(self):
         candidate = {"schema_version": 1, "tournaments": []}
 

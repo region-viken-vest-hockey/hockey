@@ -353,6 +353,23 @@ def optimize_candidate_cp_sat(
     if objective_terms:
         model.Minimize(sum(objective_terms))
 
+    # issue #298: the baseline candidate is always itself a feasible
+    # assignment for this model (every constraint above was derived from it
+    # -- same roster sizes, same participation counts, same-or-fewer
+    # same-club pairings, pinned/host membership already satisfied) but
+    # unhinted CP-SAT still has to *rediscover* that from scratch, and can
+    # burn its entire time budget searching without ever reporting
+    # FEASIBLE/OPTIMAL on a large enough model. Hinting every decision
+    # variable at its baseline value gives the solver a known-feasible
+    # starting point to validate/repair immediately, so a solve that would
+    # otherwise time out at UNKNOWN can still return the baseline (or better)
+    # within budget.
+    for slot in slots:
+        eligible = teams_by_age_group.get(slot.age_group, [])
+        baseline_set = set(slot.baseline_team_ids)
+        for identity in eligible:
+            model.AddHint(x[(slot.index, identity)], 1 if identity in baseline_set else 0)
+
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = max(0.1, float(solve_budget_seconds))
     solver.parameters.random_seed = int(seed)
@@ -412,6 +429,7 @@ def optimize_candidate_cp_sat(
         "objective_value": float(solver.ObjectiveValue()) if objective_terms else 0.0,
         "best_objective_bound": float(solver.BestObjectiveBound()) if objective_terms else 0.0,
         "seed": int(seed),
+        "baseline_hints": True,
         "protected_same_club_pairings_baseline": baseline_same_club,
         "base_source": candidate.get("source"),
         "baseline_candidate_fingerprint": baseline_fingerprint,
