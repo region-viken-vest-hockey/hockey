@@ -655,11 +655,26 @@ def verify_candidate(
         target = target_by_identity.get(identity)
         if target is None:
             target = default_target
-        if isinstance(target, int) and count != target:
-            # Non-blocking: a genuine slot-scarcity shortfall (or, more
-            # rarely, an overage) the optimizer couldn't fully resolve.
-            # Surfaced for manual placement (e.g. an operator arranging an
-            # extra game by hand) instead of hard-blocking the candidate.
+        if isinstance(target, int) and count > target:
+            # issue #301: `target` here is always an explicit per-team
+            # override or explicit global default -- the planner-inferred
+            # heuristic target is deliberately never reproduced in this
+            # verifier (see comment above). Over-participation against an
+            # explicit target is therefore always a hard violation: a
+            # candidate that schedules a team above its configured target
+            # must not verify as `ok=true`, even though the half-aware
+            # baseline that produced this contract could previously do
+            # exactly that (see `SeasonPlanner._team_at_target`).
+            _violate(
+                "participation_target_exceeded",
+                f"Team {_display_label(identity, duplicate_labels)!r} is scheduled in {count} tournaments, "
+                f"exceeding its explicit participation target of {target}",
+            )
+        elif isinstance(target, int) and count < target:
+            # Non-blocking: a genuine slot-scarcity shortfall the optimizer
+            # couldn't fully resolve. Surfaced for manual placement (e.g. an
+            # operator arranging an extra game by hand) instead of
+            # hard-blocking the candidate.
             manual_participation_placements.append(
                 {
                     "club": identity[0],
