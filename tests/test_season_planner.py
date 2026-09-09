@@ -568,6 +568,133 @@ class TestSeasonPlanner:
         assert plan.tournaments, "should still generate tournaments"
 
 
+class TestExplicitSeasonWideTargetAcrossHalves:
+    """issue #301: an explicit per-team/global `target_tournament_count` is
+    season-wide by definition and must remain a hard upper bound across
+    both halves, even when the age group itself has a before/after-Christmas
+    tournament-volume split configured (`target_tournament_counts_by_age_group`).
+    Previously `_team_at_target` compared the per-half participation counter
+    against that same season-wide number, letting a team reach the full
+    target independently in *each* half."""
+
+    def _make_planner(self, season_window, *, season_target, before_volume, after_volume, per_team_targets=None):
+        start, end = season_window
+        free_dates = all_weekend_dates(start, end)
+        clubs = ["Jar", "Holmen", "Kongsberg", "Skien", "Jutul", "Ringerike"]
+        roster = _build_roster(clubs, ["U10"])
+        for team in roster.teams:
+            team.target_tournament_count = (per_team_targets or {}).get(team.club, season_target)
+        return SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas={club: f"{club}hallen" for club in clubs},
+            parallel_games_for_age_group={"U10": 3},
+            target_tournament_counts_by_age_group={
+                "U10": {"before_christmas": before_volume, "after_christmas": after_volume}
+            },
+        ), roster
+
+    def test_explicit_season_target_is_hard_cap_across_both_halves(self, season_window):
+        """Plenty of tournament volume in each half (6 before, 6 after) so
+        the pre-fix bug -- 6 participations *per half* instead of 6 total --
+        would actually manifest if `_team_at_target` were still comparing a
+        per-half count against the season-wide target."""
+        planner, roster = self._make_planner(
+            season_window, season_target=6, before_volume=6, after_volume=6
+        )
+        plan = planner.build_plan(*season_window)
+
+        participations = Counter()
+        for tournament in plan.tournaments:
+            for team in tournament.teams:
+                participations[team_key(team, set())] += 1
+
+        for team in roster.teams:
+            key = team_key(team, set())
+            assert participations[key] <= 6, (
+                f"{team.label} participated {participations[key]} times, exceeding its season target of 6"
+            )
+
+    def test_reaching_before_christmas_allocation_does_not_starve_after_christmas(self, season_window):
+        """A season target split roughly evenly across the halves must still
+        let every team play in the after-Christmas half -- the season-wide
+        hard cap must not be confused with an early-exhaustion exclusion."""
+        planner, roster = self._make_planner(
+            season_window, season_target=6, before_volume=6, after_volume=6
+        )
+        plan = planner.build_plan(*season_window)
+        split_date = planning_half.christmas_split_date(season_window[0].date(), season_window[1].date())
+
+        after_participations = Counter()
+        for tournament in plan.tournaments:
+            if tournament.date >= split_date:
+                for team in tournament.teams:
+                    after_participations[team_key(team, set())] += 1
+
+        for team in roster.teams:
+            key = team_key(team, set())
+            assert after_participations[key] > 0, (
+                f"{team.label} was starved out of the after-Christmas half entirely"
+            )
+
+    def test_half_split_is_deterministic_and_sums_to_season_target(self, season_window):
+        planner, roster = self._make_planner(
+            season_window, season_target=6, before_volume=3, after_volume=3
+        )
+        for team in roster.teams:
+            before = planner._team_half_target_tournament_count(team, "before_christmas")
+            after = planner._team_half_target_tournament_count(team, "after_christmas")
+            assert before + after == 6
+            # Symmetric before/after weighting should split evenly.
+            assert before == after == 3
+
+    def test_odd_season_total_allocated_deterministically(self, season_window):
+        planner, roster = self._make_planner(
+            season_window, season_target=5, before_volume=3, after_volume=3
+        )
+        results = set()
+        for team in roster.teams:
+            before = planner._team_half_target_tournament_count(team, "before_christmas")
+            after = planner._team_half_target_tournament_count(team, "after_christmas")
+            assert before + after == 5
+            results.add((before, after))
+        # Deterministic: every team (same age group, same symmetric weights)
+        # gets the same split.
+        assert len(results) == 1
+
+    def test_asymmetric_half_intent_respected_without_exceeding_season_total(self, season_window):
+        planner, roster = self._make_planner(
+            season_window, season_target=6, before_volume=1, after_volume=3
+        )
+        for team in roster.teams:
+            before = planner._team_half_target_tournament_count(team, "before_christmas")
+            after = planner._team_half_target_tournament_count(team, "after_christmas")
+            assert before + after == 6
+            # before_volume:after_volume weight is 1:3 -> before gets the
+            # smaller share.
+            assert before < after
+
+    def test_explicit_per_team_override_takes_precedence_over_global_default(self, season_window):
+        planner, roster = self._make_planner(
+            season_window,
+            season_target=6,
+            before_volume=3,
+            after_volume=3,
+            per_team_targets={"Jar": 2},
+        )
+        jar_team = next(team for team in roster.teams if team.club == "Jar")
+        other_team = next(team for team in roster.teams if team.club != "Jar")
+
+        assert planner._team_target_tournament_count(jar_team) == 2
+        jar_before = planner._team_half_target_tournament_count(jar_team, "before_christmas")
+        jar_after = planner._team_half_target_tournament_count(jar_team, "after_christmas")
+        assert jar_before + jar_after == 2
+
+        other_before = planner._team_half_target_tournament_count(other_team, "before_christmas")
+        other_after = planner._team_half_target_tournament_count(other_team, "after_christmas")
+        assert other_before + other_after == 6
+
+
 class TestRoundRobinGameGeneration:
     def test_same_club_pairs_are_kept_in_round_robin_games(self):
         teams = [

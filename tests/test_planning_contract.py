@@ -259,6 +259,37 @@ class TestVerifyCandidateWithProblem:
         assert clubs == {"Jar", "Kongsberg"}
         assert all(p["actual"] == "1" and p["target"] == "3" for p in placements)
 
+    def test_participation_target_exceeded_is_hard_violation(self):
+        """issue #301: over-participation against an explicit target is not
+        a genuine slot-scarcity shortfall an operator can patch by hand --
+        unlike under-participation, it must hard-fail verification instead
+        of only being surfaced as a manual placement item."""
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {
+            "tournaments": [
+                _tournament(f"t{i}", f"2026-0{i}-01", "Jarhallen", "U10", teams) for i in range(1, 5)
+            ]
+        }
+        problem = self._problem(target_tournament_count=3)
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "participation_target_exceeded" in codes
+        assert result["ok"] is False
+        assert result["manual_participation_placements"] == []
+
+    def test_under_participation_still_surfaced_non_blocking(self):
+        """issue #301: genuine under-participation caused by slot scarcity
+        remains distinct from over-participation -- it stays a non-blocking
+        manual placement item, not a hard violation."""
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        problem = self._problem(target_tournament_count=3)
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "participation_target_exceeded" not in codes
+        assert result["ok"] is True
+        assert len(result["manual_participation_placements"]) == 2
+
     def test_before_after_christmas_split_not_treated_as_participation_target(self):
         # Regression test (issue #257): before_christmas/after_christmas are
         # weights for splitting an age group's *tournament count* across the

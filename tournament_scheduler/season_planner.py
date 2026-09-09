@@ -191,6 +191,10 @@ class SeasonPlanner:
             "before_christmas": {self._team_key(team): 0 for team in roster.teams},
             "after_christmas": {self._team_key(team): 0 for team in roster.teams},
         }
+        # issue #301: deterministic before/after split of an explicit
+        # season-wide target (`_team_half_target_tournament_count`), cached
+        # per team since the underlying weights don't change during a run.
+        self._team_half_target_cache: Dict[str, Dict[str, int]] = {}
         # Tracks distinct hosting dates per (club, year, month) during date selection
         # so _score_candidate_date can penalise dates that would exceed
         # max_hosting_days_per_month for the predicted host club.
@@ -302,9 +306,67 @@ class SeasonPlanner:
         # half is known, compare against that half's own count/target
         # instead of the season-wide cumulative ones.
         if period in ("before_christmas", "after_christmas"):
+            # issue #301: an explicit per-team/global target is season-wide
+            # by definition (`_team_target_tournament_count` returns it
+            # unchanged regardless of period). Comparing a per-half count
+            # against that same season-wide number let a team reach the
+            # full target independently in *each* half (e.g. 6 before + 6
+            # after for a season target of 6). The season-wide cumulative
+            # total is always checked first as a hard cap, and only the
+            # remaining half comparison uses a deterministic before/after
+            # split of that same target so the halves can never sum above
+            # it. Age-group-inferred targets (no explicit override) already
+            # vary correctly by period via `_target_tournaments_for_age_group`,
+            # so they keep using `_team_target_tournament_count(team, period)`
+            # directly.
+            has_explicit_season_target = (
+                team.target_tournament_count is not None or self.target_tournament_count is not None
+            )
+            if has_explicit_season_target:
+                season_target = self._team_target_tournament_count(team)
+                if self._tournament_participations.get(key, 0) >= season_target:
+                    return True
+                half_target = self._team_half_target_tournament_count(team, period)
+                participations = self._tournament_participations_by_half.get(period, {})
+                return participations.get(key, 0) >= half_target
             participations = self._tournament_participations_by_half.get(period, {})
             return participations.get(key, 0) >= self._team_target_tournament_count(team, period)
         return self._tournament_participations.get(key, 0) >= self._team_target_tournament_count(team)
+
+    def _team_half_target_tournament_count(self, team: Team, period: str) -> int:
+        """Deterministic before/after split of an explicit season-wide target.
+
+        issue #301: keeps `before_actual + after_actual <= season_target` for
+        an explicit per-team/global target without hardcoding an even 3+3
+        split -- the split follows the same raw before/after weights
+        `_split_tournament_counts_for_age_groups` reads directly off
+        `target_tournament_counts_by_age_group` for the date skeleton's
+        tournament-volume split, falling back to an even split only when no
+        such weight is configured. Reading the raw weights directly (rather
+        than going through `_target_tournaments_for_age_group`) matters here
+        because that helper's period-specific weighting gets drowned out
+        once every team already carries an explicit
+        `target_tournament_count` override -- it sums per-team overrides
+        rather than the age group's before/after weights in that case.
+        """
+        key = self._team_key(team)
+        cached = self._team_half_target_cache.get(key)
+        if cached is None:
+            season_target = self._team_target_tournament_count(team)
+            age_group = team.age_group
+            targets = self.target_tournament_counts_by_age_group.get(age_group, {})
+            before_weight = targets.get("before_christmas") or 0
+            after_weight = targets.get("after_christmas") or 0
+            total_weight = before_weight + after_weight
+            if total_weight <= 0:
+                before = season_target // 2
+            else:
+                before = int(round(season_target * before_weight / total_weight))
+            before = max(0, min(season_target, before))
+            after = season_target - before
+            cached = {"before_christmas": before, "after_christmas": after}
+            self._team_half_target_cache[key] = cached
+        return cached[period]
 
     def _team_key(self, team: Team) -> str:
         return team_key(team, self._duplicate_team_labels)
@@ -438,6 +500,7 @@ class SeasonPlanner:
             "before_christmas": {self._team_key(team): 0 for team in self.roster.teams},
             "after_christmas": {self._team_key(team): 0 for team in self.roster.teams},
         }
+        self._team_half_target_cache = {}
         self._running_game_counts = {}
         self._opponent_history = {}
         self._invite_counts = {self._team_key(team): 0 for team in self.roster.teams}
