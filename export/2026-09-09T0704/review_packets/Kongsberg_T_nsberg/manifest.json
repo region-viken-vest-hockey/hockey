@@ -1,0 +1,25 @@
+{
+  "club": "Kongsberg/Tønsberg",
+  "packet_dir": "Kongsberg_T_nsberg",
+  "summary_workbook": "club_review.xlsx",
+  "spond_import_workbook": "club_review_spond.xlsx",
+  "schedule_attachment": "club_review_spond_games.xlsx",
+  "response_template": "response_template.json",
+  "tournament_count": 6,
+  "hosted_count": 0,
+  "club_names": [
+    "Frisk Asker",
+    "Jutul",
+    "Kongsberg/Tønsberg",
+    "Ringerike",
+    "Skien",
+    "Tønsberg"
+  ],
+  "age_groups": [
+    "JU12"
+  ],
+  "decisions": {
+    "accept": "Godkjenn pakken som den er.",
+    "change_request": "Fyll ut ønskede endringer i response_template.json."
+  }
+}
