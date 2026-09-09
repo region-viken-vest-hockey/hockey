@@ -185,6 +185,36 @@ class TestOptimizeCandidateCpSat:
         with pytest.raises(CpSatNoCandidate):
             optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
 
+    def test_baseline_duplicate_date_conflict_is_reported_before_solving(self):
+        """issue #298 Phase 1: "If the baseline itself violates an encoded
+        CP-SAT constraint, report exactly which invariant conflicts with the
+        known baseline rather than timing out opaquely." A team already
+        appearing twice on the same date for the same age group (e.g. two
+        parallel pools scheduled the same day) can never satisfy the
+        no-duplicate-participation-on-one-date constraint regardless of how
+        the rest of the model is assigned -- this must be caught and named
+        before the solver ever runs, not surfaced as a bare INFEASIBLE."""
+        only_team = _team("Club1", "T1", "U10")
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U10", [only_team]),
+                _tournament("t2", "2026-01-05", "Arena2", "U10", [only_team]),
+            ],
+        }
+
+        with pytest.raises(CpSatNoCandidate) as excinfo:
+            optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
+
+        assert excinfo.value.status == "BASELINE_CONSTRAINT_CONFLICT"
+        diagnostics = excinfo.value.diagnostics
+        assert diagnostics["violated_constraint"] == "no_duplicate_participation_on_one_date"
+        conflicts = diagnostics["baseline_conflicts"]
+        assert len(conflicts) == 1
+        assert conflicts[0]["team"] == "Club1:T1:U10"
+        assert conflicts[0]["date"] == "2026-01-05"
+        assert sorted(conflicts[0]["tournament_ids"]) == ["t1", "t2"]
+
     def test_empty_candidate_returns_empty_status_without_solving(self):
         candidate = {"schema_version": 1, "tournaments": []}
 

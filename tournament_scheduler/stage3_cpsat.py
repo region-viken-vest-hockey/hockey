@@ -269,6 +269,66 @@ def _solve_slot_group(
     slots_by_age_date: "dict[tuple[str, date], list[int]]" = defaultdict(list)
     for slot in slots:
         slots_by_age_date[(slot.age_group, slot.on_date)].append(slot.index)
+
+    # issue #298 Phase 1: unlike every other constraint above (roster size,
+    # pinned membership, host presence, participation count), this one is
+    # *not* automatically satisfied by a baseline built from its own slots --
+    # it actively forbids something the baseline may already do (the same
+    # team appearing in two same-age-group tournaments on one date, e.g. two
+    # parallel pools scheduled the same day). Check the baseline against it
+    # before adding it as a hard constraint, so a genuinely conflicting
+    # baseline is reported as "here is exactly which invariant conflicts"
+    # rather than handed to the solver to discover as an opaque INFEASIBLE.
+    baseline_duplicate_date_conflicts: "list[Dict[str, Any]]" = []
+    for slot in slots:
+        for identity in slot.baseline_team_ids:
+            slot_indexes = slots_by_age_date.get((slot.age_group, slot.on_date), [])
+            same_date_slots = sorted(
+                {
+                    other.tournament_id
+                    for other in slots
+                    if other.index in slot_indexes and identity in other.baseline_team_ids
+                }
+            )
+            if len(same_date_slots) > 1:
+                baseline_duplicate_date_conflicts.append(
+                    {
+                        "team": ":".join(identity),
+                        "age_group": slot.age_group,
+                        "date": slot.on_date.isoformat(),
+                        "tournament_ids": same_date_slots,
+                    }
+                )
+    # Each conflicting (team, age_group, date) triple is discovered once per
+    # slot it touches; de-duplicate before reporting.
+    baseline_duplicate_date_conflicts = [
+        dict(conflict)
+        for conflict in {
+            (conflict["team"], conflict["age_group"], conflict["date"]): conflict
+            for conflict in baseline_duplicate_date_conflicts
+        }.values()
+    ]
+    if baseline_duplicate_date_conflicts:
+        diagnostics = {
+            "half": half_label,
+            "mode": "feasibility_only" if feasibility_only else "quality",
+            "team_count": len(team_map),
+            "slot_count": len(slots),
+            "solve_budget_seconds": float(solve_budget_seconds),
+            "seed": int(seed),
+            "status": "BASELINE_CONSTRAINT_CONFLICT",
+            "runtime_seconds": round(perf_counter() - started, 6),
+            "violated_constraint": "no_duplicate_participation_on_one_date",
+            "baseline_conflicts": baseline_duplicate_date_conflicts,
+        }
+        raise CpSatNoCandidate(
+            "BASELINE_CONSTRAINT_CONFLICT",
+            perf_counter() - started,
+            baseline_candidate_fingerprint=baseline_fingerprint,
+            problem_fingerprint=problem_fingerprint,
+            diagnostics=diagnostics,
+        )
+
     for identity in baseline_participations:
         for (age_group, _on_date), slot_indexes in slots_by_age_date.items():
             if age_group != identity[2] or len(slot_indexes) < 2:
