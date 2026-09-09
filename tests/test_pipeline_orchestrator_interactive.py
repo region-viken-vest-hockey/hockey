@@ -349,6 +349,11 @@ class TestStage3InteractiveDecisionLoop:
 
         assert exit_code == 2
         optimize_candidate_cp_sat.assert_called_once()
+        # issue #298 Phase 2/3: the automatic shadow evaluation must use the
+        # per-half decomposed model, not the monolithic Oct-Apr model that
+        # produced the original UNKNOWN evidence, so quality-mode search gets
+        # the smaller per-half search space Phase 2 built.
+        assert optimize_candidate_cp_sat.call_args.kwargs["decompose_by_half"] is True
         payload = json.loads(out)
         shadow_facts = payload["facts"]["cp_sat_shadow"]
         assert shadow_facts["attempted"] is True

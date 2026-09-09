@@ -1553,7 +1553,12 @@ def _maybe_run_stage3_cp_sat_shadow(
     boundary the interactive ``optimize_plan(engine="cp_sat")`` path uses, and
     wraps the result with :func:`stage3_shadow.build_shadow_report` so the
     comparison is fingerprinted/reproducible evidence, not just a prose
-    summary. Returns ``None`` only when shadow evaluation is disabled via
+    summary. Solves with ``decompose_by_half=True`` (issue #298 Phase 2/3):
+    a monolithic Oct-Apr quality-mode solve is the shape that produced the
+    original UNKNOWN evidence in #298, so the automatic shadow comparison
+    must use the smaller per-half models Phase 2 built rather than continue
+    attempting the harder combined search under the same 15s budget. Returns
+    ``None`` only when shadow evaluation is disabled via
     config (``cp_sat_shadow_enabled: false``) or there is no candidate to
     shadow yet -- every other outcome, including a missing OR-Tools
     dependency or an infeasible/timed-out solve, returns a dict describing
@@ -1575,7 +1580,7 @@ def _maybe_run_stage3_cp_sat_shadow(
             engine="cp_sat",
             problem=problem,
             baseline=baseline_candidate,
-            request={"solve_budget_seconds": budget},
+            request={"solve_budget_seconds": budget, "decompose_by_half": True},
         )
     except CpSatUnavailable as exc:
         log_fn(f"stage3 cp_sat shadow: unavailable ({exc}) -- skipping automatic shadow evaluation")
