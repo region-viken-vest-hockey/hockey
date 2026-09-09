@@ -1,8 +1,8 @@
 {
-  "csv_git_blob_sha": "2aa669c75061141f727541ec5b3d510c107c0e81",
-  "csv_sha256": "75d898ad49938dc453b111bc6ee2fd2721d8a8b3b975969720f1816308a946bc",
+  "csv_git_blob_sha": "b0d56385ac5c3bf95a653787edd623656438170d",
+  "csv_sha256": "cd3f37c77aa8e323d487b8741905272b9c2172e6e42c75335d022015bd1094c5",
   "schema_version": 1,
   "source": "sharepoint",
-  "source_issue_number": 271,
-  "team_count": 143
+  "source_issue_number": 299,
+  "team_count": 142
 }
