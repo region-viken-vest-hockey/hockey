@@ -875,8 +875,20 @@ class SeasonPlanner:
                 if team.age_group in skipped_age_groups_set:
                     continue
                 key = self._team_key(team)
+                has_explicit_season_target = (
+                    team.target_tournament_count is not None or self.target_tournament_count is not None
+                )
                 for period in ("before_christmas", "after_christmas"):
-                    target = self._team_target_tournament_count(team, period)
+                    # issue #301: an explicit season-wide target must be
+                    # compared against its deterministic per-half share here
+                    # too, or a team exactly on its (correct) half
+                    # allocation gets misreported as a half-specific
+                    # shortfall against the season-wide number instead (see
+                    # `_team_at_target`).
+                    if has_explicit_season_target:
+                        target = self._team_half_target_tournament_count(team, period)
+                    else:
+                        target = self._team_target_tournament_count(team, period)
                     actual = self._tournament_participations_by_half.get(period, {}).get(key, 0)
                     if actual != target:
                         unresolved_participation_shortfalls.append(

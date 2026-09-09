@@ -694,6 +694,28 @@ class TestExplicitSeasonWideTargetAcrossHalves:
         other_after = planner._team_half_target_tournament_count(other_team, "after_christmas")
         assert other_before + other_after == 6
 
+    def test_half_shortfall_report_uses_deterministic_half_split_not_season_target(self, season_window):
+        """issue #301: `unresolved_participation_shortfalls`'s per-half check
+        must compare against the same deterministic half split
+        `_team_at_target` now uses -- otherwise a team exactly on its
+        (correct) 3+3 half allocation for a season target of 6 gets
+        misreported as only reaching "3 of 6" in each half."""
+        planner, roster = self._make_planner(
+            season_window, season_target=6, before_volume=3, after_volume=3
+        )
+        planner.build_plan(*season_window)
+
+        half_shortfalls = {
+            (s["label"], s["period"]): s
+            for s in planner.unresolved_participation_shortfalls
+            if "period" in s
+        }
+        for team in roster.teams:
+            for period in ("before_christmas", "after_christmas"):
+                entry = half_shortfalls.get((team.label, period))
+                if entry is not None:
+                    assert entry["target"] == "3", entry
+
 
 class TestRoundRobinGameGeneration:
     def test_same_club_pairs_are_kept_in_round_robin_games(self):
