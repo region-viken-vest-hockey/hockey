@@ -14,7 +14,7 @@ class TestRunFixedAllocationSource:
             SANDEFJORD_CLUB_NAME, datetime(2025, 9, 1), datetime(2025, 9, 7)
         )
         assert events
-        assert all(e.location == "Sandefjord ishall" for e in events)
+        assert all(e.location == "Bugården ishall" for e in events)
 
     def test_resolves_source_alias_to_canonical_club(self):
         events = run_fixed_allocation_source(

@@ -168,7 +168,7 @@ class TestRunStage2:
         assert src["event_count"] > 0
         assert "Sandefjord Penguins" in result["events_by_club"]
         events = result["events_by_club"]["Sandefjord Penguins"]
-        assert all(e["location"] == "Sandefjord ishall" for e in events)
+        assert all(e["location"] == "Bugården ishall" for e in events)
         # issue #262 P0: deterministic fixed-allocation availability is
         # always "known", never treated as missing evidence.
         assert result["club_calendar_status"]["Sandefjord Penguins"] == "known"

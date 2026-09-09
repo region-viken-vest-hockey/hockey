@@ -171,7 +171,7 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
     ),
     "Sandefjord Penguins": ClubCalendarSource(
         club="Sandefjord Penguins",
-        arena="Sandefjord ishall",
+        arena="Bugården ishall",
         kind=CalendarSourceKind.OUTLOOK,
         source="https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen___/view:item/id:4497/part:/place:3907:SANDEFJORD/q:sandefjord/r:31/mod:book",
         skip=False,

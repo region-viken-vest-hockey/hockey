@@ -1,6 +1,6 @@
 """Sandefjord Penguins' fixed weekend ice allocation (issue #261).
 
-Sandefjord Penguins do not book Bugårdshallen (Sandefjord ishall) ad hoc
+Sandefjord Penguins do not book Bugårdshallen (Bugården ishall) ad hoc
 through BookUp like the other RVV clubs with BookUp sources (Tønsberg
 excepted, which genuinely still requires that). Instead the club holds a
 known, fixed weekly ice-time allocation -- Saturday and Sunday 15:00-18:00 --
@@ -27,7 +27,7 @@ from .models import CalendarEvent
 
 # Canonical club/arena names, matching `club_registry.CLUB_REGISTRY`.
 SANDEFJORD_CLUB_NAME = "Sandefjord Penguins"
-SANDEFJORD_ARENA = "Sandefjord ishall"
+SANDEFJORD_ARENA = "Bugården ishall"
 
 # Saturday=5, Sunday=6 per `date.weekday()`.
 _ALLOCATED_WEEKDAYS = (5, 6)

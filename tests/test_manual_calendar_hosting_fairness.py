@@ -18,7 +18,7 @@ def test_missing_calendar_club_keeps_proportional_hosting_obligation():
         roster=roster,
         available_calendar_clubs={"Jar"},
         events_by_club={"Jar": []},
-        club_arenas={"Jar": "Jarahallen", "Sandefjord": "Sandefjord ishall"},
+        club_arenas={"Jar": "Jarahallen", "Sandefjord": "Bugården ishall"},
         fallback_host_substitutions=[],
     )
     plan = SeasonPlan(
@@ -27,7 +27,7 @@ def test_missing_calendar_club_keeps_proportional_hosting_obligation():
             Tournament(date=date(2026, 10, 3), arena="Jarahallen", age_group="U10", host_club="Jar"),
             Tournament(
                 date=date(2026, 11, 7),
-                arena="Sandefjord ishall",
+                arena="Bugården ishall",
                 age_group="U10",
                 host_club="Sandefjord",
             ),

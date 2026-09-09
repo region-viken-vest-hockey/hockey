@@ -50,7 +50,7 @@ _CLUB_COORDINATES: Dict[str, Tuple[float, float]] = {
     "Frisk Asker": (59.8331, 10.4356),
     # Tønsberg - Tønsberghallen
     "Tønsberg": (59.2674, 10.4076),
-    # Sandefjord Penguins - Sandefjord ishall
+    # Sandefjord Penguins - Bugården ishall
     "Sandefjord Penguins": (59.1313, 10.2167),
 }
 
@@ -106,7 +106,7 @@ _ARENA_TO_CLUB: Dict[str, str] = {
     "Bærum ishall": "Jutul",
     "Varner Arena": "Frisk Asker",
     "Tønsberghallen": "Tønsberg",
-    "Sandefjord ishall": "Sandefjord Penguins",
+    "Bugården ishall": "Sandefjord Penguins",
 }
 
 def _normalize_club_name(club: Optional[str]) -> Optional[str]:
