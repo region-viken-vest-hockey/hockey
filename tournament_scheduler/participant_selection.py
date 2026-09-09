@@ -158,7 +158,13 @@ def next_age_group(
     return age_groups[start_index % len(age_groups)]
 
 
-def select_participants(planner, age_group: str, period: Optional[str] = None) -> List[Team]:
+def select_participants(
+    planner,
+    age_group: str,
+    period: Optional[str] = None,
+    *,
+    exclude_team_keys: Optional[set] = None,
+) -> List[Team]:
     """Select the teams to invite to a tournament for the given age group.
 
     issue #297: `period` (``"before_christmas"``/``"after_christmas"``) makes
@@ -167,6 +173,15 @@ def select_participants(planner, age_group: str, period: Optional[str] = None) -
     gets excluded from every after-Christmas candidate pool too, starving
     the second half of eligible participants even when the date skeleton
     itself was built with a balanced half split.
+
+    `exclude_team_keys` removes teams already invited to another tournament
+    of this same age group on this same calendar date -- eligibility here is
+    otherwise governed only by season/half participation targets, which does
+    not prevent the same under-target team being picked twice when the date
+    skeleton schedules two same-age-group tournaments (parallel pools/venues)
+    on one date. Without this, `verify_candidate`'s hard
+    `duplicate_participation_same_date` check can fail on the planner's own
+    baseline output.
     """
     candidates = planner.roster.by_age_group(age_group)
     if not candidates:
@@ -175,6 +190,11 @@ def select_participants(planner, age_group: str, period: Optional[str] = None) -
     candidates = [t for t in candidates if not planner._team_at_target(t, period)]
     if not candidates:
         return []
+
+    if exclude_team_keys:
+        candidates = [t for t in candidates if planner._team_key(t) not in exclude_team_keys]
+        if not candidates:
+            return []
 
     max_teams = participant_limit_for(planner, age_group, len(candidates))
     return pick_scored_participants(planner, candidates, max_teams, age_group, period)

@@ -402,6 +402,13 @@ class SeasonPlanner:
         self._fallback_host_substitutions = []
 
         scheduled_age_groups_by_date: Dict[date, List[str]] = {}
+        # Two tournaments for the same age group can land on the same date
+        # (parallel pools/venues from the date skeleton) -- eligibility in
+        # `_select_participants` is otherwise governed only by season/half
+        # targets, so without this a team not yet at its target gets offered
+        # to both and can be picked twice, tripping the hard
+        # `duplicate_participation_same_date` check in `verify_candidate`.
+        teams_used_today_by_age_group: Dict[Tuple[date, str], set] = {}
         scheduled_counts = Counter(age_group for _, age_group in scheduled)
         host_targets_by_age = {
             age_group: _hosting_targets_for_age_group(self, age_group, count)
@@ -432,7 +439,13 @@ class SeasonPlanner:
                 if self._has_split_tournament_targets() and half in ("before_christmas", "after_christmas")
                 else None
             )
-            participants = self._select_participants(age_group, period)
+            already_used_today = teams_used_today_by_age_group.get((tournament_date, age_group))
+            participants = self._select_participants(
+                age_group, period, exclude_team_keys=already_used_today
+            )
+            teams_used_today_by_age_group.setdefault((tournament_date, age_group), set()).update(
+                self._team_key(team) for team in participants
+            )
 
             if len(participants) < MIN_TEAMS_PER_TOURNAMENT:
                 plan.skipped_age_groups.append(
