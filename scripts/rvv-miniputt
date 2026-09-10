@@ -10,10 +10,23 @@ else
   PYTHON_CMD=python3
 fi
 
-set +e
-"$PYTHON_CMD" -m tournament_scheduler.cli.rvv_cli "$@"
-status=$?
-set -e
+DOTENVX="$ROOT_DIR/node_modules/.bin/dotenvx"
+DOTENVX_ENV_FILE="$ROOT_DIR/.env.bookup"
+
+# Bookup-gated sources (e.g. Tønsberg) need BOOKUP_EMAIL/BOOKUP_PASSWORD.
+# Auto-decrypt them from the committed dotenvx vault unless the caller
+# already supplied credentials or the local decryption key is missing.
+if [[ -z "${BOOKUP_EMAIL:-}" && -x "$DOTENVX" && -f "$DOTENVX_ENV_FILE" ]]; then
+  set +e
+  "$DOTENVX" run -f "$DOTENVX_ENV_FILE" -- "$PYTHON_CMD" -m tournament_scheduler.cli.rvv_cli "$@"
+  status=$?
+  set -e
+else
+  set +e
+  "$PYTHON_CMD" -m tournament_scheduler.cli.rvv_cli "$@"
+  status=$?
+  set -e
+fi
 
 
 exit $status

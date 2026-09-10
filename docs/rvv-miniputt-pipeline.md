@@ -123,7 +123,7 @@ For those sources, set the credentials expected by the configured strategy, typi
 - `BOOKUP_EMAIL`
 - `BOOKUP_PASSWORD`
 
-With credentials in place, Stage 2 can scrape the source and cache the events. Pi slash commands automatically try to load missing `BOOKUP_EMAIL`/`BOOKUP_PASSWORD` from `DOTENVX_ENV_FILE` (default `.env.bookup`) before asking the operator. Locally, prefer the dotenvx-backed Make targets so credentials are loaded from the encrypted `.env.bookup` file instead of being passed on the command line:
+With credentials in place, Stage 2 can scrape the source and cache the events. `scripts/rvv-miniputt` itself (and therefore Pi slash commands and Claude commands that call it) automatically tries to load missing `BOOKUP_EMAIL`/`BOOKUP_PASSWORD` via dotenvx from `.env.bookup` before asking the operator — no manual `dotenvx run` wrapping needed, as long as `.env.keys` is present locally. Locally, you can also use the dotenvx-backed Make targets directly:
 
 ```bash
 make run-dotenvx ARGS='--resume-from 2'
