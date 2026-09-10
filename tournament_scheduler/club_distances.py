@@ -24,7 +24,7 @@ import math
 from typing import Dict, Optional, Tuple
 
 from tournament_scheduler.club_registry import canonicalize_club_name
-from tournament_scheduler.models import SeasonPlan, Tournament, Team
+from tournament_scheduler.models import SeasonPlan, Tournament, Team, find_duplicate_labels, team_key
 
 # ---------------------------------------------------------------------------
 # Club arena coordinates (latitude, longitude in decimal degrees)
@@ -196,13 +196,23 @@ def furthest_traveling_team(
 
 
 def compute_team_travel_distances(plan: SeasonPlan) -> dict[str, int]:
-    """Return a dict mapping each team label to its total travel distance
-    (km) across all *away* tournaments in the season plan.
+    """Return a dict mapping each team's disambiguated key (see
+    :func:`tournament_scheduler.models.team_key`) to its total travel
+    distance (km) across all *away* tournaments in the season plan.
 
     An *away* tournament is one where the host club differs from the team's
     club.  Cancelled tournaments are skipped.  Teams that never travel to an
     away tournament still appear in the dict with a value of 0.
+
+    Keys are disambiguated with club and age group whenever a label is
+    shared by more than one distinct team (e.g. "Skien" fielded in both U8
+    and U9), so travel belonging to unrelated teams is never summed
+    together under one label.
     """
+    duplicate_labels = find_duplicate_labels(
+        team for tournament in plan.tournaments for team in tournament.teams
+    )
+
     totals: dict[str, int] = {}
 
     for tournament in plan.tournaments:
@@ -215,9 +225,11 @@ def compute_team_travel_distances(plan: SeasonPlan) -> dict[str, int]:
             host_club = _normalize_club_name(tournament.host_club)
 
         for team in tournament.teams:
+            key = team_key(team, duplicate_labels)
+
             # Ensure every team appears in the dict at least once
-            if team.label not in totals:
-                totals[team.label] = 0
+            if key not in totals:
+                totals[key] = 0
 
             if host_club is None:
                 # Unknown host — can't compute travel, but team is registered
@@ -229,6 +241,6 @@ def compute_team_travel_distances(plan: SeasonPlan) -> dict[str, int]:
                 continue
 
             km = distance(team_club or team.club, host_club)
-            totals[team.label] += km
+            totals[key] += km
 
     return totals

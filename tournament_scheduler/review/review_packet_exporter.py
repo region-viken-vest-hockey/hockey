@@ -13,7 +13,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from rich.console import Console
 
 from ..club_distances import compute_team_travel_distances
-from ..models import SeasonPlan, Tournament
+from ..models import SeasonPlan, Tournament, find_duplicate_labels, team_key
 from ..spond.spond_exporter import SpondExporter
 
 console = Console()
@@ -188,15 +188,18 @@ class ReviewPacketExporter:
         travel_sheet = wb.create_sheet("Reise")
 
         team_travel = compute_team_travel_distances(plan)
-        club_team_labels = sorted(
+        duplicate_labels = find_duplicate_labels(
+            team for tournament in plan.tournaments for team in tournament.teams
+        )
+        club_team_keys = sorted(
             {
-                team.label
+                team_key(team, duplicate_labels)
                 for tournament in plan.tournaments
                 for team in tournament.teams
                 if team.club == club
             }
         )
-        club_team_travel = {label: team_travel.get(label, 0) for label in club_team_labels}
+        club_team_travel = {key: team_travel.get(key, 0) for key in club_team_keys}
         hosted = [t for t in club_tournaments if t.host_club == club]
         away_count = sum(1 for t in club_tournaments if t.host_club != club)
 

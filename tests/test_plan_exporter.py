@@ -388,3 +388,36 @@ class TestDuplicateLabelDisambiguation:
         assert "har 0 kamper" not in load_card, (
             f"All lookups returned 0 — team_key disambiguation likely failed. Card: {load_card}"
         )
+
+    def test_compute_team_travel_distances_disambiguates_duplicate_labels(self):
+        """Issue #311: compute_team_travel_distances must key travel by the
+        disambiguated team identity, not the raw (possibly shared) label."""
+        from tournament_scheduler.club_distances import compute_team_travel_distances
+
+        plan = self._make_plan_with_duplicate_labels()
+        result = compute_team_travel_distances(plan)
+
+        assert len(result) == 4, (
+            f"Expected 4 distinct team keys, got {len(result)}: {list(result.keys())}"
+        )
+        assert "A-lag" not in result, (
+            "Raw duplicate label 'A-lag' should not appear as a key; keys should be disambiguated"
+        )
+        assert "A-lag (Kongsberg, U10)" in result
+        assert "A-lag (Ringerike, U10)" in result
+
+    def test_compute_club_stats_attributes_travel_by_actual_club(self):
+        """compute_club_stats must attribute travel to a team's real club via
+        the disambiguated key, not by guessing from the label text (issue #311)."""
+        from tournament_scheduler.club_distances import compute_team_travel_distances
+        from tournament_scheduler.html.data_computation import compute_club_stats
+
+        plan = self._make_plan_with_duplicate_labels()
+        team_travel = compute_team_travel_distances(plan)
+        club_stats, all_clubs = compute_club_stats(plan, team_travel)
+
+        assert set(all_clubs) == {"Kongsberg", "Ringerike", "Skien", "Jar"}
+        # Both "A-lag" teams belong to different clubs; each club's travel
+        # total must reflect only its own team, not both merged together.
+        assert club_stats["Kongsberg"]["travel_km"] == team_travel["A-lag (Kongsberg, U10)"]
+        assert club_stats["Ringerike"]["travel_km"] == team_travel["A-lag (Ringerike, U10)"]

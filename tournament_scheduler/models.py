@@ -91,6 +91,21 @@ def team_key(team: Team, duplicate_labels: Collection[str] | None = None) -> str
     return team.label
 
 
+def find_duplicate_labels(teams: "Collection[Team]") -> Set[str]:
+    """Return the set of labels shared by more than one distinct team.
+
+    A label is "duplicate" when it is used by teams that differ in
+    ``(club, age_group)`` — e.g. "Skien" fielded in both U8 and U9. Pass the
+    result to :func:`team_key` so per-team metrics (game counts, travel,
+    etc.) never merge unrelated teams that happen to share a display label.
+    """
+    label_to_identities: Dict[str, Set[Tuple[str, str]]] = {}
+    for team in teams:
+        identity = (team.club, team.age_group)
+        label_to_identities.setdefault(team.label, set()).add(identity)
+    return {label for label, ids in label_to_identities.items() if len(ids) > 1}
+
+
 @dataclass
 class Roster:
     """An ordered collection of teams participating in the season plan."""

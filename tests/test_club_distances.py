@@ -285,3 +285,61 @@ class TestComputeTeamTravelDistances:
         assert result["Jar 1"] == 0
         assert result["Kongsberg U10"] > 0
         assert result["Holmen U10"] > 0
+
+    def test_same_label_across_age_groups_kept_separate(self):
+        """Issue #311: distinct teams that reuse the same label across age
+        groups (e.g. "Skien" fielded in both U8 and U9) must not be merged
+        into one travel total keyed by the raw label."""
+        from datetime import date
+
+        skien_u8 = Team(club="Skien", label="Skien", age_group="U8")
+        skien_u9 = Team(club="Skien", label="Skien", age_group="U9")
+
+        t1 = Tournament(
+            date=date(2025, 9, 6),
+            arena="Jarhallen",
+            age_group="U8",
+            host_club="Jar",
+            teams=[skien_u8],
+        )
+        t2 = Tournament(
+            date=date(2025, 10, 11),
+            arena="Kongsberghallen",
+            age_group="U9",
+            host_club="Kongsberg",
+            teams=[skien_u9],
+        )
+        plan = self._make_plan([t1, t2])
+        result = compute_team_travel_distances(plan)
+
+        key_u8 = "Skien (Skien, U8)"
+        key_u9 = "Skien (Skien, U9)"
+        assert set(result.keys()) == {key_u8, key_u9}
+
+        # Neither team's total includes the other's tournament.
+        assert result[key_u8] == distance("Skien", "Jar")
+        assert result[key_u9] == distance("Skien", "Kongsberg")
+        assert result[key_u8] != result[key_u9]
+
+        # The true maximum individual-team total is the max of the two,
+        # not the sum both would have shared under the old label-only key.
+        assert max(result.values()) == max(distance("Skien", "Jar"), distance("Skien", "Kongsberg"))
+
+    def test_unique_labels_remain_undisambiguated(self):
+        """Globally unique labels should still be returned concisely (no
+        club/age-group suffix) when there is no collision to resolve."""
+        from datetime import date
+
+        t = Tournament(
+            date=date(2025, 9, 6),
+            arena="Jarhallen",
+            age_group="U10",
+            host_club="Jar",
+            teams=[
+                Team(club="Jar", label="Jar 1", age_group="U10"),
+                Team(club="Kongsberg", label="Kongsberg U10", age_group="U10"),
+            ],
+        )
+        plan = self._make_plan([t])
+        result = compute_team_travel_distances(plan)
+        assert set(result.keys()) == {"Jar 1", "Kongsberg U10"}

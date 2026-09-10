@@ -16,6 +16,7 @@ from tournament_scheduler.club_distances import (
 )
 from tournament_scheduler.club_registry import canonicalize_club_name as _canonicalize_club_name
 from tournament_scheduler.models import team_key as _team_key
+from tournament_scheduler.models import find_duplicate_labels as _find_duplicate_labels
 
 # ---------------------------------------------------------------------------
 # Inline SVG icons (14x14 or 16x16 viewBox, currentColor stroke, 1.5px)
@@ -135,18 +136,12 @@ def compute_team_game_counts(plan: object) -> dict[str, int]:
     """
     # First pass: collect all team objects to find labels that are shared by
     # more than one distinct (club, age_group) combination.
-    label_to_identities: dict[str, set[tuple[str, str]]] = {}
-    for t in getattr(plan, "tournaments", []):
-        for g in getattr(t, "games", []):
-            for team_obj in (getattr(g, "home"), getattr(g, "away")):
-                identity = (
-                    getattr(team_obj, "club", ""),
-                    getattr(team_obj, "age_group", ""),
-                )
-                label_to_identities.setdefault(team_obj.label, set()).add(identity)
-    duplicate_labels = {
-        label for label, ids in label_to_identities.items() if len(ids) > 1
-    }
+    duplicate_labels = _find_duplicate_labels(
+        team_obj
+        for t in getattr(plan, "tournaments", [])
+        for g in getattr(t, "games", [])
+        for team_obj in (getattr(g, "home"), getattr(g, "away"))
+    )
 
     # Second pass: count games per disambiguated team key.
     team_game_counts: dict[str, int] = {}
@@ -229,6 +224,15 @@ def compute_club_stats(plan: object, team_travel: dict[str, int]) -> tuple[dict[
     club_away: dict[str, int] = {}
     club_teams: dict[str, list[str]] = {}
     club_travel: dict[str, int] = {}
+
+    # Disambiguated team_key() -> club, so travel totals (keyed the same way
+    # by compute_team_travel_distances()) can be attributed to the right
+    # club without guessing from the label text.
+    duplicate_labels = _find_duplicate_labels(
+        team for t in getattr(plan, "tournaments", []) for team in getattr(t, "teams", [])
+    )
+    key_to_club: dict[str, str] = {}
+
     for t in getattr(plan, "tournaments", []):
         if getattr(t, "cancelled", False):
             continue
@@ -238,18 +242,19 @@ def compute_club_stats(plan: object, team_travel: dict[str, int]) -> tuple[dict[
         seen_clubs: set[str] = set()
         for team in getattr(t, "teams", []):
             tc = team.club
+            key = _team_key(team, duplicate_labels)
             club_teams.setdefault(tc, [])
-            if team.label not in club_teams[tc]:
-                club_teams[tc].append(team.label)
+            if key not in club_teams[tc]:
+                club_teams[tc].append(key)
+            key_to_club[key] = tc
             if host and tc != host and tc not in seen_clubs:
                 seen_clubs.add(tc)
                 club_away[tc] = club_away.get(tc, 0) + 1
 
-    for team_label, km in team_travel.items():
-        for club_name in club_teams:
-            if team_label.startswith(club_name):
-                club_travel[club_name] = club_travel.get(club_name, 0) + km
-                break
+    for key, km in team_travel.items():
+        club_name = key_to_club.get(key)
+        if club_name:
+            club_travel[club_name] = club_travel.get(club_name, 0) + km
 
     club_stats: dict[str, dict[str, object]] = {}
     all_clubs_set: set[str] = set()
