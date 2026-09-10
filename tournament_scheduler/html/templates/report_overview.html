@@ -1,105 +1,16 @@
-<!-- Report overview -->
+<!-- Report overview: canonical Regler view (issue #305) -->
 <section class="report-overview" id="reportOverview">
   <section class="report-section" id="rulesTable">
     <div class="section-head">
       <div>
         <p class="eyebrow">Regler</p>
-        <h2>Hvilke regler styrte planen?</h2>
+        <h2>Regler</h2>
       </div>
-      <p class="section-note">Hard/påkrevd/myk/rådgivende — og hvem eier hver regel, deterministisk kode eller LLM/kontroller.</p>
+      <p class="section-note">
+        Hva styrte planen, ble kravene oppfylt, hva krever manuell handling, og hvilke kvalitetsavveininger
+        eller eksplisitte beslutninger ble akseptert?
+      </p>
     </div>
     $REPORT_RULES_TABLE$
   </section>
-
-  <section class="report-section report-section--metrics" id="keyMetrics">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">Nøkkeltall</p>
-        <h2>Hvor god er planen?</h2>
-      </div>
-      <p class="section-note">De få måltallene som trengs for å vurdere kvaliteten.</p>
-    </div>
-    $REPORT_SCORES$
-    $REPORT_METRICS$
-  </section>
-
-  <details class="report-section report-section--collapsible" id="detaljerAccordion">
-    $REPORT_CONTEXT$
-    <summary class="section-head">
-      <div>
-        <p class="eyebrow">Mer informasjon</p>
-        <h2>Tekniske detaljer</h2>
-      </div>
-      <p class="section-note">Aldersgrupper, klubber, diagnostikk og regelgrunnlag for den som vil grave dypere.</p>
-    </summary>
-
-    <section class="report-section" id="ageGroupSummary">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Aldersgrupper</p>
-          <h2>Hva skjer per aldersgruppe?</h2>
-        </div>
-        <p class="section-note">Se turneringer, vertskap og kampbredde per gruppe.</p>
-      </div>
-      $REPORT_AGE_SUMMARY$
-    </section>
-
-    <section class="report-section" id="clubReviewSummary">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Klubber</p>
-          <h2>Hva må hver klubb vurdere?</h2>
-        </div>
-        <p class="section-note">Oppsummerer vertskap, deltakelse og reise per klubb.</p>
-      </div>
-      $REPORT_CLUB_SUMMARY$
-    </section>
-
-    <section class="report-section" id="tournamentReviewTable">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Detaljert plan</p>
-          <h2>Turneringer som skal gjennomgås</h2>
-        </div>
-        <p class="section-note">Kondensert tabell; åpne sesongplanen for kampoppsett og varmekart per turnering.</p>
-      </div>
-      $REPORT_TOURNAMENT_TABLE$
-    </section>
-
-    $REPORT_CLUB_DASHBOARD$
-
-    <details class="report-section report-section--collapsible" id="ruleTransparency">
-      <summary class="section-head">
-        <div>
-          <p class="eyebrow">Regler og rettferdighet</p>
-          <h2>Hvorfor fikk planen denne vurderingen?</h2>
-        </div>
-        <p class="section-note">Gate, avvik og eventuelle justeringer samlet i én forklaring.</p>
-      </summary>
-      $REPORT_RULE_TRANSPARENCY$
-    </details>
-
-    <details class="report-section report-section--collapsible" id="advisoryChecks">
-      <summary class="section-head">
-        <div>
-          <p class="eyebrow">Rådgivende kontroller</p>
-          <h2>Hva sier den manuelle etterkontrollen?</h2>
-        </div>
-        <p class="section-note">Advisory funn og den menneskelige tolkningen av helheten.</p>
-      </summary>
-      $REPORT_ADVISORY$
-    </details>
-
-    <section class="report-section report-section--diagnostics" id="detailedDiagnosticsIntro">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Diagnostikk</p>
-          <h2>Detaljerte måltall og kontroller</h2>
-        </div>
-        <p class="section-note">Tekniske tall ligger her, samlet under samme vurdering.</p>
-      </div>
-      $REPORT_DIAGNOSTICS$
-    </section>
-
-  </details>
 </section>

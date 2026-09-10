@@ -139,3 +139,63 @@ class TestJudgmentCardsRemoved:
         html = _export_report_html(tmp_path)
         assert 'class="judgment-toggle"' not in html
         assert 'Vis hvorfor' not in html
+
+
+class TestReglerPageSimplification:
+    """issue #305: season_plan_report.html becomes a focused Regler view."""
+
+    def test_navbar_label_is_regler(self, tmp_path):
+        html = _export_report_html(tmp_path)
+        assert 'Regler</a>' in html
+        assert 'Rapport</a>' not in html
+
+    def test_page_title_and_heading_are_regler(self, tmp_path):
+        html = _export_report_html(tmp_path)
+        assert "<title>Regler" in html
+        assert "<h1>Regler" in html
+
+    def test_percentage_quality_score_removed(self, tmp_path):
+        html = _export_report_html(tmp_path)
+        assert "Hvor god er planen?" not in html
+        assert "keyMetrics" not in html
+
+    def test_duplicate_summary_sections_removed(self, tmp_path):
+        html = _export_report_html(tmp_path)
+        for removed_id in (
+            "ageGroupSummary",
+            "clubReviewSummary",
+            "tournamentReviewTable",
+            "ruleTransparency",
+            "advisoryChecks",
+            "detailedDiagnosticsIntro",
+            "detaljerAccordion",
+        ):
+            assert f'id="{removed_id}"' not in html, f"{removed_id} should have been removed"
+
+    def test_rules_sections_present(self, tmp_path):
+        html = _export_report_html(tmp_path)
+        assert "Hard krav" in html
+        assert "Påkrevde forpliktelser" in html
+        assert "Myke kvalitetsmål" in html
+
+    def test_compact_summary_present(self, tmp_path):
+        html = _export_report_html(tmp_path)
+        assert "Harde krav:" in html
+        assert "Uløste forpliktelser:" in html
+        assert "Myke kvalitetsvarsler:" in html
+
+
+class TestRulesModelBugFixes:
+    """issue #305: concrete wording/semantics fixes on the Regler page."""
+
+    def test_arena_collision_wording_describes_intervals_not_same_day(self, tmp_path):
+        # The fixed wording itself is covered at the fairness_scoring unit
+        # level (test_fairness_scoring_wording.py); here we only assert the
+        # old, incorrect same-day-ban wording never reaches the page.
+        html = _export_report_html(tmp_path)
+        assert "Ingen dobbeltbooking av samme arena samme dag" not in html
+
+    def test_participation_target_split_into_hard_and_obligation(self, tmp_path):
+        html = _export_report_html(tmp_path)
+        assert "Deltakelsesmål må ikke overskrides" in html
+        assert "Lag under sitt mål for antall turneringsdeltakelser" in html

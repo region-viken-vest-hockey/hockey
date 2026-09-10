@@ -369,7 +369,7 @@ def _manual_schedule_html(
     season_plan_nav = (
         _nav_link(season_plan_href, "Sesongplan", ICON_CLIPBOARD) if season_plan_href else ""
     )
-    report_nav = _nav_link(report_href, "Rapport", ICON_BAR_CHART) if report_href else ""
+    report_nav = _nav_link(report_href, "Regler", ICON_BAR_CHART) if report_href else ""
     manual_nav = _nav_link(MANUAL_SCHEDULE_FILENAME, "Må planlegges manuelt", ICON_WARNING, active=True)
     input_nav = _nav_link(input_href, "Påmeldte lag", ICON_USERS) if input_href else ""
     theme_toggle = """<button id="themeToggle" class="theme-toggle" type="button" aria-label="Bytt tema" title="Bytt tema">

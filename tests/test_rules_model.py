@@ -1,6 +1,8 @@
+from datetime import date
+
 from tournament_scheduler.html.renderers.rules_table import render_rules_table_html
-from tournament_scheduler.models import SeasonPlan
-from tournament_scheduler.rules_model import build_rules_model
+from tournament_scheduler.models import SeasonPlan, Team, Tournament
+from tournament_scheduler.rules_model import build_rules_model, group_rules_by_type, rules_summary_counts
 
 
 def _plan(**overrides) -> SeasonPlan:
@@ -13,16 +15,29 @@ def _plan(**overrides) -> SeasonPlan:
 def test_build_rules_model_is_empty_for_bare_plan():
     rules = build_rules_model(_plan())
     ids = {rule["id"] for rule in rules}
-    # The three always-present required-obligation rules report "Oppfylt"
-    # even with no data, plus no metric/shared-host rules on an empty plan.
+    # The always-present required-obligation rules report "Oppfylt" even
+    # with no data, and the plan-derived hard constraints/static rows are
+    # trivially satisfied on an empty plan, so no metric/shared-host rules
+    # appear.
     assert ids == {
         "hosting_obligation_coverage",
         "external_calendar_conflicts",
         "participation_shortfalls",
+        "age_group_exact_match",
+        "no_same_date_double_participation",
+        "participation_target_exceeded",
+        "date_within_planning_window",
+        "banned_dates_not_used",
+        "excluded_host_clubs_not_used",
+        "locked_dates_preserved",
+        "pinned_tournaments_preserved",
+        "calendar_trust_by_host",
+        "registered_teams_only",
+        "tournament_capacity",
+        "christmas_half_boundary",
     }
     for rule in rules:
-        assert rule["status"] == "Oppfylt"
-        assert rule["type"] == "required_obligation"
+        assert rule["ok"] is True
 
 
 def test_build_rules_model_reads_canonical_fairness_gate_split():
@@ -104,9 +119,124 @@ def test_build_rules_model_surfaces_unresolved_obligations():
     assert "Kongsberg U10-A" in by_id["participation_shortfalls"]["status"]
 
     shared_rule = by_id["shared_host_Kongsberg/Tønsberg_U12"]
-    assert shared_rule["type"] == "soft"
+    assert shared_rule["type"] == "decision"
     assert shared_rule["owner"] == "llm_controller"
     assert shared_rule["configured_value"] == "Kongsberg"
+
+
+def test_age_group_mismatch_is_a_hard_violation():
+    mismatched_team = Team(club="Jar", label="Jar JU10", age_group="JU10")
+    tournament = Tournament(
+        id="t1", date=date(2026, 9, 5), arena="Jarhallen", age_group="U10", teams=[mismatched_team]
+    )
+    plan = _plan(tournaments=[tournament])
+    rules = build_rules_model(plan)
+    by_id = {rule["id"]: rule for rule in rules}
+
+    rule = by_id["age_group_exact_match"]
+    assert rule["type"] == "hard"
+    assert rule["ok"] is False
+    assert "Jar JU10" in rule["status"]
+
+
+def test_participation_target_exceeded_is_hard_and_shortfall_is_obligation():
+    team = Team(club="Jar", label="Jar A", age_group="U10", target_tournament_count=1)
+    tournaments = [
+        Tournament(id="t1", date=date(2026, 9, 5), arena="A", age_group="U10", teams=[team]),
+        Tournament(id="t2", date=date(2026, 9, 12), arena="A", age_group="U10", teams=[team]),
+    ]
+    plan = _plan(tournaments=tournaments)
+    rules = build_rules_model(plan)
+    by_id = {rule["id"]: rule for rule in rules}
+
+    exceeded_rule = by_id["participation_target_exceeded"]
+    assert exceeded_rule["type"] == "hard"
+    assert exceeded_rule["ok"] is False
+    assert "Jar A" in exceeded_rule["status"]
+
+    # Under-target stays a non-blocking obligation, driven by a separate
+    # plan field -- not derived from the same over-target check.
+    shortfall_rule = by_id["participation_shortfalls"]
+    assert shortfall_rule["type"] == "required_obligation"
+
+
+def test_manual_adjustment_violations_are_hard():
+    tournament = Tournament(
+        id="t1",
+        date=date(2026, 12, 25),
+        arena="A",
+        age_group="U10",
+        host_club="Excluded FK",
+        teams=[Team(club="Jar", label="Jar A", age_group="U10")],
+    )
+    plan = _plan(
+        tournaments=[tournament],
+        manual_adjustments={
+            "banned_dates": ["2026-12-25"],
+            "excluded_host_clubs": ["Excluded FK"],
+            "locked_dates": ["2026-01-01"],
+            "pinned_tournament_ids": ["missing-id"],
+        },
+    )
+    rules = build_rules_model(plan)
+    by_id = {rule["id"]: rule for rule in rules}
+
+    assert by_id["banned_dates_not_used"]["ok"] is False
+    assert by_id["excluded_host_clubs_not_used"]["ok"] is False
+    assert by_id["locked_dates_preserved"]["ok"] is False
+    assert by_id["pinned_tournaments_preserved"]["ok"] is False
+    for rule_id in (
+        "banned_dates_not_used",
+        "excluded_host_clubs_not_used",
+        "locked_dates_preserved",
+        "pinned_tournaments_preserved",
+    ):
+        assert by_id[rule_id]["type"] == "hard"
+
+
+def test_calendar_trust_rule_reflects_manual_booking_reason():
+    trusted = Tournament(
+        id="t1", date=date(2026, 9, 5), arena="A", age_group="U10", host_club="Jar",
+        teams=[Team(club="Jar", label="Jar A", age_group="U10")],
+    )
+    untrusted = Tournament(
+        id="t2", date=date(2026, 9, 12), arena="B", age_group="U10", host_club="Tønsberg",
+        teams=[Team(club="Tønsberg", label="Tønsberg A", age_group="U10")],
+        manual_booking_reason="Kalender utilgjengelig for Tønsberg — istid må bookes/verifiseres manuelt.",
+    )
+    plan = _plan(tournaments=[trusted, untrusted])
+    rules = build_rules_model(plan)
+    by_id = {rule["id"]: rule for rule in rules}
+
+    rule = by_id["calendar_trust_by_host"]
+    assert rule["type"] == "hard"
+    assert rule["ok"] is False
+    assert "Tønsberg" in rule["status"]
+    assert "Jar" not in rule["status"]
+
+
+def test_group_rules_by_type_and_summary_counts():
+    plan = _plan(
+        unresolved_hosting_obligations=[{"club": "Ringerike", "age_group": "U12"}],
+        shared_host_decisions=[
+            {
+                "registration": "Kongsberg/Tønsberg",
+                "age_group": "U12",
+                "chosen_club": "Kongsberg",
+                "decided_by": "llm",
+            }
+        ],
+    )
+    rules = build_rules_model(plan)
+    groups = group_rules_by_type(rules)
+    assert all(rule["type"] == "hard" for rule in groups["hard"])
+    assert all(rule["type"] == "required_obligation" for rule in groups["required_obligation"])
+    assert all(rule["type"] == "decision" for rule in groups["decision"])
+    assert len(groups["decision"]) == 1
+
+    counts = rules_summary_counts(rules)
+    assert counts["hard_total"] == counts["hard_ok"]
+    assert counts["obligations_unresolved"] == 1
 
 
 def test_render_rules_table_html_empty_when_no_rules():

@@ -551,30 +551,29 @@ class TestRunStage4:
         assert 'id="timeline"' in html
         assert 'class="filters"' in html
         assert 'class="count-bar"' in html
-        assert 'Ser planen jevn ut?' in report_html
-        assert 'Rettferdighetsjusteringer' in report_html
-        assert 'Per aldersgruppe og klubb: faktisk vs forventet hjemmeturneringer' in report_html
-        assert 'Aldersgruppevis fordeling av hjemmeturneringer: U10 Kongsberg 1 vs ~1.0.' in report_html
         assert 'id="reportOverview"' in report_html
         assert 'Kan planen brukes?' not in report_html
         assert 'Hva må sjekkes eller endres?' not in report_html
-        assert 'Hvilke regler styrte planen?' in report_html
-        assert 'Hva skjer per aldersgruppe?' in report_html
-        assert 'Hva må hver klubb vurdere?' in report_html
-        assert 'Turneringer som skal gjennomgås' in report_html
-        assert 'Detaljerte måltall og kontroller' in report_html
-        assert 'Klubben bør sjekke' in report_html
-        assert report_html.index('id="reportOverview"') < report_html.index('Hvilke regler styrte planen?')
-        assert report_html.index('id="reportOverview"') < report_html.index('Ser planen jevn ut?')
-        assert report_html.index('Hvilke regler styrte planen?') < report_html.index('Detaljerte måltall og kontroller')
-        assert report_html.index('Ser planen jevn ut?') < report_html.index('Detaljerte måltall og kontroller')
+        # issue #305: season_plan_report.html is now a focused Regler view --
+        # the age-group/club/tournament summary tables, the full diagnostics
+        # accordion, and the generic advisory section are gone.
+        assert '<h1>Regler' in report_html
+        for removed_id in (
+            "ageGroupSummary",
+            "clubReviewSummary",
+            "tournamentReviewTable",
+            "ruleTransparency",
+            "advisoryChecks",
+            "detailedDiagnosticsIntro",
+            "detaljerAccordion",
+            "teamStats",
+            "travelStats",
+            "keyMetrics",
+            "clubDashboard",
+        ):
+            assert f'id="{removed_id}"' not in report_html
         assert old_gate_label not in report_html
         assert old_adjustment_label not in report_html
-        assert 'Rådgivende kontroll' in report_html
-        assert 'Manglende klubber' in report_html
-        assert 'id="clubReviewSummary"' in report_html
-        assert 'id="teamStats"' in report_html
-        assert 'id="travelStats"' in report_html
         # issue #277: the heatmap is the operational season-plan view's
         # concern now, not repeated on the report by default.
         assert 'id="heatmapSection"' not in report_html
@@ -583,12 +582,9 @@ class TestRunStage4:
         # filters/timeline detailed view.
         assert html.index('id="heatmapSection"') < html.index('class="filters"')
         assert html.index('id="heatmapSection"') < html.index('id="timeline"')
-        # A first-class canonical Rules table is visible near the top of
-        # the report, before the collapsed technical details.
+        # A first-class canonical Rules table is the report's only section.
         assert 'id="rulesTable"' in report_html
-        assert report_html.index('id="rulesTable"') < report_html.index('id="detaljerAccordion"')
         assert 'rules-table' in report_html
-        assert 'id="clubDashboard"' not in report_html
         assert 'style="display:none' not in report_html
         assert 'id="timeline"' not in report_html
         assert 'class="filters"' not in report_html
@@ -603,13 +599,14 @@ class TestRunStage4:
             assert schedule_identifier not in report_script
         assert 'rvv-theme' in report_script
         assert 'HEATMAP' in report_script
-        assert 'clubSummaryBody' in report_script
-        assert 'clubDashName' not in report_script
         assert 'debug-dashboard' not in html.lower()
         assert not re.search(r"[\U0001F300-\U0001FAFF]", html)
         assert not re.search(r"[\U0001F300-\U0001FAFF]", report_html)
 
-    def test_review_summary_collapses_when_it_only_repeats_main_assessment(self, tmp_path):
+    def test_review_summary_section_removed_from_report(self, tmp_path):
+        """issue #305: the generic advisory/review-summary section is gone
+        from season_plan_report.html -- the Regler page only shows the
+        canonical rules table."""
         state = PipelineState(tmp_path / "pipeline")
         result = run(
             _make_plan_dict(),
@@ -619,8 +616,9 @@ class TestRunStage4:
         )
         report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
 
-        assert 'review-summary-panel--compact' in report_html
-        assert 'Kortversjon av kontrollen' in report_html
+        assert 'id="reviewSummary"' not in report_html
+        assert 'Kortversjon av kontrollen' not in report_html
+        assert 'id="advisoryChecks"' not in report_html
 
     def test_report_missing_hosts_uses_canonical_club_aliases(self, tmp_path):
         """Short RVV club aliases should not trigger false missing-host warnings."""
@@ -678,9 +676,14 @@ class TestRunStage4:
         )
         report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
 
-        assert "Rådgivende kontroll" in report_html
-        assert "Alle 9 RVV-klubber har minst én hjemmeturnering." in report_html
-        assert "Følgende RVV-klubber har ingen hjemmeturnering" not in report_html
+        # issue #305: the generic advisory/review-summary section that used
+        # to report this is gone -- the export completing cleanly with
+        # every canonical RVV club alias as a host is what this test now
+        # guards. The equivalent canonical-alias resolution logic itself is
+        # covered directly in test_plan_exporter.py /
+        # test_manual_calendar_hosting_fairness.py.
+        assert "id=\"rulesTable\"" in report_html
+        assert "Oppfylt" in report_html
 
     def test_html_filters_fall_back_to_plan_age_groups_when_input_omits_them(self, tmp_path):
         input_path = tmp_path / "input.xlsx"
@@ -957,11 +960,6 @@ class TestRunStage4:
         assert envelope["data"]["generated_at"] == result["generated_at"]
         assert envelope["data"]["input_path"] == str(input_path)
 
-        report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        assert "Generert" in report_html
-        assert input_path.name in report_html
-        assert str(input_path) in report_html
-
     def test_report_renders_generated_at_in_europe_oslo_time(self, tmp_path):
         plan = _dict_to_plan(_make_plan_dict()["plan"])
         export_path = tmp_path / "export" / "season_plan.html"
@@ -996,73 +994,28 @@ class TestRunStage4:
         with pytest.raises(Stage4Error, match="Stage 3"):
             run({}, state, export_dir=str(tmp_path / "export"), strict=True)
 
-    def test_conclusion_injects_weakest_metric_name(self, tmp_path):
-        """Conclusion must include weakest metric label when metric_warnings exist."""
-        data = _make_plan_dict()
-        data["plan"]["fairness_gate"] = {
-            "status": "warn",
-            "score": 70,
-            "metrics": [
-                {"label": "Kampbalanse", "value": 3, "threshold": 2, "status": "warn", "score": 60, "unit": "", "detail": "Ujevn fordeling."},
-                {"label": "Hjemmebanebelastning", "value": 1.5, "threshold": 1, "status": "fail", "score": 40, "unit": "", "detail": "For stor belastning."},
-            ],
-        }
-        state = PipelineState(tmp_path / "pipeline")
-        result = run(data, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
-        report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        # Weakest metric is "Hjemmebanebelastning" (status=fail, score=40)
-        assert "Svakeste metrikk: Hjemmebanebelastning" in report_html
-
-    def test_conclusion_injects_month_span(self, tmp_path):
-        """Conclusion must include the Norwegian month-span derived from plan dates."""
-        data = _make_plan_dict()
-        # Plan start_date=2025-09-01, end_date=2025-12-01 → "september–desember"
-        state = PipelineState(tmp_path / "pipeline")
-        result = run(data, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
-        report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        assert "september" in report_html
-        assert "desember" in report_html
-
-    def test_conclusion_injects_most_travel_team(self, tmp_path):
-        """Conclusion must name the team with the most travel distance."""
-        data = _make_plan_dict()
-        state = PipelineState(tmp_path / "pipeline")
-        result = run(data, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
-        report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        # The plan has Kongsberg and Skien; whichever has most travel should appear in conclusion
-        assert "Mest reisende lag:" in report_html
-
-    def test_conclusion_injects_weakest_metric_score(self, tmp_path):
-        """Conclusion must include the numeric score of the weakest metric."""
-        data = _make_plan_dict()
-        data["plan"]["fairness_gate"] = {
-            "status": "warn",
-            "score": 65,
-            "metrics": [
-                {"label": "Kampbalanse", "value": 3, "threshold": 2, "status": "warn", "score": 55, "unit": "", "detail": "Ujevn fordeling."},
-            ],
-        }
-        state = PipelineState(tmp_path / "pipeline")
-        result = run(data, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
-        report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        # Score value 55 must appear in the metric score annotation
-        assert "Svakeste metrikk: Kampbalanse (55%)" in report_html
-
-    def test_conclusion_injects_fairness_submetric_detail(self, tmp_path):
-        """Conclusion must include fairness sub-metric detail for warn/fail status."""
+    def test_fairness_gate_metrics_surface_in_rules_table_not_hidden_conclusion(self, tmp_path):
+        """issue #305: the old hidden prose "conclusion" blob (weakest
+        metric, month span, most-travel-team, blocked/cancelled counts) is
+        gone -- fairness-gate metrics now surface as rows in the canonical
+        rules table instead, with their real label/value/detail intact."""
         data = _make_plan_dict()
         data["plan"]["fairness_gate"] = {
             "status": "fail",
             "score": 30,
             "metrics": [
-                {"label": "Hjemmebanebelastning", "value": 2.5, "threshold": 1, "status": "fail", "score": 30, "unit": "", "detail": "Kritisk skjevfordeling hjemme."},
+                {"label": "Kampbalanse", "value": 3, "threshold": 2, "status": "warn", "score": 60, "unit": "", "detail": "Ujevn fordeling.", "provenance": "measurement"},
+                {"label": "Hjemmebanebelastning", "value": 2.5, "threshold": 1, "status": "fail", "score": 30, "unit": "", "detail": "Kritisk skjevfordeling hjemme.", "provenance": "configured"},
             ],
         }
         state = PipelineState(tmp_path / "pipeline")
         result = run(data, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
         report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        # The fairness detail string must appear for fail status
-        assert "Fairness-avvik: Hjemmebanebelastning" in report_html
+
+        assert "Svakeste metrikk:" not in report_html
+        assert "Fairness-avvik:" not in report_html
+        assert "Kampbalanse" in report_html
+        assert "Hjemmebanebelastning" in report_html
         assert "Kritisk skjevfordeling hjemme." in report_html
 
     def test_manual_schedule_view_lists_calendarless_host_tournaments(self, tmp_path):
@@ -1090,6 +1043,10 @@ class TestRunStage4:
         manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
         assert "Kalender utilgjengelig" in manual_html
         assert "Tønsberg" in manual_html
+        # issue #305: the manual-schedule view's own navbar must also say
+        # "Regler", not the old "Rapport" label.
+        assert "Regler</a>" in manual_html
+        assert "Rapport</a>" not in manual_html
         assert "tnsb001" in manual_html
         html = Path(files["html"]).read_text(encoding="utf-8")
         assert 'href="manual_schedule.html"' in html
@@ -1283,23 +1240,25 @@ class TestRunStage4:
         assert "parallel_games" not in input_html
         assert "input.xlsx" not in input_html
 
-    def test_conclusion_injects_blocked_count(self, tmp_path):
-        """Conclusion must include blocked source count when blocked sources exist."""
+    def test_blocked_sources_do_not_crash_export(self, tmp_path):
+        """issue #305: the hidden conclusion prose that used to say "N kilde(r)
+        blokkert." is gone -- blocked-source metadata is still tracked in the
+        pipeline envelope/result, it just no longer renders as report prose."""
         data = _make_plan_dict()
         state = PipelineState(tmp_path / "pipeline")
-        # Write scraping stage with blocked sources so stage4 picks them up
         state.write_stage(
             StageName.SCRAPING,
             {"sources": [], "blocked": ["Ringerike", "Tønsberg"]},
         )
         result = run(data, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
         report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        assert "2 kilde(r) blokkert." in report_html
+        assert "kilde(r) blokkert." not in report_html
+        assert "id=\"rulesTable\"" in report_html
 
-    def test_conclusion_injects_cancelled_count(self, tmp_path):
-        """Conclusion must include cancellation count when cancelled tournaments exist."""
+    def test_cancelled_tournaments_do_not_crash_export(self, tmp_path):
+        """issue #305: the hidden conclusion prose that used to say "N
+        turnering(er) avlyst." is gone from the Regler page."""
         data = _make_plan_dict()
-        # Add a cancelled tournament
         data["plan"]["tournaments"].append({
             "date": "2025-11-08",
             "arena": "Kongsberghallen",
@@ -1312,21 +1271,15 @@ class TestRunStage4:
         state = PipelineState(tmp_path / "pipeline")
         result = run(data, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
         report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        assert "1 turnering(er) avlyst." in report_html
+        assert "turnering(er) avlyst." not in report_html
+        assert "id=\"rulesTable\"" in report_html
 
-    def test_scrape_age_populated_from_scraping_envelope_updated_at(self, tmp_path):
-        """Report HTML must show a non-empty scrape_age when the SCRAPING envelope has an updated_at field.
-
-        This test verifies the fix for the bug where read_stage() silently dropped the
-        updated_at envelope field, making scrape_age always empty in the exported report.
-        The fix switches to read_envelope() so updated_at is accessible at the top level.
-
-        Note: scrape_age renders in the metrics section of the diagnostics report page
-        (html_report), not the schedule page (html), because the metrics template is only
-        included when include_diagnostics=True.
-        """
+    def test_scraping_envelope_updated_at_still_read_without_error(self, tmp_path):
+        """Regression guard for the read_stage()-vs-read_envelope() bug this
+        test originally caught: reading the SCRAPING envelope's `updated_at`
+        must not raise, even though issue #305 removed the report-page
+        scrape_age display that used to surface it."""
         state = PipelineState(tmp_path / "pipeline")
-        # Write a scraping checkpoint — write_stage auto-populates updated_at in the envelope.
         state.write_stage(
             StageName.SCRAPING,
             {
@@ -1340,14 +1293,9 @@ class TestRunStage4:
             export_dir=str(tmp_path / "export"),
             timestamped_export=False,
         )
-        report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
-        # scrape_age should be rendered in the report — any of the three time-bucket formats is valid.
-        assert re.search(r"\d+[mdt] siden", report_html), (
-            "Expected a scrape_age string (e.g. '5m siden', '2t siden', '1d siden') "
-            "in the exported report HTML, but none was found. "
-            "Check that stage4_export.py uses read_envelope (not read_stage) for the SCRAPING stage "
-            "and that datetime comparison uses timezone-aware datetimes."
-        )
+        envelope = state.read_envelope(StageName.SCRAPING)
+        assert envelope["updated_at"]
+        assert Path(result["output_files"]["html_report"]).exists()
 
     def test_logs_warning_when_scraping_envelope_read_fails(self, tmp_path, monkeypatch, caplog):
         state = PipelineState(tmp_path / "pipeline")

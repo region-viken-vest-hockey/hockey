@@ -280,7 +280,13 @@ def diversity_score(planner, tournaments: Sequence[Tournament]) -> float:
         ]
         if not available:
             continue
-        ratios.append(len(faced) / len(available))
+        # issue #305: `faced` (from `_opponent_history`) can contain entries
+        # that fall outside `available` (e.g. a same-club pairing recorded
+        # for another reason), which let the ratio exceed 1.0 -- a coverage
+        # score above 100% is meaningless. Only count faced opponents that
+        # are actually eligible inter-club opponents, so the ratio stays
+        # bounded to [0, 1] by construction.
+        ratios.append(len(faced & set(available)) / len(available))
 
     if not ratios:
         return 0.0

@@ -123,7 +123,10 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
     for loads in weekend_loads.values():
         if loads:
             same_weekend_load = max(same_weekend_load, max(loads.values()))
-    weekend_detail = f"maks {same_weekend_load} turneringer fra samme klubb i samme uke"
+    # issue #305: this groups by ISO (year, week) -- an actual calendar week,
+    # not a weekend -- so both the label and detail text must say "uke", not
+    # "helg", to match what is actually computed.
+    weekend_detail = f"maks {same_weekend_load} turneringer fra samme klubb i samme kalenderuke"
 
     weekend_balance = hosting_weekend_balance_breakdown(planner, plan)
     consecutive_weekend_load = int(weekend_balance.get("max_consecutive_weekend_load", 0) or 0)
@@ -131,7 +134,7 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
     consecutive_detail = str(weekend_balance.get("consecutive_detail", ""))
     holiday_detail = str(weekend_balance.get("holiday_detail", ""))
 
-    age_group_spreads: List[float] = []
+    age_group_spread_values: List[int] = []
     skipped_age_groups_set = {entry["age_group"] for entry in plan.skipped_age_groups}
     teams_by_age_group: Dict[str, List] = {}
     for team in planner.roster.teams:
@@ -141,16 +144,19 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
             continue
         counts = [planner._team_game_counts.get(planner._team_key(team), 0) for team in teams]
         if counts:
-            average = sum(counts) / len(counts)
-            spread = max(counts) - min(counts)
-            normalized = spread / max(average, 1.0)
-            age_group_spreads.append(min(normalized, 1.0))
-    normalized_game_count_spread = max(age_group_spreads) if age_group_spreads else float(plan.game_count_spread)
+            age_group_spread_values.append(max(counts) - min(counts))
+    # issue #305: this used to report a spread normalized (and capped) to
+    # [0, 1] compared against a raw-games threshold like 2 — a value that can
+    # never warn/fail against that threshold, since it is mathematically
+    # bounded below it. Report the raw per-age-group game-count spread
+    # (whole games) instead, so the value and the threshold share the same
+    # unit.
+    worst_game_count_spread = max(age_group_spread_values) if age_group_spread_values else int(plan.game_count_spread)
 
     add_metric(
         "game_count_spread",
         "Kamper per lag",
-        round(normalized_game_count_spread, 3),
+        worst_game_count_spread,
         thresholds.get("max_game_count_spread", planner.max_game_count_spread),
         direction="max",
         # Not a hard invariant like arena_day_collisions: an uneven game
@@ -167,7 +173,8 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
         # LLM/agent controller and operator still see it, they just no
         # longer get a hard "fail" imposed by an unconfigured default.
         severity="warn",
-        detail=f"Normalisert spredning per aldersgruppe er {normalized_game_count_spread:.3f} (rå spredning: {plan.game_count_spread} kamper, tak på [0, 1]).",
+        detail=f"Største spredning i én aldersgruppe er {worst_game_count_spread} kamper (mellom laget med flest og laget med færrest kamper).",
+        unit=" kamper",
     )
     add_metric(
         "hosting_deviation",
@@ -246,7 +253,7 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
     )
     add_metric(
         "same_weekend_club_load",
-        "Klubblast per helg",
+        "Klubblast per uke",
         same_weekend_load,
         thresholds.get("max_same_weekend_club_load", DEFAULT_FAIRNESS_THRESHOLDS["max_same_weekend_club_load"]),
         direction="max",
@@ -273,18 +280,24 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
     )
     add_metric(
         "arena_day_collisions",
-        "Arena-/dagskollisjoner",
+        "Arena-/tidskollisjon",
         len(getattr(plan, "arena_day_collisions", []) or []),
         0,
         direction="max",
         severity="fail",
+        # issue #305: turneringer kan dele samme arena samme dag -- det er
+        # kun overlappende reserverte tidsintervaller (inkludert buffer) som
+        # er en kollisjon. `plan.arena_day_collisions` bygges allerede fra
+        # `arena_conflicts.find_arena_interval_collisions` (full
+        # start-/sluttintervall-sjekk), så bare teksten under var feil.
         detail=(
-            "Ingen dobbeltbooking av samme arena samme dag."
+            "Turneringer kan bruke samme arena samme dag, men reserverte "
+            "tidsintervaller (inkludert nødvendig buffer) må ikke overlappe."
             if not getattr(plan, "arena_day_collisions", None)
-            else f"{len(plan.arena_day_collisions)} kollisjon(er) der samme arena ble tildelt mer enn én turnering samme dag."
+            else f"{len(plan.arena_day_collisions)} kollisjon(er) der reserverte tidsintervaller i samme arena overlapper."
         ),
         # True hard invariant: an arena physically cannot host two
-        # tournaments at once.
+        # overlapping tournament intervals at once.
         provenance="hard_invariant",
     )
 
