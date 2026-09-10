@@ -1099,7 +1099,7 @@ class TestHarnessGate:
         """Gate must return True when at least one source has events."""
         from unittest.mock import MagicMock
         from rich.console import Console
-        from tournament_scheduler.cli.pipeline_orchestrator import _check_stage2_checkpoint
+        from tournament_scheduler.cli.pipeline_orchestrator.stage2 import _check_stage2_checkpoint
 
         checkpoint = {
             "sources": [
@@ -1119,7 +1119,7 @@ class TestHarnessGate:
         """Gate must proceed deterministically without importing or calling any LLM client."""
         from unittest.mock import MagicMock, patch
         from rich.console import Console
-        from tournament_scheduler.cli.pipeline_orchestrator import _check_stage2_checkpoint
+        from tournament_scheduler.cli.pipeline_orchestrator.stage2 import _check_stage2_checkpoint
 
         checkpoint = {
             "sources": [{"name": "HallA", "event_count": 3, "blocked": False}],

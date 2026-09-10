@@ -7,18 +7,24 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 
-from tournament_scheduler.cli.pipeline_orchestrator import (
-    _MAX_REFINEMENT_ITERATIONS,
+from tournament_scheduler.cli.pipeline_orchestrator.judgment import (
     _compute_verdict_tone,
-    _decide_continue_refinement,
-    _decide_plan_adoption,
-    _decide_refinement_candidate,
     _plan_attempt_quality_adopts,
-    _refinement_metrics,
-    _run_approval_gate,
+)
+from tournament_scheduler.cli.pipeline_orchestrator.plan_adoption import (
+    _decide_plan_adoption,
     _run_mid_planning_critic_loop,
+)
+from tournament_scheduler.cli.pipeline_orchestrator.refinement_decisions import (
+    _decide_continue_refinement,
+    _decide_refinement_candidate,
+    _refinement_metrics,
+)
+from tournament_scheduler.cli.pipeline_orchestrator.refinement_loop import (
+    _MAX_REFINEMENT_ITERATIONS,
     _run_refinement_loop,
 )
+from tournament_scheduler.cli.pipeline_orchestrator.stage1 import _run_approval_gate
 from tournament_scheduler.models import SeasonPlan
 
 _HARNESS_CLEAN = {
@@ -164,7 +170,7 @@ class TestRunMidPlanningCriticLoop:
         args = _make_args()
         args.mid_planning_critic_iterations = 0
 
-        with patch("tournament_scheduler.cli.pipeline_orchestrator._run_stage3") as mock_stage3:
+        with patch("tournament_scheduler.cli.pipeline_orchestrator.plan_adoption._run_stage3") as mock_stage3:
             updated, abort, failed = _run_mid_planning_critic_loop(
                 args, {}, {}, MagicMock(), MagicMock(), MagicMock(), True, 1, lambda _: None, plan
             )
@@ -181,9 +187,9 @@ class TestRunMidPlanningCriticLoop:
         log_calls: list[str] = []
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._build_mid_planning_critic_hints",
+            "tournament_scheduler.cli.pipeline_orchestrator.plan_adoption._build_mid_planning_critic_hints",
             return_value={"issues": [], "penalty_hints": {}, "tone": "strong"},
-        ), patch("tournament_scheduler.cli.pipeline_orchestrator._run_stage3") as mock_stage3:
+        ), patch("tournament_scheduler.cli.pipeline_orchestrator.plan_adoption._run_stage3") as mock_stage3:
             _run_mid_planning_critic_loop(
                 args, {}, {}, MagicMock(), MagicMock(), MagicMock(), True, 1, log_calls.append, plan
             )
@@ -199,13 +205,13 @@ class TestRunMidPlanningCriticLoop:
         state = MagicMock()
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._build_mid_planning_critic_hints",
+            "tournament_scheduler.cli.pipeline_orchestrator.plan_adoption._build_mid_planning_critic_hints",
             side_effect=[
                 {"source": "mid_planning_critic", "issues": ["issue"], "penalty_hints": {"game_count_spread_score": 40.0}, "tone": "rough"},
                 {"issues": [], "penalty_hints": {}, "tone": "strong"},
             ],
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.plan_adoption._run_stage3",
             return_value=(improved, False, False),
         ) as mock_stage3:
             updated, abort, failed = _run_mid_planning_critic_loop(
@@ -225,10 +231,10 @@ class TestRunMidPlanningCriticLoop:
         args.mid_planning_critic_iterations = 2
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._build_mid_planning_critic_hints",
+            "tournament_scheduler.cli.pipeline_orchestrator.plan_adoption._build_mid_planning_critic_hints",
             return_value={"issues": ["issue"], "penalty_hints": {"hosting_deviation_score": 20.0}, "tone": "rough"},
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.plan_adoption._run_stage3",
             return_value=(plan, False, False),
         ) as mock_stage3:
             _run_mid_planning_critic_loop(
@@ -474,7 +480,7 @@ class TestRunRefinementLoop:
 
         return (plan_obj, [
             patch(
-                "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+                "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
                 side_effect=[initial_tone, tone_after_apply],
             ),
             patch(
@@ -507,7 +513,7 @@ class TestRunRefinementLoop:
         log_calls: list[str] = []
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
             return_value="mixed",
         ) as mock_tone:
             tone, updated = _run_refinement_loop(checkpoint, state, args, False, log_calls.append)
@@ -533,7 +539,7 @@ class TestRunRefinementLoop:
         tone_iter = iter(tone_sequence)
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
             side_effect=tone_iter,
         ):
             with patch(
@@ -590,7 +596,7 @@ class TestRunRefinementLoop:
         tone_values = ["rough"] * (_MAX_REFINEMENT_ITERATIONS + 1)
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
             side_effect=tone_values,
         ):
             with patch(
@@ -644,7 +650,7 @@ class TestRunRefinementLoop:
         apply_mock = MagicMock()
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
             return_value="rough",
         ):
             with patch(
@@ -687,7 +693,7 @@ class TestRunRefinementLoop:
         apply_mock = MagicMock()
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
             return_value="rough",
         ):
             with patch(
@@ -736,7 +742,7 @@ class TestRunRefinementLoop:
             return apply_result
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
             side_effect=["rough", "mixed"],
         ):
             with patch(
@@ -794,7 +800,7 @@ class TestRunRefinementLoop:
         move_date_mock = MagicMock(return_value=move_date_result)
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
             side_effect=["rough", "mixed"],
         ):
             with patch(
@@ -849,7 +855,7 @@ class TestRunRefinementLoop:
         }]
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
             return_value="rough",
         ):
             with patch(
@@ -902,7 +908,7 @@ class TestRunRefinementLoop:
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=judge
         ):
             with patch(
-                "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+                "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
                 return_value="rough",
             ):
                 with patch(
@@ -951,7 +957,7 @@ class TestRunRefinementLoop:
         move_date_result.summary_nb = "moved"
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._compute_verdict_tone",
+            "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop._compute_verdict_tone",
             return_value="rough",
         ):
             with patch(

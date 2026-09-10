@@ -203,7 +203,7 @@ class TestHealthCheck:
 
 class TestVisibleWarnings:
     def test_manifest_start_run_failure_prints_a_warning(self, tmp_path, capsys, monkeypatch):
-        from tournament_scheduler.cli.pipeline_orchestrator import _manifest_start_run
+        from tournament_scheduler.cli.pipeline_orchestrator.manifest import _manifest_start_run
 
         def _boom(*args, **kwargs):
             raise OSError("disk full")
@@ -216,7 +216,7 @@ class TestVisibleWarnings:
         assert "disk full" in out
 
     def test_manifest_start_run_failure_writes_a_log_line(self, tmp_path, monkeypatch):
-        from tournament_scheduler.cli.pipeline_orchestrator import _manifest_start_run
+        from tournament_scheduler.cli.pipeline_orchestrator.manifest import _manifest_start_run
 
         def _boom(*args, **kwargs):
             raise OSError("disk full")
@@ -229,7 +229,7 @@ class TestVisibleWarnings:
         assert "disk full" in log_path.read_text(encoding="utf-8")
 
     def test_manifest_record_failure_is_visible(self, tmp_path, capsys, monkeypatch):
-        from tournament_scheduler.cli.pipeline_orchestrator import _manifest_record
+        from tournament_scheduler.cli.pipeline_orchestrator.manifest import _manifest_record
 
         RunManifest(tmp_path).start_run("objective")
 
@@ -242,7 +242,7 @@ class TestVisibleWarnings:
         assert "Kunne ikke" in capsys.readouterr().out
 
     def test_manifest_finalize_failure_is_visible(self, tmp_path, capsys, monkeypatch):
-        from tournament_scheduler.cli.pipeline_orchestrator import _manifest_finalize
+        from tournament_scheduler.cli.pipeline_orchestrator.manifest import _manifest_finalize
 
         RunManifest(tmp_path).start_run("objective")
 
@@ -255,7 +255,7 @@ class TestVisibleWarnings:
         assert "Kunne ikke" in capsys.readouterr().out
 
     def test_raise_escalation_questions_failure_is_visible(self, tmp_path, capsys):
-        from tournament_scheduler.cli.pipeline_orchestrator import _raise_escalation_questions
+        from tournament_scheduler.cli.pipeline_orchestrator.operator_run import _raise_escalation_questions
 
         with patch(
             "tournament_scheduler.pipeline.run_manifest.RunManifest.read", side_effect=RuntimeError("boom")
@@ -272,7 +272,7 @@ class TestVisibleWarnings:
 
 class TestOutcomeDowngradeOnDegradedPersistence:
     def test_ok_outcome_downgrades_to_warning_after_a_manifest_failure(self, tmp_path, monkeypatch):
-        from tournament_scheduler.cli.pipeline_orchestrator import (
+        from tournament_scheduler.cli.pipeline_orchestrator.manifest import (
             _MANIFEST_DEGRADED_WORK_DIRS,
             _manifest_finalize,
             _manifest_start_run,
@@ -294,7 +294,7 @@ class TestOutcomeDowngradeOnDegradedPersistence:
         _MANIFEST_DEGRADED_WORK_DIRS.discard(str(Path(tmp_path).resolve()))
 
     def test_clean_run_stays_ok(self, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _manifest_finalize
+        from tournament_scheduler.cli.pipeline_orchestrator.manifest import _manifest_finalize
 
         RunManifest(tmp_path).start_run("objective")
         _manifest_finalize(str(tmp_path), "ok")

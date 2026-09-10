@@ -19,7 +19,7 @@ silently reverted to a Python heuristic, reproducing the exact bug #274
 exists to kill, and violating issue #260's closed mandate that
 "harness-active vs headless must differ by transport, not decision rules."
 Decision-making for this and any future in-stage sub-decision belongs in
-``cli/pipeline_orchestrator.py`` (see ``_resolve_shared_host_decisions``),
+``cli.pipeline_orchestrator`` (see ``shared_host_decisions._resolve_shared_host_decisions``),
 which already owns every other headless/interactive decision point in this
 pipeline. Do not add another inline judge call here — use
 :func:`compute_shared_registration_facts` to expose the deterministic facts
@@ -135,7 +135,7 @@ def compute_shared_registration_facts(
     headless judge or pauses for a harness decision itself (see the module
     docstring's "Shared-host decisions" note for why an earlier version of
     this file did exactly that, inline, and why it was removed). Callers —
-    ``cli/pipeline_orchestrator.py``'s headless and interactive decision
+    ``cli.pipeline_orchestrator``'s headless and interactive decision
     points, never this module — use this to gather the facts, obtain the
     decision through whichever transport applies (auto-call the judge when
     headless; pause/emit a ``DecisionContext`` and wait for the harness
@@ -330,7 +330,7 @@ def run(
     # candidate's weak metrics), so this must be a fresh dict, never None.
     penalty_hints: dict[str, float] = dict(penalty_hints_in) if penalty_hints_in else {}
     # issue #260 Phase 4 ("remove penalty_hints threshold relaxation from the
-    # canonical decision-driven path"): set by pipeline_orchestrator._run_stage3
+    # canonical decision-driven path"): set by pipeline_orchestrator.stage3_run._run_stage3
     # to False whenever a headless judge is configured, so neither an initial
     # penalty_hints handoff from a previous attempt nor this run's own
     # per-seed feed-forward below silently relaxes SeasonPlanner's acceptance
@@ -347,7 +347,7 @@ def run(
     source_fingerprint = stable_payload_sha256(scraping_result)
 
     # issue #274: the shared/joint-club hosting decision itself is made by
-    # cli/pipeline_orchestrator.py (headless judge or interactive harness
+    # cli.pipeline_orchestrator (headless judge or interactive harness
     # pause, per config["shared_host_decisions"]/compute_shared_registration_facts)
     # — never here. An earlier version called a headless judge inline from
     # this module; that meant an interactive harness session (the realistic

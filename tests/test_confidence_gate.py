@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rich.console import Console
 
-from tournament_scheduler.cli.pipeline_orchestrator import _check_stage2_checkpoint
+from tournament_scheduler.cli.pipeline_orchestrator.stage2 import _check_stage2_checkpoint
 
 
 def _console() -> Console:

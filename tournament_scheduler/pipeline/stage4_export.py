@@ -536,7 +536,7 @@ def run(
     # be materialized into every export format must independently re-verify
     # clean *here*, at the one chokepoint every caller of this function goes
     # through -- the interactive pipeline's own pre-export gate
-    # (`cli.pipeline_orchestrator._assert_hard_verification_before_export`)
+    # (`cli.pipeline_orchestrator.verification._assert_hard_verification_before_export`)
     # only covers the guarded `run`/`run --interactive` CLI paths, not a
     # direct `python3 -m tournament_scheduler.pipeline.stage4_export`
     # invocation or a future caller that resumes/regenerates an export from

@@ -8,7 +8,7 @@ must overwrite the plan's manual/unresolved lists with the canonical
 final `verify_candidate` recomputation right before export.
 """
 
-from tournament_scheduler.cli.pipeline_orchestrator import _reconcile_verified_manual_state
+from tournament_scheduler.cli.pipeline_orchestrator.verification import _reconcile_verified_manual_state
 
 
 def _tournament(host_club: str, age_group: str) -> dict:

@@ -431,7 +431,7 @@ def test_stage3_retries_log_later_composite_winner(tmp_path: Path) -> None:
 # _check_stage2_checkpoint unit tests
 # ---------------------------------------------------------------------------
 
-from tournament_scheduler.cli.pipeline_orchestrator import _check_stage2_checkpoint  # noqa: E402
+from tournament_scheduler.cli.pipeline_orchestrator.stage2 import _check_stage2_checkpoint  # noqa: E402
 
 
 def _make_stage2_checkpoint_with_blocked() -> dict:

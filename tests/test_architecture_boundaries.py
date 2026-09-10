@@ -23,7 +23,33 @@ CANONICAL_PATH_MODULES = [
     "tournament_scheduler.stage3_optimizer",
     "tournament_scheduler.stage3_decision",
     "tournament_scheduler.pipeline.stage3_planning",
-    "tournament_scheduler.cli.pipeline_orchestrator",
+    # tournament_scheduler.cli.pipeline_orchestrator is a package (split for
+    # the 300-line-per-file guideline) -- list every submodule individually
+    # so this check still inspects the real import graph, not just the
+    # __init__.py re-export facade.
+    "tournament_scheduler.cli.pipeline_orchestrator.calendars_scrape",
+    "tournament_scheduler.cli.pipeline_orchestrator.export_command",
+    "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit",
+    "tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io",
+    "tournament_scheduler.cli.pipeline_orchestrator.judgment",
+    "tournament_scheduler.cli.pipeline_orchestrator.manifest",
+    "tournament_scheduler.cli.pipeline_orchestrator.operator_publish",
+    "tournament_scheduler.cli.pipeline_orchestrator.operator_run",
+    "tournament_scheduler.cli.pipeline_orchestrator.plan_adoption",
+    "tournament_scheduler.cli.pipeline_orchestrator.refinement_decisions",
+    "tournament_scheduler.cli.pipeline_orchestrator.refinement_loop",
+    "tournament_scheduler.cli.pipeline_orchestrator.refinement_reexport",
+    "tournament_scheduler.cli.pipeline_orchestrator.run_command",
+    "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive",
+    "tournament_scheduler.cli.pipeline_orchestrator.run_log",
+    "tournament_scheduler.cli.pipeline_orchestrator.shared_host_decisions",
+    "tournament_scheduler.cli.pipeline_orchestrator.stage1",
+    "tournament_scheduler.cli.pipeline_orchestrator.stage2",
+    "tournament_scheduler.cli.pipeline_orchestrator.stage3_optimize_core",
+    "tournament_scheduler.cli.pipeline_orchestrator.stage3_optimize_variants",
+    "tournament_scheduler.cli.pipeline_orchestrator.stage3_pareto_decision",
+    "tournament_scheduler.cli.pipeline_orchestrator.stage3_run",
+    "tournament_scheduler.cli.pipeline_orchestrator.verification",
 ]
 
 

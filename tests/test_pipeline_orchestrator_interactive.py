@@ -15,11 +15,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tournament_scheduler.cli.pipeline_orchestrator import (
-    _cmd_run_interactive,
-    _decision_summary_for_checkpoint,
-    _read_stage3_interactive_state,
-)
+from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import _decision_summary_for_checkpoint
+from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_stage3_interactive_state
+from tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive import _cmd_run_interactive
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 
 
@@ -128,7 +126,7 @@ class TestCmdRunInteractive:
     def test_emits_valid_decision_context_json(self, state, tmp_path, capsys):
         args = _args(work_dir=str(tmp_path), resume_from="1")
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
             "tournament_scheduler.pipeline.stage1_config.load_effective_config",
@@ -153,7 +151,7 @@ class TestCmdRunInteractive:
         with patch(
             "tournament_scheduler.pipeline.stage1_config.load_effective_config",
             return_value={"sources": [], "start_date": "2026-09-01", "end_date": "2027-04-30"},
-        ), patch("tournament_scheduler.cli.pipeline_orchestrator._run_stage2") as run_stage2:
+        ), patch("tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2") as run_stage2:
             exit_code = _cmd_run_interactive(args)
 
         assert exit_code == 1
@@ -169,7 +167,7 @@ class TestCmdRunInteractive:
         with patch(
             "tournament_scheduler.pipeline.stage1_config.load_effective_config",
             return_value={"sources": [], "start_date": "2026-09-01", "end_date": "2027-04-30"},
-        ), patch("tournament_scheduler.cli.pipeline_orchestrator._run_stage2") as run_stage2:
+        ), patch("tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2") as run_stage2:
             exit_code = _cmd_run_interactive(args)
 
         assert exit_code == 1
@@ -195,10 +193,10 @@ class TestCmdRunInteractive:
             "tournament_scheduler.pipeline.stage1_config.load_effective_config",
             return_value={"sources": [], "start_date": "2026-09-01", "end_date": "2027-04-30"},
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ) as run_stage1, patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2"
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2"
         ) as run_stage2:
             exit_code = _cmd_run_interactive(args)
 
@@ -217,7 +215,7 @@ class TestCmdRunInteractive:
             "tournament_scheduler.pipeline.stage1_config.load_effective_config",
             return_value={"sources": [], "start_date": "2026-09-01", "end_date": "2027-04-30"},
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ):
             exit_code = _cmd_run_interactive(args)
@@ -238,8 +236,7 @@ class TestStage2InteractiveZeroEventsDefersToDecisionContext:
     to decide via the Stage 2 DecisionContext instead (issue #260 P1)."""
 
     def test_zero_events_strict_interactive_proceeds_to_checkpoint(self, state, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _run_stage2
-
+        from tournament_scheduler.cli.pipeline_orchestrator.stage2 import _run_stage2
         args = _args(work_dir=str(tmp_path), interactive=True, non_strict=False)
         cfg = {"start_date": "2026-09-01", "end_date": "2027-04-30"}
         zero_events_checkpoint = {
@@ -259,8 +256,7 @@ class TestStage2InteractiveZeroEventsDefersToDecisionContext:
         assert scraping == zero_events_checkpoint
 
     def test_zero_events_strict_non_interactive_unattended_aborts(self, state, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _run_stage2
-
+        from tournament_scheduler.cli.pipeline_orchestrator.stage2 import _run_stage2
         args = _args(work_dir=str(tmp_path), interactive=False, non_strict=False)
         cfg = {"start_date": "2026-09-01", "end_date": "2027-04-30"}
         zero_events_checkpoint = {
@@ -287,13 +283,13 @@ class TestStage3InteractiveDecisionLoop:
         args = _args(work_dir=str(tmp_path), resume_from="3")
         plan = _plan_checkpoint(seed=1)
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan, False, False),
         ):
             exit_code = _cmd_run_interactive(args)
@@ -332,13 +328,13 @@ class TestStage3InteractiveDecisionLoop:
         shadow_candidate = dict(_candidate(seed=2))
         shadow_candidate["source"] = {"planner": "cp_sat", "status": "OPTIMAL", "runtime_seconds": 0.4}
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan, False, False),
         ), patch(
             "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
@@ -373,13 +369,13 @@ class TestStage3InteractiveDecisionLoop:
         args = _args(work_dir=str(tmp_path), resume_from="3")
         plan = _plan_checkpoint(seed=1)
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan, False, False),
         ), patch(
             "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
@@ -409,13 +405,13 @@ class TestStage3InteractiveDecisionLoop:
         args = _args(work_dir=str(tmp_path), resume_from="3")
         plan = _plan_checkpoint(seed=1)
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan, False, False),
         ), patch(
             "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
@@ -438,7 +434,7 @@ class TestStage3InteractiveDecisionLoop:
     def test_optimize_plan_runs_v2_optimizer_not_legacy_stage3(self, state, tmp_path):
         """issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
         optimizer, not rerun the legacy SeasonPlanner via _run_stage3."""
-        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report
         from tournament_scheduler.stage3_decision import build_stage3_decision_context
 
@@ -469,13 +465,13 @@ class TestStage3InteractiveDecisionLoop:
             ),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3, patch(
             "tournament_scheduler.stage3_optimizer.optimize_candidate",
             return_value=plan2_candidate,
@@ -505,7 +501,7 @@ class TestStage3InteractiveDecisionLoop:
         dispatch through stage3_engine.run_planner to the CP-SAT shadow
         optimizer, and the resulting pending candidate's source must record
         which engine actually produced it."""
-        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.pipeline.evidence_bundle import read_stage3_attempt_log
         from tournament_scheduler.stage3_ab import build_ab_report
         from tournament_scheduler.stage3_decision import build_stage3_decision_context
@@ -542,16 +538,16 @@ class TestStage3InteractiveDecisionLoop:
             ),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(
                 {"start_date": "2026-09-01", "end_date": "2027-04-30", "cp_sat_shadow_enabled": False},
                 False,
             ),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3, patch(
             "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
             return_value=plan2_candidate,
@@ -583,7 +579,7 @@ class TestStage3InteractiveDecisionLoop:
         run or silently publish a solver candidate -- the existing best plan
         stays the Stage 3 checkpoint, and the failure is recorded as an
         attempt-log evidence entry."""
-        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.pipeline.evidence_bundle import read_stage3_attempt_log
         from tournament_scheduler.pipeline.state import StageName as _StageName
         from tournament_scheduler.stage3_ab import build_ab_report
@@ -620,16 +616,16 @@ class TestStage3InteractiveDecisionLoop:
             ),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(
                 {"start_date": "2026-09-01", "end_date": "2027-04-30", "cp_sat_shadow_enabled": False},
                 False,
             ),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3, patch(
             "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
             side_effect=CpSatNoCandidate("INFEASIBLE", 5.0),
@@ -653,7 +649,7 @@ class TestStage3InteractiveDecisionLoop:
         """issue #264 P1 / issue #265 P1: optimize_plan(mode="pareto") runs
         the shared multi-objective search and offers every non-dominated
         candidate by candidate_ref, instead of a single rerun."""
-        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report
         from tournament_scheduler.stage3_decision import build_stage3_decision_context
 
@@ -712,13 +708,13 @@ class TestStage3InteractiveDecisionLoop:
             ),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3, patch(
             "tournament_scheduler.stage3_optimizer.optimize_candidate_pareto",
             return_value=fake_portfolio_result,
@@ -748,7 +744,7 @@ class TestStage3InteractiveDecisionLoop:
         write the *chosen* candidate_ref's candidate, not whatever happens
         to already be on disk (there is no single "just reran" candidate
         for a multi-candidate Pareto attempt)."""
-        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.stage3_decision import STAGE3_DECISION_ACTIONS
 
         plan1 = _plan_checkpoint(seed=1)
@@ -806,16 +802,16 @@ class TestStage3InteractiveDecisionLoop:
             ),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan1, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
             return_value=(False, False, False),
         ):
             exit_code = _cmd_run_interactive(args)
@@ -827,7 +823,7 @@ class TestStage3InteractiveDecisionLoop:
     def test_apply_candidate_advances_and_clears_state(self, state, tmp_path):
         import copy
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report
         from tournament_scheduler.stage3_decision import build_stage3_decision_context
 
@@ -864,16 +860,16 @@ class TestStage3InteractiveDecisionLoop:
             ),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan2, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
             return_value=(False, False, False),
         ):
             exit_code = _cmd_run_interactive(args)
@@ -887,9 +883,7 @@ class TestStage3InteractiveDecisionLoop:
         decision/search/verification provenance bundle."""
         import json as _json
 
-        from tournament_scheduler.cli.pipeline_orchestrator import (
-            _write_stage3_interactive_state,
-        )
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report
         from tournament_scheduler.stage3_decision import build_stage3_decision_context
 
@@ -937,16 +931,16 @@ class TestStage3InteractiveDecisionLoop:
             ),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan2, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
             return_value=(False, False, False),
         ):
             exit_code = _cmd_run_interactive(args)
@@ -961,7 +955,7 @@ class TestStage3InteractiveDecisionLoop:
         assert isinstance(bundle["decision_log"], list)
 
     def test_keep_baseline_restores_best_plan_and_clears_state(self, state, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report
         from tournament_scheduler.stage3_decision import build_stage3_decision_context
 
@@ -995,16 +989,16 @@ class TestStage3InteractiveDecisionLoop:
             decision_action=json.dumps({"action_id": "keep_baseline", "rationale": "not better"}),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan2, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
             return_value=(False, False, False),
         ):
             exit_code = _cmd_run_interactive(args)
@@ -1018,11 +1012,8 @@ class TestStage3InteractiveDecisionLoop:
     def test_optimize_plan_not_offered_past_attempt_cap(self, state, tmp_path):
         from datetime import datetime
 
-        from tournament_scheduler.cli.pipeline_orchestrator import (
-            _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
-            _emit_stage3_interactive_decision,
-            _write_stage3_interactive_state,
-        )
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import _emit_stage3_interactive_decision
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _MAX_INTERACTIVE_STAGE3_ATTEMPTS, _write_stage3_interactive_state
 
         plan1 = _plan_checkpoint(seed=1)
         _write_stage3_interactive_state(
@@ -1058,10 +1049,7 @@ class TestStage3InteractiveDecisionLoop:
         the same work directory -- reproduces the exact symptom reported in
         the issue (a recorded attempt count past _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
         left over from an earlier/aborted run in the same work_dir)."""
-        from tournament_scheduler.cli.pipeline_orchestrator import (
-            _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
-            _write_stage3_interactive_state,
-        )
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _MAX_INTERACTIVE_STAGE3_ATTEMPTS, _write_stage3_interactive_state
         from tournament_scheduler.pipeline.run_manifest import RunManifest
 
         # Simulate leftover state from a previous, different run in this
@@ -1083,7 +1071,7 @@ class TestStage3InteractiveDecisionLoop:
         # answer yet -- this is the fresh-start signal.
         args1 = _args(work_dir=str(tmp_path), resume_from="1")
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
             "tournament_scheduler.pipeline.stage1_config.load_effective_config",
@@ -1108,13 +1096,13 @@ class TestStage3InteractiveDecisionLoop:
             decision_action=json.dumps({"action_id": "proceed"}),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan_this_run, False, False),
         ):
             exit_code = _cmd_run_interactive(args2)
@@ -1164,23 +1152,22 @@ class TestSharedHostInteractiveDecision:
         args = _args(work_dir=str(tmp_path), resume_from="3")
 
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(cfg, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3:
             exit_code = _cmd_run_interactive(args)
 
         assert exit_code == 2
         run_stage3.assert_not_called()
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
-
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_shared_host_state
         shared_state = _read_shared_host_state(state)
         pending = shared_state["pending"]
         assert pending == {"registration": "Kongsberg/Tønsberg", "age_group": "U10"}
@@ -1195,15 +1182,15 @@ class TestSharedHostInteractiveDecision:
         # First call: reach the pause and persist shared_host_decision_state.json.
         args1 = _args(work_dir=str(tmp_path), resume_from="3")
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(cfg, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ):
             assert _cmd_run_interactive(args1) == 2
 
@@ -1222,15 +1209,15 @@ class TestSharedHostInteractiveDecision:
             }),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(cfg, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan, False, False),
         ) as run_stage3:
             exit_code = _cmd_run_interactive(args2)
@@ -1245,8 +1232,7 @@ class TestSharedHostInteractiveDecision:
         assert threaded[0]["decided_by"] == "harness"
         assert "Kongsberg already hosts materially more" in threaded[0]["rationale"]
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
-
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_shared_host_state
         # Resolved -- the pause-tracking state was cleared, not merely
         # left with pending=None (compute_shared_registration_facts must
         # not be asked about this registration again on a future resume).
@@ -1272,15 +1258,15 @@ class TestSharedHostInteractiveDecision:
         # First call: reach the shared-host pause.
         args1 = _args(work_dir=str(tmp_path), resume_from="3")
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(cfg, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ):
             assert _cmd_run_interactive(args1) == 2
 
@@ -1301,18 +1287,18 @@ class TestSharedHostInteractiveDecision:
             }),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(cfg, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan, False, False),
         ) as run_stage3, patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._maybe_run_stage3_cp_sat_shadow",
+            "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit._maybe_run_stage3_cp_sat_shadow",
             return_value=shadow_evidence,
         ) as cp_sat_shadow_mock:
             exit_code = _cmd_run_interactive(args2)
@@ -1328,23 +1314,22 @@ class TestSharedHostInteractiveDecision:
         assert fresh_context["capability"] == "stage3_interactive"
         assert fresh_context["facts"]["cp_sat_shadow"] == shadow_evidence
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
-
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_shared_host_state
         assert _read_shared_host_state(state) == {}
 
     def test_rejected_decision_action_does_not_advance(self, state, tmp_path):
         cfg = _joint_club_cfg()
         args1 = _args(work_dir=str(tmp_path), resume_from="3")
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(cfg, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ):
             assert _cmd_run_interactive(args1) == 2
 
@@ -1359,23 +1344,22 @@ class TestSharedHostInteractiveDecision:
             }),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(cfg, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3:
             exit_code = _cmd_run_interactive(args2)
 
         assert exit_code == 1
         run_stage3.assert_not_called()
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
-
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_shared_host_state
         # Still pending -- a rejected action must not consume the decision.
         assert _read_shared_host_state(state)["pending"] == {
             "registration": "Kongsberg/Tønsberg", "age_group": "U10",
@@ -1387,8 +1371,7 @@ class TestSharedHostInteractiveDecision:
         configured headless judge instead of ever pausing."""
         from datetime import datetime
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _resolve_shared_host_decisions
-
+        from tournament_scheduler.cli.pipeline_orchestrator.shared_host_decisions import _resolve_shared_host_decisions
         judge_mock = MagicMock()
         judge_mock.judge.return_value = "assign_shared_host\nTønsberg\nfairness rationale"
         cfg = _joint_club_cfg()
@@ -1407,8 +1390,7 @@ class TestSharedHostInteractiveDecision:
         assert decisions[0]["chosen_club"] == "Tønsberg"
         assert decisions[0]["decided_by"] == "llm"
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _read_shared_host_state
-
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_shared_host_state
         # Fully resolved -- no leftover pending/side-state for next run.
         assert _read_shared_host_state(state) == {}
 
@@ -1419,8 +1401,7 @@ class TestSharedHostInteractiveDecision:
         no pause (there is nothing to pause for in this entrypoint)."""
         from datetime import datetime
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _resolve_shared_host_decisions
-
+        from tournament_scheduler.cli.pipeline_orchestrator.shared_host_decisions import _resolve_shared_host_decisions
         cfg = _joint_club_cfg()
         start = datetime.fromisoformat(cfg["start_date"])
         end = datetime.fromisoformat(cfg["end_date"])
@@ -1449,8 +1430,7 @@ class TestStage4StaleCheckpointGuard:
     def test_stale_checkpoint_blocks_stage3_skip(self, state, tmp_path):
         from datetime import datetime
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _run_stage3
-
+        from tournament_scheduler.cli.pipeline_orchestrator.stage3_run import _run_stage3
         stale_plan = _plan_checkpoint(seed=99)
         state.write_stage(StageName.PLANNING, stale_plan, status=StageStatus.DONE)
         # Simulate this run's own Stage 1 actually (re)running fresh --
@@ -1477,8 +1457,7 @@ class TestStage4StaleCheckpointGuard:
         multi-invocation resume within the same logical run."""
         from datetime import datetime
 
-        from tournament_scheduler.cli.pipeline_orchestrator import _run_stage3
-
+        from tournament_scheduler.cli.pipeline_orchestrator.stage3_run import _run_stage3
         fresh_plan = _plan_checkpoint(seed=1)
         state.write_stage(StageName.PLANNING, fresh_plan, status=StageStatus.DONE)
         assert not state.is_stale(StageName.PLANNING)
@@ -1517,15 +1496,15 @@ class TestStage4StaleCheckpointGuard:
         # TestSharedHostInteractiveDecision's pattern).
         args1 = _args(work_dir=str(tmp_path), resume_from="3")
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(cfg, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage3",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ):
             assert _cmd_run_interactive(args1) == 2
 
@@ -1543,15 +1522,15 @@ class TestStage4StaleCheckpointGuard:
             }),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=(cfg, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
             "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
         ) as run_stage4_export:
             exit_code = _cmd_run_interactive(args2)
 
@@ -1566,7 +1545,7 @@ class TestStage4StaleCheckpointGuard:
         apply_candidate follows the identical write_stage(...,status=DONE)
         path), the checkpoint is no longer stale and the very next
         invocation's --resume-from 4 must be allowed to reach Stage 4."""
-        from tournament_scheduler.cli.pipeline_orchestrator import _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.stage3_ab import build_ab_report
         from tournament_scheduler.stage3_decision import build_stage3_decision_context
 
@@ -1602,13 +1581,13 @@ class TestStage4StaleCheckpointGuard:
             decision_action=json.dumps({"action_id": "keep_baseline", "rationale": "not better"}),
         )
         with patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage1",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
             return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage2",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
         ), patch(
-            "tournament_scheduler.cli.pipeline_orchestrator._run_stage4_export",
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
             return_value=(False, False, False),
         ) as run_stage4_export:
             exit_code = _cmd_run_interactive(args)

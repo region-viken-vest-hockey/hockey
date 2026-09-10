@@ -7,7 +7,14 @@
 # docs/engineering-principles.md's "File size" section.
 tournament_scheduler/application/decisions.py	673
 tournament_scheduler/cli/args.py	1731
-tournament_scheduler/cli/pipeline_orchestrator.py	4491
+# tournament_scheduler/cli/pipeline_orchestrator.py was split into a package
+# (2026-09-10) to bring it under the 300-line guideline; these two files hold
+# a single oversized top-level command function apiece (_cmd_run,
+# _cmd_run_interactive) that a mechanical module split cannot shrink further
+# without restructuring their internal control flow -- deferred to a
+# separate, more careful pass rather than done as part of the file move.
+tournament_scheduler/cli/pipeline_orchestrator/run_command.py	390
+tournament_scheduler/cli/pipeline_orchestrator/run_command_interactive.py	374
 tournament_scheduler/cli/plan_command.py	897
 tournament_scheduler/cli/plan_critic.py	603
 tournament_scheduler/cli/reporting.py	570

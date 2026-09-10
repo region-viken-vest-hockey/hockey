@@ -34,7 +34,8 @@ STAGE3_DECISION_ACTIONS: "tuple[str, ...]" = (
 # genuinely different search mechanisms:
 #
 # - "search_budget": the legacy SeasonPlanner multi-seed rerun
-#   (``cli.pipeline_orchestrator._run_stage3``/``_decide_plan_adoption`` and
+#   (``cli.pipeline_orchestrator.stage3_run._run_stage3``/
+#   ``cli.pipeline_orchestrator.plan_adoption._decide_plan_adoption`` and
 #   the interactive Stage 3 loop) — its only real tunable is a bounded
 #   iteration/seed-count budget.
 # - "v2_optimizer": the Stage 3 v2 local-search optimizer
@@ -277,7 +278,7 @@ def apply_stage3_candidate(work_dir: str, candidate: Dict[str, Any]) -> None:
     key already in the checkpoint (e.g. ``warnings``, ``rules_report``) and
     only swaps the ``plan`` payload, mirroring how the existing mid-planning
     critic loop persists a better candidate
-    (``cli.pipeline_orchestrator._run_mid_planning_critic_loop``).
+    (``cli.pipeline_orchestrator.plan_adoption._run_mid_planning_critic_loop``).
     """
     from .pipeline.state import PipelineState, StageName, StageStatus
 

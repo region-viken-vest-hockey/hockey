@@ -58,7 +58,7 @@ def append_stage3_attempt_log_entry(work_dir: "Path | str", entry: dict[str, Any
     Unlike ``stage3_interactive_state.json`` (cleared once the Stage 3
     optimize/apply/keep-baseline loop resolves), this file is append-only
     for the lifetime of a run and is only reset at the start of a genuinely
-    new run (see ``cli.pipeline_orchestrator``'s fresh-run-start handling) --
+    new run (see ``cli.pipeline_orchestrator.manifest``'s fresh-run-start handling) --
     so a reviewer can see every attempt that was tried, not just the one
     that was ultimately selected.
     """

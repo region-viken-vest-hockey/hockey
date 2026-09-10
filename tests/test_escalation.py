@@ -205,7 +205,7 @@ class TestPendingQuestionsSurviveNewRuns:
 
 class TestOperatorEscalationIntegration:
     def test_raise_escalation_questions_scans_capabilities_requiring_human(self, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _raise_escalation_questions
+        from tournament_scheduler.cli.pipeline_orchestrator.operator_run import _raise_escalation_questions
 
         manifest = RunManifest(tmp_path)
         manifest.start_run("objective")
@@ -228,7 +228,7 @@ class TestOperatorEscalationIntegration:
         assert pending[0]["capability"] == "scraping"
 
     def test_raise_escalation_questions_is_a_noop_when_nothing_requires_human(self, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _raise_escalation_questions
+        from tournament_scheduler.cli.pipeline_orchestrator.operator_run import _raise_escalation_questions
 
         manifest = RunManifest(tmp_path)
         manifest.start_run("objective")
@@ -239,7 +239,7 @@ class TestOperatorEscalationIntegration:
         assert unanswered_questions(str(tmp_path)) == []
 
     def test_raise_escalation_questions_never_raises_on_missing_manifest(self, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _raise_escalation_questions
+        from tournament_scheduler.cli.pipeline_orchestrator.operator_run import _raise_escalation_questions
 
         _raise_escalation_questions(str(tmp_path / "does-not-exist"))  # should not raise
 
@@ -657,7 +657,7 @@ class TestFromCapabilityResultScoping:
 
 class TestOperatorRunEscalationScoping:
     def test_capability_escalations_are_scoped_to_input_version_when_fingerprint_present(self, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _raise_escalation_questions
+        from tournament_scheduler.cli.pipeline_orchestrator.operator_run import _raise_escalation_questions
 
         manifest = RunManifest(tmp_path)
         manifest.start_run("objective", input_fingerprint={"sha256": "sha-a"})
@@ -676,7 +676,7 @@ class TestOperatorRunEscalationScoping:
         assert pending[0]["scope_key"] == "sha-a"
 
     def test_answer_becomes_stale_after_a_new_workbook_reruns(self, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _raise_escalation_questions
+        from tournament_scheduler.cli.pipeline_orchestrator.operator_run import _raise_escalation_questions
 
         manifest = RunManifest(tmp_path)
         manifest.start_run("objective", input_fingerprint={"sha256": "sha-a"})
@@ -704,7 +704,7 @@ class TestOperatorRunEscalationScoping:
         assert fresh and fresh[0]["answered"] is False
 
     def test_falls_back_to_workspace_scope_without_a_fingerprint(self, tmp_path):
-        from tournament_scheduler.cli.pipeline_orchestrator import _raise_escalation_questions
+        from tournament_scheduler.cli.pipeline_orchestrator.operator_run import _raise_escalation_questions
 
         manifest = RunManifest(tmp_path)
         manifest.start_run("objective")  # no input_fingerprint

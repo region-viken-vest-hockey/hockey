@@ -7,7 +7,7 @@ implementation's output can be checked the same way.
 
 Command-surface classification (issue #288): ``/rvv-miniputt:run`` is the
 canonical product workflow for planning -- its interactive Stage 3 loop
-(``cli.pipeline_orchestrator._emit_stage3_interactive_decision`` /
+(``cli.pipeline_orchestrator.interactive_decision_emit._emit_stage3_interactive_decision`` /
 ``_run_stage3_v2_optimize``) already reaches every engine
 (``local_search``/``cp_sat``) through the same :func:`stage3_engine.run_planner`
 boundary these commands use, and automatically evaluates a CP-SAT shadow

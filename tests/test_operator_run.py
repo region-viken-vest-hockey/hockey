@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 
 from tournament_scheduler.cli.args import build_parser
-from tournament_scheduler.cli.pipeline_orchestrator import (
-    _DEFAULT_OPERATOR_OBJECTIVE,
+from tournament_scheduler.cli.pipeline_orchestrator.manifest import _DEFAULT_OPERATOR_OBJECTIVE
+from tournament_scheduler.cli.pipeline_orchestrator.operator_run import (
     _cmd_operator_run,
     _resolve_operator_resume_stage,
 )
@@ -83,7 +83,7 @@ def test_nothing_pending_skips_the_pipeline_entirely(tmp_path):
         state.write_stage(stage, {"x": 1}, status=StageStatus.DONE)
 
     args = _operator_args(tmp_path)
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run") as mock_run:
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run") as mock_run:
         rc = _cmd_operator_run(args)
 
     mock_run.assert_not_called()
@@ -92,7 +92,7 @@ def test_nothing_pending_skips_the_pipeline_entirely(tmp_path):
 
 def test_empty_workspace_auto_resumes_from_stage_1(tmp_path):
     args = _operator_args(tmp_path)
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0) as mock_run:
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0) as mock_run:
         rc = _cmd_operator_run(args)
 
     mock_run.assert_called_once()
@@ -108,7 +108,7 @@ def test_partial_progress_auto_resumes_from_earliest_pending_stage(tmp_path):
     state.write_stage(StageName.SCRAPING, {"sources": []}, status=StageStatus.DONE)
 
     args = _operator_args(tmp_path)
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0) as mock_run:
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0) as mock_run:
         _cmd_operator_run(args)
 
     called_args = mock_run.call_args[0][0]
@@ -117,7 +117,7 @@ def test_partial_progress_auto_resumes_from_earliest_pending_stage(tmp_path):
 
 def test_explicit_resume_from_overrides_auto_detection(tmp_path):
     args = _operator_args(tmp_path, resume_from="4")
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0) as mock_run:
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0) as mock_run:
         _cmd_operator_run(args)
 
     called_args = mock_run.call_args[0][0]
@@ -130,7 +130,7 @@ def test_force_flag_reruns_from_stage_1_even_when_all_done(tmp_path):
         state.write_stage(stage, {"x": 1}, status=StageStatus.DONE)
 
     args = _operator_args(tmp_path, force=True)
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0) as mock_run:
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0) as mock_run:
         rc = _cmd_operator_run(args)
 
     mock_run.assert_called_once()
@@ -141,7 +141,7 @@ def test_force_flag_reruns_from_stage_1_even_when_all_done(tmp_path):
 
 def test_custom_objective_is_passed_through(tmp_path):
     args = _operator_args(tmp_path, objective="Fill in the gap for U12")
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0) as mock_run:
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0) as mock_run:
         _cmd_operator_run(args)
 
     called_args = mock_run.call_args[0][0]
@@ -150,7 +150,7 @@ def test_custom_objective_is_passed_through(tmp_path):
 
 def test_propagates_cmd_run_exit_code(tmp_path):
     args = _operator_args(tmp_path)
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=1):
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=1):
         rc = _cmd_operator_run(args)
     assert rc == 1
 
@@ -167,11 +167,11 @@ def test_publish_flag_triggers_publish_after_successful_run(tmp_path):
 
     args = _operator_args(tmp_path, publish=True, confirm_public=True)
     fake_result = CapabilityResult.ok("Published to https://example.com/latest/", capability="publish_pages")
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0), patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._execute_operator_publish",
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0), patch(
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._execute_operator_publish",
         return_value=fake_result,
     ) as mock_publish, patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._append_publish_outcome_to_run_log"
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._append_publish_outcome_to_run_log"
     ) as mock_append_log:
         rc = _cmd_operator_run(args)
 
@@ -183,8 +183,8 @@ def test_publish_flag_triggers_publish_after_successful_run(tmp_path):
 
 def test_publish_flag_skipped_when_run_fails(tmp_path):
     args = _operator_args(tmp_path, publish=True, confirm_public=True)
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=1), patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._execute_operator_publish"
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=1), patch(
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._execute_operator_publish"
     ) as mock_publish:
         rc = _cmd_operator_run(args)
 
@@ -194,8 +194,8 @@ def test_publish_flag_skipped_when_run_fails(tmp_path):
 
 def test_publish_flag_absent_never_calls_publish(tmp_path):
     args = _operator_args(tmp_path)
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0), patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._execute_operator_publish"
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0), patch(
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._execute_operator_publish"
     ) as mock_publish:
         rc = _cmd_operator_run(args)
 
@@ -206,9 +206,9 @@ def test_publish_flag_absent_never_calls_publish(tmp_path):
 def test_publish_rc_propagates_when_publish_action_registry_raises(tmp_path):
     """_execute_operator_publish returns None when the registry itself raised (already printed)."""
     args = _operator_args(tmp_path, publish=True, confirm_public=True)
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0), patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._execute_operator_publish", return_value=None
-    ), patch("tournament_scheduler.cli.pipeline_orchestrator._append_publish_outcome_to_run_log") as mock_append_log:
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0), patch(
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._execute_operator_publish", return_value=None
+    ), patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._append_publish_outcome_to_run_log") as mock_append_log:
         rc = _cmd_operator_run(args)
 
     mock_append_log.assert_not_called()
@@ -217,7 +217,7 @@ def test_publish_rc_propagates_when_publish_action_registry_raises(tmp_path):
 
 def test_operator_run_publish_uses_stage4_checkpoint_export_dir_not_parent_root(tmp_path):
     """run --publish must not publish the parent export root when Stage 4 used a timestamped child."""
-    from tournament_scheduler.cli.pipeline_orchestrator import _execute_operator_publish
+    from tournament_scheduler.cli.pipeline_orchestrator.operator_publish import _execute_operator_publish
     from tournament_scheduler.pipeline.capability_result import CapabilityResult
 
     args = _operator_args(
@@ -251,7 +251,7 @@ def test_operator_run_publish_uses_stage4_checkpoint_export_dir_not_parent_root(
 
 
 def test_standalone_operator_publish_keeps_explicit_export_dir_override(tmp_path):
-    from tournament_scheduler.cli.pipeline_orchestrator import _execute_operator_publish
+    from tournament_scheduler.cli.pipeline_orchestrator.operator_publish import _execute_operator_publish
     from tournament_scheduler.pipeline.capability_result import CapabilityResult
 
     export_dir = tmp_path / "specific-export"
@@ -284,7 +284,7 @@ def test_standalone_operator_publish_keeps_explicit_export_dir_override(tmp_path
 
 
 def test_append_publish_outcome_to_run_log_appends_to_latest_run_log(tmp_path):
-    from tournament_scheduler.cli.pipeline_orchestrator import _append_publish_outcome_to_run_log
+    from tournament_scheduler.cli.pipeline_orchestrator.operator_publish import _append_publish_outcome_to_run_log
     from tournament_scheduler.pipeline.capability_result import CapabilityResult
 
     work_dir = tmp_path / "pipeline"
@@ -312,7 +312,7 @@ def test_append_publish_outcome_to_run_log_appends_to_latest_run_log(tmp_path):
 
 def test_append_publish_outcome_to_run_log_is_a_noop_when_no_run_log_exists(tmp_path):
     """Best-effort: must never raise even if there's nothing to append to."""
-    from tournament_scheduler.cli.pipeline_orchestrator import _append_publish_outcome_to_run_log
+    from tournament_scheduler.cli.pipeline_orchestrator.operator_publish import _append_publish_outcome_to_run_log
     from tournament_scheduler.pipeline.capability_result import CapabilityResult
 
     work_dir = tmp_path / "pipeline"
@@ -331,7 +331,7 @@ def test_prints_final_summary_from_run_manifest(tmp_path, capsys):
     manifest.finalize("ok")
 
     args = _operator_args(tmp_path)
-    with patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0):
+    with patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0):
         _cmd_operator_run(args)
 
     out = capsys.readouterr().out
@@ -437,9 +437,9 @@ def test_second_invocation_with_nothing_pending_does_not_rerun_stages(tmp_path):
 def test_recovery_loop_invoked_with_work_dir_before_run(tmp_path):
     args = _operator_args(tmp_path)
     with patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._run_recovery_loop", return_value=None
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._run_recovery_loop", return_value=None
     ) as mock_recovery, patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0
     ):
         _cmd_operator_run(args)
 
@@ -459,9 +459,9 @@ def test_recovery_loop_action_taken_forces_resume_to_stage_2_when_otherwise_all_
         "stopped_reason": "completed",
     }
     with patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._run_recovery_loop",
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._run_recovery_loop",
         return_value=recovery_summary,
-    ), patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0) as mock_run:
+    ), patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0) as mock_run:
         rc = _cmd_operator_run(args)
 
     mock_run.assert_called_once()
@@ -481,9 +481,9 @@ def test_recovery_loop_action_taken_does_not_move_resume_later_than_earliest_pen
         "stopped_reason": "completed",
     }
     with patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._run_recovery_loop",
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._run_recovery_loop",
         return_value=recovery_summary,
-    ), patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0) as mock_run:
+    ), patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0) as mock_run:
         _cmd_operator_run(args)
 
     called_args = mock_run.call_args[0][0]
@@ -503,9 +503,9 @@ def test_recovery_loop_no_actions_taken_does_not_force_a_rerun(tmp_path):
         "stopped_reason": "completed",
     }
     with patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._run_recovery_loop",
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._run_recovery_loop",
         return_value=recovery_summary,
-    ), patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run") as mock_run:
+    ), patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run") as mock_run:
         rc = _cmd_operator_run(args)
 
     mock_run.assert_not_called()
@@ -521,9 +521,9 @@ def test_recovery_loop_explicit_resume_from_wins_over_recovered_actions(tmp_path
         "stopped_reason": "completed",
     }
     with patch(
-        "tournament_scheduler.cli.pipeline_orchestrator._run_recovery_loop",
+        "tournament_scheduler.cli.pipeline_orchestrator.operator_run._run_recovery_loop",
         return_value=recovery_summary,
-    ), patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0) as mock_run:
+    ), patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0) as mock_run:
         _cmd_operator_run(args)
 
     called_args = mock_run.call_args[0][0]
@@ -538,7 +538,7 @@ def test_recovery_loop_exception_degrades_to_normal_run_instead_of_crashing(tmp_
     with patch(
         "tournament_scheduler.pipeline.operator_loop.run_source_recovery_loop",
         side_effect=RuntimeError("boom"),
-    ), patch("tournament_scheduler.cli.pipeline_orchestrator._cmd_run", return_value=0) as mock_run:
+    ), patch("tournament_scheduler.cli.pipeline_orchestrator.operator_run._cmd_run", return_value=0) as mock_run:
         rc = _cmd_operator_run(args)
 
     mock_run.assert_called_once()
