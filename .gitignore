@@ -215,6 +215,7 @@ __marimo__/
 # ...and the manual-schedule review view, which needs to be committed
 # alongside each export so operators can review it without re-running.
 !export/**/manual_schedule.html
+!docs/**/*.html
 .idea
 
 # Node
