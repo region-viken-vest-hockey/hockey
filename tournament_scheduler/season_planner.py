@@ -793,7 +793,9 @@ class SeasonPlanner:
                     f"{club} har lag i {age_group}, men fikk ikke tildelt vertskap for noen "
                     "turnering i denne aldersgruppen denne sesongen."
                 )
-            unresolved_hosting_obligations.append({"club": club, "age_group": age_group, "reason": reason})
+            unresolved_hosting_obligations.append(
+                {"club": club, "age_group": age_group, "reason": reason, "category": "manual_hosting_obligation"}
+            )
         plan.unresolved_hosting_obligations = unresolved_hosting_obligations
         self._unresolved_hosting_obligations = unresolved_hosting_obligations
 
@@ -830,6 +832,7 @@ class SeasonPlanner:
                                 f"({interval.interval_label}) overlapper en kjent ekstern "
                                 "kalenderbooking."
                             ),
+                            "category": "manual_external_conflict",
                         }
                     )
         plan.unresolved_external_conflicts = unresolved_external_conflicts
@@ -862,6 +865,7 @@ class SeasonPlanner:
                             f"ganger, forventet {target} -- ikke nok ledige turneringsplasser "
                             "ble funnet denne sesongen."
                         ),
+                        "category": "participation_over_target" if actual > target else "participation_under_target",
                     }
                 )
         # issue #297: a team's season-wide total can match its season-wide
@@ -904,6 +908,7 @@ class SeasonPlanner:
                                     f"ganger i {period} -- ikke nok ledige turneringsplasser "
                                     "ble funnet i denne halvdelen av sesongen."
                                 ),
+                                "category": "participation_over_target" if actual > target else "participation_under_target",
                             }
                         )
         plan.unresolved_participation_shortfalls = unresolved_participation_shortfalls

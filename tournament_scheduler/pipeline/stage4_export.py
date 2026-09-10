@@ -101,6 +101,19 @@ def _resolve_build_timestamp(build_timestamp: str | int | float | datetime | Non
 
 MANUAL_SCHEDULE_FILENAME = "manual_schedule.html"
 
+# issue #302: only these structured categories represent genuine manual
+# ice-time/booking work. Participation-target deviations (over or under) are
+# team-level planning-quality signals, not ice-booking tasks, and must never
+# be rendered on manual_schedule.html even if a caller passes one in.
+MANUAL_SCHEDULE_CATEGORIES = frozenset(
+    {
+        "arena_collision",
+        "manual_calendar_verification",
+        "manual_hosting_obligation",
+        "manual_external_conflict",
+    }
+)
+
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -271,8 +284,11 @@ def _manual_schedule_html(
     """
     from ..html.data_computation import canonical_rvv_club_name
 
+    # issue #302: filter on the structured category, not the rendered reason
+    # text -- a participation-target deviation must never inflate this page's
+    # count even if a caller forgets to filter it out first.
     entries = sorted(
-        list(manual_entries or []),
+        (e for e in (manual_entries or []) if e.get("category") in MANUAL_SCHEDULE_CATEGORIES),
         key=lambda c: (c.get("date", ""), c.get("arena", ""), c.get("tournament_id", "")),
     )
     rows: list[str] = []
@@ -542,6 +558,7 @@ def run(
         if not item.get("host_club"):
             item["host_club"] = host_by_tournament_id.get(str(item.get("tournament_id", "")))
         item["type"] = item.get("type", "Arena-/tidskollisjon")
+        item["category"] = item.get("category", "arena_collision")
         collision_entries.append(item)
     # Clubs whose calendar source could not be scraped still receive their
     # proportional share of home tournaments; those tournaments are marked on
@@ -556,6 +573,7 @@ def run(
         manual_host_entries.append(
             {
                 "type": "Kalender utilgjengelig — istid må bookes manuelt",
+                "category": "manual_calendar_verification",
                 "date": tournament.date.isoformat(),
                 "arena": tournament.arena,
                 "host_club": tournament.host_club or "",
@@ -582,6 +600,7 @@ def run(
         unresolved_hosting_entries.append(
             {
                 "type": "MANUAL PLACEMENT REQUIRED — manglende vertskap",
+                "category": item.get("category", "manual_hosting_obligation"),
                 "date": "",
                 "arena": "",
                 "host_club": club,
@@ -607,6 +626,7 @@ def run(
         external_conflict_entries.append(
             {
                 "type": "MANUAL PLACEMENT REQUIRED — ekstern kalenderkonflikt",
+                "category": item.get("category", "manual_external_conflict"),
                 "date": str(item.get("date", "") or ""),
                 "arena": "",
                 "host_club": str(item.get("host_club", "") or ""),
@@ -619,31 +639,16 @@ def run(
                 "message": str(item.get("reason", "") or ""),
             }
         )
-    # Teams whose final participation count doesn't match their target
-    # (non-blocking, see verify_candidate's manual_participation_placements)
-    # -- no single tournament to attach this to, so tournament-shaped fields
-    # are left blank, matching unresolved_hosting_entries above.
-    participation_shortfall_entries: list[dict[str, str]] = []
-    for item in getattr(plan, "unresolved_participation_shortfalls", None) or []:
-        participation_shortfall_entries.append(
-            {
-                "type": "MANUAL PLACEMENT REQUIRED — avvik fra måltall",
-                "date": "",
-                "arena": "",
-                "host_club": str(item.get("club", "") or ""),
-                "age_group": str(item.get("age_group", "") or ""),
-                "tournament_id": "",
-                "interval": "",
-                "conflicting_tournament_id": "",
-                "conflicting_age_group": "",
-                "conflicting_interval": "",
-                "message": str(item.get("reason", "") or ""),
-            }
-        )
-    manual_entries = (
-        collision_entries + manual_host_entries + unresolved_hosting_entries
-        + external_conflict_entries + participation_shortfall_entries
+    # issue #302: participation-target deviations (over- or under-target) are
+    # team-level planning-quality signals, not ice-time/booking work -- they
+    # do not represent a tournament that must be inserted into an arena
+    # calendar. They stay out of manual_schedule.html entirely and remain
+    # visible via plan.unresolved_participation_shortfalls / the season plan
+    # report (rules_report.py) instead.
+    candidate_entries = (
+        collision_entries + manual_host_entries + unresolved_hosting_entries + external_conflict_entries
     )
+    manual_entries = [entry for entry in candidate_entries if entry.get("category") in MANUAL_SCHEDULE_CATEGORIES]
     if collision_entries:
         plan.arena_day_collisions = collision_entries
         first = collision_entries[0]

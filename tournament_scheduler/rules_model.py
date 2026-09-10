@@ -146,8 +146,10 @@ def _participation_shortfall_rule(plan: SeasonPlan) -> dict[str, Any]:
         "owner": "deterministic_placement_workflow",
         "description": (
             "Når et lags faktiske antall turneringer avviker fra måltallet (oftest fordi det "
-            "ikke fantes nok ledige turneringsplasser), avvises ikke hele planen — avviket "
-            "legges i «Må planlegges manuelt» i stedet."
+            "ikke fantes nok ledige turneringsplasser, eller fordi laget fikk flere enn "
+            "målet), avvises ikke hele planen — avviket er et planleggingskvalitet-avvik, "
+            "ikke istidsarbeid, og rapporteres her i stedet for i «Må planlegges manuelt» "
+            "(issue #302)."
         ),
         "configured_value": "Faktisk = mål",
         "status": status,

@@ -308,8 +308,9 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "forklaring": (
                 "Når et lags faktiske antall turneringer avviker fra måltallet (som oftest "
                 "fordi det ikke fantes nok ledige turneringsplasser denne sesongen), avvises "
-                "ikke hele planen -- avviket legges i «Må planlegges manuelt»-visningen "
-                "(manual_schedule.html) som «MANUAL PLACEMENT REQUIRED». "
+                "ikke hele planen -- avviket er en planleggingskvalitet-avvik, ikke en "
+                "istidsoppgave, og rapporteres derfor her i sesongrapporten i stedet for i "
+                "«Må planlegges manuelt»-visningen (manual_schedule.html) (issue #302). "
                 f"{len(planner._unresolved_participation_shortfalls)} slik(e) avvik er "
                 "registrert i denne planen"
                 + (
