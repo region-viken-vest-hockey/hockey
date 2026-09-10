@@ -28,6 +28,11 @@ def _run_stage4_export(
     if resume_from <= 4:
         _console.print("[bold]Stage 4:[/bold] Eksport...")
         try:
+            from time import perf_counter
+
+            from ...pipeline.run_manifest import RunManifest
+
+            _started = perf_counter()
             export = stage4_run(
                 plan,
                 state,
@@ -35,6 +40,10 @@ def _run_stage4_export(
                 strict=strict,
                 timestamped_export=getattr(args, "timestamped_export", True),
             )
+            try:
+                RunManifest(state.work_dir).record_timing("stage4_export_seconds", perf_counter() - _started)
+            except Exception as exc:
+                log_fn(f"Stage 4: could not record timing: {exc}")
             files = export.get("output_files", {})
             generated_calendars = "calendars_html" in files
             _console.print(f"  [green]✓[/green] {len(files)} fil(er) eksportert")

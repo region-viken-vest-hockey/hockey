@@ -9,6 +9,7 @@ and don't touch real pipeline stages.
 from __future__ import annotations
 
 import json
+import os
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -284,7 +285,14 @@ class TestStage3InteractiveDecisionLoop:
         plan = _plan_checkpoint(seed=1)
         with patch(
             "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
-            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+            # cp_sat_shadow_enabled=False: this test is about the baseline
+            # decision context's action set, independent of CP-SAT shadow
+            # evidence (covered by its own tests below) -- disabling it here
+            # keeps this test from depending on OR-Tools availability/output.
+            return_value=(
+                {"start_date": "2026-09-01", "end_date": "2027-04-30", "cp_sat_shadow_enabled": False},
+                False,
+            ),
         ), patch(
             "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
             return_value=({"sources": [], "blocked": []}, False, False),
@@ -1596,3 +1604,209 @@ class TestStage4StaleCheckpointGuard:
         run_stage4_export.assert_called_once()
         assert not state.is_stale(StageName.PLANNING)
         assert state.read_stage(StageName.PLANNING) == plan1
+
+
+class TestStage3CheapBaselineGate:
+    """issue #310: the canonical interactive-harness path was silently
+    falling back to the expensive legacy/global SeasonPlanner path because
+    ``stage3_cheap_baseline`` was gated only on a *headless* judge being
+    configured -- never true for a real ``/rvv-miniputt:run`` invocation,
+    where a harness (Claude Code, Pi, OpenCode) supplies its own in-session
+    judgment instead. These tests pin the fixed gate directly against
+    ``_run_stage3`` (the seam that builds ``merged_cfg``), independent of
+    the CP-SAT-shadow fixes covered elsewhere in this file."""
+
+    _HARNESS_ENV_VARS = ("RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID", "OPENCODE_SESSION_ID")
+
+    def _clean_env(self) -> dict[str, str]:
+        return {k: "" for k in self._HARNESS_ENV_VARS}
+
+    def _run_and_capture_cheap_baseline(self, state, tmp_path) -> bool:
+        from datetime import datetime
+        from unittest.mock import patch as _patch
+
+        from tournament_scheduler.cli.pipeline_orchestrator.stage3_run import _run_stage3
+
+        captured: dict[str, Any] = {}
+
+        def _fake_stage3_run(cfg, scraping, state_, start, end, *, strict, iterations):
+            captured["cheap_baseline"] = cfg.get("stage3_cheap_baseline")
+            return _plan_checkpoint(seed=1)
+
+        args = _args(work_dir=str(tmp_path), resume_from="3")
+        with _patch("tournament_scheduler.pipeline.stage3_planning.run", side_effect=_fake_stage3_run):
+            _run_stage3(
+                args, {}, {}, state,
+                datetime.strptime("2026-09-01", "%Y-%m-%d"), datetime.strptime("2027-04-30", "%Y-%m-%d"),
+                strict=True, resume_from=3, log_fn=lambda msg: None,
+            )
+        return bool(captured["cheap_baseline"])
+
+    def test_harness_active_uses_cheap_baseline(self, state, tmp_path, monkeypatch):
+        """A real interactive harness invocation (CLAUDE_CODE_SESSION_ID set,
+        no headless judge configured) must get the cheap baseline -- this is
+        the exact production shape acceptance criterion 6 is about."""
+        monkeypatch.setattr(
+            "os.environ",
+            {**os.environ, **self._clean_env(), "CLAUDE_CODE_SESSION_ID": "test-session"},
+        )
+        assert self._run_and_capture_cheap_baseline(state, tmp_path) is True
+
+    def test_no_judge_no_harness_keeps_legacy_full_path(self, state, tmp_path, monkeypatch):
+        """A genuinely unattended run (no harness, no headless judge
+        backend configured) must keep the prior legacy/full behavior --
+        this fix only widens the decision-driven gate, it does not remove
+        the judge-less/cron path."""
+        monkeypatch.setattr("os.environ", {**os.environ, **self._clean_env()})
+        assert self._run_and_capture_cheap_baseline(state, tmp_path) is False
+
+    def test_headless_judge_configured_still_uses_cheap_baseline(self, state, tmp_path, monkeypatch):
+        """Pre-existing behavior (issue #265 P1) must be unchanged: a
+        configured headless judge alone is still sufficient."""
+        from unittest.mock import patch as _patch
+
+        monkeypatch.setattr("os.environ", {**os.environ, **self._clean_env()})
+        with _patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless",
+            return_value=object(),
+        ):
+            assert self._run_and_capture_cheap_baseline(state, tmp_path) is True
+
+
+class TestStage3CpSatCacheAndBudgetGuard:
+    """issue #310: automatic CP-SAT shadow reuse-by-fingerprint, the
+    explicit-optimize-then-shadow suppression, and the wall-clock ceiling."""
+
+    def _cfg(self, **overrides: Any) -> dict[str, Any]:
+        base = {"start_date": "2026-09-01", "end_date": "2027-04-30"}
+        base.update(overrides)
+        return base
+
+    def _shadow_candidate(self, seed: int) -> dict[str, Any]:
+        candidate = dict(_candidate(seed))
+        candidate["source"] = {"planner": "cp_sat", "status": "OPTIMAL", "runtime_seconds": 0.4}
+        return candidate
+
+    def test_repeated_emission_reuses_cached_cp_sat_result(self, state, tmp_path, capsys):
+        """First decision for a new baseline/problem solves once; a second,
+        unchanged emission is served from the cache -- near-instant, no
+        second call into the solver."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import (
+            _emit_stage3_interactive_decision,
+        )
+
+        plan = _plan_checkpoint(seed=1)
+        with patch(
+            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            return_value=self._shadow_candidate(2),
+        ) as solve_mock:
+            _emit_stage3_interactive_decision(
+                state, str(tmp_path), self._cfg(), {}, None, None, plan, lambda msg: None,
+            )
+            first_payload = json.loads(capsys.readouterr().out)
+
+            _emit_stage3_interactive_decision(
+                state, str(tmp_path), self._cfg(), {}, None, None, plan, lambda msg: None,
+            )
+            second_payload = json.loads(capsys.readouterr().out)
+
+        assert solve_mock.call_count == 1
+        assert first_payload["facts"]["cp_sat_shadow"].get("cache_hit") is False
+        assert second_payload["facts"]["cp_sat_shadow"].get("cache_hit") is True
+        assert second_payload["facts"]["cp_sat_shadow"]["candidate_ref"] == (
+            first_payload["facts"]["cp_sat_shadow"]["candidate_ref"]
+        )
+
+    def test_changed_baseline_invalidates_cache_and_resolves_once_more(self, state, tmp_path, capsys):
+        """A genuinely different baseline candidate must not be served the
+        previous solve's cached result."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import (
+            _emit_stage3_interactive_decision,
+        )
+
+        plan1 = _plan_checkpoint(seed=1)
+        plan2 = _plan_checkpoint(seed=3)
+        with patch(
+            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            return_value=self._shadow_candidate(2),
+        ) as solve_mock:
+            _emit_stage3_interactive_decision(
+                state, str(tmp_path), self._cfg(), {}, None, None, plan1, lambda msg: None,
+            )
+            capsys.readouterr()
+            _emit_stage3_interactive_decision(
+                state, str(tmp_path), self._cfg(), {}, None, None, plan2, lambda msg: None,
+            )
+            capsys.readouterr()
+
+        assert solve_mock.call_count == 2
+
+    def test_apply_candidate_resolves_cached_cp_sat_result_without_resolving(self, state, tmp_path, capsys):
+        """A cp_sat candidate_ref surfaced in the decision facts must be
+        directly applicable via apply_candidate, without another solve."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import (
+            _emit_stage3_interactive_decision,
+        )
+        from tournament_scheduler.cli.pipeline_orchestrator.stage3_cpsat_cache import resolve_candidate_ref
+
+        plan = _plan_checkpoint(seed=1)
+        with patch(
+            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            return_value=self._shadow_candidate(2),
+        ) as solve_mock:
+            _emit_stage3_interactive_decision(
+                state, str(tmp_path), self._cfg(), {}, None, None, plan, lambda msg: None,
+            )
+            payload = json.loads(capsys.readouterr().out)
+
+        candidate_ref = payload["facts"]["cp_sat_shadow"]["candidate_ref"]
+        assert "apply_candidate" in payload["available_actions"]
+
+        entry = resolve_candidate_ref(state, "", candidate_ref)
+        assert entry is not None
+        assert entry["candidate"]["source"]["planner"] == "cp_sat"
+        assert solve_mock.call_count == 1  # resolving by ref never re-solves
+
+    def test_explicit_cp_sat_optimize_plan_skips_immediate_shadow(self, state, tmp_path):
+        """issue #310: an explicit optimize_plan(engine="cp_sat") pass must
+        not be immediately followed by an automatic shadow re-solving the
+        candidate it just produced."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import (
+            _emit_stage3_interactive_decision,
+        )
+
+        plan = {"plan": self._shadow_candidate(2), "warnings": []}
+        with patch(
+            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+        ) as solve_mock:
+            exit_code = _emit_stage3_interactive_decision(
+                state, str(tmp_path), self._cfg(), {}, None, None, plan, lambda msg: None,
+                skip_auto_cp_sat_shadow=True,
+            )
+
+        assert exit_code == 2
+        solve_mock.assert_not_called()
+
+    def test_wall_clock_ceiling_skips_shadow_when_already_exhausted(self, state, tmp_path):
+        """issue #310: if the configured ceiling is already spent on
+        baseline/optimize work this invocation, the automatic shadow must be
+        skipped entirely (not attempted with a near-zero budget), and the
+        skip must be visible evidence rather than silence."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import (
+            _emit_stage3_interactive_decision,
+        )
+
+        plan = _plan_checkpoint(seed=1)
+        cfg = self._cfg(stage3_wall_clock_ceiling_seconds=10.0)
+        with patch("tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat") as solve_mock:
+            exit_code = _emit_stage3_interactive_decision(
+                state, str(tmp_path), cfg, {}, None, None, plan, lambda msg: None,
+                stage3_elapsed_seconds=999.0,
+            )
+
+        assert exit_code == 2
+        solve_mock.assert_not_called()
+
+        interactive_state = _read_stage3_interactive_state(state)
+        facts = interactive_state["last_context"]["facts"]
+        assert facts["cp_sat_shadow"]["skipped_reason"] == "wall_clock_ceiling"

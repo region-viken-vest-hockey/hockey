@@ -556,6 +556,16 @@ def optimize_candidate_cp_sat(
     instead of one monolithic model, using ``problem["christmas_split_date"]``
     as the shared boundary. Each half preserves its own baseline
     participation counts exactly, so a half with no slots is simply skipped.
+
+    *solve_budget_seconds* is a **total** wall-clock budget across every
+    group actually solved (issue #310), not a per-group budget: it is
+    divided evenly by the number of groups (1 when not decomposed, or the
+    number of non-empty halves when decomposed) before being handed to each
+    group's solver. Previously the same value was passed to every group
+    unchanged, so a configured "15s" budget with ``decompose_by_half=True``
+    could cost ~30s wall-clock (two halves each solving for the full 15s) --
+    callers configuring a budget now get the total they asked for regardless
+    of how many groups end up being solved.
     """
     try:
         from ortools.sat.python import cp_model  # noqa: F401 -- availability probe
@@ -620,6 +630,8 @@ def optimize_candidate_cp_sat(
     else:
         groups = [("combined", slots)]
 
+    per_group_budget_seconds = float(solve_budget_seconds) / max(1, len(groups))
+
     all_patches: "dict[int, dict[str, Any]]" = {}
     half_diagnostics: "list[Dict[str, Any]]" = []
     for half_label, group_slots in groups:
@@ -630,7 +642,7 @@ def optimize_candidate_cp_sat(
             team_map,
             teams_by_age_group,
             team_index,
-            solve_budget_seconds=solve_budget_seconds,
+            solve_budget_seconds=per_group_budget_seconds,
             seed=seed,
             feasibility_only=feasibility_only,
             half_label=half_label,

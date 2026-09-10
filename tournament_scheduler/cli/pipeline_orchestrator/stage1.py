@@ -93,7 +93,16 @@ def _run_stage1(
     if resume_from <= 1:
         _console.print("[bold]Stage 1:[/bold] Konfigurasjon...")
         try:
+            from time import perf_counter
+
+            from ...pipeline.run_manifest import RunManifest
+
+            _started = perf_counter()
             stage1_run(args.input, state, strict=strict)
+            try:
+                RunManifest(state.work_dir).record_timing("stage1_seconds", perf_counter() - _started)
+            except Exception as exc:
+                log_fn(f"Stage 1: could not record timing: {exc}")
             cfg = load_effective_config(state, input_path=args.input)
             _console.print(
                 f"  [green]✓[/green] {len(cfg.get('sources', []))} kilder, "

@@ -70,6 +70,10 @@ def _maybe_run_stage3_cp_sat_shadow(
     problem: "dict[str, Any] | None",
     baseline_candidate: "dict[str, Any] | None",
     log_fn: "Any",
+    *,
+    state: "Any" = None,
+    run_id: "str | None" = None,
+    max_budget_seconds: "float | None" = None,
 ) -> "dict[str, Any] | None":
     """Best-effort automatic CP-SAT shadow evaluation for a Stage 3 candidate
     (issue #288: "CP-SAT shadow evaluation must be reachable automatically
@@ -91,28 +95,97 @@ def _maybe_run_stage3_cp_sat_shadow(
     dependency or an infeasible/timed-out solve, returns a dict describing
     what happened rather than raising, so this can never interrupt or fail
     the production ``/run`` workflow. Never applies or publishes the shadow
-    candidate -- this is comparison evidence for the existing
-    apply_candidate/keep_baseline decision only.
+    candidate directly -- the caller may offer it back via the
+    ``candidate_ref`` this returns, resolved through
+    :mod:`stage3_cpsat_cache`, but this function itself only ever produces
+    comparison evidence.
+
+    issue #310: when *state*/*run_id* are given, a solve for an unchanged
+    (problem, baseline_candidate, request) triple is served from
+    :mod:`stage3_cpsat_cache` instead of re-solving -- repeated decision-
+    context emission for the same attempt must be near-instant with respect
+    to CP-SAT, not a second full solve. *max_budget_seconds*, when given
+    (issue #310's Stage 3 wall-clock guard), caps the configured shadow
+    budget so the automatic comparison can never push a single interactive
+    invocation past its overall ceiling; a non-positive remaining budget
+    skips the shadow entirely rather than attempting a near-zero-budget
+    solve.
     """
     if baseline_candidate is None or not bool(cfg.get("cp_sat_shadow_enabled", True)):
         return None
 
+    from time import perf_counter
+
+    from ...pipeline.run_manifest import RunManifest
     from ...stage3_cpsat import CpSatNoCandidate, CpSatUnavailable
     from ...stage3_engine import run_planner
     from ...stage3_shadow import build_shadow_report
+    from .stage3_cpsat_cache import cp_sat_cache_key, read_cp_sat_cache_entry, write_cp_sat_cache_entry
 
     budget = float(cfg.get("cp_sat_shadow_budget_seconds", _CP_SAT_AUTO_SHADOW_BUDGET_SECONDS))
+    if max_budget_seconds is not None:
+        budget = min(budget, max_budget_seconds)
+    if budget <= 0:
+        log_fn("stage3 cp_sat shadow: wall-clock ceiling exhausted -- skipping automatic shadow evaluation")
+        return {"attempted": False, "available": True, "engine": "cp_sat", "skipped_reason": "wall_clock_ceiling"}
+
+    request = {"solve_budget_seconds": budget, "decompose_by_half": True}
+    cache_key = cp_sat_cache_key(problem, baseline_candidate, request) if state is not None else None
+
+    def _record(runtime_seconds: float, *, cache_hit: bool, status: str) -> None:
+        if state is None:
+            return
+        try:
+            manifest = RunManifest(state.work_dir)
+            manifest.record_timing("stage3_cp_sat_seconds", runtime_seconds)
+            manifest.record_cp_sat_invocation(
+                {
+                    "source": "automatic_shadow",
+                    "cache_key": cache_key,
+                    "cache_hit": cache_hit,
+                    "status": status,
+                    "runtime_seconds": round(runtime_seconds, 6),
+                }
+            )
+        except Exception as exc:  # defensive: telemetry must never break /run
+            log_fn(f"stage3 cp_sat shadow: could not record timing telemetry ({exc})")
+
+    if cache_key is not None:
+        cached = read_cp_sat_cache_entry(state, run_id, cache_key)
+        if cached is not None:
+            log_fn(
+                "stage3 cp_sat shadow: reusing cached automatic CP-SAT result "
+                "(unchanged problem/baseline/request) -- no re-solve"
+            )
+            report = cached["report"]
+            _record(0.0, cache_hit=True, status="cache_hit")
+            return {
+                "attempted": True,
+                "available": True,
+                "engine": "cp_sat",
+                "reused": True,
+                "cache_hit": True,
+                "dominates_baseline": report["ab_report"].get("dominates_baseline"),
+                "production_ready": report["ab_report"].get("production_ready"),
+                "candidate_source": cached["candidate"].get("source"),
+                "candidate_ref": cached["candidate_ref"],
+                "fingerprints": report["fingerprints"],
+            }
+
+    started = perf_counter()
     try:
         shadow_candidate = run_planner(
             engine="cp_sat",
             problem=problem,
             baseline=baseline_candidate,
-            request={"solve_budget_seconds": budget, "decompose_by_half": True},
+            request=request,
         )
     except CpSatUnavailable as exc:
+        _record(perf_counter() - started, cache_hit=False, status="unavailable")
         log_fn(f"stage3 cp_sat shadow: unavailable ({exc}) -- skipping automatic shadow evaluation")
         return {"attempted": True, "available": False, "engine": "cp_sat", "error": {"type": "CpSatUnavailable", "message": str(exc)}}
     except CpSatNoCandidate as exc:
+        _record(perf_counter() - started, cache_hit=False, status="no_candidate")
         log_fn(f"stage3 cp_sat shadow: no feasible candidate within budget ({exc})")
         return {
             "attempted": True,
@@ -126,12 +199,16 @@ def _maybe_run_stage3_cp_sat_shadow(
             },
         }
     except Exception as exc:  # defensive: shadow evaluation must never break /run
+        _record(perf_counter() - started, cache_hit=False, status="error")
         log_fn(f"stage3 cp_sat shadow: unexpected error ({exc}) -- skipping")
         return {"attempted": True, "available": False, "engine": "cp_sat", "error": {"type": type(exc).__name__, "message": str(exc)}}
+
+    runtime_seconds = perf_counter() - started
 
     try:
         report = build_shadow_report(baseline_candidate, shadow_candidate, problem, engine="cp_sat")
     except Exception as exc:
+        _record(runtime_seconds, cache_hit=False, status="report_error")
         log_fn(f"stage3 cp_sat shadow: could not build shadow report ({exc})")
         return {
             "attempted": True,
@@ -141,16 +218,29 @@ def _maybe_run_stage3_cp_sat_shadow(
             "report_error": str(exc),
         }
 
+    candidate_ref = None
+    if cache_key is not None:
+        entry = write_cp_sat_cache_entry(
+            state, run_id, cache_key, candidate=shadow_candidate, report=report
+        )
+        candidate_ref = entry["candidate_ref"]
+
+    _record(runtime_seconds, cache_hit=False, status="solved")
     log_fn(
         "stage3 cp_sat shadow: evaluated automatically "
         f"(dominates_baseline={report['ab_report'].get('dominates_baseline')})"
     )
-    return {
+    result = {
         "attempted": True,
         "available": True,
         "engine": "cp_sat",
+        "reused": False,
+        "cache_hit": False,
         "dominates_baseline": report["ab_report"].get("dominates_baseline"),
         "production_ready": report["ab_report"].get("production_ready"),
         "candidate_source": shadow_candidate.get("source"),
         "fingerprints": report["fingerprints"],
     }
+    if candidate_ref is not None:
+        result["candidate_ref"] = candidate_ref
+    return result

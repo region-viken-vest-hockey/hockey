@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+from time import perf_counter
 from typing import Any
 
 from ._shared import _console
@@ -123,8 +124,10 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         _clear_stage3_interactive_state(state)
         _clear_shared_host_state(state)
         from ...pipeline.evidence_bundle import clear_stage3_attempt_log
+        from .stage3_cpsat_cache import clear_cp_sat_cache
 
         clear_stage3_attempt_log(state.work_dir)
+        clear_cp_sat_cache(state)
 
     stage3_search_iterations: int | None = None
     # issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
@@ -266,13 +269,28 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 else:
                     use_v2_optimizer_for_stage3 = True
             elif decision_action.action_id == "apply_candidate":
+                candidate_ref = (decision_action.arguments or {}).get("candidate_ref")
                 pending_candidates = stage3_interactive_state.get("pending_candidates")
-                if pending_candidates:
+                cp_sat_cache_entry = None
+                if candidate_ref and str(candidate_ref).startswith("stage3_cp_sat:"):
+                    # issue #310: a verified automatic CP-SAT candidate is
+                    # addressable via candidate_ref without re-solving --
+                    # resolved against the run-scoped cache, not
+                    # pending_candidates (which only ever holds Pareto/v2
+                    # optimizer attempts).
+                    from .stage3_cpsat_cache import resolve_candidate_ref
+
+                    cp_sat_cache_entry = resolve_candidate_ref(state, _current_run_id(state), str(candidate_ref))
+                if cp_sat_cache_entry is not None:
+                    checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
+                    checkpoint["plan"] = cp_sat_cache_entry["candidate"]
+                    checkpoint["source"] = "stage3_cp_sat_shadow_applied"
+                    state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
+                elif pending_candidates:
                     # issue #264 P1: a Pareto attempt left several
                     # candidates pending, not one -- the on-disk checkpoint
                     # still holds the pre-search baseline, so the chosen
                     # candidate_ref has to be written explicitly here.
-                    candidate_ref = (decision_action.arguments or {}).get("candidate_ref")
                     chosen = next(
                         (entry for entry in pending_candidates if entry.get("candidate_ref") == candidate_ref),
                         None,
@@ -322,12 +340,22 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         return _emit_stage3_pareto_decision(state, args.work_dir, cfg, scraping, start, end, portfolio, _log)
 
     if resume_from == 3 and use_v2_optimizer_for_stage3:
+        _stage3_started = perf_counter()
         plan, abort = _run_stage3_v2_optimize(
             state, cfg, scraping, start, end, optimize_plan_arguments, _log
         )
         if abort:
             return 1
-        return _emit_stage3_interactive_decision(state, args.work_dir, cfg, scraping, start, end, plan, _log)
+        # issue #310: an explicit optimize_plan(engine="cp_sat") pass must
+        # not be followed by an automatic shadow re-solving the candidate it
+        # just produced -- see _emit_stage3_interactive_decision's
+        # skip_auto_cp_sat_shadow docstring.
+        engine_used = str((optimize_plan_arguments or {}).get("engine") or "local_search").replace("-", "_")
+        return _emit_stage3_interactive_decision(
+            state, args.work_dir, cfg, scraping, start, end, plan, _log,
+            skip_auto_cp_sat_shadow=(engine_used == "cp_sat"),
+            stage3_elapsed_seconds=perf_counter() - _stage3_started,
+        )
 
     shared_host_decisions: list[dict[str, Any]] = []
     if resume_from == 3:
@@ -346,6 +374,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         if pause_code is not None:
             return pause_code
 
+    _stage3_started = perf_counter()
     plan, abort, _stage3_failed = _run_stage3(
         args, cfg, scraping, state, start, end, strict, resume_from, _log, stage3_search_iterations,
         shared_host_decisions=shared_host_decisions,
@@ -353,13 +382,26 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     if abort:
         return 1
     if resume_from == 3:
-        return _emit_stage3_interactive_decision(state, args.work_dir, cfg, scraping, start, end, plan, _log)
+        return _emit_stage3_interactive_decision(
+            state, args.work_dir, cfg, scraping, start, end, plan, _log,
+            stage3_elapsed_seconds=perf_counter() - _stage3_started,
+        )
 
-    if resume_from <= 4 and not _assert_hard_verification_before_export(
-        plan, _mid_planning_decision_problem(cfg, scraping, start, end), strict, _console, _log
-    ):
-        return 1
     if resume_from <= 4:
+        _verify_started = perf_counter()
+        verification_ok = _assert_hard_verification_before_export(
+            plan, _mid_planning_decision_problem(cfg, scraping, start, end), strict, _console, _log
+        )
+        try:
+            from ...pipeline.run_manifest import RunManifest
+
+            RunManifest(state.work_dir).record_timing(
+                "stage3_verification_seconds", perf_counter() - _verify_started
+            )
+        except Exception as exc:
+            _log(f"Could not record verification timing: {exc}")
+        if not verification_ok:
+            return 1
         _reconcile_verified_manual_state(
             plan, _mid_planning_decision_problem(cfg, scraping, start, end), _log
         )

@@ -48,6 +48,7 @@ def _run_stage3(
     rather than have Python quietly lower acceptance thresholds behind it.
     """
     from ...llm_judge import get_judge_if_headless
+    from ...llm_judge.harness import is_harness_active
     from ...pipeline.stage3_planning import run as stage3_run
     from ...pipeline.state import StageName
 
@@ -55,6 +56,16 @@ def _run_stage3(
         judge_configured = get_judge_if_headless() is not None
     except ValueError:
         judge_configured = False
+    # issue #310: a real `/rvv-miniputt:run` invocation is driven by an
+    # interactive harness (Claude Code, Pi, OpenCode, ...), which means
+    # `get_judge_if_headless()` is *always* None there -- a harness supplies
+    # its own in-session judgment instead of a headless LLM judge. The
+    # decision-driven canonical path is therefore active whenever *either*
+    # a headless judge or a harness session is present, not only the former:
+    # gating cheap_baseline on `judge_configured` alone meant every real
+    # interactive run silently fell back to the expensive legacy/global
+    # SeasonPlanner path this flag exists to skip.
+    decision_driven_path = judge_configured or is_harness_active()
 
     if resume_from <= 3:
         _console.print("[bold]Stage 3:[/bold] Sesongplanlegging...")
@@ -64,12 +75,14 @@ def _run_stage3(
             merged_cfg["allow_penalty_hint_relaxation"] = not judge_configured
             if judge_configured:
                 log_fn("Stage 3: penalty-hint threshold relaxation disabled (headless judge configured)")
-            # issue #265 P1: on the canonical decision-driven path, the v2
-            # optimizer (stage3_optimizer) will search this baseline anyway,
-            # so SeasonPlanner only needs to produce a cheap feasible seed --
-            # not its own second, globally optimized date schedule. Legacy
-            # no-judge runs keep the fuller behavior unchanged.
-            merged_cfg.setdefault("stage3_cheap_baseline", judge_configured)
+            # issue #265 P1 / issue #310: on the canonical decision-driven
+            # path (headless judge OR interactive harness), the v2 optimizer
+            # (stage3_optimizer) will search this baseline anyway, so
+            # SeasonPlanner only needs to produce a cheap feasible seed --
+            # not its own second, globally optimized date schedule. Only a
+            # genuinely headless, judge-less run (no harness, no configured
+            # judge -- cron/CI style) keeps the fuller legacy behavior.
+            merged_cfg.setdefault("stage3_cheap_baseline", decision_driven_path)
             if penalty_hints:
                 merged_cfg["penalty_hints"] = dict(penalty_hints)
                 hint_display = ", ".join(f"{k}={v}" for k, v in penalty_hints.items())
@@ -88,7 +101,18 @@ def _run_stage3(
                 # stage3_planning._shared_host_choices_from_config.
                 merged_cfg["shared_host_decisions"] = list(shared_host_decisions)
                 merged_cfg["shared_host_decision_provenance"] = list(shared_host_decisions)
+            from time import perf_counter
+
+            from ...pipeline.run_manifest import RunManifest
+
+            _baseline_started = perf_counter()
             plan = stage3_run(merged_cfg, scraping, state, start, end, strict=strict, iterations=iterations or getattr(args, "iterations", 1))
+            try:
+                RunManifest(state.work_dir).record_timing(
+                    "stage3_baseline_seconds", perf_counter() - _baseline_started
+                )
+            except Exception as exc:
+                log_fn(f"Stage 3: could not record baseline timing: {exc}")
             n_tournaments = len(plan.get("plan", {}).get("tournaments", []))
             _console.print(f"  [green]✓[/green] {n_tournaments} turneringer planlagt")
             log_fn(f"Stage 3 OK: {n_tournaments} tournaments planned")

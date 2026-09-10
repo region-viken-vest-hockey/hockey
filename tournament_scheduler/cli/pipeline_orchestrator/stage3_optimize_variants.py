@@ -75,6 +75,11 @@ def _run_stage3_v2_optimize(
         "solve_budget_seconds": float(arguments.get("solve_budget_seconds", 30.0)),
     }
 
+    from time import perf_counter
+
+    from ...pipeline.run_manifest import RunManifest
+
+    _solve_started = perf_counter()
     try:
         new_candidate = run_planner(engine=engine, problem=problem, baseline=baseline_candidate, request=request)
     except (CpSatUnavailable, CpSatNoCandidate) as exc:
@@ -99,6 +104,40 @@ def _run_stage3_v2_optimize(
         except Exception as log_exc:
             log_fn(f"optimize_plan: could not append engine-failure attempt-log entry: {log_exc}")
         return planning_checkpoint, False
+
+    solve_seconds = perf_counter() - _solve_started
+    timing_key = "stage3_cp_sat_seconds" if engine == "cp_sat" else "stage3_local_search_seconds"
+    try:
+        manifest = RunManifest(state.work_dir)
+        manifest.record_timing(timing_key, solve_seconds)
+        if engine == "cp_sat":
+            manifest.record_cp_sat_invocation(
+                {
+                    "source": "explicit_optimize_plan",
+                    "cache_hit": False,
+                    "status": "solved",
+                    "runtime_seconds": round(solve_seconds, 6),
+                }
+            )
+    except Exception as exc:
+        log_fn(f"optimize_plan: could not record timing telemetry ({exc})")
+
+    if engine == "cp_sat":
+        # issue #310: cache this explicit solve by the same fingerprint the
+        # automatic shadow uses, so a *later* attempt that happens to reuse
+        # this exact (problem, baseline, request) triple is served from
+        # cache instead of re-solving.
+        from .stage3_cpsat_cache import cp_sat_cache_key, write_cp_sat_cache_entry
+        from ...stage3_shadow import build_shadow_report
+
+        try:
+            cache_key = cp_sat_cache_key(problem, baseline_candidate, request)
+            report = build_shadow_report(baseline_candidate, new_candidate, problem, engine="cp_sat")
+            write_cp_sat_cache_entry(
+                state, _current_run_id(state), cache_key, candidate=new_candidate, report=report
+            )
+        except Exception as exc:
+            log_fn(f"optimize_plan: could not cache explicit cp_sat result ({exc})")
 
     checkpoint = dict(planning_checkpoint)
     checkpoint["plan"] = new_candidate

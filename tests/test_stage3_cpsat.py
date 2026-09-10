@@ -433,6 +433,33 @@ class TestOptimizeCandidateCpSat:
         assert set(before["participation"]["counts_by_team"].values()) == {2}
         assert set(after["participation"]["counts_by_team"].values()) == {2}
 
+    def test_decompose_by_half_budget_is_total_not_per_half(self, monkeypatch):
+        """issue #310: solve_budget_seconds is a TOTAL wall-clock budget
+        across all decomposed halves, not applied unchanged to each half --
+        a configured 10s budget over two halves must solve each half for 5s,
+        not 10s each (~20s wall-clock)."""
+        candidate = _half_split_candidate()
+        problem = {"christmas_split_date": "2026-12-24"}
+
+        seen_budgets: list[float] = []
+        real_solve = cp_model.CpSolver.Solve
+
+        def _capturing_solve(self, model):
+            seen_budgets.append(self.parameters.max_time_in_seconds)
+            return real_solve(self, model)
+
+        monkeypatch.setattr(cp_model.CpSolver, "Solve", _capturing_solve)
+
+        optimized = optimize_candidate_cp_sat(
+            candidate, problem, solve_budget_seconds=10.0, seed=1, decompose_by_half=True
+        )
+
+        assert len(seen_budgets) == 2
+        for budget in seen_budgets:
+            assert budget == pytest.approx(5.0)
+        for diag in optimized["source"]["half_diagnostics"]:
+            assert diag["solve_budget_seconds"] == pytest.approx(5.0)
+
     def test_no_candidate_error_carries_diagnostics(self, monkeypatch):
         """issue #298: a no-candidate result carries explainable solver
         evidence rather than an opaque timeout."""

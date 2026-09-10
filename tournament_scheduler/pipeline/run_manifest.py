@@ -101,6 +101,33 @@ def _next_recommended_capability(
     return sequence[idx + 1] if idx + 1 < len(sequence) else None
 
 
+_STAGE3_TIMING_KEYS: tuple[str, ...] = (
+    "stage3_baseline_seconds",
+    "stage3_local_search_seconds",
+    "stage3_cp_sat_seconds",
+    "stage3_verification_seconds",
+    "stage3_decision_context_seconds",
+)
+_RUN_TIMING_KEYS: tuple[str, ...] = (
+    "stage1_seconds",
+    "stage2_seconds",
+    *_STAGE3_TIMING_KEYS,
+    "stage4_export_seconds",
+    "refinement_seconds",
+)
+
+
+def timing_summary(manifest: dict[str, Any]) -> dict[str, float]:
+    """Derive ``stage3_total_seconds``/``run_total_seconds`` from a manifest's
+    ``timing`` dict (issue #310), rather than accumulating them separately at
+    every call site where they could drift out of sync with the components.
+    """
+    timing = manifest.get("timing") or {}
+    stage3_total = sum(float(timing.get(key, 0.0)) for key in _STAGE3_TIMING_KEYS)
+    run_total = sum(float(timing.get(key, 0.0)) for key in _RUN_TIMING_KEYS)
+    return {"stage3_total_seconds": stage3_total, "run_total_seconds": run_total}
+
+
 # ---------------------------------------------------------------------------
 # RunManifest
 # ---------------------------------------------------------------------------
@@ -305,6 +332,40 @@ class RunManifest:
         manifest["updated_at"] = now
         self._write(manifest)
         return entry
+
+    def record_timing(self, key: str, seconds: float) -> None:
+        """Accumulate *seconds* under ``manifest["timing"][key]`` (issue #310).
+
+        Additive rather than overwriting — some keys (e.g.
+        ``stage3_cp_sat_seconds``) are updated from more than one call site
+        across a run (an explicit ``optimize_plan(engine="cp_sat")`` pass and
+        an automatic shadow evaluation both contribute), and a resumed run
+        may re-enter the same stage's timing block across separate CLI
+        invocations.
+        """
+        manifest = self.read()
+        timing = manifest.setdefault("timing", {})
+        timing[key] = float(timing.get(key, 0.0)) + float(seconds)
+        manifest["updated_at"] = _now_iso()
+        self._write(manifest)
+
+    def record_cp_sat_invocation(self, record: dict[str, Any]) -> None:
+        """Append one CP-SAT solve/reuse record (issue #310) to
+        ``manifest["cp_sat_invocations"]``.
+
+        *record* should at minimum carry ``baseline_fingerprint``,
+        ``problem_fingerprint``, ``request_fingerprint``, ``cache_hit``, and
+        ``runtime_seconds`` — the exact shape is the caller's evidence, this
+        method only owns storage/ordering. ``len(cp_sat_invocations)`` after
+        this call is the invocation count the issue asks for; no separate
+        counter is kept to avoid it drifting out of sync.
+        """
+        manifest = self.read()
+        entry = dict(record)
+        entry["recorded_at"] = _now_iso()
+        manifest.setdefault("cp_sat_invocations", []).append(entry)
+        manifest["updated_at"] = entry["recorded_at"]
+        self._write(manifest)
 
     def finalize(self, outcome: str) -> None:
         """Mark the run as finished with a terminal outcome.

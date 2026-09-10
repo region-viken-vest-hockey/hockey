@@ -170,6 +170,11 @@ def _run_stage2(
                 _console.print(f"  [yellow]⚠[/yellow] Cache-refresh feilet: {exc}")
                 log_fn(f"Stage 2 force-refresh warning: {exc}")
         try:
+            from time import perf_counter
+
+            from ...pipeline.run_manifest import RunManifest
+
+            _started = perf_counter()
             scraping = stage2_run(
                 cfg,
                 state,
@@ -178,6 +183,10 @@ def _run_stage2(
                 strict=strict,
                 allow_missing_sources=allow_missing_sources,
             )
+            try:
+                RunManifest(state.work_dir).record_timing("stage2_seconds", perf_counter() - _started)
+            except Exception as exc:
+                log_fn(f"Stage 2: could not record timing: {exc}")
             n = len(scraping.get("sources", []))
             blocked = scraping.get("blocked", [])
             if scraping.get("skipped"):

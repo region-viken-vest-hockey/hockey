@@ -47,9 +47,20 @@ def _run_refinement_and_reexport(
             _console.print(
                 "\n[bold cyan]Plankvalitet: ROUGH — starter automatisk refinering...[/bold cyan]"
             )
+            from time import perf_counter
+
+            from ...pipeline.run_manifest import RunManifest
+
+            _refinement_started = perf_counter()
             final_tone, refined_plan = _run_refinement_loop(
                 plan, state, args, strict, log_fn
             )
+            try:
+                RunManifest(state.work_dir).record_timing(
+                    "refinement_seconds", perf_counter() - _refinement_started
+                )
+            except Exception as exc:
+                log_fn(f"Could not record refinement timing: {exc}")
             log_fn(f"Refinement loop complete: final tone={final_tone}")
             tone_label = {"strong": "SOLID", "mixed": "OK", "rough": "ROUGH"}.get(final_tone, final_tone.upper())
             if final_tone != "rough":

@@ -109,6 +109,9 @@ def _emit_stage3_interactive_decision(
     end: "Any",
     plan: "dict[str, Any]",
     log_fn: "Any",
+    *,
+    skip_auto_cp_sat_shadow: bool = False,
+    stage3_elapsed_seconds: float = 0.0,
 ) -> int:
     """Build, persist and print the Stage 3 :class:`DecisionContext` for the
     attempt that just ran (issue #260 P0).
@@ -126,9 +129,27 @@ def _emit_stage3_interactive_decision(
     stage checkpoints (:func:`_stage3_interactive_state_path`) so it survives
     across the separate CLI invocations an interactive harness makes between
     checkpoints.
+
+    issue #310: *skip_auto_cp_sat_shadow* is set by the caller when *plan*
+    was itself just produced by an explicit ``optimize_plan(engine="cp_sat")``
+    pass -- shadowing that candidate again here would re-solve the model CP-
+    SAT just produced as if it were a fresh, unexamined baseline. In that
+    case the explicit run's own diagnostics are surfaced under the same
+    ``cp_sat_shadow`` fact key instead of running a second solve.
+    *stage3_elapsed_seconds* is the wall-clock already spent this invocation
+    on Stage 3 baseline/optimize work before this function was called; it is
+    subtracted from ``stage3_wall_clock_ceiling_seconds`` (default 60s) to
+    cap -- or entirely skip -- the automatic CP-SAT shadow's own budget, so
+    one interactive Stage 3 invocation has a bounded total wall-clock cost
+    rather than the shadow's configured budget being additive on top of an
+    already-long baseline/optimize phase. This CLI process already returns
+    control after exactly one Stage 3 attempt (see the module docstring), so
+    the guard only needs to bound *this* invocation's automatic-shadow phase,
+    not a nested/looping in-process search.
     """
     import json as _json
     from dataclasses import replace as _dc_replace
+    from time import perf_counter
 
     from ...application.decisions import DecisionContext
     from ...planning_contract import extract_candidate
@@ -139,6 +160,7 @@ def _emit_stage3_interactive_decision(
         build_stage3_decision_context,
     )
 
+    _t0 = perf_counter()
     run_id = _current_run_id(state)
     interactive_state = _read_stage3_interactive_state(state, expected_run_id=run_id)
     attempts_used = int(interactive_state.get("attempts_used", 0))
@@ -148,7 +170,39 @@ def _emit_stage3_interactive_decision(
         shadow_source_candidate = extract_candidate(plan)
     except (ValueError, KeyError):
         shadow_source_candidate = None
-    cp_sat_shadow = _maybe_run_stage3_cp_sat_shadow(cfg, problem, shadow_source_candidate, log_fn)
+
+    if skip_auto_cp_sat_shadow:
+        log_fn(
+            "stage3: skipping automatic CP-SAT shadow -- an explicit "
+            "optimize_plan(engine=\"cp_sat\") pass just produced this plan"
+        )
+        cp_sat_shadow = (
+            {
+                "attempted": True,
+                "available": True,
+                "engine": "cp_sat",
+                "explicit": True,
+                "skipped_auto_shadow_reason": "explicit_cp_sat_just_ran",
+                "candidate_source": shadow_source_candidate.get("source") if shadow_source_candidate else None,
+            }
+            if shadow_source_candidate is not None
+            else None
+        )
+        _shadow_seconds = 0.0
+    else:
+        ceiling = float(cfg.get("stage3_wall_clock_ceiling_seconds", 60.0))
+        remaining_budget = (ceiling - stage3_elapsed_seconds) if ceiling > 0 else None
+        _t_shadow_start = perf_counter()
+        cp_sat_shadow = _maybe_run_stage3_cp_sat_shadow(
+            cfg,
+            problem,
+            shadow_source_candidate,
+            log_fn,
+            state=state,
+            run_id=run_id,
+            max_budget_seconds=remaining_budget,
+        )
+        _shadow_seconds = perf_counter() - _t_shadow_start
 
     if attempts_used <= 0 or "best_plan" not in interactive_state:
         # First attempt this run: nothing to compare against yet — auto-
@@ -162,6 +216,12 @@ def _emit_stage3_interactive_decision(
         available = ["optimize_plan", "keep_baseline", "request_operator", "abort"]
         if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
             available.remove("optimize_plan")
+        if cp_sat_shadow is not None and cp_sat_shadow.get("candidate_ref"):
+            # issue #310: a verified automatic CP-SAT candidate is directly
+            # applicable via candidate_ref, resolved against
+            # stage3_cpsat_cache -- without this, the only way to adopt it
+            # was to re-run optimize_plan(engine="cp_sat") and re-solve.
+            available.append("apply_candidate")
         context = DecisionContext(
             run_id=run_id,
             capability="stage3_interactive",
@@ -277,6 +337,14 @@ def _emit_stage3_interactive_decision(
             )
         except Exception as exc:
             log_fn(f"stage3_interactive attempt {attempts_used}: could not append cp_sat shadow attempt-log entry: {exc}")
+
+    try:
+        from ...pipeline.run_manifest import RunManifest
+
+        decision_context_seconds = max(0.0, (perf_counter() - _t0) - _shadow_seconds)
+        RunManifest(state.work_dir).record_timing("stage3_decision_context_seconds", decision_context_seconds)
+    except Exception as exc:
+        log_fn(f"stage3_interactive attempt {attempts_used}: could not record decision-context timing: {exc}")
 
     payload = context.to_dict()
     try:

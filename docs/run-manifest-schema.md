@@ -94,6 +94,17 @@ Fields:
   ],
   "action_log": [
     { "...": "one entry per observe-decide-act loop step (issue #11) — see below" }
+  ],
+  "timing": {
+    "stage1_seconds": 3.1,
+    "stage2_seconds": 12.4,
+    "stage3_baseline_seconds": 4.8,
+    "stage3_cp_sat_seconds": 9.2,
+    "stage3_decision_context_seconds": 0.3,
+    "stage4_export_seconds": 1.9
+  },
+  "cp_sat_invocations": [
+    { "...": "one entry per automatic-shadow or explicit-optimize CP-SAT call — see below" }
   ]
 }
 ```
@@ -113,6 +124,37 @@ Fields:
 | `capabilities`          | Ordered history of every `CapabilityResult` recorded during the run.                        |
 | `pending_questions`     | Escalation questions raised in this workspace, answered or not — see below.                 |
 | `action_log`            | Ordered history of every operator-loop action taken in this workspace — see below.          |
+| `timing`                | Accumulated wall-clock seconds per unit of work (issue #310) — see below.                    |
+| `cp_sat_invocations`    | Ordered history of every automatic-shadow/explicit CP-SAT solve or cache reuse (issue #310) — see below. |
+
+### Timing telemetry and CP-SAT invocation history (issue #310)
+
+`timing` is populated by `RunManifest.record_timing(key, seconds)`, called
+from each `_run_stageN`/Stage 3 optimize/decision-emit call site with
+`perf_counter()`-measured elapsed time. Values accumulate additively across
+the separate CLI invocations one interactive run makes (each
+`rvv-miniputt run --interactive` invocation executes exactly one stage), so
+a key like `stage3_cp_sat_seconds` reflects the running total across every
+automatic shadow evaluation and explicit `optimize_plan(engine="cp_sat")`
+pass in the run, not just the most recent one. Keys used:
+`stage1_seconds`, `stage2_seconds`, `stage3_baseline_seconds`,
+`stage3_local_search_seconds`, `stage3_cp_sat_seconds`,
+`stage3_verification_seconds`, `stage3_decision_context_seconds`,
+`stage4_export_seconds`, `refinement_seconds`. `stage3_total_seconds` and
+`run_total_seconds` are not stored directly — they are derived on demand by
+`run_manifest.timing_summary(manifest)`, summing the relevant keys, so they
+can never drift out of sync with the components.
+
+`cp_sat_invocations` is populated by `RunManifest.record_cp_sat_invocation(record)`
+from `stage3_optimize_core._maybe_run_stage3_cp_sat_shadow` (automatic
+shadow) and `stage3_optimize_variants._run_stage3_v2_optimize` (explicit
+`optimize_plan(engine="cp_sat")`). Each entry carries at least `source`
+(`"automatic_shadow"` or `"explicit_optimize_plan"`), `cache_hit` (bool —
+whether this call was served from `stage3_cpsat_cache.json` instead of
+re-solving), `status`, and `runtime_seconds`; `len(cp_sat_invocations)` is
+the total invocation count the issue's acceptance criteria ask for — a
+cache hit still appends an entry (with `runtime_seconds` near zero) so the
+count reflects every call, not just every solve.
 
 `rvv-miniputt run` starts a manifest at the beginning of every run, records a
 capability result after each of the four pipeline stages, and finalizes the

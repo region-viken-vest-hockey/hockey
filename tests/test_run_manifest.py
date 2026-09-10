@@ -8,6 +8,7 @@ from tournament_scheduler.pipeline.capability_result import CapabilityResult
 from tournament_scheduler.pipeline.run_manifest import (
     RUN_MANIFEST_SCHEMA_VERSION,
     RunManifest,
+    timing_summary,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 
@@ -248,3 +249,52 @@ class TestRunManifestBackwardCompatibility:
         assert data["active_capability"] is None
         assert data["last_completed_capability"] == "export"
         assert data["next_recommended_capability"] is None
+
+
+class TestRunManifestTiming:
+    """issue #310: end-to-end timing instrumentation and CP-SAT invocation
+    telemetry, so a production-sized run's time is diagnosable from the
+    manifest alone."""
+
+    def test_record_timing_accumulates_additively(self, manifest):
+        manifest.start_run("objective")
+        manifest.record_timing("stage3_cp_sat_seconds", 2.5)
+        manifest.record_timing("stage3_cp_sat_seconds", 1.5)
+        data = manifest.read()
+        assert data["timing"]["stage3_cp_sat_seconds"] == pytest.approx(4.0)
+
+    def test_record_timing_keeps_other_keys_independent(self, manifest):
+        manifest.start_run("objective")
+        manifest.record_timing("stage1_seconds", 3.0)
+        manifest.record_timing("stage3_baseline_seconds", 5.0)
+        data = manifest.read()
+        assert data["timing"]["stage1_seconds"] == pytest.approx(3.0)
+        assert data["timing"]["stage3_baseline_seconds"] == pytest.approx(5.0)
+
+    def test_record_cp_sat_invocation_appends_and_counts(self, manifest):
+        manifest.start_run("objective")
+        manifest.record_cp_sat_invocation({"source": "automatic_shadow", "cache_hit": False, "runtime_seconds": 1.2})
+        manifest.record_cp_sat_invocation({"source": "automatic_shadow", "cache_hit": True, "runtime_seconds": 0.0})
+        data = manifest.read()
+        assert len(data["cp_sat_invocations"]) == 2
+        assert data["cp_sat_invocations"][0]["cache_hit"] is False
+        assert data["cp_sat_invocations"][1]["cache_hit"] is True
+        assert "recorded_at" in data["cp_sat_invocations"][0]
+
+    def test_timing_summary_derives_totals_without_separate_accumulation(self, manifest):
+        manifest.start_run("objective")
+        manifest.record_timing("stage1_seconds", 1.0)
+        manifest.record_timing("stage2_seconds", 2.0)
+        manifest.record_timing("stage3_baseline_seconds", 3.0)
+        manifest.record_timing("stage3_cp_sat_seconds", 4.0)
+        manifest.record_timing("stage4_export_seconds", 5.0)
+        data = manifest.read()
+        summary = timing_summary(data)
+        assert summary["stage3_total_seconds"] == pytest.approx(7.0)
+        assert summary["run_total_seconds"] == pytest.approx(15.0)
+
+    def test_timing_summary_handles_missing_timing_dict(self, manifest):
+        manifest.start_run("objective")
+        data = manifest.read()
+        summary = timing_summary(data)
+        assert summary == {"stage3_total_seconds": 0.0, "run_total_seconds": 0.0}
