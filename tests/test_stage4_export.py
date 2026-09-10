@@ -267,10 +267,9 @@ class TestRunStage4:
         html = Path(files["html"]).read_text(encoding="utf-8")
         assert 'href="manual_schedule.html"' in html
 
-    def test_export_lists_external_conflicts_and_participation_shortfalls_as_manual(self, tmp_path):
-        """unresolved_external_conflicts and unresolved_participation_shortfalls
-        (non-blocking, see planning_contract.verify_candidate's
-        manual_external_conflict_placements/manual_participation_placements)
+    def test_export_lists_external_conflicts_as_manual(self, tmp_path):
+        """unresolved_external_conflicts (non-blocking, see
+        planning_contract.verify_candidate's manual_external_conflict_placements)
         must round-trip through the Stage 3 checkpoint dict and render into
         manual_schedule.html, same as unresolved_hosting_obligations."""
         state = PipelineState(tmp_path / "pipeline")
@@ -283,16 +282,7 @@ class TestRunStage4:
                 "age_group": "U10",
                 "date": "2025-10-05",
                 "reason": "Turnering t-conflict hos Kongsberg overlapper en kjent ekstern kalenderbooking.",
-            }
-        ]
-        plan_checkpoint["plan"]["unresolved_participation_shortfalls"] = [
-            {
-                "club": "Skien",
-                "label": "Skien U10A",
-                "age_group": "U10",
-                "actual": "1",
-                "target": "3",
-                "reason": "Skien U10A (Skien, U10) deltar 1 ganger, forventet 3 -- ikke nok ledige turneringsplasser ble funnet denne sesongen.",
+                "category": "manual_external_conflict",
             }
         ]
 
@@ -308,8 +298,77 @@ class TestRunStage4:
         manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
         assert "ekstern kalenderkonflikt" in manual_html.lower()
         assert "t-conflict" in manual_html
-        assert "avvik fra måltall".lower() in manual_html.lower()
-        assert "Skien U10A" in manual_html
+
+    @pytest.mark.parametrize("category", ["participation_under_target", "participation_over_target"])
+    def test_export_excludes_participation_deviations_from_manual_schedule(self, tmp_path, category):
+        """issue #302: participation-target deviations (over- or under-target)
+        are team-level planning-quality signals, not ice-time/booking work --
+        they must never appear on manual_schedule.html or inflate its count,
+        even though they remain visible via
+        plan.unresolved_participation_shortfalls (season plan report)."""
+        state = PipelineState(tmp_path / "pipeline")
+        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        plan_checkpoint = _make_plan_dict()
+        plan_checkpoint["plan"]["unresolved_participation_shortfalls"] = [
+            {
+                "club": "Skien",
+                "label": "Skien U10A",
+                "age_group": "U10",
+                "actual": "1",
+                "target": "3",
+                "reason": "Skien U10A (Skien, U10) deltar 1 ganger, forventet 3 -- ikke nok ledige turneringsplasser ble funnet denne sesongen.",
+                "category": category,
+            }
+        ]
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        files = result.get("output_files", {})
+        # No genuine manual item exists in this plan, so the file is not written at all.
+        assert "manual_schedule" not in files
+        # ...but the deviation is still exposed on the plan for the season report.
+        plan = _dict_to_plan(plan_checkpoint["plan"])
+        assert plan.unresolved_participation_shortfalls[0]["club"] == "Skien"
+
+    def test_manual_schedule_count_reconciles_with_rows(self, tmp_path):
+        """issue #302: the headline/manual count must equal exactly the
+        genuine manual items rendered, even when participation deviations
+        are also present on the plan."""
+        state = PipelineState(tmp_path / "pipeline")
+        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        plan_checkpoint = _make_plan_dict()
+        plan_checkpoint["plan"]["unresolved_hosting_obligations"] = [
+            {"club": "Ringerike", "age_group": "U8", "reason": "ingen ledig arenatid", "category": "manual_hosting_obligation"}
+        ]
+        plan_checkpoint["plan"]["unresolved_participation_shortfalls"] = [
+            {
+                "club": "Skien",
+                "label": "Skien U10A",
+                "age_group": "U10",
+                "actual": "5",
+                "target": "3",
+                "reason": "over target",
+                "category": "participation_over_target",
+            }
+        ]
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        files = result.get("output_files", {})
+        manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
+        assert "Ringerike" in manual_html
+        assert "Skien" not in manual_html
+        assert "1 turnering(er) krever manuell istidsplanlegging" in manual_html
 
     def test_produces_excel_file(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
