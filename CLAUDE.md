@@ -29,3 +29,7 @@ Harness-neutral entrypoints are:
 - `python3 -m tournament_scheduler.cli.rvv_cli ...`
 
 When planning or changing scheduling logic, review whether the rules report and related documentation must be updated to match the new behavior.
+
+## No issue numbers in user-facing text
+
+Never reference a GitHub issue number (e.g. "issue #302") inside strings that end up in reports, exported files, rendered HTML, rule/status descriptions, or other output consumers see (`rules_report.py`, `rules_model.py`, exported HTML/Excel, CLI-printed messages, etc.). These go stale as soon as the issue is closed or renumbered, and the people reading that output have no access to the issue tracker anyway. Explain the *reason* in plain language instead. Issue numbers belong in commit messages, code comments, and PR/issue text aimed at developers — not in anything downstream of an export.

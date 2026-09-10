@@ -310,7 +310,7 @@ def rules_report(planner) -> List[Dict[str, str]]:
                 "fordi det ikke fantes nok ledige turneringsplasser denne sesongen), avvises "
                 "ikke hele planen -- avviket er en planleggingskvalitet-avvik, ikke en "
                 "istidsoppgave, og rapporteres derfor her i sesongrapporten i stedet for i "
-                "«Må planlegges manuelt»-visningen (manual_schedule.html) (issue #302). "
+                "«Må planlegges manuelt»-visningen (manual_schedule.html). "
                 f"{len(planner._unresolved_participation_shortfalls)} slik(e) avvik er "
                 "registrert i denne planen"
                 + (
