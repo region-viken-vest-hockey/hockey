@@ -57,6 +57,21 @@ def rules_report(planner) -> List[Dict[str, str]]:
         "kategori": "Hard krav",
     })
 
+    report.append({
+        "regel": "U- og JU-kategorier blandes aldri i samme turnering",
+        "forklaring": (
+            "Aldersgruppen er en eksakt kategori-streng (f.eks. «U10» eller «JU10»), aldri bare "
+            "det numeriske alderstallet. Et lags aldersgruppe må være identisk med turneringens "
+            "aldersgruppe for at laget kan delta -- «U10» og «JU10» er alltid to forskjellige "
+            "turneringer, selv om de deler samme tall. Dette gjelder likt for grunnplanen, "
+            "lokalsøket og CP-SAT-søket, og verify_candidate() avviser enhver kandidat med et "
+            "`age_group_mismatch`-avvik uansett hvilken motor som produserte den. "
+            "`AGE_GROUP_OVERLAP` er en egen regel om datokollisjon mellom nærliggende aldersgrupper "
+            "og gir aldri en klubb lov til å sette sammen U- og JU-lag i én turnering."
+        ),
+        "kategori": "Hard krav",
+    })
+
     fairness_thresholds = planner.fairness_thresholds
     thresholds_text = ", ".join(
         f"{key}={fairness_thresholds[key]}"

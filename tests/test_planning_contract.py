@@ -106,6 +106,34 @@ class TestVerifyCandidateSelfConsistency:
         codes = {v["code"] for v in result["violations"]}
         assert "duplicate_team_in_tournament" in codes
 
+    def test_u_team_in_ju_tournament_is_hard_violation(self):
+        # U and JU are never the same category, even when they share the
+        # same numeric age.
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "JU10")]
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "JU10", teams)]}
+        result = verify_candidate(candidate)
+        assert not result["ok"]
+        codes = {v["code"] for v in result["violations"]}
+        assert "age_group_mismatch" in codes
+
+    def test_ju_team_in_u_tournament_is_hard_violation(self):
+        teams = [_team("Jar", "Jar 1", "JU10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)]}
+        result = verify_candidate(candidate)
+        assert not result["ok"]
+        codes = {v["code"] for v in result["violations"]}
+        assert "age_group_mismatch" in codes
+
+    def test_reused_label_across_u_and_ju_is_distinct_identity(self):
+        # Same club+label reused across U and JU (the numeric part is
+        # shared) must not be collapsed into one team identity.
+        u10_teams = [_team("Ringerike", "Ringerike 1", "U10"), _team("Jar", "Jar 1", "U10")]
+        ju10_teams = [_team("Ringerike", "Ringerike 1", "JU10"), _team("Jar", "Jar 1", "JU10")]
+        t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", u10_teams)
+        t2 = _tournament("t2", "2026-01-10", "Kongsberghallen", "JU10", ju10_teams)
+        result = verify_candidate({"tournaments": [t1, t2]})
+        assert result["ok"], result["violations"]
+
     def test_cancelled_tournaments_are_ignored(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)

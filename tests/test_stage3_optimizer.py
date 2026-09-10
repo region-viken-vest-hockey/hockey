@@ -516,6 +516,30 @@ class TestSearchStateIncrementalMatchesFullRecompute:
             state.apply_team_swap(slot_a, pos_a, slot_b, pos_b)
             assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
 
+    def test_candidate_swaps_never_move_teams_between_u_and_ju(self):
+        from tournament_scheduler.stage3_optimizer import _build_slots, _candidate_swaps
+
+        u10_teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        ju10_teams = [_team("Jar", "Jar 2", "JU10"), _team("Kongsberg", "Kongsberg 2", "JU10")]
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-10", "Jarhallen", "U10", u10_teams),
+                _tournament("t2", "2026-01-17", "Jarhallen", "U10", list(reversed(u10_teams))),
+                _tournament("t3", "2026-01-10", "Kongsberghallen", "JU10", ju10_teams),
+                _tournament("t4", "2026-01-17", "Kongsberghallen", "JU10", list(reversed(ju10_teams))),
+            ],
+        }
+        slots, _ = _build_slots(candidate, None)
+        rng = random.Random(3)
+
+        for _ in range(200):
+            move = _candidate_swaps(slots, rng)
+            if move is None:
+                continue
+            slot_a, _pos_a, slot_b, _pos_b = move
+            assert slots[slot_a].age_group == slots[slot_b].age_group
+
     def test_incremental_date_swaps_match_full_objective(self):
         from tournament_scheduler.stage3_optimizer import (
             DEFAULT_WEIGHTS,

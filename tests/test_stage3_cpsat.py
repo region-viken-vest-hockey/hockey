@@ -129,6 +129,36 @@ class TestOptimizeCandidateCpSat:
             if baseline_had_host:
                 assert any(team["club"] == after["host_club"] for team in after["teams"])
 
+    def test_never_assigns_teams_across_u_and_ju_categories(self):
+        u_teams = {f"U{i}": _team(f"Club{i}", f"U{i}", "U10") for i in range(1, 9)}
+        ju_teams = {f"JU{i}": _team(f"Club{i}", f"JU{i}", "JU10") for i in range(1, 9)}
+        u_group_a = [u_teams["U1"], u_teams["U2"], u_teams["U3"], u_teams["U4"]]
+        u_group_b = [u_teams["U5"], u_teams["U6"], u_teams["U7"], u_teams["U8"]]
+        ju_group_a = [ju_teams["JU1"], ju_teams["JU2"], ju_teams["JU3"], ju_teams["JU4"]]
+        ju_group_b = [ju_teams["JU5"], ju_teams["JU6"], ju_teams["JU7"], ju_teams["JU8"]]
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U10", u_group_a),
+                _tournament("t2", "2026-02-04", "Arena1", "U10", u_group_a),
+                _tournament("t3", "2026-03-06", "Arena5", "U10", u_group_b),
+                _tournament("t4", "2026-04-05", "Arena5", "U10", u_group_b),
+                _tournament("t5", "2026-01-05", "Arena2", "JU10", ju_group_a),
+                _tournament("t6", "2026-02-04", "Arena2", "JU10", ju_group_a),
+                _tournament("t7", "2026-03-06", "Arena6", "JU10", ju_group_b),
+                _tournament("t8", "2026-04-05", "Arena6", "JU10", ju_group_b),
+            ],
+        }
+
+        optimized = optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
+
+        for tournament in optimized["tournaments"]:
+            for team in tournament["teams"]:
+                assert team["age_group"] == tournament["age_group"]
+
+        verification = verify_candidate(optimized, None)
+        assert verification["ok"], verification
+
     def test_no_duplicate_participation_on_the_same_date(self):
         candidate = {
             "schema_version": 1,

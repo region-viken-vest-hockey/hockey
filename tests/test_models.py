@@ -8,6 +8,7 @@ from tournament_scheduler.models import (
     ConflictResult,
     SchedulingResult,
     Game,
+    Roster,
     Team,
     Tournament,
 )
@@ -162,3 +163,21 @@ class TestTournamentDurationAndEndTime:
         # Backward-compatible: no start_time -> end_time is None regardless of round_length.
         assert tournament.start_time is None
         assert tournament.end_time(round_length=10) is None
+
+
+class TestRosterAgeGroupSeparation:
+    """U and JU are distinct exact-match categories, never mixed."""
+
+    def test_by_age_group_never_mixes_u_and_ju(self):
+        roster = Roster(teams=[
+            Team(club="Jar", label="Jar 1", age_group="U10"),
+            Team(club="Jar", label="Jar 1", age_group="JU10"),
+            Team(club="Kongsberg", label="Kongsberg 1", age_group="U10"),
+        ])
+
+        u10 = roster.by_age_group("U10")
+        ju10 = roster.by_age_group("JU10")
+
+        assert {team.label for team in u10} == {"Jar 1", "Kongsberg 1"}
+        assert all(team.age_group == "U10" for team in u10)
+        assert [team.age_group for team in ju10] == ["JU10"]

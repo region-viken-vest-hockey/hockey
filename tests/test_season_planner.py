@@ -2812,6 +2812,24 @@ class TestRulesReport:
         assert "starttid" in config_text.lower(), "missing default start time config rule"
         assert "buffer" in config_text.lower(), "missing same-hall buffer config rule"
 
+    def test_u_ju_separation_is_documented_as_hard_rule(self):
+        """The U/JU never-mixed invariant is listed explicitly as a hard rule."""
+        roster = Roster(teams=[
+            Team(club="Jar", label="Jar U10", age_group="U10"),
+            Team(club="Kongsberg", label="Kongsberg JU10", age_group="JU10"),
+        ])
+        club_arenas = {"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"}
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler([]),
+            roster=roster,
+            club_arenas=club_arenas,
+        )
+        report = planner.rules_report()
+
+        matches = [r for r in report if "U- og JU-kategorier" in r["regel"]]
+        assert matches, "expected an explicit U/JU separation rule in the report"
+        assert matches[0]["kategori"] == "Hard krav"
+
     def test_works_before_build_plan(self):
         """rules_report() does not require build_plan() to have been called."""
         roster = Roster(teams=[
