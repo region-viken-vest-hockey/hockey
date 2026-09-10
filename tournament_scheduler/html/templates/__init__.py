@@ -43,6 +43,7 @@ INPUT_VIEWER = _load("input_viewer.html")
 REGISTERED_TEAMS = _load("registered_teams.html")
 PAGES_ROOT_INDEX = _load("pages_root_index.html")
 PAGES_EMPTY_INDEX = _load("pages_empty_index.html")
+MANUAL_SCHEDULE = _load("manual_schedule.html")
 
 # JavaScript for interactivity
 JAVASCRIPT = _load("script.js")

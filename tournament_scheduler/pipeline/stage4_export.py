@@ -13,23 +13,26 @@ and writes three output files:
 - ``<export_dir>/review_packets/`` — per-club approval folders with review workbook, Spond import, schedule attachment, and response template
 
 File paths are written to the Stage 4 checkpoint.
+
+The module is split into focused siblings kept under the repo's
+300-line-per-file guideline: ``stage4_export_errors`` (``Stage4Error``),
+``stage4_export_timing`` (build-timestamp resolution, export pruning),
+``stage4_export_xlsx`` (reproducible XLSX normalization),
+``stage4_export_not_started`` (placeholder exports before planning starts),
+``stage4_export_manual_schedule`` (the "Må planlegges manuelt" view), and
+``stage4_export_verification`` (the hard-verification problem builder).
+This file owns the ``run()`` orchestration itself and the CLI entry point.
 """
 
 from __future__ import annotations
 
-import html as _html
 import logging
 import os
-import re
-import shutil
 import sys
-import tempfile
-import zipfile
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ..models import SeasonPlan
 from ..arena_conflicts import find_arena_interval_collisions
 from ..planning_contract import extract_candidate, verify_candidate
 from .fingerprints import stable_payload_sha256
@@ -37,451 +40,33 @@ from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter
 from ..csv.csv_exporter import CsvExporter
 from ..html.html_exporter import HtmlExporter
-from ..html.data_computation import ICON_BAR_CHART, ICON_CALENDAR, ICON_CLIPBOARD, ICON_USERS, ICON_WARNING, fmt_date, season_label
-from ..html.templates import STYLES_CSS
-from ..review.review_packet_exporter import ReviewPacketExporter
-from ..spond.spond_exporter import SpondExporter
 from .stage1_config import load_effective_config
 from .state import PipelineState, StageName, StageStatus
 from .stage4_helpers import _dict_to_plan
 from .calendar_viewer import generate_html as _generate_calendars_html
 from .input_viewer import generate_html as _generate_input_html
 from .activity_viewer import generate_activity_artifacts as _generate_activity_artifacts
-from .not_started import NOT_STARTED_MESSAGE, render_not_started_html
+from .not_started import NOT_STARTED_MESSAGE
+from ..review.review_packet_exporter import ReviewPacketExporter
+from ..spond.spond_exporter import SpondExporter
+from .stage4_export_errors import Stage4Error
+from .stage4_export_timing import (
+    DEFAULT_EXPORT_DIR,
+    DEFAULT_BASENAME,
+    _TIMESTAMP_DIR_RE,
+    _prune_old_exports,
+    _resolve_build_timestamp,
+)
+from .stage4_export_xlsx import _normalize_export_workbooks
+from .stage4_export_not_started import _write_not_started_exports
+from .stage4_export_manual_schedule import (
+    MANUAL_SCHEDULE_FILENAME,
+    MANUAL_SCHEDULE_CATEGORIES,
+    _manual_schedule_html,
+)
+from .stage4_export_verification import _build_export_verification_problem
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Defaults
-# ---------------------------------------------------------------------------
-
-DEFAULT_EXPORT_DIR = "export"
-DEFAULT_BASENAME = "season_plan"
-
-# Matches the "%Y-%m-%dT%H%M" directory name this module generates below.
-# Callers (e.g. a stage-by-stage orchestrator that picks one export dir up
-# front to keep a run's logs and export together) sometimes pass an
-# already-timestamped --export-dir. Detecting that here keeps a second,
-# nested timestamp from being appended on top of it.
-_TIMESTAMP_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{4}$")
-
-# Only this many timestamped export runs are kept on disk (and therefore in
-# the repo, since they're committed as evidence). Older ones are deleted
-# automatically at the end of a successful export.
-MAX_KEPT_EXPORTS = 3
-
-
-def _prune_old_exports(export_root: Path, *, keep: int = MAX_KEPT_EXPORTS) -> list[str]:
-    """Delete all but the ``keep`` most recent timestamped export directories.
-
-    Directory names sort chronologically (``YYYY-MM-DDTHHMM``), so the
-    oldest are simply the first entries once sorted. Non-timestamped
-    siblings (e.g. ``review_packets``, ``activities``) are left alone.
-    """
-    if keep <= 0 or not export_root.is_dir():
-        return []
-    runs = sorted(
-        (p for p in export_root.iterdir() if p.is_dir() and _TIMESTAMP_DIR_RE.match(p.name)),
-        key=lambda p: p.name,
-    )
-    removed: list[str] = []
-    for old_run in runs[:-keep]:
-        shutil.rmtree(old_run, ignore_errors=True)
-        removed.append(old_run.name)
-    return removed
-
-
-def _resolve_build_timestamp(build_timestamp: str | int | float | datetime | None = None) -> datetime:
-    """Return the canonical UTC content timestamp for a Stage 4 export.
-
-    ``build_timestamp`` wins when provided. Otherwise ``SOURCE_DATE_EPOCH``
-    is honored for reproducible builds, falling back to the current wall
-    clock. Naive datetimes/ISO strings are treated as UTC because the value
-    describes generated content, not a local operator audit moment.
-    """
-    raw: str | int | float | datetime | None = build_timestamp
-    if raw is None:
-        raw = os.environ.get("SOURCE_DATE_EPOCH")
-
-    if raw is None or raw == "":
-        return datetime.now(timezone.utc).replace(microsecond=0)
-
-    if isinstance(raw, datetime):
-        moment = raw
-    elif isinstance(raw, (int, float)):
-        moment = datetime.fromtimestamp(float(raw), tz=timezone.utc)
-    else:
-        value = str(raw).strip()
-        if not value:
-            return datetime.now(timezone.utc).replace(microsecond=0)
-        if re.fullmatch(r"\d+(?:\.\d+)?", value):
-            moment = datetime.fromtimestamp(float(value), tz=timezone.utc)
-        else:
-            try:
-                moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
-            except ValueError as exc:
-                raise Stage4Error(f"Ugyldig build timestamp '{raw}': {exc}") from exc
-
-    if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=timezone.utc)
-    return moment.astimezone(timezone.utc).replace(microsecond=0)
-
-
-MANUAL_SCHEDULE_FILENAME = "manual_schedule.html"
-
-# Only these structured categories represent genuine manual ice-time/booking
-# work. Participation-target deviations (over or under) are team-level
-# planning-quality signals, not ice-booking tasks, and must never be
-# rendered on manual_schedule.html even if a caller passes one in.
-MANUAL_SCHEDULE_CATEGORIES = frozenset(
-    {
-        "arena_collision",
-        "manual_calendar_verification",
-        "manual_hosting_obligation",
-        "manual_external_conflict",
-    }
-)
-
-
-# ---------------------------------------------------------------------------
-# Errors
-# ---------------------------------------------------------------------------
-
-
-class Stage4Error(RuntimeError):
-    """Raised when Stage 4 export fails."""
-
-
-def _zip_datetime(build_timestamp: datetime) -> tuple[int, int, int, int, int, int]:
-    """Return a ZIP-compatible UTC timestamp tuple.
-
-    ZIP stores local DOS timestamps and cannot represent years before 1980;
-    reproducible builds using earlier epochs are clamped to that minimum.
-    """
-    moment = build_timestamp.astimezone(timezone.utc).replace(microsecond=0)
-    if moment.year < 1980:
-        moment = moment.replace(year=1980, month=1, day=1, hour=0, minute=0, second=0)
-    return (moment.year, moment.month, moment.day, moment.hour, moment.minute, moment.second)
-
-
-def _normalize_xlsx_core_properties(xml_bytes: bytes, build_timestamp: datetime) -> bytes:
-    fixed = build_timestamp.astimezone(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
-    text = xml_bytes.decode("utf-8")
-    for field in ("created", "modified"):
-        pattern = rf"(<dcterms:{field}[^>]*>)(.*?)(</dcterms:{field}>)"
-        replacement = rf"\g<1>{fixed}\g<3>"
-        text, count = re.subn(pattern, replacement, text)
-        if count == 0:
-            insert_at = text.find("</cp:coreProperties>")
-            if insert_at != -1:
-                text = (
-                    text[:insert_at]
-                    + f'<dcterms:{field} xsi:type="dcterms:W3CDTF">{fixed}</dcterms:{field}>'
-                    + text[insert_at:]
-                )
-    return text.encode("utf-8")
-
-
-def _normalize_xlsx(path: Path, build_timestamp: datetime) -> None:
-    """Normalize an XLSX workbook's embedded and ZIP metadata in place."""
-    import openpyxl
-
-    workbook = openpyxl.load_workbook(path)
-    workbook.properties.created = build_timestamp.replace(tzinfo=None)
-    workbook.properties.modified = build_timestamp.replace(tzinfo=None)
-    workbook.save(path)
-
-    fixed_date_time = _zip_datetime(build_timestamp)
-    with tempfile.NamedTemporaryFile(delete=False, dir=path.parent, suffix=".xlsx") as handle:
-        tmp_path = Path(handle.name)
-
-    try:
-        with zipfile.ZipFile(path, "r") as source, zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as dest:
-            for name in sorted(source.namelist()):
-                original_info = source.getinfo(name)
-                info = zipfile.ZipInfo(filename=name, date_time=fixed_date_time)
-                info.compress_type = zipfile.ZIP_DEFLATED
-                info.external_attr = original_info.external_attr
-                info.comment = original_info.comment
-                info.create_system = original_info.create_system
-                data = source.read(name)
-                if name == "docProps/core.xml":
-                    data = _normalize_xlsx_core_properties(data, build_timestamp)
-                dest.writestr(info, data)
-        tmp_path.replace(path)
-    finally:
-        tmp_path.unlink(missing_ok=True)
-
-
-def _normalize_export_workbooks(primary_export_path: Path, build_timestamp: datetime) -> None:
-    for workbook_path in sorted(primary_export_path.rglob("*.xlsx")):
-        _normalize_xlsx(workbook_path, build_timestamp)
-
-
-def _write_not_started_exports(primary_export_path: Path, basename: str, message: str) -> dict[str, str]:
-    """Write the normal export surface as small placeholder files."""
-    import openpyxl
-
-    primary_export_path.mkdir(parents=True, exist_ok=True)
-    output_files: dict[str, str] = {}
-
-    def _write_workbook(path: Path, title: str) -> None:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = title[:31]
-        ws.append([message])
-        wb.save(path)
-
-    html = render_not_started_html(message)
-
-    excel_path = primary_export_path / f"{basename}.xlsx"
-    _write_workbook(excel_path, "Ikke begynt")
-    output_files["excel"] = str(excel_path)
-
-    ical_path = primary_export_path / f"{basename}.ics"
-    ical_path.write_text(
-        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//RVV Miniputt//Not Started//NO\r\n"
-        "X-WR-CALNAME:Ikke begynt\r\nEND:VCALENDAR\r\n",
-        encoding="utf-8",
-    )
-    output_files["ical"] = str(ical_path)
-
-    csv_path = primary_export_path / f"{basename}.csv"
-    csv_path.write_text(f"status\n{message}\n", encoding="utf-8")
-    output_files["csv_games"] = str(csv_path)
-
-    overview_path = primary_export_path / f"{basename}_overview.csv"
-    overview_path.write_text(f"status\n{message}\n", encoding="utf-8")
-    output_files["csv_overview"] = str(overview_path)
-
-    for key, filename in (
-        ("input_html", "input.html"),
-        ("calendars_html", "calendars.html"),
-        ("html", f"{basename}.html"),
-        ("html_report", f"{basename}_report.html"),
-    ):
-        path = primary_export_path / filename
-        path.write_text(html, encoding="utf-8")
-        output_files[key] = str(path)
-
-    spond_path = primary_export_path / f"{basename}_spond.xlsx"
-    _write_workbook(spond_path, "Ikke begynt")
-    output_files["spond"] = str(spond_path)
-
-    spond_games_path = primary_export_path / f"{basename}_spond_games.xlsx"
-    _write_workbook(spond_games_path, "Ikke begynt")
-    output_files["spond_games"] = str(spond_games_path)
-
-    review_dir = primary_export_path / "review_packets"
-    review_dir.mkdir(parents=True, exist_ok=True)
-    (review_dir / "README.txt").write_text(message + "\n", encoding="utf-8")
-    output_files["review_packets"] = str(review_dir)
-
-    return output_files
-
-
-def _manual_schedule_html(
-    plan: SeasonPlan,
-    *,
-    manual_entries: list[dict[str, str]] | None = None,
-    generated_at: str = "",
-    input_path: str = "",
-    date_range: str = "",
-    source_count: int = 0,
-    event_count: int = 0,
-    blocked: list[str] | None = None,
-    scrape_age: str = "",
-    calendars_href: str = "",
-    season_plan_href: str = "",
-    report_href: str = "",
-    input_href: str = "",
-) -> str:
-    """Render the dedicated “Må planlegges manuelt” page.
-
-    Lists everything that cannot be treated as auto-confirmed hall time:
-
-    - tournaments that ended up with a same-arena/sequence overflow collision
-      during host/time assignment (the auto-planner already tried to shift
-      them; hall time must be booked by hand or the plan re-run), and
-    - tournaments hosted by clubs whose calendar source could not be scraped
-      (they still receive their share of home tournaments, but the assigned
-      start time is provisional — the istid must be booked/verified manually).
-
-    Each entry carries a ``type`` (Grunn) so the arena scheduler can see why
-    it must act.
-    """
-    from ..html.data_computation import canonical_rvv_club_name
-
-    # Filter on the structured category, not the rendered reason text -- a
-    # participation-target deviation must never inflate this page's count
-    # even if a caller forgets to filter it out first.
-    entries = sorted(
-        (e for e in (manual_entries or []) if e.get("category") in MANUAL_SCHEDULE_CATEGORIES),
-        key=lambda c: (c.get("date", ""), c.get("arena", ""), c.get("tournament_id", "")),
-    )
-    rows: list[str] = []
-    for idx, c in enumerate(entries, start=1):
-        arena = str(c.get("arena", "") or "")
-        raw_host = str(c.get("host_club", "") or "")
-        host = canonical_rvv_club_name(raw_host) if raw_host else ""
-        if not host or host == "-":
-            host = raw_host or arena or "?"
-        tournament_id = str(c.get("tournament_id", "") or "")
-        age_group = str(c.get("age_group", "") or "")
-        date_val = str(c.get("date", "") or "")
-        interval = str(c.get("interval", "") or "")
-        if not interval and date_val:
-            try:
-                from datetime import date as _date
-                interval = fmt_date(_date.fromisoformat(date_val)) or date_val
-            except ValueError:
-                interval = date_val
-        entry_type = str(c.get("type", "") or "Arena-/tidskollisjon")
-        conflict_id = str(c.get("conflicting_tournament_id", "") or "")
-        conflict_ag = str(c.get("conflicting_age_group", "") or "")
-        conflict_interval = str(c.get("conflicting_interval", "") or "")
-        detail = str(c.get("message", "") or "")
-        if not detail:
-            detail = f"{interval} kolliderer med {conflict_interval}" if conflict_interval else interval
-        conflict_cell = " ".join(part for part in (conflict_id, conflict_ag, conflict_interval) if part) or "-"
-        rows.append(
-            "<tr>"
-            f"<td class=\"numeric-cell\">{idx}</td>"
-            f"<td>{_html.escape(tournament_id)}</td>"
-            f"<td>{_html.escape(date_val)}</td>"
-            f"<td><strong>{_html.escape(age_group)}</strong></td>"
-            f"<td>{_html.escape(host)}</td>"
-            f"<td>{_html.escape(arena)}</td>"
-            f"<td>{_html.escape(interval)}</td>"
-            f"<td>{_html.escape(entry_type)}</td>"
-            f"<td>{_html.escape(conflict_cell)}</td>"
-            f"<td>{_html.escape(detail)}</td>"
-            "</tr>"
-        )
-    if not rows:
-        rows.append('<tr><td colspan=\"10\" class=\"empty-cell\">Ingen turneringer trenger manuell planlegging.</td></tr>')
-
-    rows_html = "".join(rows)
-
-    def _nav_link(href: str, label: str, icon: str, active: bool = False) -> str:
-        cls = "active" if active else ""
-        return f'<a href="{_html.escape(href)}" class="{cls}"><span class="nav-icon">{icon}</span> {_html.escape(label)}</a>'
-
-    calendar_nav = _nav_link(calendars_href, "Skrapede kalendere", ICON_CALENDAR) if calendars_href else ""
-    season_plan_nav = (
-        _nav_link(season_plan_href, "Sesongplan", ICON_CLIPBOARD) if season_plan_href else ""
-    )
-    report_nav = _nav_link(report_href, "Regler", ICON_BAR_CHART) if report_href else ""
-    manual_nav = _nav_link(MANUAL_SCHEDULE_FILENAME, "Må planlegges manuelt", ICON_WARNING, active=True)
-    input_nav = _nav_link(input_href, "Påmeldte lag", ICON_USERS) if input_href else ""
-    theme_toggle = """<button id="themeToggle" class="theme-toggle" type="button" aria-label="Bytt tema" title="Bytt tema">
-  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-  <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-</button>"""
-
-    scrape_meta_parts: list[str] = []
-    if source_count:
-        scrape_meta_parts.append(f"{source_count} kilder")
-    if event_count:
-        scrape_meta_parts.append(f"{event_count} hendelser")
-    if scrape_age:
-        scrape_meta_parts.append(f"Data: {scrape_age}")
-    scrape_meta = " &middot; ".join(scrape_meta_parts)
-    if scrape_meta:
-        scrape_meta = f'<span class="meta-nav">{scrape_meta}</span>'
-
-    subtitle = "RVV Hockey &mdash; manuelt behov"
-    if season_label(plan):
-        subtitle = f"{_html.escape(season_label(plan))} &mdash; manuelt behov"
-
-    extra_note = ""
-    if blocked:
-        names = ", ".join(str(item) for item in blocked)
-        extra_note = (
-            '<div class="report-action report-action--warn"><strong>Datagrunnlag</strong>'
-            f"<p>{_html.escape(names)} var utilgjengelig under skraping; husk å følge opp manuelt.</p></div>"
-        )
-
-    hidden_parts: list[str] = []
-    if date_range:
-        hidden_parts.append(f"Periode: {date_range}")
-    if generated_at:
-        hidden_parts.append(f"Generert: {generated_at}")
-    if input_path:
-        hidden_parts.append(f"Input: {input_path}")
-
-    return """<!DOCTYPE html>
-<html lang="no">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Må planlegges manuelt — RVV Hockey</title>
-<script>
-(function() {
-  var saved = localStorage.getItem('rvv-theme');
-  if (saved === 'light' || saved === 'dark') {
-    document.documentElement.dataset.theme = saved;
-  }
-})();
-</script>
-<style>
-""" + STYLES_CSS + """
-</style>
-</head>
-<body>
-<script>if (window.self !== window.top) { document.documentElement.classList.add('rvv-embedded'); }</script>
-<div class="navbar">
-  <span class="brand">RVV Miniputt</span>
-  """ + calendar_nav + season_plan_nav + report_nav + manual_nav + input_nav + scrape_meta + theme_toggle + """
-</div>
-<div class="app">
-  <header class="header-main">
-    <div class="header-icon">""" + ICON_WARNING + """</div>
-    <div class="header-text"><h1>Må planlegges manuelt</h1><p>""" + subtitle + """</p></div>
-  </header>
-  <div class="report-overview" id="reportOverview">
-    <div class="report-hero report-hero--warn">
-      <div>
-        <p class="eyebrow">Istidsplanlegging</p>
-        <h2>Turneringer som må settes inn i ishall-kalenderen manuelt</h2>
-        <p class="report-hero-note">""" + str(len(entries)) + """ turnering(er) krever manuell istidsplanlegging: enten fordi auto-planen ikke fant en kollisjonsfri plass, eller fordi vertsklubbens kalender ikke kunne skrapes (da er starttiden foreløpig og må bookes/verifiseres for hånd). Turneringene ligger i sesongplanen, men istiden er ikke endelig før den er booket.</p>
-      </div>
-      <span class="report-status-pill report-status-pill--warn">MANUELL OPPFØLGING · """ + str(len(entries)) + """ stk</span>
-    </div>
-    <section class="report-section report-section--priority" id="priorityActions">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">Viktigst først</p>
-          <h2>Hvem må gjøre hva?</h2>
-        </div>
-        <p class="section-note">Kontakt vertsklubbens ishall-/timeansvarlige for disse datoene.</p>
-      </div>
-      <div class="report-action-list">
-        """ + extra_note + """
-      </div>
-    </section>
-    <div class="table-wrap"><table class="report-table"><thead><tr>
-      <th>#</th><th>Turnering</th><th>Dato</th><th>Aldersgruppe</th><th>Vert</th><th>Arena</th><th>Intervall</th><th>Grunn</th><th>Konflikt med</th><th>Detaljer</th>
-    </tr></thead><tbody>""" + rows_html + """</tbody></table></div>
-    <p class="report-hidden-context" aria-hidden="true">""" + _html.escape(" · ".join(hidden_parts)) + """</p>
-  </div>
-</div>
-<script>
-(function() {
-  var THEME_KEY = 'rvv-theme';
-  var toggle = document.getElementById('themeToggle');
-  if (!toggle) return;
-  toggle.addEventListener('click', function() {
-    var current = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
-    var next = current === 'light' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem(THEME_KEY, next);
-  });
-})();
-</script>
-</body>
-</html>
-"""
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -532,6 +117,12 @@ def run(
             raise Stage4Error(reason)
         return {}
 
+    effective_config: dict[str, Any] = {}
+    try:
+        effective_config = load_effective_config(state)
+    except Exception:
+        effective_config = {}
+
     # Hard verification boundary (issue #309): whatever candidate is about to
     # be materialized into every export format must independently re-verify
     # clean *here*, at the one chokepoint every caller of this function goes
@@ -543,14 +134,21 @@ def run(
     # an on-disk checkpoint that was mutated (e.g. by the Stage 3 v2
     # optimizer) after it was last verified. Self-consistency checks
     # (duplicate participation, duplicate team in a tournament, age-group
-    # mismatch) need no `problem`, so this runs unconditionally regardless of
-    # *strict* -- a hard invariant violation must never be soft-failed into a
-    # published artifact.
+    # mismatch) need no `problem` and always run. The problem-dependent hard
+    # checks (arena interval conflicts, banned/locked dates, excluded host
+    # clubs, capacity, window bounds) previously only ran inside the
+    # evidence bundle's *post-export* re-verification
+    # (`cli.pipeline_orchestrator.verification._write_run_evidence_bundle`) --
+    # too late to block a bad artifact from reaching disk. Reconstructing
+    # the same `planning_problem` Stage 3 used and passing it here closes
+    # that bypass: any caller that reaches this `run()`, guarded CLI path or
+    # not, now gets the full verifier at the point that actually matters.
+    export_problem = _build_export_verification_problem(effective_config, state)
     try:
         export_candidate = extract_candidate(plan_checkpoint)
     except ValueError:
         export_candidate = dict(plan_dict)
-    export_verify_result = verify_candidate(export_candidate)
+    export_verify_result = verify_candidate(export_candidate, export_problem)
     export_fingerprint = stable_payload_sha256(export_candidate.get("tournaments", []))
     if not export_verify_result.get("ok", True):
         violations = export_verify_result.get("violations", [])
@@ -590,11 +188,6 @@ def run(
 
     errors: list[str] = []
     output_files: dict[str, str] = {}
-    effective_config: dict[str, Any] = {}
-    try:
-        effective_config = load_effective_config(state)
-    except Exception:
-        effective_config = {}
     generated_at = canonical_build_timestamp.isoformat()
     input_path = str(effective_config.get("input_path") or "input.xlsx")
 

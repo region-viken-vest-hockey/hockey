@@ -49,7 +49,7 @@ tournament_scheduler/pipeline/stage1_helpers.py	332
 tournament_scheduler/pipeline/stage2_scraping.py	848
 tournament_scheduler/pipeline/stage3_helpers.py	381
 tournament_scheduler/pipeline/stage3_planning.py	613
-tournament_scheduler/pipeline/stage4_export.py	1091
+tournament_scheduler/pipeline/stage4_export.py	684
 tournament_scheduler/pipeline/state.py	505
 tournament_scheduler/pipeline/tournament_updater.py	930
 tournament_scheduler/planning_contract.py	928

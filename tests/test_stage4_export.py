@@ -230,7 +230,13 @@ class TestRunStage4:
         surfaced as a warning, recorded in the checkpoint, and listed in a
         dedicated manual-schedule view (manual_schedule.html)."""
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         plan_checkpoint = _make_plan_dict()
         first = plan_checkpoint["plan"]["tournaments"][0]
         first["id"] = "first"
@@ -283,7 +289,13 @@ class TestRunStage4:
         must round-trip through the Stage 3 checkpoint dict and render into
         manual_schedule.html, same as unresolved_hosting_obligations."""
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         plan_checkpoint = _make_plan_dict()
         plan_checkpoint["plan"]["unresolved_external_conflicts"] = [
             {
@@ -317,7 +329,13 @@ class TestRunStage4:
         even though they remain visible via
         plan.unresolved_participation_shortfalls (season plan report)."""
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         plan_checkpoint = _make_plan_dict()
         plan_checkpoint["plan"]["unresolved_participation_shortfalls"] = [
             {
@@ -350,7 +368,13 @@ class TestRunStage4:
         items rendered, even when participation deviations are also present
         on the plan."""
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         plan_checkpoint = _make_plan_dict()
         plan_checkpoint["plan"]["unresolved_hosting_obligations"] = [
             {"club": "Ringerike", "age_group": "U8", "reason": "ingen ledig arenatid", "category": "manual_hosting_obligation"}
@@ -386,7 +410,13 @@ class TestRunStage4:
         older ones are deleted automatically at the end of a successful
         export."""
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         export_root = tmp_path / "export"
 
         timestamps = ["2026-09-01T1000", "2026-09-02T1000", "2026-09-03T1000", "2026-09-04T1000"]
@@ -406,7 +436,13 @@ class TestRunStage4:
 
     def test_produces_excel_file(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         result = run(
             _make_plan_dict(), state,
             export_dir=str(tmp_path / "export"),
@@ -429,7 +465,13 @@ class TestRunStage4:
         from tournament_scheduler.planning_contract import candidate_from_plan_dict
 
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         plan_checkpoint = _make_plan_dict()
         plan_checkpoint["plan"] = candidate_from_plan_dict(
             plan_checkpoint["plan"], source="Stage3Optimizer", planner_version="v2"
@@ -744,7 +786,13 @@ class TestRunStage4:
 
     def test_produces_ical_file(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         result = run(
             _make_plan_dict(), state,
             export_dir=str(tmp_path / "export"),
@@ -808,7 +856,13 @@ class TestRunStage4:
 
     def test_stage4_spond_export_uses_tournament_rows(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         result = run(
             _make_spond_plan_dict(), state,
             export_dir=str(tmp_path / "export"),
@@ -1033,7 +1087,13 @@ class TestRunStage4:
         listed in the manual-schedule view (provisional hall time), and the
         report flags the plan as needing manual follow-up."""
         state = PipelineState(tmp_path / "pipeline")
-        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
         plan_checkpoint = _make_plan_dict()
         first = plan_checkpoint["plan"]["tournaments"][0]
         first["id"] = "tnsb001"
@@ -1167,7 +1227,17 @@ class TestRunStage4:
             status=StageStatus.DONE,
         )
         export_dir = tmp_path / "export"
-        result = run(_make_plan_dict(), state, export_dir=str(export_dir), timestamped_export=False)
+        plan_checkpoint = _make_plan_dict()
+        # The hard-verification gate now checks every exported tournament
+        # against the input workbook's planning window (2026-01-01..
+        # 2026-12-31 above) -- shift the fixture's tournament into it; the
+        # exact date is irrelevant to what this test exercises (activity
+        # artifacts).
+        plan_checkpoint["plan"]["tournaments"][0]["date"] = "2026-10-05"
+        plan_checkpoint["plan"]["start_date"] = "2026-01-01"
+        plan_checkpoint["plan"]["end_date"] = "2026-12-31"
+        plan_checkpoint["plan"]["manual_adjustments"]["locked_dates"] = ["2026-10-05"]
+        result = run(plan_checkpoint, state, export_dir=str(export_dir), timestamped_export=False)
         files = result.get("output_files", {})
 
         assert "activities_json" in files
