@@ -301,8 +301,8 @@ class TestRunStage4:
 
     @pytest.mark.parametrize("category", ["participation_under_target", "participation_over_target"])
     def test_export_excludes_participation_deviations_from_manual_schedule(self, tmp_path, category):
-        """issue #302: participation-target deviations (over- or under-target)
-        are team-level planning-quality signals, not ice-time/booking work --
+        """Participation-target deviations (over- or under-target) are
+        team-level planning-quality signals, not ice-time/booking work --
         they must never appear on manual_schedule.html or inflate its count,
         even though they remain visible via
         plan.unresolved_participation_shortfalls (season plan report)."""
@@ -336,9 +336,9 @@ class TestRunStage4:
         assert plan.unresolved_participation_shortfalls[0]["club"] == "Skien"
 
     def test_manual_schedule_count_reconciles_with_rows(self, tmp_path):
-        """issue #302: the headline/manual count must equal exactly the
-        genuine manual items rendered, even when participation deviations
-        are also present on the plan."""
+        """The headline/manual count must equal exactly the genuine manual
+        items rendered, even when participation deviations are also present
+        on the plan."""
         state = PipelineState(tmp_path / "pipeline")
         state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
         plan_checkpoint = _make_plan_dict()

@@ -101,10 +101,10 @@ def _resolve_build_timestamp(build_timestamp: str | int | float | datetime | Non
 
 MANUAL_SCHEDULE_FILENAME = "manual_schedule.html"
 
-# issue #302: only these structured categories represent genuine manual
-# ice-time/booking work. Participation-target deviations (over or under) are
-# team-level planning-quality signals, not ice-booking tasks, and must never
-# be rendered on manual_schedule.html even if a caller passes one in.
+# Only these structured categories represent genuine manual ice-time/booking
+# work. Participation-target deviations (over or under) are team-level
+# planning-quality signals, not ice-booking tasks, and must never be
+# rendered on manual_schedule.html even if a caller passes one in.
 MANUAL_SCHEDULE_CATEGORIES = frozenset(
     {
         "arena_collision",
@@ -284,9 +284,9 @@ def _manual_schedule_html(
     """
     from ..html.data_computation import canonical_rvv_club_name
 
-    # issue #302: filter on the structured category, not the rendered reason
-    # text -- a participation-target deviation must never inflate this page's
-    # count even if a caller forgets to filter it out first.
+    # Filter on the structured category, not the rendered reason text -- a
+    # participation-target deviation must never inflate this page's count
+    # even if a caller forgets to filter it out first.
     entries = sorted(
         (e for e in (manual_entries or []) if e.get("category") in MANUAL_SCHEDULE_CATEGORIES),
         key=lambda c: (c.get("date", ""), c.get("arena", ""), c.get("tournament_id", "")),
@@ -639,12 +639,12 @@ def run(
                 "message": str(item.get("reason", "") or ""),
             }
         )
-    # issue #302: participation-target deviations (over- or under-target) are
-    # team-level planning-quality signals, not ice-time/booking work -- they
-    # do not represent a tournament that must be inserted into an arena
-    # calendar. They stay out of manual_schedule.html entirely and remain
-    # visible via plan.unresolved_participation_shortfalls / the season plan
-    # report (rules_report.py) instead.
+    # Participation-target deviations (over- or under-target) are team-level
+    # planning-quality signals, not ice-time/booking work -- they do not
+    # represent a tournament that must be inserted into an arena calendar.
+    # They stay out of manual_schedule.html entirely and remain visible via
+    # plan.unresolved_participation_shortfalls / the season plan report
+    # (rules_report.py) instead.
     candidate_entries = (
         collision_entries + manual_host_entries + unresolved_hosting_entries + external_conflict_entries
     )
