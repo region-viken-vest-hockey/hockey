@@ -370,6 +370,30 @@ class TestRunStage4:
         assert "Skien" not in manual_html
         assert "1 turnering(er) krever manuell istidsplanlegging" in manual_html
 
+    def test_only_last_3_timestamped_exports_are_kept(self, tmp_path):
+        """Only the 3 most recent timestamped export runs are kept on disk
+        (and therefore in the repo, since they're committed as evidence);
+        older ones are deleted automatically at the end of a successful
+        export."""
+        state = PipelineState(tmp_path / "pipeline")
+        state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)
+        export_root = tmp_path / "export"
+
+        timestamps = ["2026-09-01T1000", "2026-09-02T1000", "2026-09-03T1000", "2026-09-04T1000"]
+        for ts in timestamps:
+            result = run(
+                _make_plan_dict(),
+                state,
+                export_dir=str(export_root),
+                timestamped_export=True,
+                build_timestamp=datetime.strptime(ts, "%Y-%m-%dT%H%M").replace(tzinfo=timezone.utc),
+            )
+            assert result["errors"] == []
+
+        remaining = sorted(p.name for p in export_root.iterdir() if p.is_dir())
+        assert remaining == timestamps[-3:]
+        assert result["pruned_exports"] == [timestamps[0]]
+
     def test_produces_excel_file(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
         state.write_stage(StageName.CONFIG, {"round_length_minutes": {"U10": 15}}, status=StageStatus.DONE)

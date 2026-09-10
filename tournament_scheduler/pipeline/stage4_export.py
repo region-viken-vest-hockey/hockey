@@ -21,6 +21,7 @@ import html as _html
 import logging
 import os
 import re
+import shutil
 import sys
 import tempfile
 import zipfile
@@ -61,6 +62,31 @@ DEFAULT_BASENAME = "season_plan"
 # already-timestamped --export-dir. Detecting that here keeps a second,
 # nested timestamp from being appended on top of it.
 _TIMESTAMP_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{4}$")
+
+# Only this many timestamped export runs are kept on disk (and therefore in
+# the repo, since they're committed as evidence). Older ones are deleted
+# automatically at the end of a successful export.
+MAX_KEPT_EXPORTS = 3
+
+
+def _prune_old_exports(export_root: Path, *, keep: int = MAX_KEPT_EXPORTS) -> list[str]:
+    """Delete all but the ``keep`` most recent timestamped export directories.
+
+    Directory names sort chronologically (``YYYY-MM-DDTHHMM``), so the
+    oldest are simply the first entries once sorted. Non-timestamped
+    siblings (e.g. ``review_packets``, ``activities``) are left alone.
+    """
+    if keep <= 0 or not export_root.is_dir():
+        return []
+    runs = sorted(
+        (p for p in export_root.iterdir() if p.is_dir() and _TIMESTAMP_DIR_RE.match(p.name)),
+        key=lambda p: p.name,
+    )
+    removed: list[str] = []
+    for old_run in runs[:-keep]:
+        shutil.rmtree(old_run, ignore_errors=True)
+        removed.append(old_run.name)
+    return removed
 
 
 def _resolve_build_timestamp(build_timestamp: str | int | float | datetime | None = None) -> datetime:
@@ -920,6 +946,15 @@ def run(
     except Exception as exc:  # noqa: BLE001
         errors.append(f"Normalisering av Excel-filer feilet: {exc}")
 
+    pruned_exports: list[str] = []
+    if not errors and _TIMESTAMP_DIR_RE.match(primary_export_path.name):
+        try:
+            pruned_exports = _prune_old_exports(primary_export_path.parent)
+            if pruned_exports:
+                _progress(f"Fjernet {len(pruned_exports)} eldre eksport(er): {', '.join(pruned_exports)}")
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Opprydding av gamle eksporter feilet: {exc}")
+
     checkpoint: dict[str, Any] = {
         "generated_at": generated_at,
         "input_path": input_path,
@@ -928,6 +963,7 @@ def run(
         "errors": errors,
         "arena_day_collisions": list(plan.arena_day_collisions or []),
         "manual_booking_count": len(manual_host_entries),
+        "pruned_exports": pruned_exports,
     }
     if errors and strict:
         state.write_stage(StageName.EXPORT, checkpoint, status=StageStatus.FAILED)
