@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Run on the macOS host (not inside Lima). Serves the portable BookUp
+# session-handoff bridge (issue #304, ADR 0001) so canonical Stage 2 runs
+# started inside a Lima VM can request a BookUp calendar refresh here, where
+# Vipps/SMS MFA can be completed in a real visible browser.
+#
+# Usage:
+#   scripts/rvv-bookup-host                       # host-local only (127.0.0.1)
+#   scripts/rvv-bookup-host --host 0.0.0.0         # reachable from Lima
+#
+# Then, inside Lima, point Stage 2 at it (the printed token must match):
+#   export RVV_BOOKUP_HOST_BRIDGE=http://host.lima.internal:8765
+#   export RVV_BOOKUP_HOST_BRIDGE_TOKEN=<token>
+
+ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+PYTHON_BIN="$ROOT_DIR/venv/bin/python3"
+
+if [[ -x "$PYTHON_BIN" ]]; then
+  PYTHON_CMD="$PYTHON_BIN"
+else
+  PYTHON_CMD=python3
+fi
+
+exec "$PYTHON_CMD" -m tournament_scheduler.pipeline.bookup_host_bridge "$@"

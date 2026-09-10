@@ -358,6 +358,19 @@ The LLM evaluates the page content, decides what to click or navigate to, and ca
 
 Pi slash commands automatically try to load missing values from `DOTENVX_ENV_FILE` (default `.env.bookup`) before prompting. If credentials still are not available, the pipeline prompts interactively during scraping. If BookUp asks for Vipps/SMS MFA, run with `--manual-bookup-login` or set `RVV_BOOKUP_MANUAL_LOGIN=1`; Stage 2 opens a visible browser and waits for the operator before extracting events.
 
+**Running inside Lima?** `--manual-bookup-login` needs a visible browser and interactive MFA, which is awkward from inside a VM. Instead, start the portable host bridge on the macOS host (issue #304):
+
+```bash
+# On the macOS host:
+scripts/rvv-bookup-host --host 0.0.0.0   # or a specific Lima-reachable interface
+
+# Inside Lima, before running Stage 2 / /rvv-miniputt:run:
+export RVV_BOOKUP_HOST_BRIDGE=http://host.lima.internal:8765
+export RVV_BOOKUP_HOST_BRIDGE_TOKEN=<token printed by rvv-bookup-host>
+```
+
+Stage 2 then hands BookUp scrape requests to the host bridge instead of opening a local browser; the operator completes Vipps/SMS MFA in the visible browser on the Mac, and only normalized calendar events (never credentials/cookies/session state) return to Lima. If the bridge is configured but unreachable, the source fails explicitly rather than being silently treated as trusted; the local `--manual-bookup-login` path remains available for direct macOS runs.
+
 **Sandefjord Penguins does *not* use BookUp for this workflow (issue #261).** The club has a known, fixed weekend ice-time allocation at Bugårdshallen — Saturday and Sunday 15:00–18:00 — instead of a bookable calendar. That allocation is encoded as deterministic evidence in `tournament_scheduler/sandefjord_allocation.py` and surfaced to Stage 2 as a `"fixed_allocation"` source (`input.xlsx` → `Kilder` sheet, `type=fixed_allocation`, no URL needed). Stage 2 never scrapes or blocks on it, and no `BOOKUP_EMAIL`/`BOOKUP_PASSWORD` is required for Sandefjord planning to work.
 
 ### All clubs

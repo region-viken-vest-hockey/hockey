@@ -111,12 +111,47 @@ def _wait_for_manual_bookup_login(
     return True, ""
 
 
+def _wait_for_operator_mfa_poll(
+    page: Any,
+    source_name: str,
+    timeout_seconds: int | None = None,
+) -> tuple[bool, str]:
+    """Wait for BookUp MFA to complete without requiring an attached stdin.
+
+    Used by the host bridge (issue #304): the request arrives over HTTP, so
+    there is no console to press Enter on. The operator completes Vipps/SMS
+    in the already-visible browser on the host, and this simply polls the
+    page until it looks logged in or the bounded timeout elapses.
+    """
+    timeout = timeout_seconds or _manual_bookup_login_timeout_seconds()
+    _emit_manual_login_status(
+        f"{source_name}: venter på manuell BookUp-innlogging/MFA i synlig nettleser (host-bro)."
+    )
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if _bookup_calendar_ready(page):
+            _emit_manual_login_status(f"{source_name}: fortsetter etter manuell BookUp-innlogging")
+            return True, ""
+        time.sleep(1)
+    return False, (
+        f"Manuell BookUp-innlogging/MFA for '{source_name}' tidsavbrutt etter {timeout}s (host-bro)."
+    )
+
+
+def _is_bookup_strategy(strategy: Any) -> bool:
+    return (
+        getattr(strategy, "engine", None) is not None
+        and getattr(strategy.engine, "value", "") == "bookup_spa"
+    )
+
+
 def _try_credentialed_scrape(
     name: str,
     url: str,
     start_date: datetime,
     end_date: datetime,
     cache: CalendarCache | None = None,
+    host_bridge_mode: bool = False,
 ) -> tuple[list[CalendarEvent], str]:
     """Retry scraping with environment-variable credentials.
 
@@ -125,12 +160,28 @@ def _try_credentialed_scrape(
     ``initial_navigation`` login steps, then attempts standard Outlook/iframe
     scraping.
 
+    For BookUp sources, when ``RVV_BOOKUP_HOST_BRIDGE`` is configured and
+    *host_bridge_mode* is False (i.e. this call is the Lima-side caller, not
+    the host bridge server itself handling a request), the scrape is
+    delegated to the macOS host bridge (issue #304) instead of launching a
+    local browser. A configured-but-unreachable bridge is an explicit
+    failure, not a silent fallback to "source trusted".
+
     Returns (events, error_string). Events is empty on failure; error_string
     is empty on success.
     """
     strategy = get_strategy(name)
     if not strategy or not requires_credentials(strategy):
         return [], ""
+
+    if _is_bookup_strategy(strategy) and not host_bridge_mode:
+        from .bookup_host_bridge import BookUpHostBridgeError, bridge_configured, request_bookup_scrape
+
+        if bridge_configured():
+            try:
+                return request_bookup_scrape(name, url, start_date, end_date)
+            except BookUpHostBridgeError as exc:
+                return [], str(exc)
 
     # Check that all required env vars are available
     missing: list[str] = []
@@ -154,7 +205,8 @@ def _try_credentialed_scrape(
     # Execute the login flow via Playwright, then scrape
     try:
         return _run_credentialed_bookup_or_outlook(
-            name, url, start_date, end_date, strategy, creds, cache
+            name, url, start_date, end_date, strategy, creds, cache,
+            host_bridge_mode=host_bridge_mode,
         )
     except Exception as exc:
         return [], f"Credentialed scrape feilet for '{name}': {exc}"
@@ -168,6 +220,7 @@ def _run_credentialed_bookup_or_outlook(
     strategy: Any,
     creds: dict[str, str],
     cache: CalendarCache | None = None,
+    host_bridge_mode: bool = False,
 ) -> tuple[list[CalendarEvent], str]:
     """Playwright scraper that logs in before scraping.
 
@@ -175,6 +228,11 @@ def _run_credentialed_bookup_or_outlook(
     replaced by *creds* values). For BookUp SPA sources, delegates to the
     BookUp timegrid parser after login. For Outlook sources, runs the standard
     iframe month-by-month scraping loop.
+
+    *host_bridge_mode* is set when this call is the macOS host bridge server
+    itself (issue #304) handling a scrape request from Lima: the browser is
+    always headed and MFA is awaited by polling the page rather than by
+    requiring an attached terminal/stdin.
     """
     from string import Template
     from playwright.sync_api import sync_playwright
@@ -197,8 +255,8 @@ def _run_credentialed_bookup_or_outlook(
         getattr(strategy, 'engine', None) is not None
         and getattr(strategy.engine, 'value', '') == 'bookup_spa'
     )
-    manual_login_requested = is_bookup and _manual_bookup_login_enabled()
-    manual_login = manual_login_requested and sys.stdin.isatty()
+    manual_login_requested = is_bookup and (_manual_bookup_login_enabled() or host_bridge_mode)
+    manual_login = manual_login_requested and (host_bridge_mode or sys.stdin.isatty())
 
     try:
         with sync_playwright() as p:
@@ -222,7 +280,8 @@ def _run_credentialed_bookup_or_outlook(
 
                 if cmd == "manual_login":
                     if manual_login_requested:
-                        ok, manual_error = _wait_for_manual_bookup_login(
+                        wait_fn = _wait_for_operator_mfa_poll if host_bridge_mode else _wait_for_manual_bookup_login
+                        ok, manual_error = wait_fn(
                             page,
                             name,
                             timeout_seconds=int(
