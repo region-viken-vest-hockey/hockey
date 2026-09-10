@@ -1,10 +1,6 @@
 # Claude instructions
 
-Read and follow the shared, tool-neutral project guidance first:
-
-- [`docs/engineering-principles.md`](docs/engineering-principles.md)
-- [`docs/system-architecture.md`](docs/system-architecture.md)
-- [`AGENTS.md`](AGENTS.md)
+Read and follow [`AGENTS.md`](AGENTS.md) first — it is the single source of truth for the shared, tool-neutral project guidance (engineering principles, system architecture, command surface). The rest of this file is Claude-specific additions only.
 
 ## RVV Miniputt skill
 
@@ -15,7 +11,7 @@ When working with scraping, calendar generation, season planning, or pipeline de
 Claude does not load Pi extensions directly. Use the Claude project commands under `.claude/commands/rvv-miniputt/`:
 
 - `/rvv-miniputt:run`
-- `/rvv-miniputt:publish` — run the full pipeline and publish to GitHub Pages in one step, auto-confirmed
+- `/rvv-miniputt:publish` — publish the last Stage 4 export already on disk to GitHub Pages, auto-confirmed; never runs or reruns the pipeline (use `/rvv-miniputt:run` first for a fresh export)
 - `/rvv-miniputt:status`
 - `/rvv-miniputt:logs`
 - `/rvv-miniputt:calendars`
