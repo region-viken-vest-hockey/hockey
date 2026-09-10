@@ -225,3 +225,4 @@ node_modules/
 .DS_Store
 export/.DS_Store
 .env.keys
+MagicMock/mock.work_dir/**/run_manifest.json
