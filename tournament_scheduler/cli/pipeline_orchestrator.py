@@ -2289,6 +2289,8 @@ def _write_run_evidence_bundle(
             final_score_result=score_result,
             export_dir=export_checkpoint.get("export_dir"),
             export_output_files=export_checkpoint.get("output_files"),
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            export_verify_result=export_checkpoint.get("verify_result"),
         )
 
         export_dir = export_checkpoint.get("export_dir")

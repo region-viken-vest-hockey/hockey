@@ -235,13 +235,23 @@ class TestRunStage4:
         first = plan_checkpoint["plan"]["tournaments"][0]
         first["id"] = "first"
         first["start_time"] = "09:00"
-        plan_checkpoint["plan"]["tournaments"].append(
-            {
-                **first,
-                "id": "second",
-                "start_time": "09:30",
-            }
-        )
+        # Different teams than `first` -- this must stay a pure arena/time
+        # collision (same arena, overlapping interval) and must not also
+        # trip the duplicate-participation-same-date hard invariant, which
+        # would mask the collision-handling behavior this test exercises.
+        second = {
+            **first,
+            "id": "second",
+            "start_time": "09:30",
+            "teams": [
+                {"club": "Jar", "label": "Jar U10A", "age_group": "U10"},
+                {"club": "Holmen", "label": "Holmen U10A", "age_group": "U10"},
+            ],
+            "games": [
+                {"home": "Jar U10A", "away": "Holmen U10A", "parallel_slot": 0, "round_number": 1},
+            ],
+        }
+        plan_checkpoint["plan"]["tournaments"].append(second)
 
         result = run(
             plan_checkpoint,
@@ -1310,3 +1320,119 @@ class TestRunStage4:
 
         assert result["output_files"]["excel"]
         assert any("scraping-checkpoint" in record.message for record in caplog.records)
+
+
+def _make_duplicate_participation_plan_dict():
+    """Two U10 tournaments on the same date, sharing a team -- the exact
+    2026-10-18/Holmen regression shape from issue #309 (same team scheduled
+    in two same-age-group tournaments on one date)."""
+    data = _make_plan_dict()
+    shared_team = {"club": "Tønsberg", "label": "Tønsberg", "age_group": "U10"}
+    other_a = {"club": "Jutul", "label": "Jutul Grønn", "age_group": "U10"}
+    other_b = {"club": "Kongsberg", "label": "Kongsberg U10A", "age_group": "U10"}
+    data["plan"]["tournaments"] = [
+        {
+            "id": "first",
+            "date": "2026-10-18",
+            "arena": "Holmen",
+            "age_group": "U10",
+            "host_club": "Holmen",
+            "teams": [shared_team, other_a],
+            "games": [{"home": "Tønsberg", "away": "Jutul Grønn", "parallel_slot": 0, "round_number": 1}],
+        },
+        {
+            "id": "second",
+            "date": "2026-10-18",
+            "arena": "Holmen",
+            "age_group": "U10",
+            "host_club": "Holmen",
+            "teams": [shared_team, other_b],
+            "games": [{"home": "Tønsberg", "away": "Kongsberg U10A", "parallel_slot": 0, "round_number": 1}],
+        },
+    ]
+    return data
+
+
+class TestHardVerificationBeforeExport:
+    """issue #309: the exact candidate reaching every export format must
+    independently re-verify clean immediately before serialization,
+    regardless of how the checkpoint got to this point -- a direct
+    ``run()`` call must refuse to export a hard-invariant violation exactly
+    like the guarded pipeline CLI's own pre-export gate does."""
+
+    def test_refuses_export_on_duplicate_participation_same_date(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        plan_checkpoint = _make_duplicate_participation_plan_dict()
+
+        with pytest.raises(Stage4Error, match="duplicate_participation_same_date"):
+            run(
+                plan_checkpoint,
+                state,
+                export_dir=str(tmp_path / "export"),
+                timestamped_export=False,
+            )
+
+        export_dir = tmp_path / "export"
+        written_files = list(export_dir.rglob("*")) if export_dir.exists() else []
+        assert not any(p.is_file() for p in written_files), (
+            "no export artifact may be written when the candidate fails hard verification"
+        )
+
+        envelope = state.read_envelope(StageName.EXPORT)
+        assert envelope["status"] == StageStatus.FAILED.value
+        assert envelope["data"]["verify_result"]["ok"] is False
+
+    def test_mutation_after_prior_verification_still_blocks_export(self, tmp_path):
+        """A candidate that was clean earlier (e.g. verified right after Stage 3)
+        but was mutated afterwards (e.g. by an optimizer rerun that writes a new
+        candidate straight to the checkpoint) must still be caught here -- this
+        gate re-verifies whatever it is actually given, every time, rather than
+        trusting an earlier decision."""
+        state = PipelineState(tmp_path / "pipeline")
+        plan_checkpoint = _make_plan_dict()
+
+        clean_result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export_clean"),
+            timestamped_export=False,
+        )
+        assert clean_result["verify_result"]["ok"] is True
+
+        mutated_checkpoint = _make_duplicate_participation_plan_dict()
+        with pytest.raises(Stage4Error, match="duplicate_participation_same_date"):
+            run(
+                mutated_checkpoint,
+                state,
+                export_dir=str(tmp_path / "export_mutated"),
+                timestamped_export=False,
+            )
+
+    def test_records_export_fingerprint_and_verify_result_on_success(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        result = run(
+            _make_plan_dict(),
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+        assert result["verify_result"]["ok"] is True
+        assert result["verify_result"]["violations"] == []
+        assert isinstance(result["export_fingerprint"], str) and result["export_fingerprint"]
+
+    def test_export_fingerprint_is_stable_for_identical_candidates(self, tmp_path):
+        from tournament_scheduler.planning_contract import extract_candidate
+        from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+
+        plan_checkpoint = _make_plan_dict()
+        state_a = PipelineState(tmp_path / "pipeline_a")
+        result_a = run(
+            plan_checkpoint,
+            state_a,
+            export_dir=str(tmp_path / "export_a"),
+            timestamped_export=False,
+        )
+
+        candidate = extract_candidate(plan_checkpoint)
+        expected_fingerprint = stable_payload_sha256(candidate.get("tournaments", []))
+        assert result_a["export_fingerprint"] == expected_fingerprint

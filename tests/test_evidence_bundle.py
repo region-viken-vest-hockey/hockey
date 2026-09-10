@@ -128,6 +128,66 @@ class TestBuildRunEvidenceBundle:
         assert bundle["export"]["dir"] == "/tmp/export/2026-01-01T0000"
         assert bundle["export"]["output_files"] == {"excel": "a.xlsx"}
 
+    def test_fingerprint_consistent_true_when_export_matches_final_candidate(self):
+        candidate = _candidate(1)
+        fingerprint = build_stage3_attempt_entry(attempt=1, candidate=candidate, problem=None)[
+            "candidate_fingerprint"
+        ]
+        bundle = build_run_evidence_bundle(
+            run_id="run-123",
+            input_fingerprint=None,
+            decision_log=None,
+            scraping_checkpoint=None,
+            stage3_attempt_log=None,
+            final_candidate=candidate,
+            final_verify_result={"ok": True, "violations": []},
+            final_score_result=None,
+            export_dir="/tmp/export",
+            export_output_files={},
+            export_fingerprint=fingerprint,
+            export_verify_result={"ok": True, "violations": []},
+        )
+        assert bundle["fingerprint_consistent"] is True
+        assert bundle["export"]["fingerprint"] == fingerprint
+
+    def test_fingerprint_consistent_false_when_export_diverges_from_final_candidate(self):
+        """issue #309: a fingerprint mismatch between the candidate this bundle
+        independently re-verified and the fingerprint Stage 4 recorded at its own
+        verification boundary means something rebuilt or mutated the plan between
+        the two -- exactly the regression this bundle exists to surface."""
+        candidate = _candidate(1)
+        bundle = build_run_evidence_bundle(
+            run_id="run-123",
+            input_fingerprint=None,
+            decision_log=None,
+            scraping_checkpoint=None,
+            stage3_attempt_log=None,
+            final_candidate=candidate,
+            final_verify_result={"ok": True, "violations": []},
+            final_score_result=None,
+            export_dir="/tmp/export",
+            export_output_files={},
+            export_fingerprint="deadbeef",
+            export_verify_result={"ok": True, "violations": []},
+        )
+        assert bundle["fingerprint_consistent"] is False
+
+    def test_fingerprint_consistent_none_when_export_fingerprint_absent(self):
+        candidate = _candidate(1)
+        bundle = build_run_evidence_bundle(
+            run_id="run-123",
+            input_fingerprint=None,
+            decision_log=None,
+            scraping_checkpoint=None,
+            stage3_attempt_log=None,
+            final_candidate=candidate,
+            final_verify_result={"ok": True, "violations": []},
+            final_score_result=None,
+            export_dir="/tmp/export",
+            export_output_files={},
+        )
+        assert bundle["fingerprint_consistent"] is None
+
     def test_bundle_handles_missing_optional_inputs(self):
         bundle = build_run_evidence_bundle(
             run_id="",

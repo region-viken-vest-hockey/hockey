@@ -115,6 +115,8 @@ def build_run_evidence_bundle(
     final_score_result: dict[str, Any] | None,
     export_dir: str | None,
     export_output_files: dict[str, str] | None,
+    export_fingerprint: str | None = None,
+    export_verify_result: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the sanitized evidence bundle for one pipeline run.
 
@@ -131,13 +133,29 @@ def build_run_evidence_bundle(
     }
 
     final_candidate_summary: dict[str, Any] | None = None
+    final_fingerprint: str | None = None
     if final_candidate is not None:
         from .fingerprints import stable_payload_sha256
 
+        final_fingerprint = stable_payload_sha256(final_candidate.get("tournaments", []))
         final_candidate_summary = {
-            "fingerprint": stable_payload_sha256(final_candidate.get("tournaments", [])),
+            "fingerprint": final_fingerprint,
             "source": final_candidate.get("source"),
         }
+
+    # issue #309: `export_fingerprint`/`export_verify_result` are recorded by
+    # `pipeline.stage4_export.run()` itself, from the hard-verification gate
+    # it runs immediately before serializing any output file -- the actual
+    # export boundary, not this bundle's own independent re-verification
+    # above. The two are computed from what should be the same candidate at
+    # two different points in the pipeline; a mismatch means something
+    # rebuilt or mutated the plan between "verified" and "exported" (the
+    # regression this bundle exists to make visible), so it is recorded
+    # explicitly rather than silently trusting whichever fingerprint reads
+    # cleaner.
+    fingerprint_consistent: bool | None = None
+    if final_fingerprint is not None and export_fingerprint is not None:
+        fingerprint_consistent = final_fingerprint == export_fingerprint
 
     return {
         "schema_version": EVIDENCE_BUNDLE_SCHEMA_VERSION,
@@ -153,5 +171,8 @@ def build_run_evidence_bundle(
         "export": {
             "dir": export_dir,
             "output_files": dict(export_output_files or {}),
+            "fingerprint": export_fingerprint,
+            "verify_result": export_verify_result,
         },
+        "fingerprint_consistent": fingerprint_consistent,
     }

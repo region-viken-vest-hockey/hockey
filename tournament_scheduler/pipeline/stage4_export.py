@@ -31,6 +31,8 @@ from typing import Any
 
 from ..models import SeasonPlan
 from ..arena_conflicts import find_arena_interval_collisions
+from ..planning_contract import extract_candidate, verify_candidate
+from .fingerprints import stable_payload_sha256
 from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter
 from ..csv.csv_exporter import CsvExporter
@@ -530,6 +532,49 @@ def run(
             raise Stage4Error(reason)
         return {}
 
+    # Hard verification boundary (issue #309): whatever candidate is about to
+    # be materialized into every export format must independently re-verify
+    # clean *here*, at the one chokepoint every caller of this function goes
+    # through -- the interactive pipeline's own pre-export gate
+    # (`cli.pipeline_orchestrator._assert_hard_verification_before_export`)
+    # only covers the guarded `run`/`run --interactive` CLI paths, not a
+    # direct `python3 -m tournament_scheduler.pipeline.stage4_export`
+    # invocation or a future caller that resumes/regenerates an export from
+    # an on-disk checkpoint that was mutated (e.g. by the Stage 3 v2
+    # optimizer) after it was last verified. Self-consistency checks
+    # (duplicate participation, duplicate team in a tournament, age-group
+    # mismatch) need no `problem`, so this runs unconditionally regardless of
+    # *strict* -- a hard invariant violation must never be soft-failed into a
+    # published artifact.
+    try:
+        export_candidate = extract_candidate(plan_checkpoint)
+    except ValueError:
+        export_candidate = dict(plan_dict)
+    export_verify_result = verify_candidate(export_candidate)
+    export_fingerprint = stable_payload_sha256(export_candidate.get("tournaments", []))
+    if not export_verify_result.get("ok", True):
+        violations = export_verify_result.get("violations", [])
+        violation_summary = "; ".join(
+            f"{v.get('code')}: {v.get('message')}" for v in violations
+        )
+        reason = (
+            "Refusing to export: candidate fails hard verification immediately "
+            f"before serialization ({len(violations)} violation(s)): {violation_summary}"
+        )
+        state.write_stage(
+            StageName.EXPORT,
+            {
+                "generated_at": _resolve_build_timestamp(build_timestamp).isoformat(),
+                "output_files": {},
+                "errors": [reason],
+                "verify_result": export_verify_result,
+                "export_fingerprint": export_fingerprint,
+            },
+            status=StageStatus.FAILED,
+        )
+        _progress("Eksport avbrutt: kandidaten feiler hard verifisering")
+        raise Stage4Error(reason)
+
     plan = _dict_to_plan(plan_dict)
     export_path = Path(export_dir)
     export_path.mkdir(parents=True, exist_ok=True)
@@ -964,6 +1009,8 @@ def run(
         "arena_day_collisions": list(plan.arena_day_collisions or []),
         "manual_booking_count": len(manual_host_entries),
         "pruned_exports": pruned_exports,
+        "verify_result": export_verify_result,
+        "export_fingerprint": export_fingerprint,
     }
     if errors and strict:
         state.write_stage(StageName.EXPORT, checkpoint, status=StageStatus.FAILED)
