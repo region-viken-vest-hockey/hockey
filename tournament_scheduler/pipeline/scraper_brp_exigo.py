@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime, timedelta
-from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import requests

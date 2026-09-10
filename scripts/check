@@ -32,6 +32,8 @@ this script while GitHub keeps separate visible status checks.
 
 Phases:
   dependency-lock    verify requirements.lock is fresh from pyproject.toml
+  lint               ruff check . (pyflakes + pycodestyle-error rules only)
+  file-length        enforce the 300-line-per-file guideline (ratcheted)
   quick              fast pytest suite without coverage
   operator           operator manifest/escalation control-path tests
   reproducibility    deterministic planner reproducibility fixture
@@ -63,6 +65,12 @@ run_named_phase() {
           exit 1
         fi
       '
+      ;;
+    lint)
+      run_phase "Ruff lint" "$PYTHON_CMD" -m ruff check .
+      ;;
+    file-length)
+      run_phase "File-length guideline" "$PYTHON_CMD" scripts/check_file_length.py
       ;;
     quick)
       run_phase "Fast Python test suite" "$PYTHON_CMD" -m pytest --no-cov -q
@@ -102,7 +110,7 @@ run_named_phase() {
 }
 
 run_all() {
-  local phases=(dependency-lock quick operator reproducibility cli-smoke rules-report)
+  local phases=(dependency-lock lint file-length quick operator reproducibility cli-smoke rules-report)
   for named_phase in "${phases[@]}"; do
     run_named_phase "$named_phase"
   done

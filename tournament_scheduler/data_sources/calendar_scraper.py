@@ -1,10 +1,9 @@
 """Calendar scraping using Playwright - extracted from monolithic code."""
 
-import sys
 import re
 from datetime import datetime
 from typing import List, Optional
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+from playwright.sync_api import sync_playwright
 from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.interfaces import CalendarScraper as BaseCalendarScraper
 from tournament_scheduler.utils.calendar_cache import CalendarCache
@@ -84,7 +83,7 @@ class OutlookCalendarScraper(BaseCalendarScraper):
                     browser.close()
                     return events
 
-                console.print(f"  [dim]Henter kalender iframe...[/dim]")
+                console.print("  [dim]Henter kalender iframe...[/dim]")
                 iframe.wait_for_timeout(3000)
 
                 # Navigate to start month

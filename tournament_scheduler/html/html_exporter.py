@@ -11,7 +11,6 @@ live in :mod:`renderers`.
 
 from __future__ import annotations
 
-import html as _html
 import json
 import os
 import re
@@ -19,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from tournament_scheduler.club_distances import furthest_traveling_team
-from ..models import SeasonPlan, team_key
+from ..models import SeasonPlan
 
 from .data_computation import (
     ICON_CALENDAR,
@@ -29,10 +28,6 @@ from .data_computation import (
     ICON_TRAVEL,
     ICON_WARNING,
     ICON_BAR_CHART,
-    ICON_FILE_SPREADSHEET,
-    ICON_CLOCK,
-    _RVV_CLUBS,
-    canonical_rvv_club_name,
     season_label,
     fmt_date,
     timestamp_string,

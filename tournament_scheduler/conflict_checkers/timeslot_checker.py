@@ -1,7 +1,7 @@
 """Time slot availability checker."""
 
-from datetime import date, time, datetime, timedelta
-from typing import List, Dict, Tuple
+from datetime import date, time, timedelta
+from typing import List, Tuple
 from tournament_scheduler.interfaces import ConflictChecker
 from tournament_scheduler.models import ConflictContext, ConflictResult
 from tournament_scheduler.utils.date_parser import DateParser

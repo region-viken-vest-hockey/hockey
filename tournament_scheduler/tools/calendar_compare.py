@@ -192,11 +192,8 @@ def _scrape_deterministic(
     """Run deterministic scraper for a single source and one-week range."""
     from tournament_scheduler.pipeline.stage2_scraping import (
         _scrape_source,
-        _events_to_dicts,
-        _run_ical_scraper,
     )
     from tournament_scheduler.pipeline.scraper_strategies import (
-        CalendarEngine,
         get_strategy,
     )
 
@@ -282,7 +279,7 @@ def _print_summary(report: dict[str, Any]) -> None:
         for w in src.get("warnings", []):
             print(f"     ⚡ {w}")
         if not src.get("warnings"):
-            print(f"     ✓ Ingen advarsler")
+            print("     ✓ Ingen advarsler")
 
     print()
     print(f"  Rapport lagret: {report.get('output_path', '?')}")

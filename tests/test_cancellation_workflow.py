@@ -9,20 +9,17 @@ Covers:
   6. Round-trip serialization of cancelled state through checkpoints
 """
 
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tournament_scheduler.models import SeasonPlan, Tournament, Team, Game
+from tournament_scheduler.models import SeasonPlan, Tournament, Team
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.pipeline.tournament_updater import TournamentUpdater
 from tournament_scheduler.pipeline.cancellation_workflow import (
     CancellationWorkflow,
-    CancelResult,
-    MakeupSuggestion,
 )
 from tournament_scheduler.pipeline.stage3_planning import _plan_to_dict
 from tournament_scheduler.pipeline.stage3_helpers import _tournament_from_dict

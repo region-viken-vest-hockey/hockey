@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from ..models import CalendarEvent
 from ..utils.calendar_cache import CalendarCache

@@ -137,7 +137,7 @@ def debug_calendar(calendar_type, start_date, end_date, specific_date=None):
                 print("No timed events - entire day available")
         else:
             print(f"  No events found on {specific_date.strftime('%Y-%m-%d')}")
-            print(f"  ✓ Full day available (11:00-16:30)")
+            print("  ✓ Full day available (11:00-16:30)")
     else:
         # Show all events grouped by date
         from collections import defaultdict

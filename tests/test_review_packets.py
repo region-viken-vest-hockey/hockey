@@ -10,7 +10,6 @@ from tournament_scheduler.pipeline.stage3_helpers import _plan_to_dict
 from tournament_scheduler.pipeline.stage4_helpers import _dict_to_plan
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.pipeline.stage4_export import run
-from tournament_scheduler.season_planner import SeasonPlanner
 
 
 def _make_plan() -> SeasonPlan:

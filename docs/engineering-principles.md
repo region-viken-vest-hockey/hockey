@@ -45,6 +45,16 @@ Optimize for:
 
 Theoretical scale and enterprise completeness are lower priorities unless the repository clearly demonstrates that they are needed.
 
+## Code style
+
+No formatter or linter existed before `scripts/check lint`/`scripts/check file-length` were introduced (ruff, `E`/`F` rules only, plus a custom file-length check); there is no other codified style beyond the principles on this page and the conventions already visible in the code.
+
+### File size
+
+Keep a Python file under `tournament_scheduler/` at or under 300 lines. A file that grows past that is usually doing more than one thing and should be split along SOLID lines (single responsibility per module) rather than accreting further.
+
+This is enforced by `scripts/check_file_length.py` (`scripts/check file-length`) as a ratchet, not a rewrite mandate: files already over 300 lines when the check was introduced are grandfathered in `scripts/file-length-baseline.txt` at their line count *at that time*, and may not grow past it, but are not required to shrink on their own schedule. Any file not in that baseline (new, or already compliant) must stay at or under 300 lines. Split a file rather than editing the baseline to raise its allowance.
+
 ## Expected operating context
 
 Assume, unless the repository shows otherwise:

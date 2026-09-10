@@ -11,7 +11,7 @@ import openpyxl
 import pytest
 
 from tournament_scheduler.html.html_exporter import HtmlExporter
-from tournament_scheduler.models import Game, Roster, SeasonPlan, Team, Tournament
+from tournament_scheduler.models import SeasonPlan
 from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
 from tournament_scheduler.pipeline.not_started import NOT_STARTED_MESSAGE
 from tournament_scheduler.pipeline.pages_bundle import build_public_bundle

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any
 
 from ..models import CalendarEvent
 from ..utils.calendar_cache import CalendarCache

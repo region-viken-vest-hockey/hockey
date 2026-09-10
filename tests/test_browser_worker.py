@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, call, patch
 
-import pytest
 
 from tournament_scheduler.pipeline.browser_worker import (
     GOTO_RETRY_TIMEOUT_MS,

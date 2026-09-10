@@ -13,7 +13,6 @@ operator, not to this renderer.
 from __future__ import annotations
 
 import html as _html
-from typing import Any
 
 from tournament_scheduler.models import team_key as _team_key
 

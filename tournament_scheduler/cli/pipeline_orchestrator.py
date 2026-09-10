@@ -5,11 +5,14 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 
 from ..pipeline.run_log_paths import resolve_active_run_log_dir
+
+if TYPE_CHECKING:
+    from ..pipeline.state import StageName
 
 _console = Console()
 
@@ -963,7 +966,7 @@ def _cmd_calendars(args: argparse.Namespace) -> int:
             _console.print(f"[red]✗[/red] {exc}")
             return 1
 
-        _console.print(f"\n[bold green]✓ Full re-skraping fullført.[/bold green]")
+        _console.print("\n[bold green]✓ Full re-skraping fullført.[/bold green]")
         return 0
 
     # No --refresh: just regenerate HTML from cache (in export/)
@@ -1027,7 +1030,7 @@ def _write_run_log(
     filename = f"pipeline_run_{timestamp}_{status}.log"
     log_path = log_dir / filename
 
-    content = f"# Pipeline run log\n"
+    content = "# Pipeline run log\n"
     content += f"# Started: {start_time.isoformat()}\n"
     content += f"# Status: {'SUCCESS' if success else 'FAILED'}\n\n"
     for line in lines:
@@ -4361,7 +4364,7 @@ def _cmd_operator_publish_history(args: argparse.Namespace) -> int:
 def _cmd_scrape(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt scrape --club <name>`` — single-source scrape."""
     from datetime import datetime as dt
-    from ..pipeline.state import PipelineState, StageName
+    from ..pipeline.state import PipelineState
     from ..pipeline.stage1_config import load_effective_config
     from ..pipeline.stage2_scraping import _scrape_source
 
@@ -4447,7 +4450,7 @@ def _cmd_scrape(args: argparse.Namespace) -> int:
                     _console.print(f"    [dim]ℹ {txt}[/dim]")
                 else:
                     _console.print(f"    → {cmd} [dim]{sel or txt}[/dim]")
-        _console.print(f"\n  [dim]Kjør [bold]rvv-miniputt scrape-llm[/bold] for å skrape denne kilden med LLM.[/dim]")
+        _console.print("\n  [dim]Kjør [bold]rvv-miniputt scrape-llm[/bold] for å skrape denne kilden med LLM.[/dim]")
 
     return 0
 

@@ -1,7 +1,6 @@
 """Tests for DateParser utility."""
 
 from datetime import datetime, date
-import pytest
 from tournament_scheduler.utils.date_parser import DateParser
 
 

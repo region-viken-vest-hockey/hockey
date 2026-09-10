@@ -164,7 +164,6 @@ class TestComputeTeamTravelDistances:
 
     def _make_plan(self, tournaments: list[Tournament]) -> SeasonPlan:
         """Create a minimal SeasonPlan from a list of tournaments."""
-        from datetime import date as dt
         plan = SeasonPlan()
         plan.tournaments = tournaments
         if tournaments:

@@ -5,10 +5,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 from tournament_scheduler.html.html_exporter import HtmlExporter
-from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
+from tournament_scheduler.models import SeasonPlan
 from tournament_scheduler.pipeline.stage4_export import _dict_to_plan
 
 

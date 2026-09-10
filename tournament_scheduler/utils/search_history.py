@@ -116,7 +116,7 @@ class SearchHistory:
                 ts = datetime.fromisoformat(search_params['timestamp'])
                 time_str = ts.strftime('%d.%m.%Y %H:%M')
                 parts.append(f"({time_str})")
-            except:
+            except (ValueError, TypeError):
                 pass
 
         return " | ".join(parts)

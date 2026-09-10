@@ -1,7 +1,7 @@
 """Rich-based output formatting for tournament scheduler."""
 
 from datetime import date
-from typing import List, Dict, Tuple, Optional, TYPE_CHECKING
+from typing import List, Dict, Tuple, TYPE_CHECKING
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel

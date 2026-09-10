@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json as _json
 from datetime import datetime
-from typing import Any
 
 from ..models import CalendarEvent
 

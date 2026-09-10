@@ -14,7 +14,6 @@ from __future__ import annotations
 import csv
 import os
 from pathlib import Path
-from typing import Any
 
 from tournament_scheduler.club_distances import furthest_traveling_team
 from ..models import SeasonPlan

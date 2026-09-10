@@ -1,6 +1,5 @@
 """Tests for SeasonPlanner.generate_round_robin_games (circle-method round-robin generator)."""
 
-import math
 
 from tournament_scheduler.models import Team
 from tournament_scheduler.season_planner import SeasonPlanner

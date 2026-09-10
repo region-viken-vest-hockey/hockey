@@ -888,7 +888,6 @@ class TestStage3InteractiveDecisionLoop:
         import json as _json
 
         from tournament_scheduler.cli.pipeline_orchestrator import (
-            _emit_stage3_interactive_decision,
             _write_stage3_interactive_state,
         )
         from tournament_scheduler.stage3_ab import build_ab_report

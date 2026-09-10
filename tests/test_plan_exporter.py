@@ -5,7 +5,7 @@ from datetime import date
 import openpyxl
 import pytest
 
-from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
+from tournament_scheduler.models import SeasonPlan, Team, Tournament
 from tournament_scheduler.excel.plan_exporter import SeasonPlanExporter, _NORWEGIAN_WEEKDAYS
 
 

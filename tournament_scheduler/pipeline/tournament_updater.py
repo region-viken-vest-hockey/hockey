@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ..club_registry import CLUB_REGISTRY, club_for_arena as _club_for_arena
-from ..models import Game, Roster, SeasonPlan, Team, Tournament
+from ..models import SeasonPlan, Team, Tournament
 from ..scheduler import TournamentScheduler
 from ..season_planner import SeasonPlanner
 from .state import PipelineState, StageName, StageStatus
@@ -350,7 +350,7 @@ class TournamentUpdater:
 
         if conflicts:
             change_details["conflicts_ignored"] = conflicts
-            summary_parts.append(f"  (Konflikter ignorert pga. --force)")
+            summary_parts.append("  (Konflikter ignorert pga. --force)")
 
         return UpdateResult(
             summary_nb="\n".join(summary_parts),

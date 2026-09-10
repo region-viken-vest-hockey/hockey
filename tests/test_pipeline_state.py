@@ -1,8 +1,6 @@
 """Tests for tournament_scheduler.pipeline.state (PipelineState)."""
 
 import hashlib
-import json
-import tempfile
 from pathlib import Path
 
 import pytest

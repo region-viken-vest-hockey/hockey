@@ -41,9 +41,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from datetime import date
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from rich.console import Console
 

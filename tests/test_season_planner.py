@@ -11,7 +11,6 @@ import pytest
 from tournament_scheduler import participant_selection, planning_half
 from tournament_scheduler.fairness_scoring import DEFAULT_FAIRNESS_THRESHOLDS
 from tournament_scheduler.models import (
-    AGE_GROUP_OVERLAP,
     CalendarEvent,
     DatePreference,
     Game,
@@ -2779,8 +2778,8 @@ class TestRulesReport:
 
         u10_found = any("U10" in r["regel"] and "3" in r["regel"] for r in report)
         u12_found = any("U12" in r["regel"] and "2" in r["regel"] for r in report)
-        assert u10_found, f"U10 parallel games not found in report"
-        assert u12_found, f"U12 parallel games not found in report"
+        assert u10_found, "U10 parallel games not found in report"
+        assert u12_found, "U12 parallel games not found in report"
 
     def test_hard_constraints_have_correct_category(self):
         """Rules with kategori='Hard krav' cover the truly blocking scheduler constraints."""

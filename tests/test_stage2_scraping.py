@@ -3,7 +3,6 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
 from tournament_scheduler.pipeline.scraper_brp_exigo import _parse_brp_exigo_day
@@ -14,10 +13,8 @@ from tournament_scheduler.pipeline.scraper_credentialed import (
 )
 from tournament_scheduler.pipeline.stage2_scraping import (
     SOURCE_FIXED_ALLOCATION,
-    SOURCE_GOOGLE,
     SOURCE_ICAL,
     SOURCE_OUTLOOK,
-    Stage2Error,
     _events_to_dicts,
     _scrape_source,
     run,

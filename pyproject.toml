@@ -24,6 +24,9 @@ test = [
     "pytest-cov>=5.0",
     "PyYAML>=6.0",
 ]
+lint = [
+    "ruff>=0.16",
+]
 # Shadow/experimental CP-SAT Stage 3 engine (issue #276). Not a runtime
 # dependency: engine="local_search" stays the default and works without it;
 # engine="cp_sat" raises a clean CpSatUnavailable error without this extra.
@@ -48,6 +51,44 @@ markers = [
     "slow: long-running planner or real-workbook tests excluded from the default quick suite",
     "integration: subprocess or multi-stage integration tests excluded from the default quick suite",
 ]
+
+[tool.ruff]
+target-version = "py312"
+# Not enforced (yet): the codebase predates this config and has many
+# pre-existing long lines, several in generated-HTML/SQL-ish string
+# literals where wrapping would hurt readability. Revisit once the
+# formatter (`ruff format`) has been run across the tree.
+line-length = 120
+
+[tool.ruff.lint]
+# E/F (pycodestyle errors + pyflakes) catch real bugs -- unused imports,
+# undefined names, bare `except`, etc. -- with very low false-positive
+# risk, so they're a fast win for a codebase with no prior lint history.
+# Deliberately not enabling stricter families (B, C90, SIM, UP, ...) or
+# import-sorting (I) here: those would touch most files in the repo in one
+# pass, which is more mechanical churn than a solo/volunteer-maintained
+# project (see docs/engineering-principles.md) should take on in the same
+# change that first introduces the tool. Broaden incrementally later.
+select = ["E", "F"]
+ignore = [
+    "E501",  # line length -- see line-length comment above
+    "F601",  # dict key literal repeated: false positive for the
+             # EN/NO month-name maps in the calendar scrapers, where
+             # e.g. "august"/"september"/"november" are spelled the same
+             # in both languages and map to the same value either way
+    "F841",  # unused local variable -- ~15 pre-existing hits, several in
+             # tests where deleting the variable without checking whether
+             # it should have been asserted on could silently weaken test
+             # coverage; needs a case-by-case look, not a blanket rule
+    "E741",  # ambiguous variable name (l/I/O) -- pre-existing, test-only,
+             # cosmetic
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Both are a deliberate `pytest.importorskip(...)` (or similarly gated)
+# import placed after the check that guards it, not disorganized imports.
+"tests/test_stage3_cpsat.py" = ["E402"]
+"tests/test_activity_export.py" = ["E402"]
 
 [tool.setuptools.packages.find]
 include = ["tournament_scheduler*"]

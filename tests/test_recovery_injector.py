@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from tournament_scheduler.pipeline.recovery_injector import inject_recovered_events, normalize_stage2_checkpoint
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus

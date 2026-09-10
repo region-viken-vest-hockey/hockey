@@ -2,7 +2,6 @@
 """Debug script to inspect Excel file structure for team events."""
 
 import openpyxl
-from datetime import datetime
 from tournament_scheduler.utils.date_parser import DateParser
 
 excel_file = "/Users/niclas/Downloads/U10_ETTER_JUL_REVIDERT__1_.xlsx"

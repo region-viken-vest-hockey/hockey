@@ -1,7 +1,7 @@
 """Excel team conflict checker - checks if teams have other games in Excel."""
 
 from datetime import date, timedelta
-from typing import List, Set, Dict, Tuple
+from typing import List, Dict
 from tournament_scheduler.interfaces import ConflictChecker
 from tournament_scheduler.models import ConflictContext, ConflictResult
 from tournament_scheduler.utils.date_parser import DateParser

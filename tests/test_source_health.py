@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import json
 
-import pytest
 
 from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
 from tournament_scheduler.pipeline.source_health import compute_source_health

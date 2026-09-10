@@ -45,14 +45,12 @@ import threading
 
 from ..effective_start_date import compute_effective_start_date
 from ..fairness_scoring import build_fairness_gate as _build_fairness_gate
-from ..models import CalendarEvent, Game, Roster, SeasonPlan, Team, Tournament
+from ..models import SeasonPlan
 from ..season_planner import SeasonPlanner
-from ..roster_loader import RosterLoader
-from ..club_registry import CLUB_REGISTRY
 from .fingerprints import stable_payload_sha256
 from .not_started import NOT_STARTED_MESSAGE
 from .state import PipelineState, StageName, StageStatus
-from .stage3_helpers import (_build_club_arenas, _build_club_busy_intervals, _build_club_calendar_status, _build_events_by_club, _build_parallel_games, _build_roster, _build_round_length, _find_team, _make_planner, _plan_to_dict)
+from .stage3_helpers import (_build_club_arenas, _build_club_busy_intervals, _build_club_calendar_status, _build_events_by_club, _build_parallel_games, _build_roster, _build_round_length, _make_planner, _plan_to_dict)
 
 # ---------------------------------------------------------------------------
 # Candidate reproducibility and ranking

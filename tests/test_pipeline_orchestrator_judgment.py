@@ -7,12 +7,10 @@ with all stage runners mocked to avoid full pipeline execution.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from tournament_scheduler.cli.pipeline_orchestrator import _cmd_run
 

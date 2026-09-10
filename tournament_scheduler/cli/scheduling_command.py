@@ -100,7 +100,7 @@ class SchedulingCommand:
 
         if result.available_dates:
             print(f"\n{'='*60}")
-            print(f"✓ AVAILABLE DATES:")
+            print("✓ AVAILABLE DATES:")
             print(f"{'='*60}")
             for d in sorted(result.available_dates):
                 day_name = d.strftime('%A')

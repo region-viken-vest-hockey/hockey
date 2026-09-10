@@ -1,6 +1,6 @@
 import pytest
 
-from tournament_scheduler.application.dto import OperatorHealth, OperatorQuestion
+from tournament_scheduler.application.dto import OperatorHealth
 from tournament_scheduler.application.operator_state import (
     check_operator_health,
     list_operator_questions,

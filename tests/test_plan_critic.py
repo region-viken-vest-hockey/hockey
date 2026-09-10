@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from datetime import date
 
-import pytest
 
 from tournament_scheduler.cli.plan_critic import count_issues_from_plan, generate_critic_summary
 from tournament_scheduler.models import SeasonPlan, Tournament, Team

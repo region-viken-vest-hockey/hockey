@@ -27,7 +27,7 @@ class RescheduleCommand:
         print("=" * 60)
         print(f"Original tournament date: {reschedule_date.strftime('%Y-%m-%d')}")
         print(f"Search range for alternatives: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
-        print(f"\nExtracting tournament details from Excel file...")
+        print("\nExtracting tournament details from Excel file...")
         print("(Will scrape calendars after team extraction)\n")
 
         print("Analyzing Excel file...")
@@ -110,7 +110,7 @@ class RescheduleCommand:
         print(f"Blocked: {len(result.excluded_dates)} dates with conflicts")
 
         if result.exclusion_breakdown:
-            print(f"\nReasons for blocked dates:")
+            print("\nReasons for blocked dates:")
             for checker_name, count in sorted(result.exclusion_breakdown.items()):
                 if checker_name != 'ball_hall_warning' and count > 0:
                     print(f"  • {checker_name.replace('_', ' ').title()}: {count} dates")

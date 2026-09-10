@@ -296,7 +296,7 @@ def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> st
                             + (f'<span class="ev-time">{time_str}</span> ' if time_str else '')
                             + f'<span class="ev-name">{name}</span> '
                             + f'<span class="ev-meta">{_escape_html(src)} {link}</span>'
-                            + f'</div>'
+                            + '</div>'
                         )
                     lines.append('          </div>')
 
@@ -389,7 +389,7 @@ def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> st
             _gaps = _conf.get("gaps", [])
             if _verdict == "WARN":
                 _susp_html = (
-                    f'<div class="conf-row"><span class="conf-label">Mistenkelige kilder:</span> '
+                    '<div class="conf-row"><span class="conf-label">Mistenkelige kilder:</span> '
                     + _escape_html(", ".join(_suspicious))
                     + "</div>"
                     if _suspicious else ""
@@ -408,12 +408,12 @@ def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> st
                 )
             else:
                 confidence_html = (
-                    f'<div class="confidence-banner ok">'
-                    f'<span class="conf-icon">✓</span>'
-                    f'<div class="conf-body">'
-                    f'<strong>Skrapekvalitet: OK</strong>'
+                    '<div class="confidence-banner ok">'
+                    '<span class="conf-icon">✓</span>'
+                    '<div class="conf-body">'
+                    '<strong>Skrapekvalitet: OK</strong>'
                     + (f' — {_assessment}' if _assessment else '')
-                    + f'</div></div>'
+                    + '</div></div>'
                 )
     except Exception:
         pass  # Confidence section is optional — never block report generation

@@ -6,7 +6,6 @@ from tournament_scheduler.interfaces import CalendarDataSource, ConflictChecker
 from tournament_scheduler.models import (
     SchedulingResult,
     ConflictContext,
-    TournamentInfo,
     CalendarEvent
 )
 from tournament_scheduler.club_registry import get_club

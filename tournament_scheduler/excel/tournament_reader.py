@@ -1,7 +1,7 @@
 """Excel tournament reader for extracting tournament and team information."""
 
 import sys
-from datetime import datetime, date
+from datetime import date
 from typing import Set, List, Optional
 import openpyxl
 from tournament_scheduler.models import TournamentInfo

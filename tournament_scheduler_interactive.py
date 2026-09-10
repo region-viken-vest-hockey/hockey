@@ -4,7 +4,6 @@
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from pathlib import Path
 
 from tournament_scheduler.conflict_checkers.ball_hall_checker import BallHallConflictChecker
 from tournament_scheduler.conflict_checkers.excel_team_checker import ExcelTeamConflictChecker
@@ -136,7 +135,7 @@ def show_history_menu(history_manager):
         summary = history_manager.format_search_summary(history[i])
         print(f"  {i + 1}. {summary}")
 
-    print(f"\n  0. Avbryt (gå tilbake)")
+    print("\n  0. Avbryt (gå tilbake)")
 
     while True:
         choice = input(f"\nVelg søk (1-{display_count}, eller 0 for å avbryte): ").strip()
@@ -515,7 +514,6 @@ def collect_roster_entries():
 
 def collect_season_plan_params():
     """Collect parameters for generating a full season schedule."""
-    from tournament_scheduler.models import Roster
 
     roster, federation_defaults = collect_roster_entries()
     if not roster:

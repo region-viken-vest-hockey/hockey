@@ -1,6 +1,5 @@
 """Ball hall conflict checker - WARNING ONLY, does not block."""
 
-import sys
 from datetime import date
 from typing import List
 from tournament_scheduler.interfaces import ConflictChecker

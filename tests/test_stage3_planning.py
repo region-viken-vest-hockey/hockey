@@ -8,7 +8,6 @@ import pytest
 
 from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
 from tournament_scheduler.pipeline.stage3_planning import (
-    Stage3Error,
     _plan_to_dict,
     compute_shared_registration_facts,
     run,

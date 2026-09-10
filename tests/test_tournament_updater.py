@@ -7,20 +7,18 @@ Covers:
   4. Cascading move — moving tournament A to tournament B's date swaps the two dates
 """
 
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tournament_scheduler.models import SeasonPlan, Tournament, Team, Game
+from tournament_scheduler.models import SeasonPlan, Tournament, Team
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.pipeline.tournament_updater import (
     TournamentUpdater,
     TournamentUpdateError,
     TournamentValidationError,
-    UpdateResult,
 )
 from tournament_scheduler.pipeline.stage3_planning import _plan_to_dict
 from tournament_scheduler.season_planner import SeasonPlanner

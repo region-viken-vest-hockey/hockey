@@ -32,11 +32,10 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 from ..models import SeasonPlan, Tournament
-from .state import PipelineState, StageName, StageStatus
+from .state import PipelineState, StageName
 from .run_log_paths import resolve_active_run_log_dir
 from .tournament_updater import TournamentUpdater, UpdateResult
 
@@ -299,7 +298,7 @@ class CancellationWorkflow:
             result.changes["makeup_applied"] = True
             result.changes["original_cancellation_reason"] = original_reason
             result.summary_nb += (
-                f"\n  Avlysning opphevet — makeup-dato er satt."
+                "\n  Avlysning opphevet — makeup-dato er satt."
             )
 
         return result
@@ -379,7 +378,7 @@ class CancellationWorkflow:
         if run_id:
             log_path = log_dir / f"{run_id}.jsonl"
         else:
-            from datetime import datetime as _dt, timezone
+            from datetime import datetime as _dt
 
             existing = sorted(
                 [f for f in log_dir.iterdir() if f.suffix == ".jsonl"],

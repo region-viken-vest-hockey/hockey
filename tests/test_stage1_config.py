@@ -12,7 +12,7 @@ from tournament_scheduler.pipeline.stage1_config import (
     run,
     validate_config,
 )
-from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+from tournament_scheduler.pipeline.state import PipelineState, StageName
 
 
 def _make_valid_raw():

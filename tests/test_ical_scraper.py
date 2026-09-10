@@ -11,7 +11,6 @@ Covers:
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from tournament_scheduler.data_sources.ical_scraper import ICalScraper
 from tournament_scheduler.utils.calendar_cache import CalendarCache

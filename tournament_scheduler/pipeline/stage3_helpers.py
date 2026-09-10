@@ -6,12 +6,12 @@ import logging
 from datetime import date, datetime, timedelta
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 from ..club_registry import CLUB_REGISTRY, canonicalize_club_name
 from ..models import CalendarEvent, Game, Roster, SeasonPlan, Team, Tournament
-from ..roster_loader import RosterLoader
 from ..season_planner import SeasonPlanner
+
+logger = logging.getLogger(__name__)
+
 
 def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
     """Convert :class:`SeasonPlan` to a JSON-serialisable dict."""
@@ -53,7 +53,7 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
         return d
 
     # Compute per-team tournament participation counts from the tournament list
-    participations: Dict[str, int] = {}
+    participations: dict[str, int] = {}
     for t in plan.tournaments:
         for team in t.teams:
             participations[team.label] = participations.get(team.label, 0) + 1

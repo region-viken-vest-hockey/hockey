@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import html
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from bs4 import BeautifulSoup

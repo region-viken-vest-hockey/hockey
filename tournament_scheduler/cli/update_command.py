@@ -5,7 +5,7 @@ that can lock or ban dates, pin tournaments, and apply host-club rules before
 re-export.
 """
 
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Optional
 

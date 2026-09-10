@@ -15,7 +15,7 @@ These are unit tests over the metrics returned by `fairness_scoring.build_fairne
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 from tournament_scheduler.models import Game, Roster, SeasonPlan, Team, Tournament
 from tournament_scheduler.season_planner import SeasonPlanner

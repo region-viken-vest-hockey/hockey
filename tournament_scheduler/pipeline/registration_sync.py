@@ -13,9 +13,7 @@ from typing import Any
 
 import openpyxl
 
-from .input_workbook import WorkbookInputError
 from .registered_teams import (
-    PUBLIC_COLUMNS,
     RegisteredTeamsValidationError,
     build_registered_teams_payload,
 )
@@ -67,11 +65,13 @@ def sync_registered_teams_to_workbook(
                 new_rows.append({"club": club, "label": team, "age_group": age_group})
 
     # Compare: are they semantically the same?
-    lag_key = lambda r: (
-        str(r.get("club", "")).strip().casefold(),
-        str(r.get("label", "")).strip().casefold(),
-        str(r.get("age_group", "")).strip().casefold(),
-    )
+    def lag_key(r):
+        return (
+            str(r.get("club", "")).strip().casefold(),
+            str(r.get("label", "")).strip().casefold(),
+            str(r.get("age_group", "")).strip().casefold(),
+        )
+
     before_keys = {lag_key(r) for r in lag_before}
     after_keys = {lag_key(r) for r in new_rows}
     changed = before_keys != after_keys

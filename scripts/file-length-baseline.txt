@@ -1,0 +1,59 @@
+# Baseline exemptions for scripts/check_file_length.py (ratchet policy).
+# Format: <path><TAB><line count when the 300-line rule was introduced>.
+# A file listed here may not exceed its recorded line count. It may shrink
+# freely, at which point drop it from this file once it is back at or under
+# 300 lines. Do not add new entries for files that were already <=300 lines --
+# only pre-existing violators are grandfathered here. See
+# docs/engineering-principles.md's "File size" section.
+tournament_scheduler/application/decisions.py	673
+tournament_scheduler/cli/args.py	1731
+tournament_scheduler/cli/pipeline_orchestrator.py	4491
+tournament_scheduler/cli/plan_command.py	897
+tournament_scheduler/cli/plan_critic.py	603
+tournament_scheduler/cli/reporting.py	570
+tournament_scheduler/cli/rvv_cli.py	1195
+tournament_scheduler/club_registry.py	468
+tournament_scheduler/excel/plan_exporter.py	494
+tournament_scheduler/fairness_scoring.py	355
+tournament_scheduler/game_generation.py	327
+tournament_scheduler/host_assignment.py	334
+tournament_scheduler/html/data_computation.py	305
+tournament_scheduler/html/html_exporter.py	421
+tournament_scheduler/ical/ical_exporter.py	388
+tournament_scheduler/llm_judge/prompts.py	319
+tournament_scheduler/models.py	339
+tournament_scheduler/participant_selection.py	399
+tournament_scheduler/pipeline/activity_export.py	709
+tournament_scheduler/pipeline/bookup_host_bridge.py	302
+tournament_scheduler/pipeline/browser_worker.py	692
+tournament_scheduler/pipeline/calendar_viewer.py	467
+tournament_scheduler/pipeline/cancellation_workflow.py	407
+tournament_scheduler/pipeline/escalation.py	315
+tournament_scheduler/pipeline/input_workbook.py	310
+tournament_scheduler/pipeline/manual_adjustment_workflow.py	435
+tournament_scheduler/pipeline/operator_action.py	960
+tournament_scheduler/pipeline/pages_bundle.py	422
+tournament_scheduler/pipeline/pages_publish.py	653
+tournament_scheduler/pipeline/registered_teams.py	369
+tournament_scheduler/pipeline/run_manifest.py	743
+tournament_scheduler/pipeline/scraper_credentialed.py	427
+tournament_scheduler/pipeline/scraper_strategies.py	330
+tournament_scheduler/pipeline/stage1_helpers.py	332
+tournament_scheduler/pipeline/stage2_scraping.py	848
+tournament_scheduler/pipeline/stage3_helpers.py	381
+tournament_scheduler/pipeline/stage3_planning.py	613
+tournament_scheduler/pipeline/stage4_export.py	1091
+tournament_scheduler/pipeline/state.py	505
+tournament_scheduler/pipeline/tournament_updater.py	930
+tournament_scheduler/planning_contract.py	928
+tournament_scheduler/registrations.py	505
+tournament_scheduler/review/review_packet_exporter.py	422
+tournament_scheduler/rules_model.py	589
+tournament_scheduler/rules_report.py	439
+tournament_scheduler/season_planner.py	1878
+tournament_scheduler/spond/spond_exporter.py	401
+tournament_scheduler/stage3_cpsat.py	689
+tournament_scheduler/stage3_optimizer.py	2182
+tournament_scheduler/tools/calendar_compare.py	401
+tournament_scheduler/utils/rich_output.py	593
+tournament_scheduler/warnings.py	497

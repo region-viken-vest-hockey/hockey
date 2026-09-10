@@ -309,7 +309,7 @@ def _build_logs_show_text(work_dir: Path, run_id: str) -> str:
 def _build_logs_stats_text(work_dir: Path) -> str:
     runs = _load_run_history(work_dir)
     if not runs:
-        return f"Ingen loggførte kjøringer funnet i eksporttreet."
+        return "Ingen loggførte kjøringer funnet i eksporttreet."
 
     success_runs = [run for run in runs if (run["meta"] or {}).get("exit_status") == "success"]
     failed_runs = [run for run in runs if (run["meta"] or {}).get("exit_status") == "failure"]

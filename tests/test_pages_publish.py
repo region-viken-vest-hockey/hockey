@@ -5,7 +5,6 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-import pytest
 
 from tournament_scheduler.pipeline.pages_publish import (
     bundle_fingerprint,

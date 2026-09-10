@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from tournament_scheduler.cli.args import build_parser
 from tournament_scheduler.cli.pipeline_orchestrator import (

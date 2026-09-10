@@ -9,7 +9,6 @@ import pytest
 
 from tournament_scheduler.pipeline.capability_result import CapabilityResult
 from tournament_scheduler.pipeline.escalation import (
-    DecisionScope,
     EscalationType,
     Question,
     all_questions,

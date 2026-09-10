@@ -7,13 +7,9 @@ return the same values.
 
 from __future__ import annotations
 
-import html as _html
-import json
-import os
 from datetime import datetime as _dt
 from zoneinfo import ZoneInfo
 from pathlib import Path
-from typing import Any
 
 from tournament_scheduler.club_distances import (
     compute_team_travel_distances as _compute_team_travel_distances,

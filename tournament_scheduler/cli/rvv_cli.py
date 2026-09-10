@@ -17,7 +17,10 @@ from __future__ import annotations
 import argparse
 import sys
 from datetime import datetime
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
+
+if TYPE_CHECKING:
+    from ..pipeline.state import PipelineState
 
 from rich.console import Console
 
@@ -80,7 +83,7 @@ def _cmd_cancel(args: argparse.Namespace) -> int:
                 f"{len(t.teams)} lag{status}"
             )
         _console.print(
-            f"\nBruk [bold]rvv-miniputt cancel --tournament-id <id> --reason \"...\"[/bold]"
+            "\nBruk [bold]rvv-miniputt cancel --tournament-id <id> --reason \"...\"[/bold]"
         )
         return 0
 
@@ -178,7 +181,7 @@ def _cmd_cancel(args: argparse.Namespace) -> int:
             _console.print(f"  [red]✗[/red] Eksport feilet: {exc}")
             return 1
 
-    _console.print(f"\n[bold green]✓ Ferdig.[/bold green]")
+    _console.print("\n[bold green]✓ Ferdig.[/bold green]")
     return 0
 
 
@@ -538,7 +541,7 @@ def _cmd_tournament_list(args: argparse.Namespace) -> int:
     """List all tournaments in the season plan."""
     plan, _updater, _state = _load_plan_and_updater(args.work_dir)
 
-    _console.print(f"[bold]Turneringer i sesongplanen[/bold]")
+    _console.print("[bold]Turneringer i sesongplanen[/bold]")
     if not plan.tournaments:
         _console.print("  [dim]Ingen turneringer i planen.[/dim]")
         return 0
@@ -674,7 +677,7 @@ def _cmd_replan(args: argparse.Namespace) -> int:
                 _console.print(f"  [cyan]{s.date.isoformat()}[/cyan] ({day}, {delta})")
                 for c in s.conflicts:
                     _console.print(f"    [dim]Advarsel: {c['reason']}[/dim]")
-        _console.print(f"\nBruk --new-date <dato> for å velge en dato.")
+        _console.print("\nBruk --new-date <dato> for å velge en dato.")
         return 0
 
     # --- Apply move mode ---
@@ -880,7 +883,7 @@ def _cmd_critic(args: argparse.Namespace) -> int:
 
 
 def _load_critic_state(
-    state: "PipelineState",  # type: ignore[name-defined]
+    state: "PipelineState",
     work_dir: str,
 ) -> "tuple[object | None, list[str]]":
     """Reload the Stage 3 checkpoint and return (season_plan, issues).

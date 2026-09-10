@@ -27,7 +27,6 @@ empty ``sources`` list to the checkpoint (useful for tests / partial runs).
 from __future__ import annotations
 
 import os
-import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -41,22 +40,21 @@ from .not_started import NOT_STARTED_MESSAGE
 from .scraper_strategies import get_strategy, requires_credentials, needs_llm_agent, get_deterministic_scraper_type
 from .state import PipelineState, StageName, StageStatus
 from .scraper_constants import (
-    SOURCE_OUTLOOK, SOURCE_HTML, SOURCE_ICAL, SOURCE_GOOGLE, SOURCE_FIXED_ALLOCATION,
+    SOURCE_OUTLOOK, SOURCE_FIXED_ALLOCATION,
     _BROWSER_SOURCE_TYPES, _ICAL_SOURCE_TYPES,
 )
-from .scraper_bookup import _run_bookup_scraper, _bookup_navigate_to_date, _parse_bookup_timegrid
+from .scraper_constants import SOURCE_ICAL  # noqa: F401 -- re-exported for tests
+from .scraper_bookup import _run_bookup_scraper
 from .scraper_brp_exigo import _run_brp_exigo_scraper
 from .scraper_credentialed import (
-    _credentialed_scrape_months,
     _manual_bookup_login_enabled,
-    _run_credentialed_bookup_or_outlook,
     _try_credentialed_scrape,
 )
 from .fixed_allocation_source import run_fixed_allocation_source
 from .scraper_event_helpers import _events_to_dicts, _group_events_by_club, _group_club_calendar_status
 from .scraper_forumbooking import _run_forumbooking_scraper
 from .scraper_ical import _run_ical_scraper
-from .scraper_outlook import _run_outlook_scraper, _parse_date_param_calendar, _parse_outlook_calendar
+from .scraper_outlook import _run_outlook_scraper
 from .scraper_recovery import _blocked_sources_warning, _empty_sources_warning, _recovery_hint_for_source
 from .scraper_styledcalendar import _run_styledcalendar_scraper
 from .scraper_sportello import _run_sportello_scraper

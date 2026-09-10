@@ -1,7 +1,7 @@
 """Team availability conflict checker - KEY for rescheduling feature."""
 
 from datetime import date
-from typing import List, Set
+from typing import List
 from tournament_scheduler.interfaces import ConflictChecker
 from tournament_scheduler.models import ConflictContext, ConflictResult, CalendarEvent
 from tournament_scheduler.utils.date_parser import DateParser

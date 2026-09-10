@@ -12,7 +12,7 @@ import random
 from collections import Counter
 from datetime import date, datetime, timedelta
 from time import perf_counter
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.fairness_model import SeasonFairnessModel
@@ -37,7 +37,6 @@ from tournament_scheduler.host_assignment import (
     proportional_integer_targets as _proportional_integer_targets,
 )
 from tournament_scheduler.models import (
-    AGE_GROUP_OVERLAP,
     CalendarEvent,
     DatePreference,
     Game,

@@ -1,9 +1,9 @@
 """Google Calendar scraper for embedded Google Calendars."""
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+from playwright.sync_api import sync_playwright
 from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.interfaces import CalendarScraper
 from rich.console import Console
@@ -51,7 +51,7 @@ class GoogleCalendarScraper(CalendarScraper):
                 page.wait_for_timeout(3000)
 
                 # Find Google Calendar iframe
-                console.print(f"  [dim]Ser etter Google Calendar iframe...[/dim]")
+                console.print("  [dim]Ser etter Google Calendar iframe...[/dim]")
                 iframe_element = page.query_selector('iframe[src*="calendar.google.com"]')
                 if not iframe_element:
                     console.print(f"  [yellow]⚠[/yellow] Kunne ikke finne Google Calendar iframe for {calendar_name}", style="yellow")
@@ -64,7 +64,7 @@ class GoogleCalendarScraper(CalendarScraper):
                     browser.close()
                     return events
 
-                console.print(f"  [dim]Åpner Google Calendar iframe...[/dim]")
+                console.print("  [dim]Åpner Google Calendar iframe...[/dim]")
                 iframe.wait_for_timeout(2000)
 
                 # Google Calendar shows events in list or agenda view
