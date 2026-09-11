@@ -142,8 +142,10 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "regel": "Jevnt antall kamper per lag",
             "forklaring": (
                 f"Planleggeren teller opp alle kamper hvert lag spiller i løpet av sesongen. Forskjellen mellom laget med flest "
-                f"og færrest kamper skal være maksimalt {planner.max_game_count_spread}. Lag som blir ferdige for tidlig (mer enn "
-                f"{planner.max_early_finish_gap_days} dager før sesongslutt) flagges som et varsel."
+                f"og færrest kamper skal være maksimalt {planner.max_game_count_spread}. Sesongdekningen vurderes samlet langs hele "
+                f"kjeden sesongstart -> første turnering -> ... -> siste turnering -> sesongslutt: lag med et opphold "
+                f"(før første turnering, mellom to turneringer, eller etter siste turnering) på mer enn "
+                f"{planner.max_early_finish_gap_days} dager flagges som et varsel, ikke bare lag som blir ferdige for tidlig."
             ),
             "kategori": "Automatisk avgjørelse",
         },
@@ -340,9 +342,10 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "kategori": "Automatisk avgjørelse",
         },
         {
-            "regel": "Kampbalanse og tidlig slutt",
+            "regel": "Kampbalanse og sesongdekning",
             "forklaring": (
-                f"Kjører en advarsel når kampantall spres for mye mellom lag eller når lag blir ferdige for tidlig; "
+                f"Kjører en advarsel når kampantall spres for mye mellom lag eller når et lag har et opphold i sesongdekningen "
+                f"(sesongstart -> første turnering -> ... -> siste turnering -> sesongslutt) som overstiger terskelen; "
                 f"{len(planner._game_count_warnings)} tilfelle(r) er registrert i denne planen."
             ),
             "kategori": "Advarsel",

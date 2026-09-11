@@ -168,6 +168,8 @@ class SeasonPlanner:
         self._running_game_counts: Dict[str, int] = {}
         self._club_cap_overrides: int = 0
         self._team_last_date: Dict[str, date] = {}
+        self._team_dates: Dict[str, Set[date]] = {}
+        self._temporal_coverage: List = []
         self._invite_counts: Dict[str, int] = {self._team_key(team): 0 for team in roster.teams}
         club_age_group_counts: Dict[Tuple[str, str], int] = {}
         for team in roster.teams:

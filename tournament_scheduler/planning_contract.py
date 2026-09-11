@@ -816,6 +816,7 @@ def score_candidate(
     gap_thresholds = list(gap_thresholds)
     gaps_under: Dict[int, int] = {threshold: 0 for threshold in gap_thresholds}
     min_turnaround: Optional[int] = None
+    dates_by_identity: Dict[TeamIdentity, List[date]] = {}
     for identity in participations:
         dates = sorted(
             _parse_date(t.get("date"))
@@ -823,6 +824,7 @@ def score_candidate(
             if any(_team_identity(team) == identity for team in t.get("teams", []))
         )
         dates = [d for d in dates if d is not None]
+        dates_by_identity[identity] = dates
         for prev, nxt in zip(dates, dates[1:]):
             gap = (nxt - prev).days
             if min_turnaround is None or gap < min_turnaround:
@@ -830,6 +832,43 @@ def score_candidate(
             for threshold in gap_thresholds:
                 if gap < threshold:
                     gaps_under[threshold] += 1
+
+    # --- temporal coverage (season_start -> ... -> season_end) -----------
+    # Consolidates the old finish-only / intra-season-only gap checks: a
+    # team whose tournaments cluster into a short early window shows up here
+    # via a large finish gap even when every existing tournament is well
+    # spaced from its neighbours. Only computed when *problem* carries real
+    # season boundaries (like hosting_coverage above) -- without them, the
+    # only boundary available would be the candidate's own min/max date,
+    # which is circular (every candidate trivially has zero gap to its own
+    # first/last tournament) and would make this metric noise rather than
+    # signal for problem-less scoring/comparison callers.
+    from tournament_scheduler.temporal_coverage import (
+        DEFAULT_TEMPORAL_COVERAGE_THRESHOLD_DAYS,
+        season_temporal_coverage,
+        temporal_offenders,
+    )
+
+    season_start = _parse_date(problem.get("start_date")) if problem else None
+    season_end = _parse_date(problem.get("end_date")) if problem else None
+
+    temporal_offenders_list: List[Dict[str, Any]] = []
+    temporal_max_gap_days = 0
+    if season_start is not None and season_end is not None:
+        team_meta = {identity: (identity[0], identity[2]) for identity in dates_by_identity}
+        coverages = season_temporal_coverage(season_start, season_end, dates_by_identity, team_meta)
+        temporal_max_gap_days = max((c.max_gap_days for c in coverages), default=0)
+        temporal_offenders_list = [
+            {
+                "team": _display_label(coverage.team_key, duplicate_labels),
+                "age_group": coverage.age_group,
+                "lead_gap_days": coverage.lead_gap_days,
+                "finish_gap_days": coverage.finish_gap_days,
+                "max_intra_gap_days": coverage.max_intra_gap_days,
+                "max_gap_days": coverage.max_gap_days,
+            }
+            for coverage in temporal_offenders(coverages, DEFAULT_TEMPORAL_COVERAGE_THRESHOLD_DAYS)
+        ]
 
     # --- hosting fairness --------------------------------------------------
     host_counts: Dict[str, int] = {}
@@ -912,6 +951,11 @@ def score_candidate(
             "inter_club_diversity": inter_club_diversity,
             "same_club_pairing_count": len(same_club_pairs),
             "max_same_club_teams_per_tournament": max_same_club_per_tournament,
+        },
+        "temporal": {
+            "max_gap_days": temporal_max_gap_days,
+            "offenders_count": len(temporal_offenders_list),
+            "offenders": temporal_offenders_list,
         },
         "turnaround": {
             "min_turnaround_days": min_turnaround,

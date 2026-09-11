@@ -514,11 +514,13 @@ class TournamentOutput:
 
     @staticmethod
     def print_game_count_warnings(warnings: "list[tuple[str, int, int, str]]") -> None:
-        """Print game-count spread and early-finish warnings.
+        """Print game-count spread and temporal-coverage warnings.
 
         Each entry is ``(team_label, value, threshold_or_gap, warning_type)``.
         ``warning_type`` is ``"spread"`` (value=games_played, threshold=spread_diff)
-        or ``"early_finish"`` (value=games_played, gap=days_before_season_end).
+        or ``"early_finish"`` (value=games_played, gap=max_gap_days — the largest
+        gap anywhere along season_start -> first tournament -> ... -> last
+        tournament -> season_end).
 
         Args:
             warnings: The structured warnings from
@@ -540,11 +542,12 @@ class TournamentOutput:
 
         if early_entries:
             TournamentOutput.print_warning(
-                "Disse lagene spiller sin siste kamp lenge før sesongen slutt:"
+                "Disse lagene har et opphold i sesongdekningen (før første, mellom to, "
+                "eller etter siste turnering) som overstiger terskelen:"
             )
             for label, count, gap, _ in early_entries:
                 TournamentOutput.print_warning(
-                    f"  • {label}: {count} kamper, siste kamp {gap} dager før sesongslutt"
+                    f"  • {label}: {count} kamper, {gap} dagers opphold i sesongdekningen"
                 )
 
     @staticmethod

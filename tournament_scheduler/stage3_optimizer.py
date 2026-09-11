@@ -1300,6 +1300,7 @@ _PARETO_DIMENSIONS: Tuple[str, ...] = (
     "gaps_under_14",
     "hosting_spread",
     "inter_club_diversity_inverted",
+    "temporal_max_gap_days",
 )
 
 
@@ -1309,6 +1310,7 @@ def _objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
     gaps = (score.get("turnaround") or {}).get("gaps_under_days") or {}
     opponent = score.get("opponent_diversity") or {}
     hosting = score.get("hosting") or {}
+    temporal = score.get("temporal") or {}
     return {
         "max_pair_repeat": float(opponent.get("max_pair_repeat", 0)),
         "same_club_pairing_count": float(opponent.get("same_club_pairing_count", 0)),
@@ -1316,6 +1318,7 @@ def _objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
         "gaps_under_14": float(gaps.get(14, 0)),
         "hosting_spread": float(hosting.get("spread", 0)),
         "inter_club_diversity_inverted": 1.0 - float(opponent.get("inter_club_diversity", 0.0)),
+        "temporal_max_gap_days": float(temporal.get("max_gap_days", 0)),
     }
 
 
@@ -1426,7 +1429,7 @@ def optimize_candidate_pareto(
     resolved_weights = dict(DEFAULT_WEIGHTS)
     resolved_vectors = weight_vectors or _default_pareto_weight_vectors(resolved_weights)
 
-    baseline_score = score_candidate(candidate)
+    baseline_score = score_candidate(candidate, problem=problem)
     baseline_vector = _objective_vector(baseline_score)
 
     archive: List[Dict[str, Any]] = []
@@ -1455,7 +1458,7 @@ def optimize_candidate_pareto(
             move_hosts=move_hosts,
             move_slots=move_slots,
         )
-        epoch_score = score_candidate(epoch_result)
+        epoch_score = score_candidate(epoch_result, problem=problem)
         epoch_vector = _objective_vector(epoch_score)
         epoch_summaries.append(
             {

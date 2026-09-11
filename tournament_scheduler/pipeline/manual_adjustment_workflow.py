@@ -360,7 +360,8 @@ class ManualAdjustmentWorkflow:
                 )
             elif kind == "early_finish":
                 warnings.append(
-                    f"Tidlig sesonslutt: {key} har {count} kamper, siste kamp {value} dager før sesongslutt"
+                    f"Sesongdekning: {key} har {count} kamper, {value} dagers opphold i sesongdekningen "
+                    "(før første, mellom to, eller etter siste turnering)"
                 )
 
         # --- hosting deviation warnings ---

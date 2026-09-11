@@ -10,12 +10,14 @@ import holidays
 
 from tournament_scheduler.html.data_computation import canonical_rvv_club_name
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
+from tournament_scheduler.temporal_coverage import season_temporal_coverage, temporal_offenders
 
 
 def compute_game_counts(planner, tournaments: Sequence[Tournament]) -> None:
-    """Compute per-team round-robin game counts and last-game dates."""
+    """Compute per-team round-robin game counts, last-game dates and full date sets."""
     planner._team_game_counts = {}
     planner._team_last_date = {}
+    planner._team_dates = {}
     for tournament in tournaments:
         for game in tournament.games:
             for team in (game.home, game.away):
@@ -26,6 +28,7 @@ def compute_game_counts(planner, tournaments: Sequence[Tournament]) -> None:
                 last = planner._team_last_date.get(key)
                 if last is None or tournament.date > last:
                     planner._team_last_date[key] = tournament.date
+                planner._team_dates.setdefault(key, set()).add(tournament.date)
 
 
 def holiday_heavy_weekend_dates(start_date: date, end_date: date) -> Set[date]:
@@ -177,13 +180,29 @@ def scan_game_count_warnings(
                 if count == max_count or count == min_count:
                     planner._game_count_warnings.append((key, count, spread, "spread"))
 
-    if window_end is not None and planner._team_last_date:
-        for key, last_date in planner._team_last_date.items():
-            gap = (window_end - last_date).days
-            if gap > planner.max_early_finish_gap_days:
-                planner._game_count_warnings.append(
-                    (key, planner._team_game_counts.get(key, 0), gap, "early_finish")
+    if window_start is not None and window_end is not None and planner._team_dates:
+        team_meta = {planner._team_key(t): (t.club, t.age_group) for t in planner.roster.teams}
+        coverages = season_temporal_coverage(
+            window_start,
+            window_end,
+            planner._team_dates,
+            team_meta,
+        )
+        planner._temporal_coverage = coverages
+        for coverage in temporal_offenders(coverages, planner.max_early_finish_gap_days):
+            # "early_finish" is kept as the warning kind for backward
+            # compatibility with existing consumers; its meaning now covers
+            # the whole season_start->...->season_end chain (lead gap before
+            # the first tournament and intra-season gaps too, not only the
+            # gap after the last tournament) rather than a finish-only check.
+            planner._game_count_warnings.append(
+                (
+                    coverage.team_key,
+                    planner._team_game_counts.get(coverage.team_key, 0),
+                    coverage.max_gap_days,
+                    "early_finish",
                 )
+            )
 
 
 def scan_per_team_share_warnings(

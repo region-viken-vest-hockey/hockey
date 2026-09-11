@@ -35,6 +35,8 @@ _METRIC_PATHS: List[Tuple[str, str]] = [
     ("turnaround.gaps_under_days.14", "lower"),
     ("hosting.spread", "lower"),
     ("hosting.unresolved_obligations_count", "lower"),
+    ("temporal.max_gap_days", "lower"),
+    ("temporal.offenders_count", "lower"),
 ]
 
 

@@ -218,3 +218,77 @@ class TestBuildAbReport:
         assert report["dominates_baseline"]
         assert not report["production_ready"]
         assert not report["promotable"]
+
+
+class TestTemporalCoverageInPlanSelection:
+    """issue #313: temporal coverage must participate in plan selection, not
+    just be reported after the fact — two otherwise-equivalent schedules
+    (same pairings, same host clubs, same intra-team turnaround gaps) must
+    prefer the one whose tournaments are better spread across the season.
+    """
+
+    _SEASON_PROBLEM = {"start_date": "2026-09-01", "end_date": "2027-03-28"}
+
+    @staticmethod
+    def _spread_candidate(group_a_start: str, group_b_start: str) -> dict:
+        """Same 8 teams/pairings as ``_clustered_candidate``, but each
+        group's two tournaments start on *group_x_start* and 28 days later —
+        only their position within the season window changes."""
+        teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 9)}
+        group_a = [teams["T1"], teams["T2"], teams["T3"], teams["T4"]]
+        group_b = [teams["T5"], teams["T6"], teams["T7"], teams["T8"]]
+
+        def _plus_days(date_str: str, days: int) -> str:
+            from datetime import date as _date, timedelta
+
+            y, m, d = (int(part) for part in date_str.split("-"))
+            return (_date(y, m, d) + timedelta(days=days)).isoformat()
+
+        return {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", group_a_start, "Arena1", "U10", group_a),
+                _tournament("t2", _plus_days(group_a_start, 28), "Arena1", "U10", group_a),
+                _tournament("t3", group_b_start, "Arena5", "U10", group_b),
+                _tournament("t4", _plus_days(group_b_start, 28), "Arena5", "U10", group_b),
+            ],
+        }
+
+    def test_better_distributed_schedule_is_not_a_temporal_regression(self):
+        # Clustered: both groups finish in mid-October despite the season
+        # running to 2027-03-28 (Easter) — a large finish gap for everyone.
+        clustered = self._spread_candidate("2026-09-12", "2026-09-19")
+        # Spread: same pairings/turnaround gap (28 days), just positioned
+        # later so the lead/finish boundary gaps shrink substantially.
+        spread = self._spread_candidate("2026-11-30", "2026-12-07")
+
+        report = build_ab_report(clustered, spread, problem=self._SEASON_PROBLEM)
+
+        clustered_max_gap = report["old"]["score"]["temporal"]["max_gap_days"]
+        spread_max_gap = report["new"]["score"]["temporal"]["max_gap_days"]
+        assert spread_max_gap < clustered_max_gap
+
+        # Every other metric is unaffected (same pairings, hosts, and 28-day
+        # intra-team gap on both sides), so only the temporal metric moves —
+        # the improvement isn't masked or offset by a regression elsewhere.
+        assert report["overall_comparison"]["regressions"] == []
+        temporal_metric = next(
+            m for m in report["overall_comparison"]["metrics"] if m["metric"] == "temporal.max_gap_days"
+        )
+        assert not temporal_metric["regressed"]
+        assert temporal_metric["delta"] < 0
+
+        assert report["dominates_baseline"]
+        assert report["production_ready"]
+
+    def test_clustered_schedule_is_flagged_as_temporal_regression(self):
+        spread = self._spread_candidate("2026-11-30", "2026-12-07")
+        clustered = self._spread_candidate("2026-09-12", "2026-09-19")
+
+        # Selecting the clustered plan over the already-spread baseline must
+        # surface as a regression, not silently pass.
+        report = build_ab_report(spread, clustered, problem=self._SEASON_PROBLEM)
+
+        assert "temporal.max_gap_days" in report["overall_comparison"]["regressions"]
+        assert not report["dominates_baseline"]
+        assert not report["production_ready"]
