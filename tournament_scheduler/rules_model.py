@@ -45,6 +45,8 @@ from .models import SeasonPlan
 # listed default to "sesong".
 _METRIC_SCOPES: dict[str, str] = {
     "game_count_spread": "lag",
+    "team_finish_gap": "lag",
+    "team_intra_season_gap": "lag",
     "hosting_deviation": "klubb",
     "travel_distance": "lag",
     "opponent_diversity": "lag",

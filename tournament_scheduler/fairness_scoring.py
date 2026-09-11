@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Dict, List
 
 from tournament_scheduler.club_distances import compute_team_travel_distances
-from tournament_scheduler.models import SeasonPlan
+from tournament_scheduler.models import SeasonPlan, find_duplicate_labels, team_key
 from tournament_scheduler.warnings import hosting_weekend_balance_breakdown
 
 DEFAULT_FAIRNESS_THRESHOLDS = {
@@ -21,7 +21,49 @@ DEFAULT_FAIRNESS_THRESHOLDS = {
     "max_same_weekend_club_load": 3,
     "max_consecutive_weekend_club_load": 2,
     "max_holiday_stretch_club_load": 2,
+    # How many weeks a team may finish before the last tournament played by
+    # any team in its own age group. Historical backlog item 13 said no team
+    # should be "done" many weeks before others; 3 weeks is the suggested
+    # starting point for flagging that as a temporal-fairness concern.
+    "max_team_finish_gap_weeks": 3.0,
+    # Largest gap allowed between a team's consecutive tournaments during the
+    # season. Set comfortably above the ordinary Christmas/New Year break
+    # (which alone typically spans several weeks for every team) so that
+    # break is not itself flagged as an excessive mid-season hole.
+    "max_team_intra_season_gap_weeks": 8.0,
 }
+
+
+def _team_participation_records(plan: SeasonPlan) -> Dict[str, Dict[str, object]]:
+    """Return per-team participation records built from *plan.tournaments*.
+
+    Each record is ``{"club", "label", "age_group", "dates"}`` where
+    ``dates`` is every date the team participated in a non-cancelled
+    tournament (host or away — participation, not hosting, is what matters
+    for temporal fairness). Keyed by the same disambiguated key as
+    ``plan.team_game_counts`` so a label shared by teams in different clubs
+    or age groups is never merged.
+    """
+    all_teams = [
+        team
+        for tournament in plan.tournaments
+        if not tournament.cancelled
+        for team in tournament.teams
+    ]
+    duplicate_labels = find_duplicate_labels(all_teams)
+
+    records: Dict[str, Dict[str, object]] = {}
+    for tournament in plan.tournaments:
+        if tournament.cancelled:
+            continue
+        for team in tournament.teams:
+            key = team_key(team, duplicate_labels)
+            record = records.setdefault(
+                key,
+                {"club": team.club, "label": team.label, "age_group": team.age_group, "dates": []},
+            )
+            record["dates"].append(tournament.date)  # type: ignore[union-attr]
+    return records
 
 
 def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
@@ -176,6 +218,78 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
         detail=f"Største spredning i én aldersgruppe er {worst_game_count_spread} kamper (mellom laget med flest og laget med færrest kamper).",
         unit=" kamper",
     )
+
+    participation_records = _team_participation_records(plan)
+    age_group_last_date: Dict[str, object] = {}
+    for record in participation_records.values():
+        ag = str(record["age_group"])
+        dates = record["dates"]
+        if not dates:
+            continue
+        last = max(dates)  # type: ignore[type-var]
+        if ag not in age_group_last_date or last > age_group_last_date[ag]:
+            age_group_last_date[ag] = last
+
+    worst_finish_gap_weeks = 0.0
+    finish_gap_detail = (
+        "Ingen lag avslutter merkbart tidligere enn resten av sin aldersgruppe."
+    )
+    for record in participation_records.values():
+        dates = record["dates"]
+        if not dates:
+            continue
+        ag = str(record["age_group"])
+        ag_last = age_group_last_date.get(ag)
+        if ag_last is None:
+            continue
+        team_last = max(dates)  # type: ignore[type-var]
+        gap_days = (ag_last - team_last).days  # type: ignore[operator]
+        gap_weeks = round(gap_days / 7.0, 1)
+        if gap_weeks > worst_finish_gap_weeks:
+            worst_finish_gap_weeks = gap_weeks
+            finish_gap_detail = (
+                f"{record['label']} ({record['club']}, {ag}) spiller sin siste turnering "
+                f"{team_last.isoformat()}, mens {ag} som helhet varer til {ag_last.isoformat()} "  # type: ignore[attr-defined]
+                f"— et gap på {gap_weeks:.1f} uker."
+            )
+    add_metric(
+        "team_finish_gap",
+        "Tidlig sesongslutt",
+        worst_finish_gap_weeks,
+        thresholds.get("max_team_finish_gap_weeks", DEFAULT_FAIRNESS_THRESHOLDS["max_team_finish_gap_weeks"]),
+        direction="max",
+        severity="warn",
+        detail=finish_gap_detail,
+        unit=" uker",
+    )
+
+    worst_intra_gap_weeks = 0.0
+    intra_gap_detail = "Ingen lag har uvanlig lange opphold mellom sine turneringer."
+    for record in participation_records.values():
+        sorted_dates = sorted(set(record["dates"]))  # type: ignore[arg-type]
+        if len(sorted_dates) < 2:
+            continue
+        for earlier, later in zip(sorted_dates, sorted_dates[1:]):
+            gap_days = (later - earlier).days
+            gap_weeks = round(gap_days / 7.0, 1)
+            if gap_weeks > worst_intra_gap_weeks:
+                worst_intra_gap_weeks = gap_weeks
+                intra_gap_detail = (
+                    f"{record['label']} ({record['club']}, {record['age_group']}) har et opphold "
+                    f"på {gap_weeks:.1f} uker mellom turneringene {earlier.isoformat()} og "
+                    f"{later.isoformat()}."
+                )
+    add_metric(
+        "team_intra_season_gap",
+        "Lengste opphold i sesongen",
+        worst_intra_gap_weeks,
+        thresholds.get("max_team_intra_season_gap_weeks", DEFAULT_FAIRNESS_THRESHOLDS["max_team_intra_season_gap_weeks"]),
+        direction="max",
+        severity="warn",
+        detail=intra_gap_detail,
+        unit=" uker",
+    )
+
     add_metric(
         "hosting_deviation",
         "Hjemmebanebelastning",
