@@ -141,7 +141,7 @@ celerybeat.pid
 .envrc
 .venv
 env/
-venv/
+venv
 ENV/
 env.bak/
 venv.bak/
@@ -219,7 +219,7 @@ __marimo__/
 .idea
 
 # Node
-node_modules/
+node_modules
 .pipeline/
 .ps-next/.lock
 .DS_Store
