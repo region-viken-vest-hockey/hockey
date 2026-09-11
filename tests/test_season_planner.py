@@ -3171,6 +3171,7 @@ class TestFairnessGate:
                 "max_same_weekend_club_load": 999,
                 "max_consecutive_weekend_club_load": 999,
                 "max_holiday_stretch_club_load": 999,
+                "max_team_temporal_gap_weeks": 999,
             },
         )
         plan = planner.build_plan(start, end)

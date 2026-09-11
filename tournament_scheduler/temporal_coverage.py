@@ -24,7 +24,7 @@ coverage" again.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Dict, Hashable, List, Sequence, Tuple
 
 # Default max-gap threshold (days) above which a team's season coverage is
@@ -63,7 +63,16 @@ def team_temporal_coverage(
     season_start -> dates... -> season_end, so a team that plays everything
     in a short early window is flagged the same way a team with genuinely
     sparse intra-season spacing is, without needing two separate checks.
+
+    *season_start*/*season_end* are normalized to plain ``date`` (callers
+    sometimes carry a ``datetime`` for the season window, e.g.
+    ``SeasonPlan.start_date``/``end_date``) -- ``date - datetime`` raises
+    ``TypeError`` even though ``datetime`` subclasses ``date``.
     """
+    if isinstance(season_start, datetime):
+        season_start = season_start.date()
+    if isinstance(season_end, datetime):
+        season_end = season_end.date()
     dates = sorted(set(tournament_dates))
     if not dates:
         span = max(0, (season_end - season_start).days)

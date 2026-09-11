@@ -71,6 +71,7 @@ def _make_duplicate_label_config():
             "max_same_weekend_club_load": 999,
             "max_consecutive_weekend_club_load": 999,
             "max_holiday_stretch_club_load": 999,
+            "max_team_temporal_gap_weeks": 999,
         },
         "teams": [
             {"club": "Jar", "label": "Jar 1 U10", "age_group": "U10"},

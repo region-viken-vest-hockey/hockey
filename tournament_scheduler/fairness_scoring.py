@@ -6,6 +6,7 @@ from typing import Dict, List
 
 from tournament_scheduler.club_distances import compute_team_travel_distances
 from tournament_scheduler.models import SeasonPlan, find_duplicate_labels, team_key
+from tournament_scheduler.temporal_coverage import season_temporal_coverage, temporal_offenders
 from tournament_scheduler.warnings import hosting_weekend_balance_breakdown
 
 DEFAULT_FAIRNESS_THRESHOLDS = {
@@ -21,16 +22,17 @@ DEFAULT_FAIRNESS_THRESHOLDS = {
     "max_same_weekend_club_load": 3,
     "max_consecutive_weekend_club_load": 2,
     "max_holiday_stretch_club_load": 2,
-    # How many weeks a team may finish before the last tournament played by
-    # any team in its own age group. Historical backlog item 13 said no team
-    # should be "done" many weeks before others; 3 weeks is the suggested
-    # starting point for flagging that as a temporal-fairness concern.
-    "max_team_finish_gap_weeks": 3.0,
-    # Largest gap allowed between a team's consecutive tournaments during the
-    # season. Set comfortably above the ordinary Christmas/New Year break
-    # (which alone typically spans several weeks for every team) so that
-    # break is not itself flagged as an excessive mid-season hole.
-    "max_team_intra_season_gap_weeks": 8.0,
+    # Largest gap (in weeks) allowed anywhere along a team's own
+    # season_start -> first tournament -> ... -> last tournament -> season_end
+    # chain. Replaces the older, narrower team_finish_gap (only compared a
+    # team's last tournament to its age group's peers) and
+    # team_intra_season_gap (only looked at gaps between existing
+    # tournaments, ignoring the season boundaries) with one consolidated
+    # temporal-coverage measurement. Set comfortably above the ordinary
+    # Christmas/New Year break (which alone typically spans several weeks
+    # for every team) so that break is not itself flagged as an excessive
+    # hole.
+    "max_team_temporal_gap_weeks": 8.0,
 }
 
 
@@ -220,75 +222,67 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
     )
 
     participation_records = _team_participation_records(plan)
-    age_group_last_date: Dict[str, object] = {}
-    for record in participation_records.values():
-        ag = str(record["age_group"])
-        dates = record["dates"]
-        if not dates:
-            continue
-        last = max(dates)  # type: ignore[type-var]
-        if ag not in age_group_last_date or last > age_group_last_date[ag]:
-            age_group_last_date[ag] = last
-
-    worst_finish_gap_weeks = 0.0
-    finish_gap_detail = (
-        "Ingen lag avslutter merkbart tidligere enn resten av sin aldersgruppe."
+    worst_temporal_gap_weeks = 0.0
+    temporal_gap_detail = (
+        "Ingen lag har et opphold i sesongdekningen (før første, mellom to, "
+        "eller etter siste turnering) som overstiger terskelen."
     )
-    for record in participation_records.values():
-        dates = record["dates"]
-        if not dates:
-            continue
-        ag = str(record["age_group"])
-        ag_last = age_group_last_date.get(ag)
-        if ag_last is None:
-            continue
-        team_last = max(dates)  # type: ignore[type-var]
-        gap_days = (ag_last - team_last).days  # type: ignore[operator]
-        gap_weeks = round(gap_days / 7.0, 1)
-        if gap_weeks > worst_finish_gap_weeks:
-            worst_finish_gap_weeks = gap_weeks
-            finish_gap_detail = (
-                f"{record['label']} ({record['club']}, {ag}) spiller sin siste turnering "
-                f"{team_last.isoformat()}, mens {ag} som helhet varer til {ag_last.isoformat()} "  # type: ignore[attr-defined]
-                f"— et gap på {gap_weeks:.1f} uker."
+    temporal_offenders_detail: List[Dict[str, object]] = []
+    if plan.start_date is not None and plan.end_date is not None:
+        dates_by_team = {key: record["dates"] for key, record in participation_records.items()}
+        team_meta = {
+            key: (str(record["club"]), str(record["age_group"]))
+            for key, record in participation_records.items()
+        }
+        coverages = season_temporal_coverage(plan.start_date, plan.end_date, dates_by_team, team_meta)
+        worst_temporal_gap_days = max((c.max_gap_days for c in coverages), default=0)
+        worst_temporal_gap_weeks = round(worst_temporal_gap_days / 7.0, 1)
+
+        threshold_weeks = float(
+            thresholds.get("max_team_temporal_gap_weeks", DEFAULT_FAIRNESS_THRESHOLDS["max_team_temporal_gap_weeks"])
+        )
+        offenders = temporal_offenders(coverages, threshold_days=int(round(threshold_weeks * 7)))
+        for offender in offenders:
+            record = participation_records.get(offender.team_key, {})
+            label = record.get("label", offender.team_key)
+            temporal_offenders_detail.append(
+                {
+                    "team": label,
+                    "club": offender.club,
+                    "age_group": offender.age_group,
+                    "lead_gap_days": offender.lead_gap_days,
+                    "finish_gap_days": offender.finish_gap_days,
+                    "max_intra_gap_days": offender.max_intra_gap_days,
+                    "max_gap_days": offender.max_gap_days,
+                }
+            )
+        if offenders:
+            worst = offenders[0]
+            worst_record = participation_records.get(worst.team_key, {})
+            worst_label = worst_record.get("label", worst.team_key)
+            gap_kind = "opphold før første turnering"
+            if worst.max_gap_days == worst.finish_gap_days and worst.finish_gap_days >= worst.lead_gap_days:
+                gap_kind = "opphold etter siste turnering"
+            elif worst.max_gap_days == worst.max_intra_gap_days:
+                gap_kind = "opphold mellom to turneringer"
+            worst_weeks = round(worst.max_gap_days / 7.0, 1)
+            temporal_gap_detail = (
+                f"{worst_label} ({worst.club}, {worst.age_group}) har det største oppholdet i "
+                f"sesongdekningen: {worst_weeks:.1f} uker ({gap_kind}). "
+                f"{len(offenders)} lag totalt overstiger terskelen på {threshold_weeks:.1f} uker."
             )
     add_metric(
-        "team_finish_gap",
-        "Tidlig sesongslutt",
-        worst_finish_gap_weeks,
-        thresholds.get("max_team_finish_gap_weeks", DEFAULT_FAIRNESS_THRESHOLDS["max_team_finish_gap_weeks"]),
+        "team_temporal_coverage",
+        "Sesongdekning per lag",
+        worst_temporal_gap_weeks,
+        thresholds.get("max_team_temporal_gap_weeks", DEFAULT_FAIRNESS_THRESHOLDS["max_team_temporal_gap_weeks"]),
         direction="max",
         severity="warn",
-        detail=finish_gap_detail,
+        detail=temporal_gap_detail,
         unit=" uker",
     )
-
-    worst_intra_gap_weeks = 0.0
-    intra_gap_detail = "Ingen lag har uvanlig lange opphold mellom sine turneringer."
-    for record in participation_records.values():
-        sorted_dates = sorted(set(record["dates"]))  # type: ignore[arg-type]
-        if len(sorted_dates) < 2:
-            continue
-        for earlier, later in zip(sorted_dates, sorted_dates[1:]):
-            gap_days = (later - earlier).days
-            gap_weeks = round(gap_days / 7.0, 1)
-            if gap_weeks > worst_intra_gap_weeks:
-                worst_intra_gap_weeks = gap_weeks
-                intra_gap_detail = (
-                    f"{record['label']} ({record['club']}, {record['age_group']}) har et opphold "
-                    f"på {gap_weeks:.1f} uker mellom turneringene {earlier.isoformat()} og "
-                    f"{later.isoformat()}."
-                )
-    add_metric(
-        "team_intra_season_gap",
-        "Lengste opphold i sesongen",
-        worst_intra_gap_weeks,
-        thresholds.get("max_team_intra_season_gap_weeks", DEFAULT_FAIRNESS_THRESHOLDS["max_team_intra_season_gap_weeks"]),
-        direction="max",
-        severity="warn",
-        detail=intra_gap_detail,
-        unit=" uker",
-    )
+    if metrics and metrics[-1].get("key") == "team_temporal_coverage":
+        metrics[-1]["offenders"] = temporal_offenders_detail
 
     add_metric(
         "hosting_deviation",
