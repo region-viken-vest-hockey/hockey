@@ -17,14 +17,16 @@ class CalendarCache:
     def __init__(
         self,
         cache_dir: Optional[str] = None,
-        ttl_minutes: int = 60,
+        ttl_minutes: int = 60 * 24 * 7,
         work_dir: Optional[str] = None,
     ):
         """Initialize calendar cache.
 
         Args:
             cache_dir: Explicit cache directory for JSON files.
-            ttl_minutes: Cache time-to-live in minutes (default: 60)
+            ttl_minutes: Cache time-to-live in minutes (default: 1 week —
+                scraped calendar data doesn't change fast enough to justify
+                re-scraping more often; use ``--force-refresh`` to bypass).
             work_dir: Pipeline work directory. When provided, cache files live
                 under ``<work_dir>/cache/calendars``.
 

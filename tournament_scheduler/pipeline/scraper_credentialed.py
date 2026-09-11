@@ -329,7 +329,7 @@ def _run_credentialed_bookup_or_outlook(
                     max_weeks = (total_days // 7) + 3
                     for _ in range(max_weeks):
                         frame.wait_for_timeout(1_500)
-                        week_events = _parse_bookup_timegrid(frame)
+                        week_events = _parse_bookup_timegrid(frame, club_name=name)
                         for ev in week_events:
                             if start_date_ref <= ev.datetime <= end_date_ref + __import__("datetime").timedelta(days=1):
                                 events.append(ev)

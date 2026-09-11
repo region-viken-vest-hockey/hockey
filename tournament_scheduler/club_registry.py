@@ -152,21 +152,19 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
     ),
     "Frisk Asker": ClubCalendarSource(
         club="Frisk Asker",
-        # RVV can book Askerhallen only. Varner Arena appears in the same
-        # Teamup calendar but must never become RVV scheduling evidence.
+        # RVV can book Askerhallen only.
         arena="Askerhallen",
         kind=CalendarSourceKind.ICAL,
         source="https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics",
         human_url="https://teamup.com/ksdwpwxysmxwnuftoy",
         skip=False,
         note=(
-            "Teamup feed covers both Varner Arena and Askerhallen, but RVV can "
-            "book Askerhallen only. In the feed Askerhallen is represented by "
-            "LOCATION values containing 'Idrettshallen'; numbered surfaces and "
-            "'FA ...' rooms belong to Varner Arena and are excluded from RVV "
-            "availability evidence."
+            "This Teamup feed ('Frisk Asker Istider Askerhallen') is Askerhallen-"
+            "only. No event's LOCATION/CATEGORIES ever mentions Varner Arena, so "
+            "no location filter is applied — every scraped event counts as "
+            "Askerhallen availability evidence."
         ),
-        location_filter="Idrettshallen",
+        location_filter=None,
         non_schedulable_arena_aliases=("Varner Arena",),
     ),
     "Sandefjord Penguins": ClubCalendarSource(
