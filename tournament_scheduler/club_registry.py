@@ -140,15 +140,12 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         source="https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
         skip=False,
         note=(
-            "BookUp SPA -- full Tønsberg ishall availability is behind "
-            "BookUp login and requires BOOKUP_EMAIL/BOOKUP_PASSWORD. Until an "
-            "authenticated full-calendar scrape is proven trustworthy, a "
-            "successful scrape of this URL only returns BookUp's generic/"
-            "public placeholder data, not real availability -- issue #274 "
-            "requires every Tønsberg-hosted tournament to be manual until "
-            "that is fixed (trusted_for_auto_placement=False)."
+            "BookUp SPA -- the public 'Se tilgjengelighet' view returns real, "
+            "detailed per-slot availability (exact times, clicked-through "
+            "Leietaker/Formål detail) with no login required, confirmed "
+            "against the live calendar. Trusted for automatic placement."
         ),
-        trusted_for_auto_placement=False,
+        trusted_for_auto_placement=True,
     ),
     "Frisk Asker": ClubCalendarSource(
         club="Frisk Asker",
