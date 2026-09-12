@@ -20,10 +20,6 @@ from tournament_scheduler.llm_judge.harness import get_judge_if_headless, is_har
 from tournament_scheduler.pipeline.state import PipelineState, StageName
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 def _mock_response(body_dict: dict) -> MagicMock:
     body = json.dumps(body_dict).encode()
     cm = MagicMock()
@@ -33,29 +29,21 @@ def _mock_response(body_dict: dict) -> MagicMock:
     return cm
 
 
-# ---------------------------------------------------------------------------
-# is_harness_active
-# ---------------------------------------------------------------------------
-
 @pytest.mark.parametrize(
     "env_var",
-    ["RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID", "OPENCODE_SESSION_ID"],
+    ["RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID"],
 )
 def test_is_harness_active_true_for_each_var(env_var: str) -> None:
-    clean = {k: "" for k in ("RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID", "OPENCODE_SESSION_ID")}
+    clean = {k: "" for k in ("RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID")}
     with patch.dict(os.environ, {**clean, env_var: "some-session-id"}):
         assert is_harness_active() is True
 
 
 def test_is_harness_active_false_when_no_vars_set() -> None:
-    clean = {k: "" for k in ("RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID", "OPENCODE_SESSION_ID")}
+    clean = {k: "" for k in ("RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID")}
     with patch.dict(os.environ, clean):
         assert is_harness_active() is False
 
-
-# ---------------------------------------------------------------------------
-# create_judge factory
-# ---------------------------------------------------------------------------
 
 def test_create_judge_raises_on_empty_backend() -> None:
     with patch.dict(os.environ, {"RVV_JUDGE_BACKEND": ""}):
@@ -79,10 +67,6 @@ def test_create_judge_reads_env_var() -> None:
         assert isinstance(judge, LLMBridgeJudgeBackend)
 
 
-# ---------------------------------------------------------------------------
-# LLMBridgeJudgeBackend
-# ---------------------------------------------------------------------------
-
 def test_llm_bridge_judge_happy_path() -> None:
     response_body = {"choices": [{"message": {"content": "PROCEED"}}]}
     with patch("urllib.request.urlopen", return_value=_mock_response(response_body)):
@@ -99,16 +83,11 @@ def test_llm_bridge_judge_raises_on_url_error() -> None:
 
 
 def test_llm_bridge_judge_raises_on_malformed_response() -> None:
-    # Response missing the expected keys
     with patch("urllib.request.urlopen", return_value=_mock_response({"bad": "response"})):
         judge = LLMBridgeJudgeBackend()
         with pytest.raises(RuntimeError, match="Unexpected LLM Bridge response shape"):
             judge.judge("prompt")
 
-
-# ---------------------------------------------------------------------------
-# ClaudeJudgeBackend
-# ---------------------------------------------------------------------------
 
 def test_claude_judge_raises_if_no_api_key() -> None:
     with patch.dict(os.environ, {"ANTHROPIC_API_KEY": ""}):
@@ -133,10 +112,6 @@ def test_claude_judge_raises_on_url_error() -> None:
                 judge.judge("prompt")
 
 
-# ---------------------------------------------------------------------------
-# OpenAIJudgeBackend
-# ---------------------------------------------------------------------------
-
 def test_openai_judge_raises_if_no_api_key() -> None:
     with patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
         with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
@@ -152,10 +127,6 @@ def test_openai_judge_happy_path() -> None:
     assert result == "PROCEED"
 
 
-# ---------------------------------------------------------------------------
-# get_judge_if_headless
-# ---------------------------------------------------------------------------
-
 def test_get_judge_if_headless_returns_none_when_harness_active() -> None:
     with patch.dict(os.environ, {"CLAUDE_CODE_SESSION_ID": "abc123"}):
         result = get_judge_if_headless()
@@ -163,26 +134,21 @@ def test_get_judge_if_headless_returns_none_when_harness_active() -> None:
 
 
 def test_get_judge_if_headless_returns_judge_when_headless() -> None:
-    clean = {k: "" for k in ("RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID", "OPENCODE_SESSION_ID")}
+    clean = {k: "" for k in ("RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID")}
     with patch.dict(os.environ, {**clean, "RVV_JUDGE_BACKEND": "llm_bridge"}):
         result = get_judge_if_headless()
     assert isinstance(result, LLMBridgeJudgeBackend)
 
 
 def test_get_judge_if_headless_raises_value_error_when_no_backend() -> None:
-    clean = {k: "" for k in ("RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID", "OPENCODE_SESSION_ID", "RVV_JUDGE_BACKEND")}
+    clean = {k: "" for k in ("RVV_HARNESS", "CLAUDE_CODE_SESSION_ID", "PI_SESSION_ID", "RVV_JUDGE_BACKEND")}
     with patch.dict(os.environ, clean):
         with pytest.raises(ValueError, match="No judge backend specified"):
             get_judge_if_headless()
 
 
-# ---------------------------------------------------------------------------
-# PipelineState.write_judgment
-# ---------------------------------------------------------------------------
-
 def test_write_judgment_persists_to_checkpoint(tmp_path: "Path") -> None:
     state = PipelineState(tmp_path)
-    # Write a minimal stage checkpoint first so the envelope exists.
     state.write_stage(StageName.CONFIG, {"sources": []})
 
     state.write_judgment(
@@ -206,7 +172,6 @@ def test_write_judgment_does_not_overwrite_stage_data(tmp_path: "Path") -> None:
     state.write_stage(StageName.CONFIG, {"key": "value"})
     state.write_judgment(StageName.CONFIG, verdict="PROCEED")
 
-    # Original stage data must still be intact.
     data = state.read_stage(StageName.CONFIG)
     assert data.get("key") == "value"
 
