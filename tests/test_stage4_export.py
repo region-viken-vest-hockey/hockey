@@ -283,6 +283,89 @@ class TestRunStage4:
         html = Path(files["html"]).read_text(encoding="utf-8")
         assert 'href="manual_schedule.html"' in html
 
+    def test_stale_stored_collisions_are_cleared_when_fresh_recompute_finds_none(self, tmp_path):
+        """issue #314: a stale ``arena_day_collisions`` list carried over
+        from an earlier candidate must not survive a fresh Stage 4 run
+        whose recomputation finds zero real collisions -- a truthy `or`
+        fallback used to let the stale non-empty list win over a freshly
+        verified `[]`."""
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
+        plan_checkpoint = _make_plan_dict()
+        # Only one tournament -- no real arena/time collision is possible --
+        # but the stored plan still carries a stale collision from a
+        # previously selected (and since-replaced) candidate.
+        plan_checkpoint["plan"]["arena_day_collisions"] = [
+            {
+                "date": "2025-09-01",
+                "arena": "Stale Hall",
+                "age_group": "U10",
+                "host_club": "Stale",
+                "conflicting_age_group": "U10",
+                "conflicting_host_club": "Stale",
+                "reason": "same_arena_same_day",
+                "message": "stale collision from a superseded candidate",
+            }
+        ]
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        assert result["arena_day_collisions"] == []
+        assert "manual_schedule" not in result["output_files"]
+
+    def test_zero_to_real_collision_is_surfaced_after_recompute(self, tmp_path):
+        """issue #314: the inverse case -- a stored plan with zero
+        collisions must still surface a real collision introduced by the
+        selected candidate, proving Stage 4 recomputes rather than merely
+        suppressing stale collision output."""
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
+        plan_checkpoint = _make_plan_dict()
+        plan_checkpoint["plan"]["arena_day_collisions"] = []
+        first = plan_checkpoint["plan"]["tournaments"][0]
+        first["id"] = "first"
+        first["start_time"] = "09:00"
+        second = {
+            **first,
+            "id": "second",
+            "start_time": "09:30",
+            "teams": [
+                {"club": "Jar", "label": "Jar U10A", "age_group": "U10"},
+                {"club": "Holmen", "label": "Holmen U10A", "age_group": "U10"},
+            ],
+            "games": [
+                {"home": "Jar U10A", "away": "Holmen U10A", "parallel_slot": 0, "round_number": 1},
+            ],
+        }
+        plan_checkpoint["plan"]["tournaments"].append(second)
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        assert result["arena_day_collisions"], "a real collision must be surfaced even though stored state had none"
+        assert "Kongsberghallen" in result["arena_day_collisions"][0]["message"]
+
     def test_export_lists_external_conflicts_as_manual(self, tmp_path):
         """unresolved_external_conflicts (non-blocking, see
         planning_contract.verify_candidate's manual_external_conflict_placements)

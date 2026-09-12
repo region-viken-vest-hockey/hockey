@@ -270,19 +270,45 @@ def build_stage3_decision_context(
     )
 
 
+# issue #314: checkpoint keys whose provenance is the *baseline* plan that
+# apply_stage3_candidate() is about to replace. None of these can be
+# honestly recomputed at this call site for the new candidate, so they are
+# invalidated (popped) rather than silently carried forward as if they
+# still described the plan now in "plan". Downstream consumers (e.g.
+# stage4_export's Excel "Regler og avgjørelser" sheet, which reads
+# checkpoint["rules_report"]) already treat a missing value as "omit" --
+# presenting nothing is preferable to presenting stale data as current.
+_STAGE3_CANDIDATE_STALE_CHECKPOINT_KEYS = (
+    "rules_report",
+    "candidates",
+    "selected_candidate_attempt",
+    "baseline_timings",
+    "planning_critic_hints",
+)
+
+
 def apply_stage3_candidate(work_dir: str, candidate: Dict[str, Any]) -> None:
     """Replace the Stage 3 checkpoint's plan with *candidate*.
 
     Called after an ``apply_candidate`` decision has been deterministically
-    accepted by :func:`application.decisions.decide`. Preserves every other
-    key already in the checkpoint (e.g. ``warnings``, ``rules_report``) and
-    only swaps the ``plan`` payload, mirroring how the existing mid-planning
-    critic loop persists a better candidate
-    (``cli.pipeline_orchestrator.plan_adoption._run_mid_planning_critic_loop``).
+    accepted by :func:`application.decisions.decide`. Swaps the ``plan``
+    payload and invalidates every checkpoint key whose provenance is the
+    superseded baseline plan (see
+    :data:`_STAGE3_CANDIDATE_STALE_CHECKPOINT_KEYS`) so a downstream report
+    can never pair the new candidate with fairness/report state computed
+    for the plan it replaced. Immutable config and explicit operator
+    decisions (e.g. ``configured_start_date``, ``manual_adjustments``
+    carried on the candidate itself) are left untouched. Mirrors how the
+    existing mid-planning critic loop persists a better candidate
+    (``cli.pipeline_orchestrator.plan_adoption._run_mid_planning_critic_loop``),
+    which does not carry this problem because it never leaves a stale
+    baseline-derived key behind.
     """
     from .pipeline.state import PipelineState, StageName, StageStatus
 
     state = PipelineState(work_dir)
     checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
+    for key in _STAGE3_CANDIDATE_STALE_CHECKPOINT_KEYS:
+        checkpoint.pop(key, None)
     checkpoint["plan"] = candidate
     state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)

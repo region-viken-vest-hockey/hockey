@@ -26,6 +26,7 @@ def test_build_rules_model_is_empty_for_bare_plan():
         "age_group_exact_match",
         "no_same_date_double_participation",
         "participation_target_exceeded",
+        "arena_day_collisions",
         "date_within_planning_window",
         "banned_dates_not_used",
         "excluded_host_clubs_not_used",
@@ -45,15 +46,6 @@ def test_build_rules_model_reads_canonical_fairness_gate_split():
         fairness_gate={
             "policy_gate": {
                 "metrics": [
-                    {
-                        "key": "arena_day_collisions",
-                        "label": "Arenakollisjoner",
-                        "provenance": "hard_invariant",
-                        "status": "fail",
-                        "value": 2,
-                        "threshold": 0,
-                        "detail": "2 kollisjoner",
-                    },
                     {
                         "key": "hosting_deviation",
                         "label": "Hjemmekampfordeling",
@@ -81,17 +73,63 @@ def test_build_rules_model_reads_canonical_fairness_gate_split():
     rules = build_rules_model(plan)
     by_id = {rule["id"]: rule for rule in rules}
 
-    hard_rule = by_id["metric_arena_day_collisions"]
-    assert hard_rule["type"] == "hard"
-    assert hard_rule["owner"] == "deterministic_verifier"
-    assert "fail" in hard_rule["status"]
-
     obligation_rule = by_id["metric_hosting_deviation"]
     assert obligation_rule["type"] == "required_obligation"
     assert obligation_rule["owner"] == "deterministic_measurement"
 
     soft_rule = by_id["metric_opponent_diversity"]
     assert soft_rule["type"] == "soft"
+
+
+def test_arena_day_collisions_has_one_source_of_truth():
+    """issue #314: arena-day collisions must be sourced only from the
+    freshly recomputed ``plan.arena_day_collisions`` -- an inherited
+    ``fairness_gate`` snapshot from a superseded candidate must not be able
+    to reintroduce a stale collision count/status alongside (or instead
+    of) the dedicated rule."""
+    plan = _plan(
+        arena_day_collisions=[],
+        fairness_gate={
+            "policy_gate": {
+                "metrics": [
+                    {
+                        "key": "arena_day_collisions",
+                        "label": "Arenakollisjoner",
+                        "provenance": "hard_invariant",
+                        "status": "fail",
+                        "value": 2,
+                        "threshold": 0,
+                        "detail": "2 kollisjoner (foreldet snapshot)",
+                    },
+                ]
+            },
+        },
+    )
+    rules = build_rules_model(plan)
+    by_id = {rule["id"]: rule for rule in rules}
+
+    # The generic metric path must not have produced a competing rule.
+    assert "metric_arena_day_collisions" not in by_id
+
+    dedicated_rule = by_id["arena_day_collisions"]
+    assert dedicated_rule["type"] == "hard"
+    assert dedicated_rule["ok"] is True
+    assert "Ingen kollisjoner" in dedicated_rule["status"]
+
+
+def test_arena_day_collisions_rule_reflects_fresh_plan_state():
+    plan = _plan(
+        arena_day_collisions=[
+            {"date": "2025-10-05", "arena": "Jarahallen", "host_club": "Jar"},
+        ],
+    )
+    rules = build_rules_model(plan)
+    by_id = {rule["id"]: rule for rule in rules}
+
+    dedicated_rule = by_id["arena_day_collisions"]
+    assert dedicated_rule["ok"] is False
+    assert "1 kollisjon" in dedicated_rule["status"]
+    assert "Jar" in dedicated_rule["status"]
 
 
 def test_build_rules_model_surfaces_unresolved_obligations():

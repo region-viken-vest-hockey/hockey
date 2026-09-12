@@ -209,8 +209,12 @@ def run(
         return checkpoint
 
     round_length_for_age_group: dict[str, int] = dict(effective_config.get("round_length_minutes", {}))
-    derived_collisions = find_arena_interval_collisions(plan.tournaments, round_length_for_age_group)
-    stored_collisions = derived_collisions or list(plan.arena_day_collisions or [])
+    # issue #314: a fresh recomputation is authoritative even when it comes
+    # back empty. A truthiness fallback here (`derived_collisions or
+    # stored`) cannot tell "not recomputed" from "recomputed and zero", so a
+    # freshly verified `[]` used to silently resurrect a stale collision
+    # list carried over from an earlier candidate/baseline.
+    stored_collisions = find_arena_interval_collisions(plan.tournaments, round_length_for_age_group)
     # Enrich planner-stored collision dicts with the host club from the plan
     # (they may omit it) so the manual view can name who must act.
     host_by_tournament_id = {
@@ -313,8 +317,10 @@ def run(
         collision_entries + manual_host_entries + unresolved_hosting_entries + external_conflict_entries
     )
     manual_entries = [entry for entry in candidate_entries if entry.get("category") in MANUAL_SCHEDULE_CATEGORIES]
+    # Fresh recomputation always wins, including the empty case -- a stale
+    # stored collision list must not survive a verified zero-collision plan.
+    plan.arena_day_collisions = collision_entries
     if collision_entries:
-        plan.arena_day_collisions = collision_entries
         first = collision_entries[0]
         detail = first.get("message") if isinstance(first, dict) else str(first)
         logger.warning(

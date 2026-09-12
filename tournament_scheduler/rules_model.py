@@ -127,6 +127,40 @@ def _hosting_obligation_rule(plan: SeasonPlan) -> dict[str, Any]:
     }
 
 
+def _arena_collision_rule(plan: SeasonPlan) -> dict[str, Any]:
+    """Dedicated arena-collision rule sourced from ``plan.arena_day_collisions``.
+
+    issue #314: this must be the *only* place ``arena_day_collisions``
+    reaches the rules model. The generic fairness-gate metric loop is
+    filtered to exclude that key (see :func:`build_rules_model`) so a
+    stale ``fairness_gate`` snapshot from a superseded candidate can never
+    resurrect a collision count the freshly recomputed plan no longer has.
+    """
+    collisions = list(plan.arena_day_collisions or [])
+    if collisions:
+        names = ", ".join(
+            f"{item.get('host_club', '?')} ({item.get('date', '?')})" for item in collisions
+        )
+        status = f"{len(collisions)} kollisjon(er): {names}"
+    else:
+        status = "Ingen kollisjoner"
+    return {
+        "id": "arena_day_collisions",
+        "title": "Arena-/tidskollisjoner skal ikke forekomme",
+        "type": "hard",
+        "scope": _METRIC_SCOPES.get("arena_day_collisions", "sesong"),
+        "owner": "deterministic_verifier",
+        "description": (
+            "To turneringer skal aldri kreve samme arena i overlappende tidsrom. Sjekket "
+            "på nytt mot den endelig valgte kandidaten hver eksport, ikke gjenbrukt fra "
+            "en tidligere kandidat."
+        ),
+        "configured_value": "0 kollisjoner",
+        "status": status,
+        "ok": not collisions,
+    }
+
+
 def _external_conflict_rule(plan: SeasonPlan) -> dict[str, Any]:
     unresolved = list(plan.unresolved_external_conflicts or [])
     if unresolved:
@@ -627,13 +661,23 @@ def build_rules_model(plan: SeasonPlan) -> list[dict[str, Any]]:
     else:
         all_metrics = policy_metrics + measurement_metrics
 
-    rules: list[dict[str, Any]] = [_metric_rule(m) for m in all_metrics if isinstance(m, dict)]
+    # issue #314: arena-day collisions get exactly one source of truth —
+    # the dedicated rule below, sourced from the freshly recomputed
+    # `plan.arena_day_collisions`. Excluded here so an inherited
+    # `fairness_gate` snapshot from a superseded candidate can't
+    # reintroduce a stale collision count/status alongside it.
+    rules: list[dict[str, Any]] = [
+        _metric_rule(m)
+        for m in all_metrics
+        if isinstance(m, dict) and str(m.get("key", "")) != "arena_day_collisions"
+    ]
 
     # Hard constraints directly re-derivable from the exported plan.
     rules.append(_age_group_exact_match_rule(plan))
     rules.append(_no_double_participation_rule(plan))
     rules.append(_participation_target_exceeded_rule(plan))
     rules.append(_date_window_rule(plan))
+    rules.append(_arena_collision_rule(plan))
     rules.extend(_manual_adjustment_rules(plan))
     rules.append(_calendar_trust_rule(plan))
     rules.extend(_static_enforced_rules())

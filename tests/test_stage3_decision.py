@@ -137,3 +137,43 @@ class TestApplyStage3Candidate:
         checkpoint = state.read_stage(StageName.PLANNING)
         assert checkpoint["plan"] == new_candidate
         assert checkpoint["warnings"] == ["some warning"]
+
+    def test_apply_stage3_candidate_invalidates_stale_baseline_derived_state(self, tmp_path):
+        """issue #314: candidate-derived report/fairness state from the
+        superseded baseline must not survive as if it described the new
+        candidate."""
+        from tournament_scheduler.pipeline.state import PipelineState, StageName
+
+        work_dir = str(tmp_path)
+        state = PipelineState(work_dir)
+        old_candidate = _clustered_candidate()
+        state.write_stage(
+            StageName.PLANNING,
+            {
+                "plan": old_candidate,
+                "warnings": ["some warning"],
+                "rules_report": {"status": "pass", "critical": [], "warnings": [], "info": []},
+                "candidates": [{"attempt": 1, "status": "pass"}],
+                "selected_candidate_attempt": 1,
+                "baseline_timings": {"build_plan": 1.23},
+                "planning_critic_hints": {"source": "penalty_hints", "penalty_hints": {}},
+            },
+        )
+
+        new_candidate = optimize_candidate(old_candidate, iterations=500, seed=2)
+        apply_stage3_candidate(work_dir, new_candidate)
+
+        checkpoint = state.read_stage(StageName.PLANNING)
+        assert checkpoint["plan"] == new_candidate
+        # Not re-derivable at this call site for the new candidate -- must
+        # be invalidated rather than silently retained as current.
+        for key in (
+            "rules_report",
+            "candidates",
+            "selected_candidate_attempt",
+            "baseline_timings",
+            "planning_critic_hints",
+        ):
+            assert key not in checkpoint, f"stale key {key!r} survived candidate swap"
+        # Unrelated/immutable keys are untouched.
+        assert checkpoint["warnings"] == ["some warning"]
