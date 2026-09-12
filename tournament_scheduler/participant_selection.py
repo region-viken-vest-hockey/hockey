@@ -41,12 +41,17 @@ def pick_spread_dates(
 
     scheduled_age_groups_by_date = scheduled_age_groups_by_date or {}
 
-    target_count = target_count or default_target_count(len(free_dates))
-    target_count = max(1, min(target_count, len(free_dates)))
+    # issue #316: the requested volume is authoritative (derived upstream from
+    # team_count * participation_target / tournament_capacity) and must not be
+    # capped to the number of distinct free dates -- when it exceeds that, the
+    # date skeleton needs repeated (date, age_group) entries (parallel pools),
+    # not a silently shrunk target.
+    target_count = max(1, target_count or default_target_count(len(free_dates)))
+
+    if target_count == 1:
+        return list(free_dates[:target_count])
 
     total_days = (window_end - window_start).days
-    if total_days <= 0 or target_count == 1:
-        return list(free_dates[:target_count])
 
     expected_per_month = planner._expected_monthly_load(window_start, window_end, target_count)
 
@@ -66,6 +71,13 @@ def pick_spread_dates(
         candidates = [d for d in free_dates if bucket_start <= d <= bucket_end and d not in used]
         if not candidates:
             candidates = [d for d in free_dates if d not in used]
+        if not candidates:
+            # Every free date has already been used at least once for this
+            # age group: the requested volume needs parallel pools on a date
+            # that's already scheduled (issue #316), not a skipped slot.
+            candidates = [d for d in free_dates if bucket_start <= d <= bucket_end]
+            if not candidates:
+                candidates = list(free_dates)
         if not candidates:
             continue
 

@@ -583,13 +583,25 @@ class SeasonPlanner:
             )
 
             if len(participants) < MIN_TEAMS_PER_TOURNAMENT:
-                plan.skipped_age_groups.append(
-                    {
-                        "age_group": age_group,
-                        "team_count": len(participants),
-                        "reason": f"Kun {len(participants)} lag konfigurert; minimum er {MIN_TEAMS_PER_TOURNAMENT}",
-                    }
-                )
+                # issue #316: a parallel same-age-group/same-date slot that
+                # runs out of eligible teams (everyone already invited to
+                # today's other tournament of this age group) is an expected,
+                # harmless side effect of requesting more volume than the
+                # date skeleton had distinct dates for -- it does not mean
+                # this age group is structurally unplannable. Only a slot
+                # that is the *first* attempt for its (date, age_group) pair
+                # reaching this branch reflects a genuine roster-size
+                # problem, so only that case feeds `skipped_age_groups`
+                # (which callers use to exclude an age group from per-team
+                # shortfall/coverage/warning aggregation entirely).
+                if not already_used_today:
+                    plan.skipped_age_groups.append(
+                        {
+                            "age_group": age_group,
+                            "team_count": len(participants),
+                            "reason": f"Kun {len(participants)} lag konfigurert; minimum er {MIN_TEAMS_PER_TOURNAMENT}",
+                        }
+                    )
                 continue
 
             self._record_grouping(participants, period)
@@ -1143,9 +1155,6 @@ class SeasonPlanner:
                 predicted_participants = list(self._select_participants(age_group))
 
                 for tournament_date in free_dates:
-                    if tournament_date in used_dates_by_age_group.setdefault(age_group, set()):
-                        continue
-
                     spread_penalty = abs((tournament_date - bucket_center).days) / half_span_days
                     same_day_penalty = len(scheduled_age_groups_by_date.get(tournament_date, [])) * 50.0
                     overlap_penalty = 0.0
@@ -1156,6 +1165,19 @@ class SeasonPlanner:
                         ):
                             overlap_penalty += 100.0
 
+                    # issue #316: a date already used by this same age group is
+                    # not forbidden -- required participation volume can
+                    # exceed the number of distinct free dates, in which case
+                    # parallel same-age-group pools on one date are the
+                    # correct outcome. Penalize reuse so a fresh date is still
+                    # preferred whenever one is available, without ever
+                    # dropping requested tournament volume.
+                    own_repeat_penalty = (
+                        200.0
+                        if tournament_date in used_dates_by_age_group.setdefault(age_group, set())
+                        else 0.0
+                    )
+
                     diversity_penalty = self._score_candidate_date(
                         tournament_date,
                         age_group,
@@ -1163,7 +1185,13 @@ class SeasonPlanner:
                         expected_per_month,
                         tournament_weight=self.preferanse_vekt_by_age_group.get(age_group, 0.0),
                     )
-                    score = spread_penalty + same_day_penalty + overlap_penalty + diversity_penalty
+                    score = (
+                        spread_penalty
+                        + same_day_penalty
+                        + overlap_penalty
+                        + own_repeat_penalty
+                        + diversity_penalty
+                    )
                     if best_choice is None or score < best_choice[0] or (
                         score == best_choice[0]
                         and (tournament_date, age_group) < (best_choice[1], best_choice[2])
@@ -1244,6 +1272,15 @@ class SeasonPlanner:
         for pass_index in range(1, total_passes + 1):
             print(f"[plan] Optimalisering: forbedringsrunde {pass_index}/{total_passes}...", flush=True)
             improved = False
+            # issue #316: duplicate (date, age_group) slots must only come
+            # from genuine volume need in the initial greedy/global builder
+            # (see `_build_global_date_schedule`'s `own_repeat_penalty`), not
+            # from this later hill-climbing pass -- the repair pass just
+            # reorders an already-feasible schedule for score improvement, so
+            # it must keep excluding dates already used by an age group here,
+            # or it will happily invent unneeded duplicates (collapsing a
+            # tournament's participant pool to zero) whenever that scores
+            # better on unrelated dimensions like month-load balance.
             age_group_dates: Dict[str, Set[date]] = {}
             for tournament_date, age_group in best_schedule:
                 age_group_dates.setdefault(age_group, set()).add(tournament_date)
@@ -1369,9 +1406,20 @@ class SeasonPlanner:
             self._club_cap_overrides = 0
 
             by_date: Dict[date, List[str]] = {}
+            teams_used_today_by_age_group: Dict[Tuple[date, str], Set[str]] = {}
             sorted_schedule = sorted(scheduled, key=lambda item: (item[0], item[1]))
             for tournament_date, age_group in sorted_schedule:
-                participants = list(self._select_participants(age_group))
+                # issue #316: mirror build_plan's same-date exclusion so a
+                # schedule with two same-age-group tournaments on one date is
+                # scored against realistic (non-duplicated) participant
+                # picks, not double-counted teams.
+                already_used_today = teams_used_today_by_age_group.get((tournament_date, age_group))
+                participants = list(
+                    self._select_participants(age_group, exclude_team_keys=already_used_today)
+                )
+                teams_used_today_by_age_group.setdefault((tournament_date, age_group), set()).update(
+                    self._team_key(team) for team in participants
+                )
                 if participants:
                     self._record_grouping(participants)
                     parallel_games = self._parallel_games_for(age_group)
