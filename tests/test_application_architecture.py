@@ -50,10 +50,11 @@ def test_application_modules_do_not_import_transport_layers():
     assert offenders == []
 
 
-def test_application_architecture_doc_describes_rules_and_example():
+def test_application_architecture_doc_describes_durable_boundary():
     text = Path("docs/application-architecture.md").read_text(encoding="utf-8")
 
     assert "## Dependency rules" in text
     assert "Application modules must not import" in text
-    assert "## Example: adding a new command/use case" in text
-    assert "rvv-miniputt operator questions|answer|promote|health" in text
+    assert "## Example: adding a cross-adapter capability" in text
+    assert ".agents/skills/rvv/SKILL.md" in text
+    assert "DecisionContext" in text
