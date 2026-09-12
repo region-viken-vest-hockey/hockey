@@ -1,42 +1,131 @@
 # RVV Miniputt
 
-RVV Miniputt is the operational system used to collect reviewed team registrations, gather calendar evidence, generate and evaluate the miniputt season plan, and publish approved information for Region Viken Vest.
+RVV Miniputt is Region Viken Vest's repository for miniputt administration and season planning. It takes controlled team/configuration data plus calendar evidence, produces a verified tournament plan and review material, and can publish a sanitized public snapshot to GitHub Pages.
 
-The root README is the human/operator entry point. The maintained documentation map and precedence rules are in [`docs/README.md`](docs/README.md).
+The repository also owns two related public-data workflows: **Påmeldte lag** (registered teams) and the regional **aktivitetskalender**. These share the same publication machinery but are not part of the four-stage season-planning pipeline.
 
-## Source-of-truth model
+## What the system does
 
-1. **SharePoint** is the reviewed registration store.
-2. **Root `input.xlsx`** is the controlled season-planning input. Registration import replaces only `Lag`; administrative/planning sheets remain controlled.
-3. **Calendar/source data** supplies availability evidence and must pass source-health/provenance checks before it is trusted.
-4. **Repository code/tests** own deterministic parsing, hard constraints, measurement, persistence, export, and publication safety.
-5. **`.agents/skills/rvv/SKILL.md`** is the shared agent runbook for contextual soft decisions.
-6. **GitHub issues** are the live implementation backlog. ADRs preserve durable architecture decisions.
+The repository has four operational responsibilities:
 
-Generated files are derived data. Correct the source/config/code and regenerate instead of maintaining manual fixes in generated HTML, CSV, Excel, iCal, Pages, or Spond files.
+1. **Team and configuration intake** — validate/rebuild the planner roster from reviewed registrations while keeping planning settings controlled in `input.xlsx`.
+2. **Season planning** — collect arena/calendar evidence, build candidate tournament plans, verify hard rules, measure plan quality, and export reviewable artifacts.
+3. **Public supporting views** — generate the registered-team overview and regional activity calendar from their own controlled inputs.
+4. **Publication** — build a privacy-checked static bundle and publish an explicitly approved snapshot to GitHub Pages for linking/embedding from WordPress.
 
-## End-to-end flow
+The Python code is authoritative for facts, hard constraints, verification, persistence, export, and publication safety. The agent/LLM may choose among validated recovery/search/refinement actions and soft trade-offs. Humans remain responsible for credentials/MFA, explicit policy exceptions, and public publication/rollback approval. See [`docs/adr/0002-llm-directed-decision-ownership-and-thin-adapters.md`](docs/adr/0002-llm-directed-decision-ownership-and-thin-adapters.md).
 
-```mermaid
-flowchart TD
-    form[Microsoft Forms] --> flow[Power Automate validation]
-    flow --> sharepoint[Reviewed SharePoint registrations]
-    sharepoint --> import[Controlled Lag import]
-    import --> workbook[input.xlsx]
-    workbook --> pipeline[Stage 1-4 repository pipeline]
-    calendars[Calendar/source evidence] --> pipeline
-    pipeline --> review[Review + deterministic verification]
-    review --> approval[Explicit publication approval]
-    approval --> pages[GitHub Pages]
-    pages --> wordpress[WordPress links/embeds]
-    review --> spond[Spond distribution after approval]
+## Inputs
+
+### Season planning
+
+| Input | Role |
+|---|---|
+| `input.xlsx` | Canonical controlled planning workbook. Defines season dates, age-group settings, teams, calendar sources and date preferences. |
+| Reviewed SharePoint registration export | Optional CSV/XLSX source used to rebuild only the `Lag` sheet in a controlled workbook copy. |
+| External club/hall calendars | Availability evidence collected in Stage 2. Source health and provenance are recorded before planning trusts the data. |
+| BookUp credentials/session | Local runtime credential/session input for gated sources. Never planner data and never public output. |
+
+The workbook contract is documented in [`docs/rvv-miniputt-input-formats.md`](docs/rvv-miniputt-input-formats.md).
+
+### Other public workflows
+
+| Input | Role |
+|---|---|
+| `Årshjul for aktiviteter.xlsx` | Source for the regional activity calendar. |
+| Reviewed SharePoint/Forms team export | Source for the public **Påmeldte lag** snapshot. This is separate from the controlled `input.xlsx` planner import. |
+
+## How season planning works
+
+```text
+reviewed registrations ─┐
+                        ├─> input.xlsx
+controlled settings ────┘        │
+                                 ▼
+                        Stage 1 — validate/config
+                                 │
+external calendars ──────────────┤
+                                 ▼
+                        Stage 2 — collect evidence
+                                 │
+                                 ▼
+                        Stage 3 — plan/optimize
+                                 │
+                        deterministic verifier
+                                 │
+                                 ▼
+                        Stage 4 — export/review
+                                 │
+                                 ▼
+                        explicit publication
+                                 │
+                                 ▼
+                           GitHub Pages
 ```
+
+### Stage 1 — configuration
+
+Reads `input.xlsx`, validates team identities and age-group/configuration data, and records the normalized planning input in `.pipeline/`.
+
+### Stage 2 — calendar/source evidence
+
+Collects configured calendars, caches source evidence, records blocked/empty/suspicious sources, and validates recovered browser/session data before it becomes usable planning input.
+
+### Stage 3 — planning
+
+Builds a normalized planning problem and candidate season plan. Solvers/search code performs combinatorial work; deterministic verification decides whether a candidate is valid; reproducible metrics describe participation, hosting, spacing, opponent diversity, travel and other quality dimensions. Contextual soft trade-offs may be chosen by the agent through the structured decision interface.
+
+### Stage 4 — export
+
+Re-verifies the candidate at the export boundary and writes the review/export bundle. A plan that fails hard verification is not serialized as an approved export.
+
+The maintained pipeline guide is [`docs/rvv-miniputt-pipeline.md`](docs/rvv-miniputt-pipeline.md).
+
+## Outputs
+
+A normal Stage 4 run writes a timestamped folder under `export/`. Depending on available data, it contains:
+
+| Output | Purpose |
+|---|---|
+| `season_plan.html` | Primary human season-plan view. |
+| `season_plan_report.html` | Rules, quality, fairness and diagnostic review. |
+| `manual_schedule.html` | Only when manual arena/hosting/calendar follow-up remains. |
+| `calendars.html` | Collected calendar/source overview when source data exists. |
+| `input.html` | Public-safe overview of registered teams from the controlled workbook. |
+| `season_plan.xlsx` | Full Excel plan. |
+| `season_plan.csv` + `season_plan_overview.csv` | Flat games and tournament overview. |
+| `season_plan.ics` | Calendar feed. |
+| `season_plan_spond.xlsx` | Spond-oriented import workbook. |
+| `season_plan_spond_games.xlsx` | Printable tournament/game attachment for Spond. |
+| `review_packets/` | Per-club review material; private/review output, not published by default. |
+| activity artifacts | Generated when the configured activity data is available. |
+
+The Stage 4 checkpoint records the exact output paths. Generated files are derived data: fix the input/config/code and regenerate rather than maintaining permanent manual edits in generated output.
+
+### What becomes public
+
+Publication is a separate, explicit step. The Pages bundle uses an allowlist and privacy scan. Public season-plan HTML/ICS/workbook/CSV views and the approved `activities/` / `registered-teams/` trees may be included. Spond exports, review packets, validation metadata, unknown files and suspected secrets are excluded or block publication.
+
+GitHub Pages is the generated/public layer. WordPress should link or embed it rather than maintain a second copy of the schedule.
+
+## Working state
+
+| Path | Meaning |
+|---|---|
+| `.pipeline/` | Local checkpoints, caches, manifests, logs and decision state. Generated; not documentation. |
+| `export/` | Generated review/export bundles. |
+| `gh-pages` branch | Published static snapshots (`latest/` plus run/history material managed by the publication code). |
 
 ## Normal operator workflow
 
-### 1. Maintain registrations and workbook
+### 1. Install and verify
 
-Review registrations in the private SharePoint workflow, then validate/export them into a controlled workbook copy:
+```bash
+make install
+make check
+```
+
+### 2. Update registrations/workbook when needed
 
 ```bash
 scripts/rvv-miniputt registrations validate registrations.csv --input input.xlsx
@@ -44,29 +133,20 @@ scripts/rvv-miniputt registrations export registrations.csv --input input.xlsx -
 scripts/rvv-miniputt registrations export registrations.csv --input input.xlsx --output input.updated.xlsx
 ```
 
-Review the resulting workbook deliberately before promoting it to root `input.xlsx`. See [`docs/rvv-miniputt-input-formats.md`](docs/rvv-miniputt-input-formats.md) for the canonical workbook contract.
+Review the resulting workbook before replacing root `input.xlsx`.
 
-### 2. Check calendar/source health
+### 3. Check sources and generate a plan
 
 ```bash
 make sources-status
-make calendars
-```
-
-A technically successful scrape can still be suspiciously sparse. Repair or review uncertain sources before trusting the plan. Credential/MFA/browser recovery behavior belongs in the shared RVV runbook and pipeline guide, not in this README.
-
-### 3. Generate and review
-
-```bash
-make help
 make operator-run
 make status
 make logs
 ```
 
-The pipeline validates `input.xlsx`, gathers source data, plans/evaluates the season, and creates review/export artifacts. It resumes from checkpoint state when possible.
+`make operator-run` is the normal goal-oriented entry point. `scripts/rvv-miniputt run` remains the direct pipeline/debugging entry point.
 
-When explicit operator input is required:
+If the operator loop asks a real human question:
 
 ```bash
 make questions
@@ -74,9 +154,7 @@ make answer ID=<id> ANSWER='<answer>'
 make operator-run
 ```
 
-Review hard verification, manual-placement/conflict output, participation/hosting/temporal fairness, source uncertainty, rules/report content, and the privacy/public-bundle report before publication.
-
-### 4. Publish only an approved bundle
+### 4. Review and publish
 
 ```bash
 make publish-preview
@@ -84,52 +162,42 @@ make publish CONFIRM_PUBLIC=1
 make verify-publish
 ```
 
-Generation, review, and publication are separate actions. WordPress should link/embed generated Pages output rather than maintain another copy of generated schedules.
+Generation never implies publication. Public writes and rollback remain explicitly approved operations.
 
-### 5. Mid-season changes
+### 5. Related public workflows
 
-Update the authoritative source, regenerate the affected output, review the diff, publish deliberately, and update Spond/WordPress only where needed. Do not patch generated output as the permanent fix.
+```bash
+make aktivitetskalender
+make aktivitetskalender-publish CONFIRM_PUBLIC=1
 
-## Common commands
+make registered-teams CSV=downloads/Miniputt-26-27.csv
+make registered-teams-publish CSV=downloads/Miniputt-26-27.csv CONFIRM_PUBLIC=1
+```
 
-| Task | Command |
-|---|---|
-| Discover operations | `make help` |
-| Verify repository | `make check` |
-| Goal-oriented run | `make operator-run` |
-| Force full rerun | `make operator-run-force` |
-| Status/logs | `make status`, `make logs` |
-| Source health | `make sources-status` |
-| Refresh calendars | `make calendars-refresh` |
-| Pending questions | `make questions` |
-| Publication preview | `make publish-preview` |
-| Publish | `make publish CONFIRM_PUBLIC=1` |
-| Verify publication | `make verify-publish` |
-| Publication history | `make publish-history` |
-| Roll back | `make rollback RUN_ID=<id> CONFIRM_PUBLIC=1` |
+These stage a complete Pages snapshot so updating one public view does not accidentally remove the others.
 
-The portable repository launcher is `scripts/rvv-miniputt`; the Python fallback is `python3 -m tournament_scheduler.cli.rvv_cli`.
+## Command surface
+
+`Makefile` is the human menu. `scripts/rvv-miniputt` is the portable repository launcher. `python3 -m tournament_scheduler.cli.rvv_cli` is the Python fallback.
+
+Run `make help` for the maintained list of operator commands.
 
 ## Repository map
 
 | Path | Purpose |
 |---|---|
-| `input.xlsx` | Controlled season-planning workbook |
-| `tournament_scheduler/` | Validation, source collection, planning, verification, export, and operator logic |
-| `scripts/rvv-miniputt` | Portable CLI launcher |
-| `Makefile` | Human command menu |
-| `.pipeline/` | Local generated checkpoints/logs/decisions |
-| `export/` | Generated review/export output |
-| `docs/` | Maintained docs, ADRs, external references, and retained history |
-| `.agents/skills/rvv/` | Canonical shared agent runbook |
-| `.claude/`, `.chatgpt/`, `.codex/`, `.opencode/`, `.pi/` | Thin harness adapters/integrations |
+| `input.xlsx` | Controlled season-planning workbook. |
+| `Årshjul for aktiviteter.xlsx` | Activity-calendar source workbook. |
+| `tournament_scheduler/` | Application/domain/infrastructure code for planning, verification, export and publication. |
+| `scripts/rvv-miniputt` | Portable CLI launcher. |
+| `Makefile` | Human operator menu; intentionally thin. |
+| `.agents/skills/rvv/` | Canonical shared agent runbook. |
+| `.claude/`, `.chatgpt/`, `.codex/` | Thin harness adapters only. |
+| `.pi/` | RVV-specific Pi command/browser/UI integration. |
+| `docs/` | Maintained current documentation, ADRs and external/reference material. |
 
-## Handover
+## Documentation and handover
 
-The system must be transferable and should not depend on undocumented personal knowledge. Critical Microsoft 365, GitHub, WordPress, Spond, and calendar-source assets should have club-controlled ownership and backup access.
+Start with [`docs/README.md`](docs/README.md). Current behavior belongs in current docs/code, durable rationale belongs in ADRs, and unfinished work belongs in GitHub issues. Old implementation plans and generated agent state are intentionally not kept as parallel sources of truth in `main`.
 
-See [`docs/ownership-and-handover.md`](docs/ownership-and-handover.md) for the full handover/access procedure. A replacement maintainer should be able to validate registrations, rebuild `Lag`, verify sources, generate a review bundle, inspect plan quality/privacy findings, publish through explicit approval, and recover/rollback without borrowing the previous maintainer's personal login.
-
-## Documentation
-
-Start with [`docs/README.md`](docs/README.md). It separates current operational documentation from ADRs, external references, and historical material. GitHub issues—not roadmap documents—are the current implementation backlog.
+The system must be transferable. Critical Microsoft 365, GitHub, WordPress, Spond and calendar-source assets should have club-controlled ownership and backup access. See [`docs/ownership-and-handover.md`](docs/ownership-and-handover.md).

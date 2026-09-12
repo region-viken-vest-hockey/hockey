@@ -1,105 +1,145 @@
 # System architecture
 
-This document describes the current high-level architecture and responsibility boundaries. Keep it current when canonical inputs, workflow ownership, or public-output behavior changes.
+This document describes the current high-level RVV Miniputt system. It owns the end-to-end boundaries and sources of truth; detailed workbook fields belong in `rvv-miniputt-input-formats.md` and detailed pipeline operation belongs in `rvv-miniputt-pipeline.md`.
 
-## Core flow
+## System shape
+
+RVV Miniputt is primarily a repository-operated Python system, not a continuously hosted application.
+
+It has three related workflows:
+
+1. **Season planning** — registrations/configuration + external calendar evidence → verified season plan + review/export bundle.
+2. **Påmeldte lag** — reviewed registration export → public registered-team snapshot.
+3. **Aktivitetskalender** — regional activity workbook → public activity-calendar snapshot.
+
+All three can feed the same sanitized GitHub Pages publication snapshot.
+
+## Season-planning flow
 
 ```text
 Microsoft Forms
       ↓
-Power Automate
+Power Automate validation
       ↓
-Reviewed private SharePoint registrations
+reviewed private SharePoint registrations
       ↓
-controlled import of Lag rows
-      ↓
-root input.xlsx  ←  controlled season settings / age groups / sources
-      ↓
-RVV repository pipeline (Stage 1 → 4)
-      ↓
-reviewable exports + deterministic verification
-      ↓
-explicit publication approval
-      ↓
-GitHub Pages
-      ↓
-WordPress links/embeds + Spond operational use
+controlled Lag import ─────────────┐
+                                   ↓
+controlled settings ─────────> root input.xlsx
+                                   ↓
+                         Stage 1: validate/config
+                                   ↓
+external hall/club calendars -> Stage 2: evidence collection
+                                   ↓
+                         Stage 3: plan/search/solve
+                                   ↓
+                         deterministic verification
+                                   ↓
+                         Stage 4: review/export bundle
+                                   ↓
+                         explicit publication approval
+                                   ↓
+                             GitHub Pages
+                                   ↓
+                         WordPress links/embeds
 ```
 
 ## Sources of truth
 
-- **SharePoint List** is the reviewed source of truth for registration workflow data.
-- **Root `input.xlsx`** is the canonical controlled input to season planning. The normal registration import replaces only `Lag`; administrative sheets remain controlled in the workbook.
+- **SharePoint List** is the reviewed source for registration-workflow data.
+- **Root `input.xlsx`** is the canonical controlled input to season planning. Registration import replaces only `Lag`; planning/administrative sheets remain controlled in the workbook.
+- **`Årshjul for aktiviteter.xlsx`** is the activity-calendar source workbook.
 - **External calendar sources** are authoritative for their own availability evidence, subject to source-health/provenance checks.
-- **Repository code and tests** define deterministic parsing, hard constraints, measurement, persistence, export, and publication safety.
-- **`.agents/skills/rvv/SKILL.md`** is the canonical shared agent runbook for contextual/soft decisions.
-- **GitHub issues** are the current implementation backlog. ADRs preserve architectural decisions; dated reviews and old roadmaps are historical context.
+- **Repository code and tests** define deterministic parsing, hard constraints, verification, metrics, persistence, export and publication safety.
+- **`.agents/skills/rvv/SKILL.md`** is the shared agent runbook for contextual/soft decisions.
+- **GitHub issues** are the implementation backlog. ADRs preserve durable rationale.
 
-There is no active plan to move the canonical planner workbook to an `inputs/` directory. If that changes, update this document, `README.md`, the CLI defaults, and input-format documentation together.
+Generated HTML, CSV, Excel, iCal, caches, checkpoints and Pages bundles are derived data, not new sources of truth.
+
+## Runtime state and storage
+
+The normal runtime is local/agent/CI execution from the repository checkout:
+
+```text
+controlled files in repo
+        ↓
+Python CLI / Make / harness adapter
+        ↓
+.pipeline/        local checkpoints, cache, manifest, logs, decisions
+export/<time>/    review/export bundle
+        ↓
+public-bundle preparation + privacy gate
+        ↓
+gh-pages branch   published static snapshots
+```
+
+No database, queue, long-running web service or object store is required for normal operation.
 
 ## Decision ownership
 
-### Deterministic code owns
+### Deterministic repository code owns
 
-- workbook/config parsing and normalization
-- team, club, source, arena, and calendar facts
-- hard scheduling constraints and validation
-- reproducible metrics and scorecards
-- checkpoints, manifests, fingerprints, and provenance
-- candidate/action validation and application
-- export/privacy/publication safety gates
+- workbook/config parsing and normalization;
+- team, club, source, arena and calendar facts;
+- hard scheduling constraints and candidate validation;
+- reproducible metrics and scorecards;
+- solver/search mechanics;
+- checkpoints, manifests, fingerprints and provenance;
+- action validation/application;
+- export, privacy and publication safety gates.
 
 ### Agent/LLM owns contextual soft judgment
 
-- which warning or quality dimension to prioritize
-- which valid search/refinement action to request next
-- trade-offs between soft metrics when no hard rule decides the outcome
-- recovery strategy for suspicious or blocked sources
-- what to recommend or escalate to the operator
+- which warning/quality dimension to address first;
+- which exposed recovery/search/refinement action to request;
+- soft trade-offs when no hard rule decides the result;
+- recovery strategy for suspicious/blocked sources;
+- recommendations and focused escalation.
 
-The agent acts through validated `DecisionContext` / `DecisionAction` capabilities. It does not bypass hard constraints or replace the solver with prose.
+The agent acts through validated repository capabilities/decision contracts. It cannot override a hard violation through prose.
 
 ### Human operator owns
 
-- credentials and MFA
-- explicit policy changes and exceptions that require human authority
-- publication and rollback approval
-- decisions the system explicitly escalates
+- credentials and MFA;
+- explicit policy changes/exceptions requiring authority;
+- final public publication/rollback approval;
+- questions deliberately escalated by the system.
+
+ADR 0002 is the durable decision for this boundary.
 
 ## Adapter boundary
 
-Pi, Claude, ChatGPT, Codex, OpenCode, GitHub Actions, and future interfaces are adapters over the repository capabilities. They may provide UI, browser integration, progress reporting, argument parsing, or rendering, but they must not maintain independent Stage 1–4 policy.
+Pi, Claude, ChatGPT, Codex, GitHub Actions and future interfaces are adapters over repository capabilities. They may provide command registration, UI/rendering, browser control, progress/cancellation or environment-specific launch details, but they must not maintain independent Stage 1–4 semantics.
 
-The desired adapter loop is:
+The conceptual adapter loop is:
 
 ```text
 read shared RVV runbook
-       ↓
-invoke repository capability
-       ↓
-receive DecisionContext
-       ↓
+invoke canonical repository capability
+receive DecisionContext/result
 choose one available validated action
-       ↓
-submit DecisionAction
-       ↓
-repeat / escalate / finish
+submit action
+repeat, escalate or finish
 ```
 
-## Power Automate and Microsoft 365
+Pi retains RVV-specific browser/UI integration for recovery cases. Generic personal agent frameworks/tooling are intentionally outside this repository.
 
-Use Microsoft 365 for intake and lightweight integration: Forms submission, registration-code validation, reviewed SharePoint storage, notifications, and controlled exports. Keep scheduling, plan generation, verification, and publication logic in tested repository code rather than duplicating it in Power Automate.
+## Microsoft 365 boundary
 
-## GitHub Actions
+Use Microsoft 365 for intake and lightweight integration: Forms submission, registration-code validation, reviewed SharePoint storage, notifications and controlled exports. Keep planning, verification and publication logic in tested repository code rather than duplicating it in Power Automate.
 
-GitHub Actions runs validation/tests and provides browser-accessible review/publication workflows. Actions must call the same repository capabilities as local operation; workflow YAML is not an alternate policy engine.
+## Publication boundary
 
-## WordPress and Spond
+GitHub Pages is a static publication target, not the planning system of record. Publication:
 
-WordPress is the public editorial/navigation layer. Prefer links or embeds to generated GitHub Pages output instead of maintaining a second copy of generated schedules.
+1. starts from an already generated/reviewed export snapshot;
+2. creates a separate allowlisted public bundle;
+3. checks/redacts/blocklists sensitive/internal content;
+4. requires explicit public-write approval;
+5. updates the Pages branch and verifies the result.
 
-Spond is an operational communication/event-distribution system. Only distribute an approved plan, and treat later corrections as source changes followed by regeneration/review rather than permanent manual patches to generated files.
+Spond exports and per-club review packets remain private/review artifacts unless a deliberate separate distribution step is performed. WordPress is the editorial/navigation layer and should link/embed generated Pages output instead of copying schedules by hand.
 
 ## Generated data
 
-Generated checkpoints, exports, reports, architecture visualizations, and run evidence are not active documentation. Keep reproducible runtime artifacts under their runtime/export locations; do not add one-off generated evidence under `docs/` unless it is intentionally promoted into a maintained document.
+Generated checkpoints, exports, reports, visualizations and evidence are not maintained documentation. Keep them under runtime/export/test/CI locations; promote only durable conclusions into current docs or ADRs.

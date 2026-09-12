@@ -1,26 +1,27 @@
 # RVV Miniputt pipeline guide
 
-## Overview
+## Purpose
 
-RVV Miniputt is a checkpointed four-stage planning pipeline backed by a goal-oriented operator/decision loop:
+The four-stage pipeline turns the controlled planner workbook plus external calendar evidence into a deterministically verified, reviewable season-plan bundle.
 
-1. **Stage 1 — Config** validates root `input.xlsx` and normalizes the roster/configuration.
-2. **Stage 2 — Scraping** collects calendar/source evidence and records source health/provenance.
-3. **Stage 3 — Planning** builds and evaluates a season plan using deterministic constraints, metrics, and search/solver capabilities.
-4. **Stage 4 — Export** verifies the selected plan and writes review/publication artifacts.
+Normal human operation should use `make operator-run`. Agent/harness checkpoint review should use the canonical repository CLI rather than calling stage modules directly.
 
-Normal operation should use the repository command surface rather than calling stage modules directly. The pipeline can resume from checkpoint state after an interruption or repaired source.
+## Pipeline
+
+| Stage | Input | Responsibility | Persistent result |
+|---|---|---|---|
+| 1 — Config | `input.xlsx` | Parse/validate teams, age groups, dates, sources and planning settings. | normalized config checkpoint |
+| 2 — Scraping | configured sources + runtime credentials/session where needed | Collect availability evidence, cache provenance, identify blocked/empty/suspicious sources. | scraping/source checkpoint + cache |
+| 3 — Planning | normalized config + trusted source evidence | Build/search/solve candidate plans; run hard verification and reproducible quality measurement. | selected plan/candidate checkpoint |
+| 4 — Export | selected Stage 3 plan | Re-verify at serialization boundary and create the review/export bundle. | output file map + export fingerprint |
+
+Checkpoints, logs, cache and run/decision state live under `.pipeline/` and are generated runtime state.
 
 ## Canonical input
 
-Root `input.xlsx` is the only operator-maintained planning input. See [`rvv-miniputt-input-formats.md`](rvv-miniputt-input-formats.md) for the maintained workbook contract instead of duplicating the full schema here.
+Root `input.xlsx` is the controlled season-planning input. Reviewed registrations may be imported to rebuild only the `Lag` sheet; controlled planning/admin sheets remain unchanged.
 
-Important boundaries:
-
-- `Lag` contains team identities (`club`, `label`, `age_group`).
-- Age-group scheduling configuration belongs in `Aldersgrupper`.
-- The canonical participation settings are the before/after-New-Year values per age group; do not add a workbook-global `deltakelser_per_lag` or normal per-team participation override.
-- Reviewed SharePoint registrations may rebuild `Lag`, but must not replace the workbook's controlled administrative sheets.
+See [`rvv-miniputt-input-formats.md`](rvv-miniputt-input-formats.md) for the workbook/interchange contract.
 
 Registration import:
 
@@ -30,11 +31,15 @@ scripts/rvv-miniputt registrations export registrations.csv --input input.xlsx -
 scripts/rvv-miniputt registrations export registrations.csv --input input.xlsx --output input.updated.xlsx
 ```
 
-The non-dry-run export copies the controlled workbook, replaces only `Lag`, and writes an audit sidecar. Private contact/comment fields are not copied into the planner workbook or public output.
+Review the generated workbook before promoting it to root `input.xlsx`.
 
-## Calendar/source collection
+## Stage 1 — configuration
 
-Stage 2 supports deterministic calendar/feed strategies and recovery paths for sources that cannot be collected reliably through the normal strategy. Source status, event evidence, cache provenance, and hard validation remain deterministic repository facts.
+Stage 1 validates and normalizes the controlled workbook. It should fail early on invalid team identities, age-group configuration, season windows or other input that would make later planning unreliable.
+
+The normalized checkpoint is the pipeline's working representation; it does not replace the workbook as the operator-maintained source.
+
+## Stage 2 — calendar/source evidence
 
 Use:
 
@@ -44,7 +49,7 @@ make calendars
 make calendars-refresh
 ```
 
-For a specific source:
+For focused troubleshooting:
 
 ```bash
 scripts/rvv-miniputt scrape --club <name>
@@ -52,56 +57,63 @@ scripts/rvv-miniputt scrape-llm --club <name>
 scripts/rvv-miniputt recovery-targets
 ```
 
-Browser-assisted recovery depends on the active harness/environment having browser control. A plain terminal/CI session cannot pretend to drive a browser; recover event data externally when needed and return it through the repository's recovery injection/merge path so Stage 2 validates it before use.
+Stage 2 owns deterministic source facts: extraction result, event counts/shape, provenance/cache status, and declared hard source gates.
 
-### Credentials and MFA
+A technically successful fetch is not automatically trustworthy. Suspiciously sparse/empty data and blocked sources must remain visible to the decision layer.
 
-Credentialed sources must use the documented local encrypted/session mechanisms; secrets, cookies, tokens, storage-state files, or MFA artifacts must not be committed or copied into command text/logs. If a source requires an operator-completed MFA/login step, use the supported manual-login/session handoff rather than weakening source validity.
+### Browser/session recovery
 
-### Sparse but technically successful sources
+Some sources require browser control, credentials or MFA. A browser-enabled harness may investigate/recover the source, but recovered event data must return through the repository recovery/merge/validation path before Stage 2 treats it as usable.
 
-A source can be reachable yet still be untrustworthy if it returns suspiciously little data for the planning window. Stage 2/source-health output should surface that evidence. Treat source sufficiency as a decision based on current facts and the shared RVV runbook; do not equate scraper success with trustworthy planning coverage.
+Do not put credentials, cookies, session files or MFA artifacts in command text, committed files, logs, docs, or generated public output.
 
-## Planning
+## Stage 3 — planning and quality
 
-Stage 3 separates deterministic correctness/measurement from contextual plan-quality judgment:
+Stage 3 separates **combinatorial execution** from **policy judgment**:
 
-- code owns normalized inputs, hard constraints, candidate verification, reproducible metrics, and search/solver mechanics;
-- the agent/controller may choose among exposed valid refinement/search actions and soft trade-offs;
-- the operator decides explicit exceptions/policy changes when human authority is required.
+- repository code owns the normalized planning problem, hard constraints, candidate contract, solver/search primitives, deterministic verification and quality metrics;
+- the agent may choose among exposed valid search/refinement actions and contextual soft trade-offs;
+- a human decides explicit policy exceptions/authority questions.
 
-The decision boundary is documented in ADR 0002 and `.agents/skills/rvv/SKILL.md`.
+Solvers may include CP-SAT and other search/repair mechanisms. No solver implementation is itself the business-policy source. A candidate becomes acceptable only after deterministic verification.
 
-### Interactive checkpoint-reviewed agent flow
+The durable ownership decision is in ADR 0002; Stage 3 optimization details are in ADR 0001.
 
-Harness adapters use the canonical interactive capability:
+## Structured agent decision flow
+
+For checkpoint-reviewed agent operation:
 
 ```bash
 scripts/rvv-miniputt run --interactive --input input.xlsx
 ```
 
-Each pause returns a structured `DecisionContext` with facts, hard violations, warnings, `available_actions`, and a `decision_action_template`. The controller must choose only a returned available action and submit it through the same command surface on the next invocation.
+A pause returns a structured `DecisionContext` containing decision-relevant facts, hard violations, warnings, available actions, parameter schema and a decision-action template.
 
-Harness-specific `.claude`, `.chatgpt`, `.codex`, `.opencode`, and Pi files are transports/UI integrations only. They must not redefine Stage 1–4 policy.
+The controller must:
 
-### Goal-oriented human/operator flow
+1. choose only an action returned in `available_actions`;
+2. fill only the declared arguments/template;
+3. provide a concise audit rationale, not private chain-of-thought;
+4. submit the action through the same canonical command surface;
+5. repeat until the pipeline advances, escalates or finishes.
 
-For normal local operation:
+Harness-specific `.claude`, `.chatgpt`, `.codex` and Pi files are transport/UI/browser adapters only. Shared policy belongs here, in repository code, or in `.agents/skills/rvv/SKILL.md`—never independently in each adapter.
+
+## Goal-oriented human/operator flow
 
 ```bash
-make help
 make operator-run
 make status
 make logs
 ```
 
-Force a full rerun only when necessary:
+The operator path resumes from durable state when possible. Force a full rerun only when necessary:
 
 ```bash
 make operator-run-force
 ```
 
-Inspect unresolved questions when the operator loop needs explicit human input:
+If a real human decision is required:
 
 ```bash
 make questions
@@ -109,23 +121,43 @@ make answer ID=<id> ANSWER='<answer>'
 make operator-run
 ```
 
-## Output and review
+## Stage 4 — review/export bundle
 
-Stage 4 produces the configured review/export bundle, including season-plan HTML/CSV/XLSX/iCal, reports, calendar/input views, activity output where configured, Spond-oriented data, and supporting manifests/evidence.
+Stage 4 re-verifies the selected candidate immediately before serialization. Hard verification failure blocks export.
 
-Generated files are derived data. Do not permanently patch generated HTML, CSV, Excel, iCal, Pages files, or Spond import files by hand. Correct the source/config/code and regenerate.
+A normal timestamped `export/<timestamp>/` may contain:
 
-Before publication, review at least:
+- `season_plan.html` — primary season-plan view;
+- `season_plan_report.html` — rules/quality/fairness diagnostics;
+- `manual_schedule.html` — only when manual arena/hosting/calendar follow-up remains;
+- `calendars.html` — collected calendar overview when available;
+- `input.html` — public-safe registered-team overview from the workbook;
+- `season_plan.xlsx`;
+- `season_plan.csv` and `season_plan_overview.csv`;
+- `season_plan.ics`;
+- `season_plan_spond.xlsx` and `season_plan_spond_games.xlsx`;
+- `review_packets/` — per-club review material;
+- activity artifacts when the configured activity data is available.
 
-- hard verification status and manual-placement/conflict output;
-- participation/hosting/temporal fairness findings;
-- source-health uncertainty that can affect the plan;
-- Rules/report content against the canonical workbook and verifier;
-- privacy/public-bundle report.
+The Stage 4 checkpoint's `output_files` map is the authoritative record of what that run actually produced.
+
+Generated artifacts are derived data. Do not permanently patch them by hand; correct the source/config/code and regenerate.
+
+## Review before publication
+
+Review at least:
+
+- hard verification status;
+- manual placement/booking follow-up;
+- participation, hosting and temporal distribution;
+- opponent diversity/repetition and other reported quality metrics;
+- source-health uncertainty;
+- rules/report wording against actual planner/verifier behavior;
+- privacy/public-bundle findings.
 
 ## Publication
 
-Generation and publication are separate operations. Public writes require explicit approval.
+Generation and publication are separate operations.
 
 ```bash
 make publish-preview
@@ -133,35 +165,34 @@ make publish CONFIRM_PUBLIC=1
 make verify-publish
 ```
 
-Publication builds a sanitized public bundle and updates GitHub Pages through the protected repository path. WordPress should link/embed generated Pages output rather than maintaining a second generated schedule copy.
+Publication builds a separate allowlisted/privacy-checked public bundle and updates GitHub Pages only after explicit confirmation. Review packets and Spond exports are not public by default.
 
-Use publication history/rollback commands for recovery; do not rewrite generated public files manually.
+For recovery:
 
-## Human-readable command surface
+```bash
+make publish-history
+make rollback RUN_ID=<id> CONFIRM_PUBLIC=1
+```
 
-| Task | Command |
-|---|---|
-| Discover commands | `make help` |
-| Verify repository | `make check` |
-| Goal-oriented run | `make operator-run` |
-| Pipeline status/logs | `make status`, `make logs` |
-| Source health | `make sources-status` |
-| Calendar refresh | `make calendars-refresh` |
-| Pending decisions | `make questions` |
-| Publication preview | `make publish-preview` |
-| Publish approved bundle | `make publish CONFIRM_PUBLIC=1` |
-| Verify publication | `make verify-publish` |
+WordPress should link/embed generated Pages output rather than maintain another generated schedule copy.
 
-The underlying portable launcher is `scripts/rvv-miniputt`; the Python CLI fallback is `python3 -m tournament_scheduler.cli.rvv_cli`.
+## Related non-pipeline workflows
+
+The repository also publishes two related views that are not Stage 1–4 planning stages:
+
+```bash
+make aktivitetskalender
+make registered-teams CSV=<reviewed-registration-export.csv>
+```
+
+Their `*-publish` variants stage a complete Pages snapshot and use the same explicit publication safety path.
 
 ## Documentation ownership
 
-- [`README.md`](../README.md): human/operator overview and handover entry point.
-- [`docs/README.md`](README.md): documentation map and authority rules.
-- [`rvv-miniputt-input-formats.md`](rvv-miniputt-input-formats.md): canonical workbook/interchange schema.
-- [`system-architecture.md`](system-architecture.md): current system/source-of-truth boundaries.
-- [`adr/`](adr/): durable decisions and rationale.
-- `.agents/skills/rvv/SKILL.md`: shared agent operational policy/runbook.
-- GitHub issues: live implementation backlog.
-
-Do not add dated investigation reports or generated runtime evidence as a new competing runbook. Promote durable decisions into an ADR or maintained doc, and keep generated evidence in runtime/export/CI locations.
+- root `README.md` — what the system does, inputs/outputs, normal operation;
+- this file — Stage 1–4 behavior;
+- `rvv-miniputt-input-formats.md` — input contract;
+- `system-architecture.md` — end-to-end boundaries/sources of truth;
+- ADRs — durable rationale;
+- `.agents/skills/rvv/SKILL.md` — shared agent operating policy;
+- GitHub issues — live implementation backlog.

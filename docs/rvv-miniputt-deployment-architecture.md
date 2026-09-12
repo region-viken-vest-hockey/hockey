@@ -1,95 +1,111 @@
-# RVV Miniputt deployment architecture (minimal)
+# RVV Miniputt runtime and publication architecture
 
-## Goal
-A small RVV organizer group should be able to run the scheduler without owning much infrastructure.
+This document describes how RVV Miniputt is actually run and published today. It is not a future hosting proposal.
 
-## Recommended shape
+## Current deployment model
 
-- **Frontend / UI**: a static or server-rendered web app for uploads, status, and reports.
-- **Python job runner**: a separate worker that runs scraping, planning, and exports on a schedule or queue.
-- **Storage**: object storage for workbooks, exports, logs, and cached artifacts.
+RVV Miniputt does **not** require an always-on backend, database, queue, worker service, or dedicated web application.
 
-Keep the runner stateless: it reads an input workbook, writes outputs, and stores run metadata separately.
-
-Operational ownership is a separate requirement from hosting. Before any deployment becomes routine, record who controls repositories, Pages, Microsoft 365 assets, Spond/WordPress access, source credentials, domains, and recovery paths in the [ownership and handover guide](ownership-and-handover.md).
-
-## Practical hosting options
-
-### Option A — Vercel / Cloudflare frontend + managed Python worker + object storage
-**Example**: Cloudflare Pages or Vercel for UI, Fly.io/Render/Railway for the Python worker, S3/R2 for storage.
-
-**Pros**
-- Easy to launch.
-- Frontend and worker are cleanly separated.
-- Storage is cheap and durable.
-
-**Cons**
-- Two platforms to operate.
-- Worker scheduling/cron can be awkward depending on host.
-- More moving parts than a single VPS.
-
-### Option B — Single small VPS
-**Example**: one cheap Linux VPS running the UI, worker, and local file storage.
-
-**Pros**
-- Simplest mental model.
-- Easy access to files and logs.
-- Lowest integration effort.
-
-**Cons**
-- One box is a single point of failure.
-- Backups and monitoring are on you.
-- Less clean separation between web traffic and background jobs.
-
-### Option C — Serverless frontend + queue + container worker
-**Example**: Cloudflare/Vercel frontend, managed queue, Docker worker, object storage.
-
-**Pros**
-- Scales well.
-- Strong separation of concerns.
-- Good if the project grows.
-
-**Cons**
-- More complex than this project needs.
-- Usually overkill for a tiny organizer team.
-
-## Recommended choice
-For a **small user group**, choose **Option A**.
-
-Why:
-- It keeps the UI easy to host.
-- The Python scheduler stays in a normal runtime where Playwright and file handling are straightforward.
-- Storage is explicit and portable.
-- You avoid the operational burden of running everything on one VPS, while not paying for a full platform architecture.
-
-## Tradeoffs to accept
-- The worker is the real system of record for runs; the frontend should just trigger and display.
-- Background jobs must be idempotent.
-- Large temporary files should live in object storage or ephemeral worker disk, not inside the frontend.
-- A database is optional at first; a tiny team can often start with object storage + small metadata files.
-
-## Minimal deployment layout
+The supported operating model is:
 
 ```text
-[Frontend]
-  -> upload input.xlsx
-  -> show run status / download exports
-
-[Python job runner]
-  -> scrape calendars
-  -> plan season
-  -> write exports
-  -> update run status
-
-[Storage]
-  -> input files
-  -> pipeline artifacts
-  -> exports
-  -> logs
+maintainer/agent/CI checkout
+        ↓
+repository CLI / Make targets
+        ↓
+local generated state (.pipeline/)
+        ↓
+review/export snapshot (export/<timestamp>/)
+        ↓
+public-bundle preparation + privacy checks
+        ↓
+explicit approval
+        ↓
+GitHub Pages (gh-pages branch)
+        ↓
+WordPress links/embeds
 ```
 
-## When to upgrade later
-Move to a queue + dedicated worker pool if:
-- runs become frequent,
-- multiple users need concurrent planning,
-- or you need stronger audit/history guarantees.
+The season planner is therefore deployed as **versioned repository code plus static published output**, not as a continuously running service.
+
+## Execution environments
+
+The same repository capabilities can be invoked from:
+
+- a normal local shell;
+- Pi, which adds RVV-specific slash commands/browser integration;
+- Claude/ChatGPT/Codex adapters;
+- GitHub Actions where the workflow is suitable for headless execution.
+
+Environment-specific adapters must call the same repository capabilities and must not become independent policy engines.
+
+Browser/MFA-dependent source recovery may require a local interactive session. Recovered data returns through repository validation before it is trusted.
+
+## Local state
+
+`.pipeline/` is generated runtime state and may contain:
+
+- stage checkpoints;
+- scraped source cache/provenance;
+- run manifest and structured capability results;
+- operator questions/answers;
+- logs and fingerprints.
+
+It is intentionally not committed as documentation or as the authoritative planning input.
+
+## Export state
+
+Stage 4 writes a timestamped review/export bundle under `export/`. The bundle may include HTML views, Excel/CSV/iCal downloads, Spond material, per-club review packets, and supporting generated views.
+
+The export bundle is review material. It is not automatically public.
+
+## Public bundle
+
+Publication creates a separate public snapshot from the export directory. The public-bundle step:
+
+- copies only explicitly allowed public files/directories;
+- excludes private/review-only artifacts such as per-club review packets and Spond exports by default;
+- rejects unknown/unapproved file types;
+- checks included text for likely sensitive material;
+- redacts local paths/contact data where supported;
+- records a privacy report;
+- blocks publication when a finding requires human review.
+
+This separation is deliberate: **raw export != public site**.
+
+## GitHub Pages layout
+
+The publication code manages static Pages snapshots on the `gh-pages` branch, including the current `latest/` view and retained run/history material needed for verification/rollback.
+
+WordPress should point to or embed these generated views. Do not maintain a second manually edited copy of the schedule in WordPress.
+
+The registered-team and activity-calendar workflows also stage a complete Pages snapshot before publishing so updating one view does not remove unrelated published content.
+
+## Publication safety
+
+Public writes are explicit operations. Normal planning commands do not publish.
+
+Typical flow:
+
+```bash
+make publish-preview
+make publish CONFIRM_PUBLIC=1
+make verify-publish
+```
+
+Rollback is also explicit:
+
+```bash
+make publish-history
+make rollback RUN_ID=<id> CONFIRM_PUBLIC=1
+```
+
+## Ownership and recovery
+
+The technical runtime is intentionally simple, but access ownership still matters. GitHub, Pages, Microsoft 365, WordPress, Spond, calendar-source accounts and recovery paths should not depend on one maintainer's undocumented personal access.
+
+See [`ownership-and-handover.md`](ownership-and-handover.md) for the operational ownership and emergency-recovery procedure.
+
+## When a hosted service would be justified
+
+A dedicated frontend/worker/storage architecture should only be introduced if the operating model changes materially—for example concurrent users/runs, routine unattended scheduling, or a requirement for a web upload/status application. That is not required by the current repository and should be treated as a new architectural decision rather than assumed future state.

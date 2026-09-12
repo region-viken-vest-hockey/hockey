@@ -1,650 +1,206 @@
 ---
 name: rvv
-description: RVV Miniputt season planning pipeline for Norwegian hockey clubs. Runs a four-stage pipeline (config → scraping → planning → export) via /rvv-miniputt commands. Also contains tribal knowledge about clubs, calendar systems, login requirements, and LLM-driven browser scraping. Use when working with scraping, calendar generation, season planning, or pipeline debugging.
+description: Canonical shared runbook for RVV Miniputt season planning, calendar-source recovery, plan review, export, and publication. Use for work on the hockey repo's planning pipeline.
 ---
 
-# RVV Miniputt — season planning pipeline
+# RVV Miniputt shared runbook
 
-This skill runs the RVV Miniputt workflow for Norwegian hockey clubs: config, scraping, planning, and export.
-Typical use: activate the skill with `/rvv-miniputt run`; treat it as a stage-by-stage pipeline, not a black box. Inspect the checkpoint after each stage and only continue when the output looks correct.
+This is the canonical agent-facing operating policy for the RVV Miniputt repository.
 
-## Agent-callable tools
+Use repository code for facts, hard constraints, validation, search/solver mechanics, persistence, export and publication safeguards. Use agent judgment only for contextual soft decisions among actions the repository exposes.
 
-Use the `/rvv-miniputt ...` slash commands from Pi, not Bash.
-If you need to trigger the pipeline from the agent, use these tools:
+Read `AGENTS.md` first for repository-wide precedence and hygiene rules.
 
-| Tool | Equivalent slash command |
-|---|---|
-| `rvv_miniputt_run` | `/rvv-miniputt run` |
-| `rvv_miniputt_publish` | `/rvv-miniputt publish` |
-| `rvv_miniputt_status` | `/rvv-miniputt status` |
-| `rvv_miniputt_logs` | `/rvv-miniputt logs` |
-| `rvv_miniputt_calendars` | `/rvv-miniputt calendars` |
-| `rvv_miniputt_scrape` | `/rvv-miniputt scrape` |
-| `rvv_miniputt_scrape_llm` | `/rvv-miniputt scrape-llm` |
+## Command boundary
 
-Each tool takes the same flags as its slash command via an optional `args` string
-(e.g. `rvv_miniputt_run({ args: "--resume-from 2 --log-level verbose" })`).
+### Pi
 
-## Non-Pi / cross-harness usage
+Pi provides the RVV-specific `/rvv-miniputt ...` command/tool integration. Use the Pi command directly there; it is not a shell binary.
 
-When you are not running inside Pi, use the harness-neutral repo entrypoints instead of Pi slash commands:
+### Other environments
+
+Use the repository-local entrypoints:
 
 ```bash
-scripts/rvv-miniputt status
-scripts/rvv-miniputt logs list --count 5
-scripts/rvv-miniputt run --resume-from 2 --log-level verbose
-# or
-python3 -m tournament_scheduler.cli.rvv_cli status
+scripts/rvv-miniputt ...
+python3 -m tournament_scheduler.cli.rvv_cli ...
 ```
 
-These commands are intended for Codex, Claude, OpenCode, or a normal shell. They expose the repo workflow directly without requiring Pi's command registry.
+Human-friendly operation is exposed through `make help` and the Makefile.
 
-## Pi-only boundary
+Harness adapters may add UI/browser/progress integration but must not redefine shared pipeline policy.
 
-The following remain Pi-specific adapters on top of the repo workflow:
+## Normal operation
 
-- `/rvv-miniputt ...` slash-command dispatch itself
-- `rvv_miniputt_*` agent-callable tool registration
-- `/rvv-miniputt guide` interactive wizard UX
-- live Pi notifications/status updates during `/rvv-miniputt run`
-
-## How to use it
-
-1. Activate the skill with `/rvv-miniputt run`
-2. After each stage, review the checkpoint (`stage1_config.json`, `stage2_scraping.json`, `stage3_planning.json`, `stage4_export.json`) before proceeding
-3. In Claude, prefer the checkpoint-reviewed stage-by-stage flow from `run.md`:
-   - Stage 1: validate teams, age groups, and feasibility
-   - Stage 2: inspect blocked/zero-event sources and recover if needed
-   - Stage 3: inspect verdict tone and apply refinement if rough
-   - Stage 4: export only after the plan looks good
-4. Use `/rvv-miniputt scrape --club <navn>` for single-club troubleshooting
-5. Use `/rvv-miniputt scrape-llm --club <navn>` for blocked SPA/calendar sources.
-   - Pi sessions can use the extension tool path (`rvv_miniputt_scrape_llm`) and the Playwright worker.
-   - Other harnesses only work when they provide their own browser controller.
-   - Plain terminal/CI sessions cannot drive the page; the CLI should explain the boundary and point to `scripts/rvv-miniputt recovery-targets`, `python3 -m tournament_scheduler.cli.rvv_cli recovery-inject --source "<navn>"`, and `scripts/rvv-miniputt scrape-merge` so a terminal-only recovery script can still rehydrate the cache.
-6. Use `/rvv-miniputt status` or `/rvv-miniputt logs` to inspect results
-7. Use `/rvv-miniputt calendars` when you want calendar output from cache
-
-## Slash commands
-
-| Command | Description |
-|---|---|
-| `/rvv-miniputt run` | Run the full pipeline (config → scraping → planning → export) |
-| `/rvv-miniputt run --resume-from 3` | Resume from stage 3 (planning) |
-| `/rvv-miniputt run --log-level verbose` | Run with verbose logging |
-| `/rvv-miniputt publish` | `operator run --resume-from 1 --publish --confirm-public` — same run as `/rvv-miniputt run` (same logging, checkpointing) plus publishing to GitHub Pages, auto-confirmed so it skips the manual approval pause that `--publish` alone (without `--confirm-public`) leaves in place. The explicit resume stage ensures the run does not short-circuit before the publish step when checkpoints are already fresh. Hard validation failures (e.g. arena conflicts) still block it, and the publish outcome is appended to that run's own log file. |
-| `/rvv-miniputt status` | Show status of all four stages |
-| `/rvv-miniputt logs list` | Show last 10 runs |
-| `/rvv-miniputt logs show latest` | Show details for the latest run |
-| `/rvv-miniputt logs stats` | Show self-improvement statistics |
-| `/rvv-miniputt calendars` | Generate calendars from cache |
-| `/rvv-miniputt calendars --refresh` | Force full re-scrape + calendar generation |
-| `/rvv-miniputt scrape --club <navn>` | Troubleshoot one club's deterministic scrape |
-| `/rvv-miniputt scrape-llm --club <navn>` | Run LLM-guided scraping for a blocked source (Pi/browser tooling or another browser-enabled harness; plain terminal sessions only print the boundary and point to recovery-targets/recovery-inject) |
-| `/rvv-miniputt guide` | Interactive wizard for new users |
-
-### `run` flags
-
-```
---input <path>                         Input workbook (default: input.xlsx)
---work-dir <path>                      Working directory (default: .pipeline)
---resume-from <N>                      Resume from stage N (1-4)
---export-dir <path>                    Export directory (default: export)
---log-level <level>                    info | verbose
---iterations N                         Stage 3 multi-seed search budget (default: 1)
---mid-planning-critic-iterations N     Optional pre-export Stage 3 critic/rerun loop (default: 0/off)
---manual-bookup-login                  Open a visible BookUp browser and pause for Vipps/SMS MFA during Stage 2
---manual-bookup-login-timeout N         Terminal Stage 2 manual-login verification timeout seconds (default: 300)
---publish                              With /rvv-miniputt run only: route to the publish flow
-```
-
-`/rvv-miniputt publish` and `/rvv-miniputt run --publish` use the repo operator path
-(`operator run --resume-from 1 --publish --confirm-public`) so the `gh-pages` branch is actually
-committed/pushed and the public URL is verified after the run.
-
-## The four stages
-
-1. **Config** — loads `input.xlsx`, validates club configuration
-2. **Scraping** — scrapes calendar sources (skipped when `input.xlsx` has 0 registered teams). Two-phase:
-   - *Deterministic* — direct iCal feeds, iframe-based Outlook calendars, date-param pages
-   - *LLM-driven* — for blocked sources (BookUp, Forumbooking, StyledCalendar), the **ScraperAgent** takes over
-3. **Planning** — builds a season plan with constraint-solving
-4. **Export** — outputs Excel, iCal, CSV, and HTML
-
-## Stage gating policy (soft judgment)
-
-This is the canonical soft-policy source for the proceed/abort decision an
-agent or the headless judge makes after each stage (see ADR 0002 —
-`docs/adr/0002-llm-directed-decision-ownership-and-thin-adapters.md`).
-Interactive harnesses and the headless `tournament_scheduler.llm_judge`
-path must use this policy rather than defining their own criteria — the
-decision protocol is `DecisionContext` (facts + violations + warnings) in,
-a `proceed` or `abort` `DecisionAction` out
-(`tournament_scheduler.application.decisions`). A hard violation in the
-context always blocks `proceed`, regardless of this policy.
-
-### Stage 1 — Configuration
-
-- `proceed` when at least one calendar source is configured and the date
-  range is a realistic hockey season window.
-- `abort` when no sources are configured, or the date range is clearly
-  wrong (e.g. zero-length, reversed, or outside a plausible season).
-
-### Stage 2 — Scraping
-
-- `proceed` when most configured sources were scraped successfully.
-- `abort` when so many sources are blocked or empty that planning would be
-  meaningless — as a starting heuristic, fewer than half the sources have
-  usable data. Prefer `recover_source` / `retry_stage` over an outright
-  `abort` when a blocked source looks recoverable (see BookUp session
-  guidance below) before concluding the run cannot continue.
-
-### Stage 3 — Planning
-
-- `proceed` when the draft plan contains at least a handful of tournaments
-  covering the configured clubs/age groups.
-- `abort` when the plan is empty or clearly wrong (e.g. zero tournaments
-  planned despite configured sources/registrations) — that usually
-  indicates a configuration or upstream data error, not a planning-quality
-  judgment call.
-
-Planning-quality tradeoffs (which warning to address first, whether a
-small regression is worth a larger gain, whether to keep the baseline)
-are the agent's soft judgment to make once past this proceed/abort gate —
-see `docs/adr/0002-llm-directed-decision-ownership-and-thin-adapters.md`
-for the full decision-ownership boundary. Do not encode a new fixed
-threshold or magic weight here to answer one of those tradeoffs; expose
-the underlying facts/metrics instead.
-
-### Interactive `DecisionContext` reference
-
-`rvv-miniputt run --interactive` runs exactly one stage, then prints a JSON
-`DecisionContext` (facts, hard violations, warnings, `available_actions`)
-and exits with code `2` — the canonical capability behind every harness
-adapter's (Claude/ChatGPT/OpenCode/Codex) stage-by-stage checkpoint review.
-Each adapter's `run.md` shows the exact command form for that harness; this
-is the single canonical description of what `facts` contain and what the
-actions do, so it is not repeated per adapter (issue #260 — thin adapters
-reference shared policy rather than duplicating it).
-
-#### The generic `DecisionAction` envelope (issue #282)
-
-Every decision you submit back — regardless of stage or `capability` — is
-one JSON object in this exact shape:
-
-```json
-{
-  "action_id": "<one of this context's available_actions>",
-  "arguments": {"<keys declared in action_parameters[action_id]>": "..."},
-  "rationale": "concise audit summary"
-}
-```
-
-**Every parameter declared under `action_parameters[action_id]` (and every
-bare required argument, e.g. `retry_stage`'s `stage` or `recover_source`'s
-`source`) nests under `arguments` — never top-level.** A top-level
-`chosen_club`, `candidate_ref`, `stage`, etc. is rejected deterministically
-as `invalid_decision_arguments` (missing the actual required key) rather
-than silently accepted.
-
-You do not have to infer this shape by hand: the printed `DecisionContext`
-JSON always carries a `decision_action_template` key — one ready-to-fill
-skeleton per entry in `available_actions`, mechanically derived from
-`action_parameters`, with placeholder values (e.g. `"<one of:
-Kongsberg|Tønsberg>"` for an enum, `"<string>"` for an untyped declared
-argument, `"<chosen_club>"` for a bare-required argument with no declared
-schema). Pick the template for the action you want, replace its
-placeholders, and pass the result as `--decision-action` /
-`--decision-action-file` unchanged in shape.
-
-One exact worked example — the shared-host decision below is the first
-required-argument decision a run typically reaches, before Stage 3 ever
-runs:
-
-```json
-{
-  "action_id": "assign_shared_host",
-  "arguments": {"chosen_club": "Kongsberg"},
-  "rationale": "Kongsberg is under its hosting share this age group; Tønsberg's calendar is unknown regardless."
-}
-```
-
-- **Stage 1 (config):** `facts` includes `sources`, `start_date`,
-  `end_date`, `age_groups`, `clubs`.
-- **Stage 2 (scraping):** `facts` includes `sources_scanned`,
-  `blocked_count`, `blocked_sources`, `llm_fallback_count`,
-  `sources_with_events`, `total_events`. `recover_source` is offered when
-  `blocked_count > 0`. This gate does not auto-abort on zero-events
-  sufficiency by itself (issue #260 P1) — if `sources_with_events` is 0,
-  that is a fact for you to weigh (abort, retry after a fix, or proceed if
-  a genuine zero-events season gap is expected), not a Python-decided
-  failure. If any source is (and will remain) blocked and you intend to
-  proceed anyway, pass `--allow-missing-sources` on **this same Stage 2
-  invocation** — the one that actually runs the scrape — not just on later
-  invocations. The checkpoint's `status` field reflects the raw scrape
-  outcome (`failed` when a source is blocked) regardless of your decision;
-  without the flag on the run itself, replaying Stage 2 on a later
-  invocation re-derives `failed` again and any later decision you submit
-  gets validated against this stage's context instead of the one you
-  meant, rejected as `decision_action_not_available`.
-- **Stage 3 (planning) — nested decision loop:** unlike every other stage,
-  this context offers `optimize_plan` / `apply_candidate` / `keep_baseline`
-  / `request_operator` (plus `abort`), not the generic `proceed`/`abort`
-  (issue #260 P0). The first response is a **baseline** decision (`facts`:
-  `tournaments_planned`, `warnings`, `tone`) — choose `optimize_plan` if
-  `tone` is `rough` (re-runs Stage 3 for another attempt and pauses again
-  with an old-vs-new comparison instead of advancing) or `keep_baseline` to
-  finalize this attempt and move to Stage 4. Each later response compares
-  the new attempt against the current best via
-  `scorecard`/`hard_violations`/`warnings`: `apply_candidate` (with
-  `arguments.candidate_ref` set to the context's `candidate_ref`) replaces
-  the best with this attempt, `keep_baseline` discards it, `optimize_plan`
-  tries again — optionally with `arguments.iterations` as a bounded
-  search-budget override (clamped 1–10, issue #260 P1's action-parameter
-  schema). The loop is capped at a fixed number of attempts, enforced
-  deterministically — `optimize_plan` stops being offered once reached.
-
-  **Multi-objective (Pareto) search:** pass `optimize_plan` with
-  `arguments.mode: "pareto"` (issue #264 P1 / issue #265 P1) instead of a
-  single rerun to explore several genuinely different tradeoffs at once —
-  e.g. one candidate that minimizes repeated opponents at the cost of more
-  travel, another that minimizes hosting spread instead. The response then
-  lists multiple candidates under `facts.candidates`, each with its own
-  `candidate_ref`, `objective_vector` (lower is better in every dimension),
-  and `dominates_baseline`. `apply_candidate` must set `arguments.candidate_ref`
-  to one of the listed refs (validated against an explicit enum — an
-  invented ref is rejected deterministically); `keep_baseline` discards the
-  whole portfolio; `optimize_plan` again (single or `mode: "pareto"`)
-  requests another epoch/attempt. Prefer this over repeated plain
-  `optimize_plan` calls when you want to compare tradeoffs rather than
-  commit to one weighting up front — it runs one shared search internally,
-  not N independent reruns.
-
-  **Every decision about a Stage 3 context — including the first
-  baseline tone judgment and every later candidate comparison — must be
-  submitted with `--resume-from 4`, not `--resume-from 3`.** The CLI
-  validates a decision against the context for stage `resume_from - 1`
-  (`pipeline_orchestrator.py`'s `_cmd_run_interactive`), so `--resume-from
-  3` validates against **Stage 2's** context, not Stage 3's, and any
-  Stage 3 decision submitted that way is silently misrouted and rejected
-  as `decision_action_not_available`. `--resume-from 3` is only correct
-  once, for the invocation that decides on Stage 2 and thereby runs Stage
-  3 for the first time. When you pass `optimize_plan` via `--resume-from
-  4`, the orchestrator internally reruns Stage 3 and pauses again with a
-  new candidate context — decide on *that* again via `--resume-from 4`,
-  not 3. Only `keep_baseline`/`apply_candidate` actually resolves the loop
-  and lets the same `--resume-from 4` invocation continue on into Stage 4.
-  Do not fall back to the non-interactive `run --resume-from 3` for
-  retry/refinement — this loop replaces that need.
-- **Shared/joint-club hosting decision (issue #274) — before Stage 3 runs
-  for the first time:** if the roster has any joint registration (e.g.
-  `"Kongsberg/Tønsberg"`) without a resolved hosting decision yet, the
-  invocation that would otherwise run Stage 3 instead pauses with
-  `capability: "shared_host_assignment"` and `available_actions:
-  ["assign_shared_host", "request_operator"]` — submit **exactly one**
-  decision per invocation, at the **same** `--resume-from 3` you used to
-  reach it (not `--resume-from 4` — unlike Stage 3's own nested loop below,
-  this decision happens *before* Stage 3 has produced anything to compare
-  against). `facts` includes `constituents` (the only legal
-  `arguments.chosen_club` values — an invented club is rejected
-  deterministically), `hosted_by_constituent`/`hosted_by_constituent_total`
-  (this age group vs. every age group), `calendar_trust`, and
-  `automatic_placement_possible` per constituent — weigh current hosting
-  burden/fairness first; calendar availability must not by itself decide
-  the winner (a chosen constituent with no trustworthy calendar still keeps
-  the obligation and becomes a manual placement instead of silently
-  switching to the other one). If more than one joint registration needs a
-  decision, resubmitting at `--resume-from 3` after each answer pauses
-  again for the next one; once all are resolved, that same invocation falls
-  straight through into Stage 3 without an extra round trip.
-- **Stage 4 (export):** `facts` includes `files_written`, `errors`. There
-  is no Stage 5 — report the result to the user; `/rvv-miniputt:publish`
-  handles publication separately.
-
-**Stale Stage 3 checkpoint guard (issue #290):** if a harness/resume
-mistake reaches `--resume-from 4` without this run having actually
-finished its own Stage 3 decision loop (e.g. the #289 shape — answering
-`shared_host_assignment` and then advancing to `--resume-from 4` instead
-of keeping `--resume-from 3`), the run fails deterministically with a
-"Stage 3-checkpointet er foreldet" error instead of silently exporting an
-older run's plan. `PipelineState.write_stage(..., status=DONE)` already
-marks every downstream checkpoint `stale` whenever an earlier stage
-actually reruns; Stage 3's own skip-and-resume branch now refuses to treat
-a stale on-disk checkpoint as this run's finished planning state. The fix
-is to resume from Stage 3 (`--resume-from 3`), not to force past this
-error.
-
-**Hosting-obligation policy (issue #274, canonical — see
-`tournament_scheduler/hosting_coverage.py`, `planning_contract.verify_candidate`,
-`shared_host_decision.py` for the actual logic, not this summary):** decide
-who owes hosting first, then try to place it with trustworthy calendar
-evidence, then — only if that fails — keep the obligation and surface it as
-manual work. Calendar convenience never decides away or silently transfers a
-hosting obligation. A club with `club_calendar_status` `"unknown"` or
-`"untrusted"` (a successful scrape whose registry entry says the data isn't
-trustworthy enough for automatic placement, e.g. Tønsberg's current BookUp
-source) still counts fully toward hosting fairness — it just means every
-tournament it hosts must be manual. For a shared/joint-club registration
-(e.g. `"Kongsberg/Tønsberg"`), the `assign_shared_host` decision is the one
-place an LLM/controller picks which constituent club carries a given
-obligation, using the deterministic facts Python exposes — never a fixed
-"alphabetically first with a free slot" heuristic, and never biased by which
-constituent's calendar happens to be easier.
-
-## LLM-driven scraping (ScraperAgent)
-
-When deterministic scraping fails for a source, the ScraperAgent in `.pi/lib/scraper-agent.ts` handles it:
-
-1. Launches a headless Playwright browser via the Python `browser_worker.py`
-2. Executes **pre-loop navigation** from the club's scraper strategy (e.g. login steps for BookUp)
-3. Enters an **agent loop** (up to 25 iterations):
-   - Sends a page snapshot (HTML, interactive elements, already-extracted events) to Pi's configured LLM
-   - The LLM returns a JSON action: `click`, `goto`, `extract`, `done`, `wait`, or `scroll`
-   - The Python worker executes the action and returns a new snapshot
-   - The loop continues until the LLM returns `done` or max iterations are reached
-4. All extracted calendar events are collected and written to the scraping cache
-
-The LLM evaluates the page content, decides what to click or navigate to, and calls the built-in calendar parser (`extract`) when it finds event data. It handles dynamic SPA calendars that deterministic scrapers can't handle.
-
-## Clubs and calendar systems
-
-### BookUp SPA (requires login for some clubs)
-
-**Tønsberg** uses BookUp and the public "Se tilgjengelighet" view may show only sparse/generic placeholder bookings. Treat the full Tønsberg ishall calendar as credentialed:
-
-- `BOOKUP_EMAIL` — BookUp account email
-- `BOOKUP_PASSWORD` — BookUp account password
-
-Pi slash commands automatically try to load missing values from `DOTENVX_ENV_FILE` (default `.env.bookup`) before prompting. If credentials still are not available, the pipeline prompts interactively during scraping. If BookUp asks for Vipps/SMS MFA, run with `--manual-bookup-login` or set `RVV_BOOKUP_MANUAL_LOGIN=1`; Stage 2 opens a visible browser and waits for the operator before extracting events.
-
-**Running inside Lima?** `--manual-bookup-login` needs a visible browser and interactive MFA, which is awkward from inside a VM. Instead, start the portable host bridge on the macOS host (issue #304):
+For a human/operator goal-oriented run:
 
 ```bash
-# On the macOS host:
-scripts/rvv-bookup-host --host 0.0.0.0   # or a specific Lima-reachable interface
-
-# Inside Lima, before running Stage 2 / /rvv-miniputt:run:
-export RVV_BOOKUP_HOST_BRIDGE=http://host.lima.internal:8765
-export RVV_BOOKUP_HOST_BRIDGE_TOKEN=<token printed by rvv-bookup-host>
+make operator-run
+make status
+make logs
 ```
 
-Stage 2 then hands BookUp scrape requests to the host bridge instead of opening a local browser; the operator completes Vipps/SMS MFA in the visible browser on the Mac, and only normalized calendar events (never credentials/cookies/session state) return to Lima. If the bridge is configured but unreachable, the source fails explicitly rather than being silently treated as trusted; the local `--manual-bookup-login` path remains available for direct macOS runs.
-
-**Sandefjord Penguins does *not* use BookUp for this workflow (issue #261).** The club has a known, fixed weekend ice-time allocation at Bugårdshallen — Saturday and Sunday 15:00–18:00 — instead of a bookable calendar. That allocation is encoded as deterministic evidence in `tournament_scheduler/sandefjord_allocation.py` and surfaced to Stage 2 as a `"fixed_allocation"` source (`input.xlsx` → `Kilder` sheet, `type=fixed_allocation`, no URL needed). Stage 2 never scrapes or blocks on it, and no `BOOKUP_EMAIL`/`BOOKUP_PASSWORD` is required for Sandefjord planning to work.
-
-### All clubs
-
-| Club | System | Scraping method | Notes |
-|---|---|---|---|
-| Kongsberg (ishall) | Outlook iframe | Deterministic | Works without LLM |
-| Kongsberg (ballhall) | Outlook iframe | Deterministic | Works without LLM |
-| Skien | BRP/Exigo date param (brp.exigo.no) | Deterministic | Daily `?date=YYYY-MM-DD` pages with embedded booking JSON |
-| Ringerike | Teamup iCal | Deterministic | Pure iCal feed |
-| Frisk Asker | Teamup iCal | Deterministic | iCal feed |
-| Tønsberg | BookUp SPA | Credentialed / manual recovery | Full calendar is behind BookUp login; public view can be sparse/generic |
-| **Sandefjord Penguins** | **Fixed allocation (issue #261)** | **Deterministic, no scraping** | **Known Sat/Sun 15:00–18:00 ice at Bugårdshallen — no BookUp credentials needed** |
-| Jar | Forumbooking | Deterministic | Weekly HTML schema viewer parsed via `div.bokning` ids/tooltips |
-| Holmen | Sportello | Deterministic | Public GraphQL API on the Sportello SPA |
-| Jutul / Bærum ishall | StyledCalendar | LLM-driven | JS widget |
-
-## Running with a local LLM
-
-The ScraperAgent uses Pi's currently configured model (`ctx.model`) for the agent loop. You can use a local model via LM Studio, Ollama, or any OpenAI-compatible endpoint — just configure it as a provider in Pi.
-
-### Model requirements
-
-The agent loop is demanding. The model must:
-- **Follow JSON-only output instructions** — every response must be a raw JSON object with no surrounding text, markdown fences, or explanations
-- **Parse HTML snapshots** — up to 3000 characters of page HTML + iframe HTML + interactive element lists, all in Norwegian
-- **Make navigation decisions** — choose from `click`, `goto`, `extract`, `done`, `wait`, `scroll` based on what it sees on the page
-- **Handle Norwegian content** — the system prompt, page content, and club names are all in Norwegian
-
-### Recommended local models
-
-Models known to work for the agent loop (≥8B parameters recommended):
-- **Qwen 2.5 14B/32B** — strong JSON output discipline, handles Norwegian well
-- **Llama 3.1 8B/70B** — good instruction following, but may wrap JSON in markdown fences
-- **Mistral Nemo 12B** — decent multilingual support
-- **Gemma 3 12B/27B** — good JSON mode
-
-Models likely to struggle:
-- **<7B parameter models** — often fail to parse HTML snapshots correctly
-- **Models without JSON mode** — will frequently produce invalid JSON wrapped in prose
-- **English-only models without multilingual training** — miss Norwegian calendar content
-
-### How the agent handles LLM failures
-
-The ScraperAgent is resilient to individual failures:
-- If the LLM returns invalid JSON, the iteration is skipped and the loop continues
-- If the LLM throws an API error, the agent tries a **generic fallback**: click "next month" button (for iframe calendars) and continue
-- After all 25 iterations are exhausted, whatever events were collected so far are used
-
-However, if the LLM consistently fails, the agent loop produces no useful events and the blocked sources remain unscraped.
-
-### Testing if your local model works
-
-Run a targeted scrape of a single blocked source to see if your model can handle the agent loop:
+For checkpoint-reviewed agent operation:
 
 ```bash
-# In a Pi session with your local model active:
-/rvv-miniputt run --resume-from 2
+scripts/rvv-miniputt run --interactive --input input.xlsx
 ```
 
-Then check the log:
+Do not call individual `stageN_*` modules when doing so bypasses the normal checkpoint/decision/verification path.
+
+## Inputs
+
+The four-stage season planner uses:
+
+- root `input.xlsx` as the controlled planner workbook;
+- reviewed registration exports only through the controlled import path when `Lag` needs rebuilding;
+- external calendar/source evidence collected in Stage 2;
+- local browser/session access only when a configured source requires interactive recovery.
+
+`Årshjul for aktiviteter.xlsx` and the public registered-team CSV workflow are related repository workflows but are not Stage 1–4 planner policy inputs.
+
+See `docs/rvv-miniputt-input-formats.md` for the workbook contract.
+
+## Four-stage pipeline
+
+### Stage 1 — configuration
+
+Repository code validates and normalizes the controlled workbook.
+
+Agent policy:
+
+- do not invent missing teams, clubs, age groups or settings;
+- treat invalid/reversed season windows and invalid identities as input problems to fix, not as soft preferences;
+- when Stage 1 returns an explicit decision context, choose only from its available actions.
+
+### Stage 2 — source/calendar evidence
+
+Repository code owns extraction results, cache/provenance, source status and validation.
+
+Agent policy:
+
+- inspect blocked, empty and suspiciously sparse sources before trusting the plan;
+- prefer a bounded recovery/retry action when the context exposes one;
+- browser-assisted recovery is investigation/extraction only—the recovered result must return through repository validation/merge before it is trusted;
+- do not declare a source healthy merely because a request technically succeeded.
+
+Useful commands:
 
 ```bash
-/rvv-miniputt logs show latest
+make sources-status
+make calendars
+scripts/rvv-miniputt scrape --club <name>
+scripts/rvv-miniputt scrape-llm --club <name>
+scripts/rvv-miniputt recovery-targets
 ```
 
-Look for lines like `Jar: 45 events funnet` vs `Jar: 0 events funnet`. If blocked sources consistently return 0 events, the local model is not capable enough for the agent loop.
+### Stage 3 — planning
 
-### Workarounds for weak local models
+Repository code owns:
 
-1. **Swap models for scraping** — use a cloud model (e.g. Gemini Flash, Claude Haiku) for the `/rvv-miniputt run` that does scraping, then switch back to local for everything else
-2. **Deterministic-only run** — skip the LLM-driven scraping entirely by using only the `--resume-from 3` flag. This runs planning/export using whatever cached data already exists from a previous cloud-model run
-3. **Pre-populate cache** — run the full pipeline once with a capable cloud model to populate `.pipeline/cache/scraped_data.json`, then subsequent runs can use `--resume-from 3` with a local model
+- normalized planning problem;
+- hard constraints;
+- candidate schema;
+- solver/search primitives;
+- deterministic candidate verification;
+- reproducible quality metrics.
 
-## Troubleshooting
+Agent policy:
 
-### Pipeline fails on scraping
+- never accept a candidate with hard verification failures;
+- use available optimize/refine/apply/keep/request actions rather than hand-editing the complete season plan in prose;
+- compare candidates using the returned metrics/findings, not intuition alone;
+- prefer Pareto/multi-objective evidence when several valid trade-offs exist instead of pretending one global score is absolute policy;
+- do not turn a one-run preference into a new hard rule. If RVV wants a preference to become mandatory, implement/test it explicitly in deterministic code/configuration.
+
+Typical soft dimensions include participation balance, hosting distribution, temporal spacing, opponent diversity/repetition, travel and source uncertainty. The repository measures them; the agent decides contextual priority only when no hard rule decides the outcome.
+
+### Stage 4 — export/review
+
+Stage 4 re-verifies the selected candidate before serialization.
+
+Agent policy:
+
+- hard verification failure blocks export/publication;
+- review manual arena/hosting/calendar follow-up separately from plan-quality warnings;
+- generated output is derived data: correct input/config/code and regenerate rather than permanently patching HTML/CSV/Excel/iCal;
+- use the Stage 4 `output_files` map to know what the run actually produced.
+
+Common outputs include the season-plan HTML/report, optional manual follow-up view, calendar/input views, Excel/CSV/iCal downloads, Spond workbooks and per-club review packets.
+
+## Structured decision protocol
+
+`run --interactive` returns a `DecisionContext` with facts, hard violations, warnings, metrics (when relevant), available actions and action argument/template information.
+
+For each pause:
+
+1. read the current context;
+2. if a hard violation exists, do not bypass it;
+3. choose exactly one returned available action;
+4. use only the action's declared argument shape;
+5. submit a concise operational rationale;
+6. run the next canonical command and reassess the new context.
+
+Do not persist or request hidden/private reasoning. The durable record only needs the action, relevant facts/outcome and concise rationale.
+
+## Human escalation
+
+Escalate when the repository explicitly requires human authority or information, for example:
+
+- a real policy exception/change;
+- an interactive access step that cannot be completed by the active environment;
+- an impossible hard-constraint situation requiring organizer action;
+- public publication or rollback approval.
+
+Do not escalate merely because a safe repository action can be retried/refined automatically.
+
+Human decision queue:
 
 ```bash
-# Check which sources were blocked (i.e. need LLM scraping)
-cat .pipeline/stage2_scraping.json | python3 -m json.tool | grep blocked
-
-# View the latest run log
-/rvv-miniputt logs show latest
+make questions
+make answer ID=<id> ANSWER='<answer>'
+make operator-run
 ```
 
-### Sandefjord shows up as blocked or missing
+## Publication
 
-This should not happen (issue #261) — Sandefjord Penguins is a
-`"fixed_allocation"` source, not a BookUp scrape, so Stage 2 never blocks
-on it or needs BookUp credentials. If it does show up blocked/missing:
-1. Check `input.xlsx` → `Kilder`: the Sandefjord Penguins row must have
-   `type=fixed_allocation` (URL can be empty).
-2. Check `tournament_scheduler/pipeline/fixed_allocation_source.py` still
-   registers `"Sandefjord Penguins"` → `sandefjord_fixed_busy_events`.
+Planning/export does not imply publication.
 
-### Stale calendar data
+Use:
 
 ```bash
-/rvv-miniputt calendars --refresh
+make publish-preview
+make publish CONFIRM_PUBLIC=1
+make verify-publish
 ```
 
-This forces a full re-scrape instead of using cached data.
+Publication creates a separate allowlisted public bundle. Review packets and Spond exports are private/review artifacts by default and should not be assumed public.
 
-### Checkpoints for resumption
-
-The pipeline saves checkpoints in `.pipeline/`:
-- `stage1_config.json` — after config
-- `stage2_scraping.json` — after scraping (includes blocked sources)
-- `stage3_planning.json` — after planning
-- `stage4_export.json` — after export
-
-Resume from any stage with `--resume-from N`.
-
-### Claude Code: stage-by-stage orchestration
-
-When running inside Claude Code (not Pi), invoke each stage individually and review its checkpoint before proceeding. This mirrors the inter-stage pause logic in Pi's `pipeline-runner.ts`.
-
-**Stage 1 — Config**
+Rollback is also explicit:
 
 ```bash
-python3 -m tournament_scheduler.pipeline.stage1_config [--input input.xlsx] [--work-dir .pipeline]
+make publish-history
+make rollback RUN_ID=<id> CONFIRM_PUBLIC=1
 ```
 
-After Stage 1 completes, read the checkpoint and the full merged config before continuing:
+## Related public workflows
+
+The repository also manages:
 
 ```bash
-# Human-readable summary of the checkpoint
-python3 -m tournament_scheduler.cli.checkpoint_printer stage1
-
-# Full merged config including fields from input.xlsx that are not stored in the checkpoint
-python3 -c "
-from tournament_scheduler.pipeline.stage1_config import load_effective_config
-import json, pprint
-pprint.pprint(load_effective_config('.pipeline'))
-"
+make aktivitetskalender
+make registered-teams CSV=<reviewed-registration-export.csv>
 ```
 
-`load_effective_config` returns the merged view with these fields relevant to semantic checks:
-- `start_date` — season start (from input.xlsx)
-- `end_date` — season end (from input.xlsx)
-- `teams` — list of `{club, label, age_group}` dicts
-- `age_groups` — list of active age group strings
-- `parallel_games` — dict of age group → simultaneous games per time slot
-- `target_tournament_count` — desired tournaments per team (integer or `null`)
-- `sources` — list of calendar sources to scrape
+Their publishing variants use the same explicit Pages publication machinery but are not Stage 1–4 planner stages.
 
-Verify the checkpoint before continuing:
-- `teams` is non-empty and contains all 9 RVV clubs
-- `age_groups` is populated
-- `parallel_games` config is present
-- `target_tournament_count` ≥ 1
-- `sources` list is non-empty
+## Documentation ownership
 
-## Semantic validation (Stage 1)
+Use these rather than creating new overlapping notes:
 
-After reading the effective configuration, perform semantic validation to ensure tournament feasibility before advancing to Stage 2. For each age group in the configuration:
-
-1. **Count available weekends** — iterate every Saturday from `start_date` to `end_date` (inclusive) and subtract any that fall on Norwegian public holidays. This gives the pool of usable tournament weekends.
-2. **Count teams per age group** — filter the `teams` list by `age_group` and count the entries.
-3. **Estimate teams per tournament** — use `parallel_games[age_group] × 2` as a lower bound (each simultaneous game needs 2 teams; actual tournament size may be larger).
-4. **Compute required tournaments** — `ceil(target_tournament_count × teams_in_age_group / teams_per_tournament)`.
-5. **Flag overcommitment** — if `required_tournaments > available_weekends` for an age group, that is a semantic error.
-
-The harness should reason through these calculations inline using the actual values from `load_effective_config`, performing weekend counting and arithmetic directly before deciding whether to proceed.
-
-**Check: parallel_games feasibility**
-
-For each age group:
-- Count the number of distinct clubs represented in `teams` for that age group.
-- Flag if `parallel_games[age_group] > distinct_clubs_in_age_group` — you cannot run more simultaneous games than there are clubs available to field teams.
-
-**Check: minimum team count**
-
-For each age group:
-- Count `teams_in_age_group`.
-- Flag if `teams_in_age_group < 2` — a tournament requires at least 2 teams to be meaningful.
-
-**Check: age groups with zero teams**
-
-- List all age group strings from the `age_groups` field of the effective config.
-- For each age group in that list, check whether at least one entry in `teams` has a matching `age_group` value.
-- Flag any age group that appears in `age_groups` but has no corresponding team records — this is a semantic error that will cause planning to produce an empty schedule for that age group.
-
-**Escalation: semantic failures block Stage 2**
-
-If any of the above checks flag an issue, **do not proceed to Stage 2**. Instead:
-
-1. Print a plain-language summary of each issue in Norwegian. Examples:
-   - `Aldergruppe JU10: 24 turneringer kreves men bare 18 helger tilgjengelig (start: 2025-09-01, slutt: 2026-04-30)`
-   - `Aldergruppe U7: parallel_games=5 men bare 4 klubber er representert`
-   - `Aldergruppe U12: minst 2 lag kreves, men bare 1 lag er registrert`
-   - `Aldergruppe JU11: oppført i age_groups men ingen lag er registrert`
-2. Instruct the user to correct `input.xlsx` and re-run Stage 1 (`python3 -m tournament_scheduler.pipeline.stage1_config`).
-3. Stop — do not invoke any Stage 2 commands.
-
-If all checks pass, proceed to Stage 2 as normal.
-
-**Stage 2 — Scraping**
-
-```bash
-python3 -m tournament_scheduler.pipeline.stage2_scraping [--work-dir .pipeline] [--force-refresh] [--non-strict] [--allow-missing-sources] [--manual-bookup-login]
-```
-
-Read `.pipeline/stage2_scraping.json` and verify before continuing:
-- `sources` contains scraped events for the expected clubs
-- `blocked` list is empty (or user has approved the missing sources)
-- Note any `cached` sources that were not re-fetched
-
-**Stage 3 — Planning**
-
-```bash
-python3 -m tournament_scheduler.pipeline.stage3_planning [--work-dir .pipeline]
-```
-
-Read `.pipeline/stage3_planning.json` and verify before continuing:
-- `plan` is present and contains a non-empty list of tournaments
-- Each tournament has a date, host club, and age group
-- No two tournaments with overlapping player pools share a weekend
-- `rules_report` shows no critical violations
-- `planning_critic_hints` may be present when `rvv-miniputt run --mid-planning-critic-iterations N` was used; this records the pre-export critic findings and numeric penalty hints that were baked into a Stage 3 rerun
-
-Optional pre-export critic loop: `rvv-miniputt run --mid-planning-critic-iterations N` inspects the Stage 3 checkpoint, generates structured critic/fairness hints, reruns Stage 3 with those hints, and only then falls through to Stage 4. This is distinct from the post-Stage-4 refinement loop, which applies manual-adjustment moves after export artifacts already exist and may re-export them.
-
-**Stage 4 — Export**
-
-```bash
-python3 -m tournament_scheduler.pipeline.stage4_export [--work-dir .pipeline] [--export-dir export]
-```
-
-Read `.pipeline/stage4_export.json` and report:
-- Files written under `export/` (or the timestamped subfolder)
-- Any `errors` in the checkpoint
-
-**Checkpoint review helper**
-
-Pretty-print any checkpoint in compact human-readable form:
-
-```bash
-python3 -m tournament_scheduler.cli.checkpoint_printer stage1
-python3 -m tournament_scheduler.cli.checkpoint_printer stage2
-python3 -m tournament_scheduler.cli.checkpoint_printer stage3
-python3 -m tournament_scheduler.cli.checkpoint_printer stage4
-```
-
-## Output files
-
-After a successful run:
-- `export/calendars.html` — interactive calendar viewer
-- `export/season_plan.html` — season plan HTML
-- `export/season_plan_report.html` — diagnostics/fairness report HTML
-- `export/manual_schedule.html` — “Må planlegges manuelt” view listing hall time that must be booked/verified by hand: tournaments with an arena/sequence collision **and** tournaments hosted by clubs whose calendar could not be scraped (they still get their share, but the istid is provisional). Only present when such items exist
-- `export/input.html` — read-only "Påmeldte lag" overview of registered clubs/teams from the Lag sheet
-- `export/season_plan.xlsx` — season plan Excel
-- `.pipeline/logs/run-<date>.jsonl` — structured run log
-
-## Project layout
-
-```
-.pi/extensions/rvv-miniputt.ts   # Extension — slash commands
-.pi/lib/pipeline-runner.ts       # Pipeline orchestration
-.pi/lib/pipeline-helpers.ts      # Helpers
-.pi/lib/pipeline-logger.ts       # Structured logging
-.pi/lib/scraper-agent.ts         # LLM-driven browser scraper
-.pi/lib/interactive-guide.ts     # Interactive wizard
-.pi/lib/log-inspector.ts         # Log viewing and stats
-.pi/lib/parsers.ts               # Argument parsing
-.pi/lib/types.ts                 # Type definitions
-
-tournament_scheduler/pipeline/         # Python pipeline stages
-tournament_scheduler/pipeline/scraper_strategies.py  # Per-club strategies
-tournament_scheduler/pipeline/browser_worker.py      # Playwright browser worker
-```
-
-## Python environment
-
-The pipeline runs Python from `venv/bin/python3`. If no venv exists, it falls back to the system `python3`. All Python modules live under `tournament_scheduler/`.
+- `README.md` — what the system does, inputs/outputs, normal operation;
+- `docs/system-architecture.md` — current end-to-end boundaries;
+- `docs/rvv-miniputt-pipeline.md` — Stage 1–4 workflow;
+- `docs/rvv-miniputt-input-formats.md` — workbook/input contract;
+- `docs/adr/` — durable architectural rationale;
+- GitHub issues — unfinished implementation work.
