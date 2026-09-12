@@ -9,6 +9,8 @@ This is the canonical agent-facing operating policy for the RVV Miniputt reposit
 
 Use repository code for facts, hard constraints, validation, search/solver mechanics, persistence, export and publication safeguards. Use agent judgment only for contextual soft decisions among actions the repository exposes.
 
+Treat this as a stage-by-stage pipeline, not a black box: review the checkpoint (`stage1_config.json`, `stage2_scraping.json`, `stage3_planning.json`, `stage4_export.json`) after each stage before continuing.
+
 Read `AGENTS.md` first for repository-wide precedence and hygiene rules.
 
 ## Command boundary
@@ -17,9 +19,23 @@ Read `AGENTS.md` first for repository-wide precedence and hygiene rules.
 
 Pi provides the RVV-specific `/rvv-miniputt ...` command/tool integration. Use the Pi command directly there; it is not a shell binary.
 
-### Other environments
+Agent-callable tools mirror the slash commands 1:1:
 
-Use the repository-local entrypoints:
+| Tool | Equivalent slash command |
+|---|---|
+| `rvv_miniputt_run` | `/rvv-miniputt run` |
+| `rvv_miniputt_publish` | `/rvv-miniputt publish` |
+| `rvv_miniputt_status` | `/rvv-miniputt status` |
+| `rvv_miniputt_logs` | `/rvv-miniputt logs` |
+| `rvv_miniputt_calendars` | `/rvv-miniputt calendars` |
+| `rvv_miniputt_scrape` | `/rvv-miniputt scrape` |
+| `rvv_miniputt_scrape_llm` | `/rvv-miniputt scrape-llm` |
+
+Use `rvv_miniputt_scrape` for single-club troubleshooting and `rvv_miniputt_scrape_llm` (backed by a Playwright worker) for blocked SPA/calendar sources.
+
+### Non-Pi / cross-harness usage
+
+Use the repository-local entrypoints instead of Pi slash commands:
 
 ```bash
 scripts/rvv-miniputt ...
@@ -29,6 +45,17 @@ python3 -m tournament_scheduler.cli.rvv_cli ...
 Human-friendly operation is exposed through `make help` and the Makefile.
 
 Harness adapters may add UI/browser/progress integration but must not redefine shared pipeline policy.
+
+A plain terminal/CI session cannot drive a browser for `scrape-llm --club <name>`. When that source needs LLM-guided recovery and no browser-enabled harness is available, use `scripts/rvv-miniputt recovery-targets` to list blocked sources, recover the events out-of-band, then `python3 -m tournament_scheduler.cli.rvv_cli recovery-inject --source "<name>"` (or `scripts/rvv-miniputt scrape-merge` to rebuild the Stage 2 checkpoint from recovered cache data) to rehydrate the cache through the same validation/merge path as any other source.
+
+### Pi-only boundary
+
+The following remain Pi-specific and have no cross-harness equivalent:
+
+- `/rvv-miniputt ...` slash-command dispatch itself;
+- `rvv_miniputt_*` agent-callable tool registration;
+- `/rvv-miniputt guide` interactive wizard UX;
+- live Pi notifications/status updates during a run.
 
 ## Normal operation
 
@@ -127,6 +154,27 @@ Agent policy:
 - use the Stage 4 `output_files` map to know what the run actually produced.
 
 Common outputs include the season-plan HTML/report, optional manual follow-up view, calendar/input views, Excel/CSV/iCal downloads, Spond workbooks and per-club review packets.
+
+## Stage gating policy (soft judgment)
+
+This is the canonical soft-policy source for the proceed/abort decision an agent or the headless judge (`tournament_scheduler.llm_judge`) makes after each stage (see ADR 0002 — `docs/adr/0002-llm-directed-decision-ownership-and-thin-adapters.md`). Interactive harnesses and the headless judge path must use this policy rather than defining their own criteria. A hard violation in the `DecisionContext` always blocks `proceed`, regardless of this policy.
+
+### Stage 1 — Configuration
+
+- `proceed` when at least one calendar source is configured and the date range is a realistic hockey season window;
+- `abort` when no sources are configured, or the date range is clearly wrong (e.g. zero-length, reversed, or outside a plausible season).
+
+### Stage 2 — Scraping
+
+- `proceed` when most configured sources were scraped successfully;
+- `abort` when so many sources are blocked or empty that planning would be meaningless — as a starting heuristic, fewer than half the sources have usable data. Prefer `recover_source`/`retry_stage` over an outright `abort` when a blocked source looks recoverable before concluding the run cannot continue.
+
+### Stage 3 — Planning
+
+- `proceed` when the draft plan contains at least a handful of tournaments covering the configured clubs/age groups;
+- `abort` when the plan is empty or clearly wrong (e.g. zero tournaments planned despite configured sources/registrations) — that usually indicates a configuration or upstream data error, not a planning-quality judgment call.
+
+Planning-quality tradeoffs (which warning to address first, whether a small regression is worth a larger gain, whether to keep the baseline) are the agent's soft judgment to make once past this proceed/abort gate. Do not encode a new fixed threshold or magic weight here to answer one of those tradeoffs; expose the underlying facts/metrics instead.
 
 ## Structured decision protocol
 
