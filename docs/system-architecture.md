@@ -1,79 +1,105 @@
 # System architecture
 
-This document describes the intended high-level architecture and responsibility boundaries. Keep it current when workflows or canonical data locations change.
+This document describes the current high-level architecture and responsibility boundaries. Keep it current when canonical inputs, workflow ownership, or public-output behavior changes.
 
 ## Core flow
 
 ```text
-Microsoft 365 source files and forms
-        ↓
-Power Automate integration
-        ↓
-Canonical input files in the repository
-        ↓
-Repository validation and generation scripts
-        ↓
-GitHub Actions
-        ↓
-Generated reports, calendars, and GitHub Pages output
-        ↓
-WordPress links or embeds
+Microsoft Forms
+      ↓
+Power Automate
+      ↓
+Reviewed private SharePoint registrations
+      ↓
+controlled import of Lag rows
+      ↓
+root input.xlsx  ←  controlled season settings / age groups / sources
+      ↓
+RVV repository pipeline (Stage 1 → 4)
+      ↓
+reviewable exports + deterministic verification
+      ↓
+explicit publication approval
+      ↓
+GitHub Pages
+      ↓
+WordPress links/embeds + Spond operational use
 ```
 
-## Responsibility boundaries
+## Sources of truth
 
-### Microsoft 365 and Power Automate
+- **SharePoint List** is the reviewed source of truth for registration workflow data.
+- **Root `input.xlsx`** is the canonical controlled input to season planning. The normal registration import replaces only `Lag`; administrative sheets remain controlled in the workbook.
+- **External calendar sources** are authoritative for their own availability evidence, subject to source-health/provenance checks.
+- **Repository code and tests** define deterministic parsing, hard constraints, measurement, persistence, export, and publication safety.
+- **`.agents/skills/rvv/SKILL.md`** is the canonical shared agent runbook for contextual/soft decisions.
+- **GitHub issues** are the current implementation backlog. ADRs preserve architectural decisions; dated reviews and old roadmaps are historical context.
 
-Use these for lightweight integration tasks:
+There is no active plan to move the canonical planner workbook to an `inputs/` directory. If that changes, update this document, `README.md`, the CLI defaults, and input-format documentation together.
 
-- Collect data through Microsoft Forms
-- Store or manage working files in Teams and SharePoint
-- Validate simple form conditions where necessary before storage
-- Copy approved source data into the repository
-- Trigger repository updates when a canonical source file changes
+## Decision ownership
 
-Keep complex scheduling, generation, and publishing logic out of Power Automate when it can live in tested repository code.
+### Deterministic code owns
 
-### Repository code
+- workbook/config parsing and normalization
+- team, club, source, arena, and calendar facts
+- hard scheduling constraints and validation
+- reproducible metrics and scorecards
+- checkpoints, manifests, fingerprints, and provenance
+- candidate/action validation and application
+- export/privacy/publication safety gates
 
-Use repository scripts for:
+### Agent/LLM owns contextual soft judgment
 
-- Input validation
-- Scheduling and planning logic
-- Deterministic transformations
-- Calendar and report generation
-- Export preparation
-- Reproducible local operations
+- which warning or quality dimension to prioritize
+- which valid search/refinement action to request next
+- trade-offs between soft metrics when no hard rule decides the outcome
+- recovery strategy for suspicious or blocked sources
+- what to recommend or escalate to the operator
 
-Use the repository's supported command wrappers. Do not bypass them by invoking internal pipeline stages directly when that skips logging, checkpoints, or resumption behavior.
+The agent acts through validated `DecisionContext` / `DecisionAction` capabilities. It does not bypass hard constraints or replace the solver with prose.
 
-### GitHub Actions
+### Human operator owns
 
-Use GitHub Actions for:
+- credentials and MFA
+- explicit policy changes and exceptions that require human authority
+- publication and rollback approval
+- decisions the system explicitly escalates
 
-- Running validation and tests
-- Generating outputs from canonical inputs
-- Publishing GitHub Pages
-- Automating repeatable repository operations
+## Adapter boundary
 
-### WordPress
+Pi, Claude, ChatGPT, Codex, OpenCode, GitHub Actions, and future interfaces are adapters over the repository capabilities. They may provide UI, browser integration, progress reporting, argument parsing, or rendering, but they must not maintain independent Stage 1–4 policy.
 
-Treat WordPress as the presentation layer for public information. Prefer linking to or embedding generated outputs instead of duplicating generation logic or manually maintaining the same data in WordPress.
+The desired adapter loop is:
 
-## Canonical inputs and generated outputs
+```text
+read shared RVV runbook
+       ↓
+invoke repository capability
+       ↓
+receive DecisionContext
+       ↓
+choose one available validated action
+       ↓
+submit DecisionAction
+       ↓
+repeat / escalate / finish
+```
 
-Canonical inputs should live under `inputs/` as the related migration work is completed. Generated files must be reproducible from canonical inputs and repository code.
+## Power Automate and Microsoft 365
 
-Do not manually edit generated outputs. Change the canonical input or generator instead.
+Use Microsoft 365 for intake and lightweight integration: Forms submission, registration-code validation, reviewed SharePoint storage, notifications, and controlled exports. Keep scheduling, plan generation, verification, and publication logic in tested repository code rather than duplicating it in Power Automate.
 
-When adding or moving an input source, document:
+## GitHub Actions
 
-- Its canonical repository path
-- Its external source, if any
-- How synchronization occurs
-- Which command or workflow consumes it
-- Which outputs it affects
+GitHub Actions runs validation/tests and provides browser-accessible review/publication workflows. Actions must call the same repository capabilities as local operation; workflow YAML is not an alternate policy engine.
 
-## Architecture changes
+## WordPress and Spond
 
-Prefer extending the existing flow over creating a parallel system. Introduce new infrastructure only when a concrete requirement cannot be met reasonably by the existing repository, GitHub Actions, or Microsoft 365 tools.
+WordPress is the public editorial/navigation layer. Prefer links or embeds to generated GitHub Pages output instead of maintaining a second copy of generated schedules.
+
+Spond is an operational communication/event-distribution system. Only distribute an approved plan, and treat later corrections as source changes followed by regeneration/review rather than permanent manual patches to generated files.
+
+## Generated data
+
+Generated checkpoints, exports, reports, architecture visualizations, and run evidence are not active documentation. Keep reproducible runtime artifacts under their runtime/export locations; do not add one-off generated evidence under `docs/` unless it is intentionally promoted into a maintained document.
