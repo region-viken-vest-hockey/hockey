@@ -35,7 +35,7 @@ The root [`README.md`](../README.md) is the main human entry point. Shared agent
 ## Historical material
 
 - [`2025/`](2025/) is retained as historical season/reference material.
-- `ai-operator-roadmap.md`, while retained for implementation history, is **not the current backlog**. GitHub issues are authoritative for unfinished work.
+- [`ai-operator-roadmap.md`](ai-operator-roadmap.md) is a deliberately short historical implementation record. It is **not the current backlog**. GitHub issues are authoritative for unfinished work.
 - Dated architecture reviews, generated decision logs, and generated architecture visualizations should not live in the active documentation tree. Git history preserves old snapshots when they are useful for archaeology.
 
 ## Maintenance rules
