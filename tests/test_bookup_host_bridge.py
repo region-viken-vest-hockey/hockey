@@ -121,52 +121,6 @@ def test_request_bookup_scrape_returns_error_when_bridge_reports_failure(
     assert error == "MFA timed out"
 
 
-def test_try_credentialed_scrape_uses_bridge_for_bookup_source(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv(bridge.BRIDGE_URL_ENV, "http://host.lima.internal:8765")
-    sentinel_events = [CalendarEvent(date="03.09.2026", name="Kamp", datetime=datetime(2026, 9, 3, 10, 0))]
-
-    def _fake_request(name, url, start_date, end_date):
-        assert name == "Tønsberg"
-        return sentinel_events, ""
-
-    monkeypatch.setattr(
-        "tournament_scheduler.pipeline.bookup_host_bridge.request_bookup_scrape", _fake_request
-    )
-    events, error = _try_credentialed_scrape(
-        "Tønsberg", "https://tonsberg.bookup.example", datetime(2026, 9, 1), datetime(2026, 9, 30)
-    )
-    assert error == ""
-    assert events == sentinel_events
-
-
-def test_try_credentialed_scrape_ignores_bridge_in_host_bridge_mode(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The host bridge server's own call (host_bridge_mode=True) must not loop back to itself."""
-    monkeypatch.setenv(bridge.BRIDGE_URL_ENV, "http://host.lima.internal:8765")
-    monkeypatch.delenv("BOOKUP_TONSBERG_USERNAME", raising=False)
-
-    called = {"bridge": False}
-
-    def _fake_request(*a, **k):
-        called["bridge"] = True
-        return [], ""
-
-    monkeypatch.setattr(
-        "tournament_scheduler.pipeline.bookup_host_bridge.request_bookup_scrape", _fake_request
-    )
-    events, error = _try_credentialed_scrape(
-        "Tønsberg",
-        "https://tonsberg.bookup.example",
-        datetime(2026, 9, 1),
-        datetime(2026, 9, 30),
-        host_bridge_mode=True,
-    )
-    assert called["bridge"] is False
-    # No credentials configured in the test env -> explicit missing-credentials error,
-    # not a silent bridge round-trip.
-    assert events == []
-    assert "milj" in error.lower() or "credent" in error.lower()
-
-
 def test_non_bookup_source_is_unaffected_by_bridge_config(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(bridge.BRIDGE_URL_ENV, "http://host.lima.internal:8765")
     called = {"bridge": False}

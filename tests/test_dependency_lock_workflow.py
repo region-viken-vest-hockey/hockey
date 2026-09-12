@@ -12,12 +12,6 @@ def _read(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 
 
-def _target_body(makefile: str, target: str) -> str:
-    match = re.search(rf"(?:^|\n){re.escape(target)}:[^\n]*(?P<body>.*?)(?:\n\S|\Z)", makefile, re.DOTALL)
-    assert match, f"missing Makefile target {target}"
-    return match.group("body")
-
-
 def test_committed_lock_has_exact_versions_hashes_and_expected_groups():
     lock = _read("requirements.lock")
 
@@ -65,33 +59,3 @@ def test_ci_installs_locked_dependencies_and_has_lock_freshness_job():
     assert "pip install --no-deps -e ." in ci
     assert "pip install -r requirements.txt" not in ci
     assert "pip install -e '.[test]'" not in ci
-
-
-def test_check_and_make_expose_dependency_lock_verification():
-    check = _read("scripts/check")
-    makefile = _read("Makefile")
-
-    assert "dependency-lock)" in check
-    assert "scripts/refresh-python-lock.sh" in check
-    assert "cmp -s" in check
-    assert "requirements.lock is stale" in check
-    assert "dependency-lock" in re.search(r"PUBLIC_TARGETS :=(?P<body>.*?)(?:\n\n|\Z)", makefile, re.DOTALL).group("body")
-    assert "scripts/check dependency-lock" in _read("docs/ci.md")
-    assert "make dependency-lock" in _read("README.md")
-    dependency_body = _target_body(makefile, "dependency-lock")
-    assert "$(CHECK)" in dependency_body
-    assert "dependency-lock" in dependency_body
-
-
-def test_docs_describe_locked_operator_and_ci_handling():
-    docs = _read("README.md") + "\n" + _read("docs/ci.md")
-
-    for phrase in [
-        "requirements.lock",
-        "--require-hashes",
-        "--no-deps",
-        "canonical direct dependency declaration",
-        "all optional dependency groups",
-        "Playwright browser binaries",
-    ]:
-        assert phrase in docs

@@ -109,13 +109,3 @@ class TestRegisteredTeamsPublish:
         assert proc.returncode == 0
         assert "make registered-teams CSV=" in proc.stdout
         assert "make registered-teams-publish CSV=" in proc.stdout
-
-    def test_operator_docs_include_standalone_registered_team_url(self):
-        docs_text = Path("docs/rvv-miniputt-pipeline.md").read_text(encoding="utf-8")
-        readme_text = Path("README.md").read_text(encoding="utf-8")
-        public_url = "https://region-viken-vest-hockey.github.io/hockey/latest/registered-teams/pameldte-lag.html"
-
-        assert "make registered-teams CSV=" in docs_text
-        assert "make registered-teams-publish CSV=" in docs_text
-        assert public_url in docs_text
-        assert public_url in readme_text

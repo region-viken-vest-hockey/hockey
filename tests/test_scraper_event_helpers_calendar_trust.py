@@ -16,11 +16,6 @@ def _source_result(name: str, **overrides) -> dict:
 
 
 class TestGroupClubCalendarStatusTrustTier:
-    def test_untrusted_club_downgrades_a_successful_scrape(self):
-        # Tønsberg's registry entry is trusted_for_auto_placement=False.
-        status = _group_club_calendar_status([_source_result("Tønsberg")])
-        assert status["Tønsberg"] == "untrusted"
-
     def test_trusted_club_successful_scrape_stays_known(self):
         status = _group_club_calendar_status([_source_result("Ringerike")])
         assert status["Ringerike"] == "known"

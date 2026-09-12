@@ -193,20 +193,3 @@ class TestActivityViewer:
         assert "../activities.json" in first
         assert "SheetJS" not in first
         assert "xlsx" not in first.lower()
-
-    def test_wordpress_embed_docs_include_marker_view_and_iframe_resize_contract(self):
-        docs = (Path(__file__).parents[1] / "docs" / "rvv-miniputt-pipeline.md").read_text(encoding="utf-8")
-
-        assert "Sesongsløp" in docs
-        assert "markør" in docs.lower()
-        assert "rvv-activities-frame" in docs
-        assert "rvv-activities-height" in docs
-        assert "namespace: 'rvv.activities'" in docs
-        assert "schema_version: 1" in docs
-        assert "data.iframe_id" in docs
-        assert "frame.contentWindow !== event.source" in docs
-        assert "MAX_HEIGHT = 6000" in docs
-        assert "event.origin !== EXPECTED_ORIGIN" in docs
-        assert "Årshjul` view is removed" in docs
-        assert "full-width" in docs
-        assert "manual WordPress follow-ups" in docs

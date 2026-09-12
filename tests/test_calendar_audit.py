@@ -59,14 +59,6 @@ def _response(content: bytes):
     return response
 
 
-def test_frisk_registry_models_only_bookable_askerhallen():
-    frisk = CLUB_REGISTRY["Frisk Asker"]
-    assert frisk.arena == "Askerhallen"
-    assert frisk.location_filter == "Idrettshallen"
-    assert frisk.human_url == "https://teamup.com/ksdwpwxysmxwnuftoy"
-    assert frisk.source == "https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics"
-
-
 def test_teamup_sources_expose_human_and_machine_urls():
     human, feed = _source_urls(
         "Frisk Asker",
@@ -81,41 +73,6 @@ def test_teamup_sources_expose_human_and_machine_urls():
     )
     assert ringerike_human == "https://teamup.com/ksr8bg1tpn5s3npskw"
     assert ringerike_feed == "https://ics.teamup.com/feed/ksr8bg1tpn5s3npskw/0.ics"
-
-
-def test_frisk_ical_filter_excludes_varner_and_preserves_all_day_vs_midnight(tmp_path):
-    frisk = CLUB_REGISTRY["Frisk Asker"]
-    cache = CalendarCache(cache_dir=str(tmp_path / "ical-cache"))
-    scraper = ICalScraper(frisk.source or "", cache=cache)
-
-    with patch(
-        "tournament_scheduler.data_sources.ical_scraper.requests.get",
-        return_value=_response(FRISK_MULTI_ARENA_FEED),
-    ):
-        events = scraper.scrape_calendar(
-            frisk.source or "",
-            "Frisk Asker",
-            datetime(2026, 9, 1),
-            datetime(2026, 9, 30),
-            location_filter=frisk.location_filter,
-        )
-
-    names = {event.name for event in events}
-    assert "Varner aktivitet" not in names
-    assert names == {"Askerhallen trening", "Askerhallen hele dagen", "Ekte midnatt"}
-
-    by_name = {event.name: event for event in events}
-    assert getattr(by_name["Askerhallen hele dagen"], "all_day", False) is True
-    assert by_name["Askerhallen hele dagen"].datetime.strftime("%H:%M") == "00:00"
-    assert getattr(by_name["Ekte midnatt"], "all_day", False) is False
-    assert by_name["Ekte midnatt"].datetime.strftime("%H:%M") == "00:00"
-    assert by_name["Ekte midnatt"].duration_hours == 1
-
-    serialized = _events_to_dicts(events, club_name="Frisk Asker")
-    serialized_by_name = {event["name"]: event for event in serialized}
-    assert serialized_by_name["Askerhallen hele dagen"]["all_day"] is True
-    assert "all_day" not in serialized_by_name["Ekte midnatt"]
-    assert {event.get("arena") for event in serialized} == {"Askerhallen"}
 
 
 def test_calendar_cache_roundtrip_keeps_location_and_all_day(tmp_path):

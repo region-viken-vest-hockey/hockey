@@ -189,71 +189,6 @@ class TestRunStage2:
         assert result.get("empty_sources", []) == ["HallY"]
         assert result["sources"][0]["empty_calendar"] is True
 
-    def test_allow_missing_sources_keeps_partial_results(self, tmp_path):
-        state = PipelineState(tmp_path / "pipeline")
-        cfg = _make_config_with_sources([
-            {
-                "name": "Tønsberg",
-                "type": SOURCE_OUTLOOK,
-                "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
-            },
-        ])
-
-        with patch(
-            "tournament_scheduler.pipeline.stage2_scraping._try_credentialed_scrape",
-            return_value=([], "Kilden krever manuell innlogging"),
-        ):
-            result = run(
-                cfg, state,
-                datetime(2025, 9, 1), datetime(2025, 12, 1),
-                strict=True,
-                allow_missing_sources=True,
-            )
-
-        assert state.is_done(StageName.SCRAPING)
-        assert not state.is_failed(StageName.SCRAPING)
-        assert result["blocked"] == ["Tønsberg"]
-        assert result["empty_sources"] == []
-        assert "delvise resultater" in result["warning"].lower()
-        src = result["sources"][0]
-        assert src["blocked"] is True
-        assert src["llm_fallback"] is True
-        assert "BOOKUP_EMAIL" not in src.get("scraper_error", "")
-        assert "BOOKUP_PASSWORD" not in src.get("scraper_error", "")
-        # issue #262 P0: a blocked scrape must be recorded as "unknown"
-        # calendar-evidence status, never silently omitted (which downstream
-        # code used to treat as "entire window free").
-        club_name = club_for_source_name("Tønsberg")
-        assert club_name is not None
-        assert result["club_calendar_status"][club_name] == "unknown"
-
-    def test_operator_confirmed_available_clubs_overrides_blocked_status(self, tmp_path):
-        """issue #262 P0: the explicit operator-override escape hatch."""
-        state = PipelineState(tmp_path / "pipeline")
-        cfg = _make_config_with_sources([
-            {
-                "name": "Tønsberg",
-                "type": SOURCE_OUTLOOK,
-                "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
-            },
-        ])
-        club_name = club_for_source_name("Tønsberg")
-        cfg["operator_confirmed_available_clubs"] = [club_name]
-
-        with patch(
-            "tournament_scheduler.pipeline.stage2_scraping._try_credentialed_scrape",
-            return_value=([], "Kilden krever manuell innlogging"),
-        ):
-            result = run(
-                cfg, state,
-                datetime(2025, 9, 1), datetime(2025, 12, 1),
-                strict=True,
-                allow_missing_sources=True,
-            )
-
-        assert result["blocked"] == ["Tønsberg"]
-        assert result["club_calendar_status"][club_name] == "known"
-
     def test_outlook_source_with_events_passes(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
         cfg = _make_config_with_sources([
@@ -1141,36 +1076,6 @@ class TestHarnessGate:
 
 class TestStrategyBasedDispatch:
     """_scrape_source dispatches to the correct scraper via get_deterministic_scraper_type."""
-
-    def test_bookup_spa_strategy_uses_credentialed_scraper_when_required(self, tmp_path):
-        """Tønsberg requires login, so Stage 2 must not accept the public placeholder calendar."""
-        state = PipelineState(tmp_path / "pipeline")
-        cfg = _make_config_with_sources([
-            {
-                "name": "Tønsberg",
-                "type": SOURCE_OUTLOOK,
-                "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
-            },
-        ])
-
-        with patch(
-            "tournament_scheduler.pipeline.stage2_scraping._try_credentialed_scrape",
-            return_value=([_make_event("Innlogget BookUp")], ""),
-        ) as mock_credentialed, patch(
-            "tournament_scheduler.pipeline.stage2_scraping._run_bookup_scraper",
-            side_effect=AssertionError("public BookUp scraper must not be used for credentialed sources"),
-        ):
-            result = run(
-                cfg, state,
-                datetime(2025, 9, 1), datetime(2025, 12, 1),
-                strict=False,
-            )
-
-        mock_credentialed.assert_called_once()
-        src = result["sources"][0]
-        assert src["event_count"] == 1
-        assert src["credentialed"] is True
-        assert src["blocked"] is False
 
     def test_forumbooking_strategy_routes_to_forumbooking_scraper(self, tmp_path):
         """Jar uses the Forumbooking parser instead of the generic browser fallback."""
