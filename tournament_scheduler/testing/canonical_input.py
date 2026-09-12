@@ -174,7 +174,7 @@ def build_canonical_planner(
         roster=roster,
         club_arenas={club: f"{club}hallen" for club in clubs},
         parallel_games_for_age_group=parallel_games,
-        target_tournament_counts_by_age_group=data.get("target_tournament_counts_by_age_group"),
+        participation_targets_by_age_group=data.get("participation_targets_by_age_group"),
         events_by_club=events_by_club or {},
         **planner_kwargs,
     )

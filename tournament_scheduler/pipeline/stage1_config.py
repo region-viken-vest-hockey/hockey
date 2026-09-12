@@ -76,12 +76,16 @@ def load_effective_config(
     merged["start_date"] = raw.get("start_date")
     merged["end_date"] = raw.get("end_date")
     merged["parallel_games"] = raw.get("parallel_games", {})
-    if raw.get("target_tournament_count") is not None:
-        merged["target_tournament_count"] = raw["target_tournament_count"]
+    # The canonical workbook no longer supports a global
+    # `target_tournament_count` / `deltakelser_per_lag` fallback — Stage 1
+    # validation rejects it outright (see stage1_helpers.validate_config), so
+    # it is intentionally never merged into the effective config here. The
+    # per-age-group `participation_targets_by_age_group` values below are the
+    # only participation-target source for the canonical path.
     if raw.get("max_hosting_days_per_month") is not None:
         merged["max_hosting_days_per_month"] = raw["max_hosting_days_per_month"]
-    if raw.get("target_tournament_counts_by_age_group"):
-        merged["target_tournament_counts_by_age_group"] = raw["target_tournament_counts_by_age_group"]
+    if raw.get("participation_targets_by_age_group"):
+        merged["participation_targets_by_age_group"] = raw["participation_targets_by_age_group"]
     merged["sources"] = raw.get("sources", [])
 
     # Age groups: explicit input workbook value only; downstream can fall back

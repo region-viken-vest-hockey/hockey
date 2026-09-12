@@ -76,7 +76,10 @@ def _half_split_candidate() -> dict:
 
 
 class TestOptimizeCandidateCpSat:
-    def test_preserves_participation_counts(self):
+    def test_preserves_participation_counts_when_no_target_configured(self):
+        """Fallback path (issue #298): with no `problem` -- and therefore no
+        configured participation target for any identity -- CP-SAT keeps the
+        legacy exact baseline-lock behavior."""
         candidate = _clustered_candidate()
         before = score_candidate(candidate)["participation"]["counts_by_team"]
 
@@ -84,6 +87,51 @@ class TestOptimizeCandidateCpSat:
 
         after = score_candidate(optimized)["participation"]["counts_by_team"]
         assert after == before
+
+    def test_repairs_participation_toward_configured_target(self):
+        """CP-SAT must optimize each team's participation toward
+        its configured target rather than preserving the baseline's own
+        count. Every tournament here fields exactly 3 of 4 teams, so total
+        participation capacity across the 4 tournaments is fixed at 12 --
+        with explicit per-team targets summing to exactly that capacity and
+        each capped at its own target, *any* feasible assignment is forced
+        to hit every target exactly, regardless of how badly the baseline
+        started."""
+        teams = {label: _team(f"Club{label}", label, "U10") for label in ("T1", "T2", "T3", "T4")}
+        all_labels = ["T1", "T2", "T3", "T4"]
+
+        def _pool(excluded: str) -> list[dict]:
+            return [teams[label] for label in all_labels if label != excluded]
+
+        # Baseline: T1/T2 present in all 4 (excluded 0 times each), T3 present
+        # in 3 (excluded once), T4 present in only 1 (excluded 3 times) --
+        # the opposite distribution from the configured targets below.
+        # Host club is fixed to T3 (target 4, present in every tournament
+        # under both the baseline and the target-exact assignment) so the
+        # immutable host-presence constraint never conflicts with the
+        # participation targets under test.
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U10", _pool("T4"), host_club="ClubT3"),
+                _tournament("t2", "2026-02-04", "Arena1", "U10", _pool("T4"), host_club="ClubT3"),
+                _tournament("t3", "2026-03-06", "Arena1", "U10", _pool("T4"), host_club="ClubT3"),
+                _tournament("t4", "2026-04-05", "Arena1", "U10", _pool("T3"), host_club="ClubT3"),
+            ],
+        }
+        problem = {
+            "teams": [
+                {**teams["T1"], "target_tournament_count": 1},
+                {**teams["T2"], "target_tournament_count": 3},
+                {**teams["T3"], "target_tournament_count": 4},
+                {**teams["T4"], "target_tournament_count": 4},
+            ]
+        }
+
+        optimized = optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+
+        after = score_candidate(optimized)["participation"]["counts_by_team"]
+        assert after == {"T1": 1, "T2": 3, "T3": 4, "T4": 4}
 
     def test_preserves_skeleton_dates_hosts_arenas_and_tournament_count(self):
         candidate = _clustered_candidate()

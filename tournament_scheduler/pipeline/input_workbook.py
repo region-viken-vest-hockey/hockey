@@ -76,10 +76,10 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
       preference-weight values; exceeded values trigger a :class:`UserWarning`.
     - ``Aldersgrupper``: columns ``age_group``, ``parallel_games``, optional
       ``round_length_minutes``, optional ``preferanse_vekt`` (float, default 0.0),
-      and the split fields ``deltakelser_per_lag_før_jul`` /
-      ``target_tournament_count_before_christmas`` plus
-      ``deltakelser_per_lag_etter_jul`` /
-      ``target_tournament_count_after_christmas``.
+      and the authoritative per-team participation targets
+      ``deltakelser_per_lag_før_jul`` / ``target_tournament_count_before_christmas``
+      plus ``deltakelser_per_lag_etter_jul`` / ``target_tournament_count_after_christmas``
+      — required for every active age group (validated in Stage 1, not here).
     - ``Lag``: columns ``club``, ``label``, ``age_group``.
     - ``Kilder``: columns ``name``, ``type``, ``url``.
     - ``Datopreferanser``: columns ``fra``, ``til``, ``vekt`` for global
@@ -99,8 +99,6 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
 
     raw: dict[str, Any] = {}
     raw.update(_read_settings(wb["Innstillinger"]))
-    if "target_tournament_count" not in raw and "deltakelser_per_lag" in raw:
-        raw["target_tournament_count"] = raw["deltakelser_per_lag"]
 
     # Configurable absolute cap on vekt values (default 10.0).
     # Prevents runaway weights from dominating the scoring function.
@@ -119,7 +117,7 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
         if pref_weights:
             raw["preferanse_vekt"] = pref_weights
         if target_counts:
-            raw["target_tournament_counts_by_age_group"] = target_counts
+            raw["participation_targets_by_age_group"] = target_counts
 
     raw["teams"] = _read_table(
         wb["Lag"],

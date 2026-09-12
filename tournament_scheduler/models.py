@@ -310,6 +310,13 @@ class SeasonPlan:
     # Non-blocking -- surfaced in manual_schedule.html rather than rejecting
     # the whole plan.
     unresolved_participation_shortfalls: List[Dict[str, str]] = field(default_factory=list)
+    # The authoritative per-age-group, per-half participation
+    # target this plan was built against (before_christmas/after_christmas
+    # per age group), carried on the plan itself so planner-independent
+    # consumers (rules_model.py, the rules report) can show configured
+    # targets alongside actual/shortfall figures without depending on
+    # SeasonPlanner internals.
+    participation_targets_by_age_group: Dict[str, Dict[str, int]] = field(default_factory=dict)
     # issue #274: explicit LLM/controller decisions for shared/joint-club
     # registrations (e.g. "Kongsberg/Tønsberg") choosing which constituent
     # club carries a specific hosting obligation. Each entry: {"registration",

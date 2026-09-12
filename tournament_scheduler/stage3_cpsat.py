@@ -153,6 +153,35 @@ def _games_to_dicts(teams: list[Team], parallel_games: int) -> list[Dict[str, An
     ]
 
 
+def _resolve_participation_target(
+    identity: TeamIdentity,
+    team_map: Dict[TeamIdentity, Dict[str, Any]],
+    problem: Optional[Dict[str, Any]],
+    half_label: str,
+) -> Optional[int]:
+    """Resolve the authoritative participation target for *identity* in this half.
+
+    An explicit per-team ``target_tournament_count`` override
+    (season-wide by definition) always wins, mirroring
+    ``SeasonPlanner._team_target_tournament_count``'s precedence. Otherwise
+    the age group's ``participation_targets_by_age_group`` before/after
+    value for *half_label* is the authoritative per-team, per-half target.
+    Returns ``None`` when neither is configured (non-canonical age group),
+    signalling the caller should fall back to the legacy baseline-lock
+    behavior for that identity.
+    """
+    team = team_map.get(identity) or {}
+    explicit = team.get("target_tournament_count")
+    if isinstance(explicit, int):
+        return explicit
+    if half_label not in ("before_christmas", "after_christmas"):
+        return None
+    age_group = identity[2]
+    targets = ((problem or {}).get("participation_targets_by_age_group") or {}).get(age_group) or {}
+    half_target = targets.get(half_label)
+    return half_target if isinstance(half_target, int) else None
+
+
 def _resolve_split_date(
     problem: Optional[Dict[str, Any]], slots: "list[_TournamentSlot]"
 ) -> Optional[date]:
@@ -244,26 +273,40 @@ def _solve_slot_group(
             if host_vars:
                 model.Add(sum(host_vars) >= 1)
 
-    # Preserve each team's baseline participation exactly *within this
-    # group*. When solving a single combined group this is the team's whole
-    # season count; when decomposed by half (issue #298 Phase 2) this is the
-    # team's baseline count for that half specifically, which is what makes
-    # each half an independently valid participant-assignment problem.
     baseline_participations: Counter[TeamIdentity] = Counter()
     for slot in slots:
         baseline_participations.update(slot.baseline_team_ids)
     slot_indexes_by_age_group: "dict[str, list[int]]" = defaultdict(list)
     for slot in slots:
         slot_indexes_by_age_group[slot.age_group].append(slot.index)
+
+    # The configured participation target (per-team override, or
+    # the age group's authoritative before/after-Christmas value for this
+    # half) is now what CP-SAT optimizes against -- never exceeded (hard
+    # cap below), preferably met (deficit objective term further down) --
+    # instead of preserving the baseline's own count as authoritative. The
+    # baseline remains only a search hint (`AddHint` below). Identities with
+    # no configured target (non-canonical age groups) keep the original
+    # exact baseline-lock behavior as a defensive fallback.
+    participation_deficit_terms: "list[Any]" = []
     for identity, baseline_count in baseline_participations.items():
-        model.Add(
-            sum(
-                x[(slot_index, identity)]
-                for slot_index in slot_indexes_by_age_group.get(identity[2], [])
-                if (slot_index, identity) in x
-            )
-            == baseline_count
-        )
+        vars_for_identity = [
+            x[(slot_index, identity)]
+            for slot_index in slot_indexes_by_age_group.get(identity[2], [])
+            if (slot_index, identity) in x
+        ]
+        if not vars_for_identity:
+            continue
+        count_expr = sum(vars_for_identity)
+        target = _resolve_participation_target(identity, team_map, problem, half_label)
+        if target is None:
+            model.Add(count_expr == baseline_count)
+            continue
+        model.Add(count_expr <= target)
+        if not feasibility_only:
+            deficit = model.NewIntVar(0, target, f"participation_deficit_team{team_index[identity]}")
+            model.Add(deficit >= target - count_expr)
+            participation_deficit_terms.append(deficit)
 
     # No duplicate participation on one date.
     slots_by_age_date: "dict[tuple[str, date], list[int]]" = defaultdict(list)
@@ -339,6 +382,10 @@ def _solve_slot_group(
 
     pair_serial = 0
     objective_terms: "list[Any]" = []
+    # Closing a configured participation gap outranks pairing
+    # quality (repeat-opponent penalties below top out at 2000) so the
+    # solver prioritizes meeting the target over tie-breaking on variety.
+    objective_terms.extend(5000 * term for term in participation_deficit_terms)
     baseline_same_club = _baseline_same_club_pairings(slots)
 
     if feasibility_only:
@@ -428,17 +475,18 @@ def _solve_slot_group(
         if objective_terms:
             model.Minimize(sum(objective_terms))
 
-    # issue #298: the baseline candidate is always itself a feasible
-    # assignment for this model (every constraint above was derived from it
-    # -- same roster sizes, same participation counts, same-or-fewer
-    # same-club pairings, pinned/host membership already satisfied) but
-    # unhinted CP-SAT still has to *rediscover* that from scratch, and can
-    # burn its entire time budget searching without ever reporting
-    # FEASIBLE/OPTIMAL on a large enough model. Hinting every decision
-    # variable at its baseline value gives the solver a known-feasible
-    # starting point to validate/repair immediately, so a solve that would
-    # otherwise time out at UNKNOWN can still return the baseline (or better)
-    # within budget.
+    # issue #298: the baseline candidate is feasible for every structural
+    # constraint above (same roster sizes, same-or-fewer same-club pairings,
+    # pinned/host membership) but unhinted CP-SAT still has to *rediscover*
+    # that from scratch, and can burn its entire time budget searching
+    # without ever reporting FEASIBLE/OPTIMAL on a large enough model.
+    # Hinting every decision variable at its baseline value gives the solver
+    # a known-mostly-feasible starting point to validate/repair immediately,
+    # so a solve that would otherwise time out at UNKNOWN can still return
+    # the baseline (or better) within budget. The participation cap above
+    # means a baseline that *exceeds* its configured target is no longer
+    # itself feasible against this hint -- CP-SAT is expected to repair that
+    # case by searching away from the hint, not reproduce it.
     for slot in slots:
         eligible = teams_by_age_group.get(slot.age_group, [])
         baseline_set = set(slot.baseline_team_ids)

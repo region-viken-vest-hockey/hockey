@@ -139,7 +139,7 @@ class TestSeasonPlanner:
             roster=roster,
             club_arenas={club: f"{club}hallen" for club in ["Jar", "Holmen", "Kongsberg", "Skien", "Jutul", "Ringerike"]},
             parallel_games_for_age_group={"U10": 3},
-            target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 4}},
+            participation_targets_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 4}},
         )
 
         plan = planner.build_plan(start, end)
@@ -170,7 +170,7 @@ class TestSeasonPlanner:
             roster=roster,
             club_arenas={club: f"{club}hallen" for club in clubs},
             parallel_games_for_age_group={"U10": 3},
-            target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 4}},
+            participation_targets_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 4}},
             cheap_baseline=True,
         )
 
@@ -203,7 +203,7 @@ class TestSeasonPlanner:
             roster=roster,
             club_arenas={club: f"{club}hallen" for club in clubs},
             parallel_games_for_age_group={"U10": 3},
-            target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 4}},
+            participation_targets_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 4}},
             cheap_baseline=True,
         )
 
@@ -236,7 +236,7 @@ class TestSeasonPlanner:
             roster=roster,
             club_arenas={club: f"{club}hallen" for club in clubs},
             parallel_games_for_age_group={"U10": 2},
-            target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 2}},
+            participation_targets_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 2}},
             cheap_baseline=True,
         )
 
@@ -271,7 +271,7 @@ class TestSeasonPlanner:
             roster=roster,
             club_arenas={club: f"{club}hallen" for club in clubs},
             parallel_games_for_age_group={"U10": 3},
-            target_tournament_counts_by_age_group={"U10": {"before_christmas": 3, "after_christmas": 3}},
+            participation_targets_by_age_group={"U10": {"before_christmas": 3, "after_christmas": 3}},
         )
 
         plan = planner.build_plan(start, end)
@@ -302,7 +302,7 @@ class TestSeasonPlanner:
                 roster=roster,
                 club_arenas={club: f"{club}hallen" for club in clubs},
                 parallel_games_for_age_group={"U10": 3},
-                target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": after_target}},
+                participation_targets_by_age_group={"U10": {"before_christmas": 2, "after_christmas": after_target}},
             )
 
         split_date = planning_half.christmas_split_date(start.date(), end.date())
@@ -342,7 +342,7 @@ class TestSeasonPlanner:
             roster=roster,
             club_arenas={club: f"{club}hallen" for club in clubs},
             parallel_games_for_age_group={"U10": 2},
-            target_tournament_counts_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 2}},
+            participation_targets_by_age_group={"U10": {"before_christmas": 2, "after_christmas": 2}},
         )
 
         planner.build_plan(start, end)
@@ -571,7 +571,7 @@ class TestExplicitSeasonWideTargetAcrossHalves:
     """issue #301: an explicit per-team/global `target_tournament_count` is
     season-wide by definition and must remain a hard upper bound across
     both halves, even when the age group itself has a before/after-Christmas
-    tournament-volume split configured (`target_tournament_counts_by_age_group`).
+    tournament-volume split configured (`participation_targets_by_age_group`).
     Previously `_team_at_target` compared the per-half participation counter
     against that same season-wide number, letting a team reach the full
     target independently in *each* half."""
@@ -588,7 +588,7 @@ class TestExplicitSeasonWideTargetAcrossHalves:
             roster=roster,
             club_arenas={club: f"{club}hallen" for club in clubs},
             parallel_games_for_age_group={"U10": 3},
-            target_tournament_counts_by_age_group={
+            participation_targets_by_age_group={
                 "U10": {"before_christmas": before_volume, "after_christmas": after_volume}
             },
         ), roster

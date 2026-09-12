@@ -45,7 +45,7 @@ def _write_input_workbook(path: Path, raw: dict | None = None) -> None:
     if "age_groups" in raw:
         age_groups = wb.create_sheet("Aldersgrupper")
         header_cols = ["age_group", "parallel_games", "round_length_minutes"]
-        target_by_age = raw.get("target_tournament_counts_by_age_group", {})
+        target_by_age = raw.get("participation_targets_by_age_group", {})
         has_age_targets = any(target_by_age.get(age_group) for age_group in raw["age_groups"])
         if has_age_targets:
             header_cols.extend([
@@ -182,11 +182,30 @@ class TestValidateConfig:
 
     def test_age_group_target_counts_are_validated(self):
         raw = _make_valid_raw()
-        raw["target_tournament_counts_by_age_group"] = {
+        raw["participation_targets_by_age_group"] = {
             "U10": {"before_christmas": 3, "after_christmas": 1},
         }
         errors = validate_config(raw, _DUMMY_INPUT_PATH)
         assert errors == []
+
+    def test_zero_is_a_valid_age_group_target(self):
+        """Zero is a legitimate target (e.g. the youngest age group
+        intentionally playing no tournaments before the New Year), matching
+        the real canonical `input.xlsx` (U7 before_christmas: 0)."""
+        raw = _make_valid_raw()
+        raw["participation_targets_by_age_group"] = {
+            "U10": {"before_christmas": 0, "after_christmas": 3},
+        }
+        errors = validate_config(raw, _DUMMY_INPUT_PATH)
+        assert errors == []
+
+    def test_negative_age_group_target_is_rejected(self):
+        raw = _make_valid_raw()
+        raw["participation_targets_by_age_group"] = {
+            "U10": {"before_christmas": -1, "after_christmas": 3},
+        }
+        errors = validate_config(raw, _DUMMY_INPUT_PATH)
+        assert any("before_christmas" in e for e in errors)
 
     def test_teams_file_found_relative_to_input_dir(self, tmp_path):
         """A teams file that exists relative to the input dir passes validation."""
@@ -231,10 +250,9 @@ class TestRunStage1:
         assert result["teams"]
         assert any("targt_tournament_count" in record.message for record in caplog.records)
 
-    def test_run_does_not_warn_for_supported_workbook_level_planning_settings(self, tmp_path, caplog):
+    def test_run_does_not_warn_for_max_hosting_days_per_month(self, tmp_path, caplog):
         input_file = tmp_path / "input.xlsx"
         raw = _make_valid_raw()
-        raw["deltakelser_per_lag"] = 5
         raw["max_hosting_days_per_month"] = 2
         _write_input_workbook(input_file, raw)
 
@@ -244,23 +262,23 @@ class TestRunStage1:
         effective = load_effective_config(state, input_path=input_file)
 
         assert result["teams"]
-        assert effective["target_tournament_count"] == 5
         assert effective["max_hosting_days_per_month"] == 2
-        assert not any("deltakelser_per_lag" in record.message for record in caplog.records)
         assert not any("max_hosting_days_per_month" in record.message for record in caplog.records)
 
-    def test_target_tournament_count_takes_precedence_over_norwegian_alias(self, tmp_path):
+    def test_run_rejects_obsolete_global_participation_target(self, tmp_path):
+        """The canonical workbook no longer supports a global
+        `deltakelser_per_lag` / `target_tournament_count` fallback -- Stage 1
+        must reject it with an actionable message instead of silently
+        honouring it (or the Norwegian alias)."""
         input_file = tmp_path / "input.xlsx"
         raw = _make_valid_raw()
-        raw["target_tournament_count"] = 6
-        raw["deltakelser_per_lag"] = 4
+        raw["deltakelser_per_lag"] = 5
         _write_input_workbook(input_file, raw)
 
         state = PipelineState(tmp_path / "pipeline")
-        run(input_file, state)
-        effective = load_effective_config(state, input_path=input_file)
-
-        assert effective["target_tournament_count"] == 6
+        with pytest.raises(Stage1Error) as exc_info:
+            run(input_file, state)
+        assert any("deltakelser_per_lag" in e for e in exc_info.value.errors)
 
     def test_run_accepts_excel_workbook_input(self, tmp_path):
         input_file = tmp_path / "input.xlsx"
@@ -268,6 +286,7 @@ class TestRunStage1:
         raw["age_groups"] = ["U10"]
         raw["parallel_games"] = {"U10": 3}
         raw["round_length_minutes"] = {"U10": 10}
+        raw["participation_targets_by_age_group"] = {"U10": {"before_christmas": 3, "after_christmas": 3}}
         _write_input_workbook(input_file, raw)
 
         state = PipelineState(tmp_path / "pipeline")
@@ -331,8 +350,11 @@ class TestRunStage1:
 
         assert "Lag" in str(exc_info.value)
 
-    def test_run_preserves_per_team_target_tournament_count(self, tmp_path):
-        """The per-team `target_tournament_count` column in the Lag sheet is preserved."""
+    def test_run_rejects_per_team_target_tournament_count_override(self, tmp_path):
+        """Canonical `input.xlsx` no longer supports the `Lag`
+        sheet's `target_tournament_count` override -- it would silently take
+        precedence over the age group's authoritative before/after targets,
+        so Stage 1 rejects it with an actionable message instead."""
         raw = _make_valid_raw()
         raw["teams"] = [
             {"club": "Kongsberg", "label": "Kongsberg 1", "age_group": "U10"},
@@ -343,24 +365,20 @@ class TestRunStage1:
         _write_input_workbook(input_file, raw)
 
         state = PipelineState(tmp_path / "pipeline")
-        result = run(input_file, state)
-        teams = result["teams"]
-        # Team without target
-        kong1 = next(t for t in teams if t["label"] == "Kongsberg 1")
-        assert "target_tournament_count" not in kong1 or kong1.get("target_tournament_count") is None
-        # Team with target=2
-        kong2 = next(t for t in teams if t["label"] == "Kongsberg 2")
-        assert kong2["target_tournament_count"] == 2
-        # Team with target=6
-        jar1 = next(t for t in teams if t["label"] == "Jar 1")
-        assert jar1["target_tournament_count"] == 6
+        with pytest.raises(Stage1Error) as exc_info:
+            run(input_file, state)
+        message = "\n".join(exc_info.value.errors)
+        assert "target_tournament_count" in message
+        assert "Kongsberg 2" in message
+        assert "Jar 1" in message
+        assert "Kongsberg 1" not in message
 
     def test_run_preserves_per_age_group_target_tournament_counts(self, tmp_path):
         """The per-age-group target columns in the Aldersgrupper sheet are preserved."""
         raw = _make_valid_raw()
         raw["age_groups"] = ["U7", "U10"]
         raw["parallel_games"] = {"U7": 4, "U10": 3}
-        raw["target_tournament_counts_by_age_group"] = {
+        raw["participation_targets_by_age_group"] = {
             "U7": {"before_christmas": 3, "after_christmas": 5},
             "U10": {"before_christmas": 4, "after_christmas": 6},
         }
@@ -371,10 +389,51 @@ class TestRunStage1:
         result = run(input_file, state)
         effective = load_effective_config(state, input_path=input_file)
 
-        assert result["target_tournament_counts_by_age_group"] == raw["target_tournament_counts_by_age_group"]
-        assert effective["target_tournament_counts_by_age_group"] == raw["target_tournament_counts_by_age_group"]
+        assert result["participation_targets_by_age_group"] == raw["participation_targets_by_age_group"]
+        assert effective["participation_targets_by_age_group"] == raw["participation_targets_by_age_group"]
         checkpoint = state.read_stage(StageName.CONFIG)
-        assert checkpoint["target_tournament_counts_by_age_group"] == raw["target_tournament_counts_by_age_group"]
+        assert checkpoint["participation_targets_by_age_group"] == raw["participation_targets_by_age_group"]
+
+    def test_run_rejects_active_age_group_missing_a_half_target(self, tmp_path):
+        """Every active age group must carry both
+        `deltakelser_per_lag_før_jul` and `_etter_jul` -- a missing pair for
+        one age group must fail Stage 1 with an actionable message rather
+        than silently falling back to an inferred/global target, even when
+        other age groups are fully configured."""
+        raw = _make_valid_raw()
+        raw["age_groups"] = ["U7", "U10"]
+        raw["parallel_games"] = {"U7": 4, "U10": 3}
+        raw["participation_targets_by_age_group"] = {
+            "U7": {"before_christmas": 3, "after_christmas": 5},
+            # U10 intentionally has no configured half-targets at all.
+        }
+        input_file = tmp_path / "input.xlsx"
+        _write_input_workbook(input_file, raw)
+
+        state = PipelineState(tmp_path / "pipeline")
+        with pytest.raises(Stage1Error) as exc_info:
+            run(input_file, state)
+        message = "\n".join(exc_info.value.errors)
+        assert "U10" in message
+        assert "deltakelser_per_lag_før_jul" in message
+        assert "U7" not in message
+
+    def test_run_rejects_active_age_group_missing_only_one_half_target(self, tmp_path):
+        """Same as above, but only one of the two halves is missing."""
+        raw = _make_valid_raw()
+        raw["age_groups"] = ["U10"]
+        raw["parallel_games"] = {"U10": 3}
+        raw["participation_targets_by_age_group"] = {
+            "U10": {"before_christmas": 3},
+        }
+        input_file = tmp_path / "input.xlsx"
+        _write_input_workbook(input_file, raw)
+
+        state = PipelineState(tmp_path / "pipeline")
+        with pytest.raises(Stage1Error) as exc_info:
+            run(input_file, state)
+        message = "\n".join(exc_info.value.errors)
+        assert "U10" in message
 
     def test_run_rejects_json_input(self, tmp_path):
         input_file = tmp_path / "legacy.json"

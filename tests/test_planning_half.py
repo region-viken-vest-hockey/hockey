@@ -239,7 +239,7 @@ class TestHalfSnapshotIsolation:
                 roster=roster,
                 club_arenas={team.club: f"{team.club}hallen" for team in roster.teams},
                 target_tournament_count=6,
-                target_tournament_counts_by_age_group={
+                participation_targets_by_age_group={
                     "U10": {"before_christmas": 3, "after_christmas": 3}
                 },
             )

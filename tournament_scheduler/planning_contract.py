@@ -70,12 +70,23 @@ def build_planning_problem(
     events_by_club = _build_events_by_club(scraping_result)
     club_calendar_status = _build_club_calendar_status(scraping_result)
 
+    # `participation_targets_by_age_group` (below) is the single authoritative
+    # participation-target model for the canonical workbook -- Stage 1
+    # rejects a `Lag.target_tournament_count` override before it ever reaches
+    # here. `target_tournament_count` per team only appears at all when a
+    # caller has set it explicitly (the lower-level/exceptional-override API,
+    # never populated from canonical `input.xlsx`), so it is omitted here
+    # rather than emitted as a `null` competing field on every team.
     teams = [
         {
             "club": team.club,
             "label": team.label,
             "age_group": team.age_group,
-            "target_tournament_count": team.target_tournament_count,
+            **(
+                {"target_tournament_count": team.target_tournament_count}
+                if team.target_tournament_count is not None
+                else {}
+            ),
         }
         for team in roster.teams
     ]
@@ -121,8 +132,16 @@ def build_planning_problem(
         "parallel_games": _build_parallel_games(config),
         "round_length_minutes": _build_round_length(config),
         "max_hosting_deviation": config.get("maxHostingDeviation", 1),
-        "target_tournament_count": config.get("target_tournament_count"),
-        "target_tournament_counts_by_age_group": config.get("target_tournament_counts_by_age_group") or {},
+        # Explicit season-wide override only; never populated by the
+        # canonical workbook (see the `teams` comment above). Omitted when
+        # unset instead of emitted as `null` alongside the authoritative
+        # per-age-group field below.
+        **(
+            {"target_tournament_count": config["target_tournament_count"]}
+            if config.get("target_tournament_count") is not None
+            else {}
+        ),
+        "participation_targets_by_age_group": config.get("participation_targets_by_age_group") or {},
         "manual_adjustments": manual_adjustments,
         "date_preferences": date_preferences,
         "club_busy_dates": club_busy_dates,
@@ -463,9 +482,34 @@ def verify_candidate(
         for t in problem.get("teams", [])
     }
     default_target = problem.get("target_tournament_count")
+    participation_targets_by_age_group = problem.get("participation_targets_by_age_group") or {}
 
     window_start = _parse_date(problem.get("start_date"))
     window_end = _parse_date(problem.get("end_date"))
+
+    # Per-half participation needs the same before/after-Christmas
+    # boundary `score_candidate` uses below, so a shortfall/overage can be
+    # attributed to the half it actually happened in.
+    split_date: Optional[date] = None
+    if problem.get("christmas_split_date"):
+        split_date = _parse_date(problem["christmas_split_date"])
+    elif window_start and window_end:
+        split_date = planning_half.christmas_split_date(window_start, window_end)
+    elif tournaments:
+        dated = [d for d in (_parse_date(t.get("date")) for t in tournaments) if d is not None]
+        if dated:
+            split_date = planning_half.christmas_split_date(min(dated), max(dated))
+    participations_by_half: Dict[str, Dict[TeamIdentity, int]] = {"before_christmas": {}, "after_christmas": {}}
+    for t in tournaments:
+        t_date = _parse_date(t.get("date"))
+        if t_date is None:
+            continue
+        half = planning_half.tournament_half(t_date, split_date)
+        if half not in participations_by_half:
+            continue
+        for team in t.get("teams", []):
+            identity = _team_identity(team)
+            participations_by_half[half][identity] = participations_by_half[half].get(identity, 0) + 1
 
     # Arena occupancy is a full datetime interval (start_time + computed
     # duration), not just an arena/date pair — arenas routinely host more
@@ -635,55 +679,66 @@ def verify_candidate(
         if pinned not in candidate_ids:
             _violate("pinned_tournament_missing", f"Pinned tournament {pinned!r} is missing from the candidate")
 
-    for identity, count in participations.items():
+    for identity in valid_teams | set(participations.keys()):
+        count = participations.get(identity, 0)
         # Resolution order mirrors SeasonPlanner's own precedence (see
         # `season_planner.SeasonPlanner._team_target_tournament_count`): an
-        # explicit per-team override, then the global default. When neither
-        # gives a concrete number, the target is planner-inferred from
-        # tournament capacity — deliberately not reproduced here, since
-        # duplicating that heuristic in the verifier is exactly the coupling
-        # issue #257 asks the contract to avoid, so the check is skipped.
-        #
-        # `target_tournament_counts_by_age_group`'s before/after-Christmas
-        # entries are NOT a per-team participation target — they're weights
-        # `SeasonPlanner._split_tournament_counts_for_age_groups` uses to
-        # split an age group's *tournament count* across the two halves of
-        # the season. Treating "before + after" as a per-team target here
-        # produced 100+ false-positive participation_target_mismatch
-        # violations against a correct baseline plan (issue #257 A/B
-        # benchmark, 2026-09-03).
-        target = target_by_identity.get(identity)
-        if target is None:
-            target = default_target
-        if isinstance(target, int) and count > target:
-            # issue #301: `target` here is always an explicit per-team
-            # override or explicit global default -- the planner-inferred
-            # heuristic target is deliberately never reproduced in this
-            # verifier (see comment above). Over-participation against an
-            # explicit target is therefore always a hard violation: a
-            # candidate that schedules a team above its configured target
-            # must not verify as `ok=true`, even though the half-aware
-            # baseline that produced this contract could previously do
-            # exactly that (see `SeasonPlanner._team_at_target`).
-            _violate(
-                "participation_target_exceeded",
-                f"Team {_display_label(identity, duplicate_labels)!r} is scheduled in {count} tournaments, "
-                f"exceeding its explicit participation target of {target}",
-            )
-        elif isinstance(target, int) and count < target:
-            # Non-blocking: a genuine slot-scarcity shortfall the optimizer
-            # couldn't fully resolve. Surfaced for manual placement (e.g. an
-            # operator arranging an extra game by hand) instead of
-            # hard-blocking the candidate.
-            manual_participation_placements.append(
-                {
-                    "club": identity[0],
-                    "label": _display_label(identity, duplicate_labels),
-                    "age_group": identity[2],
-                    "actual": str(count),
-                    "target": str(target),
-                }
-            )
+        # explicit per-team override, then the global default, both of which
+        # are season-wide by definition (no half to check independently).
+        # When neither is set, `participation_targets_by_age_group`'s
+        # before/after-Christmas values are the authoritative per-team,
+        # per-half participation target -- checked
+        # independently per half below instead of against a season total.
+        explicit_target = target_by_identity.get(identity)
+        if explicit_target is None:
+            explicit_target = default_target
+        if isinstance(explicit_target, int):
+            if count > explicit_target:
+                _violate(
+                    "participation_target_exceeded",
+                    f"Team {_display_label(identity, duplicate_labels)!r} is scheduled in {count} tournaments, "
+                    f"exceeding its explicit participation target of {explicit_target}",
+                )
+            elif count < explicit_target:
+                # Non-blocking: a genuine slot-scarcity shortfall the optimizer
+                # couldn't fully resolve. Surfaced for manual placement (e.g. an
+                # operator arranging an extra game by hand) instead of
+                # hard-blocking the candidate.
+                manual_participation_placements.append(
+                    {
+                        "club": identity[0],
+                        "label": _display_label(identity, duplicate_labels),
+                        "age_group": identity[2],
+                        "actual": str(count),
+                        "target": str(explicit_target),
+                    }
+                )
+            continue
+
+        age_group = identity[2]
+        age_group_targets = participation_targets_by_age_group.get(age_group) or {}
+        for half in ("before_christmas", "after_christmas"):
+            half_target = age_group_targets.get(half)
+            if not isinstance(half_target, int):
+                continue
+            half_count = participations_by_half.get(half, {}).get(identity, 0)
+            if half_count > half_target:
+                _violate(
+                    "participation_target_exceeded",
+                    f"Team {_display_label(identity, duplicate_labels)!r} is scheduled in {half_count} "
+                    f"tournaments {half}, exceeding its configured participation target of {half_target}",
+                )
+            elif half_count < half_target:
+                manual_participation_placements.append(
+                    {
+                        "club": identity[0],
+                        "label": _display_label(identity, duplicate_labels),
+                        "age_group": age_group,
+                        "half": half,
+                        "actual": str(half_count),
+                        "target": str(half_target),
+                    }
+                )
 
     # issue #266 P0: club x age-group hosting coverage is a required
     # planning obligation, not a hard `violation` -- a candidate with an

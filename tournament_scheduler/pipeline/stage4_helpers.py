@@ -93,6 +93,9 @@ def _dict_to_plan(d: dict[str, Any]) -> SeasonPlan:
         unresolved_hosting_obligations=list(d.get("unresolved_hosting_obligations", [])),
         unresolved_external_conflicts=list(d.get("unresolved_external_conflicts", [])),
         unresolved_participation_shortfalls=list(d.get("unresolved_participation_shortfalls", [])),
+        participation_targets_by_age_group={
+            ag: dict(targets) for ag, targets in d.get("participation_targets_by_age_group", {}).items()
+        },
         shared_host_decisions=list(d.get("shared_host_decisions", [])),
         team_last_game_dates={
             k: date.fromisoformat(v) for k, v in d.get("team_last_game_dates", {}).items()

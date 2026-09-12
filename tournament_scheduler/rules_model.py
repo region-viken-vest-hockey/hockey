@@ -156,10 +156,12 @@ def _external_conflict_rule(plan: SeasonPlan) -> dict[str, Any]:
 def _participation_shortfall_rule(plan: SeasonPlan) -> dict[str, Any]:
     unresolved = list(plan.unresolved_participation_shortfalls or [])
     if unresolved:
-        names = ", ".join(
-            f"{item.get('label', '?')} ({item.get('actual', '?')}/{item.get('target', '?')})"
-            for item in unresolved
-        )
+        def _label(item: dict[str, Any]) -> str:
+            half = item.get("period")
+            half_suffix = f", {half}" if half else ""
+            return f"{item.get('label', '?')} ({item.get('actual', '?')}/{item.get('target', '?')}{half_suffix})"
+
+        names = ", ".join(_label(item) for item in unresolved)
         status = f"{len(unresolved)} avvik: {names}"
     else:
         status = "Oppfylt"
@@ -179,31 +181,68 @@ def _participation_shortfall_rule(plan: SeasonPlan) -> dict[str, Any]:
         "configured_value": "Faktisk ≥ mål",
         "status": status,
         "ok": not unresolved,
+        "detail_rows": (
+            {
+                "label": "Vis avvik per lag",
+                "kind": "participation_shortfall",
+                "rows": unresolved,
+            }
+            if unresolved
+            else None
+        ),
     }
 
 
 def _participation_target_exceeded_rule(plan: SeasonPlan) -> dict[str, Any]:
-    """Hard rule: a team scheduled above its *explicit* participation target.
+    """Hard rule: a team scheduled above its participation target.
 
     Mirrors ``planning_contract.verify_candidate``'s ``participation_target_exceeded``
-    violation code. Only teams with an explicit per-team
-    ``target_tournament_count`` are checked — a planner-inferred target is
-    deliberately never reproduced here (same rationale as the verifier).
+    violation code: an explicit per-team ``target_tournament_count``
+    always wins (season-wide); otherwise ``plan.participation_targets_by_age_group``'s
+    before/after-Christmas value for the team's age group is the authoritative
+    per-half target, checked independently per half using the same Christmas
+    boundary as :mod:`planning_half`. A planner-inferred (capacity-only) target
+    is still deliberately never reproduced here.
     """
+    from . import planning_half
+
     counts: dict[tuple[str, str, str], int] = {}
-    targets: dict[tuple[str, str, str], int] = {}
+    explicit_targets: dict[tuple[str, str, str], int] = {}
     for tournament in _active_tournaments(plan):
         for team in tournament.teams:
             identity = (team.club, team.label, team.age_group)
             counts[identity] = counts.get(identity, 0) + 1
             if team.target_tournament_count is not None:
-                targets[identity] = team.target_tournament_count
+                explicit_targets[identity] = team.target_tournament_count
 
     exceeded = [
-        f"{identity[1]} ({counts[identity]}/{targets[identity]})"
-        for identity, target in targets.items()
+        f"{identity[1]} ({counts[identity]}/{target})"
+        for identity, target in explicit_targets.items()
         if counts.get(identity, 0) > target
     ]
+
+    age_group_targets = plan.participation_targets_by_age_group or {}
+    if age_group_targets:
+        split_date = None
+        if plan.start_date and plan.end_date:
+            split_date = planning_half.christmas_split_date(plan.start_date, plan.end_date)
+        half_counts: dict[str, dict[tuple[str, str, str], int]] = {"before_christmas": {}, "after_christmas": {}}
+        for tournament in _active_tournaments(plan):
+            half = planning_half.tournament_half(tournament.date, split_date)
+            if half not in half_counts:
+                continue
+            for team in tournament.teams:
+                identity = (team.club, team.label, team.age_group)
+                half_counts[half][identity] = half_counts[half].get(identity, 0) + 1
+        for half, counts_for_half in half_counts.items():
+            for identity, count in counts_for_half.items():
+                if identity in explicit_targets:
+                    continue  # season-wide override already checked above.
+                targets = age_group_targets.get(identity[2]) or {}
+                target = targets.get(half)
+                if isinstance(target, int) and count > target:
+                    exceeded.append(f"{identity[1]} ({count}/{target}, {half})")
+
     status = "Oppfylt" if not exceeded else f"{len(exceeded)} avvik: {', '.join(sorted(exceeded))}"
     return {
         "id": "participation_target_exceeded",
@@ -212,14 +251,59 @@ def _participation_target_exceeded_rule(plan: SeasonPlan) -> dict[str, Any]:
         "scope": "lag",
         "owner": "deterministic_verifier",
         "description": (
-            "Et lag med et eksplisitt turneringsmål (satt per lag) skal aldri planlegges i flere "
-            "turneringer enn det målet. Dette avvises som et hardt verifikatoravvik "
-            "(`participation_target_exceeded`), ulikt et lag som havner *under* målet, som er en "
-            "ikke-blokkerende mangel (se «Lag under sitt mål» blant forpliktelsene)."
+            "Et lag skal aldri planlegges i flere turneringer enn sitt deltakelsesmål — enten et "
+            "eksplisitt turneringsmål satt per lag (sesongtotal), eller aldersgruppens autoritative "
+            "mål før/etter jul (sjekket uavhengig per halvdel). Dette avvises som et hardt "
+            "verifikatoravvik (`participation_target_exceeded`), ulikt et lag som havner *under* "
+            "målet, som er en ikke-blokkerende mangel (se «Lag under sitt mål» blant forpliktelsene)."
         ),
-        "configured_value": "Faktisk ≤ eksplisitt mål",
+        "configured_value": "Faktisk ≤ mål",
         "status": status,
         "ok": not exceeded,
+    }
+
+
+def _participation_targets_by_age_group_rule(plan: SeasonPlan) -> dict[str, Any] | None:
+    """Informational: the configured per-age-group, per-half participation targets.
+
+    Shows the authoritative before/after-Christmas target for
+    every active age group this plan was built against, so the Rules report
+    surfaces the configured policy alongside the actual/shortfall figures in
+    ``_participation_shortfall_rule`` / ``_participation_target_exceeded_rule``.
+    Returns ``None`` when the plan carries no configured targets (e.g. an
+    older cached plan, or a non-canonical fixture).
+    """
+    targets = plan.participation_targets_by_age_group or {}
+    if not targets:
+        return None
+    rows = [
+        {
+            "age_group": age_group,
+            "before_christmas": ag_targets.get("before_christmas"),
+            "after_christmas": ag_targets.get("after_christmas"),
+        }
+        for age_group, ag_targets in sorted(targets.items())
+    ]
+    summary = "; ".join(
+        f"{row['age_group']}: {row['before_christmas']} før jul / {row['after_christmas']} etter jul"
+        for row in rows
+    )
+    return {
+        "id": "participation_targets_by_age_group",
+        "title": "Deltakelsesmål per aldersgruppe (før/etter jul)",
+        "type": "decision",
+        "scope": "aldersgruppe",
+        "owner": "input_workbook",
+        "description": (
+            "Hver aktiv aldersgruppe har et konfigurert mål for antall turneringsdeltakelser per "
+            "lag, uavhengig før og etter nyttår. Dette er det autoritative målet — ikke en vekt for "
+            "å fordele et sesongtotalt turneringsantall — og brukes direkte av planleggeren, "
+            "CP-SAT-optimaliseringen og verifikatoren."
+        ),
+        "configured_value": summary,
+        "status": "Konfigurert",
+        "ok": True,
+        "detail_rows": {"label": "Vis alle aldersgrupper", "kind": "participation_targets", "rows": rows},
     }
 
 
@@ -560,6 +644,9 @@ def build_rules_model(plan: SeasonPlan) -> list[dict[str, Any]]:
     rules.append(_participation_shortfall_rule(plan))
 
     # Decisions/exceptions for this run.
+    targets_rule = _participation_targets_by_age_group_rule(plan)
+    if targets_rule is not None:
+        rules.append(targets_rule)
     rules.extend(_shared_host_decisions(plan))
     return rules
 

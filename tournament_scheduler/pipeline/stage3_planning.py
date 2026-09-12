@@ -168,7 +168,7 @@ def compute_shared_registration_facts(
         _build_events_by_club(scraping_result),
         config.get("fairness_thresholds", {}),
         config.get("target_tournament_count"),
-        config.get("target_tournament_counts_by_age_group"),
+        config.get("participation_targets_by_age_group"),
         seed=None,
         max_hosting_days_per_month=config.get("max_hosting_days_per_month"),
         penalty_hints=None,
@@ -324,7 +324,7 @@ def run(
     fairness_thresholds = config.get("fairness_thresholds", {})
     target_tournament_count = config.get("target_tournament_count")
     max_hosting_days_per_month = config.get("max_hosting_days_per_month")
-    target_tournament_counts_by_age_group = config.get("target_tournament_counts_by_age_group")
+    participation_targets_by_age_group = config.get("participation_targets_by_age_group")
     planning_critic_hints, penalty_hints_in = _extract_planning_critic_hints(config)
     # Mutated in place across seed attempts below (fed forward from the best
     # candidate's weak metrics), so this must be a fresh dict, never None.
@@ -416,7 +416,7 @@ def run(
             events_by_club,
             fairness_thresholds,
             target_tournament_count,
-            target_tournament_counts_by_age_group,
+            participation_targets_by_age_group,
             seed=seed,
             max_hosting_days_per_month=max_hosting_days_per_month,
             penalty_hints=penalty_hints,

@@ -31,6 +31,21 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
     """
     errors: list[str] = []
 
+    # --- Obsolete global participation target ---
+    # `Innstillinger.deltakelser_per_lag` / `target_tournament_count` used to be
+    # a global fallback for every team's participation target. The canonical
+    # workbook no longer supports it — the per-age-group before/after-Christmas
+    # columns in `Aldersgrupper` are now the single source of truth, so a
+    # leftover global setting is rejected rather than silently honoured.
+    for legacy_key in ("deltakelser_per_lag", "target_tournament_count"):
+        if legacy_key in raw:
+            errors.append(
+                f"Feltet '{legacy_key}' i 'Innstillinger' er ikke lenger støttet. "
+                "Sett hvert lags deltakelsesmål via kolonnene "
+                "'deltakelser_per_lag_før_jul' og 'deltakelser_per_lag_etter_jul' "
+                "i arket 'Aldersgrupper' i stedet."
+            )
+
     # --- Required fields ---
     if "start_date" not in raw:
         errors.append("Mangler felt 'start_date' (format: ÅÅÅÅ-MM-DD).")
@@ -112,27 +127,27 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
                     )
 
     # --- Target tournament count by age group ---
-    target_by_age = raw.get("target_tournament_counts_by_age_group")
+    target_by_age = raw.get("participation_targets_by_age_group")
     if target_by_age is not None:
         if not isinstance(target_by_age, dict):
             errors.append(
-                "'target_tournament_counts_by_age_group' må være et objekt med aldersgruppe-nøkler."
+                "'participation_targets_by_age_group' må være et objekt med aldersgruppe-nøkler."
             )
         else:
             for ag, cfg in target_by_age.items():
                 if not isinstance(ag, str) or not ag.strip():
                     errors.append(
-                        "'target_tournament_counts_by_age_group' må bruke ikke-tomme tekstnøkler for aldersgrupper."
+                        "'participation_targets_by_age_group' må bruke ikke-tomme tekstnøkler for aldersgrupper."
                     )
                     continue
                 if not _age_group_is_defined(ag):
                     errors.append(
-                        f"Ukjent aldersgruppe '{ag}' i 'target_tournament_counts_by_age_group'."
+                        f"Ukjent aldersgruppe '{ag}' i 'participation_targets_by_age_group'."
                     )
                     continue
                 if not isinstance(cfg, dict):
                     errors.append(
-                        f"'target_tournament_counts_by_age_group[\"{ag}\"]' må være et objekt med "
+                        f"'participation_targets_by_age_group[\"{ag}\"]' må være et objekt med "
                         "nøklene 'before_christmas' og 'after_christmas'."
                     )
                     continue
@@ -140,16 +155,38 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
                 after = cfg.get("after_christmas")
                 if before is None or after is None:
                     errors.append(
-                        f"'target_tournament_counts_by_age_group[\"{ag}\"]' må oppgi både "
+                        f"'participation_targets_by_age_group[\"{ag}\"]' må oppgi både "
                         "'before_christmas' og 'after_christmas'."
                     )
                     continue
                 for field_name, value in (("before_christmas", before), ("after_christmas", after)):
-                    if not isinstance(value, int) or value < 1:
+                    # 0 is a legitimate target -- e.g. the
+                    # youngest age group intentionally playing no tournaments
+                    # before the New Year -- only negative/non-integer values
+                    # are rejected.
+                    if not isinstance(value, int) or value < 0:
                         errors.append(
-                            f"'target_tournament_counts_by_age_group[\"{ag}\"].{field_name}' må være et "
-                            f"positivt heltall, fikk: {value!r}."
+                            f"'participation_targets_by_age_group[\"{ag}\"].{field_name}' må være et "
+                            f"ikke-negativt heltall, fikk: {value!r}."
                         )
+
+    # --- Every active age group must carry both half-targets ---
+    # `deltakelser_per_lag_før_jul` / `_etter_jul` are the authoritative
+    # per-team participation targets for every active age group; a missing
+    # or partial pair must fail loudly instead of silently falling back to a
+    # heuristic/global target.
+    if defined_age_groups:
+        target_by_age_dict = target_by_age if isinstance(target_by_age, dict) else {}
+        for ag in defined_age_groups:
+            cfg = target_by_age_dict.get(ag)
+            has_before = isinstance(cfg, dict) and cfg.get("before_christmas") is not None
+            has_after = isinstance(cfg, dict) and cfg.get("after_christmas") is not None
+            if not (has_before and has_after):
+                errors.append(
+                    f"Aldersgruppen '{ag}' mangler 'deltakelser_per_lag_før_jul' og/eller "
+                    "'deltakelser_per_lag_etter_jul' i arket 'Aldersgrupper'. Begge er "
+                    "påkrevd for hver aktiv aldersgruppe."
+                )
 
     # --- Teams / roster ---
     if "teams" not in raw:
@@ -173,6 +210,23 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
             # standard placeholder export files instead of failing in Stage 1.
             if teams_val:
                 errors.extend(_validate_team_list(teams_val, allowed_age_groups=defined_age_groups or None))
+                # The canonical workbook's per-age-group before/after
+                # targets are the single participation-target model. A per-team
+                # `target_tournament_count` override in `Lag` would silently take
+                # precedence over that (see `SeasonPlanner._team_target_tournament_count`),
+                # so the canonical pipeline rejects it rather than let it override
+                # normal age-group targets unnoticed.
+                overridden_labels = sorted(
+                    str(t.get("label") or f"#{i + 1}")
+                    for i, t in enumerate(teams_val)
+                    if isinstance(t, dict) and t.get("target_tournament_count") is not None
+                )
+                if overridden_labels:
+                    errors.append(
+                        "Feltet 'target_tournament_count' i arket 'Lag' er ikke støttet i "
+                        "kanonisk input.xlsx — deltakelsesmål styres av 'Aldersgrupper'. "
+                        f"Fjern verdien for: {', '.join(overridden_labels)}."
+                    )
         else:
             errors.append(
                 "'teams' må være enten en liste med lag-objekter eller en sti til en lagfil (streng)."
@@ -268,7 +322,7 @@ def _parse_config(raw: dict[str, Any], input_path: str | os.PathLike[str]) -> di
     """Build the Stage 1 checkpoint dict with only **computed** fields.
 
     Human-editable fields (start_date, end_date, age_groups, parallel_games,
-    global planning knobs, target_tournament_counts_by_age_group, sources) are
+    global planning knobs, participation_targets_by_age_group, sources) are
     intentionally excluded — they live only in ``input.xlsx``.
     """
 
@@ -301,7 +355,7 @@ def _parse_config(raw: dict[str, Any], input_path: str | os.PathLike[str]) -> di
             "sources",
             "target_tournament_count",
             "deltakelser_per_lag",
-            "target_tournament_counts_by_age_group",
+            "participation_targets_by_age_group",
             "max_hosting_days_per_month",
             "fairness_thresholds",
         }
@@ -320,9 +374,9 @@ def _parse_config(raw: dict[str, Any], input_path: str | os.PathLike[str]) -> di
 
     if "fairness_thresholds" in raw:
         result["fairness_thresholds"] = dict(raw["fairness_thresholds"])
-    target_by_age = raw.get("target_tournament_counts_by_age_group")
+    target_by_age = raw.get("participation_targets_by_age_group")
     if target_by_age:
-        result["target_tournament_counts_by_age_group"] = {
+        result["participation_targets_by_age_group"] = {
             ag: dict(cfg) for ag, cfg in target_by_age.items()
         }
 

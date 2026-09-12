@@ -115,7 +115,7 @@ class SeasonPlanner:
         parallel_games_for_age_group: Optional[Dict[str, int]] = None,
         round_length_for_age_group: Optional[Dict[str, int]] = None,
         target_tournament_count: Optional[int] = None,
-        target_tournament_counts_by_age_group: Optional[Dict[str, Dict[str, int]]] = None,
+        participation_targets_by_age_group: Optional[Dict[str, Dict[str, int]]] = None,
         max_club_teams_per_tournament: int = 1,
         deficit_cap_expansion: int = 1,
         max_game_count_spread: int = 2,
@@ -142,9 +142,9 @@ class SeasonPlanner:
         self.parallel_games_for_age_group = parallel_games_for_age_group or {}
         self.round_length_for_age_group = round_length_for_age_group or {}
         self.target_tournament_count = target_tournament_count
-        self.target_tournament_counts_by_age_group = {
+        self.participation_targets_by_age_group = {
             age_group: dict(targets)
-            for age_group, targets in (target_tournament_counts_by_age_group or {}).items()
+            for age_group, targets in (participation_targets_by_age_group or {}).items()
         }
         self.max_club_teams_per_tournament = max_club_teams_per_tournament
         self.deficit_cap_expansion = deficit_cap_expansion
@@ -285,13 +285,30 @@ class SeasonPlanner:
     def _team_target_tournament_count(self, team: Team, period: Optional[str] = None) -> int:
         # issue #297: an explicit per-team/global override always wins,
         # regardless of period -- those are season-wide by definition and
-        # don't have a before/after-Christmas split to consult.
+        # don't have a before/after-Christmas split to consult. Canonical
+        # input.xlsx no longer sets these (Stage 1 rejects them);
+        # they remain a lower-level API / test-fixture escape hatch only.
         if team.target_tournament_count is not None:
             return team.target_tournament_count
         if self.target_tournament_count is not None:
             return self.target_tournament_count
 
+        # `participation_targets_by_age_group`'s before/after values are the
+        # authoritative per-team, per-half participation target for every
+        # active age group -- not a weight to split some other season-wide
+        # number across halves. Use them directly.
         age_group = team.age_group
+        targets = self.participation_targets_by_age_group.get(age_group)
+        if targets and targets.get("before_christmas") is not None and targets.get("after_christmas") is not None:
+            # 0 is a legitimate target (e.g. the youngest age group playing
+            # no tournaments before the New Year) -- not clamped to 1.
+            if period in ("before_christmas", "after_christmas"):
+                return int(targets[period])
+            return int(targets["before_christmas"]) + int(targets["after_christmas"])
+
+        # Fallback for age groups without a configured target (non-canonical
+        # fixtures/tests only -- every active canonical age group is required
+        # to have both halves configured, see stage1_helpers.validate_config).
         team_count = max(1, len(self.roster.by_age_group(age_group)))
         capacity = max(1, self._max_teams_for(age_group))
         tournament_count = self._target_tournaments_for_age_group(age_group, period=period) or 1
@@ -335,27 +352,25 @@ class SeasonPlanner:
         return self._tournament_participations.get(key, 0) >= self._team_target_tournament_count(team)
 
     def _team_half_target_tournament_count(self, team: Team, period: str) -> int:
-        """Deterministic before/after split of an explicit season-wide target.
+        """Deterministic before/after split of an *explicit* season-wide target.
 
-        issue #301: keeps `before_actual + after_actual <= season_target` for
-        an explicit per-team/global target without hardcoding an even 3+3
-        split -- the split follows the same raw before/after weights
-        `_split_tournament_counts_for_age_groups` reads directly off
-        `target_tournament_counts_by_age_group` for the date skeleton's
-        tournament-volume split, falling back to an even split only when no
-        such weight is configured. Reading the raw weights directly (rather
-        than going through `_target_tournaments_for_age_group`) matters here
-        because that helper's period-specific weighting gets drowned out
-        once every team already carries an explicit
-        `target_tournament_count` override -- it sums per-team overrides
-        rather than the age group's before/after weights in that case.
+        issue #301/#315: only reached for a team with an explicit per-team or
+        global `target_tournament_count` override (see `_team_at_target`) --
+        those are season-wide by definition and have no half of their own, so
+        this splits that single number into a before/after pair, keeping
+        `before_actual + after_actual <= season_target` without hardcoding an
+        even 3+3 split. The proportions come from the age group's authoritative
+        `participation_targets_by_age_group` before/after values when
+        configured (used here purely as a split ratio for the override, not as
+        the target itself -- the target itself is `season_target`), falling
+        back to an even split when the age group has no configured values.
         """
         key = self._team_key(team)
         cached = self._team_half_target_cache.get(key)
         if cached is None:
             season_target = self._team_target_tournament_count(team)
             age_group = team.age_group
-            targets = self.target_tournament_counts_by_age_group.get(age_group, {})
+            targets = self.participation_targets_by_age_group.get(age_group, {})
             before_weight = targets.get("before_christmas") or 0
             after_weight = targets.get("after_christmas") or 0
             total_weight = before_weight + after_weight
@@ -914,6 +929,9 @@ class SeasonPlanner:
                         )
         plan.unresolved_participation_shortfalls = unresolved_participation_shortfalls
         self._unresolved_participation_shortfalls = unresolved_participation_shortfalls
+        plan.participation_targets_by_age_group = {
+            age_group: dict(targets) for age_group, targets in self.participation_targets_by_age_group.items()
+        }
 
         self._baseline_timings["total_seconds"] = round(perf_counter() - build_started, 6)
         return plan
@@ -1567,7 +1585,7 @@ class SeasonPlanner:
     def _has_split_tournament_targets(self) -> bool:
         return any(
             targets.get("before_christmas") is not None or targets.get("after_christmas") is not None
-            for targets in self.target_tournament_counts_by_age_group.values()
+            for targets in self.participation_targets_by_age_group.values()
         )
 
     def _split_tournament_counts_for_age_groups(
@@ -1576,33 +1594,24 @@ class SeasonPlanner:
         free_dates: Sequence[date],
         split_date: date,
     ) -> tuple[Dict[str, int], Dict[str, int]]:
-        before_dates = [d for d in free_dates if d < split_date]
-        after_dates = [d for d in free_dates if d >= split_date]
-        before_weight = max(1, len(before_dates))
-        after_weight = max(1, len(after_dates))
+        """Deterministically derive each half's tournament-volume need.
 
+        Before/after Christmas tournament volume must be
+        derived independently per half from `team_count * target_per_team /
+        capacity` -- not by splitting one combined season-wide total using
+        the before/after values as a ratio. `_target_tournaments_for_age_group`
+        already does exactly that per-half derivation (see
+        `participant_selection.target_tournaments_for_age_group`), so this
+        just calls it once per half instead of computing and re-splitting a
+        combined total. `free_dates`/`split_date` are accepted for call-site
+        symmetry with the date-schedule builders that call this but are not
+        needed for the volume derivation itself.
+        """
         before_counts: Dict[str, int] = {}
         after_counts: Dict[str, int] = {}
         for age_group in age_groups:
-            total = self._target_tournaments_for_age_group(age_group)
-            if total <= 0:
-                before_counts[age_group] = 0
-                after_counts[age_group] = 0
-                continue
-
-            targets = self.target_tournament_counts_by_age_group.get(age_group, {})
-            split_before_weight = targets.get("before_christmas") or 0
-            split_after_weight = targets.get("after_christmas") or 0
-            if split_before_weight > 0 and split_after_weight > 0:
-                total_weight = split_before_weight + split_after_weight
-                before = int(round(total * split_before_weight / total_weight))
-            else:
-                before = int(round(total * before_weight / (before_weight + after_weight)))
-
-            before = max(0, min(total, before))
-            after = max(0, total - before)
-            before_counts[age_group] = before
-            after_counts[age_group] = after
+            before_counts[age_group] = self._target_tournaments_for_age_group(age_group, period="before_christmas")
+            after_counts[age_group] = self._target_tournaments_for_age_group(age_group, period="after_christmas")
 
         return before_counts, after_counts
 

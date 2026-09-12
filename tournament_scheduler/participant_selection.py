@@ -116,7 +116,7 @@ def target_tournaments_for_age_group(planner, age_group: str, period: Optional[s
     if len(teams) < MIN_TEAMS_PER_TOURNAMENT:
         return 0
 
-    age_group_targets = getattr(planner, "target_tournament_counts_by_age_group", {}) or {}
+    age_group_targets = getattr(planner, "participation_targets_by_age_group", {}) or {}
     age_group_target = age_group_targets.get(age_group, {}) if isinstance(age_group_targets, dict) else {}
     before_target = age_group_target.get("before_christmas")
     after_target = age_group_target.get("after_christmas")

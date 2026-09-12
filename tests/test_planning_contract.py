@@ -155,7 +155,7 @@ class TestVerifyCandidateWithProblem:
             "parallel_games": {},
             "round_length_minutes": {},
             "target_tournament_count": None,
-            "target_tournament_counts_by_age_group": {},
+            "participation_targets_by_age_group": {},
             "manual_adjustments": {
                 "locked_dates": [],
                 "banned_dates": [],
@@ -318,26 +318,75 @@ class TestVerifyCandidateWithProblem:
         assert result["ok"] is True
         assert len(result["manual_participation_placements"]) == 2
 
-    def test_before_after_christmas_split_not_treated_as_participation_target(self):
-        # Regression test (issue #257): before_christmas/after_christmas are
-        # weights for splitting an age group's *tournament count* across the
-        # season (SeasonPlanner._split_tournament_counts_for_age_groups), not
-        # a per-team participation target. A team playing e.g. 6 tournaments
-        # in an age group configured with before_christmas: 5, after_christmas: 5
-        # must not be flagged just because 6 != 5 + 5.
-        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+    def test_before_after_christmas_split_is_authoritative_per_half_target(self):
+        # before_christmas/after_christmas are the authoritative per-team,
+        # per-half participation target -- not a weight for splitting some
+        # other season-wide tournament count. A U11 team with an
+        # after-Christmas target of 3 that only gets 2 must surface as a
+        # non-blocking shortfall tagged with its age group and half.
+        teams = [_team("Jar", "Jar 1", "U11"), _team("Kongsberg", "Kongsberg 1", "U11")]
         candidate = {
             "tournaments": [
-                _tournament(f"t{i}", f"2026-0{i}-01", "Jarhallen", "U10", teams) for i in range(1, 7)
+                # Before Christmas (2025): 3 participations, matches target.
+                _tournament("t1", "2025-09-06", "Jarhallen", "U11", teams),
+                _tournament("t2", "2025-10-11", "Jarhallen", "U11", teams),
+                _tournament("t3", "2025-11-15", "Jarhallen", "U11", teams),
+                # After Christmas (2026): only 2 participations, below target of 3.
+                _tournament("t4", "2026-01-24", "Jarhallen", "U11", teams),
+                _tournament("t5", "2026-02-21", "Jarhallen", "U11", teams),
             ]
         }
         problem = self._problem(
-            target_tournament_counts_by_age_group={"U10": {"before_christmas": 5, "after_christmas": 5}}
+            start_date="2025-09-01",
+            end_date="2026-06-30",
+            teams=[
+                {"club": "Jar", "label": "Jar 1", "age_group": "U11", "target_tournament_count": None},
+                {"club": "Kongsberg", "label": "Kongsberg 1", "age_group": "U11", "target_tournament_count": None},
+            ],
+            participation_targets_by_age_group={"U11": {"before_christmas": 3, "after_christmas": 3}},
         )
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
-        assert "participation_target_mismatch" not in codes
-        assert result["manual_participation_placements"] == []
+        assert "participation_target_exceeded" not in codes
+        assert result["ok"] is True
+        shortfalls = {
+            (p["label"], p["half"]): p
+            for p in result["manual_participation_placements"]
+        }
+        for label in ("Jar 1", "Kongsberg 1"):
+            shortfall = shortfalls[(label, "after_christmas")]
+            assert shortfall["age_group"] == "U11"
+            assert shortfall["actual"] == "2"
+            assert shortfall["target"] == "3"
+        # Before Christmas met its target exactly, so no shortfall for it.
+        assert ("Jar 1", "before_christmas") not in shortfalls
+
+    def test_over_target_after_christmas_is_hard_violation(self):
+        """Exceeding the authoritative per-half target is a hard
+        violation just like exceeding an explicit override, even though the
+        team never exceeds a season-wide total."""
+        teams = [_team("Jar", "Jar 1", "U11"), _team("Kongsberg", "Kongsberg 1", "U11")]
+        candidate = {
+            "tournaments": [
+                _tournament("t1", "2026-01-10", "Jarhallen", "U11", teams),
+                _tournament("t2", "2026-02-10", "Jarhallen", "U11", teams),
+                _tournament("t3", "2026-03-10", "Jarhallen", "U11", teams),
+                _tournament("t4", "2026-04-10", "Jarhallen", "U11", teams),
+            ]
+        }
+        problem = self._problem(
+            start_date="2025-09-01",
+            end_date="2026-06-30",
+            teams=[
+                {"club": "Jar", "label": "Jar 1", "age_group": "U11", "target_tournament_count": None},
+                {"club": "Kongsberg", "label": "Kongsberg 1", "age_group": "U11", "target_tournament_count": None},
+            ],
+            participation_targets_by_age_group={"U11": {"before_christmas": 3, "after_christmas": 3}},
+        )
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "participation_target_exceeded" in codes
+        assert result["ok"] is False
 
     def test_external_calendar_conflict_surfaced_for_manual_placement(self):
         """issue #264 P0: a 'known' host calendar status is not itself proof

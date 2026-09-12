@@ -160,6 +160,42 @@ def test_participation_target_exceeded_is_hard_and_shortfall_is_obligation():
     assert shortfall_rule["type"] == "required_obligation"
 
 
+def test_participation_target_exceeded_checks_age_group_half_target():
+    """With no explicit per-team override, a team scheduled
+    above its age group's before/after-Christmas target for that half is
+    still a hard violation."""
+    team = Team(club="Jar", label="Jar A", age_group="U11")
+    tournaments = [
+        Tournament(id="t1", date=date(2026, 1, 10), arena="A", age_group="U11", teams=[team]),
+        Tournament(id="t2", date=date(2026, 2, 10), arena="A", age_group="U11", teams=[team]),
+    ]
+    plan = _plan(
+        tournaments=tournaments,
+        start_date=date(2025, 9, 1),
+        end_date=date(2026, 6, 30),
+        participation_targets_by_age_group={"U11": {"before_christmas": 3, "after_christmas": 1}},
+    )
+    rules = build_rules_model(plan)
+    by_id = {rule["id"]: rule for rule in rules}
+
+    exceeded_rule = by_id["participation_target_exceeded"]
+    assert exceeded_rule["ok"] is False
+    assert "Jar A" in exceeded_rule["status"]
+    assert "after_christmas" in exceeded_rule["status"]
+
+    targets_rule = by_id["participation_targets_by_age_group"]
+    assert targets_rule["type"] == "decision"
+    assert targets_rule["ok"] is True
+    assert "U11" in targets_rule["configured_value"]
+
+
+def test_participation_targets_by_age_group_rule_absent_when_unconfigured():
+    plan = _plan(tournaments=[])
+    rules = build_rules_model(plan)
+    ids = {rule["id"] for rule in rules}
+    assert "participation_targets_by_age_group" not in ids
+
+
 def test_manual_adjustment_violations_are_hard():
     tournament = Tournament(
         id="t1",

@@ -121,6 +121,19 @@ class TestTournamentDurationAndEndTime:
 
         assert tournament.matchday_duration_minutes(round_length=10) == 45
 
+    def test_five_round_tournament_is_75_min_play_100_min_occupancy(self):
+        """Pin the 15-minute-round example from the NIHF 3v3 guide: the round length plus
+        the separate 5-minute changeover buffer must never be conflated."""
+        teams = self._make_teams(4)
+        games = [
+            Game(home=teams[0], away=teams[1], round_number=round_number)
+            for round_number in range(1, 6)
+        ]
+        tournament = Tournament(date=date(2026, 1, 17), arena="Arena", age_group="U11", teams=teams, games=games)
+
+        assert tournament.duration_minutes(round_length=15) == 75
+        assert tournament.matchday_duration_minutes(round_length=15) == 100
+
     def test_end_time_computed_from_start_time_and_duration(self):
         teams = self._make_teams(4)
         games = [
