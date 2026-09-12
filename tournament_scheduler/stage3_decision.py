@@ -287,6 +287,22 @@ _STAGE3_CANDIDATE_STALE_CHECKPOINT_KEYS = (
 )
 
 
+def invalidate_stale_candidate_checkpoint_keys(checkpoint: Dict[str, Any]) -> Dict[str, Any]:
+    """Pop every checkpoint key whose provenance is the plan being replaced.
+
+    Shared by every call site that swaps a Stage 3 checkpoint's ``plan`` for
+    a different candidate (:func:`apply_stage3_candidate`, and the
+    interactive ``apply_candidate``/CP-SAT-shadow-apply path in
+    ``cli.pipeline_orchestrator.run_command_interactive``) so there is one
+    source of truth for which keys cannot be honestly recomputed at the
+    swap site (see :data:`_STAGE3_CANDIDATE_STALE_CHECKPOINT_KEYS`).
+    Mutates and returns *checkpoint*.
+    """
+    for key in _STAGE3_CANDIDATE_STALE_CHECKPOINT_KEYS:
+        checkpoint.pop(key, None)
+    return checkpoint
+
+
 def apply_stage3_candidate(work_dir: str, candidate: Dict[str, Any]) -> None:
     """Replace the Stage 3 checkpoint's plan with *candidate*.
 
@@ -294,10 +310,10 @@ def apply_stage3_candidate(work_dir: str, candidate: Dict[str, Any]) -> None:
     accepted by :func:`application.decisions.decide`. Swaps the ``plan``
     payload and invalidates every checkpoint key whose provenance is the
     superseded baseline plan (see
-    :data:`_STAGE3_CANDIDATE_STALE_CHECKPOINT_KEYS`) so a downstream report
-    can never pair the new candidate with fairness/report state computed
-    for the plan it replaced. Immutable config and explicit operator
-    decisions (e.g. ``configured_start_date``, ``manual_adjustments``
+    :func:`invalidate_stale_candidate_checkpoint_keys`) so a downstream
+    report can never pair the new candidate with fairness/report state
+    computed for the plan it replaced. Immutable config and explicit
+    operator decisions (e.g. ``configured_start_date``, ``manual_adjustments``
     carried on the candidate itself) are left untouched. Mirrors how the
     existing mid-planning critic loop persists a better candidate
     (``cli.pipeline_orchestrator.plan_adoption._run_mid_planning_critic_loop``),
@@ -308,7 +324,6 @@ def apply_stage3_candidate(work_dir: str, candidate: Dict[str, Any]) -> None:
 
     state = PipelineState(work_dir)
     checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
-    for key in _STAGE3_CANDIDATE_STALE_CHECKPOINT_KEYS:
-        checkpoint.pop(key, None)
+    invalidate_stale_candidate_checkpoint_keys(checkpoint)
     checkpoint["plan"] = candidate
     state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)

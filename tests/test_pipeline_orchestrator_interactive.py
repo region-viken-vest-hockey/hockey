@@ -886,6 +886,93 @@ class TestStage3InteractiveDecisionLoop:
         assert _read_stage3_interactive_state(state) == {}
         assert state.read_stage(StageName.PLANNING) == expected_plan2
 
+    def test_apply_candidate_from_cp_sat_shadow_invalidates_stale_baseline_state(self, state, tmp_path):
+        """issue #314: applying an automatic-CP-SAT-shadow candidate_ref
+        (``stage3_cp_sat:...``) is a second, independent code path that
+        swaps checkpoint["plan"] outside of stage3_decision.apply_stage3_candidate
+        -- it must invalidate the same stale baseline-provenance checkpoint
+        keys (rules_report, candidates, selected_candidate_attempt,
+        baseline_timings, planning_critic_hints) instead of leaving them
+        paired with the newly applied candidate."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.stage3_cpsat_cache import write_cp_sat_cache_entry
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        shadow_candidate = _candidate(seed=5)
+        entry = write_cp_sat_cache_entry(
+            state, "legacy", "test-cache-key",
+            candidate=shadow_candidate,
+            report={"ab_report": {"dominates_baseline": True, "production_ready": True}},
+        )
+        candidate_ref = entry["candidate_ref"]
+        assert candidate_ref.startswith("stage3_cp_sat:")
+
+        report = build_ab_report(plan1["plan"], shadow_candidate)
+        ab_context = build_stage3_decision_context(
+            report,
+            run_id="",
+            baseline_ref="stage3_interactive:attempt_1",
+            candidate_ref=candidate_ref,
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "last_context": ab_context.to_dict(),
+            },
+        )
+        # Baseline checkpoint carries state derived from plan1 -- the
+        # candidate this decision is about to supersede.
+        stale_checkpoint = {
+            **plan1,
+            "rules_report": {"status": "pass", "critical": [], "warnings": [], "info": []},
+            "candidates": [{"attempt": 1, "status": "pass"}],
+            "selected_candidate_attempt": 1,
+            "baseline_timings": {"build_plan": 1.23},
+            "planning_critic_hints": {"source": "penalty_hints", "penalty_hints": {}},
+        }
+        state.write_stage(StageName.PLANNING, stale_checkpoint, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {"action_id": "apply_candidate", "arguments": {"candidate_ref": candidate_ref}}
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
+            return_value=(plan1, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        final_checkpoint = state.read_stage(StageName.PLANNING)
+        assert final_checkpoint["plan"] == shadow_candidate
+        for key in (
+            "rules_report",
+            "candidates",
+            "selected_candidate_attempt",
+            "baseline_timings",
+            "planning_critic_hints",
+        ):
+            assert key not in final_checkpoint, f"stale key {key!r} survived cp_sat candidate swap"
+        assert final_checkpoint["warnings"] == []
+
     def test_apply_candidate_writes_run_evidence_bundle(self, state, tmp_path):
         """issue #264 P0: every production export carries an auditable
         decision/search/verification provenance bundle."""

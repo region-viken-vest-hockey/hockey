@@ -282,7 +282,10 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
 
                     cp_sat_cache_entry = resolve_candidate_ref(state, _current_run_id(state), str(candidate_ref))
                 if cp_sat_cache_entry is not None:
+                    from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
+
                     checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
+                    invalidate_stale_candidate_checkpoint_keys(checkpoint)
                     checkpoint["plan"] = cp_sat_cache_entry["candidate"]
                     checkpoint["source"] = "stage3_cp_sat_shadow_applied"
                     state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
@@ -296,7 +299,10 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                         None,
                     )
                     if chosen is not None:
+                        from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
+
                         checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
+                        invalidate_stale_candidate_checkpoint_keys(checkpoint)
                         checkpoint["plan"] = chosen["candidate"]
                         state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
                 # else: the on-disk Stage 3 checkpoint already holds the
