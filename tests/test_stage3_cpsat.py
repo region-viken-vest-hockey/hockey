@@ -133,6 +133,100 @@ class TestOptimizeCandidateCpSat:
         after = score_candidate(optimized)["participation"]["counts_by_team"]
         assert after == {"T1": 1, "T2": 3, "T3": 4, "T4": 4}
 
+    def test_repairs_zero_baseline_registered_team_toward_target(self):
+        """A registered team with zero baseline appearances anywhere in the
+        half must still get a participation cap/target and be optimized
+        toward it, not merely have assignment variables it happens never to
+        use. T4 never appears in the baseline pool below; every tournament
+        excludes it. With capacity exactly matching the sum of configured
+        targets (see the capacity-forces-exact-equality reasoning in the
+        test above), CP-SAT is mathematically forced to bring T4 up to its
+        target of 3 -- impossible unless the zero-baseline participation
+        constraint/deficit term actually apply to it."""
+        teams = {label: _team(f"Club{label}", label, "U11") for label in ("T1", "T2", "T3", "T4")}
+        all_labels = ["T1", "T2", "T3", "T4"]
+
+        def _pool(excluded: str) -> list[dict]:
+            return [teams[label] for label in all_labels if label != excluded]
+
+        # Baseline: T4 excluded from every tournament -- zero appearances.
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U11", _pool("T4"), host_club="ClubT4"),
+                _tournament("t2", "2026-02-04", "Arena1", "U11", _pool("T4"), host_club="ClubT4"),
+                _tournament("t3", "2026-03-06", "Arena1", "U11", _pool("T4"), host_club="ClubT4"),
+            ],
+        }
+        problem = {
+            "teams": [
+                {**teams["T1"], "target_tournament_count": 2},
+                {**teams["T2"], "target_tournament_count": 2},
+                {**teams["T3"], "target_tournament_count": 2},
+                {**teams["T4"], "target_tournament_count": 3},
+            ]
+        }
+
+        optimized = optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+
+        after = score_candidate(optimized)["participation"]["counts_by_team"]
+        assert after == {"T1": 2, "T2": 2, "T3": 2, "T4": 3}
+
+    def test_zero_baseline_registered_team_cannot_double_book_same_date(self):
+        """The no-duplicate-participation-on-one-date rule must cover a
+        registered team even when it has zero baseline appearances -- CP-SAT
+        must not "cheat" a participation deficit by placing that team in two
+        same-age, same-date tournaments at once just because closing the
+        deficit is otherwise expensive."""
+        teams = {label: _team(f"Club{label}", label, "U11") for label in ("T1", "T2", "T3", "T4", "T5", "T6")}
+
+        # Two tournaments on the same date; T6 is absent from both baselines
+        # (zero appearances) but has a high configured target, so an
+        # unconstrained solver would want to place it in both at once to
+        # close its deficit by 2 in a single day.
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-10", "Arena1", "U11", [teams["T1"], teams["T2"]]),
+                _tournament("t2", "2026-01-10", "Arena2", "U11", [teams["T3"], teams["T4"]]),
+            ],
+        }
+        problem = {
+            "teams": [
+                {**teams["T1"], "target_tournament_count": 4},
+                {**teams["T2"], "target_tournament_count": 4},
+                {**teams["T3"], "target_tournament_count": 4},
+                {**teams["T4"], "target_tournament_count": 4},
+                {**teams["T5"], "target_tournament_count": 4},
+                {**teams["T6"], "target_tournament_count": 2},
+            ]
+        }
+
+        optimized = optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+
+        t6_appearances = sum(
+            1
+            for tournament in optimized["tournaments"]
+            for team in tournament["teams"]
+            if team["label"] == "T6"
+        )
+        assert t6_appearances <= 1
+
+    def test_evidence_describes_target_capped_participation_not_exact_baseline(self):
+        candidate = _clustered_candidate()
+
+        optimized = optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
+
+        assert optimized["source"]["encoded_scope"]["participation"] == "capped_at_configured_target_with_baseline_hint"
+
+        optimized_half = optimize_candidate_cp_sat(
+            _half_split_candidate(), None, solve_budget_seconds=5.0, seed=1, decompose_by_half=True
+        )
+        assert (
+            optimized_half["source"]["encoded_scope"]["participation"]
+            == "capped_at_configured_target_per_half_with_baseline_hint"
+        )
+
     def test_preserves_skeleton_dates_hosts_arenas_and_tournament_count(self):
         candidate = _clustered_candidate()
 

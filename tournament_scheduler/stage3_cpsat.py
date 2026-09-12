@@ -280,6 +280,19 @@ def _solve_slot_group(
     for slot in slots:
         slot_indexes_by_age_group[slot.age_group].append(slot.index)
 
+    # The participation/no-duplicate-date constraints below must cover every
+    # registered/eligible team for the age groups actually represented in
+    # *slots* -- not just identities already present in `baseline_participations`.
+    # A registered team with zero baseline appearances in this half would
+    # otherwise get assignment variables (from the eligibility loop above)
+    # but no participation cap/target/deficit term and no same-date
+    # exclusivity constraint, making it invisible to the target-authoritative
+    # model precisely in the case (an under-target team the baseline
+    # dropped entirely) that matters most.
+    eligible_identities: "set[TeamIdentity]" = set()
+    for age_group in {slot.age_group for slot in slots}:
+        eligible_identities.update(teams_by_age_group.get(age_group, []))
+
     # The configured participation target (per-team override, or
     # the age group's authoritative before/after-Christmas value for this
     # half) is now what CP-SAT optimizes against -- never exceeded (hard
@@ -289,7 +302,8 @@ def _solve_slot_group(
     # no configured target (non-canonical age groups) keep the original
     # exact baseline-lock behavior as a defensive fallback.
     participation_deficit_terms: "list[Any]" = []
-    for identity, baseline_count in baseline_participations.items():
+    for identity in eligible_identities:
+        baseline_count = baseline_participations.get(identity, 0)
         vars_for_identity = [
             x[(slot_index, identity)]
             for slot_index in slot_indexes_by_age_group.get(identity[2], [])
@@ -372,7 +386,11 @@ def _solve_slot_group(
             diagnostics=diagnostics,
         )
 
-    for identity in baseline_participations:
+    # Uses `eligible_identities`, not just `baseline_participations`, so a
+    # registered team CP-SAT newly assigns into a half (zero baseline
+    # appearances) is still bound by this hard rule instead of relying on
+    # the independent verifier to catch it after the fact.
+    for identity in eligible_identities:
         for (age_group, _on_date), slot_indexes in slots_by_age_date.items():
             if age_group != identity[2] or len(slot_indexes) < 2:
                 continue
@@ -444,7 +462,7 @@ def _solve_slot_group(
         gap_under_7_terms: "list[Any]" = []
         gap_under_14_terms: "list[Any]" = []
         slot_by_index = {slot.index: slot for slot in slots}
-        for identity in baseline_participations:
+        for identity in eligible_identities:
             indexes = sorted(
                 slot_indexes_by_age_group.get(identity[2], []),
                 key=lambda idx: (slot_by_index[idx].on_date, idx),
@@ -583,27 +601,36 @@ def optimize_candidate_cp_sat(
 
     * dates/hosts/arenas/start times and tournament count are copied verbatim;
     * every tournament keeps exactly its baseline roster size;
-    * every team keeps exactly its baseline season participation count;
-    * a team cannot appear in two tournaments on the same date;
+    * every registered/eligible team's participation is capped at its
+      configured target (per-team override, or the age group's authoritative
+      before/after-Christmas value for the half) and optimized toward it via
+      a deficit objective term -- an identity with no configured target
+      (non-canonical age groups only) falls back to its exact baseline
+      count instead;
+    * a team cannot appear in two tournaments on the same date -- enforced
+      for every registered/eligible team, not just ones already present in
+      the baseline, so CP-SAT cannot introduce a duplicate-date violation of
+      its own accord;
     * pinned tournaments keep their exact participant set;
     * when the baseline tournament contains a host-club team, the optimized
       tournament still contains at least one host-club team.
 
-    Participant counts intentionally stay equal to the baseline even when the
-    baseline itself contains a known manual shortfall. That isolates opponent
-    assignment quality from season-shape/capacity work for the first CP-SAT
-    proof and guarantees participation cannot regress. The independent A/B
-    report remains responsible for deciding whether the candidate is useful.
+    Baseline participation counts are used only as a search hint
+    (``AddHint``), never as the constraint authority, so CP-SAT can repair a
+    baseline that under- or over-shoots its configured target -- including a
+    registered team with zero baseline appearances in a half. The
+    independent verifier/A/B report remain responsible for deciding whether
+    the resulting candidate is useful.
 
     *feasibility_only* (issue #298 Phase 1) builds only the hard constraints
-    and stops at the first solution -- proving the model can reproduce a
-    valid assignment from the baseline, isolated from quality search.
+    and stops at the first solution -- proving the model can reach a
+    feasible assignment, isolated from quality search.
 
     *decompose_by_half* (issue #298 Phase 2) solves participant assignment
     independently for each :mod:`planning_half` (before/after Christmas)
     instead of one monolithic model, using ``problem["christmas_split_date"]``
-    as the shared boundary. Each half preserves its own baseline
-    participation counts exactly, so a half with no slots is simply skipped.
+    as the shared boundary. Each half is capped against its own configured
+    per-half target (see above), so a half with no slots is simply skipped.
 
     *solve_budget_seconds* is a **total** wall-clock budget across every
     group actually solved (issue #310), not a per-group budget: it is
@@ -740,7 +767,9 @@ def optimize_candidate_cp_sat(
             "moves": ["participant_assignment"],
             "fixed": ["dates", "hosts", "arenas", "start_times", "roster_sizes", "tournament_count"],
             "participation": (
-                "preserve_baseline_exactly_per_half" if decompose_by_half else "preserve_baseline_exactly"
+                "capped_at_configured_target_per_half_with_baseline_hint"
+                if decompose_by_half
+                else "capped_at_configured_target_with_baseline_hint"
             ),
             "same_club_pairings": "no_worse_than_baseline",
             "turnaround": "soft_pairwise_hint_only" if not feasibility_only else "not_modeled",
