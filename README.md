@@ -2,7 +2,7 @@
 
 RVV Miniputt is the operational and technical system used to collect team registrations, maintain the activity calendar, generate the miniputt season plan, review the result, and publish approved information for Region Viken Vest.
 
-The project spans Microsoft Forms, Power Automate, SharePoint, Excel, deterministic Python scheduling, GitHub Actions, GitHub Pages, WordPress, and Spond. This README is the starting point for a new season coordinator or technical maintainer. Detailed implementation documentation remains under [`docs/`](docs/).
+The project spans Microsoft Forms, Power Automate, SharePoint, Excel, deterministic Python scheduling, GitHub Actions, GitHub Pages, WordPress, and Spond. This README is the starting point for a new season coordinator or technical maintainer. The maintained documentation map and precedence rules are in [`docs/README.md`](docs/README.md).
 
 ## Core principles
 
@@ -103,11 +103,11 @@ Calendar source definitions belong in `Kilder`. Before planning:
 ```bash
 make sources-status
 make calendars
-make calendars-refresh  # when a forced refresh is required
-make calendars-refresh-dotenvx  # forced refresh with BookUp credentials from .env.bookup
+make calendars-refresh
+make calendars-refresh-dotenvx
 ```
 
-For BookUp calendars that require credentials, keep secrets out of the command line and run through dotenvx with the encrypted `.env.bookup` file. Pi slash commands also auto-load missing BookUp credentials from `DOTENVX_ENV_FILE` (default `.env.bookup`) before prompting. The dotenvx private key file (`.env.keys`) must stay local and ignored by git. If Tønsberg triggers Vipps or SMS MFA, re-run Stage 2 with `--manual-bookup-login` so a visible browser pauses for the operator to finish login. Sandefjord Penguins is not a BookUp source (issue #261) — it has a fixed weekly ice-time allocation instead, so no credentials are needed for it.
+For credentialed BookUp sources, keep secrets out of command lines and use the documented encrypted environment/session flow. If MFA is required, use the supported manual-login/recovery path rather than accepting incomplete placeholder calendar data. See [`docs/rvv-miniputt-pipeline.md`](docs/rvv-miniputt-pipeline.md) for source-specific recovery details.
 
 A source returning very few events may not be technically blocked but can still be untrustworthy. Investigate sparse-event warnings before approval.
 
@@ -224,20 +224,11 @@ make registered-teams CSV=downloads/Miniputt-26-27.csv
 make registered-teams-publish CSV=downloads/Miniputt-26-27.csv CONFIRM_PUBLIC=1
 ```
 
-This updates the public team list without changing `input.xlsx` or regenerating season/activity output. Extra contact, ID, status, and comment columns are ignored in public output. The public link for WordPress is `https://region-viken-vest-hockey.github.io/hockey/latest/registered-teams/pameldte-lag.html`.
+This updates the public team list without changing `input.xlsx` or regenerating season/activity output. Extra contact, ID, status, and comment columns are ignored in public output.
 
 ## Browser-only GitHub workflow
 
-Volunteers who should not run local commands can use manual workflows under **GitHub → Actions**:
-
-| Workflow | Purpose | Public write? |
-|---|---|---|
-| `Sesong: valider inndata` | Validate workbook and upload evidence | No |
-| `Sesong: lag vurderingspakke` | Generate a candidate review bundle and publication preview | No |
-| `Sesong: publiser godkjent pakke` | Publish an exact reviewed artifact and fingerprint | Yes, through protected environment |
-| `Sesong: rull tilbake publisering` | Restore `/latest/` to a previous published run | Yes, through protected environment |
-
-Generation and publication must remain separate.
+Volunteers who should not run local commands can use manual workflows under **GitHub → Actions** for validation, review-bundle generation, approved publication, and rollback. Generation and publication remain separate actions; see [`docs/rvv-miniputt-deployment-architecture.md`](docs/rvv-miniputt-deployment-architecture.md) and the workflow files for the current exact interface.
 
 ## Common commands
 
@@ -246,11 +237,9 @@ Generation and publication must remain separate.
 | Show available operations | `make help` |
 | Install locked dependencies | `make install` |
 | Run canonical checks | `make check` |
-| Verify dependency lock | `make dependency-lock` |
 | Full resumable operator run | `make operator-run` |
 | Force complete rerun | `make operator-run-force` |
 | Raw four-stage run | `make run ARGS='--input input.xlsx'` |
-| Raw run with dotenvx credentials | `make run-dotenvx ARGS='--input input.xlsx'` |
 | Inspect status/logs | `make status`, `make logs` |
 | Inspect/refresh calendars | `make calendars`, `make calendars-refresh`, `make calendars-refresh-dotenvx` |
 | Inspect source health | `make sources-status` |
@@ -265,23 +254,9 @@ Mutating commands retain explicit gates. `make`, `make help`, `make run`, and `m
 
 ## Inputs and outputs
 
-`input.xlsx` is the only supported primary planning input.
+`input.xlsx` is the only supported primary planning input. See [`docs/rvv-miniputt-input-formats.md`](docs/rvv-miniputt-input-formats.md) for the canonical workbook contract rather than duplicating the schema here.
 
-Required sheets:
-
-- `Innstillinger`
-- `Lag`
-
-Common optional sheets:
-
-- `Aldersgrupper`
-- `Kilder`
-- `Datopreferanser`
-- `Aktiviteter`, `Aktivitetsplan`, or `Årshjul`
-
-Common generated output includes season-plan Excel/CSV/iCal/HTML files, the Spond workbook, calendar report, input overview, activity JSON/HTML, registered-team artifacts, manifests, checkpoints, logs, fingerprints, privacy reports, and audit files.
-
-See [`docs/rvv-miniputt-input-formats.md`](docs/rvv-miniputt-input-formats.md) for exact fields and validation rules.
+Generated output includes season-plan Excel/CSV/iCal/HTML files, Spond data, calendar reports, input overview, activity data, registered-team artifacts, manifests, checkpoints, logs, fingerprints, privacy reports, and audit files. Generated files are derived data, not maintained sources.
 
 ## Troubleshooting
 
@@ -313,13 +288,7 @@ The pipeline normally resumes from the earliest incomplete or stale stage.
 
 ### The public result is wrong
 
-```bash
-make publish-history
-make rollback RUN_ID=<id> CONFIRM_PUBLIC=1
-make verify-publish
-```
-
-Then correct the source and generate a new reviewed bundle.
+Use publication history/rollback through the documented operator commands, verify the restored public state, then correct the source and generate a new reviewed bundle.
 
 ### Power Automate is unavailable
 
@@ -342,8 +311,8 @@ Follow [`docs/ownership-and-handover.md`](docs/ownership-and-handover.md). Recov
 | `.pipeline/` | Generated local checkpoints, logs, decisions, and run state |
 | `export/` | Generated review/export output |
 | `registered-teams/` | Standalone registered-team review artifacts |
-| `docs/` | Detailed architecture, input, pipeline, security, and handover documentation |
-| `.claude/`, `.opencode/`, `.codex/`, `.pi/` | Thin harness-specific adapters over canonical commands |
+| `docs/` | Maintained docs, ADRs, external references, and retained history |
+| `.claude/`, `.opencode/`, `.codex/`, `.chatgpt/`, `.pi/` | Thin harness-specific adapters over canonical commands |
 
 ## Installation
 
@@ -366,13 +335,7 @@ INSTALL_PLAYWRIGHT=1 make install
 
 ## Documentation
 
-- [Pipeline and operator guide](docs/rvv-miniputt-pipeline.md)
-- [Input formats and SharePoint registration export](docs/rvv-miniputt-input-formats.md)
-- [Ownership and handover](docs/ownership-and-handover.md)
-- [Run manifest and durable decisions](docs/run-manifest-schema.md)
-- [Security](docs/security.md)
-- [AI operator product direction](docs/ai-operator-product-direction.md)
-- [AI operator roadmap](docs/ai-operator-roadmap.md)
+Start with [`docs/README.md`](docs/README.md). It distinguishes maintained operational documentation from ADRs, external references, and historical material. GitHub issues—not roadmap documents—are the live implementation backlog.
 
 ## Handover acceptance test
 
