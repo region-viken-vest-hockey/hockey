@@ -1,29 +1,14 @@
-# CODEX.md
+# Codex instructions
 
-## RVV Miniputt
+Read and follow [`AGENTS.md`](AGENTS.md) first. It defines the shared project rules, source-of-truth order, and command boundaries.
 
-When working with scraping, calendar generation, season planning, or pipeline debugging, use the RVV skill in `.agents/skills/rvv/SKILL.md`.
-
-### Command equivalents
-
-Pi exposes `/rvv-miniputt ...` as native extension slash commands.
-Codex should use the harness-neutral repo entrypoints instead:
+For RVV Miniputt scraping, calendar generation, season planning, or pipeline debugging, read `.agents/skills/rvv/SKILL.md` and use the Codex adapter under `.codex/commands/rvv-miniputt/` or the repository entrypoints:
 
 ```bash
-scripts/rvv-miniputt run
-scripts/rvv-miniputt status
-scripts/rvv-miniputt logs list
-scripts/rvv-miniputt calendars
-# or
-python3 -m tournament_scheduler.cli.rvv_cli <subcommand>
+scripts/rvv-miniputt ...
+python3 -m tournament_scheduler.cli.rvv_cli ...
 ```
 
-Rules:
-- Never run `/rvv-miniputt ...` as a shell command.
-- Never reimplement the pipeline by calling `tournament_scheduler.pipeline.stageN_*` modules directly.
-- When planning or changing scheduling logic, review whether the rules report and related docs must be updated.
+Pi `/rvv-miniputt ...` commands are extension commands, not shell binaries. Never run them through a shell.
 
-### Cross-harness boundary
-
-- Pi-only: native `/rvv-miniputt ...` slash commands, `/rvv-miniputt guide`, live progress notifications, and agent-callable `rvv_miniputt_*` tools.
-- Codex/OpenCode/Claude: use `scripts/rvv-miniputt ...` or `python3 -m tournament_scheduler.cli.rvv_cli ...`.
+Codex-specific command files are transport adapters only. They must not define independent Stage 1–4 policy, scheduling semantics, source-validity rules, or publication safety behavior.
