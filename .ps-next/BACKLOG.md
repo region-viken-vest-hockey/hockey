@@ -5,8 +5,6 @@
 ## Done
 - [209] [x] Stabilize the test suite by separating slow planner/integration tests from quick unit tests, marking canonical full-planner tests appropriately, and ensuring the default quality gate does not hang on Stage 3 canonical planning cases. (2026-07-05) (2026-07-08)
 
-- [208] [x] Propagate workbook-level settings such as `deltakelser_per_lag` and `max_hosting_days_per_month` through `load_effective_config` into Stage 3 planning, and stop logging them as ignored unknown fields when they are intentional supported inputs. (2026-07-05) (2026-07-07)
-
 - [207] [x] Add workbook/config fingerprinting to Stage 1 and pipeline status so Stage 2–4 checkpoints and exports are marked stale when `input.xlsx` or the effective config changes; current status can show `done` even when the workbook roster differs from the checkpoint. (2026-07-05) (2026-07-07)
 
 - [10] [x] Add an optional mid-planning critic loop between Stage 3 and Stage 4: inspect the planning checkpoint, generate structured improvement hints, re-run Stage 3 with those hints baked into the config, and iterate up to N times before falling through to export — different from the post-Stage-4 refinement loop because it operates before any export artifacts exist (2026-07-07)
@@ -135,8 +133,6 @@
 - [105] [x] Refactor rvv_cli.py (~1358 lines) into smaller, focused modules. Currently a monolithic CLI entry point mixing argument parsing, pipeline orchestration, export handling, and status reporting. Split into at least: cli/args.py for argument parsing/validation, cli/pipeline_orchestrator.py for run/resume flows, cli/reporting.py for status/log output. Keep rvv_cli.py as a thin dispatch layer that delegates to the modules. (2026-06-15)
 
 - [106] [x] Refactor html_exporter.py (~1011 lines) into smaller, focused modules. Currently mixes HTML template generation, data computation (heatmaps, team stats, travel distances), fairness/review rendering, and CSS/JS injection. Split into: html/data_computation.py for derived stats, html/renderers/fairness.py, html/renderers/review.py, html/renderers/heatmap.py, and keep the main exporter as a thin coordinator. Acceptance: generated HTML output is identical to current output. (2026-06-15)
-
-- [103] [x] Add per-team target tournament count support: allow the Lag sheet in input.xlsx to have an optional target_tournament_count column per team (nullable, default = global deltakelser_per_lag). Update Team model, Stage 1 config parsing, and SeasonPlanner to respect per-team overrides. Example use case: Kongsberg 2 U7 should only play 2 tournaments while other U7 teams play 6. Acceptance: teams without the column use the global default; teams with an explicit value are scheduled for at most that many tournaments; the planning algorithm handles mixed targets within an age group; reports surface per-team target vs actual; backward compatible (existing input.xlsx unchanged). (2026-06-15)
 
 - [107] [x] Refactor stage2_helpers.py (~1107 lines) into smaller modules. Currently contains scraping orchestration, calendar source handling, event merging, and agentic scraping coordination mixed together. Split into focused helpers per concern: calendar source resolution, event normalization/merging, scraping strategy dispatch, and error handling. Acceptance: existing tests pass without changes. (2026-06-15)
 
