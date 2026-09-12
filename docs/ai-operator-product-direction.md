@@ -2,217 +2,93 @@
 
 ## Decision
 
-RVV Miniputt will be designed primarily as an **AI-operated season-planning system**.
+RVV Miniputt is designed primarily as an **AI-operated season-planning system over deterministic repository capabilities**.
 
-The primary user is a human supervisor working through an LLM harness such as Codex, Claude Code, OpenCode, Pi, or another capable agent environment. The human provides goals, domain judgment, credentials when necessary, and final approval. The AI operator owns the mechanical workflow. Routine operation should use club-controlled ownership and recovery paths rather than personal accounts; see the [ownership and handover guide](ownership-and-handover.md).
+The human supervisor provides goals, credentials/authorization when required, explicit policy decisions, and final publication approval. The agent/operator coordinates the mechanical workflow and contextual soft trade-offs. Repository code remains authoritative for facts, hard constraints, reproducible measurements, persistence, validation, and publication safety.
 
-This does not rule out a future non-technical supervisor interface. It means the near-term architecture and product decisions should optimize for reliable agent operation first.
+This direction does not require a particular model or harness. Pi, Claude Code, ChatGPT, Codex, OpenCode, or future interfaces are transports/adapters over the same repository capabilities and shared RVV runbook.
 
 ## Product promise
 
-> Give RVV Miniputt the season inputs and ask it to produce the best possible season plan. The AI operator validates inputs, gathers calendar data, resolves recoverable problems, generates and evaluates plans, and exports the result while involving the human only when genuine judgment or authorization is required.
+> Give RVV Miniputt controlled season inputs and ask it to produce the best trustworthy season plan. The agent validates inputs, gathers source evidence, recovers routine failures, generates/evaluates candidates, and exports a reviewable result while involving the human only when authorization or real policy judgment is required.
 
-## Product model
+## Operating model
 
 ```text
 Human supervisor
-      |
-      v
-AI operator
-      |
-      +-- input and workbook capability
-      +-- calendar and scraping capability
-      +-- scheduling capability
-      +-- plan evaluation capability
-      +-- repair and recovery capability
-      +-- export capability
-      +-- audit and explanation capability
+      ↓
+AI/agent controller
+      ↓
+validated repository capabilities
+      ├─ input/registration
+      ├─ source/calendar collection and recovery
+      ├─ planning/search/solver
+      ├─ deterministic verification and metrics
+      ├─ export/privacy/publication preparation
+      └─ durable operator state and audit
 ```
 
-The scheduling engine remains deterministic infrastructure. It should expose clear capabilities and evidence to the operator rather than forcing the human to manually coordinate pipeline stages.
+## Responsibility boundary
 
-## Operator responsibility
+### Repository code owns
 
-The AI operator should:
+- controlled input parsing and normalization;
+- team/club/source/arena/calendar facts and provenance;
+- hard scheduling constraints and candidate validation;
+- reproducible quality/fairness measurements;
+- generic search/solver mechanics;
+- checkpoints, manifests, fingerprints, and action validation;
+- export/privacy/publication safety gates.
 
-1. understand the requested outcome
-2. inspect the current workspace and previous run state
-3. validate and, where safe, repair inputs
-4. collect calendar data and assess source health
-5. recover from routine source failures
-6. generate multiple candidate plans when useful
-7. evaluate candidates against hard constraints and soft objectives
-8. select or recommend a plan with an explanation
-9. export all requested artifacts
-10. report what changed, remaining uncertainty, and decisions requiring human input
+### Agent/controller owns
 
-The human should not need to think in terms of Stage 1 through Stage 4 unless debugging.
+- deciding which soft warning/quality dimension to prioritize;
+- choosing among exposed valid recovery/search/refinement actions;
+- interpreting contextual organizer guidance;
+- comparing valid soft trade-offs and recommending a candidate;
+- presenting uncertainty and focused escalation to the human.
+
+### Human owns
+
+- credentials and MFA;
+- explicit business-policy changes/exceptions that require authority;
+- destructive/external approval where required;
+- final publication/rollback approval.
+
+ADR 0002 is the durable architecture decision for this boundary. `.agents/skills/rvv/SKILL.md` is the shared operational policy/runbook for agents.
 
 ## Interaction principles
 
-### Goal-oriented rather than command-oriented
+### Goal-oriented
 
-The normal entry point should be an objective such as:
-
-> Produce the best possible season plan from the current workbook.
-
-Commands remain available as tools and escape hatches, but should not define the main user experience.
-
-### Autonomous within explicit boundaries
-
-The operator may perform reversible and local actions without asking repeatedly. It must ask before actions that require missing credentials, change external systems, discard meaningful human edits, or resolve ambiguous policy choices.
+Normal operation should start from an objective such as “produce the best trustworthy season plan from the current workbook” rather than requiring the human to coordinate Stage 1–4 manually. Stage commands remain debugging/escape hatches.
 
 ### Evidence before confidence
 
-Every significant capability should make it possible to answer:
+Capabilities should expose what happened, concrete supporting evidence, uncertainty/problems, artifacts, and valid next actions. Source success is not equivalent to source trustworthiness; candidate score is not a substitute for hard verification.
 
-- What happened?
-- What evidence supports the result?
-- How confident is the system?
-- What should happen next?
+### Deterministic guardrails
 
-### Deterministic core, optional AI judgment
+Agent judgment may choose among valid actions and soft trade-offs but cannot bypass hard constraints, schema validation, privacy rules, or publication gates.
 
-Hard constraints and baseline scoring must remain deterministic and testable. AI assistance may interpret results, investigate failures, suggest changes, and compare trade-offs, but must not be required to guarantee validity.
+### Reproducible/auditable operation
 
-### Reproducible runs
+Runs retain the input/source fingerprints, relevant candidate/metric data, structured action outcomes, and concise decision rationale needed for audit/handover. Private model chain-of-thought and sensitive authentication/session material are not persistence requirements.
 
-A completed run should record enough information to reproduce and audit it, including:
+### Thin adapters
 
-- input fingerprint
-- source snapshots and provenance
-- planner version
-- configuration and penalty weights
-- random seeds
-- candidate scores
-- manual or AI-proposed adjustments
-- final selection rationale
+Harness-specific command files may provide UI, browser integration, progress/cancellation, or launch details. They must not maintain an independent copy of Stage 1–4 policy, scheduling semantics, source-validity rules, or publication policy.
 
-## Capability contract
+## Human escalation
 
-Capabilities should return structured outcomes rather than only console text or success/failure.
+Escalate when work genuinely needs human authority or missing information, for example credentials/MFA, ambiguous policy, an explicit exception, destructive recovery, impossible hard constraints, or external publication approval.
 
-A useful common shape is:
+Do not escalate simply because a routine deterministic capability needs another bounded retry/recovery action that is already available and safe.
 
-```json
-{
-  "status": "ok | warning | blocked | failed",
-  "summary": "What happened",
-  "evidence": [],
-  "confidence": 0.0,
-  "artifacts": [],
-  "problems": [],
-  "suggested_actions": [],
-  "requires_human": false
-}
-```
+## Ownership and handover
 
-This does not need to become one universal Python class immediately. It is the direction for CLI JSON output, checkpoints, agent tools, logs, and desktop-backend responses.
+Routine operation should use club-controlled accounts/assets and documented recovery paths rather than depend on one maintainer's personal account. See [`ownership-and-handover.md`](ownership-and-handover.md).
 
-## Initial capabilities
+## Documentation/backlog boundary
 
-### Workspace and input
-
-- inspect workspace
-- locate the active workbook
-- validate workbook structure and values
-- explain validation failures
-- propose or apply safe repairs
-- show changes before and after repair
-
-### Calendar sources
-
-- list configured sources
-- test authentication and reachability
-- scrape or fetch events
-- report source health and date coverage
-- compare fresh data with cache
-- identify suspiciously sparse or changed sources
-- recover or accept manually supplied events
-- preserve provenance for every event
-
-### Planning
-
-- generate one or more candidate plans
-- enforce hard constraints
-- score soft constraints and fairness
-- explain score components and violations
-- retain seed and configuration metadata
-- honor locked assignments and human decisions
-
-### Evaluation and refinement
-
-- compare candidates
-- identify the most consequential compromises
-- suggest targeted adjustments
-- rerun only the necessary work
-- stop when further retries are unlikely to provide meaningful improvement
-
-### Export
-
-- validate the selected plan before export
-- produce all configured formats
-- summarize generated artifacts
-- show warnings that affect downstream use
-
-## Human escalation policy
-
-The operator should escalate when:
-
-- required credentials or permissions are unavailable
-- source data is too incomplete to trust
-- two policy choices are both valid but materially different
-- a repair would discard meaningful user data
-- no valid plan exists under the current hard constraints
-- an external write or publication requires authorization
-
-Escalations should be narrow and actionable. The operator should provide context, alternatives, and a recommended choice rather than returning a raw exception.
-
-## Role of the desktop app
-
-The desktop app is not the primary near-term interface. It may evolve into a supervisor console that displays:
-
-- current objective and progress
-- evidence and source health
-- questions awaiting human input
-- candidate plan comparison
-- approvals and locked decisions
-- generated artifacts and audit history
-
-It should call the same capabilities as other harnesses rather than duplicate planning logic.
-
-## Documentation hierarchy
-
-The main documentation should distinguish three layers:
-
-1. **Use the AI operator** — the preferred goal-oriented workflow
-2. **Use the portable CLI** — automation, recovery, and debugging
-3. **Develop the engine and adapters** — internal architecture and harness integrations
-
-Harness-specific adapters should remain thin. Business logic belongs in the Python package and should be usable without any particular LLM provider.
-
-## Near-term roadmap
-
-1. Define an operator run manifest and structured capability result format.
-2. Add a single goal-oriented operator entry point.
-3. Make source health, provenance, and recovery agent-friendly.
-4. Make candidate generation and score comparison reproducible and explainable.
-5. Add a human escalation and approval mechanism.
-6. Simplify the README around the AI-operator workflow.
-7. Treat any future non-technical UI as an optional supervisor surface over the same APIs.
-
-## Non-goals for the first iteration
-
-- building a complete drag-and-drop scheduling application
-- replacing deterministic rules with LLM decisions
-- supporting every hockey organization or calendar vendor
-- making the operator fully unattended for credentials, policy decisions, or external publication
-- creating separate business logic for each LLM harness
-
-## Success criteria
-
-The direction is working when a human can start with a request such as:
-
-> Inspect the current inputs and produce the best trustworthy season plan.
-
-The operator should then complete all routine work, recover from expected failures, ask only focused domain questions, and deliver an auditable result without the human manually coordinating pipeline stages or specialized recovery commands.
+This document records product direction, not implementation status. Current operational details belong in maintained docs/code, durable architecture choices belong in ADRs, shared agent policy belongs in `.agents/skills/rvv/SKILL.md`, and unfinished implementation work belongs in GitHub issues.
