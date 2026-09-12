@@ -12,7 +12,7 @@ These documents should describe the system **as it works now** and should be upd
 | [`engineering-principles.md`](engineering-principles.md) | Engineering rules that apply across the repository |
 | [`rvv-miniputt-pipeline.md`](rvv-miniputt-pipeline.md) | Operator/pipeline behavior and supported command surface |
 | [`rvv-miniputt-input-formats.md`](rvv-miniputt-input-formats.md) | Canonical `input.xlsx` and registration interchange formats |
-| [`rvv-miniputt-rules-report.md`](rvv-miniputt-rules-report.md) | How scheduling rules are represented in reports |
+| [`rvv-miniputt-rules-report.md`](rvv-miniputt-rules-report.md) | Current committed rules/report wording used for review output |
 | [`application-architecture.md`](application-architecture.md) | Application-layer dependency rules used by architecture tests |
 | [`run-manifest-schema.md`](run-manifest-schema.md) | Durable run/decision state contract |
 | [`ci.md`](ci.md) | Verification and CI behavior |
@@ -45,3 +45,4 @@ The root [`README.md`](../README.md) is the main human entry point. Shared agent
 3. When behavior changes, update the smallest active document that owns that behavior instead of appending another review document.
 4. Keep generated evidence in `.pipeline/`, `export/`, test fixtures, or CI artifacts—not beside maintained documentation.
 5. If a dated investigation leads to a durable decision, capture the decision in an ADR and remove the temporary review document once it has served its purpose.
+6. `rvv-miniputt-rules-report.md` is report/review wording, not a second source of business policy. Keep it synchronized with the actual planner/verifier and canonical workbook contract.
