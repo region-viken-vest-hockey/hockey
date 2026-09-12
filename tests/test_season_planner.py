@@ -3,7 +3,7 @@
 from collections import Counter
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
-from typing import Dict
+from typing import Dict, Tuple
 from unittest.mock import patch
 
 import pytest
@@ -360,6 +360,68 @@ class TestSeasonPlanner:
         }
         assert all((team.label, "before_christmas") in period_shortfalls for team in roster.teams)
         assert not any((team.label, "after_christmas") in period_shortfalls for team in roster.teams)
+
+    def test_roster_size_packing_lets_every_team_reach_its_target(self, season_window):
+        """issue #316: 17 U12 teams and 7 JU12 teams, each targeting 7
+        tournaments at tournament capacity 4, are perfectly packable demand
+        (119 and 49 participations respectively -- see
+        `plan_roster_sizes_for_age_group`). Greedy full-packing of earlier
+        slots previously stranded 1-2 teams below their target because the
+        final slot ran out of eligible teams; every team must now reach its
+        configured target exactly when the demand is packable."""
+        start, end = season_window
+        free_dates = all_weekend_dates(start, end)
+
+        u12_clubs = [f"U12Club{i}" for i in range(17)]
+        ju12_clubs = [f"JU12Club{i}" for i in range(7)]
+        roster = Roster(
+            teams=(
+                [Team(club=club, label=f"{club} U12", age_group="U12") for club in u12_clubs]
+                + [Team(club=club, label=f"{club} JU12", age_group="JU12") for club in ju12_clubs]
+            )
+        )
+        for team in roster.teams:
+            team.target_tournament_count = 7
+
+        club_arenas = {club: f"{club}hallen" for club in u12_clubs + ju12_clubs}
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(free_dates),
+            roster=roster,
+            club_arenas=club_arenas,
+            parallel_games_for_age_group={"U12": 2, "JU12": 2},
+        )
+
+        plan = planner.build_plan(start, end)
+
+        u12_tournaments = [t for t in plan.tournaments if t.age_group == "U12"]
+        ju12_tournaments = [t for t in plan.tournaments if t.age_group == "JU12"]
+
+        assert len(u12_tournaments) == 30
+        assert sum(len(t.teams) for t in u12_tournaments) == 17 * 7
+        assert len(ju12_tournaments) == 13
+        assert sum(len(t.teams) for t in ju12_tournaments) == 7 * 7
+
+        participations = Counter()
+        for tournament in plan.tournaments:
+            for team in tournament.teams:
+                participations[team_key(team, set())] += 1
+
+        for team in roster.teams:
+            assert participations[team_key(team, set())] == 7, team.label
+
+        # No requested slot was skipped for lack of eligible teams.
+        assert not plan.skipped_age_groups
+
+        # No team appears twice for the same age group on the same date.
+        keys_by_date_and_age_group: Dict[Tuple[date, str], set] = {}
+        for tournament in plan.tournaments:
+            seen_keys = keys_by_date_and_age_group.setdefault(
+                (tournament.date, tournament.age_group), set()
+            )
+            for team in tournament.teams:
+                key = team_key(team, set())
+                assert key not in seen_keys, (tournament.date, tournament.age_group, team.label)
+                seen_keys.add(key)
 
     def test_every_arena_hosts_at_least_one_tournament_before_any_repeats(self, planner_and_plan):
         _, plan, roster, clubs, club_arenas = planner_and_plan

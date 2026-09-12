@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import math
 from datetime import date, timedelta
-from typing import Dict, List, Optional, Sequence, Set
+from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 from tournament_scheduler.models import Team, overlapping_age_groups
 
@@ -116,17 +116,17 @@ def pick_spread_dates(
     return sorted(chosen)
 
 
-def target_tournaments_for_age_group(planner, age_group: str, period: Optional[str] = None) -> int:
-    """Return the number of tournaments to aim for in `age_group`.
+def _participation_demand(planner, age_group: str, period: Optional[str] = None) -> Tuple[int, int]:
+    """Return `(total_target_participations, tournament_capacity)` for `age_group`.
 
-    When *period* is ``"before_christmas"`` or ``"after_christmas"`` and the
-    planner has an explicit per-age-group split target, the returned value uses
-    that half-season participation target as the default for teams in the age
-    group.
+    Shared by `target_tournaments_for_age_group` (how many tournament slots
+    that demand needs) and `plan_roster_sizes_for_age_group` (how the demand
+    should be packed into those slots) so the two never derive the demand
+    differently.
     """
     teams = planner.roster.by_age_group(age_group)
     if len(teams) < MIN_TEAMS_PER_TOURNAMENT:
-        return 0
+        return 0, 0
 
     age_group_targets = getattr(planner, "participation_targets_by_age_group", {}) or {}
     age_group_target = age_group_targets.get(age_group, {}) if isinstance(age_group_targets, dict) else {}
@@ -145,7 +145,51 @@ def target_tournaments_for_age_group(planner, age_group: str, period: Optional[s
 
     total_target = sum((t.target_tournament_count or default_target) for t in teams)
     capacity = min(len(teams), max_teams_for(planner, age_group)) or 1
+    return total_target, capacity
+
+
+def target_tournaments_for_age_group(planner, age_group: str, period: Optional[str] = None) -> int:
+    """Return the number of tournaments to aim for in `age_group`.
+
+    When *period* is ``"before_christmas"`` or ``"after_christmas"`` and the
+    planner has an explicit per-age-group split target, the returned value uses
+    that half-season participation target as the default for teams in the age
+    group.
+    """
+    total_target, capacity = _participation_demand(planner, age_group, period)
+    if capacity == 0:
+        return 0
     return max(1, math.ceil(total_target / capacity))
+
+
+def plan_roster_sizes(demand: int, capacity: int) -> List[int]:
+    """Split `demand` participations into balanced per-slot roster sizes.
+
+    issue #316: the number of slots is `ceil(demand / capacity)`, same as
+    `target_tournaments_for_age_group`. Sizes are then balanced (differing by
+    at most one team) rather than greedily filled to `capacity` slot by slot
+    -- greedy filling can strand a final slot below `MIN_TEAMS_PER_TOURNAMENT`
+    even when the demand is perfectly packable (e.g. 49 participations at
+    capacity 4 greedily yields 12 full slots + 1 stranded team, but balances
+    into 10x4 + 3x3 = 49).
+    """
+    if demand <= 0 or capacity <= 0:
+        return []
+    slot_count = math.ceil(demand / capacity)
+    base, remainder = divmod(demand, slot_count)
+    return [base + 1] * remainder + [base] * (slot_count - remainder)
+
+
+def plan_roster_sizes_for_age_group(planner, age_group: str, period: Optional[str] = None) -> List[int]:
+    """Return the planned roster size for each tournament slot in `age_group`.
+
+    The list has exactly `target_tournaments_for_age_group(planner, age_group,
+    period)` entries, in the order those slots should be filled.
+    """
+    total_target, capacity = _participation_demand(planner, age_group, period)
+    if capacity == 0:
+        return []
+    return plan_roster_sizes(total_target, capacity)
 
 
 def next_age_group(
@@ -176,6 +220,7 @@ def select_participants(
     period: Optional[str] = None,
     *,
     exclude_team_keys: Optional[set] = None,
+    planned_roster_size: Optional[int] = None,
 ) -> List[Team]:
     """Select the teams to invite to a tournament for the given age group.
 
@@ -194,6 +239,12 @@ def select_participants(
     on one date. Without this, `verify_candidate`'s hard
     `duplicate_participation_same_date` check can fail on the planner's own
     baseline output.
+
+    issue #316: `planned_roster_size`, when given, caps this slot to the
+    balanced size `plan_roster_sizes_for_age_group` assigned it instead of
+    always filling up to tournament capacity -- greedily filling every slot
+    to capacity can strand too few teams for a later, still-required slot
+    even though the total demand was perfectly packable.
     """
     candidates = planner.roster.by_age_group(age_group)
     if not candidates:
@@ -209,6 +260,8 @@ def select_participants(
             return []
 
     max_teams = participant_limit_for(planner, age_group, len(candidates))
+    if planned_roster_size is not None:
+        max_teams = min(max_teams, planned_roster_size)
     return pick_scored_participants(planner, candidates, max_teams, age_group, period)
 
 

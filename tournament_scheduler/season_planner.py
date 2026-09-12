@@ -65,6 +65,7 @@ from tournament_scheduler.participant_selection import (
     pick_least_recently_grouped as _pick_least_recently_grouped,
     pick_scored_participants as _pick_scored_participants,
     pick_spread_dates as _pick_spread_dates,
+    plan_roster_sizes_for_age_group as _plan_roster_sizes_for_age_group,
     select_participants as _select_participants,
     target_tournaments_for_age_group as _target_tournaments_for_age_group,
 )
@@ -553,6 +554,29 @@ class SeasonPlanner:
         print("[plan] Bygger turneringer, verter og kamper...", flush=True)
         reserved_events_by_club: Dict[str, List[CalendarEvent]] = {}
         slot_failures: List[Dict[str, str]] = []
+
+        # issue #316: balanced roster-size plan per (age_group, period), so
+        # the participant-selection loop below fills each slot to its
+        # planned size instead of always greedily filling to tournament
+        # capacity -- greedy filling can strand a later required slot below
+        # `MIN_TEAMS_PER_TOURNAMENT` even when the total demand is perfectly
+        # packable (see `participant_selection.plan_roster_sizes`). Computed
+        # lazily per (age_group, period) pair and consumed in the same
+        # chronological order `scheduled` is sorted in, which matches the
+        # order `plan_roster_sizes_for_age_group` assumes.
+        planned_roster_sizes_by_key: Dict[Tuple[str, Optional[str]], List[int]] = {}
+        planned_roster_index_by_key: Dict[Tuple[str, Optional[str]], int] = {}
+
+        def next_planned_roster_size(age_group: str, period: Optional[str]) -> Optional[int]:
+            cache_key = (age_group, period)
+            if cache_key not in planned_roster_sizes_by_key:
+                planned_roster_sizes_by_key[cache_key] = self._plan_roster_sizes_for_age_group(age_group, period)
+            sizes = planned_roster_sizes_by_key[cache_key]
+            slot_index = planned_roster_index_by_key.get(cache_key, 0)
+            planned_roster_index_by_key[cache_key] = slot_index + 1
+            if slot_index < len(sizes):
+                return sizes[slot_index]
+            return None
         for index, ((tournament_date, age_group), original_host_club) in enumerate(zip(scheduled, host_assignments), start=1):
             if index == 1 or index % 10 == 0:
                 print(f"[plan] Ferdigstiller turnering {index}/{len(scheduled)} ({age_group} {tournament_date})", flush=True)
@@ -575,8 +599,12 @@ class SeasonPlanner:
                 else None
             )
             already_used_today = teams_used_today_by_age_group.get((tournament_date, age_group))
+            planned_roster_size = next_planned_roster_size(age_group, period)
             participants = self._select_participants(
-                age_group, period, exclude_team_keys=already_used_today
+                age_group,
+                period,
+                exclude_team_keys=already_used_today,
+                planned_roster_size=planned_roster_size,
             )
             teams_used_today_by_age_group.setdefault((tournament_date, age_group), set()).update(
                 self._team_key(team) for team in participants
@@ -1898,6 +1926,7 @@ class SeasonPlanner:
 
 SeasonPlanner._pick_spread_dates = _pick_spread_dates
 SeasonPlanner._target_tournaments_for_age_group = _target_tournaments_for_age_group
+SeasonPlanner._plan_roster_sizes_for_age_group = _plan_roster_sizes_for_age_group
 SeasonPlanner._assign_hosts = _assign_hosts
 SeasonPlanner._find_slot_for_tournament = _find_slot_for_tournament
 SeasonPlanner._next_age_group = _next_age_group
