@@ -89,6 +89,10 @@ ignore = [
 # import placed after the check that guards it, not disorganized imports.
 "tests/test_stage3_cpsat.py" = ["E402"]
 "tests/test_activity_export.py" = ["E402"]
+# Legacy Stage 2 tests still carry one compatibility import that is not
+# referenced directly. Keep the production lint policy strict while avoiding
+# unrelated cleanup churn in this launch-hardening pass.
+"tests/test_stage2_scraping.py" = ["F401"]
 
 [tool.setuptools.packages.find]
 include = ["tournament_scheduler*"]
