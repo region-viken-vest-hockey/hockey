@@ -192,6 +192,88 @@ def plan_roster_sizes_for_age_group(planner, age_group: str, period: Optional[st
     return plan_roster_sizes(total_target, capacity)
 
 
+def rebalance_roster_sizes_across_dates(
+    date_groups: Sequence[Tuple[date, int]],
+    flat_sizes: Sequence[int],
+    capacity: int,
+    distinct_team_count: int,
+    min_teams: int = MIN_TEAMS_PER_TOURNAMENT,
+) -> Tuple[Dict[date, List[int]], List[Dict[str, object]]]:
+    """Resize `flat_sizes` so no date's parallel-slot demand exceeds the
+    age group's distinct team pool.
+
+    issue #318: `flat_sizes` (from `plan_roster_sizes_for_age_group`) is
+    balanced for the *half* as a whole, but is consumed chronologically with
+    no regard for how many parallel same-age-group slots land on a single
+    date. When several slots share a date, the date's own eligible-team pool
+    (`distinct_team_count`, e.g. 17 for a 17-team age group -- a team can't
+    play twice on the same date) can be a tighter ceiling than either the
+    per-slot `capacity` or the half-wide balance.
+
+    `date_groups` is `(date, slot_count)` in chronological order, matching
+    the order `flat_sizes` was assigned in. Demand that a date can't absorb
+    is carried forward to the next date(s) with slack rather than dropped,
+    so the common case (roster-size sum on one date > distinct team count,
+    but the age group has enough *other* dates) is resolved without any lost
+    tournaments. Returns `(sizes_by_date, evidence)`:
+
+    - `sizes_by_date[date]` is the rebalanced list of roster sizes for that
+      date's slots (each within `[min_teams, capacity]`, possibly fewer
+      entries than the date's requested slot count when demand genuinely
+      runs out).
+    - `evidence` distinguishes two genuine-infeasibility causes so callers
+      never have to guess why a slot went unfilled:
+      - `"same_date_uniqueness_limit"`: this date structurally cannot host
+        its requested slot count for this age group at all (`slot_count *
+        min_teams > distinct_team_count`), independent of demand.
+      - `"same_date_participant_pool_capacity"`: after using every date's
+        full capacity, some participations still couldn't be placed before
+        the group ran out of dates; `limiting_dates` lists which dates were
+        at their team-pool ceiling.
+    """
+    sizes_by_date: Dict[date, List[int]] = {}
+    evidence: List[Dict[str, object]] = []
+    limiting_dates: List[date] = []
+    carry = 0
+    index = 0
+    for slot_date, slot_count in date_groups:
+        group_sizes = list(flat_sizes[index : index + slot_count])
+        index += slot_count
+
+        if slot_count * min_teams > distinct_team_count:
+            evidence.append(
+                {
+                    "category": "same_date_uniqueness_limit",
+                    "date": slot_date.isoformat(),
+                    "requested_slots": slot_count,
+                    "feasible_slots": distinct_team_count // min_teams if min_teams else slot_count,
+                    "distinct_team_count": distinct_team_count,
+                }
+            )
+
+        total_requested = sum(group_sizes) + carry
+        max_total = min(slot_count * capacity, distinct_team_count)
+        if total_requested > max_total:
+            limiting_dates.append(slot_date.isoformat())
+        available = min(total_requested, max_total)
+
+        usable_slot_count = min(slot_count, available // min_teams) if min_teams else slot_count
+        usable_total = min(available, usable_slot_count * capacity) if usable_slot_count > 0 else 0
+
+        sizes_by_date[slot_date] = plan_roster_sizes(usable_total, capacity) if usable_total > 0 else []
+        carry = total_requested - usable_total
+
+    if carry > 0:
+        evidence.append(
+            {
+                "category": "same_date_participant_pool_capacity",
+                "unplaced_participations": carry,
+                "limiting_dates": limiting_dates,
+            }
+        )
+    return sizes_by_date, evidence
+
+
 def next_age_group(
     planner,
     age_groups: Sequence[str],

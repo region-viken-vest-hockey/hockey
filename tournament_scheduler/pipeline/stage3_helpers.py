@@ -74,6 +74,7 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
             k: v.isoformat() for k, v in plan.team_last_game_dates.items()
         },
         "skipped_age_groups": list(plan.skipped_age_groups),
+        "same_date_capacity_evidence": list(plan.same_date_capacity_evidence),
         "arena_day_collisions": list(plan.arena_day_collisions),
         "unresolved_hosting_obligations": list(plan.unresolved_hosting_obligations),
         "unresolved_external_conflicts": list(plan.unresolved_external_conflicts),

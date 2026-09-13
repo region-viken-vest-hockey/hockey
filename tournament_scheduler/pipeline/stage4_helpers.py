@@ -89,6 +89,7 @@ def _dict_to_plan(d: dict[str, Any]) -> SeasonPlan:
         game_count_spread_by_age_group=dict(d.get("game_count_spread_by_age_group", {})),
         fairness_gate=dict(d.get("fairness_gate", {})),
         skipped_age_groups=list(d.get("skipped_age_groups", [])),
+        same_date_capacity_evidence=list(d.get("same_date_capacity_evidence", [])),
         arena_day_collisions=list(d.get("arena_day_collisions", [])),
         unresolved_hosting_obligations=list(d.get("unresolved_hosting_obligations", [])),
         unresolved_external_conflicts=list(d.get("unresolved_external_conflicts", [])),

@@ -423,6 +423,78 @@ class TestSeasonPlanner:
                 assert key not in seen_keys, (tournament.date, tournament.age_group, team.label)
                 seen_keys.add(key)
 
+    def test_parallel_slots_on_scarce_dates_are_rebalanced_not_silently_dropped(self, season_window):
+        """issue #318: 17 U12 teams targeting 7 tournaments each (119
+        participations, 30 required slots at capacity 4) but only 6 distinct
+        free dates -- several parallel U12 slots must share each date,
+        forcing that date's demand above the 17-team pool. The rebalancer
+        must carry unplaceable demand to a date with slack rather than
+        silently dropping a slot, and every U12-family team must still
+        reach its target (no unexplained shortfall) unless there's a
+        genuine, evidenced physical-capacity limit."""
+        start, end = season_window
+        scarce_dates = [d for d in all_weekend_dates(start, end)][:6]
+
+        u12_clubs = [f"U12Club{i}" for i in range(17)]
+        roster = Roster(teams=[Team(club=club, label=f"{club} U12", age_group="U12") for club in u12_clubs])
+        for team in roster.teams:
+            team.target_tournament_count = 7
+
+        club_arenas = {club: f"{club}hallen" for club in u12_clubs}
+        planner = SeasonPlanner(
+            scheduler=FakeScheduler(scarce_dates),
+            roster=roster,
+            club_arenas=club_arenas,
+            parallel_games_for_age_group={"U12": 2},
+        )
+
+        plan = planner.build_plan(start, end)
+
+        # The age group must never be excluded wholesale from aggregation --
+        # most of its demand is still legitimately placeable.
+        assert not plan.skipped_age_groups
+
+        # No team plays twice for U12 on the same date.
+        keys_by_date: Dict[date, set] = {}
+        for tournament in plan.tournaments:
+            seen = keys_by_date.setdefault(tournament.date, set())
+            for team in tournament.teams:
+                key = team_key(team, set())
+                assert key not in seen, (tournament.date, team.label)
+                seen.add(key)
+
+        # Every tournament respects the hard min/max roster-size bounds.
+        for tournament in plan.tournaments:
+            assert 3 <= len(tournament.teams) <= 4
+
+        participations = Counter()
+        for tournament in plan.tournaments:
+            for team in tournament.teams:
+                participations[team_key(team, set())] += 1
+        total_placed = sum(participations.values())
+
+        capacity_evidence = plan.same_date_capacity_evidence
+        shortfall_entries = [
+            e for e in capacity_evidence if e["category"] == "same_date_participant_pool_capacity"
+        ]
+        if not shortfall_entries:
+            # No genuine physical-capacity limit was hit -- every team must
+            # reach its full target (the bug this test guards against is a
+            # *silent* drop, not a legitimate, evidenced shortfall).
+            for team in roster.teams:
+                assert participations[team_key(team, set())] == 7, team.label
+            assert total_placed == 17 * 7
+        else:
+            # A genuine shortfall is only acceptable when backed by
+            # structured evidence identifying which dates were limiting.
+            for entry in shortfall_entries:
+                assert entry["limiting_dates"]
+            unresolved = {s["label"] for s in plan.unresolved_participation_shortfalls}
+            short_teams = [team for team in roster.teams if participations[team_key(team, set())] < 7]
+            assert short_teams, "evidence claims a shortfall but every team reached its target"
+            for team in short_teams:
+                assert team.label in unresolved
+
     def test_every_arena_hosts_at_least_one_tournament_before_any_repeats(self, planner_and_plan):
         _, plan, roster, clubs, club_arenas = planner_and_plan
 

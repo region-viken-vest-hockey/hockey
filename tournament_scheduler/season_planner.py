@@ -10,6 +10,7 @@ from __future__ import annotations
 import math
 import random
 from collections import Counter
+from itertools import groupby
 from datetime import date, datetime, timedelta
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
@@ -66,6 +67,7 @@ from tournament_scheduler.participant_selection import (
     pick_scored_participants as _pick_scored_participants,
     pick_spread_dates as _pick_spread_dates,
     plan_roster_sizes_for_age_group as _plan_roster_sizes_for_age_group,
+    rebalance_roster_sizes_across_dates as _rebalance_roster_sizes_across_dates,
     select_participants as _select_participants,
     target_tournaments_for_age_group as _target_tournaments_for_age_group,
 )
@@ -560,18 +562,45 @@ class SeasonPlanner:
         # planned size instead of always greedily filling to tournament
         # capacity -- greedy filling can strand a later required slot below
         # `MIN_TEAMS_PER_TOURNAMENT` even when the total demand is perfectly
-        # packable (see `participant_selection.plan_roster_sizes`). Computed
-        # lazily per (age_group, period) pair and consumed in the same
-        # chronological order `scheduled` is sorted in, which matches the
-        # order `plan_roster_sizes_for_age_group` assumes.
-        planned_roster_sizes_by_key: Dict[Tuple[str, Optional[str]], List[int]] = {}
-        planned_roster_index_by_key: Dict[Tuple[str, Optional[str]], int] = {}
+        # packable (see `participant_selection.plan_roster_sizes`).
+        #
+        # issue #318: the half-wide balanced list above has no notion of
+        # *which* dates its slots land on. When several parallel slots for
+        # the same age group share a date, their combined demand can exceed
+        # the age group's distinct team count (a team can't play twice on
+        # the same date) even though the half-wide total is packable. Sizes
+        # are rebalanced per (age_group, period, date) up front -- carrying
+        # unplaceable demand forward to a later date with slack -- instead
+        # of being consumed blindly in chronological order, so a same-date
+        # squeeze doesn't silently cost a materializable tournament.
+        def _period_for_date(tournament_date: date) -> Optional[str]:
+            half = planning_half.tournament_half(tournament_date, split_date)
+            return half if has_split_targets and half in ("before_christmas", "after_christmas") else None
 
-        def next_planned_roster_size(age_group: str, period: Optional[str]) -> Optional[int]:
-            cache_key = (age_group, period)
-            if cache_key not in planned_roster_sizes_by_key:
-                planned_roster_sizes_by_key[cache_key] = self._plan_roster_sizes_for_age_group(age_group, period)
-            sizes = planned_roster_sizes_by_key[cache_key]
+        rebalanced_sizes_by_key: Dict[Tuple[str, Optional[str]], Dict[date, List[int]]] = {}
+        same_date_capacity_evidence: List[Dict[str, object]] = []
+        for age_group in sorted({ag for _, ag in scheduled}):
+            ag_dates_with_period = [(d, _period_for_date(d)) for d, ag in scheduled if ag == age_group]
+            for period in (None, "before_christmas", "after_christmas"):
+                period_dates = [d for d, p in ag_dates_with_period if p == period]
+                if not period_dates:
+                    continue
+                date_groups = [(d, len(list(group))) for d, group in groupby(period_dates)]
+                flat_sizes = self._plan_roster_sizes_for_age_group(age_group, period)
+                distinct_team_count = len(self.roster.by_age_group(age_group))
+                capacity = min(distinct_team_count, _max_teams_for(self, age_group)) or 1
+                sizes_by_date, evidence = _rebalance_roster_sizes_across_dates(
+                    date_groups, flat_sizes, capacity, distinct_team_count
+                )
+                rebalanced_sizes_by_key[(age_group, period)] = sizes_by_date
+                for entry in evidence:
+                    same_date_capacity_evidence.append({**entry, "age_group": age_group, "period": period})
+
+        planned_roster_index_by_key: Dict[Tuple[str, Optional[str], date], int] = {}
+
+        def next_planned_roster_size(age_group: str, period: Optional[str], tournament_date: date) -> Optional[int]:
+            sizes = rebalanced_sizes_by_key.get((age_group, period), {}).get(tournament_date, [])
+            cache_key = (age_group, period, tournament_date)
             slot_index = planned_roster_index_by_key.get(cache_key, 0)
             planned_roster_index_by_key[cache_key] = slot_index + 1
             if slot_index < len(sizes):
@@ -599,7 +628,7 @@ class SeasonPlanner:
                 else None
             )
             already_used_today = teams_used_today_by_age_group.get((tournament_date, age_group))
-            planned_roster_size = next_planned_roster_size(age_group, period)
+            planned_roster_size = next_planned_roster_size(age_group, period, tournament_date)
             participants = self._select_participants(
                 age_group,
                 period,
@@ -901,6 +930,17 @@ class SeasonPlanner:
         # planner's own full target-resolution precedence, including the
         # capacity-inferred fallback the verifier deliberately skips
         # (issue #257).
+        # issue #318: when a same-date parallel-slot capacity limit (not a
+        # generic shortage) is the reason a team came up short, say so
+        # explicitly instead of the generic "not enough free slots" message,
+        # so #314-style publication review gets concrete physical-capacity
+        # evidence rather than an unexplained number.
+        capacity_shortfall_age_groups = {
+            entry["age_group"]
+            for entry in same_date_capacity_evidence
+            if entry.get("category") == "same_date_participant_pool_capacity"
+        }
+
         unresolved_participation_shortfalls: List[Dict[str, str]] = []
         for team in self.roster.teams:
             if team.age_group in skipped_age_groups_set:
@@ -909,6 +949,21 @@ class SeasonPlanner:
             target = self._team_target_tournament_count(team)
             actual = self._tournament_participations.get(key, 0)
             if actual != target:
+                if actual < target and team.age_group in capacity_shortfall_age_groups:
+                    reason = (
+                        f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
+                        f"ganger, forventet {target} -- flere parallelle turneringer for "
+                        f"{team.age_group} delte samme dato(er) enn det fantes unike lag "
+                        "til, og det var ikke rom igjen på senere datoer."
+                    )
+                    category = "participation_under_target_same_date_capacity"
+                else:
+                    reason = (
+                        f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
+                        f"ganger, forventet {target} -- ikke nok ledige turneringsplasser "
+                        "ble funnet denne sesongen."
+                    )
+                    category = "participation_over_target" if actual > target else "participation_under_target"
                 unresolved_participation_shortfalls.append(
                     {
                         "club": team.club,
@@ -916,12 +971,8 @@ class SeasonPlanner:
                         "age_group": team.age_group,
                         "actual": str(actual),
                         "target": str(target),
-                        "reason": (
-                            f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
-                            f"ganger, forventet {target} -- ikke nok ledige turneringsplasser "
-                            "ble funnet denne sesongen."
-                        ),
-                        "category": "participation_over_target" if actual > target else "participation_under_target",
+                        "reason": reason,
+                        "category": category,
                     }
                 )
         # issue #297: a team's season-wide total can match its season-wide
@@ -930,6 +981,11 @@ class SeasonPlanner:
         # slot-scarcity shortfall. When a before/after-Christmas split target
         # is configured, check each half's own participation against that
         # half's own target too, independent of the season-wide check above.
+        capacity_shortfall_age_group_periods = {
+            (entry["age_group"], entry.get("period"))
+            for entry in same_date_capacity_evidence
+            if entry.get("category") == "same_date_participant_pool_capacity"
+        }
         if self._has_split_tournament_targets():
             for team in self.roster.teams:
                 if team.age_group in skipped_age_groups_set:
@@ -951,6 +1007,22 @@ class SeasonPlanner:
                         target = self._team_target_tournament_count(team, period)
                     actual = self._tournament_participations_by_half.get(period, {}).get(key, 0)
                     if actual != target:
+                        if actual < target and (team.age_group, period) in capacity_shortfall_age_group_periods:
+                            reason = (
+                                f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
+                                f"ganger i {period}, forventet {target} -- flere parallelle "
+                                f"turneringer for {team.age_group} delte samme dato(er) enn det "
+                                "fantes unike lag til, og det var ikke rom igjen på senere datoer "
+                                "i denne halvdelen av sesongen."
+                            )
+                            category = "participation_under_target_same_date_capacity"
+                        else:
+                            reason = (
+                                f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
+                                f"ganger i {period} -- ikke nok ledige turneringsplasser "
+                                "ble funnet i denne halvdelen av sesongen."
+                            )
+                            category = "participation_over_target" if actual > target else "participation_under_target"
                         unresolved_participation_shortfalls.append(
                             {
                                 "club": team.club,
@@ -959,16 +1031,13 @@ class SeasonPlanner:
                                 "period": period,
                                 "actual": str(actual),
                                 "target": str(target),
-                                "reason": (
-                                    f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
-                                    f"ganger i {period} -- ikke nok ledige turneringsplasser "
-                                    "ble funnet i denne halvdelen av sesongen."
-                                ),
-                                "category": "participation_over_target" if actual > target else "participation_under_target",
+                                "reason": reason,
+                                "category": category,
                             }
                         )
         plan.unresolved_participation_shortfalls = unresolved_participation_shortfalls
         self._unresolved_participation_shortfalls = unresolved_participation_shortfalls
+        plan.same_date_capacity_evidence = same_date_capacity_evidence
         plan.participation_targets_by_age_group = {
             age_group: dict(targets) for age_group, targets in self.participation_targets_by_age_group.items()
         }

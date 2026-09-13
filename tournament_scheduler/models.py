@@ -279,6 +279,16 @@ class SeasonPlan:
     # MIN_TEAMS_PER_TOURNAMENT configured teams. Each entry is a dict:
     # {"age_group": str, "team_count": int, "reason": str}.
     skipped_age_groups: List[Dict[str, object]] = field(default_factory=list)
+    # Structured evidence for parallel same-date slots whose roster-size
+    # demand couldn't be fully placed, distinguishing a genuine per-date
+    # team-pool limit ("same_date_uniqueness_limit") from an end-of-season
+    # capacity shortfall ("same_date_participant_pool_capacity"). Unlike
+    # `skipped_age_groups`, an entry here does NOT exclude the age group
+    # from participation/hosting/fairness aggregation -- most of the age
+    # group's slots still materialized normally. Each entry carries
+    # `category`, `age_group`, `period`, plus category-specific fields (see
+    # `participant_selection.rebalance_roster_sizes_across_dates`).
+    same_date_capacity_evidence: List[Dict[str, object]] = field(default_factory=list)
     # Manual operator adjustments preserved across checkpoint round-trips.
     # Keys are small string lists such as locked_dates, banned_dates,
     # forced_host_clubs, excluded_host_clubs, and pinned_tournament_ids.
