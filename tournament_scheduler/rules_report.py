@@ -271,6 +271,13 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "kategori": "Hard krav",
         },
         {
+            "regel": "Vertsklubben skal være representert i egen turnering",
+            "forklaring": "Når vertsklubben har et registrert lag i aldersgruppen, må minst ett deltakende lag representere "
+            "den -- et hardt korrekthetskrav. Delt/felles registrering teller for begge vertsklubbene den består av. "
+            "Den endelige verifikasjonen avviser enhver kandidat der kravet brytes.",
+            "kategori": "Hard krav",
+        },
+        {
             "regel": "Kalendertillit er skilt fra vellykket skraping (issue #274)",
             "forklaring": (
                 "En klubbs kalenderstatus kan være «known» (nok bevis for automatisk plassering), "

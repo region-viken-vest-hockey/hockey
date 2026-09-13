@@ -251,6 +251,76 @@ class TestVerifyCandidateWithProblem:
         assert "host_calendar_status_unknown" not in codes
         assert result["manual_calendar_placements"] == []
 
+    def test_host_team_missing_is_hard_violation(self):
+        """issue #322: a home tournament with no participating team from the
+        host club, even though the host has a registered team in this exact
+        age group, must hard-fail verification."""
+        teams = [_team("Frisk", "Frisk Orange", "JU12"), _team("Ringerike", "Ringerike 2", "JU12")]
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Skienhallen", "JU12", teams, host_club="Skien")]}
+        problem = self._problem(
+            teams=[
+                {"club": "Skien", "label": "Skien 1", "age_group": "JU12", "target_tournament_count": None},
+                {"club": "Frisk", "label": "Frisk Orange", "age_group": "JU12", "target_tournament_count": None},
+                {"club": "Ringerike", "label": "Ringerike 2", "age_group": "JU12", "target_tournament_count": None},
+            ]
+        )
+        result = verify_candidate(candidate, problem)
+        assert result["ok"] is False
+        codes = {v["code"] for v in result["violations"]}
+        assert "host_team_missing" in codes
+
+    def test_host_team_present_not_flagged(self):
+        teams = [_team("Skien", "Skien 1", "JU12"), _team("Ringerike", "Ringerike 2", "JU12")]
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Skienhallen", "JU12", teams, host_club="Skien")]}
+        problem = self._problem(
+            teams=[
+                {"club": "Skien", "label": "Skien 1", "age_group": "JU12", "target_tournament_count": None},
+                {"club": "Ringerike", "label": "Ringerike 2", "age_group": "JU12", "target_tournament_count": None},
+            ]
+        )
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "host_team_missing" not in codes
+        assert result["ok"] is True
+
+    def test_shared_registration_satisfies_either_constituent_host(self):
+        """issue #322: a joint registration ("Jutul/Jar") represents either
+        physical constituent host it names."""
+        teams = [_team("Jutul/Jar", "Jutul/Jar Kittens", "JU12"), _team("Ringerike", "Ringerike 2", "JU12")]
+        problem = self._problem(
+            teams=[
+                {"club": "Jutul/Jar", "label": "Jutul/Jar Kittens", "age_group": "JU12", "target_tournament_count": None},
+                {"club": "Ringerike", "label": "Ringerike 2", "age_group": "JU12", "target_tournament_count": None},
+            ]
+        )
+        for host_club in ("Jutul", "Jar"):
+            candidate = {
+                "tournaments": [
+                    _tournament("t1", "2026-06-01", "Hallen", "JU12", teams, host_club=host_club)
+                ]
+            }
+            result = verify_candidate(candidate, problem)
+            codes = {v["code"] for v in result["violations"]}
+            assert "host_team_missing" not in codes, host_club
+            assert result["ok"] is True, host_club
+
+    def test_host_with_no_registered_team_in_age_group_not_falsely_rejected(self):
+        """issue #322: the invariant only applies when the host actually has
+        an eligible registered team in this exact age group -- a host with
+        none must not be falsely rejected solely for host-team absence."""
+        teams = [_team("Frisk", "Frisk Orange", "JU12"), _team("Ringerike", "Ringerike 2", "JU12")]
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Hallen", "JU12", teams, host_club="Skien")]}
+        problem = self._problem(
+            teams=[
+                {"club": "Frisk", "label": "Frisk Orange", "age_group": "JU12", "target_tournament_count": None},
+                {"club": "Ringerike", "label": "Ringerike 2", "age_group": "JU12", "target_tournament_count": None},
+            ]
+        )
+        result = verify_candidate(candidate, problem)
+        codes = {v["code"] for v in result["violations"]}
+        assert "host_team_missing" not in codes
+        assert result["ok"] is True
+
     def test_capacity_exceeded_flagged(self):
         teams = [
             _team("Jar", "Jar 1", "U10"),

@@ -19,6 +19,7 @@ from typing import Any, Dict, Iterable, Optional, Tuple
 
 from . import planning_half
 from .game_generation import generate_round_robin_games
+from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .models import Team
 from .planning_contract import CANDIDATE_SCHEMA_VERSION, _parse_date, _team_identity
 
@@ -267,9 +268,8 @@ def _solve_slot_group(
             for identity in eligible:
                 model.Add(x[(slot.index, identity)] == int(identity in baseline_set))
 
-        baseline_host_count = sum(1 for identity in slot.baseline_team_ids if identity[0] == slot.host_club)
-        if slot.host_club and baseline_host_count:
-            host_vars = [x[(slot.index, identity)] for identity in eligible if identity[0] == slot.host_club]
+        if slot.host_club:
+            host_vars = [x[(slot.index, i)] for i in eligible if _clubs_represent_same_club(i[0], slot.host_club)]
             if host_vars:
                 model.Add(sum(host_vars) >= 1)
 
@@ -561,7 +561,7 @@ def _solve_slot_group(
         selected = [identity for identity in eligible if solver.Value(x[(slot.index, identity)])]
         selected.sort(
             key=lambda identity: (
-                identity[0] != slot.host_club,
+                not _clubs_represent_same_club(identity[0], slot.host_club),
                 identity[0],
                 identity[1],
                 identity[2],

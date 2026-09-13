@@ -27,6 +27,7 @@ from tournament_scheduler.season_planner import (
     MIN_TEAMS_PER_TOURNAMENT,
 )
 from tournament_scheduler.host_assignment import find_slot_for_tournament
+from tournament_scheduler.host_representation_repair import repair_host_representation
 from tournament_scheduler.testing.canonical_input import OfflineScheduler, all_weekend_dates
 from tournament_scheduler.warnings import holiday_heavy_weekend_dates
 
@@ -368,7 +369,12 @@ class TestSeasonPlanner:
         `plan_roster_sizes_for_age_group`). Greedy full-packing of earlier
         slots previously stranded 1-2 teams below their target because the
         final slot ran out of eligible teams; every team must now reach its
-        configured target exactly when the demand is packable."""
+        configured target almost exactly when the demand is packable --
+        within 1 of it, since issue #322's hard host-representation
+        invariant can now force a swap that trades one team's exact target
+        for a genuinely required home-team inclusion. Total participations
+        stay exactly conserved either way (checked below), and the target
+        is never *exceeded* by a forced swap."""
         start, end = season_window
         free_dates = all_weekend_dates(start, end)
 
@@ -407,7 +413,20 @@ class TestSeasonPlanner:
                 participations[team_key(team, set())] += 1
 
         for team in roster.teams:
-            assert participations[team_key(team, set())] == 7, team.label
+            actual = participations[team_key(team, set())]
+            assert abs(actual - 7) <= 1, (team.label, actual)
+
+        # Every tournament's host club is represented by one of its own
+        # participating teams (issue #322's hard invariant) -- exercised
+        # here because this fixture gives every club exactly one team per
+        # age group, so a host swap is only ever needed, never impossible.
+        for tournament in plan.tournaments:
+            host_club = tournament.host_club
+            assert any(team.club == host_club for team in tournament.teams), (
+                tournament.date,
+                tournament.age_group,
+                host_club,
+            )
 
         # No requested slot was skipped for lack of eligible teams.
         assert not plan.skipped_age_groups
@@ -848,6 +867,121 @@ class TestExplicitSeasonWideTargetAcrossHalves:
                 entry = half_shortfalls.get((team.label, period))
                 if entry is not None:
                     assert entry["target"] == "3", entry
+
+
+class TestHostRepresentationRepair:
+    """issue #322: `repair_host_representation` must reserve a place for
+    the tournament's final host club whenever it has an eligible registered
+    team in the exact age group, without ever changing roster size."""
+
+    def _planner(self, roster: Roster) -> SeasonPlanner:
+        return SeasonPlanner(scheduler=FakeScheduler([]), roster=roster, club_arenas={})
+
+    def test_swaps_in_missing_home_team(self):
+        roster = Roster(
+            teams=[
+                Team(club="Skien", label="Skien 1", age_group="JU12"),
+                Team(club="Frisk", label="Frisk Orange", age_group="JU12"),
+                Team(club="Ringerike", label="Ringerike 2", age_group="JU12"),
+            ]
+        )
+        planner = self._planner(roster)
+        participants = [t for t in roster.teams if t.club in ("Frisk", "Ringerike")]
+        repaired = repair_host_representation(
+            planner,
+            participants,
+            age_group="JU12",
+            period=None,
+            home_club="Skien",
+            already_used_today=set(),
+        )
+        assert len(repaired) == len(participants)
+        assert any(t.club == "Skien" for t in repaired)
+
+    def test_no_op_when_host_already_represented(self):
+        roster = Roster(
+            teams=[
+                Team(club="Skien", label="Skien 1", age_group="JU12"),
+                Team(club="Frisk", label="Frisk Orange", age_group="JU12"),
+            ]
+        )
+        planner = self._planner(roster)
+        participants = list(roster.teams)
+        repaired = repair_host_representation(
+            planner,
+            participants,
+            age_group="JU12",
+            period=None,
+            home_club="Skien",
+            already_used_today=set(),
+        )
+        assert repaired == participants
+
+    def test_no_op_when_host_has_no_registered_team_in_age_group(self):
+        """A club with no registered team in this exact age group is not a
+        genuine invariant violation -- the repair must leave the candidate
+        untouched (the independent verifier applies the same rule)."""
+        roster = Roster(
+            teams=[
+                Team(club="Frisk", label="Frisk Orange", age_group="JU12"),
+                Team(club="Ringerike", label="Ringerike 2", age_group="JU12"),
+            ]
+        )
+        planner = self._planner(roster)
+        participants = list(roster.teams)
+        repaired = repair_host_representation(
+            planner,
+            participants,
+            age_group="JU12",
+            period=None,
+            home_club="Skien",
+            already_used_today=set(),
+        )
+        assert repaired == participants
+
+    def test_no_op_when_only_eligible_home_team_already_used_today(self):
+        """A home team already committed to another same-date tournament of
+        this age group cannot be forced in without violating the hard
+        same-date-uniqueness rule -- left for the independent verifier's
+        `host_team_missing` check to surface instead."""
+        roster = Roster(
+            teams=[
+                Team(club="Skien", label="Skien 1", age_group="JU12"),
+                Team(club="Frisk", label="Frisk Orange", age_group="JU12"),
+                Team(club="Ringerike", label="Ringerike 2", age_group="JU12"),
+            ]
+        )
+        planner = self._planner(roster)
+        participants = [t for t in roster.teams if t.club in ("Frisk", "Ringerike")]
+        repaired = repair_host_representation(
+            planner,
+            participants,
+            age_group="JU12",
+            period=None,
+            home_club="Skien",
+            already_used_today={"Skien 1"},
+        )
+        assert repaired == participants
+
+    def test_shared_registration_satisfies_either_constituent_host(self):
+        roster = Roster(
+            teams=[
+                Team(club="Jutul/Jar", label="Jutul/Jar Kittens", age_group="JU12"),
+                Team(club="Ringerike", label="Ringerike 2", age_group="JU12"),
+            ]
+        )
+        planner = self._planner(roster)
+        for home_club in ("Jutul", "Jar"):
+            participants = [t for t in roster.teams if t.club == "Ringerike"]
+            repaired = repair_host_representation(
+                planner,
+                participants,
+                age_group="JU12",
+                period=None,
+                home_club=home_club,
+                already_used_today=set(),
+            )
+            assert any(t.club == "Jutul/Jar" for t in repaired), home_club
 
 
 class TestRoundRobinGameGeneration:

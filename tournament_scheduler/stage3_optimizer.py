@@ -50,6 +50,9 @@ from itertools import combinations
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .game_generation import generate_round_robin_games
+from .host_representation import cached_host_has_eligible_team as _host_eligible
+from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
+from .host_representation import swap_breaks_host_representation as _swap_breaks_host_representation
 from .models import Team
 from . import planning_half
 from .planning_contract import (
@@ -543,6 +546,8 @@ def _swap_is_valid(
     slot_b: int,
     pos_b: int,
     state: Optional["_SearchState"] = None,
+    problem: Optional[Dict[str, Any]] = None,
+    host_eligibility_cache: Optional[Dict[Tuple[str, str], bool]] = None,
 ) -> bool:
     a, b = slots[slot_a], slots[slot_b]
     team_a = a.team_ids[pos_a]
@@ -571,7 +576,10 @@ def _swap_is_valid(
                     return False
                 if slot.date == a.date and team_b in slot.team_ids:
                     return False
-    return True
+    return not any(
+        _swap_breaks_host_representation(s.host_club, s.age_group, s.team_ids, out, inc, problem, host_eligibility_cache)
+        for s, out, inc in ((a, team_a, team_b), (b, team_b, team_a))
+    )
 
 
 def _apply_swap(slots: List[_Slot], slot_a: int, pos_a: int, slot_b: int, pos_b: int) -> None:
@@ -845,6 +853,8 @@ def _host_move_is_valid(
     club_calendar_status: Dict[str, str],
     state: Optional["_SearchState"] = None,
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
+    problem: Optional[Dict[str, Any]] = None,
+    host_eligibility_cache: Optional[Dict[Tuple[str, str], bool]] = None,
 ) -> bool:
     # issue #262 P0: a club with no trustworthy calendar evidence this run
     # must never be handed hosting duty by the search either.
@@ -861,7 +871,9 @@ def _host_move_is_valid(
     # real busy intervals too, not just sibling-candidate collisions.
     return not external_calendar_conflict(
         club_busy_intervals, new_host, slot.date, slot.start_time, slot.duration_minutes
-    )
+    ) and (not _host_eligible(problem, new_host, slot.age_group, host_eligibility_cache) or any(
+        _clubs_represent_same_club(tid[0], new_host) for tid in slot.team_ids
+    ))
 
 
 def _slot_time_move_candidates(slots: List[_Slot], rng: random.Random) -> Optional[Tuple[int, str]]:
@@ -912,8 +924,8 @@ def _rebuild_tournament(slot: _Slot) -> Dict[str, Any]:
 
     teams = [Team(club=club, label=label, age_group=age_group) for club, label, age_group in slot.team_ids]
     if slot.host_club:
-        host_teams = [t for t in teams if t.club == slot.host_club]
-        other_teams = [t for t in teams if t.club != slot.host_club]
+        host_teams = [t for t in teams if _clubs_represent_same_club(t.club, slot.host_club)]
+        other_teams = [t for t in teams if t not in host_teams]
         if host_teams:
             teams = host_teams + other_teams
 
@@ -1040,6 +1052,7 @@ def optimize_candidate(
     club_busy_intervals: Dict[str, List[Dict[str, str]]] = dict((problem or {}).get("club_busy_intervals") or {})
     split_date = _parse_date((problem or {}).get("christmas_split_date"))
     allow_cross_half_moves = bool((problem or {}).get("allow_cross_half_moves"))
+    host_eligibility_cache: Dict[Tuple[str, str], bool] = {}  # memoized per (host_club, age_group)
 
     special_moves: List[str] = []
     if move_dates:
@@ -1166,7 +1179,7 @@ def optimize_candidate(
                     continue
                 index, new_host = host_move
                 if not _host_move_is_valid(
-                    slots, index, new_host, club_arenas, club_calendar_status, state, club_busy_intervals
+                    slots, index, new_host, club_arenas, club_calendar_status, state, club_busy_intervals, problem, host_eligibility_cache
                 ):
                     step += 1
                     continue
@@ -1210,7 +1223,7 @@ def optimize_candidate(
             stop_reason = "no_moves_possible"
             break
         slot_a, pos_a, slot_b, pos_b = move
-        if not _swap_is_valid(slots, slot_a, pos_a, slot_b, pos_b, state):
+        if not _swap_is_valid(slots, slot_a, pos_a, slot_b, pos_b, state, problem, host_eligibility_cache):
             step += 1
             continue
         valid_moves += 1
@@ -1701,6 +1714,8 @@ def _search_group_bounded(
     baseline_team_ids: List[List[TeamIdentity]],
     iterations: int,
     seed: int,
+    problem: Optional[Dict[str, Any]] = None,
+    host_eligibility_cache: Optional[Dict[Tuple[str, str], bool]] = None,
 ) -> Tuple[_GroupMetrics, List[List[TeamIdentity]]]:
     """One seeded bounded local-search restart over *group_slots*.
 
@@ -1721,7 +1736,7 @@ def _search_group_bounded(
         if move is None:
             break
         slot_a, pos_a, slot_b, pos_b = move
-        if not _swap_is_valid(group_slots, slot_a, pos_a, slot_b, pos_b):
+        if not _swap_is_valid(group_slots, slot_a, pos_a, slot_b, pos_b, None, problem, host_eligibility_cache):
             continue
 
         _apply_swap(group_slots, slot_a, pos_a, slot_b, pos_b)
@@ -1796,6 +1811,7 @@ def optimize_candidate_participants_bounded_multi_seed(
         by_age_group.setdefault(slot.age_group, []).append(index)
 
     per_group_status: Dict[str, Dict[str, Any]] = {}
+    host_eligibility_cache: Dict[Tuple[str, str], bool] = {}
 
     for age_group, indices in sorted(by_age_group.items()):
         group_slots = [slots[i] for i in indices]
@@ -1818,7 +1834,7 @@ def optimize_candidate_participants_bounded_multi_seed(
 
         for run_seed in seeds:
             candidate_metrics, candidate_team_ids = _search_group_bounded(
-                group_slots, baseline_metrics, baseline_team_ids, iterations, run_seed
+                group_slots, baseline_metrics, baseline_team_ids, iterations, run_seed, problem, host_eligibility_cache
             )
             if _strictly_better(candidate_metrics, overall_best_metrics):
                 overall_best_metrics = candidate_metrics

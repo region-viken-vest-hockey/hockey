@@ -271,6 +271,57 @@ class TestOptimizeCandidateCpSat:
             if baseline_had_host:
                 assert any(team["club"] == after["host_club"] for team in after["teams"])
 
+    def test_host_team_missing_from_baseline_is_added(self):
+        """issue #322 P0: the baseline candidate is broken (its host club's
+        own team never appears in its tournament) -- CP-SAT must not
+        preserve that as-is just because the baseline never had it; it must
+        actively assign the host an eligible participant whenever one
+        exists in the registered roster for this age group."""
+        teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 9)}
+        group_a = [teams["T1"], teams["T2"], teams["T3"], teams["T4"]]
+        group_b = [teams["T5"], teams["T6"], teams["T7"], teams["T8"]]
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U10", group_a, host_club="Club5"),
+                _tournament("t2", "2026-02-04", "Arena1", "U10", group_a, host_club="Club1"),
+                _tournament("t3", "2026-03-06", "Arena5", "U10", group_b, host_club="Club5"),
+                _tournament("t4", "2026-04-05", "Arena5", "U10", group_b, host_club="Club6"),
+            ],
+        }
+        problem = {"teams": [{**team, "target_tournament_count": 2} for team in teams.values()]}
+
+        optimized = optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+
+        t1 = next(t for t in optimized["tournaments"] if t["id"] == "t1")
+        assert any(team["club"] == "Club5" for team in t1["teams"])
+        verification = verify_candidate(optimized, {"teams": problem["teams"]})
+        codes = {v["code"] for v in verification["violations"]}
+        assert "host_team_missing" not in codes, verification["violations"]
+
+    def test_shared_registration_satisfies_either_constituent_host(self):
+        """issue #322: a joint registration ("Jutul/Jar") satisfies host
+        representation for either physical constituent it names."""
+        teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 5)}
+        shared = _team("Jutul/Jar", "Jutul/Jar Kittens", "U10")
+        group = [teams["T1"], teams["T2"], teams["T3"], shared]
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [_tournament("t1", "2026-01-05", "Jutulhallen", "U10", group, host_club="Jutul")],
+        }
+        problem = {
+            "teams": [
+                {**team, "target_tournament_count": 1} for team in teams.values()
+            ]
+            + [{**shared, "target_tournament_count": 1}]
+        }
+
+        optimized = optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+
+        verification = verify_candidate(optimized, {"teams": problem["teams"]})
+        codes = {v["code"] for v in verification["violations"]}
+        assert "host_team_missing" not in codes, verification["violations"]
+
     def test_never_assigns_teams_across_u_and_ju_categories(self):
         u_teams = {f"U{i}": _team(f"Club{i}", f"U{i}", "U10") for i in range(1, 9)}
         ju_teams = {f"JU{i}": _team(f"Club{i}", f"JU{i}", "JU10") for i in range(1, 9)}

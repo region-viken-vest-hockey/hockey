@@ -32,6 +32,7 @@ from itertools import combinations
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from tournament_scheduler import planning_half
+from tournament_scheduler.host_representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
 
 PLANNING_PROBLEM_SCHEMA_VERSION = 1
 CANDIDATE_SCHEMA_VERSION = 1
@@ -628,6 +629,9 @@ def verify_candidate(
                 f"Tournament {t_id} is hosted by excluded club {host_club!r}",
                 t_id,
             )
+
+        if host_club and _host_eligible_teams(problem.get("teams", []), host_club, (age_group := t.get("age_group"))) and not _host_represented_in(t.get("teams", []), host_club):
+            _violate("host_team_missing", f"Tournament {t_id} host {host_club!r} has an eligible team in {age_group} but none participates", t_id)
 
         # A host club with no trustworthy calendar evidence this run
         # (blocked/skipped/missing scrape) is never silently treated as

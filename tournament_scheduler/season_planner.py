@@ -49,6 +49,7 @@ from tournament_scheduler.models import (
 )
 from tournament_scheduler.club_registry import club_for_arena as _club_for_arena
 from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
+from tournament_scheduler.host_representation_repair import repair_and_finalize as _repair_and_finalize
 from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
 from tournament_scheduler.planning_contract import external_calendar_conflict
 from tournament_scheduler.participant_selection import (
@@ -693,10 +694,10 @@ class SeasonPlanner:
 
             arena = self.club_arenas.get(final_host_club, final_host_club)
             home_club = _club_for_arena(arena) or final_host_club
-            host_teams = [t for t in participants if t.club == home_club]
-            other_teams = [t for t in participants if t.club != home_club]
-            if host_teams:
-                participants = host_teams + other_teams
+            participants = _repair_and_finalize(
+                self, participants, age_group=age_group, period=period, home_club=home_club,
+                tournament_date=tournament_date, already_used_today=already_used_today,
+                teams_used_today_by_age_group=teams_used_today_by_age_group)
 
             games = self.generate_round_robin_games(participants, parallel_games)
             self._record_opponent_history(games)

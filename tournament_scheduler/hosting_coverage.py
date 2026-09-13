@@ -21,19 +21,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Tuple
 
-
-def _constituent_clubs(club: str) -> List[str]:
-    """Split a joint-registration club label (``"Kongsberg/Tønsberg"``) into
-    its constituent clubs. A plain single-club label returns itself.
-
-    Generic on purpose -- issue #274 explicitly forbids hardcoding any
-    specific pair of clubs. Mirrors the ``"/"``-splitting convention already
-    used by ``host_assignment.py``/``season_planner.py`` for joint hosts.
-    """
-    if "/" not in club:
-        return [club]
-    parts = [part.strip() for part in club.split("/") if part.strip()]
-    return parts or [club]
+from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
 
 
 def required_club_age_group_pairs(teams: Iterable[Dict[str, Any]]) -> List[Tuple[str, str]]:
