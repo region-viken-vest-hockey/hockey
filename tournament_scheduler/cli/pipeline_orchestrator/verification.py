@@ -156,17 +156,71 @@ def _reconcile_verified_manual_state(
         }
         for item in result.get("manual_external_conflict_placements") or []
     ]
-    plan_dict["unresolved_participation_shortfalls"] = [
-        {
-            "club": item.get("club", ""),
-            "label": item.get("label", ""),
-            "age_group": item.get("age_group", ""),
-            "actual": item.get("actual", ""),
-            "target": item.get("target", ""),
-            "reason": "actual participation count does not match target",
-        }
-        for item in result.get("manual_participation_placements") or []
+
+    # issue #321: `SeasonPlanner` already computed a richer
+    # `unresolved_participation_shortfalls` (category -- e.g.
+    # `participation_under_target_same_date_capacity` -- plain-language
+    # reason, and half/period) plus `same_date_capacity_evidence` (the #318
+    # structured same-date-capacity proof). The independent final verifier
+    # re-derives *which* findings exist from the true final candidate (the
+    # authoritative count/membership after any post-planning changes), but
+    # it only reports club/label/age_group/half/actual/target -- it does not
+    # carry SeasonPlanner's cause classification or #318 evidence. Look each
+    # verifier finding up against the plan's own prior finding (by
+    # club/label/age_group/half) to recover that provenance instead of
+    # degrading every mismatch to the same generic reason.
+    previous_shortfalls = [
+        item for item in (plan_dict.get("unresolved_participation_shortfalls") or []) if isinstance(item, dict)
     ]
+    shortfall_lookup: dict[tuple, dict] = {}
+    shortfall_lookup_no_label: dict[tuple, dict] = {}
+    for item in previous_shortfalls:
+        half = item.get("period") or item.get("half")
+        shortfall_lookup[(item.get("club", ""), item.get("label", ""), item.get("age_group", ""), half)] = item
+        shortfall_lookup_no_label.setdefault((item.get("club", ""), item.get("age_group", ""), half), item)
+
+    evidence_by_age_group_half: dict[tuple, list] = {}
+    for entry in plan_dict.get("same_date_capacity_evidence") or []:
+        if not isinstance(entry, dict):
+            continue
+        evidence_by_age_group_half.setdefault((entry.get("age_group"), entry.get("period")), []).append(entry)
+
+    reconciled_participation: list[dict[str, Any]] = []
+    for item in result.get("manual_participation_placements") or []:
+        club = item.get("club", "")
+        label = item.get("label", "")
+        age_group = item.get("age_group", "")
+        half = item.get("half")
+        source = shortfall_lookup.get((club, label, age_group, half)) or shortfall_lookup_no_label.get(
+            (club, age_group, half)
+        )
+        actual_raw, target_raw = item.get("actual", ""), item.get("target", "")
+        try:
+            under_target = int(actual_raw) < int(target_raw)
+        except (TypeError, ValueError):
+            under_target = True
+        category = (source or {}).get(
+            "category", "participation_under_target" if under_target else "participation_over_target"
+        )
+        reason = (source or {}).get("reason", "actual participation count does not match target")
+        reconciled_entry: dict[str, Any] = {
+            "club": club,
+            "label": label,
+            "age_group": age_group,
+            "actual": actual_raw,
+            "target": target_raw,
+            "category": category,
+            "reason": reason,
+        }
+        if half:
+            reconciled_entry["half"] = half
+        if category == "participation_under_target_same_date_capacity":
+            evidence = evidence_by_age_group_half.get((age_group, half))
+            if evidence:
+                reconciled_entry["same_date_capacity_evidence"] = evidence
+        reconciled_participation.append(reconciled_entry)
+
+    plan_dict["unresolved_participation_shortfalls"] = reconciled_participation
     plan_dict["publication_readiness"] = dict(
         result.get("publication_readiness") or {}
     )

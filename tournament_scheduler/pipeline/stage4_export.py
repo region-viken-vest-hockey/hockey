@@ -309,14 +309,17 @@ def run(
         )
     # Participation-target deviations (over- or under-target) are team-level
     # planning-quality signals, not ice-time/booking work -- they do not
-    # represent a tournament that must be inserted into an arena calendar.
-    # They stay out of manual_schedule.html entirely and remain visible via
-    # plan.unresolved_participation_shortfalls / the season plan report
-    # (rules_report.py) instead.
+    # represent a tournament that must be inserted into an arena calendar,
+    # so they stay out of the booking table above. They are still rendered
+    # in their own section on the same manual-schedule page (see
+    # `_participation_section_html`) since `publication_readiness` counts
+    # them as an operator-facing finding that must be visible somewhere the
+    # operator actually looks, not only in the rules report.
     candidate_entries = (
         collision_entries + manual_host_entries + unresolved_hosting_entries + external_conflict_entries
     )
     manual_entries = [entry for entry in candidate_entries if entry.get("category") in MANUAL_SCHEDULE_CATEGORIES]
+    participation_entries = list(getattr(plan, "unresolved_participation_shortfalls", None) or [])
     # Fresh recomputation always wins, including the empty case -- a stale
     # stored collision list must not survive a verified zero-collision plan.
     plan.arena_day_collisions = collision_entries
@@ -503,13 +506,14 @@ def run(
     # Anything that cannot be treated as auto-confirmed hall time goes here:
     # arena/sequence collisions that could not be placed, plus tournaments
     # hosted by clubs whose calendar could not be scraped (provisional istid).
-    if manual_entries and not errors:
+    if (manual_entries or participation_entries) and not errors:
         try:
             _progress("Genererer manuell-oppfølgingsvisning")
             _manual_path = primary_export_path / MANUAL_SCHEDULE_FILENAME
             manual_html = _manual_schedule_html(
                 plan,
                 manual_entries=manual_entries,
+                participation_entries=participation_entries,
                 generated_at=generated_at,
                 input_path=input_path,
                 date_range=str(pipeline_meta.get("date_range", "")),

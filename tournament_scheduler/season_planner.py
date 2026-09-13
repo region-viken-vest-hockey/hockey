@@ -68,6 +68,7 @@ from tournament_scheduler.participant_selection import (
     pick_spread_dates as _pick_spread_dates,
     plan_roster_sizes_for_age_group as _plan_roster_sizes_for_age_group,
     rebalance_roster_sizes_across_dates as _rebalance_roster_sizes_across_dates,
+    relocate_structurally_impossible_slots as _relocate_structurally_impossible_slots,
     select_participants as _select_participants,
     target_tournaments_for_age_group as _target_tournaments_for_age_group,
 )
@@ -528,6 +529,55 @@ class SeasonPlanner:
         self._team_game_counts = {}
         self._club_cap_overrides = 0
         scheduled.sort(key=lambda item: (item[0], item[1]))
+
+        def _period_for_date(tournament_date: date) -> Optional[str]:
+            half = planning_half.tournament_half(tournament_date, split_date)
+            return half if has_split_targets and half in ("before_christmas", "after_christmas") else None
+
+        # issue #318: a date that's asked to host more parallel same-age-
+        # group pools than its distinct-team pool can support is
+        # structurally impossible for *that date* -- but not necessarily for
+        # the half as a whole. Relocate each excess slot to another legal
+        # date in the same planning half (one that doesn't already host an
+        # overlapping age group and wouldn't itself exceed the same
+        # uniqueness ceiling) *before* host/time assignment runs, so
+        # `scheduled` (and therefore `host_assignments`, which is indexed
+        # 1:1 against it) reflects the relocation rather than silently
+        # accepting a capacity shortfall a legal alternative date could have
+        # absorbed.
+        same_date_relocation_evidence: List[Dict[str, object]] = []
+        age_groups_by_date: Dict[date, List[str]] = {}
+        for d, ag in scheduled:
+            age_groups_by_date.setdefault(d, []).append(ag)
+
+        relocation_happened = False
+        for age_group in sorted({ag for _, ag in scheduled}):
+            distinct_team_count = len(self.roster.by_age_group(age_group))
+            ag_dates_with_period = [(d, _period_for_date(d)) for d, ag in scheduled if ag == age_group]
+            for period in (None, "before_christmas", "after_christmas"):
+                period_dates = [d for d, p in ag_dates_with_period if p == period]
+                if not period_dates:
+                    continue
+                date_groups = [(d, len(list(group))) for d, group in groupby(period_dates)]
+                alternative_dates = [d for d in free_dates if _period_for_date(d) == period]
+                new_date_groups, relocation_evidence = _relocate_structurally_impossible_slots(
+                    date_groups, distinct_team_count, age_group, age_groups_by_date, alternative_dates
+                )
+                if new_date_groups != date_groups:
+                    relocation_happened = True
+                    scheduled = [
+                        (d, ag)
+                        for d, ag in scheduled
+                        if not (ag == age_group and _period_for_date(d) == period)
+                    ]
+                    for d, count in new_date_groups:
+                        scheduled.extend([(d, age_group)] * count)
+                for entry in relocation_evidence:
+                    same_date_relocation_evidence.append({**entry, "age_group": age_group, "period": period})
+
+        if relocation_happened:
+            scheduled.sort(key=lambda item: (item[0], item[1]))
+
         # issue #300: host/slot placement, participant selection/
         # materialization and game generation are interleaved per tournament
         # in the loop below rather than separable passes, so they are timed
@@ -573,12 +623,20 @@ class SeasonPlanner:
         # unplaceable demand forward to a later date with slack -- instead
         # of being consumed blindly in chronological order, so a same-date
         # squeeze doesn't silently cost a materializable tournament.
-        def _period_for_date(tournament_date: date) -> Optional[str]:
-            half = planning_half.tournament_half(tournament_date, split_date)
-            return half if has_split_targets and half in ("before_christmas", "after_christmas") else None
+        #
+        # issue #318: `scheduled` here already reflects any relocation
+        # performed above, so `same_date_uniqueness_limit` entries emitted by
+        # `_rebalance_roster_sizes_across_dates` below can only recur for
+        # slots relocation genuinely could not place anywhere else -- those
+        # are superseded by the richer `same_date_relocation_evidence`
+        # entries (which include every alternative date considered and why),
+        # so the bare duplicate is dropped in favor of that richer one.
+        relocated_evidence_keys = {
+            (entry["age_group"], entry["period"], entry["date"]) for entry in same_date_relocation_evidence
+        }
 
         rebalanced_sizes_by_key: Dict[Tuple[str, Optional[str]], Dict[date, List[int]]] = {}
-        same_date_capacity_evidence: List[Dict[str, object]] = []
+        same_date_capacity_evidence: List[Dict[str, object]] = list(same_date_relocation_evidence)
         for age_group in sorted({ag for _, ag in scheduled}):
             ag_dates_with_period = [(d, _period_for_date(d)) for d, ag in scheduled if ag == age_group]
             for period in (None, "before_christmas", "after_christmas"):
@@ -594,6 +652,11 @@ class SeasonPlanner:
                 )
                 rebalanced_sizes_by_key[(age_group, period)] = sizes_by_date
                 for entry in evidence:
+                    if (
+                        entry.get("category") == "same_date_uniqueness_limit"
+                        and (age_group, period, entry.get("date")) in relocated_evidence_keys
+                    ):
+                        continue
                     same_date_capacity_evidence.append({**entry, "age_group": age_group, "period": period})
 
         planned_roster_index_by_key: Dict[Tuple[str, Optional[str], date], int] = {}
@@ -938,7 +1001,7 @@ class SeasonPlanner:
         capacity_shortfall_age_groups = {
             entry["age_group"]
             for entry in same_date_capacity_evidence
-            if entry.get("category") == "same_date_participant_pool_capacity"
+            if entry.get("category") in ("same_date_participant_pool_capacity", "same_date_uniqueness_limit")
         }
 
         unresolved_participation_shortfalls: List[Dict[str, str]] = []
@@ -984,7 +1047,7 @@ class SeasonPlanner:
         capacity_shortfall_age_group_periods = {
             (entry["age_group"], entry.get("period"))
             for entry in same_date_capacity_evidence
-            if entry.get("category") == "same_date_participant_pool_capacity"
+            if entry.get("category") in ("same_date_participant_pool_capacity", "same_date_uniqueness_limit")
         }
         if self._has_split_tournament_targets():
             for team in self.roster.teams:

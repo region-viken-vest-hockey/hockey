@@ -12,6 +12,7 @@ from tournament_scheduler.participant_selection import (
     MIN_TEAMS_PER_TOURNAMENT,
     plan_roster_sizes,
     rebalance_roster_sizes_across_dates,
+    relocate_structurally_impossible_slots,
 )
 
 
@@ -176,6 +177,101 @@ class TestRebalanceRosterSizesAcrossDates:
         assert shortfall_entries[0]["unplaced_participations"] == 3
         assert shortfall_entries[0]["limiting_dates"] == ["2026-09-05"]
         assert sum(sizes_by_date[date(2026, 9, 5)]) == 17
+
+
+class TestRelocateStructurallyImpossibleSlots:
+    """issue #318: an overloaded date's excess slot must be relocated to
+    another legal date in the same half before being accepted as a
+    shortfall -- `rebalance_roster_sizes_across_dates` alone only
+    redistributes participant *demand* across already-selected dates, it
+    never moves the *slot* itself.
+    """
+
+    def test_excess_slot_relocates_to_a_legal_alternative_date(self):
+        """17 U12 teams, min 3 per tournament: 6 parallel slots requested on
+        one date is structurally impossible (6*3=18 > 17), but a second
+        legal date (no overlapping age group scheduled) can absorb the
+        excess slot -- all 6 slots must materialize somewhere."""
+        overloaded = date(2026, 12, 13)
+        alternative = date(2026, 12, 20)
+        date_groups = [(overloaded, 6)]
+
+        new_date_groups, evidence = relocate_structurally_impossible_slots(
+            date_groups,
+            distinct_team_count=17,
+            age_group="U12",
+            age_groups_by_date={overloaded: ["U12"]},
+            alternative_dates=[alternative],
+        )
+
+        assert evidence == []
+        assert dict(new_date_groups) == {overloaded: 5, alternative: 1}
+
+    def test_no_legal_alternative_is_reported_with_attempted_evidence(self):
+        """When every alternative date is already full (or overlaps), the
+        excess slot remains unplaced and the evidence must show which
+        alternatives were tried and why each was rejected."""
+        overloaded = date(2026, 12, 13)
+        full_alternative = date(2026, 12, 20)
+        # `full_alternative` already has 5 of this age group's own slots
+        # scheduled -- adding a 6th would itself exceed the 17-team ceiling
+        # ((5 + 1) * 3 = 18 > 17), so it cannot legally absorb the excess.
+        date_groups = [(overloaded, 6), (full_alternative, 5)]
+
+        new_date_groups, evidence = relocate_structurally_impossible_slots(
+            date_groups,
+            distinct_team_count=17,
+            age_group="U12",
+            age_groups_by_date={overloaded: ["U12"], full_alternative: ["U12"] * 5},
+            alternative_dates=[full_alternative],
+        )
+
+        assert dict(new_date_groups) == {overloaded: 6, full_alternative: 5}
+        assert len(evidence) == 1
+        entry = evidence[0]
+        assert entry["category"] == "same_date_uniqueness_limit"
+        assert entry["unrelocated_slots"] == 1
+        assert entry["relocated_slots"] == 0
+        assert entry["alternatives_considered"] == [
+            {"date": full_alternative.isoformat(), "rejected_reason": "same_date_uniqueness_limit"}
+        ]
+
+    def test_alternative_date_with_overlapping_age_group_is_rejected(self):
+        """A date already hosting an age group that overlaps `age_group`
+        cannot legally take the relocated slot even if it has team-pool
+        slack -- the same hard conflict `_check_overlap_collision` guards
+        against later."""
+        overloaded = date(2026, 12, 13)
+        conflicting = date(2026, 12, 20)
+        other_ag = "JU13"  # U12/JU13 pools overlap (see models.AGE_GROUP_OVERLAP)
+        date_groups = [(overloaded, 6)]
+
+        new_date_groups, evidence = relocate_structurally_impossible_slots(
+            date_groups,
+            distinct_team_count=17,
+            age_group="U12",
+            age_groups_by_date={overloaded: ["U12"], conflicting: [other_ag]},
+            alternative_dates=[conflicting],
+        )
+
+        assert dict(new_date_groups) == {overloaded: 6}
+        assert evidence[0]["alternatives_considered"] == [
+            {"date": conflicting.isoformat(), "rejected_reason": "age_group_overlap"}
+        ]
+
+    def test_feasible_date_groups_are_left_untouched(self):
+        date_groups = [(date(2026, 9, 5), 3), (date(2026, 9, 12), 2)]
+
+        new_date_groups, evidence = relocate_structurally_impossible_slots(
+            date_groups,
+            distinct_team_count=17,
+            age_group="U12",
+            age_groups_by_date={},
+            alternative_dates=[date(2026, 9, 19)],
+        )
+
+        assert new_date_groups == date_groups
+        assert evidence == []
 
     def test_exactly_at_capacity_is_not_reported_as_limiting(self):
         """Demand landing exactly on a date's ceiling (not exceeding it) must

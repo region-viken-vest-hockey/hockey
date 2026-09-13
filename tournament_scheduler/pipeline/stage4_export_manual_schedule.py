@@ -19,9 +19,11 @@ from ..html.templates import MANUAL_SCHEDULE, STYLES_CSS
 MANUAL_SCHEDULE_FILENAME = "manual_schedule.html"
 
 # Only these structured categories represent genuine manual ice-time/booking
-# work. Participation-target deviations (over or under) are team-level
-# planning-quality signals, not ice-booking tasks, and must never be
-# rendered on manual_schedule.html even if a caller passes one in.
+# work and belong in the booking table (`$ROWS$`). Participation-target
+# deviations (over or under) are team-level planning-quality signals, not
+# ice-booking tasks -- they render in their own section instead (see
+# `_participation_section_html`), never mixed into this table even if a
+# caller passes one in via `manual_entries`.
 MANUAL_SCHEDULE_CATEGORIES = frozenset(
     {
         "arena_collision",
@@ -32,10 +34,93 @@ MANUAL_SCHEDULE_CATEGORIES = frozenset(
 )
 
 
+def _participation_section_html(entries: list[dict[str, str]]) -> str:
+    """Render the "Deltakelsesavvik" section listing participation shortfalls.
+
+    issue #321: the final verifier's `manual_participation_placements` are
+    counted in `publication_readiness`, so they must be visible to the
+    operator on this same page instead of only in
+    `plan.unresolved_participation_shortfalls` / the rules report -- an
+    operator reviewing only this page would otherwise never see them. Kept
+    as its own section/table (not merged into the booking table above)
+    since these are team-level participation-count mismatches, not
+    tournaments that need an arena/time slot.
+    """
+    if not entries:
+        return ""
+
+    def _sort_key(item: dict[str, str]) -> tuple:
+        return (
+            str(item.get("age_group", "")),
+            str(item.get("club", "")),
+            str(item.get("label", "")),
+            str(item.get("half", "") or item.get("period", "")),
+        )
+
+    rows: list[str] = []
+    for idx, item in enumerate(sorted(entries, key=_sort_key), start=1):
+        club = str(item.get("club", "") or "")
+        label = str(item.get("label", "") or "")
+        age_group = str(item.get("age_group", "") or "")
+        half = str(item.get("half", "") or item.get("period", "") or "")
+        half_display = {
+            "before_christmas": "Før jul",
+            "after_christmas": "Etter jul",
+        }.get(half, half or "Hele sesongen")
+        actual = str(item.get("actual", "") or "")
+        target = str(item.get("target", "") or "")
+        category = str(item.get("category", "") or "")
+        reason = str(item.get("reason", "") or "actual participation count does not match target")
+        evidence = item.get("same_date_capacity_evidence") or []
+        if category == "participation_under_target_same_date_capacity" and evidence:
+            evidence_bits = []
+            for ev in evidence:
+                if not isinstance(ev, dict):
+                    continue
+                ev_category = ev.get("category")
+                if ev_category == "same_date_uniqueness_limit":
+                    evidence_bits.append(
+                        f"{ev.get('date', '')}: {ev.get('requested_slots', '?')} parallelle turneringer "
+                        f"ønsket, {ev.get('feasible_slots', '?')} mulig med {ev.get('distinct_team_count', '?')} lag"
+                    )
+                elif ev_category == "same_date_participant_pool_capacity":
+                    evidence_bits.append(
+                        f"{ev.get('unplaced_participations', '?')} deltakelse(r) uten plass på "
+                        f"{', '.join(str(d) for d in (ev.get('limiting_dates') or []))}"
+                    )
+            if evidence_bits:
+                reason = f"{reason} ({'; '.join(evidence_bits)})"
+        rows.append(
+            "<tr>"
+            f"<td class=\"numeric-cell\">{idx}</td>"
+            f"<td><strong>{_html.escape(age_group)}</strong></td>"
+            f"<td>{_html.escape(club)}</td>"
+            f"<td>{_html.escape(label)}</td>"
+            f"<td>{_html.escape(half_display)}</td>"
+            f"<td class=\"numeric-cell\">{_html.escape(actual)}/{_html.escape(target)}</td>"
+            f"<td>{_html.escape(reason)}</td>"
+            "</tr>"
+        )
+
+    return (
+        '<section class="report-section" id="participationShortfalls">'
+        '<div class="section-head"><div><p class="eyebrow">Deltakelse</p>'
+        "<h2>Deltakelsesavvik som ikke fikk plass automatisk</h2></div>"
+        f'<p class="section-note">{len(entries)} lag deltar ikke det konfigurerte antallet ganger. '
+        "Dette er ikke en ledig-istid-oppgave, men et planleggingsavvik som må vurderes før publisering.</p>"
+        "</div>"
+        '<div class="table-wrap"><table class="report-table"><thead><tr>'
+        "<th>#</th><th>Aldersgruppe</th><th>Klubb</th><th>Lag</th><th>Halvdel</th><th>Faktisk/Mål</th><th>Årsak</th>"
+        f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+        "</section>"
+    )
+
+
 def _manual_schedule_html(
     plan: SeasonPlan,
     *,
     manual_entries: list[dict[str, str]] | None = None,
+    participation_entries: list[dict[str, str]] | None = None,
     generated_at: str = "",
     input_path: str = "",
     date_range: str = "",
@@ -61,6 +146,11 @@ def _manual_schedule_html(
 
     Each entry carries a ``type`` (Grunn) so the arena scheduler can see why
     it must act.
+
+    ``participation_entries`` (issue #321) renders as a separate section
+    below the booking table -- team-level participation-target shortfalls
+    that `publication_readiness` counts as an operator-facing finding, but
+    that are not themselves an ice-time/booking task.
     """
     from ..html.data_computation import canonical_rvv_club_name
 
@@ -158,6 +248,13 @@ def _manual_schedule_html(
     if input_path:
         hidden_parts.append(f"Input: {input_path}")
 
+    participation_section = _participation_section_html(list(participation_entries or []))
+    # issue #321: the hero count/copy above is specifically about ice-time
+    # booking work (see the module docstring's `MANUAL_SCHEDULE_CATEGORIES`
+    # note), so it stays scoped to `entries` -- participation findings get
+    # their own count in `_participation_section_html`'s section note, which
+    # must equal `publication_readiness.reasons[participation_shortfalls]`
+    # independently rather than being folded into this unrelated headline.
     entry_count = str(len(entries))
     parts = {
         "$STYLES$": STYLES_CSS,
@@ -172,6 +269,7 @@ def _manual_schedule_html(
         "$ENTRY_COUNT$": entry_count,
         "$EXTRA_NOTE$": extra_note,
         "$ROWS$": rows_html,
+        "$PARTICIPATION_SECTION$": participation_section,
         "$HIDDEN_CONTEXT$": _html.escape(" · ".join(hidden_parts)),
     }
     html = MANUAL_SCHEDULE

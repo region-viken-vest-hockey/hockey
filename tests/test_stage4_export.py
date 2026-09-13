@@ -405,11 +405,13 @@ class TestRunStage4:
         assert "t-conflict" in manual_html
 
     @pytest.mark.parametrize("category", ["participation_under_target", "participation_over_target"])
-    def test_export_excludes_participation_deviations_from_manual_schedule(self, tmp_path, category):
-        """Participation-target deviations (over- or under-target) are
-        team-level planning-quality signals, not ice-time/booking work --
-        they must never appear on manual_schedule.html or inflate its count,
-        even though they remain visible via
+    def test_participation_deviations_render_in_their_own_manual_schedule_section(self, tmp_path, category):
+        """issue #321: participation-target deviations (over- or
+        under-target) are team-level planning-quality signals, not
+        ice-time/booking work, so they must never appear in the booking
+        table -- but `publication_readiness` counts them as an
+        operator-facing finding, so they must still be visible on
+        manual_schedule.html (in their own section) instead of only in
         plan.unresolved_participation_shortfalls (season plan report)."""
         state = PipelineState(tmp_path / "pipeline")
         input_path = tmp_path / "input.xlsx"
@@ -440,16 +442,19 @@ class TestRunStage4:
         )
 
         files = result.get("output_files", {})
-        # No genuine manual item exists in this plan, so the file is not written at all.
-        assert "manual_schedule" not in files
-        # ...but the deviation is still exposed on the plan for the season report.
+        # A participation-only shortfall still writes the page (there is
+        # something for the operator to review), but the booking table
+        # itself stays empty.
+        manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
+        assert "Ingen turneringer trenger manuell planlegging." in manual_html
+        assert "Skien" in manual_html
         plan = _dict_to_plan(plan_checkpoint["plan"])
         assert plan.unresolved_participation_shortfalls[0]["club"] == "Skien"
 
     def test_manual_schedule_count_reconciles_with_rows(self, tmp_path):
-        """The headline/manual count must equal exactly the genuine manual
-        items rendered, even when participation deviations are also present
-        on the plan."""
+        """The headline count must equal genuine manual (booking) items plus
+        rendered participation findings -- both are counted by
+        `publication_readiness`, so the page's own headline must agree."""
         state = PipelineState(tmp_path / "pipeline")
         input_path = tmp_path / "input.xlsx"
         _write_input_workbook(input_path, {})
@@ -484,7 +489,10 @@ class TestRunStage4:
         files = result.get("output_files", {})
         manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
         assert "Ringerike" in manual_html
-        assert "Skien" not in manual_html
+        # Participation findings render in their own section, not the
+        # booking table -- the booking count stays scoped to the genuine
+        # ice-time booking item (Ringerike) only.
+        assert "Skien" in manual_html
         assert "1 turnering(er) krever manuell istidsplanlegging" in manual_html
 
     def test_only_last_3_timestamped_exports_are_kept(self, tmp_path):
