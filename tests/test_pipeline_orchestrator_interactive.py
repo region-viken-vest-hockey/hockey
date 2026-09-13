@@ -26,8 +26,23 @@ def _team(club: str, label: str, age_group: str) -> dict:
     return {"club": club, "label": label, "age_group": age_group}
 
 
+def _round_robin_games(labels: list[str]) -> list[dict]:
+    """Standard circle-method round-robin: every pair meets once, and no
+    team plays twice in the same round (issue: the final hard verifier now
+    checks `team_double_booked_in_round`, which a flat round_number=1 for
+    every pairwise combination always violates once there are >2 teams)."""
+    rotation = list(labels)
+    n = len(rotation)
+    games: list[dict] = []
+    for round_number in range(1, n):
+        for i in range(n // 2):
+            home, away = rotation[i], rotation[n - 1 - i]
+            games.append({"home": home, "away": away, "parallel_slot": 0, "round_number": round_number})
+        rotation = [rotation[0]] + [rotation[-1]] + rotation[1:-1]
+    return games
+
+
 def _tournament(t_id: str, date_str: str, arena: str, age_group: str, teams: list[dict]) -> dict:
-    game_pairs = [(a["label"], b["label"]) for i, a in enumerate(teams) for b in teams[i + 1 :]]
     return {
         "id": t_id,
         "date": date_str,
@@ -35,9 +50,7 @@ def _tournament(t_id: str, date_str: str, arena: str, age_group: str, teams: lis
         "age_group": age_group,
         "host_club": teams[0]["club"] if teams else None,
         "teams": teams,
-        "games": [
-            {"home": home, "away": away, "parallel_slot": 0, "round_number": 1} for home, away in game_pairs
-        ],
+        "games": _round_robin_games([t["label"] for t in teams]),
     }
 
 

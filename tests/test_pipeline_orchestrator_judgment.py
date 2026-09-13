@@ -66,7 +66,13 @@ def _make_scored_rough_plan(
                         {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
                         {"club": "Holmen", "label": "Holmen 1", "age_group": "U10"},
                     ],
-                    "games": [],
+                    # A complete round-robin (single matchup for 2 teams) so
+                    # this fixture's deliberate "rough" tone/composite-score
+                    # test doesn't also trip the unrelated final hard
+                    # round-robin-completeness verification.
+                    "games": [
+                        {"home": "Jar 1", "away": "Holmen 1", "round_number": 1},
+                    ],
                     "start_time": "09:00",
                 }
             ],

@@ -36,9 +36,21 @@ def _write_minimal_workbook(path: Path) -> None:
     settings.append(["start_date", start.isoformat()])
     settings.append(["end_date", end.isoformat()])
 
+    # issue #315: before/after-Christmas participation targets are now
+    # required for every active age group -- omitting them fails Stage 1
+    # config validation outright, which this smoke test's "operator run
+    # again reports nothing pending" case depends on not happening.
     age_groups = wb.create_sheet("Aldersgrupper")
-    age_groups.append(["age_group", "parallel_games", "round_length_minutes"])
-    age_groups.append(["U10", 2, None])
+    age_groups.append(
+        [
+            "age_group",
+            "parallel_games",
+            "round_length_minutes",
+            "deltakelser_per_lag_før_jul",
+            "deltakelser_per_lag_etter_jul",
+        ]
+    )
+    age_groups.append(["U10", 2, None, 2, 2])
 
     teams = wb.create_sheet("Lag")
     teams.append(["club", "label", "age_group"])
