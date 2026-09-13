@@ -28,71 +28,143 @@ UID:varner@example.com
 DTSTAMP:20260101T120000Z
 DTSTART:20260912T130000Z
 DTEND:20260912T150000Z
-SUMMARY:Varner Arena kamp
-LOCATION:Varner Arena
+SUMMARY:Varner aktivitet
+LOCATION:1
 END:VEVENT
 BEGIN:VEVENT
-UID:legacy@example.com
+UID:asker-allday@example.com
 DTSTAMP:20260101T120000Z
-DTSTART:20260912T160000Z
-DTEND:20260912T170000Z
-SUMMARY:Legacy venue
-LOCATION:Askerhallen
+DTSTART;VALUE=DATE:20260913
+DTEND;VALUE=DATE:20260914
+SUMMARY:Askerhallen hele dagen
+LOCATION:Idrettshallen
+END:VEVENT
+BEGIN:VEVENT
+UID:asker-midnight@example.com
+DTSTAMP:20260101T120000Z
+DTSTART:20260914T000000Z
+DTEND:20260914T010000Z
+SUMMARY:Ekte midnatt
+LOCATION:Idrettshallen
 END:VEVENT
 END:VCALENDAR
 """
 
 
-def test_frisk_ical_location_mapping_keeps_relevant_arenas():
+def _response(content: bytes):
     response = MagicMock()
     response.status_code = 200
-    response.content = FRISK_MULTI_ARENA_FEED
-    response.raise_for_status.return_value = None
-
-    with patch("tournament_scheduler.data_sources.ical_scraper.requests.get", return_value=response):
-        scraper = ICalScraper(
-            "https://example.test/frisk.ics",
-            allowed_locations=CLUB_REGISTRY["Frisk Asker"].calendar_locations,
-        )
-        events = scraper.scrape_events()
-
-    assert [event.name for event in events] == ["Askerhallen trening", "Varner Arena kamp"]
-    assert {event.location for event in events} == {"Idrettshallen", "Varner Arena"}
+    response.content = content
+    return response
 
 
-def test_calendar_html_exposes_source_url_and_event_location(tmp_path):
-    cache = CalendarCache(str(tmp_path / "calendar_cache"))
-    cache.save_events(
+def test_teamup_sources_expose_human_and_machine_urls():
+    human, feed = _source_urls(
         "Frisk Asker",
-        [
-            CalendarEvent(
-                date="12.09.2026",
-                name="Varner Arena kamp",
-                datetime=datetime(2026, 9, 12, 13, 0),
-                duration_hours=2.0,
-                location="Varner Arena",
-            )
-        ],
-        url="https://example.test/frisk.ics",
+        {"url": "https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics"},
     )
+    assert human == "https://teamup.com/ksdwpwxysmxwnuftoy"
+    assert feed == "https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics"
 
-    html = generate_html(
-        {"Frisk Asker": cache.load("Frisk Asker")},
-        source_urls={"Frisk Asker": "https://example.test/frisk.ics"},
+    ringerike_human, ringerike_feed = _source_urls(
+        "Ringerike",
+        {"url": "https://ics.teamup.com/feed/ksr8bg1tpn5s3npskw/0.ics"},
     )
+    assert ringerike_human == "https://teamup.com/ksr8bg1tpn5s3npskw"
+    assert ringerike_feed == "https://ics.teamup.com/feed/ksr8bg1tpn5s3npskw/0.ics"
 
-    assert "https://example.test/frisk.ics" in html
-    assert "Varner Arena" in html
+
+def test_calendar_cache_roundtrip_keeps_location_and_all_day(tmp_path):
+    frisk = CLUB_REGISTRY["Frisk Asker"]
+    cache = CalendarCache(cache_dir=str(tmp_path / "ical-cache"), ttl_minutes=60)
+    scraper = ICalScraper(frisk.source or "", cache=cache)
+
+    with patch(
+        "tournament_scheduler.data_sources.ical_scraper.requests.get",
+        return_value=_response(FRISK_MULTI_ARENA_FEED),
+    ):
+        first = scraper.scrape_calendar(
+            frisk.source or "",
+            "Frisk Asker",
+            datetime(2026, 9, 1),
+            datetime(2026, 9, 30),
+            location_filter=frisk.location_filter,
+        )
+
+    # A second call must come exclusively from CalendarCache.
+    with patch("tournament_scheduler.data_sources.ical_scraper.requests.get") as get:
+        second = scraper.scrape_calendar(
+            frisk.source or "",
+            "Frisk Asker",
+            datetime(2026, 9, 1),
+            datetime(2026, 9, 30),
+            location_filter=frisk.location_filter,
+        )
+    get.assert_not_called()
+
+    assert [event.location for event in second] == [event.location for event in first]
+    assert [bool(getattr(event, "all_day", False)) for event in second] == [
+        bool(getattr(event, "all_day", False)) for event in first
+    ]
 
 
-def test_source_urls_returns_configured_source_urls():
-    urls = _source_urls(
+def test_calendar_html_shows_human_calendar_and_ical_feed_and_not_fake_midnight(tmp_path):
+    work_dir = tmp_path / "work"
+    export_dir = tmp_path / "export"
+    cache_path = work_dir / "cache" / "scraped_data.json"
+    cache_path.parent.mkdir(parents=True)
+    cache_path.write_text(
+        """{
+  "_meta": {
+    "updated_at": "2026-09-08T10:00:00",
+    "start_date": "2026-09-01",
+    "end_date": "2026-09-30"
+  },
+  "source_count": 1,
+  "total_events": 2,
+  "sources": {
+    "Frisk Asker": {
+      "name": "Frisk Asker",
+      "url": "https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics",
+      "scrape_timestamp": "2026-09-08T10:00:00",
+      "event_count": 2,
+      "blocked": false,
+      "events": [
         {
-            "sources": [
-                {"name": "Frisk Asker", "url": "https://example.test/frisk.ics"},
-                {"name": "Missing URL", "url": ""},
-            ]
+          "date": "13.09.2026",
+          "name": "Askerhallen hele dagen",
+          "datetime": "2026-09-13T00:00:00",
+          "duration_hours": 0,
+          "all_day": true,
+          "location": "Idrettshallen"
+        },
+        {
+          "date": "14.09.2026",
+          "name": "Ekte midnatt",
+          "datetime": "2026-09-14T00:00:00",
+          "duration_hours": 1,
+          "location": "Idrettshallen"
         }
+      ]
+    }
+  }
+}""",
+        encoding="utf-8",
     )
 
-    assert urls == {"Frisk Asker": "https://example.test/frisk.ics"}
+    output = generate_html(str(work_dir), str(export_dir))
+    html = open(output, encoding="utf-8").read()
+
+    assert "Hele dagen" in html
+    assert "00:00-01:00" in html  # genuine midnight event remains a midnight event
+    assert "https://teamup.com/ksdwpwxysmxwnuftoy" in html
+    assert "https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics" in html
+    assert "<span>Kalender</span>" in html
+    assert "<span>iCal</span>" in html
+
+    # The event-level link must use the human calendar. The machine feed is
+    # only exposed by the source-level iCal audit link.
+    assert (
+        'class="ev-ext-link" href="https://teamup.com/ksdwpwxysmxwnuftoy"'
+        in html
+    )
