@@ -15,6 +15,7 @@ def _tournament(host_club: str, age_group: str) -> dict:
     return {
         "id": f"{host_club}-{age_group}",
         "date": "2025-10-05",
+        "arena": f"{host_club}hallen",
         "age_group": age_group,
         "host_club": host_club,
         "teams": [{"club": host_club, "label": f"{host_club} {age_group}A", "age_group": age_group}],
@@ -77,6 +78,34 @@ class TestReconcileVerifiedManualState:
 
     def test_none_plan_is_a_noop(self):
         _reconcile_verified_manual_state(None, None, log_fn=lambda *_: None)
+
+    def test_unresolved_tournament_placements_blocks_publishable(self):
+        """issue #323 P0: unresolved_tournament_placements is a baseline-
+        planner-time fact (no candidate tournament exists to recompute it
+        from), so `verify_final_candidate`'s own `publication_readiness`
+        can never know about it -- reconciliation must fold it in from the
+        plan's own (untouched) list so a non-empty list still blocks
+        PUBLISHABLE status, same as the other unresolved_* findings."""
+        problem = {"teams": [{"club": "Jar", "age_group": "U10", "label": "Jar U10A"}]}
+        plan = _plan_checkpoint([_tournament("Jar", "U10")], stale_unresolved=[])
+        plan["plan"]["unresolved_tournament_placements"] = [
+            {
+                "age_group": "U9",
+                "date": "2025-10-05",
+                "period": "before_christmas",
+                "candidate_hosts": [],
+                "participant_clubs": ["Kongsberg"],
+                "reason": "no_participant_host_slot",
+            }
+        ]
+
+        _reconcile_verified_manual_state(plan, problem, log_fn=lambda *_: None)
+
+        readiness = plan["plan"]["publication_readiness"]
+        assert readiness["publishable"] is False
+        assert readiness["status"] == "REVIEW_REQUIRED"
+        codes = {reason["code"] for reason in readiness["reasons"]}
+        assert "tournament_placement_shortfall" in codes
 
 
 class TestReconcileParticipationShortfallProvenance:

@@ -79,6 +79,7 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
         "unresolved_hosting_obligations": list(plan.unresolved_hosting_obligations),
         "unresolved_external_conflicts": list(plan.unresolved_external_conflicts),
         "unresolved_participation_shortfalls": list(plan.unresolved_participation_shortfalls),
+        "unresolved_tournament_placements": list(plan.unresolved_tournament_placements),
         "participation_targets_by_age_group": dict(plan.participation_targets_by_age_group),
         "shared_host_decisions": list(plan.shared_host_decisions),
         "tournaments": [_tournament_to_dict(t) for t in plan.tournaments],

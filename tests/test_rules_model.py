@@ -23,6 +23,7 @@ def test_build_rules_model_is_empty_for_bare_plan():
         "hosting_obligation_coverage",
         "external_calendar_conflicts",
         "participation_shortfalls",
+        "tournament_placement_shortfall",
         "age_group_exact_match",
         "no_same_date_double_participation",
         "participation_target_exceeded",

@@ -30,6 +30,7 @@ MANUAL_SCHEDULE_CATEGORIES = frozenset(
         "manual_calendar_verification",
         "manual_hosting_obligation",
         "manual_external_conflict",
+        "manual_tournament_placement",
     }
 )
 

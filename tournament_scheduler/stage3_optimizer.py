@@ -50,7 +50,6 @@ from itertools import combinations
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .game_generation import generate_round_robin_games
-from .host_representation import cached_host_has_eligible_team as _host_eligible
 from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .host_representation import swap_breaks_host_representation as _swap_breaks_host_representation
 from .models import Team
@@ -869,11 +868,15 @@ def _host_move_is_valid(
     # issue #264 P0: "known" status only proves the club was scraped this
     # run, not that this exact date/time is free -- check the new host's
     # real busy intervals too, not just sibling-candidate collisions.
+    # issue #323 P0: a host move must always land on a club represented by
+    # this tournament's own participants -- unlike the swap guard, there is
+    # no "host has no eligible team anywhere in the roster" exception here,
+    # because a host move actively chooses a new host and must be derivable
+    # from the participants actually in this slot, not from roster-wide
+    # eligibility.
     return not external_calendar_conflict(
         club_busy_intervals, new_host, slot.date, slot.start_time, slot.duration_minutes
-    ) and (not _host_eligible(problem, new_host, slot.age_group, host_eligibility_cache) or any(
-        _clubs_represent_same_club(tid[0], new_host) for tid in slot.team_ids
-    ))
+    ) and any(_clubs_represent_same_club(tid[0], new_host) for tid in slot.team_ids)
 
 
 def _slot_time_move_candidates(slots: List[_Slot], rng: random.Random) -> Optional[Tuple[int, str]]:

@@ -154,9 +154,21 @@ def _reconcile_verified_manual_state(
         reconciled_participation.append(reconciled_entry)
 
     plan_dict["unresolved_participation_shortfalls"] = reconciled_participation
-    plan_dict["publication_readiness"] = dict(
-        result.get("publication_readiness") or {}
-    )
+    readiness = dict(result.get("publication_readiness") or {})
+    # issue #323 P0: unresolved_tournament_placements is a baseline-planner-
+    # time fact about tournaments that were never created -- there is no
+    # candidate tournament for `verify_final_candidate` to recompute this
+    # from, so it can't come from `result`. Fold it into the readiness
+    # reasons here from the plan's own (untouched) list instead, the same
+    # way the other unresolved_* findings block PUBLISHABLE status.
+    unresolved_placements = plan_dict.get("unresolved_tournament_placements") or []
+    if unresolved_placements and readiness.get("status") != "INVALID":
+        reasons = list(readiness.get("reasons") or [])
+        reasons.append({"code": "tournament_placement_shortfall", "count": len(unresolved_placements)})
+        readiness["reasons"] = reasons
+        readiness["status"] = "REVIEW_REQUIRED"
+        readiness["publishable"] = False
+    plan_dict["publication_readiness"] = readiness
     log_fn(
         "Stage 4 manual-state reconciled from final verification: "
         f"{len(plan_dict['unresolved_hosting_obligations'])} unresolved hosting, "

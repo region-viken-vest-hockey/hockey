@@ -404,6 +404,44 @@ class TestRunStage4:
         assert "ekstern kalenderkonflikt" in manual_html.lower()
         assert "t-conflict" in manual_html
 
+    def test_export_lists_unresolved_tournament_placements_as_manual(self, tmp_path):
+        """issue #323 P0: unresolved_tournament_placements (a tournament
+        whose participants had no represented host with a legal slot) must
+        round-trip through the Stage 3 checkpoint dict and render into
+        manual_schedule.html, same as the other unresolved_* lists."""
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
+        plan_checkpoint = _make_plan_dict()
+        plan_checkpoint["plan"]["unresolved_tournament_placements"] = [
+            {
+                "age_group": "U10",
+                "date": "2025-10-05",
+                "period": "before_christmas",
+                "candidate_hosts": ["Jar", "Kongsberg"],
+                "participant_clubs": ["Jar", "Kongsberg"],
+                "reason": "no_participant_host_slot",
+            }
+        ]
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        files = result.get("output_files", {})
+        assert "manual_schedule" in files
+        manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
+        assert "ingen vertsklubb blant deltakerne" in manual_html.lower()
+        assert "U10" in manual_html
+
     @pytest.mark.parametrize("category", ["participation_under_target", "participation_over_target"])
     def test_participation_deviations_render_in_their_own_manual_schedule_section(self, tmp_path, category):
         """issue #321: participation-target deviations (over- or

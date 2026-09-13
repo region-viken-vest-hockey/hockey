@@ -347,6 +347,28 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "kategori": "Automatisk avgjørelse",
         },
         {
+            "regel": "Vertskap velges blant deltakerne, ikke omvendt (issue #323)",
+            "forklaring": (
+                "Vertskap/arena for en turnering velges bare blant klubbene til turneringens "
+                "egne deltakere -- deltakerne velges først, deretter avledes de lovlige "
+                "vertsklubbene fra dem. Når ingen av deltakernes klubber har en lovlig ledig "
+                "arena-/tidsluke, blir turneringen ikke automatisk plassert hos en urelatert "
+                "klubb, og deltakerlisten endres ikke for å passe en urelatert arena -- den "
+                "legges i «Må planlegges manuelt»-visningen (manual_schedule.html) som "
+                f"«MANUAL PLACEMENT REQUIRED». {len(planner._unresolved_tournament_placements)} "
+                "slik(e) uløst(e) plassering(er) er registrert i denne planen"
+                + (
+                    ": " + "; ".join(
+                        f"{item.get('age_group')} ({item.get('date')})"
+                        for item in planner._unresolved_tournament_placements
+                    )
+                    if planner._unresolved_tournament_placements
+                    else "."
+                )
+            ),
+            "kategori": "Hard krav",
+        },
+        {
             "regel": "Kampbalanse og sesongdekning",
             "forklaring": (
                 f"Kjører en advarsel når kampantall spres for mye mellom lag eller når et lag har et opphold i sesongdekningen "

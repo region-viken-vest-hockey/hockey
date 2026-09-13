@@ -630,6 +630,15 @@ def verify_candidate(
                 t_id,
             )
 
+        # issue #323: this check is already scoped to the tournament's OWN
+        # participant list (`t.get("teams", [])`), not the roster-wide set
+        # -- `_host_eligible_teams` only asks whether the invariant applies
+        # at all (does the host club have *some* eligible team registered
+        # for this age group anywhere), while `_host_represented_in` checks
+        # this specific tournament's actual participants. It therefore
+        # already independently catches any regression in host/participant
+        # derivation upstream (baseline planner, Stage 3 optimizer, CP-SAT)
+        # without needing a second, separate check for the same invariant.
         if host_club and _host_eligible_teams(problem.get("teams", []), host_club, (age_group := t.get("age_group"))) and not _host_represented_in(t.get("teams", []), host_club):
             _violate("host_team_missing", f"Tournament {t_id} host {host_club!r} has an eligible team in {age_group} but none participates", t_id)
 

@@ -335,6 +335,15 @@ class SeasonPlan:
     # `application.decisions.DecisionResult`'s posture. See
     # `shared_host_decision.py`.
     shared_host_decisions: List[Dict[str, str]] = field(default_factory=list)
+    # issue #323 P0: tournaments whose participant set (chosen first, per
+    # all hard constraints) had no candidate host among the participants'
+    # own physical clubs with a free arena/time slot. Never auto-placed by
+    # inventing an unrelated host or force-swapping a participant to fit
+    # one -- the original valid participant set is preserved and the slot
+    # is surfaced here for manual placement instead. Each entry:
+    # {"age_group", "date", "period", "candidate_hosts", "participant_clubs",
+    # "reason"} where reason is currently always "no_participant_host_slot".
+    unresolved_tournament_placements: List[Dict[str, object]] = field(default_factory=list)
 
 
 # Mapping of age groups whose player pools are known to overlap (e.g. a player

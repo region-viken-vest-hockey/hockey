@@ -5,6 +5,14 @@ file-length guideline; this module still operates directly on planner
 internals (participation/game-count counters, roster, fairness deficit
 scoring), so -- unlike `hosting_coverage.py`/`host_representation.py` -- it
 is not a pure, planner-independent module.
+
+issue #323 P0: as of the participant-derived host/arena search in
+`season_planner.py`, this module is no longer called from the baseline
+build loop -- a tournament's host is now always chosen from clubs already
+represented by its selected participants, so there is nothing left to
+repair in the normal path. It is retained as a tested, available
+primitive (e.g. for future manual-resolution tooling), not as part of the
+automatic placement flow.
 """
 
 from __future__ import annotations
@@ -33,10 +41,9 @@ def repair_host_representation(
     eligible registered team in *age_group* (issue #322's hard
     host-representation invariant).
 
-    Only reached after the final host/arena for this slot is resolved,
-    since a fallback host substitution can move a tournament to a host
-    `_select_participants` (which ran before the host/slot search) had no
-    way to reserve a place for. Repairs the participant set deterministically
+    issue #323 P0: no longer called from `season_planner.py`'s baseline
+    build loop -- retained as a tested, available primitive only (see
+    module docstring). Repairs the participant set deterministically
     without changing its size -- replacing the current participant least in
     need of another tournament (lowest fairness deficit) with the eligible
     home team most in need of one -- and keeps the participation/game-count
@@ -45,11 +52,13 @@ def repair_host_representation(
 
     Returns *participants* unchanged when home_club is already represented,
     when home_club has no eligible registered team in this age group at all
-    (the invariant does not apply), or when every eligible home team is
+    (the invariant does not apply), when every eligible home team is
     already committed to another same-date tournament of this age group
-    (repair would violate the hard same-date-uniqueness rule; the
-    independent verifier's `host_team_missing` check is the safety net for
-    this case).
+    (repair would violate the hard same-date-uniqueness rule), or when
+    every eligible home team is already at its participation target
+    (issue #323: swapping one in would create `participation_target_exceeded`,
+    which this function must never do). The independent verifier's
+    `host_team_missing` check is the safety net for any case left unrepaired.
     """
     if host_represented_in(participants, home_club):
         return participants
@@ -63,7 +72,9 @@ def repair_host_representation(
     available_home_teams = [
         t
         for t in eligible_home_teams
-        if planner._team_key(t) not in already_used and planner._team_key(t) not in current_keys
+        if planner._team_key(t) not in already_used
+        and planner._team_key(t) not in current_keys
+        and not planner._team_at_target(t, period)
     ]
     if not available_home_teams:
         return participants

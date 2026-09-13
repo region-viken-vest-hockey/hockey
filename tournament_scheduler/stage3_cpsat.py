@@ -272,6 +272,36 @@ def _solve_slot_group(
             host_vars = [x[(slot.index, i)] for i in eligible if _clubs_represent_same_club(i[0], slot.host_club)]
             if host_vars:
                 model.Add(sum(host_vars) >= 1)
+            else:
+                # issue #323 P0: after the baseline/Stage 3 host-derivation
+                # fix, a slot's fixed host_club should always have at least
+                # one roster-eligible representing team for this age group --
+                # an empty host_vars here means that invariant was violated
+                # upstream. Fail loudly (routing through the same
+                # CpSatNoCandidate fallback as a genuine solver infeasibility)
+                # instead of silently building a model that can't enforce
+                # host representation at all.
+                diagnostics = {
+                    "half": half_label,
+                    "mode": "feasibility_only" if feasibility_only else "quality",
+                    "team_count": len(team_map),
+                    "slot_count": len(slots),
+                    "solve_budget_seconds": float(solve_budget_seconds),
+                    "seed": int(seed),
+                    "status": "HOST_NOT_REPRESENTED_IN_ROSTER",
+                    "runtime_seconds": round(perf_counter() - started, 6),
+                    "violated_constraint": "host_representation",
+                    "tournament_id": slot.tournament_id,
+                    "host_club": slot.host_club,
+                    "age_group": slot.age_group,
+                }
+                raise CpSatNoCandidate(
+                    "HOST_NOT_REPRESENTED_IN_ROSTER",
+                    perf_counter() - started,
+                    baseline_candidate_fingerprint=baseline_fingerprint,
+                    problem_fingerprint=problem_fingerprint,
+                    diagnostics=diagnostics,
+                )
 
     baseline_participations: Counter[TeamIdentity] = Counter()
     for slot in slots:

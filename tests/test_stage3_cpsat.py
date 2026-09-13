@@ -322,6 +322,28 @@ class TestOptimizeCandidateCpSat:
         codes = {v["code"] for v in verification["violations"]}
         assert "host_team_missing" not in codes, verification["violations"]
 
+    def test_host_with_no_roster_eligible_team_raises_no_candidate(self):
+        """issue #323 P0: a slot's fixed host_club must always have at
+        least one roster-eligible representing team for that age group --
+        an empty host_vars set means the invariant was already violated
+        upstream (baseline/Stage 3 host derivation), and CP-SAT must fail
+        loudly instead of silently building a model with no host-
+        representation constraint for that slot."""
+        teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 5)}
+        group = list(teams.values())
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U10", group, host_club="UnregisteredClub"),
+            ],
+        }
+        problem = {"teams": [{**team, "target_tournament_count": 1} for team in teams.values()]}
+
+        with pytest.raises(CpSatNoCandidate) as excinfo:
+            optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+        assert excinfo.value.diagnostics.get("violated_constraint") == "host_representation"
+        assert excinfo.value.diagnostics.get("host_club") == "UnregisteredClub"
+
     def test_never_assigns_teams_across_u_and_ju_categories(self):
         u_teams = {f"U{i}": _team(f"Club{i}", f"U{i}", "U10") for i in range(1, 9)}
         ju_teams = {f"JU{i}": _team(f"Club{i}", f"JU{i}", "JU10") for i in range(1, 9)}

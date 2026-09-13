@@ -47,9 +47,8 @@ from tournament_scheduler.models import (
     overlapping_age_groups,
     team_key,
 )
-from tournament_scheduler.club_registry import club_for_arena as _club_for_arena
 from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
-from tournament_scheduler.host_representation_repair import repair_and_finalize as _repair_and_finalize
+from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
 from tournament_scheduler.planning_contract import external_calendar_conflict
 from tournament_scheduler.participant_selection import (
@@ -170,6 +169,7 @@ class SeasonPlanner:
         self._unresolved_hosting_obligations: List[Dict[str, str]] = []
         self._unresolved_external_conflicts: List[Dict[str, str]] = []
         self._unresolved_participation_shortfalls: List[Dict[str, str]] = []
+        self._unresolved_tournament_placements: List[Dict[str, object]] = []
         self._game_count_warnings: List[Tuple[str, int, int, str]] = []
         self._grouped_with: Dict[str, Set[str]] = {}
         self._team_game_counts: Dict[str, int] = {}
@@ -573,7 +573,6 @@ class SeasonPlanner:
         host_counts_by_age: Dict[str, Dict[str, int]] = {age_group: {} for age_group in scheduled_counts}
         print("[plan] Bygger turneringer, verter og kamper...", flush=True)
         reserved_events_by_club: Dict[str, List[CalendarEvent]] = {}
-        slot_failures: List[Dict[str, str]] = []
 
         # issue #316: balanced roster-size plan per (age_group, period), so
         # the participant-selection loop below fills each slot to its
@@ -634,6 +633,7 @@ class SeasonPlanner:
                 period,
                 exclude_team_keys=already_used_today,
                 planned_roster_size=planned_roster_size,
+                hosting_priority_clubs={original_host_club},
             )
             teams_used_today_by_age_group.setdefault((tournament_date, age_group), set()).update(
                 self._team_key(team) for team in participants
@@ -665,39 +665,95 @@ class SeasonPlanner:
             parallel_games = self._parallel_games_for(age_group)
             provisional_games = self.generate_round_robin_games(participants, parallel_games)
 
-            candidate_hosts = self._ordered_host_candidates(
+            # issue #323 P0: candidate hosts are derived only from the
+            # already-selected participants' own physical clubs -- never an
+            # unrelated club later force-repaired into representation.
+            candidate_hosts = self._participant_derived_host_candidates(
+                participants=participants,
                 age_group=age_group,
                 original_host=original_host_club,
                 tournament_date=tournament_date,
                 host_targets_by_age=host_targets_by_age,
                 host_counts_by_age=host_counts_by_age,
             )
-            slot_search_active = bool(self.events_by_club or reserved_events_by_club)
+            if not candidate_hosts:
+                # Defensive: participants always yield at least one
+                # constituent club in practice (len(participants) >=
+                # MIN_TEAMS_PER_TOURNAMENT), but never invent a host here.
+                self._unresolved_tournament_placements.append(
+                    {
+                        "age_group": age_group,
+                        "date": tournament_date.isoformat(),
+                        "period": period,
+                        "candidate_hosts": [],
+                        "participant_clubs": sorted({t.club for t in participants}),
+                        "reason": "no_participant_host_slot",
+                    }
+                )
+                continue
+
+            # A joint/shared original host assignment (e.g. "Jutul/Jar")
+            # still gets its own constituent-arena search order when at
+            # least one of its constituents is itself participant-derived
+            # -- otherwise search starts from the top-ranked
+            # participant-derived candidate instead of an unrepresented host.
+            original_host_constituents = set(_constituent_clubs(original_host_club))
+            search_host = (
+                original_host_club
+                if original_host_constituents & set(candidate_hosts)
+                else candidate_hosts[0]
+            )
+            # Mirrors `find_slot_for_tournament`'s own early-return
+            # conditions (issue #262: no calendar/reservation data at all;
+            # no configured round length for this age group) -- when either
+            # holds, no genuine per-host search was actually attempted, so a
+            # `None` result must fall through to the default-start-time
+            # placement below rather than being treated as "every candidate
+            # host was tried and none had a free slot".
+            slot_search_active = bool(
+                (self.events_by_club or reserved_events_by_club)
+                and self.round_length_for_age_group.get(age_group)
+            )
             slot = self._find_slot_for_tournament(
                 tournament_date,
-                original_host_club,
+                search_host,
                 age_group,
                 provisional_games,
                 candidate_hosts=candidate_hosts,
                 reserved_events_by_club=reserved_events_by_club,
             )
 
-            final_host_club = original_host_club
-            start_time = DEFAULT_TOURNAMENT_START_TIME
             if slot is not None:
-                final_host_club, slot_start, _slot_end = slot
-                start_time = slot_start
-                if final_host_club != original_host_club:
-                    self._fallback_host_substitutions.append(
-                        (tournament_date, age_group, original_host_club, final_host_club)
-                    )
+                final_host_club, start_time, _slot_end = slot
+            elif slot_search_active:
+                # A genuine search ran across every participant-derived
+                # candidate host and found no legal, free arena/time slot --
+                # do not invent an unrelated host or mutate participants to
+                # fit one; surface it for manual placement instead.
+                self._unresolved_tournament_placements.append(
+                    {
+                        "age_group": age_group,
+                        "date": tournament_date.isoformat(),
+                        "period": period,
+                        "candidate_hosts": list(candidate_hosts),
+                        "participant_clubs": sorted({t.club for t in participants}),
+                        "reason": "no_participant_host_slot",
+                    }
+                )
+                continue
+            else:
+                # No calendar/reservation data is available to search at all
+                # (calendar-less fixtures, pre-scrape runs) -- place at the
+                # best participant-derived host with a default start time.
+                final_host_club = search_host
+                start_time = DEFAULT_TOURNAMENT_START_TIME
+
+            if final_host_club != original_host_club:
+                self._fallback_host_substitutions.append(
+                    (tournament_date, age_group, original_host_club, final_host_club)
+                )
 
             arena = self.club_arenas.get(final_host_club, final_host_club)
-            home_club = _club_for_arena(arena) or final_host_club
-            participants = _repair_and_finalize(
-                self, participants, age_group=age_group, period=period, home_club=home_club,
-                tournament_date=tournament_date, already_used_today=already_used_today,
-                teams_used_today_by_age_group=teams_used_today_by_age_group)
 
             games = self.generate_round_robin_games(participants, parallel_games)
             self._record_opponent_history(games)
@@ -755,14 +811,12 @@ class SeasonPlanner:
             reservation = self._reservation_event_for_tournament(tournament)
             if reservation is not None:
                 reserved_events_by_club.setdefault(final_host_club, []).append(reservation)
-            if slot is None and slot_search_active:
-                slot_failures.append(
-                    self._slot_failure_collision(
-                        tournament,
-                        candidate_hosts=candidate_hosts,
-                        reason="Ingen gyldig ledig arenatid ble funnet etter kildebookinger og planlagte turneringer.",
-                    )
-                )
+            # issue #323 P0: a genuine slot-search failure across every
+            # participant-derived candidate host is now caught earlier
+            # (`unresolved_tournament_placements`, above) and never reaches
+            # tournament creation at all, so `slot is None` here can only
+            # mean "no calendar data to search" -- no longer a collision to
+            # report via `slot_failures`.
             # Record actual host so the tracking dict reflects committed assignments.
             month_key = (tournament_date.year, tournament_date.month)
             self._hosting_days_by_club_month.setdefault(
@@ -783,7 +837,7 @@ class SeasonPlanner:
         plan.diversity_score = self._diversity_score(plan.tournaments)
         plan.pairwise_matchup_score = self._pairwise_matchup_score(plan.tournaments)
         plan.month_balance_score = self._month_balance_score(expected_per_month)
-        plan.arena_day_collisions = interval_collisions + sequence_failures + slot_failures
+        plan.arena_day_collisions = interval_collisions + sequence_failures
         self._arena_day_collisions = list(plan.arena_day_collisions)
         if plan.arena_day_collisions:
             plan.arena_counts["_arena_day_collisions"] = len(plan.arena_day_collisions)
@@ -883,6 +937,7 @@ class SeasonPlanner:
             )
         plan.unresolved_hosting_obligations = unresolved_hosting_obligations
         self._unresolved_hosting_obligations = unresolved_hosting_obligations
+        plan.unresolved_tournament_placements = self._unresolved_tournament_placements
 
         # Genuine external calendar conflicts the planner/optimizer couldn't
         # route around -- non-blocking, surfaced for manual placement
@@ -1072,6 +1127,10 @@ class SeasonPlanner:
     @property
     def unresolved_participation_shortfalls(self) -> List[Dict[str, str]]:
         return list(self._unresolved_participation_shortfalls)
+
+    @property
+    def unresolved_tournament_placements(self) -> List[Dict[str, object]]:
+        return list(self._unresolved_tournament_placements)
 
     @property
     def tournament_participations_by_half(self) -> Dict[str, Dict[str, int]]:
@@ -1577,41 +1636,6 @@ class SeasonPlanner:
             location=tournament.arena,
         )
 
-    def _slot_failure_collision(
-        self,
-        tournament: Tournament,
-        *,
-        candidate_hosts: Sequence[str],
-        reason: str,
-    ) -> Dict[str, str]:
-        round_length = self.round_length_for_age_group.get(tournament.age_group)
-        interval = "ukjent"
-        if round_length and tournament.start_time and tournament.games:
-            try:
-                hour, minute = (int(part) for part in tournament.start_time.split(":", 1))
-                start_at = datetime.combine(tournament.date, datetime.min.time()).replace(hour=hour, minute=minute)
-                duration_minutes = matchday_duration_minutes(round_length, max(g.round_number for g in tournament.games))
-                end_at = start_at + timedelta(minutes=duration_minutes)
-                interval = f"{start_at.strftime('%Y-%m-%d %H:%M')}–{end_at.strftime('%Y-%m-%d %H:%M')}"
-            except (TypeError, ValueError):
-                interval = f"{tournament.date.isoformat()} {tournament.start_time}"
-        candidates = ", ".join(candidate_hosts) if candidate_hosts else str(tournament.host_club or tournament.arena)
-        message = (
-            f"Arena conflict {tournament.arena} {tournament.date.isoformat()}: "
-            f"{tournament.id} ({tournament.age_group}) {interval}. {reason} Kandidater: {candidates}."
-        )
-        return {
-            "date": tournament.date.isoformat(),
-            "arena": tournament.arena,
-            "tournament_id": tournament.id,
-            "age_group": tournament.age_group,
-            "interval": interval,
-            "conflicting_tournament_id": "unplaced",
-            "conflicting_age_group": tournament.age_group,
-            "conflicting_interval": "ingen gyldig slot",
-            "message": message,
-        }
-
     def _sequence_same_arena_day_start_times(self, plan: SeasonPlan) -> List[Dict[str, str]]:
         groups: Dict[Tuple[date, str], List[Tournament]] = {}
         sequence_failures: List[Dict[str, str]] = []
@@ -1678,29 +1702,37 @@ class SeasonPlanner:
 
         return sequence_failures
 
-    def _ordered_host_candidates(
+    def _participant_derived_host_candidates(
         self,
+        participants: List[Team],
         age_group: str,
         original_host: str,
         tournament_date: date,
         host_targets_by_age: Dict[str, Dict[str, int]],
         host_counts_by_age: Dict[str, Dict[str, int]],
     ) -> List[str]:
+        """Rank candidate host clubs derived only from *participants* own
+        physical clubs (issue #323 P0).
+
+        Unlike the pre-#323 host ranking, this never proposes a club that
+        isn't represented by the tournament's own selected participants --
+        a joint/shared registration (e.g. "Jutul/Jar") expands to each of
+        its physical constituent clubs via `constituent_clubs`, either of
+        which is a legal host. The fairness/hosting-target ranking itself
+        (original host preferred first when represented, then lowest
+        actual-minus-target deficit) is unchanged from the prior
+        `_ordered_host_candidates`.
+        """
         candidates: List[str] = []
         seen: Set[str] = set()
-        for team in self.roster.by_age_group(age_group):
-            if team.club in seen:
-                continue
-            candidates.append(team.club)
-            seen.add(team.club)
-        for club in self.roster.clubs():
-            if club in seen:
-                continue
-            candidates.append(club)
-            seen.add(club)
-        if original_host not in seen:
-            candidates.insert(0, original_host)
-            seen.add(original_host)
+        for participant in participants:
+            for club in _constituent_clubs(participant.club):
+                if club in seen:
+                    continue
+                candidates.append(club)
+                seen.add(club)
+        if not candidates:
+            return []
 
         target_counts = host_targets_by_age.get(age_group, {})
         actual_counts = host_counts_by_age.setdefault(age_group, {})

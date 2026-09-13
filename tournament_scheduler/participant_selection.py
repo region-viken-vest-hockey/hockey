@@ -16,6 +16,7 @@ import math
 from datetime import date, timedelta
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
+from tournament_scheduler.host_representation import clubs_represent_same_club
 from tournament_scheduler.models import Team, overlapping_age_groups
 from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT as MIN_TEAMS_PER_TOURNAMENT, relocate_structurally_impossible_slots as relocate_structurally_impossible_slots
 
@@ -302,6 +303,7 @@ def select_participants(
     *,
     exclude_team_keys: Optional[set] = None,
     planned_roster_size: Optional[int] = None,
+    hosting_priority_clubs: Optional[Set[str]] = None,
 ) -> List[Team]:
     """Select the teams to invite to a tournament for the given age group.
 
@@ -326,6 +328,15 @@ def select_participants(
     always filling up to tournament capacity -- greedily filling every slot
     to capacity can strand too few teams for a later, still-required slot
     even though the total demand was perfectly packable.
+
+    issue #323: `hosting_priority_clubs`, when given, only re-sorts among
+    candidates that are already legal (past the `_team_at_target`/
+    `exclude_team_keys` hard filters above) -- a candidate whose club
+    represents one of these clubs (via `clubs_represent_same_club`) is
+    preferred when otherwise competitive, so a legal team from a
+    tournament's original host club is more likely to naturally end up
+    among the selected participants without ever bypassing a hard
+    eligibility check.
     """
     candidates = planner.roster.by_age_group(age_group)
     if not candidates:
@@ -343,7 +354,9 @@ def select_participants(
     max_teams = participant_limit_for(planner, age_group, len(candidates))
     if planned_roster_size is not None:
         max_teams = min(max_teams, planned_roster_size)
-    return pick_scored_participants(planner, candidates, max_teams, age_group, period)
+    return pick_scored_participants(
+        planner, candidates, max_teams, age_group, period, hosting_priority_clubs=hosting_priority_clubs
+    )
 
 
 def cap_per_club_deficit_aware(planner, teams: Sequence[Team], age_group: str) -> List[Team]:
@@ -473,6 +486,8 @@ def pick_scored_participants(
     count: int,
     age_group: str,
     period: Optional[str] = None,
+    *,
+    hosting_priority_clubs: Optional[Set[str]] = None,
 ) -> List[Team]:
     """Greedily build a subset by minimizing a single balance score."""
     remaining = list(candidates)
@@ -486,7 +501,10 @@ def pick_scored_participants(
         chosen = min(
             remaining,
             key=lambda team: (
-                participant_selection_score(planner, selected, remaining, team, age_group, period),
+                participant_selection_score(
+                    planner, selected, remaining, team, age_group, period,
+                    hosting_priority_clubs=hosting_priority_clubs,
+                ),
                 candidate_order[planner._team_key(team)],
             ),
         )
@@ -507,10 +525,20 @@ def participant_selection_score(
     team: Team,
     age_group: str,
     period: Optional[str] = None,
+    *,
+    hosting_priority_clubs: Optional[Set[str]] = None,
 ) -> float:
     """Return a single score for a candidate team (lower is better)."""
     team_key = planner._team_key(team)
     score = float(club_diversity_penalty(planner, selected, remaining, team))
+
+    # issue #323: a soft tie-break nudge only -- applied on top of every
+    # other (hard-filtered-first) term below, never able to override the
+    # club-cap/deficit/repeat-matchup weighting on its own.
+    if hosting_priority_clubs and any(
+        clubs_represent_same_club(team.club, club) for club in hosting_priority_clubs
+    ):
+        score -= 300.0
 
     club_count = sum(1 for s in selected if s.club == team.club)
     max_club = max_club_teams_for(planner, age_group, team.club)

@@ -127,6 +127,34 @@ def _hosting_obligation_rule(plan: SeasonPlan) -> dict[str, Any]:
     }
 
 
+def _tournament_placement_rule(plan: SeasonPlan) -> dict[str, Any]:
+    unresolved = list(plan.unresolved_tournament_placements or [])
+    if unresolved:
+        names = ", ".join(
+            f"{item.get('age_group', '?')} ({item.get('date', '?')})" for item in unresolved
+        )
+        status = f"{len(unresolved)} uløst: {names}"
+    else:
+        status = "Oppfylt"
+    return {
+        "id": "tournament_placement_shortfall",
+        "title": "Vertskap skal velges blant deltakerne, ikke omvendt",
+        "type": "required_obligation",
+        "scope": "turnering",
+        "owner": "deterministic_placement_workflow",
+        "description": (
+            "Vertskap/arena velges kun blant klubbene som faktisk deltar i turneringen. "
+            "Når ingen av deltakernes klubber har en lovlig ledig arena-/tidsluke, blir "
+            "turneringen ikke automatisk plassert hos en urelatert klubb, og deltakerlisten "
+            "endres ikke for å passe en urelatert arena -- den legges i «Må planlegges "
+            "manuelt» i stedet."
+        ),
+        "configured_value": "0 uløste plasseringer",
+        "status": status,
+        "ok": not unresolved,
+    }
+
+
 def _arena_collision_rule(plan: SeasonPlan) -> dict[str, Any]:
     """Dedicated arena-collision rule sourced from ``plan.arena_day_collisions``.
 
@@ -686,6 +714,7 @@ def build_rules_model(plan: SeasonPlan) -> list[dict[str, Any]]:
     rules.append(_hosting_obligation_rule(plan))
     rules.append(_external_conflict_rule(plan))
     rules.append(_participation_shortfall_rule(plan))
+    rules.append(_tournament_placement_rule(plan))
 
     # Decisions/exceptions for this run.
     targets_rule = _participation_targets_by_age_group_rule(plan)

@@ -389,20 +389,33 @@ class TestUnresolvedManualPlacementFieldsRoundTrip:
         hosting = [{"club": "Jar", "age_group": "U10", "reason": "r1"}]
         external = [{"tournament_id": "t1", "host_club": "Jar", "age_group": "U10", "date": "2026-06-01", "reason": "r2"}]
         participation = [{"club": "Jar", "label": "Jar 1", "age_group": "U10", "actual": "1", "target": "3", "reason": "r3"}]
+        placements = [
+            {
+                "age_group": "U10",
+                "date": "2026-06-01",
+                "period": "before_christmas",
+                "candidate_hosts": ["Jar"],
+                "participant_clubs": ["Jar", "Kongsberg"],
+                "reason": "no_participant_host_slot",
+            }
+        ]
         plan = self._make_minimal_plan(
             unresolved_hosting_obligations=hosting,
             unresolved_external_conflicts=external,
             unresolved_participation_shortfalls=participation,
+            unresolved_tournament_placements=placements,
         )
         d = _plan_to_dict(plan)
         assert d["unresolved_hosting_obligations"] == hosting
         assert d["unresolved_external_conflicts"] == external
         assert d["unresolved_participation_shortfalls"] == participation
+        assert d["unresolved_tournament_placements"] == placements
 
         restored = _dict_to_plan(d)
         assert restored.unresolved_hosting_obligations == hosting
         assert restored.unresolved_external_conflicts == external
         assert restored.unresolved_participation_shortfalls == participation
+        assert restored.unresolved_tournament_placements == placements
 
     def test_missing_keys_default_to_empty_lists_on_deserialize(self):
         """Older checkpoints without these keys should deserialize safely."""
@@ -411,6 +424,7 @@ class TestUnresolvedManualPlacementFieldsRoundTrip:
         assert plan.unresolved_hosting_obligations == []
         assert plan.unresolved_external_conflicts == []
         assert plan.unresolved_participation_shortfalls == []
+        assert plan.unresolved_tournament_placements == []
 
 
 class TestSharedHostDecisionsRoundTrip:

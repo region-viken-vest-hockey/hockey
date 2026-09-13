@@ -623,7 +623,14 @@ class TestSeasonPlanner:
         assert plan.arena_day_collisions == []
         assert plan.arena_counts.get("_arena_day_collisions", 0) == 0
 
-    def test_same_arena_third_tournament_after_latest_start_is_hard_collision(self, season_window):
+    def test_same_arena_third_tournament_after_latest_start_is_manually_queued(self, season_window):
+        """issue #323 P0: when no participant-derived candidate host has a
+        legal, free arena/time slot left that day (the arena's own three
+        valid start times are exhausted), the tournament is no longer
+        force-placed into a fourth, overlapping/late slot and flagged as a
+        hard collision after the fact -- it is surfaced in
+        `unresolved_tournament_placements` instead, and the participant set
+        is left untouched."""
         start, end = season_window
         free_dates = [start.date()]
         roster = Roster(teams=[
@@ -652,21 +659,16 @@ class TestSeasonPlanner:
             [t for t in plan.tournaments if t.arena == "Jarahallen" and t.date == start.date()],
             key=lambda t: t.start_time,
         )
-        assert len(same_day) == 3
-        assert [t.start_time for t in same_day] == ["10:00", "13:20", "16:40"]
-        assert len(plan.arena_day_collisions) >= 1
-        assert plan.fairness_gate["status"] == "fail"
-        assert any(collision["arena"] == "Jarahallen" for collision in plan.arena_day_collisions)
-        assert any(
-            collision["conflicting_tournament_id"] == "sequence_overflow"
-            and "etter seneste gyldige start 16:00" in collision["message"]
-            for collision in plan.arena_day_collisions
-        )
-        assert any(
-            collision["conflicting_tournament_id"] == "unplaced"
-            and "Ingen gyldig ledig arenatid" in collision["message"]
-            for collision in plan.arena_day_collisions
-        )
+        assert len(same_day) == 2
+        assert [t.start_time for t in same_day] == ["10:00", "13:20"]
+        assert plan.arena_day_collisions == []
+        unresolved = planner.unresolved_tournament_placements
+        assert len(unresolved) == 1
+        assert unresolved[0]["reason"] == "no_participant_host_slot"
+        assert unresolved[0]["date"] == start.date().isoformat()
+        assert unresolved[0]["candidate_hosts"] == ["Jar"]
+        placed_age_groups = {t.age_group for t in same_day}
+        assert unresolved[0]["age_group"] not in placed_age_groups
 
     def test_each_tournament_is_single_age_group_with_round_robin_games(self, planner_and_plan):
         _, plan, *_ = planner_and_plan
@@ -939,6 +941,31 @@ class TestHostRepresentationRepair:
         )
         assert repaired == participants
 
+    def test_no_op_when_only_eligible_home_team_already_at_participation_target(self):
+        """issue #323 P0: swapping in the only eligible home team would push
+        it over its participation target -- the repair must leave the
+        candidate untouched instead of creating
+        `participation_target_exceeded`, exactly the root cause #323
+        identified in the pre-#323 behavior."""
+        roster = Roster(
+            teams=[
+                Team(club="Skien", label="Skien 1", age_group="JU12", target_tournament_count=0),
+                Team(club="Frisk", label="Frisk Orange", age_group="JU12"),
+                Team(club="Ringerike", label="Ringerike 2", age_group="JU12"),
+            ]
+        )
+        planner = self._planner(roster)
+        participants = [t for t in roster.teams if t.club in ("Frisk", "Ringerike")]
+        repaired = repair_host_representation(
+            planner,
+            participants,
+            age_group="JU12",
+            period=None,
+            home_club="Skien",
+            already_used_today=set(),
+        )
+        assert repaired == participants
+
     def test_no_op_when_only_eligible_home_team_already_used_today(self):
         """A home team already committed to another same-date tournament of
         this age group cannot be forced in without violating the hard
@@ -964,14 +991,18 @@ class TestHostRepresentationRepair:
         assert repaired == participants
 
     def test_shared_registration_satisfies_either_constituent_host(self):
-        roster = Roster(
-            teams=[
-                Team(club="Jutul/Jar", label="Jutul/Jar Kittens", age_group="JU12"),
-                Team(club="Ringerike", label="Ringerike 2", age_group="JU12"),
-            ]
-        )
-        planner = self._planner(roster)
+        # issue #323: a fresh planner per iteration -- reusing one planner
+        # across both calls would let the first swap's participation-count
+        # resync push the shared team to its target before the second call,
+        # tripping the new at-target guard for an unrelated reason.
         for home_club in ("Jutul", "Jar"):
+            roster = Roster(
+                teams=[
+                    Team(club="Jutul/Jar", label="Jutul/Jar Kittens", age_group="JU12"),
+                    Team(club="Ringerike", label="Ringerike 2", age_group="JU12"),
+                ]
+            )
+            planner = self._planner(roster)
             participants = [t for t in roster.teams if t.club == "Ringerike"]
             repaired = repair_host_representation(
                 planner,
@@ -3519,33 +3550,43 @@ class TestFairnessGate:
 
     def test_arena_collision_fails_policy_gate(self, season_window):
         """Issue #260 Phase 4 acceptance criterion: an arena collision makes
-        the canonical policy_gate fail (true hard invariant)."""
+        the canonical policy_gate fail (true hard invariant).
+
+        issue #323 P0: the baseline planner itself no longer force-places a
+        tournament into an already-exhausted arena/day just to flag a
+        collision afterward (see
+        `test_same_arena_third_tournament_after_latest_start_is_manually_queued`)
+        -- `arena_day_collisions` can still be non-empty from other sources
+        (e.g. `find_arena_interval_collisions` catching a genuine overlap
+        that survives placement), so this test constructs one directly to
+        keep testing `policy_gate`'s own categorization logic in isolation
+        from the specific way a collision gets produced."""
         start, end = season_window
-        free_dates = [start.date()]
-        roster = Roster(teams=[
-            Team(club="Jar", label="Jar U7-1", age_group="U7"),
-            Team(club="Jar", label="Jar U7-2", age_group="U7"),
-            Team(club="Jar", label="Jar U7-3", age_group="U7"),
-            Team(club="Jar", label="Jar U8-1", age_group="U8"),
-            Team(club="Jar", label="Jar U8-2", age_group="U8"),
-            Team(club="Jar", label="Jar U8-3", age_group="U8"),
-            Team(club="Jar", label="Jar U9-1", age_group="U9"),
-            Team(club="Jar", label="Jar U9-2", age_group="U9"),
-            Team(club="Jar", label="Jar U9-3", age_group="U9"),
-        ])
+        free_dates = all_weekend_dates(start, end)
+        roster = _build_roster(["Jar"], ["U10"])
         planner = SeasonPlanner(
             scheduler=FakeScheduler(free_dates),
             roster=roster,
             club_arenas={"Jar": "Jarahallen"},
-            parallel_games_for_age_group={"U7": 4, "U8": 4, "U9": 4},
-            round_length_for_age_group={"U7": 60, "U8": 60, "U9": 60},
-            seed=0,
+            parallel_games_for_age_group={"U10": 3},
         )
-
         plan = planner.build_plan(start, end)
+        plan.arena_day_collisions = [
+            {
+                "date": start.date().isoformat(),
+                "arena": "Jarahallen",
+                "tournament_id": "t1",
+                "age_group": "U10",
+                "interval": "2026-10-03 10:00–2026-10-03 12:00",
+                "conflicting_tournament_id": "t2",
+                "conflicting_age_group": "U10",
+                "conflicting_interval": "2026-10-03 11:00–2026-10-03 13:00",
+                "message": "Arena conflict Jarahallen 2026-10-03: t1/t2 overlap.",
+            }
+        ]
 
-        assert len(plan.arena_day_collisions) >= 1
-        gate = plan.fairness_gate
+        gate = planner._build_fairness_gate(plan)
+
         assert gate["policy_gate"]["status"] == "fail"
         collision_metric = next(m for m in gate["policy_gate"]["metrics"] if m["key"] == "arena_day_collisions")
         assert collision_metric["status"] == "fail"

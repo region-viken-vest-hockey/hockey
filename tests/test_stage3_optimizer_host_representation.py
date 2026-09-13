@@ -101,7 +101,11 @@ class TestHostMoveGuard:
             [slot], 0, "Kongsberg", problem["clubs"], {}, None, {}, problem, {}
         )
 
-    def test_move_to_a_host_with_no_eligible_registered_team_is_allowed(self):
+    def test_move_to_a_host_with_no_eligible_registered_team_is_rejected(self):
+        # issue #323 P0: unlike the swap guard, a host move has no "host
+        # has no eligible team anywhere in the roster" exception -- the
+        # destination must be represented by this slot's own participants,
+        # full stop, regardless of roster-wide eligibility.
         slot = _slot("Jar", [("Jar", "Jar 1", "U10"), ("Kongsberg", "Kongsberg 1", "U10")])
         problem = {
             "teams": [
@@ -110,9 +114,12 @@ class TestHostMoveGuard:
             ],
             "clubs": {"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen", "Skien": "Skienhallen"},
         }
-        assert _host_move_is_valid([slot], 0, "Skien", problem["clubs"], {}, None, {}, problem, {})
+        assert not _host_move_is_valid([slot], 0, "Skien", problem["clubs"], {}, None, {}, problem, {})
 
-    def test_guard_is_a_no_op_without_a_problem_contract(self):
+    def test_guard_applies_even_without_a_problem_contract(self):
+        # issue #323 P0: representation is derived purely from slot.team_ids,
+        # so the guard is never a no-op even when no problem contract is
+        # supplied -- an unrepresented host move is always rejected.
         slot = _slot("Jar", [("Jar", "Jar 1", "U10"), ("Kongsberg", "Kongsberg 1", "U10")])
         clubs = {"Jar": "Jarhallen", "Ringerike": "Ringerikshallen"}
-        assert _host_move_is_valid([slot], 0, "Ringerike", clubs, {})
+        assert not _host_move_is_valid([slot], 0, "Ringerike", clubs, {})
