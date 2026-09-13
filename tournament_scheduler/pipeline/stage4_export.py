@@ -307,14 +307,10 @@ def run(
                 "message": str(item.get("reason", "") or ""),
             }
         )
-    # Participation-target deviations (over- or under-target) are team-level
-    # planning-quality signals, not ice-time/booking work -- they do not
-    # represent a tournament that must be inserted into an arena calendar,
-    # so they stay out of the booking table above. They are still rendered
-    # in their own section on the same manual-schedule page (see
-    # `_participation_section_html`) since `publication_readiness` counts
-    # them as an operator-facing finding that must be visible somewhere the
-    # operator actually looks, not only in the rules report.
+    # Participation-target deviations are planning-quality signals, not
+    # booking work, so they stay out of the table above but are still
+    # rendered in their own page section (`_participation_section_html`)
+    # since `publication_readiness` must be visible to the operator.
     candidate_entries = (
         collision_entries + manual_host_entries + unresolved_hosting_entries + external_conflict_entries
     )

@@ -10,7 +10,6 @@ from __future__ import annotations
 import math
 import random
 from collections import Counter
-from itertools import groupby
 from datetime import date, datetime, timedelta
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
@@ -67,10 +66,14 @@ from tournament_scheduler.participant_selection import (
     pick_scored_participants as _pick_scored_participants,
     pick_spread_dates as _pick_spread_dates,
     plan_roster_sizes_for_age_group as _plan_roster_sizes_for_age_group,
-    rebalance_roster_sizes_across_dates as _rebalance_roster_sizes_across_dates,
-    relocate_structurally_impossible_slots as _relocate_structurally_impossible_slots,
     select_participants as _select_participants,
     target_tournaments_for_age_group as _target_tournaments_for_age_group,
+)
+from tournament_scheduler.participant_relocation import (
+    relocate_structurally_impossible_scheduled_slots as _relocate_structurally_impossible_scheduled_slots,
+)
+from tournament_scheduler.roster_size_planning import (
+    compute_rebalanced_roster_sizes as _compute_rebalanced_roster_sizes,
 )
 from tournament_scheduler.rules_report import rules_report as _rules_report
 from tournament_scheduler.scheduler import TournamentScheduler
@@ -534,49 +537,13 @@ class SeasonPlanner:
             half = planning_half.tournament_half(tournament_date, split_date)
             return half if has_split_targets and half in ("before_christmas", "after_christmas") else None
 
-        # issue #318: a date that's asked to host more parallel same-age-
-        # group pools than its distinct-team pool can support is
-        # structurally impossible for *that date* -- but not necessarily for
-        # the half as a whole. Relocate each excess slot to another legal
-        # date in the same planning half (one that doesn't already host an
-        # overlapping age group and wouldn't itself exceed the same
-        # uniqueness ceiling) *before* host/time assignment runs, so
-        # `scheduled` (and therefore `host_assignments`, which is indexed
-        # 1:1 against it) reflects the relocation rather than silently
-        # accepting a capacity shortfall a legal alternative date could have
-        # absorbed.
-        same_date_relocation_evidence: List[Dict[str, object]] = []
-        age_groups_by_date: Dict[date, List[str]] = {}
-        for d, ag in scheduled:
-            age_groups_by_date.setdefault(d, []).append(ag)
-
-        relocation_happened = False
-        for age_group in sorted({ag for _, ag in scheduled}):
-            distinct_team_count = len(self.roster.by_age_group(age_group))
-            ag_dates_with_period = [(d, _period_for_date(d)) for d, ag in scheduled if ag == age_group]
-            for period in (None, "before_christmas", "after_christmas"):
-                period_dates = [d for d, p in ag_dates_with_period if p == period]
-                if not period_dates:
-                    continue
-                date_groups = [(d, len(list(group))) for d, group in groupby(period_dates)]
-                alternative_dates = [d for d in free_dates if _period_for_date(d) == period]
-                new_date_groups, relocation_evidence = _relocate_structurally_impossible_slots(
-                    date_groups, distinct_team_count, age_group, age_groups_by_date, alternative_dates
-                )
-                if new_date_groups != date_groups:
-                    relocation_happened = True
-                    scheduled = [
-                        (d, ag)
-                        for d, ag in scheduled
-                        if not (ag == age_group and _period_for_date(d) == period)
-                    ]
-                    for d, count in new_date_groups:
-                        scheduled.extend([(d, age_group)] * count)
-                for entry in relocation_evidence:
-                    same_date_relocation_evidence.append({**entry, "age_group": age_group, "period": period})
-
-        if relocation_happened:
-            scheduled.sort(key=lambda item: (item[0], item[1]))
+        # issue #318: a date asked to host more parallel same-age-group pools
+        # than its distinct-team pool can support is structurally impossible
+        # for *that date* but not necessarily the half, so excess slots are
+        # relocated to another legal date *before* host/time assignment runs.
+        scheduled, same_date_relocation_evidence = _relocate_structurally_impossible_scheduled_slots(
+            self.roster, scheduled, free_dates, _period_for_date
+        )
 
         # issue #300: host/slot placement, participant selection/
         # materialization and game generation are interleaved per tournament
@@ -624,40 +591,9 @@ class SeasonPlanner:
         # of being consumed blindly in chronological order, so a same-date
         # squeeze doesn't silently cost a materializable tournament.
         #
-        # issue #318: `scheduled` here already reflects any relocation
-        # performed above, so `same_date_uniqueness_limit` entries emitted by
-        # `_rebalance_roster_sizes_across_dates` below can only recur for
-        # slots relocation genuinely could not place anywhere else -- those
-        # are superseded by the richer `same_date_relocation_evidence`
-        # entries (which include every alternative date considered and why),
-        # so the bare duplicate is dropped in favor of that richer one.
-        relocated_evidence_keys = {
-            (entry["age_group"], entry["period"], entry["date"]) for entry in same_date_relocation_evidence
-        }
-
-        rebalanced_sizes_by_key: Dict[Tuple[str, Optional[str]], Dict[date, List[int]]] = {}
-        same_date_capacity_evidence: List[Dict[str, object]] = list(same_date_relocation_evidence)
-        for age_group in sorted({ag for _, ag in scheduled}):
-            ag_dates_with_period = [(d, _period_for_date(d)) for d, ag in scheduled if ag == age_group]
-            for period in (None, "before_christmas", "after_christmas"):
-                period_dates = [d for d, p in ag_dates_with_period if p == period]
-                if not period_dates:
-                    continue
-                date_groups = [(d, len(list(group))) for d, group in groupby(period_dates)]
-                flat_sizes = self._plan_roster_sizes_for_age_group(age_group, period)
-                distinct_team_count = len(self.roster.by_age_group(age_group))
-                capacity = min(distinct_team_count, _max_teams_for(self, age_group)) or 1
-                sizes_by_date, evidence = _rebalance_roster_sizes_across_dates(
-                    date_groups, flat_sizes, capacity, distinct_team_count
-                )
-                rebalanced_sizes_by_key[(age_group, period)] = sizes_by_date
-                for entry in evidence:
-                    if (
-                        entry.get("category") == "same_date_uniqueness_limit"
-                        and (age_group, period, entry.get("date")) in relocated_evidence_keys
-                    ):
-                        continue
-                    same_date_capacity_evidence.append({**entry, "age_group": age_group, "period": period})
+        rebalanced_sizes_by_key, same_date_capacity_evidence = _compute_rebalanced_roster_sizes(
+            self, scheduled, _period_for_date, same_date_relocation_evidence
+        )
 
         planned_roster_index_by_key: Dict[Tuple[str, Optional[str], date], int] = {}
 
