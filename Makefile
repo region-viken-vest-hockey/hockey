@@ -15,12 +15,13 @@ RELEASE ?= $(ROOT_DIR)/scripts/release
 INSTALL ?= $(ROOT_DIR)/scripts/install.sh
 SECRET_SCAN ?= $(ROOT_DIR)/scripts/secret-scan.sh
 RULES_REPORT ?= $(ROOT_DIR)/scripts/rules-report.sh
+KAMPVEILEDER_CONVERT ?= $(ROOT_DIR)/scripts/convert-kampveileder.sh
 DOTENVX ?= $(ROOT_DIR)/node_modules/.bin/dotenvx
 DOTENVX_ENV_FILE ?= $(ROOT_DIR)/.env.bookup
 
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CSV ARGS DOTENVX_ENV_FILE
 
-PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-report \
+PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-report kampveileder-markdown \
 	operator-run operator-run-force run run-dotenvx status logs calendars calendars-refresh calendars-refresh-dotenvx sources-status \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
@@ -41,6 +42,7 @@ help:
 	@echo "  make dependency-lock               Verify requirements.lock is fresh"
 	@echo "  make secret-scan                   Run repository secret scan"
 	@echo "  make rules-report                  Regenerate/check scheduler rules report"
+	@echo "  make kampveileder-markdown         Convert NIHF Kampveileder PDF to generated Markdown"
 	@echo ""
 	@echo "Planning and inspection (ARGS is appended to the underlying CLI command):"
 	@echo "  make operator-run [ARGS='...']     scripts/rvv-miniputt operator run"
@@ -99,6 +101,9 @@ secret-scan:
 
 rules-report:
 	@cd "$(ROOT_DIR)" && sh "$(RULES_REPORT)" $(ARGS)
+
+kampveileder-markdown:
+	@cd "$(ROOT_DIR)" && sh "$(KAMPVEILEDER_CONVERT)" $(ARGS)
 
 operator-run:
 	@cd "$(ROOT_DIR)" && "$(RVV)" operator run $(ARGS)
