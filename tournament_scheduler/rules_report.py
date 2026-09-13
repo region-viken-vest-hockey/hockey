@@ -104,7 +104,6 @@ def rules_report(planner) -> List[Dict[str, str]]:
             ),
             "kategori": "Konfigurasjonsstandard",
         },
-
         {
             "regel": "Minst mulig gjentatte grupperinger",
             "forklaring": (
@@ -196,9 +195,8 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "forklaring": (
                 "Hver turnering reserverer et fullt dato-/tidsintervall i arenaen, inkludert setup-/byttebuffer per runde og intervaller som går over midnatt. "
                 "Senere plasseringer sjekkes mot både skrapede hallbookinger og turneringer som allerede er lagt inn i planen. "
-                "Enhver overlappende intervallkollisjon i samme arena rapporteres i fairness-gaten og i den dedikerte "
-                "«Må planlegges manuelt»-visningen (manual_schedule.html). Eksporten fullføres likevel — ishall-kalenderen "
-                "bookes uansett manuelt — og kollisjonene må løses av vertsklubben før turneringen er endelig."
+                "Enhver faktisk intervallkollisjon i samme arena er et hardt avvik: den endelige uavhengige verifikasjonen blokkerer normal strict produksjonseksport. "
+                "Kollisjonen listes også i «Må planlegges manuelt»-visningen (manual_schedule.html) for operatøroppfølging."
             ),
             "kategori": "Hard krav",
         },
@@ -209,8 +207,7 @@ def rules_report(planner) -> List[Dict[str, str]]:
                 "forholdsmessige andel hjemmeturneringer i planen. Siden starttiden ikke kan verifiseres mot "
                 "den ekte ishall-kalenderen, merkes disse turneringene (manual_booking_reason) og listes i "
                 "«Må planlegges manuelt»-visningen (manual_schedule.html) — istiden må bookes/verifiseres for hånd. "
-                "Klubbene utelates fra hjemmebanebelastningsavviket (siden grunnlaget mangler), men teller fullt "
-                "ut i selve planen."
+                "Klubben beholdes i hjemmebanebelastningsberegningen og teller fullt ut i selve planen."
             ),
             "kategori": "Automatisk avgjørelse",
         },
@@ -224,10 +221,11 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "kategori": "Automatisk avgjørelse",
         },
         {
-            "regel": "Sikkerhetsfilter mot klubb-interne kamper",
+            "regel": "Klubb-interne kamper følger round-robin",
             "forklaring": (
-                "Som en ekstra sikkerhet (belt-and-suspenders) hoppes det over kamper mellom to lag fra samme klubb under round-robin-genereringen, "
-                "selv om deltakerutvelgelsen allerede skal ha forhindret dette."
+                "Hvis flere lag fra samme klubb deltar i samme turnering, behandles de som øvrige deltakere: "
+                "round-robin-genereringen lager én kamp mellom hvert inviterte lagpar, også mellom lag fra samme klubb. "
+                "Deltakerutvelgelsen forsøker å spre klubber, men dette er et mykt hensyn og ikke et kampfilter."
             ),
             "kategori": "Automatisk avgjørelse",
         },
@@ -371,8 +369,8 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "forklaring": (
                 "Kjører en hard validering av fullstendige start-/sluttintervaller i samme arena, ikke bare datoantall; "
                 f"{len(getattr(planner, '_arena_day_collisions', []))} tilfelle(r) er registrert i denne planen. "
-                "Kollisjoner blokkerer ikke lenger eksporten: de listes i «Må planlegges manuelt»-visningen "
-                "(manual_schedule.html) og må bookes manuelt."
+                "En faktisk kollisjon blokkerer normal strict produksjonseksport og listes samtidig i "
+                "«Må planlegges manuelt»-visningen (manual_schedule.html)."
             ),
             "kategori": "Hard krav",
         },
@@ -395,10 +393,6 @@ def rules_report(planner) -> List[Dict[str, str]]:
     ])
 
     if planner.participation_targets_by_age_group:
-        # The canonical, authoritative model -- each active age
-        # group's before/after-Christmas value is the per-team, per-half
-        # participation target directly, not a weight for splitting some
-        # other season-wide number.
         rows = ", ".join(
             f"{ag}: {targets.get('before_christmas')} før jul / {targets.get('after_christmas')} etter jul"
             for ag, targets in sorted(planner.participation_targets_by_age_group.items())
@@ -423,8 +417,6 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "kategori": "Automatisk avgjørelse",
         })
     else:
-        # Fallback for lower-level/non-canonical configs without configured
-        # per-age-group targets (tests, hand-built fixtures).
         inferred_target = planner.target_tournament_count
         if inferred_target is None:
             inferred_target = max(1, len(planner.roster.teams))
