@@ -31,7 +31,7 @@ def _mid_planning_decision_problem(
 def _baseline_hard_violations_for_plan(
     plan: "dict[str, Any] | None", problem: "dict[str, Any] | None"
 ) -> "list[str]":
-    """Independently verify *plan* against the canonical hard verifier and
+    """Independently verify *plan* against the final hard verifier and
     return its violations as ``"code: message"`` strings (empty when *plan*
     passes or can't be extracted/verified).
 
@@ -46,13 +46,14 @@ def _baseline_hard_violations_for_plan(
     if plan is None:
         return []
     try:
-        from ...planning_contract import extract_candidate, verify_candidate
+        from ...final_verification import verify_final_candidate
+        from ...planning_contract import extract_candidate
 
         candidate = extract_candidate(plan)
     except (ValueError, KeyError):
         return []
     try:
-        result = verify_candidate(candidate, problem)
+        result = verify_final_candidate(candidate, problem)
     except Exception:
         return []
     if result.get("ok", True):
@@ -78,14 +79,11 @@ def _assert_hard_verification_before_export(
     re-emitting a decision, so this independently re-verifies *plan* right
     before export regardless of how it got here.
 
-    External calendar conflicts and participation-target mismatches (the
-    original motivating case above) are no longer hard violations --
-    `planning_contract.verify_candidate` now surfaces them as non-blocking
-    `manual_external_conflict_placements`/`manual_participation_placements`,
-    routed to manual placement (`manual_schedule.html`) instead, mirroring
-    `host_calendar_status_unknown`/`unresolved_hosting_obligations`. This
-    gate remains generic over whatever `violations` *are* still hard (e.g.
-    duplicate participation, arena double-booking within the plan itself).
+    External calendar conflicts and participation-target mismatches remain
+    non-blocking structural findings. The strict final verifier surfaces them
+    through ``publication_readiness`` while this gate continues to block only
+    actual hard violations (for example duplicate participation, malformed
+    round-robin games, undersized production tournaments, or arena overlap).
 
     Returns True when export should proceed. In strict mode (the default) a
     hard-failing plan blocks export outright; ``--non-strict`` logs a
@@ -113,29 +111,26 @@ def _reconcile_verified_manual_state(
     problem: "dict[str, Any] | None",
     log_fn: "Any",
 ) -> None:
-    """Make the final hard-verifier's manual/unresolved findings authoritative
+    """Make final verification's manual/unresolved findings authoritative
     on *plan* before Stage 4 renders it (issue #274 P0).
 
     ``SeasonPlanner`` computes ``unresolved_hosting_obligations``/
     ``unresolved_external_conflicts``/``unresolved_participation_shortfalls``
     while it builds the plan, but later pipeline steps (optimizer passes,
     A/B adoption, mid-planning decisions) can change the final candidate
-    without recomputing those lists. ``_assert_hard_verification_before_export``
-    already independently re-runs :func:`planning_contract.verify_candidate`
-    on the true final candidate for the hard-violation gate; this reuses that
-    same canonical recomputation and writes its non-blocking findings back
-    onto *plan* so ``manual_schedule.html`` can never omit something the
-    verifier -- and the evidence bundle's ``final_verify_result`` -- already
-    found. Best-effort: any failure leaves *plan* untouched rather than
-    blocking export, matching :func:`_write_run_evidence_bundle`'s posture.
+    without recomputing those lists. Final verification is therefore rerun on
+    the true candidate and its non-blocking findings plus publication
+    readiness are written back onto *plan*. Best-effort: any failure leaves
+    *plan* untouched rather than blocking export.
     """
     if not isinstance(plan, dict) or not isinstance(plan.get("plan"), dict):
         return
     try:
-        from ...planning_contract import extract_candidate, verify_candidate
+        from ...final_verification import verify_final_candidate
+        from ...planning_contract import extract_candidate
 
         candidate = extract_candidate(plan)
-        result = verify_candidate(candidate, problem)
+        result = verify_final_candidate(candidate, problem)
     except Exception as exc:  # noqa: BLE001 - best-effort, never blocks export
         log_fn(f"Stage 4 manual-state reconciliation skipped: {exc}")
         return
@@ -172,11 +167,15 @@ def _reconcile_verified_manual_state(
         }
         for item in result.get("manual_participation_placements") or []
     ]
+    plan_dict["publication_readiness"] = dict(
+        result.get("publication_readiness") or {}
+    )
     log_fn(
         "Stage 4 manual-state reconciled from final verification: "
         f"{len(plan_dict['unresolved_hosting_obligations'])} unresolved hosting, "
         f"{len(plan_dict['unresolved_external_conflicts'])} external conflicts, "
-        f"{len(plan_dict['unresolved_participation_shortfalls'])} participation shortfalls"
+        f"{len(plan_dict['unresolved_participation_shortfalls'])} participation shortfalls, "
+        f"readiness={plan_dict['publication_readiness'].get('status', 'unknown')}"
     )
 
 
@@ -197,10 +196,11 @@ def _write_run_evidence_bundle(
     (same posture as ``_manifest_record``/``_manifest_finalize``).
     """
     try:
+        from ...final_verification import verify_final_candidate
         from ...pipeline.evidence_bundle import build_run_evidence_bundle, read_stage3_attempt_log
         from ...pipeline.run_manifest import RunManifest
         from ...pipeline.state import StageName
-        from ...planning_contract import extract_candidate, score_candidate, verify_candidate
+        from ...planning_contract import extract_candidate, score_candidate
 
         manifest = RunManifest(state.work_dir).read()
         export_checkpoint = state.read_stage(StageName.EXPORT) or {}
@@ -213,7 +213,11 @@ def _write_run_evidence_bundle(
                 final_candidate = None
 
         problem = _mid_planning_decision_problem(cfg, scraping, start, end)
-        verify_result = verify_candidate(final_candidate, problem) if final_candidate is not None else None
+        verify_result = (
+            verify_final_candidate(final_candidate, problem)
+            if final_candidate is not None
+            else None
+        )
         score_result = score_candidate(final_candidate, problem=problem) if final_candidate is not None else None
 
         bundle = build_run_evidence_bundle(
