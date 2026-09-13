@@ -25,7 +25,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Dict, Hashable, List, Sequence, Tuple
+from typing import Dict, Hashable, List, Optional, Sequence, Tuple
+
+from tournament_scheduler import planning_half
 
 # Default max-gap threshold (days) above which a team's season coverage is
 # reported as an offender. Mirrors SeasonPlanner's historical
@@ -93,13 +95,28 @@ def season_temporal_coverage(
     season_end: date,
     dates_by_team: Dict[Hashable, Sequence[date]],
     team_meta: Dict[Hashable, Tuple[str, str]],
+    participation_targets_by_age_group: Optional[dict] = None,
+    split_date: Optional[date] = None,
 ) -> List[TeamTemporalCoverage]:
-    """Compute gap breakdowns for every team with recorded tournament dates."""
+    """Compute gap breakdowns for every team with recorded tournament dates.
+
+    ``participation_targets_by_age_group``/``split_date`` are optional: when
+    both are supplied, each team's lead/finish gap is measured against its
+    own age group's active window (see
+    ``planning_half.active_window_for_age_group``) instead of the raw
+    ``season_start``/``season_end`` pair, so an age group with an
+    authoritative 0 target for one half doesn't get penalized for being
+    intentionally inactive that half. Omitting them keeps prior behavior
+    unchanged.
+    """
     results = []
     for team_key, dates in dates_by_team.items():
         club, age_group = team_meta.get(team_key, ("", ""))
+        active_start, active_end = planning_half.active_window_for_age_group(
+            age_group, season_start, season_end, split_date, participation_targets_by_age_group
+        )
         results.append(
-            team_temporal_coverage(team_key, club, age_group, season_start, season_end, dates)
+            team_temporal_coverage(team_key, club, age_group, active_start, active_end, dates)
         )
     return results
 

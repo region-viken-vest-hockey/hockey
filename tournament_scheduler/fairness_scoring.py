@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Dict, List
 
+from tournament_scheduler import planning_half
 from tournament_scheduler.club_distances import compute_team_travel_distances
 from tournament_scheduler.models import SeasonPlan, find_duplicate_labels, team_key
 from tournament_scheduler.temporal_coverage import season_temporal_coverage, temporal_offenders
@@ -234,7 +236,20 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
             key: (str(record["club"]), str(record["age_group"]))
             for key, record in participation_records.items()
         }
-        coverages = season_temporal_coverage(plan.start_date, plan.end_date, dates_by_team, team_meta)
+        # `plan.start_date`/`end_date` are typed as `date` but some callers
+        # still carry a `datetime` -- `date - datetime` (and `<`) raise
+        # `TypeError`, so normalize before deriving the Christmas boundary.
+        plan_start = plan.start_date.date() if isinstance(plan.start_date, datetime) else plan.start_date
+        plan_end = plan.end_date.date() if isinstance(plan.end_date, datetime) else plan.end_date
+        split_date = planning_half.christmas_split_date(plan_start, plan_end)
+        coverages = season_temporal_coverage(
+            plan.start_date,
+            plan.end_date,
+            dates_by_team,
+            team_meta,
+            participation_targets_by_age_group=plan.participation_targets_by_age_group,
+            split_date=split_date,
+        )
         worst_temporal_gap_days = max((c.max_gap_days for c in coverages), default=0)
         worst_temporal_gap_weeks = round(worst_temporal_gap_days / 7.0, 1)
 

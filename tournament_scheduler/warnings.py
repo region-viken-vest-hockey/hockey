@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Sequence, Set
 
 import holidays
 
+from tournament_scheduler import planning_half
 from tournament_scheduler.html.data_computation import canonical_rvv_club_name
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
 from tournament_scheduler.temporal_coverage import season_temporal_coverage, temporal_offenders
@@ -182,11 +183,14 @@ def scan_game_count_warnings(
 
     if window_start is not None and window_end is not None and planner._team_dates:
         team_meta = {planner._team_key(t): (t.club, t.age_group) for t in planner.roster.teams}
+        split_date = planning_half.christmas_split_date(window_start, window_end)
         coverages = season_temporal_coverage(
             window_start,
             window_end,
             planner._team_dates,
             team_meta,
+            participation_targets_by_age_group=planner.participation_targets_by_age_group,
+            split_date=split_date,
         )
         planner._temporal_coverage = coverages
         for coverage in temporal_offenders(coverages, planner.max_early_finish_gap_days):

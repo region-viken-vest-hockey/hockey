@@ -907,11 +907,33 @@ def score_candidate(
     season_start = _parse_date(problem.get("start_date")) if problem else None
     season_end = _parse_date(problem.get("end_date")) if problem else None
 
+    # `problem["christmas_split_date"]` is the shared boundary every engine
+    # (Stage 3 local search, CP-SAT, this scorer) reads from, set once in
+    # `build_planning_problem`. Falls back to deriving it from the
+    # candidate's own tournament dates when no problem is supplied, so this
+    # metric still degrades gracefully for the problem-less verification
+    # path instead of silently omitting half reporting (issue #293). Also
+    # feeds the temporal-coverage active-window calculation below (#319).
+    split_date: Optional[date] = None
+    if problem is not None and problem.get("christmas_split_date"):
+        split_date = _parse_date(problem["christmas_split_date"])
+    elif tournaments:
+        dated = [d for d in (_parse_date(t.get("date")) for t in tournaments) if d is not None]
+        if dated:
+            split_date = planning_half.christmas_split_date(min(dated), max(dated))
+
     temporal_offenders_list: List[Dict[str, Any]] = []
     temporal_max_gap_days = 0
     if season_start is not None and season_end is not None:
         team_meta = {identity: (identity[0], identity[2]) for identity in dates_by_identity}
-        coverages = season_temporal_coverage(season_start, season_end, dates_by_identity, team_meta)
+        coverages = season_temporal_coverage(
+            season_start,
+            season_end,
+            dates_by_identity,
+            team_meta,
+            participation_targets_by_age_group=(problem or {}).get("participation_targets_by_age_group"),
+            split_date=split_date,
+        )
         temporal_max_gap_days = max((c.max_gap_days for c in coverages), default=0)
         temporal_offenders_list = [
             {
@@ -959,21 +981,6 @@ def score_candidate(
         if t_date:
             key = f"{t_date.year:04d}-{t_date.month:02d}"
             month_counts[key] = month_counts.get(key, 0) + 1
-
-    # --- planning-half distribution (issue #293) ----------------------------
-    # `problem["christmas_split_date"]` is the shared boundary every engine
-    # (Stage 3 local search, CP-SAT, this scorer) reads from, set once in
-    # `build_planning_problem`. Falls back to deriving it from the
-    # candidate's own tournament dates when no problem is supplied, so this
-    # metric still degrades gracefully for the problem-less verification
-    # path instead of silently omitting half reporting.
-    split_date: Optional[date] = None
-    if problem is not None and problem.get("christmas_split_date"):
-        split_date = _parse_date(problem["christmas_split_date"])
-    elif tournaments:
-        dated = [d for d in (_parse_date(t.get("date")) for t in tournaments) if d is not None]
-        if dated:
-            split_date = planning_half.christmas_split_date(min(dated), max(dated))
 
     half_counts: Dict[str, int] = {"before_christmas": 0, "after_christmas": 0, "unsplit": 0}
     for t in tournaments:

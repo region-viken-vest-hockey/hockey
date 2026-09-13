@@ -119,3 +119,105 @@ def test_team_with_no_tournaments_gets_full_season_span_as_gap():
         tournament_dates=[],
     )
     assert coverage.max_gap_days == (date(2027, 3, 1) - date(2026, 9, 1)).days
+
+
+def test_inactive_before_christmas_half_does_not_create_false_lead_gap():
+    """issue #319: U7 has before_christmas=0 -- no lead-gap penalty from season start."""
+    season_start = date(2026, 9, 1)
+    season_end = date(2027, 3, 28)
+    split_date = date(2027, 1, 1)
+    dates_by_team = {"u7_team": [date(2027, 1, 10), date(2027, 1, 24), date(2027, 2, 7)]}
+    team_meta = {"u7_team": ("Club", "U7")}
+    targets = {"U7": {"before_christmas": 0, "after_christmas": 3}}
+
+    coverages = season_temporal_coverage(
+        season_start,
+        season_end,
+        dates_by_team,
+        team_meta,
+        participation_targets_by_age_group=targets,
+        split_date=split_date,
+    )
+    coverage = coverages[0]
+    assert coverage.lead_gap_days == (date(2027, 1, 10) - split_date).days
+    assert coverage.lead_gap_days < 60
+
+
+def test_inactive_after_christmas_half_does_not_create_false_finish_gap():
+    """Symmetric case: after_christmas=0 -- no finish-gap penalty against season end."""
+    season_start = date(2026, 9, 1)
+    season_end = date(2027, 3, 28)
+    split_date = date(2027, 1, 1)
+    dates_by_team = {"spring_off_team": [date(2026, 9, 12), date(2026, 9, 26), date(2026, 11, 15)]}
+    team_meta = {"spring_off_team": ("Club", "U8")}
+    targets = {"U8": {"before_christmas": 3, "after_christmas": 0}}
+
+    coverages = season_temporal_coverage(
+        season_start,
+        season_end,
+        dates_by_team,
+        team_meta,
+        participation_targets_by_age_group=targets,
+        split_date=split_date,
+    )
+    coverage = coverages[0]
+    assert coverage.finish_gap_days == (split_date - date(2026, 11, 15)).days
+    assert coverage.finish_gap_days < 60
+
+
+def test_both_halves_active_matches_default_behavior():
+    """A team active both halves must score identically whether or not the
+    new targets/split_date kwargs are supplied."""
+    season_start = date(2026, 9, 1)
+    season_end = date(2027, 3, 28)
+    split_date = date(2027, 1, 1)
+    dates_by_team = {"both_halves": [date(2026, 10, 1), date(2027, 2, 1)]}
+    team_meta = {"both_halves": ("Club", "U11")}
+    targets = {"U11": {"before_christmas": 3, "after_christmas": 3}}
+
+    baseline = season_temporal_coverage(season_start, season_end, dates_by_team, team_meta)
+    with_targets = season_temporal_coverage(
+        season_start,
+        season_end,
+        dates_by_team,
+        team_meta,
+        participation_targets_by_age_group=targets,
+        split_date=split_date,
+    )
+    assert with_targets[0] == baseline[0]
+
+
+def test_genuine_intra_active_window_gap_still_flagged():
+    """A real >60-day gap inside the active window must still be an offender
+    even after inactive-half handling is applied."""
+    season_start = date(2026, 9, 1)
+    season_end = date(2027, 3, 28)
+    split_date = date(2027, 1, 1)
+    dates_by_team = {"holmen_u10": [date(2027, 1, 10), date(2027, 3, 13)]}
+    team_meta = {"holmen_u10": ("Holmen Hockey Blå", "U10")}
+    targets = {"U10": {"before_christmas": 0, "after_christmas": 3}}
+
+    coverages = season_temporal_coverage(
+        season_start,
+        season_end,
+        dates_by_team,
+        team_meta,
+        participation_targets_by_age_group=targets,
+        split_date=split_date,
+    )
+    offenders = temporal_offenders(coverages, threshold_days=60)
+    assert offenders and offenders[0].team_key == "holmen_u10"
+    assert offenders[0].max_intra_gap_days == (date(2027, 3, 13) - date(2027, 1, 10)).days
+
+
+def test_default_call_without_targets_is_unchanged():
+    """Omitting the new kwargs entirely must reproduce prior behavior exactly."""
+    season_start = date(2026, 9, 1)
+    season_end = date(2027, 3, 28)
+    dates_by_team = {"team": [date(2026, 10, 1)]}
+    team_meta = {"team": ("Club", "U7")}
+
+    coverages = season_temporal_coverage(season_start, season_end, dates_by_team, team_meta)
+    coverage = coverages[0]
+    assert coverage.lead_gap_days == (date(2026, 10, 1) - season_start).days
+    assert coverage.finish_gap_days == (season_end - date(2026, 10, 1)).days
