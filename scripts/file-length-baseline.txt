@@ -64,11 +64,17 @@ tournament_scheduler/registrations.py	505
 tournament_scheduler/review/review_packet_exporter.py	425
 tournament_scheduler/rules_model.py	721
 tournament_scheduler/rules_report.py	473
-tournament_scheduler/season_planner.py	2035
+tournament_scheduler/season_planner.py	2021
 tournament_scheduler/spond/spond_exporter.py	401
 tournament_scheduler/stage3_cpsat.py	778
 tournament_scheduler/stage3_decision.py	329
-tournament_scheduler/stage3_optimizer.py	2201
+# stage3_optimizer.py grew by 13 lines for issue #324 (a `same_club_excess_over_2`
+# weight entry plus a matching two-line penalty term added at both of its two
+# existing club-concentration scoring sites, `_objective` and
+# `_SearchState._club_contribution`) -- each site is a couple of lines woven
+# into an already-large scoring function, not a cohesive standalone chunk
+# worth extracting out of this already 2200+-line legacy optimizer module.
+tournament_scheduler/stage3_optimizer.py	2214
 tournament_scheduler/tools/calendar_compare.py	401
 tournament_scheduler/utils/rich_output.py	596
 tournament_scheduler/warnings.py	520
