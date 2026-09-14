@@ -417,14 +417,14 @@ export class ScraperAgent {
     const credWarnings: string[] = [];
     for (const step of navSteps) {
       if (step.cmd === "type" || step.cmd === "goto") {
-        const raw = (step as Record<string, unknown>).text ?? (step as Record<string, unknown>).url ?? "";
+        const raw = step.text ?? step.url ?? "";
         const matches = String(raw).matchAll(/\$\{(\w+)\}/g);
         for (const m of matches) {
           const varName = m[1];
           const resolved = process.env[varName];
           if (!resolved) {
             const sourceName = step.cmd === "type"
-              ? `${step.cmd} ${(step as Record<string, unknown>).selector ?? "?"}`
+              ? `${step.cmd} ${step.selector ?? "?"}`
               : `${step.cmd} ${String(raw).slice(0, 60)}`;
             credWarnings.push(`  ${varName} (brukes i ${sourceName})`);
           }

@@ -239,6 +239,58 @@ export function isAuditPublicationBlocking(status: string | undefined): boolean 
   return !status || status === "FAIL" || status === "INCOMPLETE";
 }
 
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : String(value ?? "");
+}
+
+function compactEvidence(value: unknown): string {
+  if (!Array.isArray(value) || value.length === 0) return "";
+  return value.map(stringValue).filter(Boolean).join("; ");
+}
+
+function formatAuditPayloadForOutput(payload: AuditResultPayload): string {
+  const lines: string[] = [];
+  const checklistFindings = Array.isArray(payload.checklist_findings) ? payload.checklist_findings : [];
+  if (checklistFindings.length > 0) {
+    lines.push("Audit-funn:");
+    for (const rawFinding of checklistFindings) {
+      const finding = rawFinding as Record<string, unknown>;
+      const severity = stringValue(finding.severity).trim() || "severity?";
+      const confidence = stringValue(finding.confidence).trim();
+      const prefix = `  ${stringValue(finding.item_id) || "?"}. ${severity}${confidence ? `/${confidence}` : ""}`;
+      const text = stringValue(finding.finding).trim() || stringValue(finding.question).trim() || "Uten tekst";
+      lines.push(`${prefix}: ${text}`);
+      const evidence = compactEvidence(finding.evidence);
+      if (evidence) lines.push(`     Evidens: ${evidence}`);
+    }
+  }
+
+  const potentialMissingRules = Array.isArray(payload.potential_missing_rule) ? payload.potential_missing_rule : [];
+  if (potentialMissingRules.length > 0) {
+    lines.push("Mulige manglende regler:");
+    for (const rawRule of potentialMissingRules) {
+      const rule = rawRule as Record<string, unknown>;
+      const text = stringValue(rule.description).trim() || "Uten beskrivelse";
+      const severity = stringValue(rule.severity).trim();
+      const confidence = stringValue(rule.confidence).trim();
+      const label = [severity, confidence].filter(Boolean).join("/");
+      lines.push(`  - ${label ? `${label}: ` : ""}${text}`);
+      const evidence = compactEvidence(rule.evidence);
+      if (evidence) lines.push(`    Evidens: ${evidence}`);
+    }
+  }
+
+  const missingEvidence = Array.isArray(payload.could_not_independently_establish)
+    ? payload.could_not_independently_establish.map(stringValue).filter(Boolean)
+    : [];
+  if (missingEvidence.length > 0) {
+    lines.push("Kunne ikke etableres uavhengig:");
+    for (const item of missingEvidence) lines.push(`  - ${item}`);
+  }
+
+  return lines.join("\n");
+}
+
 export async function runPiHarnessAudit(
   cwd: string,
   workDir: string,
@@ -316,9 +368,10 @@ export async function runPiHarnessAudit(
 
   const status: "success" | "failure" = isAuditPublicationBlocking(auditStatus) ? "failure" : "success";
   const findings = Array.isArray(payload.checklist_findings) ? ` (${payload.checklist_findings.length} checklist-funn)` : "";
+  const details = formatAuditPayloadForOutput(payload);
   return {
     status,
     auditStatus,
-    text: `${summary}${findings}\n${submit.text}`,
+    text: [`${summary}${findings}`, submit.text, details].filter(Boolean).join("\n"),
   };
 }

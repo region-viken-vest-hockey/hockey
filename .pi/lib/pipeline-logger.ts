@@ -193,7 +193,7 @@ export class PipelineLogger {
       end_time: nowISO(),
       duration_ms: duration,
       exit_status: exitStatus,
-    } as Partial<RunMeta>);
+    });
 
     // Compute and append self-improvement stats
     this.appendSelfImproveStats();

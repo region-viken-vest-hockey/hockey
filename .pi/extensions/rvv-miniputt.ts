@@ -402,7 +402,7 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
     }),
     async execute(_toolCallId, params, _signal, onUpdate, ctx) {
       if (wantsPublish(params.args ?? "")) {
-        onUpdate?.({ content: [{ type: "text", text: "[publish] ▶ Kjører pipeline og publiserer til GitHub Pages" }] });
+        onUpdate?.({ content: [{ type: "text", text: "[publish] ▶ Kjører pipeline og publiserer til GitHub Pages" }], details: {} });
         const result = await runPublish(params.args ?? "", ctx);
         return { content: [{ type: "text", text: result.text }], details: result };
       }
@@ -410,6 +410,7 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
       const result = await runPipeline(params.args ?? "", ctx, (e) => {
         onUpdate?.({
           content: [{ type: "text", text: `[${e.stage}] ${e.status === "start" ? "▶" : e.status === "ok" ? "✅" : e.status === "skip" ? "⏭️" : "❌"} ${e.message}` }],
+          details: {},
         });
       });
       return { content: [{ type: "text", text: result.text }], details: result };
