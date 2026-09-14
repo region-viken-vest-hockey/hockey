@@ -14,7 +14,7 @@ from copy import deepcopy
 from datetime import date
 from itertools import combinations
 from time import perf_counter
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .models import Team
