@@ -48,6 +48,7 @@ from tournament_scheduler.models import (
     team_key,
 )
 from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
+from tournament_scheduler.host_candidate_selection import participant_derived_host_candidates as _participant_derived_host_candidates
 from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
 from tournament_scheduler.planning_contract import external_calendar_conflict
@@ -1700,52 +1701,6 @@ class SeasonPlanner:
 
         return sequence_failures
 
-    def _participant_derived_host_candidates(
-        self,
-        participants: List[Team],
-        age_group: str,
-        original_host: str,
-        tournament_date: date,
-        host_targets_by_age: Dict[str, Dict[str, int]],
-        host_counts_by_age: Dict[str, Dict[str, int]],
-    ) -> List[str]:
-        """Rank candidate host clubs derived only from *participants* own
-        physical clubs (issue #323 P0).
-
-        Unlike the pre-#323 host ranking, this never proposes a club that
-        isn't represented by the tournament's own selected participants --
-        a joint/shared registration (e.g. "Jutul/Jar") expands to each of
-        its physical constituent clubs via `constituent_clubs`, either of
-        which is a legal host. The fairness/hosting-target ranking itself
-        (original host preferred first when represented, then lowest
-        actual-minus-target deficit) is unchanged from the prior
-        `_ordered_host_candidates`.
-        """
-        candidates: List[str] = []
-        seen: Set[str] = set()
-        for participant in participants:
-            for club in _constituent_clubs(participant.club):
-                if club in seen:
-                    continue
-                candidates.append(club)
-                seen.add(club)
-        if not candidates:
-            return []
-
-        target_counts = host_targets_by_age.get(age_group, {})
-        actual_counts = host_counts_by_age.setdefault(age_group, {})
-
-        def score(club: str) -> Tuple[int, int, int, int]:
-            actual_minus_target = actual_counts.get(club, 0) - target_counts.get(club, 0)
-            return (
-                0 if club == original_host else 1,
-                actual_minus_target,
-                -target_counts.get(club, 0),
-                candidates.index(club),
-            )
-
-        return sorted(candidates, key=score)
-
     @staticmethod
     def _expected_monthly_load(window_start: date, window_end: date, tournament_count: int) -> float:
         if tournament_count <= 0:
@@ -2027,6 +1982,7 @@ SeasonPlanner._pick_spread_dates = _pick_spread_dates
 SeasonPlanner._target_tournaments_for_age_group = _target_tournaments_for_age_group
 SeasonPlanner._plan_roster_sizes_for_age_group = _plan_roster_sizes_for_age_group
 SeasonPlanner._assign_hosts = _assign_hosts
+SeasonPlanner._participant_derived_host_candidates = _participant_derived_host_candidates
 SeasonPlanner._find_slot_for_tournament = _find_slot_for_tournament
 SeasonPlanner._next_age_group = _next_age_group
 SeasonPlanner._select_participants = _select_participants
