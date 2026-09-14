@@ -12,7 +12,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Optional
 
-from ..hosting_coverage import hosting_coverage_matrix, unresolved_from_matrix
+from ..hosting_coverage import hosting_coverage_matrix
+from ..hosting_cross_age_repair import club_hosting_evidence, unresolved_with_evidence
 from ..models import SeasonPlan, Tournament
 from ..warnings import (
     scan_arena_day_collision_warnings,
@@ -417,11 +418,19 @@ class ManualAdjustmentWorkflow:
             {"club": team.club, "age_group": team.age_group} for team in planner.roster.teams
         ]
         coverage_tournaments = [
-            {"host_club": t.host_club, "age_group": t.age_group}
+            {
+                "id": t.id,
+                "date": t.date.isoformat(),
+                "arena": t.arena,
+                "host_club": t.host_club,
+                "age_group": t.age_group,
+                "cancelled": t.cancelled,
+            }
             for t in plan.tournaments
-            if not t.cancelled
         ]
-        unresolved_rows = unresolved_from_matrix(hosting_coverage_matrix(coverage_teams, coverage_tournaments))
+        coverage_matrix = hosting_coverage_matrix(coverage_teams, coverage_tournaments)
+        coverage_evidence = club_hosting_evidence(coverage_teams, coverage_tournaments)
+        unresolved_rows = unresolved_with_evidence(coverage_matrix, coverage_evidence, coverage_tournaments)
         plan.unresolved_hosting_obligations = [
             {
                 "club": row["club"],
@@ -430,6 +439,7 @@ class ManualAdjustmentWorkflow:
                     f"{row['club']} har lag i {row['age_group']}, men har ingen hjemmeturnering "
                     "i denne aldersgruppen etter manuell justering."
                 ),
+                "candidate_reallocation_slots": row.get("candidate_reallocation_slots", []),
             }
             for row in unresolved_rows
         ]

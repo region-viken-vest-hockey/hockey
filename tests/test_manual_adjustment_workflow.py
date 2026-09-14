@@ -241,6 +241,113 @@ def test_manual_adjustment_workflow_moves_banned_dates_and_updates_host(tmp_path
     assert plan.manual_adjustments["pinned_tournament_ids"] == ["pin12345"]
 
 
+def test_manual_adjustment_unresolved_hosting_includes_cross_age_reallocation_evidence(tmp_path):
+    work_dir = tmp_path / "pipeline_cross_age"
+    state = PipelineState(work_dir)
+
+    input_file = tmp_path / "input_cross_age.xlsx"
+    wb = openpyxl.Workbook()
+    settings = wb.active
+    settings.title = "Innstillinger"
+    settings.append(["felt", "verdi"])
+    settings.append(["start_date", "2027-01-01"])
+    settings.append(["end_date", "2027-03-31"])
+    ages = wb.create_sheet("Aldersgrupper")
+    ages.append(["age_group", "parallel_games", "round_length_minutes"])
+    ages.append(["U10", 1, 10])
+    ages.append(["U11", 1, 10])
+    teams_sheet = wb.create_sheet("Lag")
+    teams_sheet.append(["club", "label", "age_group"])
+    rows = [
+        ("Jar", "Jar U10", "U10"),
+        ("Kongsberg", "Kongsberg U10", "U10"),
+        ("Kongsberg", "Kongsberg U11", "U11"),
+        ("Skien", "Skien U11", "U11"),
+    ]
+    for row in rows:
+        teams_sheet.append(row)
+    wb.save(input_file)
+
+    teams = [Team(club=club, label=label, age_group=age_group) for club, label, age_group in rows]
+    jar_u10, kongsberg_u10, kongsberg_u11, skien_u11 = teams
+    tournaments = [
+        Tournament(
+            id="jaru10",
+            date=date(2027, 1, 16),
+            arena="Jar Isforum",
+            age_group="U10",
+            host_club="Jar",
+            teams=[jar_u10, kongsberg_u10],
+            games=SeasonPlanner.generate_round_robin_games([jar_u10, kongsberg_u10], 1),
+        ),
+        Tournament(
+            id="kongsu11a",
+            date=date(2027, 1, 23),
+            arena="Kongsberghallen",
+            age_group="U11",
+            host_club="Kongsberg",
+            teams=[kongsberg_u11, skien_u11],
+            games=SeasonPlanner.generate_round_robin_games([kongsberg_u11, skien_u11], 1),
+        ),
+        Tournament(
+            id="kongsu11b",
+            date=date(2027, 2, 27),
+            arena="Kongsberghallen",
+            age_group="U11",
+            host_club="Kongsberg",
+            teams=[kongsberg_u11, skien_u11],
+            games=SeasonPlanner.generate_round_robin_games([kongsberg_u11, skien_u11], 1),
+        ),
+    ]
+    plan = SeasonPlan(
+        tournaments=tournaments,
+        start_date=date(2027, 1, 1),
+        end_date=date(2027, 3, 31),
+        manual_adjustments={},
+    )
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "input_path": str(input_file),
+            "teams": [
+                {"club": club, "label": label, "age_group": age_group}
+                for club, label, age_group in rows
+            ],
+            "round_length_minutes": {"U10": 10, "U11": 10},
+        },
+        status=StageStatus.DONE,
+    )
+    state.write_stage(
+        StageName.PLANNING,
+        {"plan": _plan_to_dict(plan), "rules_report": []},
+        status=StageStatus.DONE,
+    )
+
+    result = ManualAdjustmentWorkflow(state).apply(plan)
+
+    assert result.success is True
+    [unresolved] = [
+        row for row in plan.unresolved_hosting_obligations
+        if row["club"] == "Kongsberg" and row["age_group"] == "U10"
+    ]
+    assert unresolved["candidate_reallocation_slots"] == [
+        {
+            "tournament_id": "kongsu11b",
+            "date": "2027-02-27",
+            "arena": "Kongsberghallen",
+            "age_group": "U11",
+            "source_surplus_hosting_count": 1,
+        },
+        {
+            "tournament_id": "kongsu11a",
+            "date": "2027-01-23",
+            "arena": "Kongsberghallen",
+            "age_group": "U11",
+            "source_surplus_hosting_count": 1,
+        },
+    ]
+
+
 def test_adjust_cli_runs_end_to_end(tmp_path):
     state, _plan = _write_state(tmp_path)
     export_dir = tmp_path / "export"

@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from ..host_representation import clubs_represent_same_club
 from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from .audit_result import current_export_fingerprint, current_run_id
 from .fingerprints import stable_payload_sha256
@@ -267,7 +268,11 @@ def _summarize_plan_for_audit(
         teams = [team for team in tournament.get("teams") or [] if isinstance(team, dict)]
         host_club = tournament.get("host_club")
         participant_clubs = [team.get("club") for team in teams]
-        if host_club and host_club not in participant_clubs:
+        if host_club and not any(
+            clubs_represent_same_club(str(participant_club), str(host_club))
+            for participant_club in participant_clubs
+            if participant_club
+        ):
             host_missing.append(
                 {
                     **_tournament_ref(tournament),

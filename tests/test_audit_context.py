@@ -188,6 +188,38 @@ def test_context_includes_selected_plan_cross_checks(tmp_path):
     )
 
 
+def test_host_participation_cross_check_uses_shared_registration_constituents(tmp_path):
+    PipelineState(tmp_path).write_stage(
+        StageName.PLANNING,
+        {
+            "plan": {
+                "tournaments": [
+                    {
+                        "id": "shared-host",
+                        "date": "2027-01-16",
+                        "age_group": "JU12",
+                        "arena": "Kongsberghallen",
+                        "host_club": "Kongsberg",
+                        "teams": [
+                            {"label": "Kongsberg/Tønsberg JU12", "club": "Kongsberg/Tønsberg", "age_group": "JU12"},
+                            {"label": "Jar JU12", "club": "Jar", "age_group": "JU12"},
+                        ],
+                        "games": [],
+                    }
+                ]
+            }
+        },
+        status=StageStatus.DONE,
+    )
+    _write_export(tmp_path, fingerprint="fp-1")
+
+    context = build_audit_context(work_dir=tmp_path)
+    host_summary = context["plan_audit_summary"]["host_participation_summary"]
+
+    assert host_summary["tournaments_where_host_club_not_in_participants"] == 0
+    assert host_summary["examples"] == []
+
+
 def test_context_records_prompt_and_runbook_version(tmp_path):
     _write_export(tmp_path, fingerprint="fp-1")
     context = build_audit_context(work_dir=tmp_path)
