@@ -376,41 +376,29 @@ def max_teams_for(planner, age_group: str) -> int:
 
 
 def max_club_teams_for(planner, age_group: str, club: str) -> int:
-    """Return how many teams from `club` may play in one `age_group` tournament."""
-    teams_in_age_group = planner.roster.by_age_group(age_group)
-    total = len(teams_in_age_group)
-    if total == 0:
-        return planner.max_club_teams_per_tournament
-    club_team_count = sum(1 for t in teams_in_age_group if t.club == club)
-    if club_team_count == 0:
-        return planner.max_club_teams_per_tournament
+    """Return the preferred ceiling on teams from `club` in one `age_group` tournament.
 
-    max_teams = max_teams_for(planner, age_group)
-    proportional = math.ceil(club_team_count / total * max_teams)
+    issue #324: this is a flat preference (`planner.max_club_teams_per_tournament`,
+    normally 2) regardless of how many teams `club` has in the age group or how
+    skewed the age group's fairness deficits are. A club having more teams
+    should change how often those teams participate across the season (the
+    deficit-aware selection score below already does that), not how many of
+    them get clustered into one tournament.
 
-    deficit_spread = age_group_deficit_spread(planner, age_group, teams_in_age_group)
-    if deficit_spread > planner.max_game_count_spread:
-        proportional = min(proportional + planner.deficit_cap_expansion, max_teams)
-
-    return max(planner.max_club_teams_per_tournament, min(proportional, max_teams))
+    The cap is enforced as a strong scoring penalty in
+    `participant_selection_score`, not a hard filter -- `pick_scored_participants`
+    may still exceed it when no other legal candidate remains to complete the
+    roster, and that fallback is counted via `planner._club_cap_overrides`.
+    """
+    return planner.max_club_teams_per_tournament
 
 
-def age_group_deficit_spread(
-    planner,
-    age_group: str,
-    teams_in_age_group: Optional[List[Team]] = None,
-) -> float:
-    """Return the deficit spread (max - min deficit) across `age_group`."""
-    if teams_in_age_group is None:
-        teams_in_age_group = planner.roster.by_age_group(age_group)
-    if not teams_in_age_group:
-        return 0.0
-    if not any(planner._running_game_counts.get(planner._team_key(t), 0) for t in teams_in_age_group):
-        return 0.0
-    deficits = [deficit_score(planner, t, age_group) for t in teams_in_age_group]
-    if not deficits:
-        return 0.0
-    return max(deficits) - min(deficits)
+def club_count_excess_over_2(teams: Sequence[Team]) -> int:
+    """Return `sum(max(0, count(club) - 2))` for `teams` (issue #324 metric)."""
+    club_counts: Dict[str, int] = {}
+    for team in teams:
+        club_counts[team.club] = club_counts.get(team.club, 0) + 1
+    return sum(max(0, count - 2) for count in club_counts.values())
 
 
 def expected_average_for(planner, age_group: str) -> float:
@@ -544,7 +532,11 @@ def participant_selection_score(
     max_club = max_club_teams_for(planner, age_group, team.club)
     if max_club > 0:
         if club_count >= max_club:
-            score += (club_count - max_club + 1) * 250.0
+            # issue #324: a 3rd-or-later team from one club must outrank
+            # opponent/club diversity and fairness-deficit tie-breaks (the
+            # terms below), so this stays legal only when it is the least
+            # bad remaining candidate, not merely a competitive one.
+            score += (club_count - max_club + 1) * 1500.0
         else:
             score += club_count * 20.0
 

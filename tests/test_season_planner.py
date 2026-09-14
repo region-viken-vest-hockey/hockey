@@ -2953,18 +2953,27 @@ class TestProportionalHosting:
 
 
     def test_game_count_spread_improves_with_deficit_aware_club_mix(self, season_window):
-        """Skewed multi-team club vs single-team clubs balances via deficit-aware club mix.
+        """Skewed multi-team club vs single-team clubs balances via deficit-aware selection.
 
         Sets up a skewed scenario: Jar has 7 U10 teams, while 7 other clubs
-        each have 1 U10 team. The deficit-aware preferred_club_mix filter
-        (added to `_pick_least_recently_grouped`) skips cross-club mixing
-        once deficit spread exceeds max_game_count_spread, allowing the
-        proportional club cap (ceil(7/14*6)=3 Jar slots) to be fully utilized
-        instead of limiting Jar to 1 slot per tournament.
+        each have 1 U10 team. issue #324: the per-club cap is a flat
+        preference (`max_club_teams_per_tournament`, not scaled up by Jar's
+        share of the age group), so fairness for Jar's teams must come from
+        how often they get invited across the season, not from clustering
+        3+ of them into one tournament. The deficit-score term in
+        `participant_selection_score` still lets a Jar team be picked over
+        the flat cap on the rare tournament where every other club's sole
+        team is already at its target and Jar's own deficit is large enough
+        to outweigh the (issue #324) strengthened cap penalty.
 
-        Key acceptance: the per-team game-count spread is at most 1
-        tournament's worth of games (5 per 6-team tournament), and all
-        teams participate across the season.
+        This particular roster is deliberately extreme (7 Jar teams vs. 6
+        available slots per tournament): under a flat cap of 2, Jar's teams
+        cannot all reach a fair share without occasionally exceeding it, so
+        the test expects `club_cap_overrides` to be nonzero here -- that is
+        the issue #324 exception path working as designed, not a bug.
+
+        Key acceptance: the per-team game-count spread stays bounded and all
+        teams participate.
         """
         start, end = season_window
         free_dates = all_weekend_dates(start, end)
@@ -2985,10 +2994,14 @@ class TestProportionalHosting:
             roster=roster,
             club_arenas=club_arenas,
             parallel_games_for_age_group={"U10": 3},  # capacity = 6 teams
-            deficit_cap_expansion=1,
+            max_club_teams_per_tournament=2,
             fairness_thresholds={"max_game_count_spread": 6},
         )
         plan = planner.build_plan(start, end)
+
+        # issue #324: the flat cap is exceeded here (deliberately extreme
+        # roster), and the exception is measurable via club_cap_overrides.
+        assert planner.club_cap_overrides > 0
 
         # (1) All tournaments have minimum team count
         assert all(len(t.teams) >= MIN_TEAMS_PER_TOURNAMENT for t in plan.tournaments)

@@ -870,7 +870,13 @@ def score_candidate(
     inter_club_diversity = (len(inter_club_pairs) / len(inter_club_universe)) if inter_club_universe else 0.0
 
     # --- same-club clustering -------------------------------------------
+    # issue #324: `max_same_club_per_tournament` alone can't distinguish a
+    # single unavoidable 3-team tournament from a candidate that clusters
+    # 3+ teams from one club repeatedly, so baseline/local-search/CP-SAT
+    # candidates are also compared on these two explicit metrics.
     max_same_club_per_tournament = 0
+    club_count_excess_over_2 = 0
+    tournaments_with_3plus_same_club = 0
     for t in tournaments:
         club_counts: Dict[str, int] = {}
         for team in t.get("teams", []):
@@ -879,6 +885,9 @@ def score_candidate(
                 club_counts[club] = club_counts.get(club, 0) + 1
         if club_counts:
             max_same_club_per_tournament = max(max_same_club_per_tournament, max(club_counts.values()))
+            club_count_excess_over_2 += sum(max(0, count - 2) for count in club_counts.values())
+            if max(club_counts.values()) >= 3:
+                tournaments_with_3plus_same_club += 1
 
     # --- turnaround spacing ----------------------------------------------
     gap_thresholds = list(gap_thresholds)
@@ -1026,6 +1035,8 @@ def score_candidate(
             "inter_club_diversity": inter_club_diversity,
             "same_club_pairing_count": len(same_club_pairs),
             "max_same_club_teams_per_tournament": max_same_club_per_tournament,
+            "club_count_excess_over_2": club_count_excess_over_2,
+            "tournaments_with_3plus_same_club": tournaments_with_3plus_same_club,
         },
         "temporal": {
             "max_gap_days": temporal_max_gap_days,

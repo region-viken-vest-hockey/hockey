@@ -52,8 +52,8 @@ from tournament_scheduler.host_representation import constituent_clubs as _const
 from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
 from tournament_scheduler.planning_contract import external_calendar_conflict
 from tournament_scheduler.participant_selection import (
-    age_group_deficit_spread as _age_group_deficit_spread,
     cap_per_club_deficit_aware as _cap_per_club_deficit_aware,
+    club_count_excess_over_2 as _club_count_excess_over_2,
     deficit_score as _deficit_score,
     expected_average_for as _expected_average_for,
     max_club_teams_for as _max_club_teams_for,
@@ -124,7 +124,6 @@ class SeasonPlanner:
         target_tournament_count: Optional[int] = None,
         participation_targets_by_age_group: Optional[Dict[str, Dict[str, int]]] = None,
         max_club_teams_per_tournament: int = 1,
-        deficit_cap_expansion: int = 1,
         max_game_count_spread: int = 2,
         max_early_finish_gap_days: int = 60,
         max_hosting_deviation: int = 1,
@@ -154,7 +153,6 @@ class SeasonPlanner:
             for age_group, targets in (participation_targets_by_age_group or {}).items()
         }
         self.max_club_teams_per_tournament = max_club_teams_per_tournament
-        self.deficit_cap_expansion = deficit_cap_expansion
         self.max_game_count_spread = max_game_count_spread
         self.max_early_finish_gap_days = max_early_finish_gap_days
         self.max_hosting_deviation = max_hosting_deviation
@@ -2036,7 +2034,7 @@ SeasonPlanner._cap_per_club_deficit_aware = _cap_per_club_deficit_aware
 SeasonPlanner._participant_limit_for = _participant_limit_for
 SeasonPlanner._max_teams_for = _max_teams_for
 SeasonPlanner._max_club_teams_for = _max_club_teams_for
-SeasonPlanner._age_group_deficit_spread = _age_group_deficit_spread
+SeasonPlanner._club_count_excess_over_2 = staticmethod(_club_count_excess_over_2)
 SeasonPlanner._expected_average_for = _expected_average_for
 SeasonPlanner._deficit_score = _deficit_score
 SeasonPlanner._normalized_invite_count = _normalized_invite_count

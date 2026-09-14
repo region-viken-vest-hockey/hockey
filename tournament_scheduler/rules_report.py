@@ -13,11 +13,12 @@ def rules_report(planner) -> List[Dict[str, str]]:
     report: List[Dict[str, str]] = []
 
     report.append({
-        "regel": "Per-klubb kapasitet beregnes proporsjonalt",
+        "regel": "Per-klubb kapasitet er et flatt, foretrukket tak",
         "forklaring": (
-            f"Planleggeren starter med et minimumstak på {planner.max_club_teams_per_tournament} lag per klubb, "
-            "men det effektive taket beregnes proporsjonalt ut fra klubbens størrelse i aldersgruppen og kan "
-            "utvides videre av deficit-logikk. Dette er en kapasitetsregel, ikke et hardt forbud mot flere lag fra samme klubb."
+            f"Planleggeren foretrekker maks {planner.max_club_teams_per_tournament} lag per klubb i én turnering, "
+            "uavhengig av hvor mange lag klubben har i aldersgruppen (issue #324). Dette er en sterk "
+            "poengsettingsstraff, ikke et hardt forbud -- et tredje eller senere lag fra samme klubb kan "
+            "fortsatt velges når ingen andre lovlige kandidater kan fylle turneringen."
         ),
         "kategori": "Automatisk avgjørelse",
     })
@@ -82,8 +83,8 @@ def rules_report(planner) -> List[Dict[str, str]]:
             "regel": "Konfigurasjonsstandarder og fairness-terskler",
             "forklaring": (
                 "Deltakelsesmål utledes fra lagmønsteret og kapasiteten når de ikke er satt eksplisitt, "
-                f"minimumsklubb-taket starter på {planner.max_club_teams_per_tournament} lag per klubb, og deficit-kapasitet "
-                f"kan utvides med {planner.deficit_cap_expansion}. Fairness-terskler som brukes av fairness-gaten: {thresholds_text}."
+                f"og klubb-taket per turnering er flatt {planner.max_club_teams_per_tournament} lag per klubb. "
+                f"Fairness-terskler som brukes av fairness-gaten: {thresholds_text}."
             ),
             "kategori": "Konfigurasjonsstandard",
         },
@@ -174,9 +175,10 @@ def rules_report(planner) -> List[Dict[str, str]]:
         {
             "regel": "Behovsbasert unntak fra klubb-tak per turnering",
             "forklaring": (
-                "Når et lag fra en klubb som allerede har fylt sin forholdsmessige andel av plassene i en turnering "
-                "(_max_club_teams_for) har et større etterslep i antall spilte kamper enn alle ledige lag fra andre klubber, "
-                "kan laget likevel velges — med en straff i prioriteringen proporsjonal med hvor langt over taket klubben er. "
+                "Når et lag fra en klubb som allerede har fylt det foretrukne klubb-taket (_max_club_teams_for, "
+                f"flatt {planner.max_club_teams_per_tournament} lag) er den eneste gjenværende måten å fylle "
+                "turneringen lovlig på, kan laget likevel velges — med en sterk straff i prioriteringen "
+                "proporsjonal med hvor langt over taket klubben er (issue #324). "
                 f"Dette unntaket er brukt {planner._club_cap_overrides} gang(er) i denne sesongplanen."
             ),
             "kategori": "Automatisk avgjørelse",

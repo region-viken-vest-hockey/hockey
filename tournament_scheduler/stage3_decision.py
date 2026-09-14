@@ -60,6 +60,7 @@ _V2_OPTIMIZER_WEIGHT_NAMES = (
     "pair_repeat",
     "same_club_pairing",
     "same_club_cluster",
+    "same_club_excess_over_2",
     "gap_under_7",
     "gap_under_14",
 )

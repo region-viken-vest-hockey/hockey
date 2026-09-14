@@ -80,6 +80,12 @@ DEFAULT_WEIGHTS: Dict[str, float] = {
     "pair_repeat": 3.0,
     "same_club_pairing": 1.0,
     "same_club_cluster": 2.0,
+    # issue #324: a dedicated, steep penalty for the 3rd-or-later team from
+    # one club in a tournament, on top of `same_club_cluster`'s quadratic
+    # term -- keeps a plain 2-team club pairing cheap while making a 2 -> 3
+    # swap a significant regression the search only accepts when nothing
+    # cheaper is available.
+    "same_club_excess_over_2": 30.0,
     "gap_under_7": 5.0,
     "gap_under_14": 1.0,
 }
@@ -216,6 +222,7 @@ def _objective(
         for club_count in club_counts.values():
             if club_count > 1:
                 total += weights["same_club_cluster"] * (club_count - 1) ** 2
+                total += weights["same_club_excess_over_2"] * max(0, club_count - 2)
 
     dates_by_team: Dict[TeamIdentity, List[date]] = {}
     for slot in slots:
@@ -322,7 +329,10 @@ class _SearchState:
     def _club_contribution(self, age_group: str, count: int) -> float:
         if count <= 1:
             return 0.0
-        return self._weights(age_group)["same_club_cluster"] * (count - 1) ** 2
+        weights = self._weights(age_group)
+        contribution = weights["same_club_cluster"] * (count - 1) ** 2
+        contribution += weights["same_club_excess_over_2"] * max(0, count - 2)
+        return contribution
 
     def _team_gap_contribution(self, team: TeamIdentity) -> float:
         counter = self.dates_by_team.get(team)

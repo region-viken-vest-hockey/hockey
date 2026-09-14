@@ -30,6 +30,10 @@ _METRIC_PATHS: List[Tuple[str, str]] = [
     ("opponent_diversity.inter_club_diversity", "higher"),
     ("opponent_diversity.same_club_pairing_count", "lower"),
     ("opponent_diversity.max_same_club_teams_per_tournament", "lower"),
+    # issue #324: an aggregate/count metric so one candidate can't silently
+    # trade fewer same-club *pairings* for more 3rd-or-later-team clusters.
+    ("opponent_diversity.club_count_excess_over_2", "lower"),
+    ("opponent_diversity.tournaments_with_3plus_same_club", "lower"),
     ("turnaround.min_turnaround_days", "higher"),
     ("turnaround.gaps_under_days.7", "lower"),
     ("turnaround.gaps_under_days.14", "lower"),

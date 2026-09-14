@@ -466,6 +466,33 @@ def _solve_slot_group(
                 if left[0] == right[0]:
                     same_club_terms.append(meet)
 
+        # issue #324: explicitly model 3rd-or-later teams from one club in
+        # one tournament, per (slot, club) -- `same_club_terms` above (pair
+        # co-occurrence) is correlated with this but not equivalent, so a
+        # candidate could improve the aggregate pairing count while still
+        # clustering 3+ teams from one club in a slot. `club_excess_terms`
+        # closes that gap with its own dedicated, heavily-weighted term.
+        club_excess_terms: "list[Any]" = []
+        club_excess_serial = 0
+        for slot in slots:
+            eligible = teams_by_age_group.get(slot.age_group, [])
+            clubs_in_slot: "dict[str, list[Any]]" = defaultdict(list)
+            for identity in eligible:
+                clubs_in_slot[identity[0]].append(x[(slot.index, identity)])
+            for club_vars in clubs_in_slot.values():
+                if len(club_vars) <= 2:
+                    continue
+                club_excess_serial += 1
+                club_count = model.NewIntVar(
+                    0, len(club_vars), f"club_count_{club_excess_serial}"
+                )
+                model.Add(club_count == sum(club_vars))
+                excess_over_2 = model.NewIntVar(
+                    0, len(club_vars), f"club_excess_over_2_{club_excess_serial}"
+                )
+                model.Add(excess_over_2 >= club_count - 2)
+                club_excess_terms.append(excess_over_2)
+
         repeat_excess_terms: "list[Any]" = []
         third_plus_excess_terms: "list[Any]" = []
         for pair_idx, meet_vars in enumerate(meet_by_pair.values()):
@@ -514,9 +541,14 @@ def _solve_slot_group(
 
         # Repeated opponents dominate the first model. Third-and-later
         # repeats get an additional penalty; same-club pairings and short
-        # turnaround are secondary tie-breakers.
+        # turnaround are secondary tie-breakers. issue #324: a 3rd-or-later
+        # team from one club outweighs every other quality term below (and
+        # every repeat-opponent term) so it stays legal only when forced by
+        # the hard constraints above -- only the participation-deficit terms
+        # (weight 5000, closing a configured participation gap) outrank it.
         objective_terms.extend(1000 * term for term in repeat_excess_terms)
         objective_terms.extend(2000 * term for term in third_plus_excess_terms)
+        objective_terms.extend(3000 * term for term in club_excess_terms)
         objective_terms.extend(25 * term for term in same_club_terms)
         objective_terms.extend(10 * term for term in gap_under_7_terms)
         objective_terms.extend(2 * term for term in gap_under_14_terms)
