@@ -33,7 +33,8 @@ tournament_scheduler/html/html_exporter.py	421
 tournament_scheduler/ical/ical_exporter.py	388
 tournament_scheduler/llm_judge/prompts.py	319
 tournament_scheduler/models.py	371
-tournament_scheduler/participant_selection.py	436
+tournament_scheduler/participant_selection.py	462
+tournament_scheduler/audit_context.py	605
 tournament_scheduler/pipeline/activity_export.py	709
 tournament_scheduler/pipeline/bookup_host_bridge.py	302
 tournament_scheduler/pipeline/browser_worker.py	692
@@ -62,7 +63,7 @@ tournament_scheduler/pipeline/stage3_planning.py	613
 tournament_scheduler/pipeline/stage4_export.py	690
 tournament_scheduler/pipeline/state.py	505
 tournament_scheduler/pipeline/tournament_updater.py	930
-tournament_scheduler/planning_contract.py	1021
+tournament_scheduler/planning_contract.py	1045
 tournament_scheduler/registrations.py	505
 tournament_scheduler/review/review_packet_exporter.py	425
 tournament_scheduler/rules_model.py	675
@@ -79,7 +80,7 @@ tournament_scheduler/stage3_decision.py	330
 # `_SearchState._club_contribution`) -- each site is a couple of lines woven
 # into an already-large scoring function, not a cohesive standalone chunk
 # worth extracting out of this already 2200+-line legacy optimizer module.
-tournament_scheduler/stage3_optimizer.py	2214
+tournament_scheduler/stage3_optimizer.py	2229
 tournament_scheduler/tools/calendar_compare.py	401
 tournament_scheduler/utils/rich_output.py	596
 tournament_scheduler/warnings.py	520
