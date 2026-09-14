@@ -183,6 +183,38 @@ class TestReconcileParticipationShortfallProvenance:
         assert "samme dato" in entry["reason"]
         assert entry["reason"] != "actual participation count does not match target"
 
+    def test_club_share_ok_category_survives_reconciliation(self):
+        """issue #327: a shortfall SeasonPlanner categorized
+        `participation_under_target_club_share_ok` (the team's club already
+        has its fair proportional share, siblings evenly rotated) must
+        recover that category/reason the same way the same-date-capacity
+        case above does, not fall back to the generic reason."""
+        plan = self._plan()
+        plan["plan"]["unresolved_participation_shortfalls"] = [
+            {
+                "club": "Kongsberg",
+                "label": "Kongsberg U12A",
+                "age_group": "U12",
+                "period": "before_christmas",
+                "actual": "6",
+                "target": "7",
+                "reason": (
+                    "Kongsberg U12A (Kongsberg, U12) deltar 6 ganger i before_christmas, "
+                    "forventet 7 -- klubben har likevel fått sin forholdsmessige andel av "
+                    "deltakelsesplassene i denne halvdelen, og søsken-lagene er jevnt rotert."
+                ),
+                "category": "participation_under_target_club_share_ok",
+            }
+        ]
+        plan["plan"]["same_date_capacity_evidence"] = []
+
+        _reconcile_verified_manual_state(plan, self._problem(), log_fn=lambda *_: None)
+
+        shortfalls = plan["plan"]["unresolved_participation_shortfalls"]
+        [entry] = [s for s in shortfalls if s.get("half") == "before_christmas"]
+        assert entry["category"] == "participation_under_target_club_share_ok"
+        assert "forholdsmessige andel" in entry["reason"]
+
     def test_same_date_capacity_evidence_is_attached(self):
         plan = self._plan()
 

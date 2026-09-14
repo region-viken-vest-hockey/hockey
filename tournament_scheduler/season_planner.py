@@ -115,6 +115,27 @@ def _normalize_penalty_hints(raw: Optional[Dict[str, Any]]) -> Dict[str, float]:
     return normalized
 
 
+def _club_share_explains_shortfall(club_participation_fairness_row: Optional[Dict[str, object]]) -> bool:
+    """issue #327: does *row* (one club's `club_participation_fairness` entry
+    for a given age group/period) explain an individual team's shortfall as
+    a capacity-limited proportional outcome rather than a genuine defect?
+
+    True when the club's realized share of participation slots already
+    meets or exceeds its registered-demand share (``actual_share >=
+    target_share``) *and* its sibling teams are rotated within a spread of
+    at most 1 -- both must hold, since a fair club aggregate can still hide
+    one starved sibling team (see the issue's own counter-example). A
+    missing row (e.g. a single-team club, or an age group with no split
+    targets computed) never explains a shortfall.
+    """
+    if club_participation_fairness_row is None:
+        return False
+    return (
+        club_participation_fairness_row["actual_share"] >= club_participation_fairness_row["target_share"]
+        and club_participation_fairness_row["sibling_spread"] <= 1
+    )
+
+
 class SeasonPlanner:
     """Greedy season-plan builder on top of `TournamentScheduler`."""
 
@@ -1051,6 +1072,23 @@ class SeasonPlanner:
             if entry.get("category") in ("same_date_participant_pool_capacity", "same_date_uniqueness_limit")
         }
 
+        # issue #327: computed once, up front, so both shortfall loops below
+        # can tell whether a team's individual miss coincides with its club
+        # already holding its fair proportional share (evenly rotated among
+        # siblings) -- a *factual* mechanism label, mirroring the same-date-
+        # capacity categorization above. Whether that fact makes the
+        # shortfall acceptable is left to the #325 LLM auditor, not decided
+        # here (see `rules_model._club_participation_fairness_rule`).
+        club_participation_fairness_rows = self._compute_club_participation_fairness(skipped_age_groups_set)
+        club_participation_fairness_by_key = {
+            (row["age_group"], row["period"], row["club"]): row for row in club_participation_fairness_rows
+        }
+
+        def _club_share_ok_category(age_group: str, period: Optional[str], club: str) -> bool:
+            return _club_share_explains_shortfall(
+                club_participation_fairness_by_key.get((age_group, period, club))
+            )
+
         unresolved_participation_shortfalls: List[Dict[str, str]] = []
         for team in self.roster.teams:
             if team.age_group in skipped_age_groups_set:
@@ -1067,6 +1105,14 @@ class SeasonPlanner:
                         "til, og det var ikke rom igjen på senere datoer."
                     )
                     category = "participation_under_target_same_date_capacity"
+                elif actual < target and _club_share_ok_category(team.age_group, None, team.club):
+                    reason = (
+                        f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
+                        f"ganger, forventet {target} -- klubben har likevel fått sin "
+                        "forholdsmessige andel av deltakelsesplassene, og søsken-lagene er "
+                        "jevnt rotert."
+                    )
+                    category = "participation_under_target_club_share_ok"
                 else:
                     reason = (
                         f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
@@ -1126,6 +1172,14 @@ class SeasonPlanner:
                                 "i denne halvdelen av sesongen."
                             )
                             category = "participation_under_target_same_date_capacity"
+                        elif actual < target and _club_share_ok_category(team.age_group, period, team.club):
+                            reason = (
+                                f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
+                                f"ganger i {period}, forventet {target} -- klubben har likevel "
+                                "fått sin forholdsmessige andel av deltakelsesplassene i denne "
+                                "halvdelen, og søsken-lagene er jevnt rotert."
+                            )
+                            category = "participation_under_target_club_share_ok"
                         else:
                             reason = (
                                 f"{team.label} ({team.club}, {team.age_group}) deltar {actual} "
@@ -1151,7 +1205,7 @@ class SeasonPlanner:
         plan.participation_targets_by_age_group = {
             age_group: dict(targets) for age_group, targets in self.participation_targets_by_age_group.items()
         }
-        plan.club_participation_fairness = self._compute_club_participation_fairness(skipped_age_groups_set)
+        plan.club_participation_fairness = club_participation_fairness_rows
 
         self._baseline_timings["total_seconds"] = round(perf_counter() - build_started, 6)
         return plan

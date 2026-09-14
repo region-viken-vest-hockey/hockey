@@ -25,6 +25,7 @@ from tournament_scheduler.season_planner import (
     SeasonPlanner,
     DEFAULT_TOURNAMENT_START_TIME,
     MIN_TEAMS_PER_TOURNAMENT,
+    _club_share_explains_shortfall,
 )
 from tournament_scheduler.host_assignment import find_slot_for_tournament
 from tournament_scheduler.host_representation_repair import repair_host_representation
@@ -51,6 +52,50 @@ def _load_real_roster_from_input_workbook():
 
     return load_canonical_roster()
 
+
+
+class TestClubShareExplainsShortfall:
+    """issue #327: `_club_share_explains_shortfall` decides whether a club's
+    `club_participation_fairness` row explains an individual team's
+    participation shortfall as a capacity-limited proportional outcome --
+    tested directly against synthetic rows (same shape as
+    `SeasonPlanner._compute_club_participation_fairness`'s output) rather
+    than through a full `build_plan` simulation, since the exact
+    scheduling/selection outcome for a given roster is not something a unit
+    test should need to reproduce.
+    """
+
+    def _row(self, *, target_share, actual_share, sibling_spread):
+        return {
+            "age_group": "U11",
+            "period": None,
+            "club": "Jar",
+            "teams": 8,
+            "target_share": target_share,
+            "actual_share": actual_share,
+            "expected_slots": target_share * 100,
+            "actual_slots": actual_share * 100,
+            "delta": (actual_share - target_share) * 100,
+            "sibling_spread": sibling_spread,
+        }
+
+    def test_no_row_never_explains_a_shortfall(self):
+        assert _club_share_explains_shortfall(None) is False
+
+    def test_club_at_its_fair_share_with_even_rotation_explains_the_shortfall(self):
+        row = self._row(target_share=0.4, actual_share=0.405, sibling_spread=1)
+        assert _club_share_explains_shortfall(row) is True
+
+    def test_club_materially_below_its_fair_share_does_not_explain_the_shortfall(self):
+        row = self._row(target_share=0.4, actual_share=0.25, sibling_spread=0)
+        assert _club_share_explains_shortfall(row) is False
+
+    def test_uneven_sibling_rotation_does_not_explain_the_shortfall_even_at_fair_share(self):
+        """issue #327's own counter-example: `7, 7, 6, 6, 3, 3, 2, 2` can
+        have a correct club-level share while still being a real intra-club
+        fairness problem -- a fair aggregate alone must not be enough."""
+        row = self._row(target_share=0.4, actual_share=0.4, sibling_spread=5)
+        assert _club_share_explains_shortfall(row) is False
 
 
 @pytest.fixture(scope="module")

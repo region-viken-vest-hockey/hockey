@@ -337,6 +337,13 @@ def _summarize_plan_for_audit(
         # judge tell an acceptable, capacity-limited proportional shortfall
         # apart from a genuine planner fairness defect.
         "club_participation_fairness": list(plan_dict.get("club_participation_fairness") or []),
+        # issue #327: per-team shortfall category/reason (e.g.
+        # `participation_under_target_club_share_ok` vs the generic
+        # `participation_under_target`), reconciled onto the plan by Stage 4
+        # (`_reconcile_verified_manual_state`) -- lets the judge cross-check
+        # an individual team's miss against the club aggregate above instead
+        # of only seeing an unlabeled actual/target pair.
+        "unresolved_participation_shortfalls": list(plan_dict.get("unresolved_participation_shortfalls") or []),
         "same_club_per_tournament_summary": {
             "tournaments_with_more_than_two_from_same_club": len(club_count_over_two),
             "max_club_count_distribution": dict(sorted(max_club_count_by_tournament.items())),
@@ -464,6 +471,7 @@ def _build_checklist_evidence_guide(
                 "publication_readiness.reasons.participation_shortfalls",
                 "deterministic_verify_result.manual_participation_placements",
                 "plan_audit_summary.club_participation_fairness",
+                "plan_audit_summary.unresolved_participation_shortfalls",
             ],
             "summary": {
                 "participation_shortfall_reasons": readiness_reasons.get("participation_shortfalls"),
@@ -472,6 +480,14 @@ def _build_checklist_evidence_guide(
                 # small `sibling_spread`) is a capacity-limited proportional
                 # outcome, not necessarily a planner defect.
                 "club_participation_fairness": plan_audit_summary.get("club_participation_fairness"),
+                # issue #327: each shortfall's own `category`/`reason` --
+                # `participation_under_target_club_share_ok` already reflects
+                # the club-share cross-check above; a plain
+                # `participation_under_target` entry does not and deserves
+                # closer scrutiny.
+                "unresolved_participation_shortfalls": plan_audit_summary.get(
+                    "unresolved_participation_shortfalls"
+                ),
             },
         },
         {

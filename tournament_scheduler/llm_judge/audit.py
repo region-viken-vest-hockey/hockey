@@ -54,6 +54,17 @@ def build_audit_prompt(context: dict[str, Any]) -> str:
         "must be `FAIL` -- never `REVIEW_REQUIRED` or `PASS` -- regardless of any other score "
         "or `production_ready` label.",
         "",
+        "Soft policy (issue #327): a team's participation count coming in under its nominal "
+        "target is not automatically a defect. Check each shortfall's `category` in "
+        "`plan_audit_summary.unresolved_participation_shortfalls` against "
+        "`plan_audit_summary.club_participation_fairness` -- a "
+        "`participation_under_target_club_share_ok` shortfall means the team's club already "
+        "received its fair proportional share of participation slots with sibling teams "
+        "rotated evenly (spread <=1), and is not by itself grounds for `REVIEW_REQUIRED`. Still "
+        "scrutinize a club materially below its `target_share` without such evidence, or any "
+        "shortfall where `sibling_spread` is greater than 1 -- those indicate a genuine "
+        "fairness gap worth flagging.",
+        "",
         "Audit mission:",
         json.dumps(context.get("audit_mission"), ensure_ascii=False, indent=2),
         "",

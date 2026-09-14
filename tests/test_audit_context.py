@@ -143,6 +143,20 @@ def test_context_includes_selected_plan_cross_checks(tmp_path):
                         "games": [],
                     },
                 ],
+                "club_participation_fairness": [
+                    {"age_group": "U10", "period": None, "club": "Jar", "target_share": 0.4, "actual_share": 0.4},
+                ],
+                "unresolved_participation_shortfalls": [
+                    {
+                        "club": "Jar",
+                        "label": "A",
+                        "age_group": "U10",
+                        "actual": "4",
+                        "target": "5",
+                        "category": "participation_under_target_club_share_ok",
+                        "reason": "klubben har likevel fått sin forholdsmessige andel",
+                    },
+                ],
             }
         },
         status=StageStatus.DONE,
@@ -161,6 +175,17 @@ def test_context_includes_selected_plan_cross_checks(tmp_path):
     assert summary["host_participation_summary"]["tournaments_where_host_club_not_in_participants"] == 1
     assert summary["team_daily_participation_summary"]["duplicate_team_day_count"] == 1
     assert summary["same_club_per_tournament_summary"]["tournaments_with_more_than_two_from_same_club"] == 1
+
+    # issue #327: per-team shortfall category/reason must reach the judge
+    # alongside the club-level fairness rows, both directly on the plan
+    # summary and referenced from checklist item 1's evidence guide.
+    assert summary["club_participation_fairness"][0]["club"] == "Jar"
+    assert summary["unresolved_participation_shortfalls"][0]["category"] == "participation_under_target_club_share_ok"
+    item_1 = next(item for item in context["checklist_evidence_guide"] if item["item_id"] == 1)
+    assert "plan_audit_summary.unresolved_participation_shortfalls" in item_1["primary_evidence"]
+    assert item_1["summary"]["unresolved_participation_shortfalls"][0]["category"] == (
+        "participation_under_target_club_share_ok"
+    )
 
 
 def test_context_records_prompt_and_runbook_version(tmp_path):
