@@ -317,32 +317,23 @@ class SeasonPlan:
     # Teams whose final participation count doesn't match their target
     # tournament count (usually a shortfall from slot scarcity). Each entry:
     # {"club", "label", "age_group", "actual", "target", "reason"}.
-    # Non-blocking -- surfaced in manual_schedule.html rather than rejecting
-    # the whole plan.
+    # Non-blocking -- surfaced in manual_schedule.html, not plan-rejecting.
     unresolved_participation_shortfalls: List[Dict[str, str]] = field(default_factory=list)
-    # The authoritative per-age-group, per-half participation
-    # target this plan was built against (before_christmas/after_christmas
-    # per age group), carried on the plan itself so planner-independent
-    # consumers (rules_model.py, the rules report) can show configured
-    # targets alongside actual/shortfall figures without depending on
-    # SeasonPlanner internals.
+    # Authoritative per-age-group, per-half participation target this plan
+    # was built against, carried on the plan so planner-independent
+    # consumers (rules_model.py, the rules report) can show it without
+    # depending on SeasonPlanner internals.
     participation_targets_by_age_group: Dict[str, Dict[str, int]] = field(default_factory=dict)
     # issue #274: explicit LLM/controller decisions for shared/joint-club
-    # registrations (e.g. "Kongsberg/Tønsberg") choosing which constituent
-    # club carries a specific hosting obligation. Each entry: {"registration",
-    # "age_group", "chosen_club", "rationale", "decided_by", "decided_at"}.
-    # Provenance only -- no chain-of-thought, matching
-    # `application.decisions.DecisionResult`'s posture. See
-    # `shared_host_decision.py`.
+    # registrations choosing which constituent club carries a hosting
+    # obligation. Entry: {"registration", "age_group", "chosen_club",
+    # "rationale", "decided_by", "decided_at"}. Provenance only -- no
+    # chain-of-thought. See `shared_host_decision.py`.
     shared_host_decisions: List[Dict[str, str]] = field(default_factory=list)
-    # issue #323 P0: tournaments whose participant set (chosen first, per
-    # all hard constraints) had no candidate host among the participants'
-    # own physical clubs with a free arena/time slot. Never auto-placed by
-    # inventing an unrelated host or force-swapping a participant to fit
-    # one -- the original valid participant set is preserved and the slot
-    # is surfaced here for manual placement instead. Each entry:
-    # {"age_group", "date", "period", "candidate_hosts", "participant_clubs",
-    # "reason"} where reason is currently always "no_participant_host_slot".
+    # issue #323 P0: tournaments whose selected participants had no
+    # candidate host club with a free slot -- never auto-placed, surfaced
+    # here for manual placement instead. Entry: {"age_group", "date",
+    # "period", "candidate_hosts", "participant_clubs", "reason"}.
     unresolved_tournament_placements: List[Dict[str, object]] = field(default_factory=list)
 
 
