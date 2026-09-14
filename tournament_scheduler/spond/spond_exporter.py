@@ -6,7 +6,7 @@ sort and filter the sheet before importing.
 
 Two output modes are supported:
 
-* **tournament-level** (default) — one row per tournament: ``"U10 Turnering — Jarhallen"``
+* **tournament-level** (default) — one row per tournament: ``"U10 Turnering — Jar Isforum"``
 * **game-level** — one row per internal game: ``"U10: Jar 1 vs Jar 2"``
 
 The resulting ``.xlsx`` file can be imported directly into Spond Club's
@@ -52,7 +52,7 @@ class SpondExporter:
     game_level:
         If ``True``, each row is a single game (``"U10: Jar 1 vs Jar 2"``).
         If ``False`` (default), each row is a tournament summary
-        (``"U10 Turnering — Jarhallen"``).
+        (``"U10 Turnering — Jar Isforum"``).
     """
 
     def __init__(self, *, game_level: bool = False) -> None:

@@ -3,7 +3,7 @@
 Forumbooking's public ``schema.aspx`` view renders one week of bookings as
 plain HTML. The generic browser fallback only sees time ranges and therefore
 collapses them onto the first day of each scraped month. This module parses the
-Forumbooking-specific booking element ids and tooltip text so Jarhallen events
+Forumbooking-specific booking element ids and tooltip text so Jar Isforum events
 keep their real dates, times, and customer labels.
 """
 

@@ -86,7 +86,7 @@ function systemPrompt(type: string, url: string): string {
     "**Hva du ser etter:**",
     "Ishall-bookinger ser typisk slik ut:",
     "- Datoer med tidsluker (f.eks. '08:00-09:30' eller 'kl 08.00-09.30')",
-    "- Hallnavn som 'Kongsberghallen', 'Jarhallen', 'Bærum ishall'",
+    "- Hallnavn som 'Kongsberghallen', 'Jar Isforum', 'Bærum ishall'",
     "- Lag-/klubbnavn som 'Kongsberg', 'Jar', 'Jutul', 'Skien'",
     "- Aktiviteter som 'ishockey', 'kunstløp', 'trening', 'kamp'",
     "- Månedsoversikter med ukedager og datoer",

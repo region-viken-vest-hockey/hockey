@@ -100,13 +100,13 @@ class TestOptimizeCandidate:
 
     def test_untouched_when_only_one_tournament_per_age_group(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)]}
         optimized = optimize_candidate(candidate, iterations=500, seed=1)
         assert optimized["tournaments"] == candidate["tournaments"]
 
     def test_cancelled_tournaments_pass_through_unchanged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        cancelled = _tournament("tc", "2026-01-10", "Jarhallen", "U10", teams)
+        cancelled = _tournament("tc", "2026-01-10", "Jar Isforum", "U10", teams)
         cancelled["cancelled"] = True
         candidate = _clustered_candidate()
         candidate["tournaments"].append(cancelled)
@@ -248,7 +248,7 @@ class TestMoveDates:
         shows as busy at that time, not just a sibling-candidate collision."""
         t1_teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
         t2_teams = [_team("Ringerike", "C", "U10"), _team("Holmen", "D", "U10")]
-        t1 = _tournament("t1", "2026-01-05", "Jarhallen", "U10", t1_teams)
+        t1 = _tournament("t1", "2026-01-05", "Jar Isforum", "U10", t1_teams)
         t1["start_time"] = "10:00"
         t2 = _tournament("t2", "2026-01-19", "Ringerikshallen", "U10", t2_teams)
         t2["start_time"] = "10:00"
@@ -277,17 +277,17 @@ def _host_move_candidate() -> dict:
     ]
     return {
         "schema_version": 1,
-        "tournaments": [_tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)],
+        "tournaments": [_tournament("t1", "2026-01-05", "Jar Isforum", "U10", teams)],
     }
 
 
 def _host_move_problem(club_calendar_status: dict | None = None) -> dict:
     return {
         "clubs": {
-            "Jar": "Jarhallen",
+            "Jar": "Jar Isforum",
             "Kongsberg": "Kongsberghallen",
             "Ringerike": "Ringerikshallen",
-            "Holmen": "Holmenkollen ishall",
+            "Holmen": "Holmen ishall",
         },
         "round_length_minutes": {"U10": 30},
         "club_calendar_status": club_calendar_status or {},
@@ -371,7 +371,7 @@ class TestMoveSlots:
 
     def test_off_by_default_start_times_unchanged(self):
         teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
-        t = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)
+        t = _tournament("t1", "2026-01-05", "Jar Isforum", "U10", teams)
         t["start_time"] = "10:00"
         candidate = {"schema_version": 1, "tournaments": [t]}
         problem = {"round_length_minutes": {"U10": 30}}
@@ -381,7 +381,7 @@ class TestMoveSlots:
 
     def test_reassigns_start_time_within_candidate_window(self):
         teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
-        t = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)
+        t = _tournament("t1", "2026-01-05", "Jar Isforum", "U10", teams)
         t["start_time"] = "10:00"
         candidate = {"schema_version": 1, "tournaments": [t]}
         problem = {"round_length_minutes": {"U10": 30}}
@@ -397,9 +397,9 @@ class TestMoveSlots:
     def test_never_creates_arena_double_booking(self):
         teams1 = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
         teams2 = [_team("Ringerike", "C", "U10"), _team("Holmen", "D", "U10")]
-        t1 = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams1)
+        t1 = _tournament("t1", "2026-01-05", "Jar Isforum", "U10", teams1)
         t1["start_time"] = "10:00"
-        t2 = _tournament("t2", "2026-01-05", "Jarhallen", "U10", teams2)
+        t2 = _tournament("t2", "2026-01-05", "Jar Isforum", "U10", teams2)
         t2["start_time"] = "13:00"
         candidate = {"schema_version": 1, "tournaments": [t1, t2]}
         problem = {"round_length_minutes": {"U10": 30}}
@@ -413,7 +413,7 @@ class TestMoveSlots:
 
     def test_deterministic_for_fixed_seed(self):
         teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
-        t = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)
+        t = _tournament("t1", "2026-01-05", "Jar Isforum", "U10", teams)
         t["start_time"] = "10:00"
         candidate = {"schema_version": 1, "tournaments": [t]}
         problem = {"round_length_minutes": {"U10": 30}}
@@ -429,7 +429,7 @@ class TestMoveSlots:
         rejected if it collides with the host's own real booking, not just
         another tournament in this candidate."""
         teams = [_team("Jar", "A", "U10"), _team("Kongsberg", "B", "U10")]
-        t = _tournament("t1", "2026-01-05", "Jarhallen", "U10", teams)
+        t = _tournament("t1", "2026-01-05", "Jar Isforum", "U10", teams)
         t["start_time"] = "10:00"
         candidate = {"schema_version": 1, "tournaments": [t]}
         problem = {
@@ -524,8 +524,8 @@ class TestSearchStateIncrementalMatchesFullRecompute:
         candidate = {
             "schema_version": 1,
             "tournaments": [
-                _tournament("t1", "2026-01-10", "Jarhallen", "U10", u10_teams),
-                _tournament("t2", "2026-01-17", "Jarhallen", "U10", list(reversed(u10_teams))),
+                _tournament("t1", "2026-01-10", "Jar Isforum", "U10", u10_teams),
+                _tournament("t2", "2026-01-17", "Jar Isforum", "U10", list(reversed(u10_teams))),
                 _tournament("t3", "2026-01-10", "Kongsberghallen", "JU10", ju10_teams),
                 _tournament("t4", "2026-01-17", "Kongsberghallen", "JU10", list(reversed(ju10_teams))),
             ],
@@ -558,7 +558,7 @@ class TestSearchStateIncrementalMatchesFullRecompute:
         candidate = {
             "schema_version": 1,
             "tournaments": [
-                _tournament("t1", "2026-01-10", "Jarhallen", "U11", jar_heavy),
+                _tournament("t1", "2026-01-10", "Jar Isforum", "U11", jar_heavy),
                 _tournament("t2", "2026-01-17", "Skienhallen", "U11", other),
             ],
         }

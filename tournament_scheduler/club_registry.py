@@ -181,7 +181,7 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
     ),
     "Jar": ClubCalendarSource(
         club="Jar",
-        arena="Jarhallen",
+        arena="Jar Isforum",
         kind=CalendarSourceKind.OUTLOOK,
         source="https://www.forumbooking.no/schema.aspx?obj=2&schema=Jarhallen%20(ishall)&kalender=true&safarifix=true",
         skip=False,
@@ -192,7 +192,7 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
     ),
     "Holmen": ClubCalendarSource(
         club="Holmen",
-        arena="Holmenkollen ishall",
+        arena="Holmen ishall",
         kind=CalendarSourceKind.OUTLOOK,
         source="https://kalender.sportello.no/booking/11055",
         skip=False,

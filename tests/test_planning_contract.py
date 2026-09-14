@@ -63,14 +63,14 @@ class TestExtractCandidate:
 class TestVerifyCandidateSelfConsistency:
     def test_clean_candidate_passes_without_problem(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)]}
         result = verify_candidate(candidate)
         assert result["ok"], result["violations"]
         assert "registered_teams" in result["skipped"]
 
     def test_duplicate_participation_same_date_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)
+        t1 = _tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)
         t2 = _tournament("t2", "2026-01-10", "Kongsberghallen", "U10", teams)
         result = verify_candidate({"tournaments": [t1, t2]})
         assert not result["ok"]
@@ -83,7 +83,7 @@ class TestVerifyCandidateSelfConsistency:
         # double-booked on the same date.
         u10_teams = [_team("Ringerike", "Ringerike 1", "U10"), _team("Jar", "Jar 1", "U10")]
         u11_teams = [_team("Ringerike", "Ringerike 1", "U11"), _team("Jar", "Jar 1", "U11")]
-        t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", u10_teams)
+        t1 = _tournament("t1", "2026-01-10", "Jar Isforum", "U10", u10_teams)
         t2 = _tournament("t2", "2026-01-10", "Kongsberghallen", "U11", u11_teams)
         result = verify_candidate({"tournaments": [t1, t2]})
         assert result["ok"], result["violations"]
@@ -98,7 +98,7 @@ class TestVerifyCandidateSelfConsistency:
             _team("Jar", "Jar 4", "U11"),
             _team("Kongsberg", "Kongsberg 1", "U11"),
         ]
-        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "U11", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jar Isforum", "U11", teams)]}
         result = verify_candidate(candidate)
         assert not result["ok"]
         codes = {v["code"] for v in result["violations"]}
@@ -111,7 +111,7 @@ class TestVerifyCandidateSelfConsistency:
             _team("Jar", "Jar 3", "U11"),
             _team("Kongsberg", "Kongsberg 1", "U11"),
         ]
-        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "U11", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jar Isforum", "U11", teams)]}
         result = verify_candidate(candidate)
         codes = {v["code"] for v in result["violations"]}
         assert "club_hard_max_exceeded" not in codes
@@ -123,7 +123,7 @@ class TestVerifyCandidateSelfConsistency:
                 {
                     "id": "t1",
                     "date": "2026-01-10",
-                    "arena": "Jarhallen",
+                    "arena": "Jar Isforum",
                     "age_group": "U10",
                     "teams": [team, dict(team)],
                     "games": [],
@@ -138,7 +138,7 @@ class TestVerifyCandidateSelfConsistency:
         # U and JU are never the same category, even when they share the
         # same numeric age.
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "JU10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "JU10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jar Isforum", "JU10", teams)]}
         result = verify_candidate(candidate)
         assert not result["ok"]
         codes = {v["code"] for v in result["violations"]}
@@ -146,7 +146,7 @@ class TestVerifyCandidateSelfConsistency:
 
     def test_ju_team_in_u_tournament_is_hard_violation(self):
         teams = [_team("Jar", "Jar 1", "JU10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)]}
         result = verify_candidate(candidate)
         assert not result["ok"]
         codes = {v["code"] for v in result["violations"]}
@@ -157,14 +157,14 @@ class TestVerifyCandidateSelfConsistency:
         # shared) must not be collapsed into one team identity.
         u10_teams = [_team("Ringerike", "Ringerike 1", "U10"), _team("Jar", "Jar 1", "U10")]
         ju10_teams = [_team("Ringerike", "Ringerike 1", "JU10"), _team("Jar", "Jar 1", "JU10")]
-        t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", u10_teams)
+        t1 = _tournament("t1", "2026-01-10", "Jar Isforum", "U10", u10_teams)
         t2 = _tournament("t2", "2026-01-10", "Kongsberghallen", "JU10", ju10_teams)
         result = verify_candidate({"tournaments": [t1, t2]})
         assert result["ok"], result["violations"]
 
     def test_cancelled_tournaments_are_ignored(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)
+        t1 = _tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)
         t2 = _tournament("t2", "2026-01-10", "Kongsberghallen", "U10", teams, cancelled=True)
         result = verify_candidate({"tournaments": [t1, t2]})
         assert result["ok"], result["violations"]
@@ -199,21 +199,21 @@ class TestVerifyCandidateWithProblem:
 
     def test_unregistered_team_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Ghost", "Ghost 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)]}
         result = verify_candidate(candidate, self._problem())
         codes = {v["code"] for v in result["violations"]}
         assert "unregistered_team" in codes
 
     def test_date_outside_window_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2027-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2027-06-01", "Jar Isforum", "U10", teams)]}
         result = verify_candidate(candidate, self._problem())
         codes = {v["code"] for v in result["violations"]}
         assert "date_outside_window" in codes
 
     def test_banned_date_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}
         problem = self._problem(
             manual_adjustments={
                 "locked_dates": [],
@@ -229,7 +229,7 @@ class TestVerifyCandidateWithProblem:
 
     def test_excluded_host_club_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}
         problem = self._problem(
             manual_adjustments={
                 "locked_dates": [],
@@ -249,7 +249,7 @@ class TestVerifyCandidateWithProblem:
         verification -- it's surfaced non-blocking for manual placement,
         mirroring unresolved_hosting_obligations (issue #266)."""
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}
         problem = self._problem(club_calendar_status={"Jar": "unknown", "Kongsberg": "known"})
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
@@ -262,7 +262,7 @@ class TestVerifyCandidateWithProblem:
 
     def test_known_host_calendar_status_not_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}
         problem = self._problem(club_calendar_status={"Jar": "known", "Kongsberg": "known"})
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
@@ -273,7 +273,7 @@ class TestVerifyCandidateWithProblem:
         """No status map at all (older/hand-built problem dicts) must not
         falsely flag every host as unknown."""
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}
         result = verify_candidate(candidate, self._problem())
         codes = {v["code"] for v in result["violations"]}
         assert "host_calendar_status_unknown" not in codes
@@ -355,7 +355,7 @@ class TestVerifyCandidateWithProblem:
             _team("Kongsberg", "Kongsberg 1", "U10"),
             _team("Skien", "Skien 1", "U10"),
         ]
-        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}
         problem = self._problem(
             parallel_games={"U10": 1},
             teams=[
@@ -373,7 +373,7 @@ class TestVerifyCandidateWithProblem:
         surfaced non-blocking for manual placement (e.g. an operator
         arranging an extra game by hand), same as manual_calendar_placements."""
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}
         problem = self._problem(target_tournament_count=3)
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
@@ -393,7 +393,7 @@ class TestVerifyCandidateWithProblem:
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {
             "tournaments": [
-                _tournament(f"t{i}", f"2026-0{i}-01", "Jarhallen", "U10", teams) for i in range(1, 5)
+                _tournament(f"t{i}", f"2026-0{i}-01", "Jar Isforum", "U10", teams) for i in range(1, 5)
             ]
         }
         problem = self._problem(target_tournament_count=3)
@@ -408,7 +408,7 @@ class TestVerifyCandidateWithProblem:
         remains distinct from over-participation -- it stays a non-blocking
         manual placement item, not a hard violation."""
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}
         problem = self._problem(target_tournament_count=3)
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
@@ -426,12 +426,12 @@ class TestVerifyCandidateWithProblem:
         candidate = {
             "tournaments": [
                 # Before Christmas (2025): 3 participations, matches target.
-                _tournament("t1", "2025-09-06", "Jarhallen", "U11", teams),
-                _tournament("t2", "2025-10-11", "Jarhallen", "U11", teams),
-                _tournament("t3", "2025-11-15", "Jarhallen", "U11", teams),
+                _tournament("t1", "2025-09-06", "Jar Isforum", "U11", teams),
+                _tournament("t2", "2025-10-11", "Jar Isforum", "U11", teams),
+                _tournament("t3", "2025-11-15", "Jar Isforum", "U11", teams),
                 # After Christmas (2026): only 2 participations, below target of 3.
-                _tournament("t4", "2026-01-24", "Jarhallen", "U11", teams),
-                _tournament("t5", "2026-02-21", "Jarhallen", "U11", teams),
+                _tournament("t4", "2026-01-24", "Jar Isforum", "U11", teams),
+                _tournament("t5", "2026-02-21", "Jar Isforum", "U11", teams),
             ]
         }
         problem = self._problem(
@@ -466,10 +466,10 @@ class TestVerifyCandidateWithProblem:
         teams = [_team("Jar", "Jar 1", "U11"), _team("Kongsberg", "Kongsberg 1", "U11")]
         candidate = {
             "tournaments": [
-                _tournament("t1", "2026-01-10", "Jarhallen", "U11", teams),
-                _tournament("t2", "2026-02-10", "Jarhallen", "U11", teams),
-                _tournament("t3", "2026-03-10", "Jarhallen", "U11", teams),
-                _tournament("t4", "2026-04-10", "Jarhallen", "U11", teams),
+                _tournament("t1", "2026-01-10", "Jar Isforum", "U11", teams),
+                _tournament("t2", "2026-02-10", "Jar Isforum", "U11", teams),
+                _tournament("t3", "2026-03-10", "Jar Isforum", "U11", teams),
+                _tournament("t4", "2026-04-10", "Jar Isforum", "U11", teams),
             ]
         }
         problem = self._problem(
@@ -496,7 +496,7 @@ class TestVerifyCandidateWithProblem:
         candidate = {
             "tournaments": [
                 _tournament(
-                    "t1", "2026-06-01", "Jarhallen", "U10", teams, start_time="10:00"
+                    "t1", "2026-06-01", "Jar Isforum", "U10", teams, start_time="10:00"
                 )
             ]
         }
@@ -523,7 +523,7 @@ class TestVerifyCandidateWithProblem:
         candidate = {
             "tournaments": [
                 _tournament(
-                    "t1", "2026-06-01", "Jarhallen", "U10", teams, start_time="13:00"
+                    "t1", "2026-06-01", "Jar Isforum", "U10", teams, start_time="13:00"
                 )
             ]
         }
@@ -546,7 +546,7 @@ class TestVerifyCandidateWithProblem:
         candidate = {
             "tournaments": [
                 _tournament(
-                    "t1", "2026-06-01", "Jarhallen", "U10", teams, start_time="10:00"
+                    "t1", "2026-06-01", "Jar Isforum", "U10", teams, start_time="10:00"
                 )
             ]
         }
@@ -569,7 +569,7 @@ class TestVerifyCandidateWithProblem:
         candidate = {
             "tournaments": [
                 _tournament(
-                    "t1", "2026-06-01", "Jarhallen", "U10", teams, start_time="10:00"
+                    "t1", "2026-06-01", "Jar Isforum", "U10", teams, start_time="10:00"
                 )
             ]
         }
@@ -597,7 +597,7 @@ class TestVerifyCandidateWithProblem:
 
     def test_pinned_tournament_missing_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jarhallen", "U10", teams)]}
+        candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}
         problem = self._problem(
             manual_adjustments={
                 "locked_dates": [],
@@ -620,7 +620,7 @@ class TestScoreCandidate:
             _team("Skien", "Skien 1", "U10"),
             _team("Ringerike", "Ringerike 1", "U10"),
         ]
-        t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)
+        t1 = _tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)
         t2 = _tournament("t2", "2026-01-24", "Kongsberghallen", "U10", teams)
         report = score_candidate({"tournaments": [t1, t2]})
 
@@ -642,7 +642,7 @@ class TestScoreCandidate:
             _team("Kongsberg", "Kongsberg 1", "U10"),
             _team("Kongsberg", "Kongsberg 2", "U10"),
         ]
-        t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)
+        t1 = _tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)
         report = score_candidate({"tournaments": [t1]})
         diversity = report["opponent_diversity"]
         # Jar1-Jar2 and Kongsberg1-Kongsberg2 are the two same-club games.
@@ -653,7 +653,7 @@ class TestScoreCandidate:
     def test_reused_label_across_age_groups_scored_separately(self):
         u10_teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         u11_teams = [_team("Jar", "Jar 1", "U11"), _team("Ringerike", "Ringerike 1", "U11")]
-        t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", u10_teams)
+        t1 = _tournament("t1", "2026-01-10", "Jar Isforum", "U10", u10_teams)
         t2 = _tournament("t2", "2026-01-10", "Kongsberghallen", "U11", u11_teams)
         report = score_candidate({"tournaments": [t1, t2]})
         # "Jar 1" appears once per age group; must not be merged into one
@@ -664,8 +664,8 @@ class TestScoreCandidate:
 
     def test_hosting_and_month_distribution(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
-        t1 = _tournament("t1", "2026-01-10", "Jarhallen", "U10", teams)
-        t2 = _tournament("t2", "2026-02-14", "Jarhallen", "U10", teams)
+        t1 = _tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)
+        t2 = _tournament("t2", "2026-02-14", "Jar Isforum", "U10", teams)
         report = score_candidate({"tournaments": [t1, t2]})
         assert report["hosting"]["counts_by_host"]["Jar"] == 2
         assert report["month_distribution"] == {"2026-01": 1, "2026-02": 1}

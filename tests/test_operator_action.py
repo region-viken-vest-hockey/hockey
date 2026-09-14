@@ -298,14 +298,14 @@ class TestPublishPagesExecutor:
                     "arena_day_collisions": [
                         {
                             "date": "2026-09-05",
-                            "arena": "Jarhallen",
+                            "arena": "Jar Isforum",
                             "tournament_id": "u10",
                             "age_group": "U10",
                             "interval": "2026-09-05 10:00–2026-09-05 18:45",
                             "conflicting_tournament_id": "u12",
                             "conflicting_age_group": "U12",
                             "conflicting_interval": "2026-09-05 16:00–2026-09-05 19:45",
-                            "message": "Arena conflict Jarhallen 2026-09-05: u10 overlaps u12",
+                            "message": "Arena conflict Jar Isforum 2026-09-05: u10 overlaps u12",
                         }
                     ]
                 }

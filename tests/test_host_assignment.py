@@ -93,7 +93,7 @@ class TestFallbackHostSlotSearch:
                 "Holmen": [],
             },
             round_length_for_age_group={"U10": 30},
-            club_arenas={"Jar": "Jarahallen", "Holmen": "Holmenkollen ishall"},
+            club_arenas={"Jar": "Jarahallen", "Holmen": "Holmen ishall"},
             scheduler=TournamentScheduler([], [], DateParser()),
         )
 
@@ -125,7 +125,7 @@ class TestJointClubHostNames:
         return SimpleNamespace(
             events_by_club={"Jar": jar_events, "Jutul": jutul_events},
             round_length_for_age_group={"U10": 30},
-            club_arenas={"Jar": "Jarhallen", "Jutul": "Bærum ishall"},
+            club_arenas={"Jar": "Jar Isforum", "Jutul": "Bærum ishall"},
             scheduler=TournamentScheduler([], [], DateParser()),
         )
 
@@ -361,7 +361,7 @@ class TestAgeGroupAwareHostStreak:
         ]
         planner = self._make_planner(teams)
 
-        # Two tournaments on the same day, different age groups, both at Jar/Jarhallen
+        # Two tournaments on the same day, different age groups, both at Jar/Jar Isforum
         scheduled = [
             (date(2026, 10, 3), "U7"),
             (date(2026, 10, 3), "U10"),

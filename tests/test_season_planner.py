@@ -144,7 +144,7 @@ class TestSeasonPlanner:
         planner = SeasonPlanner(
             scheduler=FakeScheduler(free_dates),
             roster=roster,
-            club_arenas={"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"},
+            club_arenas={"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen"},
         )
 
         plan = planner.build_plan(start, end)
@@ -741,9 +741,9 @@ class TestSeasonPlanner:
             Team(club="Ringerike", label="Ringerike U10", age_group="U10"),
         ]
         roster = Roster(teams=teams)
-        club_arenas = {"Kongsberg": "Kongsberghallen", "Jar": "Jarhallen",
-                       "Holmen": "Holmenhallen", "Skien": "Skienhallen",
-                       "Jutul": "Baerumhallen", "Ringerike": "Ringerikehallen"}
+        club_arenas = {"Kongsberg": "Kongsberghallen", "Jar": "Jar Isforum",
+                       "Holmen": "Holmen ishall", "Skien": "Skien ishall",
+                       "Jutul": "Bærum ishall", "Ringerike": "Schjongshallen"}
 
         planner = SeasonPlanner(
             scheduler=FakeScheduler(free_dates),
@@ -1599,7 +1599,7 @@ class TestOpponentHistoryTrackingAndScoring:
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
-            club_arenas={"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"},
+            club_arenas={"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen"},
             parallel_games_for_age_group={"U10": 2},
         )
 
@@ -2124,9 +2124,9 @@ class TestPerTeamGameCounts:
             Team(club="Skien", label="Skien U11", age_group="U11"),
         ])
         club_arenas = {
-            "Jar": "Jarhallen",
+            "Jar": "Jar Isforum",
             "Kongsberg": "Kongsberghallen",
-            "Holmen": "Holmenkollen ishall",
+            "Holmen": "Holmen ishall",
             "Skien": "Skienhallen",
         }
         planner = SeasonPlanner(
@@ -2545,7 +2545,7 @@ class TestProportionalHosting:
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
-            club_arenas={"Jar": "Jarhallen", "Sandefjord": "Bugårdshallen"},
+            club_arenas={"Jar": "Jar Isforum", "Sandefjord": "Bugårdshallen"},
             parallel_games_for_age_group={"U10": 3},
             max_hosting_deviation=0,
             events_by_club={
@@ -2563,7 +2563,7 @@ class TestProportionalHosting:
             tournaments=[
                 Tournament(
                     date=date(2026, 10, 3),
-                    arena="Jarhallen",
+                    arena="Jar Isforum",
                     age_group="U10",
                     teams=[jar, sandefjord],
                     games=[Game(home=jar, away=sandefjord, parallel_slot=0, round_number=1)],
@@ -2762,7 +2762,7 @@ class TestProportionalHosting:
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
-            club_arenas={"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"},
+            club_arenas={"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen"},
             parallel_games_for_age_group={"U10": 3},
             max_hosting_deviation=1,
             events_by_club={
@@ -2788,7 +2788,7 @@ class TestProportionalHosting:
             tournaments=[
                 Tournament(
                     date=date(2026, 10, 3),
-                    arena="Jarhallen",
+                    arena="Jar Isforum",
                     age_group="U10",
                     teams=[joint, opponent],
                     games=[Game(home=joint, away=opponent, parallel_slot=0, round_number=1)],
@@ -3120,7 +3120,7 @@ class TestRulesReport:
             Team(club="Jar", label="Jar U10", age_group="U10"),
             Team(club="Kongsberg", label="Kongsberg U10", age_group="U10"),
         ])
-        club_arenas = {"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"}
+        club_arenas = {"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen"}
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
@@ -3147,7 +3147,7 @@ class TestRulesReport:
             Team(club="Kongsberg", label="Kongsberg U10", age_group="U10"),
             Team(club="Jar", label="Jar U12", age_group="U12"),
         ])
-        club_arenas = {"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"}
+        club_arenas = {"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen"}
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
@@ -3167,7 +3167,7 @@ class TestRulesReport:
             Team(club="Jar", label="Jar U10", age_group="U10"),
             Team(club="Kongsberg", label="Kongsberg U10", age_group="U10"),
         ])
-        club_arenas = {"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"}
+        club_arenas = {"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen"}
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
@@ -3197,7 +3197,7 @@ class TestRulesReport:
             Team(club="Jar", label="Jar U10", age_group="U10"),
             Team(club="Kongsberg", label="Kongsberg JU10", age_group="JU10"),
         ])
-        club_arenas = {"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"}
+        club_arenas = {"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen"}
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
@@ -3214,7 +3214,7 @@ class TestRulesReport:
         roster = Roster(teams=[
             Team(club="Jar", label="Jar U10", age_group="U10"),
         ])
-        club_arenas = {"Jar": "Jarhallen"}
+        club_arenas = {"Jar": "Jar Isforum"}
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
@@ -3236,7 +3236,7 @@ class TestRulesReport:
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
-            club_arenas={"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen", "Skien": "Skienhallen"},
+            club_arenas={"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen", "Skien": "Skienhallen"},
         )
         plan = SeasonPlan(tournaments=[], start_date=date(2026, 10, 1), end_date=date(2027, 4, 30))
 
@@ -3300,7 +3300,7 @@ class TestFeasibilityWarnings:
         planner = SeasonPlanner(
             scheduler=FakeScheduler(free_dates),
             roster=roster,
-            club_arenas={"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"},
+            club_arenas={"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen"},
         )
         planner.build_plan(start, end)
         ju12_warnings = [w for w in planner.feasibility_warnings if "JU12" in w]
@@ -3320,7 +3320,7 @@ class TestSlotAwareScheduling:
         club_arenas = {
             "Frisk Asker": "Varner Arena",
             "Ringerike": "Ringerikshallen",
-            "Holmen": "Holmenkollen ishall",
+            "Holmen": "Holmen ishall",
         }
         return SeasonPlanner(
             scheduler=FakeScheduler(free_dates),
@@ -3707,13 +3707,13 @@ class TestFairnessGate:
         planner = SeasonPlanner(
             scheduler=FakeScheduler([]),
             roster=roster,
-            club_arenas={"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen"},
+            club_arenas={"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen"},
             parallel_games_for_age_group={"U10": 3},
             events_by_club={"Jar": [], "Kongsberg": []},
         )
         tournament = Tournament(
             date=date(2026, 10, 3),
-            arena="Jarhallen",
+            arena="Jar Isforum",
             age_group="U10",
             teams=[jar, kongsberg],
             games=[Game(home=jar, away=kongsberg, parallel_slot=0, round_number=1)],

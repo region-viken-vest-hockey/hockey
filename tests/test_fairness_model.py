@@ -55,7 +55,7 @@ class TestSeasonFairnessModel:
         ]
         tournament = Tournament(
             date=date(2026, 10, 10),
-            arena="Jarhallen",
+            arena="Jar Isforum",
             age_group="U10",
             teams=teams,
             games=[Game(home=teams[0], away=teams[2]), Game(home=teams[1], away=teams[2])],

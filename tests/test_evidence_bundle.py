@@ -25,7 +25,7 @@ def _candidate(seed: int) -> dict:
             {
                 "id": f"t1-{seed}",
                 "date": "2026-01-05",
-                "arena": "Jarhallen",
+                "arena": "Jar Isforum",
                 "age_group": "U10",
                 "host_club": "Jar",
                 "teams": teams,

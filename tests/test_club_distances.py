@@ -82,7 +82,7 @@ class TestArenaToClub:
 
     def test_known_arena_returns_club(self):
         assert arena_to_club("Kongsberghallen") == "Kongsberg"
-        assert arena_to_club("Jarhallen") == "Jar"
+        assert arena_to_club("Jar Isforum") == "Jar"
 
     def test_unknown_arena_returns_none(self):
         assert arena_to_club("Unknown Arena") is None
@@ -180,7 +180,7 @@ class TestComputeTeamTravelDistances:
         from datetime import date
         t = Tournament(
             date=date(2025, 9, 6),
-            arena="Jarhallen",
+            arena="Jar Isforum",
             age_group="U10",
             host_club="Jar",
             teams=[
@@ -198,7 +198,7 @@ class TestComputeTeamTravelDistances:
         from datetime import date
         t1 = Tournament(
             date=date(2025, 9, 6),
-            arena="Jarhallen",
+            arena="Jar Isforum",
             age_group="U10",
             host_club="Jar",
             teams=[
@@ -224,7 +224,7 @@ class TestComputeTeamTravelDistances:
         from datetime import date
         t1 = Tournament(
             date=date(2025, 9, 6),
-            arena="Jarhallen",
+            arena="Jar Isforum",
             age_group="U10",
             host_club="Jar",
             teams=[
@@ -270,7 +270,7 @@ class TestComputeTeamTravelDistances:
         from datetime import date
         t = Tournament(
             date=date(2025, 9, 6),
-            arena="Jarhallen",
+            arena="Jar Isforum",
             age_group="U10",
             host_club="Jar",
             teams=[
@@ -297,7 +297,7 @@ class TestComputeTeamTravelDistances:
 
         t1 = Tournament(
             date=date(2025, 9, 6),
-            arena="Jarhallen",
+            arena="Jar Isforum",
             age_group="U8",
             host_club="Jar",
             teams=[skien_u8],
@@ -332,7 +332,7 @@ class TestComputeTeamTravelDistances:
 
         t = Tournament(
             date=date(2025, 9, 6),
-            arena="Jarhallen",
+            arena="Jar Isforum",
             age_group="U10",
             host_club="Jar",
             teams=[

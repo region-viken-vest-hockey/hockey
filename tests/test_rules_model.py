@@ -166,7 +166,7 @@ def test_build_rules_model_surfaces_unresolved_obligations():
 def test_age_group_mismatch_is_a_hard_violation():
     mismatched_team = Team(club="Jar", label="Jar JU10", age_group="JU10")
     tournament = Tournament(
-        id="t1", date=date(2026, 9, 5), arena="Jarhallen", age_group="U10", teams=[mismatched_team]
+        id="t1", date=date(2026, 9, 5), arena="Jar Isforum", age_group="U10", teams=[mismatched_team]
     )
     plan = _plan(tournaments=[tournament])
     rules = build_rules_model(plan)

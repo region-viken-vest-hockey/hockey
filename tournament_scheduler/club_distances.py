@@ -36,7 +36,7 @@ from tournament_scheduler.models import SeasonPlan, Tournament, Team, find_dupli
 _CLUB_COORDINATES: Dict[str, Tuple[float, float]] = {
     # Kongsberg - Kongsberghallen
     "Kongsberg": (59.6669, 9.6500),
-    # Jar - Jarhallen (Bærum)
+    # Jar - Jar Isforum (Bærum)
     "Jar": (59.8989, 10.5722),
     # Holmen - Holmen ishall (Asker)
     "Holmen": (59.8434, 10.4569),
@@ -99,9 +99,9 @@ def _haversine_km(coord_a: Tuple[float, float], coord_b: Tuple[float, float]) ->
 
 _ARENA_TO_CLUB: Dict[str, str] = {
     "Kongsberghallen": "Kongsberg",
-    "Jarhallen": "Jar",
-    "Holmenkollen ishall": "Holmen",
-    "Ringerikshallen": "Ringerike",
+    "Jar Isforum": "Jar",
+    "Holmen ishall": "Holmen",
+    "Schjongshallen": "Ringerike",
     "Skien ishall": "Skien",
     "Bærum ishall": "Jutul",
     "Varner Arena": "Frisk Asker",

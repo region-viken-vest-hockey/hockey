@@ -19,10 +19,10 @@ def _problem() -> dict:
             {"club": "Holmen", "label": "Holmen 1", "age_group": "U10"},
         ],
         "clubs": {
-            "Jar": "Jarhallen",
+            "Jar": "Jar Isforum",
             "Kongsberg": "Kongsberghallen",
-            "Ringerike": "Ringerikshallen",
-            "Holmen": "Holmenkollen ishall",
+            "Ringerike": "Schjongshallen",
+            "Holmen": "Holmen ishall",
         },
     }
 
@@ -112,7 +112,7 @@ class TestHostMoveGuard:
                 {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
                 {"club": "Kongsberg", "label": "Kongsberg 1", "age_group": "U10"},
             ],
-            "clubs": {"Jar": "Jarhallen", "Kongsberg": "Kongsberghallen", "Skien": "Skienhallen"},
+            "clubs": {"Jar": "Jar Isforum", "Kongsberg": "Kongsberghallen", "Skien": "Skienhallen"},
         }
         assert not _host_move_is_valid([slot], 0, "Skien", problem["clubs"], {}, None, {}, problem, {})
 
@@ -121,5 +121,5 @@ class TestHostMoveGuard:
         # so the guard is never a no-op even when no problem contract is
         # supplied -- an unrepresented host move is always rejected.
         slot = _slot("Jar", [("Jar", "Jar 1", "U10"), ("Kongsberg", "Kongsberg 1", "U10")])
-        clubs = {"Jar": "Jarhallen", "Ringerike": "Ringerikshallen"}
+        clubs = {"Jar": "Jar Isforum", "Ringerike": "Schjongshallen"}
         assert not _host_move_is_valid([slot], 0, "Ringerike", clubs, {})

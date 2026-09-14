@@ -71,7 +71,7 @@ class TestHalfLabel:
 # ---------------------------------------------------------------------------
 
 
-def _tournament(t_id, iso_date, age_group="U10", host="Jar", arena="Jarhallen"):
+def _tournament(t_id, iso_date, age_group="U10", host="Jar", arena="Jar Isforum"):
     return {
         "id": t_id,
         "date": iso_date,
@@ -142,7 +142,7 @@ class TestBuildPlanningProblemSplitDate:
 # ---------------------------------------------------------------------------
 
 
-def _slot(t_id, iso_date, age_group="U10", host="Jar", arena="Jarhallen"):
+def _slot(t_id, iso_date, age_group="U10", host="Jar", arena="Jar Isforum"):
     return _Slot(
         tournament={"id": t_id},
         date=date.fromisoformat(iso_date),

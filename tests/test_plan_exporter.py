@@ -22,7 +22,7 @@ def sample_plan():
 
     t1 = Tournament(
         date=date(2026, 10, 10),
-        arena="Jarhallen",
+        arena="Jar Isforum",
         age_group="U10",
         teams=teams_u10,
         games=_round_robin_games(teams_u10),
@@ -41,7 +41,7 @@ def sample_plan():
         start_date=date(2026, 10, 1),
         end_date=date(2027, 4, 30),
         diversity_score=0.5,
-        arena_counts={"Jarhallen": 1, "Bærum ishall": 1},
+        arena_counts={"Jar Isforum": 1, "Bærum ishall": 1},
     )
 
 

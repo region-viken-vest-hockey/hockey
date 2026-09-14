@@ -30,14 +30,14 @@ def _build_planner_and_plan():
     planner = SeasonPlanner(
         scheduler=OfflineScheduler([]),
         roster=roster,
-        club_arenas={"Jar": "Jarhallen", "Jutul": "Jutulhallen"},
+        club_arenas={"Jar": "Jar Isforum", "Jutul": "Jutulhallen"},
         parallel_games_for_age_group={"U10": 3},
     )
     plan = SeasonPlan(
         tournaments=[
             Tournament(
                 date=date(2026, 9, 5),
-                arena="Jarhallen",
+                arena="Jar Isforum",
                 age_group="U10",
                 teams=[jar_a, jutul],
                 games=[Game(home=jar_a, away=jutul, parallel_slot=0, round_number=1)],

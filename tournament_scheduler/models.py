@@ -153,7 +153,7 @@ class Tournament:
     """
 
     date: date
-    arena: str  # host club's home arena, e.g. "Jarhallen"
+    arena: str  # host club's home arena, e.g. "Jar Isforum"
     age_group: str  # e.g. "U10", "JU11" — one age group/gender per tournament
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     teams: List[Team] = field(default_factory=list)

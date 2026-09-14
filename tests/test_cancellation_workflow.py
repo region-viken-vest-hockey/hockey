@@ -42,7 +42,7 @@ def four_team_tournament() -> Tournament:
     ]
     t = Tournament(
         date=date(2027, 1, 16),
-        arena="Jarhallen",
+        arena="Jar Isforum",
         age_group="U10",
         host_club="Jar",
         teams=teams,
@@ -64,7 +64,7 @@ def six_team_tournament() -> Tournament:
     ]
     t = Tournament(
         date=date(2027, 1, 16),
-        arena="Jarhallen",
+        arena="Jar Isforum",
         age_group="U10",
         host_club="Jar",
         teams=teams,
@@ -94,7 +94,7 @@ def multi_tournament_plan() -> tuple[SeasonPlan, Tournament, Tournament, Tournam
     ]
     t1 = Tournament(
         date=date(2027, 1, 16),
-        arena="Jarhallen",
+        arena="Jar Isforum",
         age_group="U10",
         host_club="Jar",
         teams=teams_a,

@@ -23,7 +23,7 @@ def _make_plan() -> SeasonPlan:
     t1 = Tournament(
         id="pin12345",
         date=date(2027, 1, 16),
-        arena="Jarhallen",
+        arena="Jar Isforum",
         age_group="U10",
         host_club="Jar",
         teams=t1_teams,
@@ -106,7 +106,7 @@ def _make_plan_with_game_count_spread() -> SeasonPlan:
     t_base = Tournament(
         id="spread_base",
         date=date(2027, 1, 16),
-        arena="Jarhallen",
+        arena="Jar Isforum",
         age_group="U10",
         host_club="Jar",
         teams=[jar, skien],
@@ -122,7 +122,7 @@ def _make_plan_with_game_count_spread() -> SeasonPlan:
             Tournament(
                 id=f"spread_extra{i}",
                 date=d,
-                arena="Jarhallen",
+                arena="Jar Isforum",
                 age_group="U10",
                 host_club="Jar",
                 teams=[jar, kongsberg],
@@ -235,7 +235,7 @@ def test_manual_adjustment_workflow_moves_banned_dates_and_updates_host(tmp_path
     assert plan.tournaments[0].host_club == "Jar"
     assert plan.tournaments[1].date != date(2027, 1, 23)
     assert plan.tournaments[1].host_club == "Jar"
-    assert plan.tournaments[1].arena == "Jarhallen"
+    assert plan.tournaments[1].arena == "Jar Isforum"
     assert plan.fairness_gate["status"] in {"pass", "warn", "fail"}
     assert result.conflicts == []
     assert plan.manual_adjustments["pinned_tournament_ids"] == ["pin12345"]

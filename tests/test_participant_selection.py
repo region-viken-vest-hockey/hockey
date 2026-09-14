@@ -433,7 +433,7 @@ class TestPickScoredParticipantsClubCapTiering:
     """issue #324 (reopened): a large club's high-deficit teams must not
     outcompete available legal (<=2-per-club) candidates for a roster slot
     just because their fairness deficit is bigger than the club-cap
-    penalty -- the production regression was a `Jarhallen` U11 tournament
+    penalty -- the production regression was a `Jar Isforum` U11 tournament
     that filled 6/6 with one club's teams despite four other clubs having
     eligible, never-yet-invited teams for that same slot.
     """

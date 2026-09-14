@@ -42,7 +42,7 @@ def six_team_tournament() -> Tournament:
     ]
     t = Tournament(
         date=date(2027, 1, 16),
-        arena="Jarhallen",
+        arena="Jar Isforum",
         age_group="U10",
         host_club="Jar",
         teams=teams,
@@ -66,7 +66,7 @@ def two_tournament_plan() -> tuple[SeasonPlan, Tournament, Tournament]:
     ]
     t1 = Tournament(
         date=date(2027, 1, 16),
-        arena="Jarhallen",
+        arena="Jar Isforum",
         age_group="U10",
         host_club="Jar",
         teams=teams_a,
@@ -256,7 +256,7 @@ class TestMoveDate:
         team_a = [Team(club="Jar", label="Jar 1", age_group="U10")]
         team_b = [Team(club="Skien", label="Skien 1", age_group="U10")]
         t1 = Tournament(
-            date=date(2027, 1, 16), arena="Jarhallen", age_group="U10",
+            date=date(2027, 1, 16), arena="Jar Isforum", age_group="U10",
             teams=team_a, games=SeasonPlanner.generate_round_robin_games(team_a, 1),
         )
         t2 = Tournament(
@@ -415,7 +415,7 @@ class TestAddTournament:
             age_group="U10",
             team_labels=team_labels,
             tournament_date=new_date,
-            arena="Jarhallen",
+            arena="Jar Isforum",
             host_club="Jar",
         )
 
@@ -428,7 +428,7 @@ class TestAddTournament:
         new_t = plan.tournaments[-1]
         assert new_t.date == new_date
         assert new_t.age_group == "U10"
-        assert new_t.arena == "Jarhallen"
+        assert new_t.arena == "Jar Isforum"
         assert len(new_t.teams) == 3
         assert len(new_t.games) > 0, "Should have round-robin games generated"
 
@@ -453,7 +453,7 @@ class TestAddTournament:
             age_group="U10",
             team_labels=["Jar 1", "Nonexistent Team"],
             tournament_date=date(2027, 3, 14),
-            arena="Jarhallen",
+            arena="Jar Isforum",
         )
 
         assert result.success is False
@@ -472,7 +472,7 @@ class TestAddTournament:
             age_group="U12",
             team_labels=["Jar 1", "Kongsberg 1"],
             tournament_date=date(2027, 3, 14),
-            arena="Jarhallen",
+            arena="Jar Isforum",
         )
 
         assert result.success is False
@@ -489,7 +489,7 @@ class TestAddTournament:
             age_group="U10",
             team_labels=["Jar 1"],
             tournament_date=date(2027, 3, 14),
-            arena="Jarhallen",
+            arena="Jar Isforum",
         )
 
         assert result.success is False
@@ -546,7 +546,7 @@ class TestAddTournament:
             age_group="U10",
             team_labels=["Jar 1", "Kongsberg 1"],
             tournament_date=wednesday,
-            arena="Jarhallen",
+            arena="Jar Isforum",
             force=False,
         )
 
@@ -566,7 +566,7 @@ class TestAddTournament:
             age_group="U10",
             team_labels=["Jar 1", "Skien 1"],
             tournament_date=date(2026, 10, 17),  # Earlier than 2027-01-16
-            arena="Jarhallen",
+            arena="Jar Isforum",
             force=True,
         )
         assert result.success is True

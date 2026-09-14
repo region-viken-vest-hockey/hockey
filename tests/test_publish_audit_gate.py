@@ -105,7 +105,7 @@ class TestDeterministicHardFailTakesPrecedence:
                         {
                             "id": "t1",
                             "date": "2026-01-05",
-                            "arena": "Jarhallen",
+                            "arena": "Jar Isforum",
                             "age_group": "U10",
                             "host_club": "Jar",
                             "teams": [{"club": "Jar", "label": "Jar 1", "age_group": "U10"}],

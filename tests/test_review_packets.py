@@ -21,7 +21,7 @@ def _make_plan() -> SeasonPlan:
     t1 = Tournament(
         id="jar12345",
         date=date(2025, 10, 5),
-        arena="Jarhallen",
+        arena="Jar Isforum",
         age_group="U10",
         host_club="Jar",
         teams=[jar, kongsberg],

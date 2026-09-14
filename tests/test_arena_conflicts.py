@@ -20,7 +20,7 @@ def _games(age_group="U10", rounds=1):
     return [Game(home=teams[0], away=teams[1], round_number=idx) for idx in range(1, rounds + 1)]
 
 
-def _tournament(tid, start_time, *, arena="Jarhallen", day=date(2026, 9, 5), age_group="U10", rounds=1):
+def _tournament(tid, start_time, *, arena="Jar Isforum", day=date(2026, 9, 5), age_group="U10", rounds=1):
     return Tournament(
         id=tid,
         date=day,
@@ -62,7 +62,7 @@ def test_overlapping_intervals_collide_with_actionable_details():
 
     assert len(collisions) == 1
     collision = collisions[0]
-    assert collision["arena"] == "Jarhallen"
+    assert collision["arena"] == "Jar Isforum"
     assert collision["date"] == "2026-09-05"
     assert collision["tournament_id"] == "first"
     assert collision["conflicting_tournament_id"] == "second"
@@ -85,7 +85,7 @@ def test_overnight_interval_collides_with_next_day_tournament():
 
 
 def test_same_time_in_different_arenas_does_not_collide():
-    first = _tournament("first", "10:00", arena="Jarhallen")
+    first = _tournament("first", "10:00", arena="Jar Isforum")
     second = _tournament("second", "10:00", arena="Kongsberghallen")
 
     assert find_arena_interval_collisions([first, second], {"U10": 20}) == []
