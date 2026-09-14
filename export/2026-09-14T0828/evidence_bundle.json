@@ -1,0 +1,4907 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-14T08:28:33+00:00",
+  "run_id": "20260914T080753Z-e45d36d7",
+  "input_fingerprint": {
+    "path": "input.xlsx",
+    "sha256": "97fb8dbb7e06981b79a2ea71020eceffd665177ce05a00e8d2d466b8d6cf14dc"
+  },
+  "source_summary": {
+    "sources_scanned": 9,
+    "blocked_sources": [],
+    "club_calendar_status": {
+      "Kongsberg": "known",
+      "Skien": "known",
+      "Ringerike": "known",
+      "Frisk Asker": "known",
+      "Jutul": "known",
+      "Jar": "known",
+      "Holmen": "known",
+      "Tønsberg": "known",
+      "Sandefjord Penguins": "known"
+    }
+  },
+  "decision_log": [
+    {
+      "context": {
+        "schema_version": 1,
+        "run_id": "",
+        "capability": "config",
+        "stage": "config",
+        "objective": "decide whether the pipeline should continue past this stage",
+        "facts": {
+          "sources": 9,
+          "start_date": "2026-10-09",
+          "end_date": "2027-03-28",
+          "age_groups": [
+            "U7",
+            "U8",
+            "JU8",
+            "U9",
+            "U10",
+            "JU10",
+            "U11",
+            "U12",
+            "JU12"
+          ],
+          "clubs": []
+        },
+        "hard_violations": [],
+        "baseline_hard_violations": [],
+        "warnings": [],
+        "scorecard": {},
+        "baseline_ref": null,
+        "candidate_ref": null,
+        "available_actions": [
+          "proceed",
+          "abort",
+          "retry_stage",
+          "request_operator"
+        ],
+        "action_parameters": {},
+        "prior_results": [],
+        "requires_human_approval": false,
+        "decision_action_template": {
+          "proceed": {
+            "action_id": "proceed",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "abort": {
+            "action_id": "abort",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "retry_stage": {
+            "action_id": "retry_stage",
+            "arguments": {
+              "stage": "<stage>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "request_operator": {
+            "action_id": "request_operator",
+            "arguments": {
+              "question": "<question>"
+            },
+            "rationale": "<concise audit summary>"
+          }
+        }
+      },
+      "action": {
+        "schema_version": 1,
+        "action_id": "proceed",
+        "target": "",
+        "arguments": {},
+        "rationale": "9 sources configured, valid season window 2026-10-09 to 2027-03-28, no hard violations"
+      },
+      "result": {
+        "schema_version": 1,
+        "accepted": true,
+        "action_id": "proceed",
+        "target": "",
+        "result_ref": null,
+        "rationale": "9 sources configured, valid season window 2026-10-09 to 2027-03-28, no hard violations",
+        "rejection_reason": null,
+        "changed_violations": [],
+        "changed_warnings": [],
+        "changed_metrics": {},
+        "next_available_actions": []
+      },
+      "recorded_at": "2026-09-14T08:08:01.930195+00:00"
+    },
+    {
+      "context": {
+        "schema_version": 1,
+        "run_id": "",
+        "capability": "scraping",
+        "stage": "scraping",
+        "objective": "decide whether the pipeline should continue past this stage",
+        "facts": {
+          "sources_scanned": 9,
+          "blocked_count": 0,
+          "blocked_sources": [],
+          "llm_fallback_count": 0,
+          "sources_with_events": 9,
+          "total_events": 8032
+        },
+        "hard_violations": [],
+        "baseline_hard_violations": [],
+        "warnings": [],
+        "scorecard": {},
+        "baseline_ref": null,
+        "candidate_ref": null,
+        "available_actions": [
+          "proceed",
+          "abort",
+          "retry_stage",
+          "request_operator"
+        ],
+        "action_parameters": {},
+        "prior_results": [],
+        "requires_human_approval": false,
+        "decision_action_template": {
+          "proceed": {
+            "action_id": "proceed",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "abort": {
+            "action_id": "abort",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "retry_stage": {
+            "action_id": "retry_stage",
+            "arguments": {
+              "stage": "<stage>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "request_operator": {
+            "action_id": "request_operator",
+            "arguments": {
+              "question": "<question>"
+            },
+            "rationale": "<concise audit summary>"
+          }
+        }
+      },
+      "action": {
+        "schema_version": 1,
+        "action_id": "proceed",
+        "target": "",
+        "arguments": {},
+        "rationale": "9/9 sources scanned successfully, 0 blocked, 8032 events collected, no hard violations"
+      },
+      "result": {
+        "schema_version": 1,
+        "accepted": true,
+        "action_id": "proceed",
+        "target": "",
+        "result_ref": null,
+        "rationale": "9/9 sources scanned successfully, 0 blocked, 8032 events collected, no hard violations",
+        "rejection_reason": null,
+        "changed_violations": [],
+        "changed_warnings": [],
+        "changed_metrics": {},
+        "next_available_actions": []
+      },
+      "recorded_at": "2026-09-14T08:08:05.965849+00:00"
+    },
+    {
+      "context": {
+        "schema_version": 1,
+        "run_id": "20260914T080753Z-e45d36d7",
+        "capability": "shared_host_assignment",
+        "stage": "stage3_planning",
+        "objective": "Decide which constituent club of the shared registration 'Kongsberg/Tønsberg' (JU12) should carry this hosting obligation. Calendar availability must not by itself decide the winner -- weigh current hosting burden/fairness first; a chosen constituent with no trustworthy calendar still keeps the obligation and becomes a manual placement instead of switching to the other constituent.",
+        "facts": {
+          "registration": "Kongsberg/Tønsberg",
+          "age_group": "JU12",
+          "constituents": [
+            "Kongsberg",
+            "Tønsberg"
+          ],
+          "hosted_by_constituent": {
+            "Kongsberg": 2,
+            "Tønsberg": 1
+          },
+          "hosted_by_constituent_total": {
+            "Kongsberg": 8,
+            "Tønsberg": 15
+          },
+          "calendar_trust": {
+            "Kongsberg": "known",
+            "Tønsberg": "known"
+          },
+          "automatic_placement_possible": {
+            "Kongsberg": true,
+            "Tønsberg": true
+          }
+        },
+        "hard_violations": [],
+        "baseline_hard_violations": [],
+        "warnings": [],
+        "scorecard": {},
+        "baseline_ref": null,
+        "candidate_ref": null,
+        "available_actions": [
+          "assign_shared_host",
+          "request_operator"
+        ],
+        "action_parameters": {
+          "assign_shared_host": {
+            "chosen_club": {
+              "type": "string",
+              "enum": [
+                "Kongsberg",
+                "Tønsberg"
+              ],
+              "description": "The constituent club that will carry this hosting obligation. Must be one of the registration's own constituents."
+            }
+          }
+        },
+        "prior_results": [],
+        "requires_human_approval": false,
+        "decision_action_template": {
+          "assign_shared_host": {
+            "action_id": "assign_shared_host",
+            "arguments": {
+              "chosen_club": "<one of: Kongsberg|Tønsberg>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "request_operator": {
+            "action_id": "request_operator",
+            "arguments": {
+              "question": "<question>"
+            },
+            "rationale": "<concise audit summary>"
+          }
+        }
+      },
+      "action": {
+        "schema_version": 1,
+        "action_id": "assign_shared_host",
+        "target": "",
+        "arguments": {
+          "chosen_club": "Kongsberg"
+        },
+        "rationale": "Kongsberg has substantially lower total season hosting burden (8 vs 15) than Tønsberg; both calendars are known/trustworthy so fairness, not calendar availability, decides. Kongsberg hosting slightly more within JU12 specifically (2 vs 1) is outweighed by the much larger overall imbalance."
+      },
+      "result": {
+        "schema_version": 1,
+        "accepted": true,
+        "action_id": "assign_shared_host",
+        "target": "",
+        "result_ref": null,
+        "rationale": "Kongsberg has substantially lower total season hosting burden (8 vs 15) than Tønsberg; both calendars are known/trustworthy so fairness, not calendar availability, decides. Kongsberg hosting slightly more within JU12 specifically (2 vs 1) is outweighed by the much larger overall imbalance.",
+        "rejection_reason": null,
+        "changed_violations": [],
+        "changed_warnings": [],
+        "changed_metrics": {},
+        "next_available_actions": []
+      },
+      "recorded_at": "2026-09-14T08:08:35.639638+00:00"
+    },
+    {
+      "context": {
+        "schema_version": 1,
+        "run_id": "20260914T080753Z-e45d36d7",
+        "capability": "shared_host_assignment",
+        "stage": "stage3_planning",
+        "objective": "Decide which constituent club of the shared registration 'Kongsberg/Tønsberg' (JU12) should carry this hosting obligation. Calendar availability must not by itself decide the winner -- weigh current hosting burden/fairness first; a chosen constituent with no trustworthy calendar still keeps the obligation and becomes a manual placement instead of switching to the other constituent.",
+        "facts": {
+          "registration": "Kongsberg/Tønsberg",
+          "age_group": "JU12",
+          "constituents": [
+            "Kongsberg",
+            "Tønsberg"
+          ],
+          "hosted_by_constituent": {
+            "Kongsberg": 2,
+            "Tønsberg": 1
+          },
+          "hosted_by_constituent_total": {
+            "Kongsberg": 8,
+            "Tønsberg": 15
+          },
+          "calendar_trust": {
+            "Kongsberg": "known",
+            "Tønsberg": "known"
+          },
+          "automatic_placement_possible": {
+            "Kongsberg": true,
+            "Tønsberg": true
+          }
+        },
+        "hard_violations": [],
+        "baseline_hard_violations": [],
+        "warnings": [],
+        "scorecard": {},
+        "baseline_ref": null,
+        "candidate_ref": null,
+        "available_actions": [
+          "assign_shared_host",
+          "request_operator"
+        ],
+        "action_parameters": {
+          "assign_shared_host": {
+            "chosen_club": {
+              "type": "string",
+              "enum": [
+                "Kongsberg",
+                "Tønsberg"
+              ],
+              "description": "The constituent club that will carry this hosting obligation. Must be one of the registration's own constituents."
+            }
+          }
+        },
+        "prior_results": [],
+        "requires_human_approval": false,
+        "decision_action_template": {
+          "assign_shared_host": {
+            "action_id": "assign_shared_host",
+            "arguments": {
+              "chosen_club": "<one of: Kongsberg|Tønsberg>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "request_operator": {
+            "action_id": "request_operator",
+            "arguments": {
+              "question": "<question>"
+            },
+            "rationale": "<concise audit summary>"
+          }
+        }
+      },
+      "action": {
+        "schema_version": 1,
+        "action_id": "assign_shared_host",
+        "target": "",
+        "arguments": {
+          "chosen_club": "Kongsberg"
+        },
+        "rationale": "Kongsberg has substantially lower total season hosting burden (8 vs 15) than Tønsberg; both calendars are known/trustworthy so fairness, not calendar availability, decides."
+      },
+      "result": {
+        "schema_version": 1,
+        "accepted": true,
+        "action_id": "assign_shared_host",
+        "target": "",
+        "result_ref": null,
+        "rationale": "Kongsberg has substantially lower total season hosting burden (8 vs 15) than Tønsberg; both calendars are known/trustworthy so fairness, not calendar availability, decides.",
+        "rejection_reason": null,
+        "changed_violations": [],
+        "changed_warnings": [],
+        "changed_metrics": {},
+        "next_available_actions": []
+      },
+      "recorded_at": "2026-09-14T08:10:05.770104+00:00"
+    },
+    {
+      "context": {
+        "schema_version": 1,
+        "run_id": "",
+        "capability": "scraping",
+        "stage": "scraping",
+        "objective": "decide whether the pipeline should continue past this stage",
+        "facts": {
+          "sources_scanned": 9,
+          "blocked_count": 0,
+          "blocked_sources": [],
+          "llm_fallback_count": 0,
+          "sources_with_events": 9,
+          "total_events": 8032
+        },
+        "hard_violations": [],
+        "baseline_hard_violations": [],
+        "warnings": [],
+        "scorecard": {},
+        "baseline_ref": null,
+        "candidate_ref": null,
+        "available_actions": [
+          "proceed",
+          "abort",
+          "retry_stage",
+          "request_operator"
+        ],
+        "action_parameters": {},
+        "prior_results": [],
+        "requires_human_approval": false,
+        "decision_action_template": {
+          "proceed": {
+            "action_id": "proceed",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "abort": {
+            "action_id": "abort",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "retry_stage": {
+            "action_id": "retry_stage",
+            "arguments": {
+              "stage": "<stage>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "request_operator": {
+            "action_id": "request_operator",
+            "arguments": {
+              "question": "<question>"
+            },
+            "rationale": "<concise audit summary>"
+          }
+        }
+      },
+      "action": {
+        "schema_version": 1,
+        "action_id": "keep_baseline",
+        "target": "",
+        "arguments": {},
+        "rationale": "Attempt 2 regressed on 10/17 metrics (opponent diversity, turnaround gaps, hosting.unresolved_obligations_count +3, temporal.max_gap_days +7) versus only 2 minor improvements; scorecard shows dominates_baseline=false. Keeping attempt 1 as best plan."
+      },
+      "result": {
+        "schema_version": 1,
+        "accepted": false,
+        "action_id": "keep_baseline",
+        "target": "",
+        "result_ref": null,
+        "rationale": "Attempt 2 regressed on 10/17 metrics (opponent diversity, turnaround gaps, hosting.unresolved_obligations_count +3, temporal.max_gap_days +7) versus only 2 minor improvements; scorecard shows dominates_baseline=false. Keeping attempt 1 as best plan.",
+        "rejection_reason": "decision_action_not_available",
+        "changed_violations": [],
+        "changed_warnings": [],
+        "changed_metrics": {},
+        "next_available_actions": [
+          "proceed",
+          "abort",
+          "retry_stage",
+          "request_operator"
+        ]
+      },
+      "recorded_at": "2026-09-14T08:10:58.406974+00:00"
+    },
+    {
+      "context": {
+        "schema_version": 1,
+        "run_id": "",
+        "capability": "scraping",
+        "stage": "scraping",
+        "objective": "decide whether the pipeline should continue past this stage",
+        "facts": {
+          "sources_scanned": 9,
+          "blocked_count": 0,
+          "blocked_sources": [],
+          "llm_fallback_count": 0,
+          "sources_with_events": 9,
+          "total_events": 8032
+        },
+        "hard_violations": [],
+        "baseline_hard_violations": [],
+        "warnings": [],
+        "scorecard": {},
+        "baseline_ref": null,
+        "candidate_ref": null,
+        "available_actions": [
+          "proceed",
+          "abort",
+          "retry_stage",
+          "request_operator"
+        ],
+        "action_parameters": {},
+        "prior_results": [],
+        "requires_human_approval": false,
+        "decision_action_template": {
+          "proceed": {
+            "action_id": "proceed",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "abort": {
+            "action_id": "abort",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "retry_stage": {
+            "action_id": "retry_stage",
+            "arguments": {
+              "stage": "<stage>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "request_operator": {
+            "action_id": "request_operator",
+            "arguments": {
+              "question": "<question>"
+            },
+            "rationale": "<concise audit summary>"
+          }
+        }
+      },
+      "action": {
+        "schema_version": 1,
+        "action_id": "assign_shared_host",
+        "target": "",
+        "arguments": {
+          "chosen_club": "Kongsberg"
+        },
+        "rationale": "Kongsberg has substantially lower total season hosting burden (8 vs 15) than Tønsberg; both calendars are known/trustworthy so fairness, not calendar availability, decides."
+      },
+      "result": {
+        "schema_version": 1,
+        "accepted": false,
+        "action_id": "assign_shared_host",
+        "target": "",
+        "result_ref": null,
+        "rationale": "Kongsberg has substantially lower total season hosting burden (8 vs 15) than Tønsberg; both calendars are known/trustworthy so fairness, not calendar availability, decides.",
+        "rejection_reason": "decision_action_not_available",
+        "changed_violations": [],
+        "changed_warnings": [],
+        "changed_metrics": {},
+        "next_available_actions": [
+          "proceed",
+          "abort",
+          "retry_stage",
+          "request_operator"
+        ]
+      },
+      "recorded_at": "2026-09-14T08:11:28.746821+00:00"
+    },
+    {
+      "context": {
+        "schema_version": 1,
+        "run_id": "",
+        "capability": "scraping",
+        "stage": "scraping",
+        "objective": "decide whether the pipeline should continue past this stage",
+        "facts": {
+          "sources_scanned": 9,
+          "blocked_count": 0,
+          "blocked_sources": [],
+          "llm_fallback_count": 0,
+          "sources_with_events": 9,
+          "total_events": 8032
+        },
+        "hard_violations": [],
+        "baseline_hard_violations": [],
+        "warnings": [],
+        "scorecard": {},
+        "baseline_ref": null,
+        "candidate_ref": null,
+        "available_actions": [
+          "proceed",
+          "abort",
+          "retry_stage",
+          "request_operator"
+        ],
+        "action_parameters": {},
+        "prior_results": [],
+        "requires_human_approval": false,
+        "decision_action_template": {
+          "proceed": {
+            "action_id": "proceed",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "abort": {
+            "action_id": "abort",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "retry_stage": {
+            "action_id": "retry_stage",
+            "arguments": {
+              "stage": "<stage>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "request_operator": {
+            "action_id": "request_operator",
+            "arguments": {
+              "question": "<question>"
+            },
+            "rationale": "<concise audit summary>"
+          }
+        }
+      },
+      "action": {
+        "schema_version": 1,
+        "action_id": "keep_baseline",
+        "target": "",
+        "arguments": {},
+        "rationale": "Attempt 2 regressed on 10/17 metrics with only 2 minor improvements; dominates_baseline=false. Keeping attempt 1."
+      },
+      "result": {
+        "schema_version": 1,
+        "accepted": false,
+        "action_id": "keep_baseline",
+        "target": "",
+        "result_ref": null,
+        "rationale": "Attempt 2 regressed on 10/17 metrics with only 2 minor improvements; dominates_baseline=false. Keeping attempt 1.",
+        "rejection_reason": "decision_action_not_available",
+        "changed_violations": [],
+        "changed_warnings": [],
+        "changed_metrics": {},
+        "next_available_actions": [
+          "proceed",
+          "abort",
+          "retry_stage",
+          "request_operator"
+        ]
+      },
+      "recorded_at": "2026-09-14T08:11:44.178106+00:00"
+    },
+    {
+      "context": {
+        "schema_version": 1,
+        "run_id": "20260914T080753Z-e45d36d7",
+        "capability": "stage3_optimize",
+        "stage": "stage3",
+        "objective": "Decide whether Stage 3 attempt 2 should replace the current best attempt (1), request another optimization attempt, ask the operator, or keep the current best.",
+        "facts": {
+          "old_verification_ok": true,
+          "new_verification_ok": true,
+          "hard_constraint_regressed": false,
+          "cp_sat_shadow": {
+            "attempted": true,
+            "available": true,
+            "engine": "cp_sat",
+            "reused": false,
+            "cache_hit": false,
+            "dominates_baseline": false,
+            "production_ready": false,
+            "candidate_source": {
+              "planner": "cp_sat",
+              "engine_version": 1,
+              "status": "FEASIBLE",
+              "runtime_seconds": 15.452246,
+              "solve_budget_seconds": 15.0,
+              "fixed_skeleton": true,
+              "objective_value": 2386641.0,
+              "best_objective_bound": 240432.0,
+              "seed": 0,
+              "baseline_hints": true,
+              "mode": "quality",
+              "decompose_by_half": true,
+              "half_diagnostics": [
+                {
+                  "half": "before_christmas",
+                  "mode": "quality",
+                  "team_count": 126,
+                  "slot_count": 106,
+                  "assignment_var_count": 1925,
+                  "pair_var_count": 18762,
+                  "constraint_count": 75883,
+                  "hint_count": 1925,
+                  "solve_budget_seconds": 7.5,
+                  "seed": 0,
+                  "status": "FEASIBLE",
+                  "runtime_seconds": 7.711978,
+                  "objective_value": 1087380.0,
+                  "best_objective_bound": 98245.0,
+                  "protected_same_club_pairings_baseline": 102
+                },
+                {
+                  "half": "after_christmas",
+                  "mode": "quality",
+                  "team_count": 142,
+                  "slot_count": 109,
+                  "assignment_var_count": 1965,
+                  "pair_var_count": 18885,
+                  "constraint_count": 76489,
+                  "hint_count": 1965,
+                  "solve_budget_seconds": 7.5,
+                  "seed": 0,
+                  "status": "FEASIBLE",
+                  "runtime_seconds": 7.708576,
+                  "objective_value": 1299261.0,
+                  "best_objective_bound": 142187.0,
+                  "protected_same_club_pairings_baseline": 103
+                }
+              ],
+              "protected_same_club_pairings_baseline": 205,
+              "base_source": null,
+              "baseline_candidate_fingerprint": "2ba92b61dec3ffc0377a4a45543b77b4d623c74be1534be77501d67bd96b1a86",
+              "problem_fingerprint": "f5cb19e62b3a3b2f744a0e35dc865d3d074adfb87da1531ab13dc54bee827111",
+              "candidate_fingerprint": "058f7863c8210e586e662144e169cc19b7c762292b13dec92403a84d6afaf240",
+              "encoded_scope": {
+                "moves": [
+                  "participant_assignment"
+                ],
+                "fixed": [
+                  "dates",
+                  "hosts",
+                  "arenas",
+                  "start_times",
+                  "roster_sizes",
+                  "tournament_count"
+                ],
+                "participation": "capped_at_configured_target_per_half_with_baseline_hint",
+                "same_club_pairings": "no_worse_than_baseline",
+                "turnaround": "soft_pairwise_hint_only"
+              }
+            },
+            "fingerprints": {
+              "baseline_candidate": "2ba92b61dec3ffc0377a4a45543b77b4d623c74be1534be77501d67bd96b1a86",
+              "shadow_candidate": "058f7863c8210e586e662144e169cc19b7c762292b13dec92403a84d6afaf240",
+              "problem": "f5cb19e62b3a3b2f744a0e35dc865d3d074adfb87da1531ab13dc54bee827111"
+            },
+            "candidate_ref": "stage3_cp_sat:7f4601255a6cff61"
+          }
+        },
+        "hard_violations": [],
+        "baseline_hard_violations": [],
+        "warnings": [
+          "JU10: participation.spread, turnaround.min_turnaround_days, turnaround.gaps_under_days.7, turnaround.gaps_under_days.14, temporal.max_gap_days",
+          "U10: participation.spread, opponent_diversity.unique_pairs, opponent_diversity.pairs_meeting_3_plus, opponent_diversity.inter_club_diversity",
+          "U11: opponent_diversity.unique_pairs, opponent_diversity.pairwise_novelty, opponent_diversity.pairs_meeting_3_plus, opponent_diversity.inter_club_diversity, opponent_diversity.same_club_pairing_count, opponent_diversity.club_count_excess_over_2, opponent_diversity.tournaments_with_3plus_same_club, turnaround.gaps_under_days.7, turnaround.gaps_under_days.14",
+          "U12: opponent_diversity.pairwise_novelty, opponent_diversity.pairs_meeting_3_plus, turnaround.gaps_under_days.14, hosting.unresolved_obligations_count",
+          "U7: hosting.unresolved_obligations_count",
+          "U8: opponent_diversity.unique_pairs, opponent_diversity.pairwise_novelty, opponent_diversity.pairs_meeting_3_plus, opponent_diversity.inter_club_diversity, opponent_diversity.club_count_excess_over_2, opponent_diversity.tournaments_with_3plus_same_club, turnaround.gaps_under_days.7, hosting.spread, hosting.unresolved_obligations_count, temporal.max_gap_days",
+          "U9: opponent_diversity.max_pair_repeat, turnaround.gaps_under_days.14, hosting.spread, hosting.unresolved_obligations_count, temporal.max_gap_days"
+        ],
+        "scorecard": {
+          "overall_metrics": [
+            {
+              "metric": "participation.spread",
+              "direction": "lower",
+              "old": 11,
+              "new": 11,
+              "delta": 0,
+              "regressed": false
+            },
+            {
+              "metric": "opponent_diversity.unique_pairs",
+              "direction": "higher",
+              "old": 1213,
+              "new": 1205,
+              "delta": -8,
+              "regressed": true
+            },
+            {
+              "metric": "opponent_diversity.pairwise_novelty",
+              "direction": "higher",
+              "old": 0.4259129213483146,
+              "new": 0.4220665499124343,
+              "delta": -0.0038463714358802914,
+              "regressed": true
+            },
+            {
+              "metric": "opponent_diversity.pairs_meeting_3_plus",
+              "direction": "lower",
+              "old": 432,
+              "new": 445,
+              "delta": 13,
+              "regressed": true
+            },
+            {
+              "metric": "opponent_diversity.max_pair_repeat",
+              "direction": "lower",
+              "old": 8,
+              "new": 8,
+              "delta": 0,
+              "regressed": false
+            },
+            {
+              "metric": "opponent_diversity.inter_club_diversity",
+              "direction": "higher",
+              "old": 0.9866190900981266,
+              "new": 0.9812667261373773,
+              "delta": -0.00535236396074934,
+              "regressed": true
+            },
+            {
+              "metric": "opponent_diversity.same_club_pairing_count",
+              "direction": "lower",
+              "old": 107,
+              "new": 105,
+              "delta": -2,
+              "regressed": false
+            },
+            {
+              "metric": "opponent_diversity.max_same_club_teams_per_tournament",
+              "direction": "lower",
+              "old": 6,
+              "new": 6,
+              "delta": 0,
+              "regressed": false
+            },
+            {
+              "metric": "opponent_diversity.club_count_excess_over_2",
+              "direction": "lower",
+              "old": 24,
+              "new": 26,
+              "delta": 2,
+              "regressed": true
+            },
+            {
+              "metric": "opponent_diversity.tournaments_with_3plus_same_club",
+              "direction": "lower",
+              "old": 14,
+              "new": 15,
+              "delta": 1,
+              "regressed": true
+            },
+            {
+              "metric": "turnaround.min_turnaround_days",
+              "direction": "higher",
+              "old": 1,
+              "new": 1,
+              "delta": 0,
+              "regressed": false
+            },
+            {
+              "metric": "turnaround.gaps_under_days.7",
+              "direction": "lower",
+              "old": 82,
+              "new": 85,
+              "delta": 3,
+              "regressed": true
+            },
+            {
+              "metric": "turnaround.gaps_under_days.14",
+              "direction": "lower",
+              "old": 385,
+              "new": 398,
+              "delta": 13,
+              "regressed": true
+            },
+            {
+              "metric": "hosting.spread",
+              "direction": "lower",
+              "old": 52,
+              "new": 52,
+              "delta": 0,
+              "regressed": false
+            },
+            {
+              "metric": "hosting.unresolved_obligations_count",
+              "direction": "lower",
+              "old": 10,
+              "new": 13,
+              "delta": 3,
+              "regressed": true
+            },
+            {
+              "metric": "temporal.max_gap_days",
+              "direction": "lower",
+              "old": 69,
+              "new": 76,
+              "delta": 7,
+              "regressed": true
+            },
+            {
+              "metric": "temporal.offenders_count",
+              "direction": "lower",
+              "old": 5,
+              "new": 4,
+              "delta": -1,
+              "regressed": false
+            }
+          ],
+          "dominates_baseline": false,
+          "production_ready": false
+        },
+        "baseline_ref": "stage3_interactive:attempt_1",
+        "candidate_ref": "stage3_interactive:attempt_2",
+        "available_actions": [
+          "apply_candidate",
+          "keep_baseline",
+          "optimize_plan",
+          "request_operator",
+          "abort"
+        ],
+        "action_parameters": {
+          "optimize_plan": {
+            "iterations": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 20000,
+              "description": "Simulated-annealing swap-attempt budget for the Stage 3 v2 local-search optimizer."
+            },
+            "seed": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647,
+              "description": "Deterministic RNG seed for reproducible output."
+            },
+            "move_dates": {
+              "type": "boolean",
+              "description": "Also let the search swap two same-age-group tournaments' dates, not just teams."
+            },
+            "move_dates_within_half": {
+              "type": "boolean",
+              "description": "Also let the search move a single tournament to a genuinely new free date (not just swap with another scheduled date), restricted to the same side of the Christmas split as its current date (issue #293). Moving a tournament across the Christmas boundary is never a side effect of this move."
+            },
+            "move_hosts": {
+              "type": "boolean",
+              "description": "Also let the search reassign a tournament's host club to another club already fielding a team in that tournament (issue #262 P1)."
+            },
+            "move_slots": {
+              "type": "boolean",
+              "description": "Also let the search reassign a tournament's start time among a fixed set of candidate windows (issue #262 P1)."
+            },
+            "date_swap_probability": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Probability of attempting a date swap vs a team swap each step, when move_dates is true."
+            },
+            "weights": {
+              "type": "object",
+              "properties": {
+                "pair_repeat": {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                "same_club_pairing": {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                "same_club_cluster": {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                "same_club_excess_over_2": {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                "gap_under_7": {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                "gap_under_14": {
+                  "type": "number",
+                  "minimum": 0.0
+                }
+              },
+              "description": "Global overrides for the optimizer's penalty weights (see stage3_optimizer.DEFAULT_WEIGHTS)."
+            },
+            "engine": {
+              "type": "string",
+              "enum": [
+                "local_search",
+                "cp_sat"
+              ],
+              "description": "Search engine to run this optimize_plan attempt with (issue #276): 'local_search' (default) is the existing simulated-annealing optimizer; 'cp_sat' is the shadow/experimental fixed-skeleton CP-SAT participant optimizer. A cp_sat failure (missing OR-Tools, infeasible/timeout) never replaces the current best plan -- it is recorded as evidence and this attempt falls back to comparing the unchanged baseline."
+            },
+            "solve_budget_seconds": {
+              "type": "number",
+              "minimum": 1.0,
+              "maximum": 300.0,
+              "description": "CP-SAT solver wall-clock budget in seconds; ignored when engine is 'local_search'."
+            }
+          }
+        },
+        "prior_results": [],
+        "requires_human_approval": false,
+        "decision_action_template": {
+          "apply_candidate": {
+            "action_id": "apply_candidate",
+            "arguments": {
+              "candidate_ref": "<candidate_ref>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "keep_baseline": {
+            "action_id": "keep_baseline",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          },
+          "optimize_plan": {
+            "action_id": "optimize_plan",
+            "arguments": {
+              "iterations": "<integer>",
+              "seed": "<integer>",
+              "move_dates": "<boolean>",
+              "move_dates_within_half": "<boolean>",
+              "move_hosts": "<boolean>",
+              "move_slots": "<boolean>",
+              "date_swap_probability": "<number>",
+              "weights": {
+                "pair_repeat": "<number>",
+                "same_club_pairing": "<number>",
+                "same_club_cluster": "<number>",
+                "same_club_excess_over_2": "<number>",
+                "gap_under_7": "<number>",
+                "gap_under_14": "<number>"
+              },
+              "engine": "<one of: local_search|cp_sat>",
+              "solve_budget_seconds": "<number>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "request_operator": {
+            "action_id": "request_operator",
+            "arguments": {
+              "question": "<question>"
+            },
+            "rationale": "<concise audit summary>"
+          },
+          "abort": {
+            "action_id": "abort",
+            "arguments": {},
+            "rationale": "<concise audit summary>"
+          }
+        }
+      },
+      "action": {
+        "schema_version": 1,
+        "action_id": "keep_baseline",
+        "target": "",
+        "arguments": {},
+        "rationale": "Attempt 2 regressed on 10/17 metrics (opponent diversity, turnaround gaps, hosting.unresolved_obligations_count +3, temporal.max_gap_days +7) versus only 2 minor improvements; scorecard shows dominates_baseline=false. Keeping attempt 1 as best plan."
+      },
+      "result": {
+        "schema_version": 1,
+        "accepted": true,
+        "action_id": "keep_baseline",
+        "target": "",
+        "result_ref": null,
+        "rationale": "Attempt 2 regressed on 10/17 metrics (opponent diversity, turnaround gaps, hosting.unresolved_obligations_count +3, temporal.max_gap_days +7) versus only 2 minor improvements; scorecard shows dominates_baseline=false. Keeping attempt 1 as best plan.",
+        "rejection_reason": null,
+        "changed_violations": [],
+        "changed_warnings": [],
+        "changed_metrics": {},
+        "next_available_actions": []
+      },
+      "recorded_at": "2026-09-14T08:28:27.293045+00:00"
+    }
+  ],
+  "stage3_attempt_log": [
+    {
+      "attempt": 1,
+      "candidate_fingerprint": "232d859b7999513a448d6bb0e2bb5d9886e3fc2e6804c1bc2bcb7a17dd33ad1b",
+      "candidate_source": null,
+      "verify_result": {
+        "ok": true,
+        "violations": [],
+        "skipped": [],
+        "club_controlled_allocations_used": [],
+        "unresolved_hosting_obligations": [
+          {
+            "club": "Frisk Asker",
+            "age_group": "U7"
+          },
+          {
+            "club": "Sandefjord Penguins",
+            "age_group": "U7"
+          },
+          {
+            "club": "Jar",
+            "age_group": "JU8"
+          },
+          {
+            "club": "Skien",
+            "age_group": "JU8"
+          },
+          {
+            "club": "Ringerike",
+            "age_group": "U8"
+          },
+          {
+            "club": "Tønsberg",
+            "age_group": "U8"
+          },
+          {
+            "club": "Kongsberg",
+            "age_group": "U9"
+          },
+          {
+            "club": "Tønsberg",
+            "age_group": "U9"
+          },
+          {
+            "club": "Kongsberg",
+            "age_group": "U10"
+          },
+          {
+            "club": "Tønsberg",
+            "age_group": "U10"
+          }
+        ],
+        "manual_calendar_placements": [],
+        "manual_external_conflict_placements": [
+          {
+            "tournament_id": "19c43cc2",
+            "host_club": "Ringerike",
+            "age_group": "JU12",
+            "date": "2026-10-17"
+          },
+          {
+            "tournament_id": "5b8e099a",
+            "host_club": "Frisk Asker",
+            "age_group": "U8",
+            "date": "2026-12-05"
+          },
+          {
+            "tournament_id": "99ee1a4c",
+            "host_club": "Frisk Asker",
+            "age_group": "U11",
+            "date": "2026-12-06"
+          },
+          {
+            "tournament_id": "504b8496",
+            "host_club": "Ringerike",
+            "age_group": "U12",
+            "date": "2026-12-06"
+          },
+          {
+            "tournament_id": "37d5a6c6",
+            "host_club": "Frisk Asker",
+            "age_group": "U12",
+            "date": "2026-12-06"
+          },
+          {
+            "tournament_id": "829bf5ae",
+            "host_club": "Frisk Asker",
+            "age_group": "U9",
+            "date": "2026-12-06"
+          },
+          {
+            "tournament_id": "f421bf47",
+            "host_club": "Frisk Asker",
+            "age_group": "U12",
+            "date": "2026-12-12"
+          },
+          {
+            "tournament_id": "b87bf15a",
+            "host_club": "Frisk Asker",
+            "age_group": "JU12",
+            "date": "2026-12-13"
+          },
+          {
+            "tournament_id": "0fda037c",
+            "host_club": "Frisk Asker",
+            "age_group": "U8",
+            "date": "2026-12-13"
+          },
+          {
+            "tournament_id": "6c2bdd0c",
+            "host_club": "Tønsberg",
+            "age_group": "U12",
+            "date": "2027-02-07"
+          },
+          {
+            "tournament_id": "766482b8",
+            "host_club": "Frisk Asker",
+            "age_group": "U12",
+            "date": "2027-02-13"
+          },
+          {
+            "tournament_id": "8e29b82f",
+            "host_club": "Frisk Asker",
+            "age_group": "U9",
+            "date": "2027-02-13"
+          },
+          {
+            "tournament_id": "051f71f4",
+            "host_club": "Jar",
+            "age_group": "U12",
+            "date": "2027-02-14"
+          },
+          {
+            "tournament_id": "cb195fcb",
+            "host_club": "Tønsberg",
+            "age_group": "U11",
+            "date": "2027-03-06"
+          }
+        ],
+        "manual_participation_placements": [
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 1 (Frisk Asker, U12)",
+            "age_group": "U12",
+            "half": "before_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Svart (Jar, U12)",
+            "age_group": "U12",
+            "half": "before_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Hvit (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "5"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Rød (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "5"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Lilla",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "5"
+          },
+          {
+            "club": "Tønsberg",
+            "label": "Tønsberg Hvit (Tønsberg, U12)",
+            "age_group": "U12",
+            "half": "before_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Rød (Jar, JU10)",
+            "age_group": "JU10",
+            "half": "before_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Svart (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Blå (Jar, U12)",
+            "age_group": "U12",
+            "half": "after_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Blå (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Gul (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Oransje",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Holmen",
+            "label": "Holmen Hockey Hvit (Holmen, U12)",
+            "age_group": "U12",
+            "half": "after_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Tønsberg",
+            "label": "Tønsberg Rød (Tønsberg, U12)",
+            "age_group": "U12",
+            "half": "after_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Tønsberg",
+            "label": "Tønsberg Grå (Tønsberg, U12)",
+            "age_group": "U12",
+            "half": "before_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 2 (Frisk Asker, U12)",
+            "age_group": "U12",
+            "half": "after_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Grønn (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 3 (Frisk Asker, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Jutul",
+            "label": "Jutul Rød (Jutul, U12)",
+            "age_group": "U12",
+            "half": "after_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Hvit (Jar, U12)",
+            "age_group": "U12",
+            "half": "before_christmas",
+            "actual": "6",
+            "target": "7"
+          }
+        ]
+      },
+      "score_result": {
+        "participation": {
+          "counts_by_team": {
+            "Frisk Asker Orange (Frisk Asker, JU12)": 14,
+            "Ringerike 1 (Ringerike, JU12)": 14,
+            "Jutul/Jar Kittens": 14,
+            "Kongsberg/Tønsberg": 14,
+            "Jar Blå (Jar, U11)": 9,
+            "Frisk Asker 1 (Frisk Asker, U11)": 10,
+            "Tønsberg Grå (Tønsberg, U11)": 10,
+            "Holmen Hockey Hvit (Holmen, U11)": 10,
+            "Jutul Grønn (Jutul, U11)": 10,
+            "Ringerike 1 (Ringerike, U11)": 10,
+            "Tønsberg Grå (Tønsberg, U12)": 13,
+            "Jar Blå (Jar, U12)": 13,
+            "Frisk Asker 1 (Frisk Asker, U12)": 13,
+            "Holmen Hockey Hvit (Holmen, U12)": 13,
+            "Holmen Hockey Rød (Holmen, U12)": 14,
+            "Jar Hvit (Jar, U12)": 13,
+            "Frisk Asker 2 (Frisk Asker, U12)": 13,
+            "Tønsberg Hvit (Tønsberg, U12)": 13,
+            "Jutul Grønn (Jutul, U12)": 14,
+            "Jar Rød (Jar, U12)": 14,
+            "Frisk Asker 3 (Frisk Asker, U12)": 14,
+            "Ringerike 1 (Ringerike, U12)": 14,
+            "Jar Svart (Jar, U12)": 13,
+            "Tønsberg Rød (Tønsberg, U12)": 13,
+            "Kongsberg (Kongsberg, U12)": 14,
+            "Jutul Rød (Jutul, U12)": 13,
+            "Ringerike 2 (Ringerike, U12)": 14,
+            "Skien (Skien, U9)": 8,
+            "Frisk Asker 1 (Frisk Asker, U9)": 8,
+            "Holmen Hockey Hvit (Holmen, U9)": 8,
+            "Jar Blå (Jar, U9)": 8,
+            "Jutul Grønn (Jutul, U9)": 8,
+            "Kongsberg (Kongsberg, U9)": 8,
+            "Ringerike 1 (Ringerike, U9)": 8,
+            "Sandefjord (Sandefjord Penguins, U9)": 8,
+            "Frisk Asker Svart (Frisk Asker, JU12)": 14,
+            "Ringerike 2 (Ringerike, JU12)": 14,
+            "Skien (Skien, JU12)": 14,
+            "Frisk Asker 1 (Frisk Asker, U10)": 8,
+            "Jar Blå (Jar, U10)": 8,
+            "Holmen Hockey Blå (Holmen, U10)": 8,
+            "Ringerike 1 (Ringerike, U10)": 8,
+            "Jutul Grønn (Jutul, U10)": 8,
+            "Kongsberg (Kongsberg, U10)": 8,
+            "Tønsberg Hvit (Tønsberg, U11)": 10,
+            "Jar Grønn (Jar, U11)": 9,
+            "Frisk Asker 2 (Frisk Asker, U11)": 10,
+            "Holmen Hockey Rød (Holmen, U11)": 10,
+            "Jutul Rød (Jutul, U11)": 10,
+            "Ringerike 2 (Ringerike, U11)": 10,
+            "Holmen Hockey Blå (Holmen, U8)": 6,
+            "Frisk Asker 1 (Frisk Asker, U8)": 6,
+            "Jar Blå (Jar, U8)": 6,
+            "Jutul Grønn (Jutul, U8)": 6,
+            "Ringerike 1 (Ringerike, U8)": 6,
+            "Kongsberg (Kongsberg, U8)": 6,
+            "Sandefjord (Sandefjord Penguins, U8)": 6,
+            "Skien (Skien, U8)": 6,
+            "Jutul Hvit (Jutul, U10)": 8,
+            "Frisk Asker 2 (Frisk Asker, U10)": 8,
+            "Jar Grønn (Jar, U10)": 8,
+            "Holmen Hockey Hvit (Holmen, U10)": 8,
+            "Ringerike 2 (Ringerike, U10)": 8,
+            "Tønsberg (Tønsberg, U10)": 8,
+            "Kongsberg (Kongsberg, U11)": 10,
+            "Jar Gul (Jar, U11)": 9,
+            "Frisk Asker 3 (Frisk Asker, U11)": 9,
+            "Tønsberg Rød (Tønsberg, U11)": 10,
+            "Sandefjord (Sandefjord Penguins, U11)": 10,
+            "Skien (Skien, U11)": 10,
+            "Skien (Skien, JU10)": 8,
+            "Jar Blå (Jar, JU10)": 8,
+            "Frisk Asker Orange (Frisk Asker, JU10)": 8,
+            "Ringerike 1 (Ringerike, JU10)": 8,
+            "Jar Hvit (Jar, JU10)": 8,
+            "Frisk Asker Svart (Frisk Asker, JU10)": 8,
+            "Jar Gul (Jar, U10)": 8,
+            "Frisk Asker 3 (Frisk Asker, U10)": 8,
+            "Holmen Hockey Rød (Holmen, U10)": 8,
+            "Ringerike 3": 8,
+            "Jutul Rød (Jutul, U10)": 8,
+            "Jar Hvit (Jar, U11)": 8,
+            "Frisk Asker 4 (Frisk Asker, U11)": 10,
+            "Frisk Asker": 6,
+            "Jar": 6,
+            "Jutul Kittens": 6,
+            "Ringerike 1 (Ringerike, JU8)": 6,
+            "Skien (Skien, JU8)": 6,
+            "Holmen Hockey Sort (Holmen, U10)": 8,
+            "Frisk Asker 4 (Frisk Asker, U10)": 8,
+            "Jar Hvit (Jar, U10)": 8,
+            "Ringerike 4": 8,
+            "Jar Lilla": 8,
+            "Frisk Asker 2 (Frisk Asker, U8)": 6,
+            "Holmen Hockey Hvit (Holmen, U8)": 6,
+            "Jar Hvit (Jar, U8)": 6,
+            "Jutul Gul": 6,
+            "Ringerike 2 (Ringerike, U8)": 6,
+            "Tønsberg (Tønsberg, U8)": 6,
+            "Frisk Asker 5 (Frisk Asker, U10)": 8,
+            "Jar Rød (Jar, U10)": 8,
+            "Frisk Asker 6": 8,
+            "Jar Oransje": 9,
+            "Jar Hvit (Jar, U9)": 8,
+            "Frisk Asker 2 (Frisk Asker, U9)": 8,
+            "Holmen Hockey Rød (Holmen, U9)": 8,
+            "Jutul Hvit (Jutul, U9)": 8,
+            "Tønsberg (Tønsberg, U9)": 8,
+            "Jar Rød (Jar, U9)": 8,
+            "Jar Svart (Jar, U10)": 8,
+            "Jar Rød (Jar, U11)": 8,
+            "Jar Svart (Jar, U11)": 9,
+            "Frisk Asker 3 (Frisk Asker, U9)": 8,
+            "Holmen Hockey Sort (Holmen, U9)": 8,
+            "Jutul Rød (Jutul, U9)": 8,
+            "Frisk Asker 4 (Frisk Asker, U9)": 8,
+            "Jar Rød (Jar, JU10)": 7,
+            "Frisk Asker 3 (Frisk Asker, U8)": 6,
+            "Holmen Hockey Rød (Holmen, U8)": 6,
+            "Jar Rød (Jar, U8)": 6,
+            "Jutul Hvit (Jutul, U8)": 6,
+            "Frisk Asker 4 (Frisk Asker, U8)": 6,
+            "Frisk Asker 5 (Frisk Asker, U8)": 6,
+            "Holmen Hockey Sort (Holmen, U8)": 6,
+            "Jar Svart (Jar, U8)": 6,
+            "Jutul Rød (Jutul, U8)": 6,
+            "Holmen Hockey Hvit (Holmen, U7)": 3,
+            "Jar Blå (Jar, U7)": 3,
+            "Frisk Asker 1 (Frisk Asker, U7)": 3,
+            "Jutul Grønn (Jutul, U7)": 3,
+            "Sandefjord (Sandefjord Penguins, U7)": 3,
+            "Tønsberg (Tønsberg, U7)": 3,
+            "Holmen Hockey Rød (Holmen, U7)": 3,
+            "Jar Grønn (Jar, U7)": 3,
+            "Jar Hvit (Jar, U7)": 3,
+            "Frisk Asker 2 (Frisk Asker, U7)": 3,
+            "Holmen Hockey Sort (Holmen, U7)": 3,
+            "Jutul Hvit (Jutul, U7)": 3,
+            "Jar Rød (Jar, U7)": 3,
+            "Frisk Asker 3 (Frisk Asker, U7)": 3,
+            "Jar Svart (Jar, U7)": 3,
+            "Jutul Rød (Jutul, U7)": 3
+          },
+          "spread": 11
+        },
+        "opponent_diversity": {
+          "unique_pairs": 1213,
+          "pairwise_novelty": 0.4259129213483146,
+          "pair_repeat_distribution": {
+            "7": 13,
+            "8": 6,
+            "6": 28,
+            "1": 341,
+            "3": 247,
+            "2": 440,
+            "4": 111,
+            "5": 27
+          },
+          "pairs_meeting_3_plus": 432,
+          "max_pair_repeat": 8,
+          "inter_club_diversity": 0.9866190900981266,
+          "same_club_pairing_count": 107,
+          "max_same_club_teams_per_tournament": 6,
+          "club_count_excess_over_2": 24,
+          "tournaments_with_3plus_same_club": 14
+        },
+        "temporal": {
+          "max_gap_days": 69,
+          "offenders_count": 5,
+          "offenders": [
+            {
+              "team": "Tønsberg (Tønsberg, U8)",
+              "age_group": "U8",
+              "lead_gap_days": 15,
+              "finish_gap_days": 42,
+              "max_intra_gap_days": 69,
+              "max_gap_days": 69
+            },
+            {
+              "team": "Jutul Grønn (Jutul, U10)",
+              "age_group": "U10",
+              "lead_gap_days": 2,
+              "finish_gap_days": 49,
+              "max_intra_gap_days": 62,
+              "max_gap_days": 62
+            },
+            {
+              "team": "Sandefjord (Sandefjord Penguins, U8)",
+              "age_group": "U8",
+              "lead_gap_days": 2,
+              "finish_gap_days": 35,
+              "max_intra_gap_days": 62,
+              "max_gap_days": 62
+            },
+            {
+              "team": "Skien (Skien, U8)",
+              "age_group": "U8",
+              "lead_gap_days": 2,
+              "finish_gap_days": 35,
+              "max_intra_gap_days": 62,
+              "max_gap_days": 62
+            },
+            {
+              "team": "Ringerike 2 (Ringerike, U8)",
+              "age_group": "U8",
+              "lead_gap_days": 15,
+              "finish_gap_days": 35,
+              "max_intra_gap_days": 62,
+              "max_gap_days": 62
+            }
+          ]
+        },
+        "turnaround": {
+          "min_turnaround_days": 1,
+          "gaps_under_days": {
+            "7": 82,
+            "14": 385
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Frisk Asker": 56,
+            "Tønsberg": 16,
+            "Holmen": 28,
+            "Jutul": 28,
+            "Ringerike": 30,
+            "Kongsberg": 8,
+            "Skien": 8,
+            "Sandefjord Penguins": 4,
+            "Jar": 37
+          },
+          "spread": 52,
+          "club_age_group_matrix": [
+            {
+              "club": "Frisk Asker",
+              "age_group": "U7",
+              "teams": 3,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U7",
+              "teams": 3,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U7",
+              "teams": 5,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U7",
+              "teams": 3,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U7",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U7",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 3,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Jutul",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U8",
+              "teams": 5,
+              "hosted": 3,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U8",
+              "teams": 4,
+              "hosted": 5,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U8",
+              "teams": 4,
+              "hosted": 3,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U8",
+              "teams": 4,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U8",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U8",
+              "teams": 2,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U8",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "U8",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U8",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U9",
+              "teams": 4,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U9",
+              "teams": 3,
+              "hosted": 5,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U9",
+              "teams": 3,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U9",
+              "teams": 3,
+              "hosted": 5,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "JU10",
+              "teams": 2,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "JU10",
+              "teams": 3,
+              "hosted": 3,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "JU10",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "JU10",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U10",
+              "teams": 6,
+              "hosted": 12,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U10",
+              "teams": 4,
+              "hosted": 7,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U10",
+              "teams": 6,
+              "hosted": 6,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U10",
+              "teams": 3,
+              "hosted": 3,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U10",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U10",
+              "teams": 4,
+              "hosted": 6,
+              "unresolved": false
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U10",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U11",
+              "teams": 4,
+              "hosted": 12,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U11",
+              "teams": 2,
+              "hosted": 3,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U11",
+              "teams": 8,
+              "hosted": 10,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U11",
+              "teams": 2,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U11",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U11",
+              "teams": 2,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U11",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "U11",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U11",
+              "teams": 3,
+              "hosted": 5,
+              "unresolved": false
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "JU12",
+              "teams": 2,
+              "hosted": 7,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "JU12",
+              "teams": 1,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg/Tønsberg",
+              "age_group": "JU12",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "JU12",
+              "teams": 2,
+              "hosted": 9,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "JU12",
+              "teams": 1,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U12",
+              "teams": 3,
+              "hosted": 11,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U12",
+              "teams": 2,
+              "hosted": 7,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U12",
+              "teams": 4,
+              "hosted": 12,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U12",
+              "teams": 2,
+              "hosted": 7,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U12",
+              "teams": 1,
+              "hosted": 3,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U12",
+              "teams": 2,
+              "hosted": 9,
+              "unresolved": false
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U12",
+              "teams": 3,
+              "hosted": 10,
+              "unresolved": false
+            }
+          ],
+          "unresolved_obligations": [
+            {
+              "club": "Frisk Asker",
+              "age_group": "U7"
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U7"
+            },
+            {
+              "club": "Jar",
+              "age_group": "JU8"
+            },
+            {
+              "club": "Skien",
+              "age_group": "JU8"
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U8"
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U8"
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U9"
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U9"
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U10"
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U10"
+            }
+          ],
+          "by_club": {
+            "Frisk Asker": {
+              "hosted": 56,
+              "unresolved": 1
+            },
+            "Holmen": {
+              "hosted": 28,
+              "unresolved": 0
+            },
+            "Jar": {
+              "hosted": 37,
+              "unresolved": 1
+            },
+            "Jutul": {
+              "hosted": 28,
+              "unresolved": 0
+            },
+            "Sandefjord Penguins": {
+              "hosted": 4,
+              "unresolved": 1
+            },
+            "Tønsberg": {
+              "hosted": 16,
+              "unresolved": 3
+            },
+            "Ringerike": {
+              "hosted": 30,
+              "unresolved": 1
+            },
+            "Skien": {
+              "hosted": 8,
+              "unresolved": 1
+            },
+            "Kongsberg": {
+              "hosted": 6,
+              "unresolved": 2
+            },
+            "Kongsberg/Tønsberg": {
+              "hosted": 2,
+              "unresolved": 0
+            }
+          },
+          "by_age_group": {
+            "U7": {
+              "hosted": 6,
+              "unresolved": 2
+            },
+            "JU8": {
+              "hosted": 6,
+              "unresolved": 2
+            },
+            "U8": {
+              "hosted": 18,
+              "unresolved": 2
+            },
+            "U9": {
+              "hosted": 18,
+              "unresolved": 2
+            },
+            "JU10": {
+              "hosted": 10,
+              "unresolved": 0
+            },
+            "U10": {
+              "hosted": 34,
+              "unresolved": 2
+            },
+            "U11": {
+              "hosted": 38,
+              "unresolved": 0
+            },
+            "JU12": {
+              "hosted": 26,
+              "unresolved": 0
+            },
+            "U12": {
+              "hosted": 59,
+              "unresolved": 0
+            }
+          }
+        },
+        "month_distribution": {
+          "2026-10": 36,
+          "2026-11": 45,
+          "2026-12": 25,
+          "2027-01": 43,
+          "2027-02": 41,
+          "2027-03": 25
+        },
+        "half_distribution": {
+          "before_christmas": 106,
+          "after_christmas": 109,
+          "unsplit": 0
+        },
+        "half_deviation_pct": 1.3953488372093024
+      }
+    },
+    {
+      "attempted": true,
+      "available": true,
+      "engine": "cp_sat_shadow",
+      "reused": false,
+      "cache_hit": false,
+      "dominates_baseline": true,
+      "production_ready": true,
+      "candidate_source": {
+        "planner": "cp_sat",
+        "engine_version": 1,
+        "status": "FEASIBLE",
+        "runtime_seconds": 15.455745,
+        "solve_budget_seconds": 15.0,
+        "fixed_skeleton": true,
+        "objective_value": 2419528.0,
+        "best_objective_bound": 282469.0,
+        "seed": 0,
+        "baseline_hints": true,
+        "mode": "quality",
+        "decompose_by_half": true,
+        "half_diagnostics": [
+          {
+            "half": "before_christmas",
+            "mode": "quality",
+            "team_count": 126,
+            "slot_count": 106,
+            "assignment_var_count": 1925,
+            "pair_var_count": 18762,
+            "constraint_count": 75857,
+            "hint_count": 1925,
+            "solve_budget_seconds": 7.5,
+            "seed": 0,
+            "status": "FEASIBLE",
+            "runtime_seconds": 7.711313,
+            "objective_value": 1094315.0,
+            "best_objective_bound": 113240.0,
+            "protected_same_club_pairings_baseline": 101
+          },
+          {
+            "half": "after_christmas",
+            "mode": "quality",
+            "team_count": 142,
+            "slot_count": 109,
+            "assignment_var_count": 1956,
+            "pair_var_count": 18794,
+            "constraint_count": 75923,
+            "hint_count": 1956,
+            "solve_budget_seconds": 7.5,
+            "seed": 0,
+            "status": "FEASIBLE",
+            "runtime_seconds": 7.71106,
+            "objective_value": 1325213.0,
+            "best_objective_bound": 169229.0,
+            "protected_same_club_pairings_baseline": 101
+          }
+        ],
+        "protected_same_club_pairings_baseline": 202,
+        "base_source": null,
+        "baseline_candidate_fingerprint": "232d859b7999513a448d6bb0e2bb5d9886e3fc2e6804c1bc2bcb7a17dd33ad1b",
+        "problem_fingerprint": "f5cb19e62b3a3b2f744a0e35dc865d3d074adfb87da1531ab13dc54bee827111",
+        "candidate_fingerprint": "8454153839c086521e97ad7002b9dec13271e8be90f9ba87910dfb1363530102",
+        "encoded_scope": {
+          "moves": [
+            "participant_assignment"
+          ],
+          "fixed": [
+            "dates",
+            "hosts",
+            "arenas",
+            "start_times",
+            "roster_sizes",
+            "tournament_count"
+          ],
+          "participation": "capped_at_configured_target_per_half_with_baseline_hint",
+          "same_club_pairings": "no_worse_than_baseline",
+          "turnaround": "soft_pairwise_hint_only"
+        }
+      },
+      "fingerprints": {
+        "baseline_candidate": "232d859b7999513a448d6bb0e2bb5d9886e3fc2e6804c1bc2bcb7a17dd33ad1b",
+        "shadow_candidate": "8454153839c086521e97ad7002b9dec13271e8be90f9ba87910dfb1363530102",
+        "problem": "f5cb19e62b3a3b2f744a0e35dc865d3d074adfb87da1531ab13dc54bee827111"
+      },
+      "candidate_ref": "stage3_cp_sat:b7fa8a9b06c97648",
+      "attempt": 1
+    },
+    {
+      "attempt": 2,
+      "candidate_fingerprint": "2ba92b61dec3ffc0377a4a45543b77b4d623c74be1534be77501d67bd96b1a86",
+      "candidate_source": null,
+      "verify_result": {
+        "ok": true,
+        "violations": [],
+        "skipped": [],
+        "club_controlled_allocations_used": [],
+        "unresolved_hosting_obligations": [
+          {
+            "club": "Frisk Asker",
+            "age_group": "U7"
+          },
+          {
+            "club": "Sandefjord Penguins",
+            "age_group": "U7"
+          },
+          {
+            "club": "Tønsberg",
+            "age_group": "U7"
+          },
+          {
+            "club": "Kongsberg",
+            "age_group": "U8"
+          },
+          {
+            "club": "Sandefjord Penguins",
+            "age_group": "U8"
+          },
+          {
+            "club": "Skien",
+            "age_group": "U8"
+          },
+          {
+            "club": "Tønsberg",
+            "age_group": "U8"
+          },
+          {
+            "club": "Ringerike",
+            "age_group": "U9"
+          },
+          {
+            "club": "Skien",
+            "age_group": "U9"
+          },
+          {
+            "club": "Tønsberg",
+            "age_group": "U9"
+          },
+          {
+            "club": "Kongsberg",
+            "age_group": "U10"
+          },
+          {
+            "club": "Tønsberg",
+            "age_group": "U10"
+          },
+          {
+            "club": "Kongsberg",
+            "age_group": "U12"
+          }
+        ],
+        "manual_calendar_placements": [],
+        "manual_external_conflict_placements": [
+          {
+            "tournament_id": "32abc506",
+            "host_club": "Frisk Asker",
+            "age_group": "JU12",
+            "date": "2026-12-05"
+          },
+          {
+            "tournament_id": "c1d1ea0f",
+            "host_club": "Frisk Asker",
+            "age_group": "U12",
+            "date": "2026-12-05"
+          },
+          {
+            "tournament_id": "a8def1c1",
+            "host_club": "Frisk Asker",
+            "age_group": "U8",
+            "date": "2026-12-05"
+          },
+          {
+            "tournament_id": "5e4971b0",
+            "host_club": "Frisk Asker",
+            "age_group": "JU10",
+            "date": "2026-12-06"
+          },
+          {
+            "tournament_id": "fc2976d8",
+            "host_club": "Frisk Asker",
+            "age_group": "JU12",
+            "date": "2026-12-06"
+          },
+          {
+            "tournament_id": "79628aa9",
+            "host_club": "Frisk Asker",
+            "age_group": "U12",
+            "date": "2026-12-06"
+          },
+          {
+            "tournament_id": "48e7da9a",
+            "host_club": "Frisk Asker",
+            "age_group": "U9",
+            "date": "2026-12-06"
+          },
+          {
+            "tournament_id": "67bdce26",
+            "host_club": "Frisk Asker",
+            "age_group": "JU8",
+            "date": "2026-12-13"
+          },
+          {
+            "tournament_id": "039f3283",
+            "host_club": "Frisk Asker",
+            "age_group": "U12",
+            "date": "2026-12-13"
+          },
+          {
+            "tournament_id": "4e3bf6e6",
+            "host_club": "Jar",
+            "age_group": "U9",
+            "date": "2027-01-09"
+          },
+          {
+            "tournament_id": "94cf20d2",
+            "host_club": "Tønsberg",
+            "age_group": "U11",
+            "date": "2027-02-07"
+          },
+          {
+            "tournament_id": "2a75d0aa",
+            "host_club": "Frisk Asker",
+            "age_group": "U8",
+            "date": "2027-02-13"
+          },
+          {
+            "tournament_id": "ad8f1bb2",
+            "host_club": "Frisk Asker",
+            "age_group": "U9",
+            "date": "2027-02-13"
+          },
+          {
+            "tournament_id": "4a5a4816",
+            "host_club": "Frisk Asker",
+            "age_group": "JU12",
+            "date": "2027-02-14"
+          },
+          {
+            "tournament_id": "538744b8",
+            "host_club": "Tønsberg",
+            "age_group": "U11",
+            "date": "2027-03-06"
+          }
+        ],
+        "manual_participation_placements": [
+          {
+            "club": "Jar",
+            "label": "Jar Rød (Jar, JU10)",
+            "age_group": "JU10",
+            "half": "before_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Rød (Jar, JU10)",
+            "age_group": "JU10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Lilla",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker Orange (Frisk Asker, JU10)",
+            "age_group": "JU10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Grønn (Jar, U10)",
+            "age_group": "U10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Hvit (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 4 (Frisk Asker, U10)",
+            "age_group": "U10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Gul (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Rød (Jar, U10)",
+            "age_group": "U10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 2 (Frisk Asker, U12)",
+            "age_group": "U12",
+            "half": "after_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Oransje",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Rød (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 1 (Frisk Asker, U10)",
+            "age_group": "U10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Hvit (Jar, U12)",
+            "age_group": "U12",
+            "half": "after_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Blå (Jar, JU10)",
+            "age_group": "JU10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker Svart (Frisk Asker, JU10)",
+            "age_group": "JU10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Svart (Jar, U11)",
+            "age_group": "U11",
+            "half": "after_christmas",
+            "actual": "4",
+            "target": "5"
+          },
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 5 (Frisk Asker, U10)",
+            "age_group": "U10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Hvit (Jar, JU10)",
+            "age_group": "JU10",
+            "half": "after_christmas",
+            "actual": "3",
+            "target": "4"
+          },
+          {
+            "club": "Jar",
+            "label": "Jar Svart (Jar, U12)",
+            "age_group": "U12",
+            "half": "before_christmas",
+            "actual": "6",
+            "target": "7"
+          },
+          {
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 3 (Frisk Asker, U12)",
+            "age_group": "U12",
+            "half": "before_christmas",
+            "actual": "6",
+            "target": "7"
+          }
+        ]
+      },
+      "score_result": {
+        "participation": {
+          "counts_by_team": {
+            "Frisk Asker Orange (Frisk Asker, JU12)": 14,
+            "Ringerike 1 (Ringerike, JU12)": 14,
+            "Jutul/Jar Kittens": 14,
+            "Kongsberg/Tønsberg": 14,
+            "Jar Blå (Jar, U11)": 10,
+            "Frisk Asker 1 (Frisk Asker, U11)": 10,
+            "Tønsberg Grå (Tønsberg, U11)": 10,
+            "Holmen Hockey Hvit (Holmen, U11)": 10,
+            "Jutul Grønn (Jutul, U11)": 10,
+            "Ringerike 1 (Ringerike, U11)": 10,
+            "Tønsberg Grå (Tønsberg, U12)": 14,
+            "Jar Blå (Jar, U12)": 14,
+            "Frisk Asker 1 (Frisk Asker, U12)": 14,
+            "Holmen Hockey Hvit (Holmen, U12)": 14,
+            "Holmen Hockey Rød (Holmen, U12)": 14,
+            "Jar Hvit (Jar, U12)": 13,
+            "Frisk Asker 2 (Frisk Asker, U12)": 13,
+            "Tønsberg Hvit (Tønsberg, U12)": 14,
+            "Jutul Grønn (Jutul, U12)": 14,
+            "Jar Rød (Jar, U12)": 14,
+            "Frisk Asker 3 (Frisk Asker, U12)": 13,
+            "Tønsberg Rød (Tønsberg, U12)": 14,
+            "Ringerike 1 (Ringerike, U12)": 14,
+            "Jar Svart (Jar, U12)": 13,
+            "Jutul Rød (Jutul, U12)": 14,
+            "Kongsberg (Kongsberg, U12)": 14,
+            "Kongsberg (Kongsberg, U10)": 8,
+            "Frisk Asker 1 (Frisk Asker, U10)": 7,
+            "Jar Blå (Jar, U10)": 8,
+            "Holmen Hockey Blå (Holmen, U10)": 8,
+            "Ringerike 1 (Ringerike, U10)": 8,
+            "Jutul Grønn (Jutul, U10)": 8,
+            "Skien (Skien, U11)": 10,
+            "Jar Grønn (Jar, U11)": 10,
+            "Frisk Asker 2 (Frisk Asker, U11)": 10,
+            "Tønsberg Hvit (Tønsberg, U11)": 10,
+            "Holmen Hockey Rød (Holmen, U11)": 10,
+            "Jutul Rød (Jutul, U11)": 10,
+            "Ringerike 2 (Ringerike, U12)": 14,
+            "Frisk Asker 1 (Frisk Asker, U9)": 8,
+            "Holmen Hockey Hvit (Holmen, U9)": 8,
+            "Jar Blå (Jar, U9)": 8,
+            "Jutul Grønn (Jutul, U9)": 8,
+            "Kongsberg (Kongsberg, U9)": 8,
+            "Ringerike 1 (Ringerike, U9)": 8,
+            "Sandefjord (Sandefjord Penguins, U9)": 8,
+            "Skien (Skien, U9)": 8,
+            "Jutul Kittens": 6,
+            "Frisk Asker": 6,
+            "Jar": 6,
+            "Ringerike 1 (Ringerike, JU8)": 6,
+            "Skien (Skien, JU8)": 6,
+            "Holmen Hockey Hvit (Holmen, U10)": 8,
+            "Frisk Asker 2 (Frisk Asker, U10)": 8,
+            "Jar Grønn (Jar, U10)": 7,
+            "Ringerike 2 (Ringerike, U10)": 8,
+            "Jutul Hvit (Jutul, U10)": 8,
+            "Tønsberg (Tønsberg, U10)": 8,
+            "Tønsberg Rød (Tønsberg, U11)": 10,
+            "Jar Gul (Jar, U11)": 9,
+            "Frisk Asker 3 (Frisk Asker, U11)": 10,
+            "Ringerike 2 (Ringerike, U11)": 10,
+            "Kongsberg (Kongsberg, U11)": 10,
+            "Sandefjord (Sandefjord Penguins, U11)": 10,
+            "Ringerike 1 (Ringerike, U8)": 6,
+            "Frisk Asker 1 (Frisk Asker, U8)": 6,
+            "Holmen Hockey Blå (Holmen, U8)": 6,
+            "Jar Blå (Jar, U8)": 6,
+            "Jutul Grønn (Jutul, U8)": 6,
+            "Kongsberg (Kongsberg, U8)": 6,
+            "Sandefjord (Sandefjord Penguins, U8)": 6,
+            "Skien (Skien, U8)": 6,
+            "Jar Blå (Jar, JU10)": 7,
+            "Frisk Asker Orange (Frisk Asker, JU10)": 7,
+            "Ringerike 1 (Ringerike, JU10)": 8,
+            "Skien (Skien, JU10)": 8,
+            "Jar Hvit (Jar, JU10)": 7,
+            "Frisk Asker Svart (Frisk Asker, JU10)": 7,
+            "Frisk Asker Svart (Frisk Asker, JU12)": 14,
+            "Ringerike 2 (Ringerike, JU12)": 14,
+            "Skien (Skien, JU12)": 14,
+            "Jar Hvit (Jar, U11)": 9,
+            "Frisk Asker 4 (Frisk Asker, U11)": 10,
+            "Frisk Asker 2 (Frisk Asker, U8)": 6,
+            "Holmen Hockey Hvit (Holmen, U8)": 6,
+            "Jar Hvit (Jar, U8)": 6,
+            "Jutul Gul": 6,
+            "Ringerike 2 (Ringerike, U8)": 6,
+            "Tønsberg (Tønsberg, U8)": 6,
+            "Frisk Asker 3 (Frisk Asker, U10)": 8,
+            "Jar Gul (Jar, U10)": 8,
+            "Holmen Hockey Rød (Holmen, U10)": 8,
+            "Ringerike 3": 8,
+            "Jutul Rød (Jutul, U10)": 8,
+            "Jar Lilla": 9,
+            "Jutul Hvit (Jutul, U8)": 6,
+            "Frisk Asker 3 (Frisk Asker, U8)": 6,
+            "Holmen Hockey Rød (Holmen, U8)": 6,
+            "Jar Rød (Jar, U8)": 6,
+            "Jutul Rød (Jutul, U8)": 6,
+            "Frisk Asker 2 (Frisk Asker, U9)": 8,
+            "Holmen Hockey Rød (Holmen, U9)": 8,
+            "Jar Hvit (Jar, U9)": 8,
+            "Jutul Hvit (Jutul, U9)": 8,
+            "Tønsberg (Tønsberg, U9)": 8,
+            "Jar Rød (Jar, JU10)": 6,
+            "Frisk Asker 4 (Frisk Asker, U10)": 7,
+            "Jar Hvit (Jar, U10)": 8,
+            "Holmen Hockey Sort (Holmen, U10)": 8,
+            "Ringerike 4": 8,
+            "Jar Oransje": 9,
+            "Jar Rød (Jar, U10)": 7,
+            "Frisk Asker 5 (Frisk Asker, U10)": 7,
+            "Jar Svart (Jar, U10)": 8,
+            "Jar Rød (Jar, U11)": 9,
+            "Jar Svart (Jar, U11)": 9,
+            "Frisk Asker 3 (Frisk Asker, U9)": 8,
+            "Holmen Hockey Sort (Holmen, U9)": 8,
+            "Jar Rød (Jar, U9)": 8,
+            "Jutul Rød (Jutul, U9)": 8,
+            "Frisk Asker 4 (Frisk Asker, U9)": 8,
+            "Frisk Asker 4 (Frisk Asker, U8)": 6,
+            "Holmen Hockey Sort (Holmen, U8)": 6,
+            "Jar Svart (Jar, U8)": 6,
+            "Frisk Asker 5 (Frisk Asker, U8)": 6,
+            "Frisk Asker 6": 8,
+            "Holmen Hockey Hvit (Holmen, U7)": 3,
+            "Jar Blå (Jar, U7)": 3,
+            "Frisk Asker 1 (Frisk Asker, U7)": 3,
+            "Jutul Grønn (Jutul, U7)": 3,
+            "Sandefjord (Sandefjord Penguins, U7)": 3,
+            "Tønsberg (Tønsberg, U7)": 3,
+            "Holmen Hockey Rød (Holmen, U7)": 3,
+            "Jar Grønn (Jar, U7)": 3,
+            "Jar Hvit (Jar, U7)": 3,
+            "Frisk Asker 2 (Frisk Asker, U7)": 3,
+            "Holmen Hockey Sort (Holmen, U7)": 3,
+            "Jutul Hvit (Jutul, U7)": 3,
+            "Jar Rød (Jar, U7)": 3,
+            "Frisk Asker 3 (Frisk Asker, U7)": 3,
+            "Jar Svart (Jar, U7)": 3,
+            "Jutul Rød (Jutul, U7)": 3
+          },
+          "spread": 11
+        },
+        "opponent_diversity": {
+          "unique_pairs": 1205,
+          "pairwise_novelty": 0.4220665499124343,
+          "pair_repeat_distribution": {
+            "7": 13,
+            "8": 6,
+            "6": 23,
+            "2": 440,
+            "3": 267,
+            "4": 103,
+            "1": 320,
+            "5": 33
+          },
+          "pairs_meeting_3_plus": 445,
+          "max_pair_repeat": 8,
+          "inter_club_diversity": 0.9812667261373773,
+          "same_club_pairing_count": 105,
+          "max_same_club_teams_per_tournament": 6,
+          "club_count_excess_over_2": 26,
+          "tournaments_with_3plus_same_club": 15
+        },
+        "temporal": {
+          "max_gap_days": 76,
+          "offenders_count": 4,
+          "offenders": [
+            {
+              "team": "Sandefjord (Sandefjord Penguins, U8)",
+              "age_group": "U8",
+              "lead_gap_days": 8,
+              "finish_gap_days": 35,
+              "max_intra_gap_days": 76,
+              "max_gap_days": 76
+            },
+            {
+              "team": "Kongsberg (Kongsberg, U8)",
+              "age_group": "U8",
+              "lead_gap_days": 8,
+              "finish_gap_days": 35,
+              "max_intra_gap_days": 70,
+              "max_gap_days": 70
+            },
+            {
+              "team": "Ringerike 1 (Ringerike, U8)",
+              "age_group": "U8",
+              "lead_gap_days": 8,
+              "finish_gap_days": 21,
+              "max_intra_gap_days": 69,
+              "max_gap_days": 69
+            },
+            {
+              "team": "Skien (Skien, U8)",
+              "age_group": "U8",
+              "lead_gap_days": 8,
+              "finish_gap_days": 28,
+              "max_intra_gap_days": 63,
+              "max_gap_days": 63
+            }
+          ]
+        },
+        "turnaround": {
+          "min_turnaround_days": 1,
+          "gaps_under_days": {
+            "7": 85,
+            "14": 398
+          }
+        },
+        "hosting": {
+          "counts_by_host": {
+            "Frisk Asker": 55,
+            "Tønsberg": 15,
+            "Holmen": 31,
+            "Jutul": 29,
+            "Ringerike": 28,
+            "Skien": 9,
+            "Kongsberg": 5,
+            "Sandefjord Penguins": 3,
+            "Jar": 40
+          },
+          "spread": 52,
+          "club_age_group_matrix": [
+            {
+              "club": "Frisk Asker",
+              "age_group": "U7",
+              "teams": 3,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U7",
+              "teams": 3,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U7",
+              "teams": 5,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U7",
+              "teams": 3,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U7",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U7",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "JU8",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U8",
+              "teams": 5,
+              "hosted": 5,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U8",
+              "teams": 4,
+              "hosted": 6,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U8",
+              "teams": 4,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U8",
+              "teams": 4,
+              "hosted": 5,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U8",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U8",
+              "teams": 2,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U8",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Skien",
+              "age_group": "U8",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U8",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U9",
+              "teams": 4,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U9",
+              "teams": 3,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U9",
+              "teams": 3,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U9",
+              "teams": 3,
+              "hosted": 6,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U9",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "JU10",
+              "teams": 2,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "JU10",
+              "teams": 3,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "JU10",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "JU10",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U10",
+              "teams": 6,
+              "hosted": 10,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U10",
+              "teams": 4,
+              "hosted": 7,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U10",
+              "teams": 6,
+              "hosted": 7,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U10",
+              "teams": 3,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U10",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U10",
+              "teams": 4,
+              "hosted": 7,
+              "unresolved": false
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U10",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U11",
+              "teams": 4,
+              "hosted": 11,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U11",
+              "teams": 2,
+              "hosted": 3,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U11",
+              "teams": 8,
+              "hosted": 10,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U11",
+              "teams": 2,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U11",
+              "teams": 1,
+              "hosted": 1,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U11",
+              "teams": 2,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U11",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "U11",
+              "teams": 1,
+              "hosted": 2,
+              "unresolved": false
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U11",
+              "teams": 3,
+              "hosted": 6,
+              "unresolved": false
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "JU12",
+              "teams": 2,
+              "hosted": 8,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "JU12",
+              "teams": 1,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg/Tønsberg",
+              "age_group": "JU12",
+              "teams": 1,
+              "hosted": 3,
+              "unresolved": false
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "JU12",
+              "teams": 2,
+              "hosted": 7,
+              "unresolved": false
+            },
+            {
+              "club": "Skien",
+              "age_group": "JU12",
+              "teams": 1,
+              "hosted": 4,
+              "unresolved": false
+            },
+            {
+              "club": "Frisk Asker",
+              "age_group": "U12",
+              "teams": 3,
+              "hosted": 11,
+              "unresolved": false
+            },
+            {
+              "club": "Holmen",
+              "age_group": "U12",
+              "teams": 2,
+              "hosted": 9,
+              "unresolved": false
+            },
+            {
+              "club": "Jar",
+              "age_group": "U12",
+              "teams": 4,
+              "hosted": 16,
+              "unresolved": false
+            },
+            {
+              "club": "Jutul",
+              "age_group": "U12",
+              "teams": 2,
+              "hosted": 7,
+              "unresolved": false
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U12",
+              "teams": 1,
+              "hosted": 0,
+              "unresolved": true
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U12",
+              "teams": 2,
+              "hosted": 8,
+              "unresolved": false
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U12",
+              "teams": 3,
+              "hosted": 9,
+              "unresolved": false
+            }
+          ],
+          "unresolved_obligations": [
+            {
+              "club": "Frisk Asker",
+              "age_group": "U7"
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U7"
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U7"
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U8"
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "age_group": "U8"
+            },
+            {
+              "club": "Skien",
+              "age_group": "U8"
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U8"
+            },
+            {
+              "club": "Ringerike",
+              "age_group": "U9"
+            },
+            {
+              "club": "Skien",
+              "age_group": "U9"
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U9"
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U10"
+            },
+            {
+              "club": "Tønsberg",
+              "age_group": "U10"
+            },
+            {
+              "club": "Kongsberg",
+              "age_group": "U12"
+            }
+          ],
+          "by_club": {
+            "Frisk Asker": {
+              "hosted": 55,
+              "unresolved": 1
+            },
+            "Holmen": {
+              "hosted": 31,
+              "unresolved": 0
+            },
+            "Jar": {
+              "hosted": 40,
+              "unresolved": 0
+            },
+            "Jutul": {
+              "hosted": 29,
+              "unresolved": 0
+            },
+            "Sandefjord Penguins": {
+              "hosted": 3,
+              "unresolved": 2
+            },
+            "Tønsberg": {
+              "hosted": 15,
+              "unresolved": 4
+            },
+            "Ringerike": {
+              "hosted": 28,
+              "unresolved": 1
+            },
+            "Skien": {
+              "hosted": 9,
+              "unresolved": 2
+            },
+            "Kongsberg": {
+              "hosted": 2,
+              "unresolved": 3
+            },
+            "Kongsberg/Tønsberg": {
+              "hosted": 3,
+              "unresolved": 0
+            }
+          },
+          "by_age_group": {
+            "U7": {
+              "hosted": 6,
+              "unresolved": 3
+            },
+            "JU8": {
+              "hosted": 6,
+              "unresolved": 0
+            },
+            "U8": {
+              "hosted": 18,
+              "unresolved": 4
+            },
+            "U9": {
+              "hosted": 18,
+              "unresolved": 3
+            },
+            "JU10": {
+              "hosted": 9,
+              "unresolved": 0
+            },
+            "U10": {
+              "hosted": 33,
+              "unresolved": 2
+            },
+            "U11": {
+              "hosted": 39,
+              "unresolved": 0
+            },
+            "JU12": {
+              "hosted": 26,
+              "unresolved": 0
+            },
+            "U12": {
+              "hosted": 60,
+              "unresolved": 1
+            }
+          }
+        },
+        "month_distribution": {
+          "2026-10": 35,
+          "2026-11": 46,
+          "2026-12": 25,
+          "2027-01": 41,
+          "2027-02": 44,
+          "2027-03": 24
+        },
+        "half_distribution": {
+          "before_christmas": 106,
+          "after_christmas": 109,
+          "unsplit": 0
+        },
+        "half_deviation_pct": 1.3953488372093024
+      }
+    },
+    {
+      "attempted": true,
+      "available": true,
+      "engine": "cp_sat_shadow",
+      "reused": false,
+      "cache_hit": false,
+      "dominates_baseline": false,
+      "production_ready": false,
+      "candidate_source": {
+        "planner": "cp_sat",
+        "engine_version": 1,
+        "status": "FEASIBLE",
+        "runtime_seconds": 15.452246,
+        "solve_budget_seconds": 15.0,
+        "fixed_skeleton": true,
+        "objective_value": 2386641.0,
+        "best_objective_bound": 240432.0,
+        "seed": 0,
+        "baseline_hints": true,
+        "mode": "quality",
+        "decompose_by_half": true,
+        "half_diagnostics": [
+          {
+            "half": "before_christmas",
+            "mode": "quality",
+            "team_count": 126,
+            "slot_count": 106,
+            "assignment_var_count": 1925,
+            "pair_var_count": 18762,
+            "constraint_count": 75883,
+            "hint_count": 1925,
+            "solve_budget_seconds": 7.5,
+            "seed": 0,
+            "status": "FEASIBLE",
+            "runtime_seconds": 7.711978,
+            "objective_value": 1087380.0,
+            "best_objective_bound": 98245.0,
+            "protected_same_club_pairings_baseline": 102
+          },
+          {
+            "half": "after_christmas",
+            "mode": "quality",
+            "team_count": 142,
+            "slot_count": 109,
+            "assignment_var_count": 1965,
+            "pair_var_count": 18885,
+            "constraint_count": 76489,
+            "hint_count": 1965,
+            "solve_budget_seconds": 7.5,
+            "seed": 0,
+            "status": "FEASIBLE",
+            "runtime_seconds": 7.708576,
+            "objective_value": 1299261.0,
+            "best_objective_bound": 142187.0,
+            "protected_same_club_pairings_baseline": 103
+          }
+        ],
+        "protected_same_club_pairings_baseline": 205,
+        "base_source": null,
+        "baseline_candidate_fingerprint": "2ba92b61dec3ffc0377a4a45543b77b4d623c74be1534be77501d67bd96b1a86",
+        "problem_fingerprint": "f5cb19e62b3a3b2f744a0e35dc865d3d074adfb87da1531ab13dc54bee827111",
+        "candidate_fingerprint": "058f7863c8210e586e662144e169cc19b7c762292b13dec92403a84d6afaf240",
+        "encoded_scope": {
+          "moves": [
+            "participant_assignment"
+          ],
+          "fixed": [
+            "dates",
+            "hosts",
+            "arenas",
+            "start_times",
+            "roster_sizes",
+            "tournament_count"
+          ],
+          "participation": "capped_at_configured_target_per_half_with_baseline_hint",
+          "same_club_pairings": "no_worse_than_baseline",
+          "turnaround": "soft_pairwise_hint_only"
+        }
+      },
+      "fingerprints": {
+        "baseline_candidate": "2ba92b61dec3ffc0377a4a45543b77b4d623c74be1534be77501d67bd96b1a86",
+        "shadow_candidate": "058f7863c8210e586e662144e169cc19b7c762292b13dec92403a84d6afaf240",
+        "problem": "f5cb19e62b3a3b2f744a0e35dc865d3d074adfb87da1531ab13dc54bee827111"
+      },
+      "candidate_ref": "stage3_cp_sat:7f4601255a6cff61",
+      "attempt": 2
+    }
+  ],
+  "final_candidate": {
+    "fingerprint": "232d859b7999513a448d6bb0e2bb5d9886e3fc2e6804c1bc2bcb7a17dd33ad1b",
+    "source": null
+  },
+  "final_verify_result": {
+    "ok": true,
+    "violations": [],
+    "skipped": [],
+    "club_controlled_allocations_used": [],
+    "unresolved_hosting_obligations": [
+      {
+        "club": "Frisk Asker",
+        "age_group": "U7"
+      },
+      {
+        "club": "Sandefjord Penguins",
+        "age_group": "U7"
+      },
+      {
+        "club": "Jar",
+        "age_group": "JU8"
+      },
+      {
+        "club": "Skien",
+        "age_group": "JU8"
+      },
+      {
+        "club": "Ringerike",
+        "age_group": "U8"
+      },
+      {
+        "club": "Tønsberg",
+        "age_group": "U8"
+      },
+      {
+        "club": "Kongsberg",
+        "age_group": "U9"
+      },
+      {
+        "club": "Tønsberg",
+        "age_group": "U9"
+      },
+      {
+        "club": "Kongsberg",
+        "age_group": "U10"
+      },
+      {
+        "club": "Tønsberg",
+        "age_group": "U10"
+      }
+    ],
+    "manual_calendar_placements": [],
+    "manual_external_conflict_placements": [
+      {
+        "tournament_id": "19c43cc2",
+        "host_club": "Ringerike",
+        "age_group": "JU12",
+        "date": "2026-10-17"
+      },
+      {
+        "tournament_id": "5b8e099a",
+        "host_club": "Frisk Asker",
+        "age_group": "U8",
+        "date": "2026-12-05"
+      },
+      {
+        "tournament_id": "99ee1a4c",
+        "host_club": "Frisk Asker",
+        "age_group": "U11",
+        "date": "2026-12-06"
+      },
+      {
+        "tournament_id": "504b8496",
+        "host_club": "Ringerike",
+        "age_group": "U12",
+        "date": "2026-12-06"
+      },
+      {
+        "tournament_id": "37d5a6c6",
+        "host_club": "Frisk Asker",
+        "age_group": "U12",
+        "date": "2026-12-06"
+      },
+      {
+        "tournament_id": "829bf5ae",
+        "host_club": "Frisk Asker",
+        "age_group": "U9",
+        "date": "2026-12-06"
+      },
+      {
+        "tournament_id": "f421bf47",
+        "host_club": "Frisk Asker",
+        "age_group": "U12",
+        "date": "2026-12-12"
+      },
+      {
+        "tournament_id": "b87bf15a",
+        "host_club": "Frisk Asker",
+        "age_group": "JU12",
+        "date": "2026-12-13"
+      },
+      {
+        "tournament_id": "0fda037c",
+        "host_club": "Frisk Asker",
+        "age_group": "U8",
+        "date": "2026-12-13"
+      },
+      {
+        "tournament_id": "6c2bdd0c",
+        "host_club": "Tønsberg",
+        "age_group": "U12",
+        "date": "2027-02-07"
+      },
+      {
+        "tournament_id": "766482b8",
+        "host_club": "Frisk Asker",
+        "age_group": "U12",
+        "date": "2027-02-13"
+      },
+      {
+        "tournament_id": "8e29b82f",
+        "host_club": "Frisk Asker",
+        "age_group": "U9",
+        "date": "2027-02-13"
+      },
+      {
+        "tournament_id": "051f71f4",
+        "host_club": "Jar",
+        "age_group": "U12",
+        "date": "2027-02-14"
+      },
+      {
+        "tournament_id": "cb195fcb",
+        "host_club": "Tønsberg",
+        "age_group": "U11",
+        "date": "2027-03-06"
+      }
+    ],
+    "manual_participation_placements": [
+      {
+        "club": "Tønsberg",
+        "label": "Tønsberg Grå (Tønsberg, U12)",
+        "age_group": "U12",
+        "half": "before_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Rød (Jar, JU10)",
+        "age_group": "JU10",
+        "half": "before_christmas",
+        "actual": "3",
+        "target": "4"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Blå (Jar, U12)",
+        "age_group": "U12",
+        "half": "after_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Lilla",
+        "age_group": "U11",
+        "half": "after_christmas",
+        "actual": "3",
+        "target": "5"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Oransje",
+        "age_group": "U11",
+        "half": "after_christmas",
+        "actual": "4",
+        "target": "5"
+      },
+      {
+        "club": "Tønsberg",
+        "label": "Tønsberg Rød (Tønsberg, U12)",
+        "age_group": "U12",
+        "half": "after_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Frisk Asker",
+        "label": "Frisk Asker 1 (Frisk Asker, U12)",
+        "age_group": "U12",
+        "half": "before_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Frisk Asker",
+        "label": "Frisk Asker 3 (Frisk Asker, U11)",
+        "age_group": "U11",
+        "half": "after_christmas",
+        "actual": "4",
+        "target": "5"
+      },
+      {
+        "club": "Frisk Asker",
+        "label": "Frisk Asker 2 (Frisk Asker, U12)",
+        "age_group": "U12",
+        "half": "after_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Blå (Jar, U11)",
+        "age_group": "U11",
+        "half": "after_christmas",
+        "actual": "4",
+        "target": "5"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Hvit (Jar, U11)",
+        "age_group": "U11",
+        "half": "after_christmas",
+        "actual": "3",
+        "target": "5"
+      },
+      {
+        "club": "Tønsberg",
+        "label": "Tønsberg Hvit (Tønsberg, U12)",
+        "age_group": "U12",
+        "half": "before_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Hvit (Jar, U12)",
+        "age_group": "U12",
+        "half": "before_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Svart (Jar, U11)",
+        "age_group": "U11",
+        "half": "after_christmas",
+        "actual": "4",
+        "target": "5"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Grønn (Jar, U11)",
+        "age_group": "U11",
+        "half": "after_christmas",
+        "actual": "4",
+        "target": "5"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Svart (Jar, U12)",
+        "age_group": "U12",
+        "half": "before_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Rød (Jar, U11)",
+        "age_group": "U11",
+        "half": "after_christmas",
+        "actual": "3",
+        "target": "5"
+      },
+      {
+        "club": "Holmen",
+        "label": "Holmen Hockey Hvit (Holmen, U12)",
+        "age_group": "U12",
+        "half": "after_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Jutul",
+        "label": "Jutul Rød (Jutul, U12)",
+        "age_group": "U12",
+        "half": "after_christmas",
+        "actual": "6",
+        "target": "7"
+      },
+      {
+        "club": "Jar",
+        "label": "Jar Gul (Jar, U11)",
+        "age_group": "U11",
+        "half": "after_christmas",
+        "actual": "4",
+        "target": "5"
+      }
+    ],
+    "publication_readiness": {
+      "status": "REVIEW_REQUIRED",
+      "publishable": false,
+      "reasons": [
+        {
+          "code": "unresolved_hosting",
+          "count": 10
+        },
+        {
+          "code": "external_calendar_conflicts",
+          "count": 14
+        },
+        {
+          "code": "participation_shortfalls",
+          "count": 20
+        }
+      ]
+    },
+    "publishable": false
+  },
+  "final_score_result": {
+    "participation": {
+      "counts_by_team": {
+        "Frisk Asker Orange (Frisk Asker, JU12)": 14,
+        "Ringerike 1 (Ringerike, JU12)": 14,
+        "Jutul/Jar Kittens": 14,
+        "Kongsberg/Tønsberg": 14,
+        "Jar Blå (Jar, U11)": 9,
+        "Frisk Asker 1 (Frisk Asker, U11)": 10,
+        "Tønsberg Grå (Tønsberg, U11)": 10,
+        "Holmen Hockey Hvit (Holmen, U11)": 10,
+        "Jutul Grønn (Jutul, U11)": 10,
+        "Ringerike 1 (Ringerike, U11)": 10,
+        "Tønsberg Grå (Tønsberg, U12)": 13,
+        "Jar Blå (Jar, U12)": 13,
+        "Frisk Asker 1 (Frisk Asker, U12)": 13,
+        "Holmen Hockey Hvit (Holmen, U12)": 13,
+        "Holmen Hockey Rød (Holmen, U12)": 14,
+        "Jar Hvit (Jar, U12)": 13,
+        "Frisk Asker 2 (Frisk Asker, U12)": 13,
+        "Tønsberg Hvit (Tønsberg, U12)": 13,
+        "Jutul Grønn (Jutul, U12)": 14,
+        "Jar Rød (Jar, U12)": 14,
+        "Frisk Asker 3 (Frisk Asker, U12)": 14,
+        "Ringerike 1 (Ringerike, U12)": 14,
+        "Jar Svart (Jar, U12)": 13,
+        "Tønsberg Rød (Tønsberg, U12)": 13,
+        "Kongsberg (Kongsberg, U12)": 14,
+        "Jutul Rød (Jutul, U12)": 13,
+        "Ringerike 2 (Ringerike, U12)": 14,
+        "Skien (Skien, U9)": 8,
+        "Frisk Asker 1 (Frisk Asker, U9)": 8,
+        "Holmen Hockey Hvit (Holmen, U9)": 8,
+        "Jar Blå (Jar, U9)": 8,
+        "Jutul Grønn (Jutul, U9)": 8,
+        "Kongsberg (Kongsberg, U9)": 8,
+        "Ringerike 1 (Ringerike, U9)": 8,
+        "Sandefjord (Sandefjord Penguins, U9)": 8,
+        "Frisk Asker Svart (Frisk Asker, JU12)": 14,
+        "Ringerike 2 (Ringerike, JU12)": 14,
+        "Skien (Skien, JU12)": 14,
+        "Frisk Asker 1 (Frisk Asker, U10)": 8,
+        "Jar Blå (Jar, U10)": 8,
+        "Holmen Hockey Blå (Holmen, U10)": 8,
+        "Ringerike 1 (Ringerike, U10)": 8,
+        "Jutul Grønn (Jutul, U10)": 8,
+        "Kongsberg (Kongsberg, U10)": 8,
+        "Tønsberg Hvit (Tønsberg, U11)": 10,
+        "Jar Grønn (Jar, U11)": 9,
+        "Frisk Asker 2 (Frisk Asker, U11)": 10,
+        "Holmen Hockey Rød (Holmen, U11)": 10,
+        "Jutul Rød (Jutul, U11)": 10,
+        "Ringerike 2 (Ringerike, U11)": 10,
+        "Holmen Hockey Blå (Holmen, U8)": 6,
+        "Frisk Asker 1 (Frisk Asker, U8)": 6,
+        "Jar Blå (Jar, U8)": 6,
+        "Jutul Grønn (Jutul, U8)": 6,
+        "Ringerike 1 (Ringerike, U8)": 6,
+        "Kongsberg (Kongsberg, U8)": 6,
+        "Sandefjord (Sandefjord Penguins, U8)": 6,
+        "Skien (Skien, U8)": 6,
+        "Jutul Hvit (Jutul, U10)": 8,
+        "Frisk Asker 2 (Frisk Asker, U10)": 8,
+        "Jar Grønn (Jar, U10)": 8,
+        "Holmen Hockey Hvit (Holmen, U10)": 8,
+        "Ringerike 2 (Ringerike, U10)": 8,
+        "Tønsberg (Tønsberg, U10)": 8,
+        "Kongsberg (Kongsberg, U11)": 10,
+        "Jar Gul (Jar, U11)": 9,
+        "Frisk Asker 3 (Frisk Asker, U11)": 9,
+        "Tønsberg Rød (Tønsberg, U11)": 10,
+        "Sandefjord (Sandefjord Penguins, U11)": 10,
+        "Skien (Skien, U11)": 10,
+        "Skien (Skien, JU10)": 8,
+        "Jar Blå (Jar, JU10)": 8,
+        "Frisk Asker Orange (Frisk Asker, JU10)": 8,
+        "Ringerike 1 (Ringerike, JU10)": 8,
+        "Jar Hvit (Jar, JU10)": 8,
+        "Frisk Asker Svart (Frisk Asker, JU10)": 8,
+        "Jar Gul (Jar, U10)": 8,
+        "Frisk Asker 3 (Frisk Asker, U10)": 8,
+        "Holmen Hockey Rød (Holmen, U10)": 8,
+        "Ringerike 3": 8,
+        "Jutul Rød (Jutul, U10)": 8,
+        "Jar Hvit (Jar, U11)": 8,
+        "Frisk Asker 4 (Frisk Asker, U11)": 10,
+        "Frisk Asker": 6,
+        "Jar": 6,
+        "Jutul Kittens": 6,
+        "Ringerike 1 (Ringerike, JU8)": 6,
+        "Skien (Skien, JU8)": 6,
+        "Holmen Hockey Sort (Holmen, U10)": 8,
+        "Frisk Asker 4 (Frisk Asker, U10)": 8,
+        "Jar Hvit (Jar, U10)": 8,
+        "Ringerike 4": 8,
+        "Jar Lilla": 8,
+        "Frisk Asker 2 (Frisk Asker, U8)": 6,
+        "Holmen Hockey Hvit (Holmen, U8)": 6,
+        "Jar Hvit (Jar, U8)": 6,
+        "Jutul Gul": 6,
+        "Ringerike 2 (Ringerike, U8)": 6,
+        "Tønsberg (Tønsberg, U8)": 6,
+        "Frisk Asker 5 (Frisk Asker, U10)": 8,
+        "Jar Rød (Jar, U10)": 8,
+        "Frisk Asker 6": 8,
+        "Jar Oransje": 9,
+        "Jar Hvit (Jar, U9)": 8,
+        "Frisk Asker 2 (Frisk Asker, U9)": 8,
+        "Holmen Hockey Rød (Holmen, U9)": 8,
+        "Jutul Hvit (Jutul, U9)": 8,
+        "Tønsberg (Tønsberg, U9)": 8,
+        "Jar Rød (Jar, U9)": 8,
+        "Jar Svart (Jar, U10)": 8,
+        "Jar Rød (Jar, U11)": 8,
+        "Jar Svart (Jar, U11)": 9,
+        "Frisk Asker 3 (Frisk Asker, U9)": 8,
+        "Holmen Hockey Sort (Holmen, U9)": 8,
+        "Jutul Rød (Jutul, U9)": 8,
+        "Frisk Asker 4 (Frisk Asker, U9)": 8,
+        "Jar Rød (Jar, JU10)": 7,
+        "Frisk Asker 3 (Frisk Asker, U8)": 6,
+        "Holmen Hockey Rød (Holmen, U8)": 6,
+        "Jar Rød (Jar, U8)": 6,
+        "Jutul Hvit (Jutul, U8)": 6,
+        "Frisk Asker 4 (Frisk Asker, U8)": 6,
+        "Frisk Asker 5 (Frisk Asker, U8)": 6,
+        "Holmen Hockey Sort (Holmen, U8)": 6,
+        "Jar Svart (Jar, U8)": 6,
+        "Jutul Rød (Jutul, U8)": 6,
+        "Holmen Hockey Hvit (Holmen, U7)": 3,
+        "Jar Blå (Jar, U7)": 3,
+        "Frisk Asker 1 (Frisk Asker, U7)": 3,
+        "Jutul Grønn (Jutul, U7)": 3,
+        "Sandefjord (Sandefjord Penguins, U7)": 3,
+        "Tønsberg (Tønsberg, U7)": 3,
+        "Holmen Hockey Rød (Holmen, U7)": 3,
+        "Jar Grønn (Jar, U7)": 3,
+        "Jar Hvit (Jar, U7)": 3,
+        "Frisk Asker 2 (Frisk Asker, U7)": 3,
+        "Holmen Hockey Sort (Holmen, U7)": 3,
+        "Jutul Hvit (Jutul, U7)": 3,
+        "Jar Rød (Jar, U7)": 3,
+        "Frisk Asker 3 (Frisk Asker, U7)": 3,
+        "Jar Svart (Jar, U7)": 3,
+        "Jutul Rød (Jutul, U7)": 3
+      },
+      "spread": 11
+    },
+    "opponent_diversity": {
+      "unique_pairs": 1213,
+      "pairwise_novelty": 0.4259129213483146,
+      "pair_repeat_distribution": {
+        "7": 13,
+        "8": 6,
+        "6": 28,
+        "1": 341,
+        "3": 247,
+        "2": 440,
+        "4": 111,
+        "5": 27
+      },
+      "pairs_meeting_3_plus": 432,
+      "max_pair_repeat": 8,
+      "inter_club_diversity": 0.9866190900981266,
+      "same_club_pairing_count": 107,
+      "max_same_club_teams_per_tournament": 6,
+      "club_count_excess_over_2": 24,
+      "tournaments_with_3plus_same_club": 14
+    },
+    "temporal": {
+      "max_gap_days": 69,
+      "offenders_count": 5,
+      "offenders": [
+        {
+          "team": "Tønsberg (Tønsberg, U8)",
+          "age_group": "U8",
+          "lead_gap_days": 15,
+          "finish_gap_days": 42,
+          "max_intra_gap_days": 69,
+          "max_gap_days": 69
+        },
+        {
+          "team": "Jutul Grønn (Jutul, U10)",
+          "age_group": "U10",
+          "lead_gap_days": 2,
+          "finish_gap_days": 49,
+          "max_intra_gap_days": 62,
+          "max_gap_days": 62
+        },
+        {
+          "team": "Sandefjord (Sandefjord Penguins, U8)",
+          "age_group": "U8",
+          "lead_gap_days": 2,
+          "finish_gap_days": 35,
+          "max_intra_gap_days": 62,
+          "max_gap_days": 62
+        },
+        {
+          "team": "Skien (Skien, U8)",
+          "age_group": "U8",
+          "lead_gap_days": 2,
+          "finish_gap_days": 35,
+          "max_intra_gap_days": 62,
+          "max_gap_days": 62
+        },
+        {
+          "team": "Ringerike 2 (Ringerike, U8)",
+          "age_group": "U8",
+          "lead_gap_days": 15,
+          "finish_gap_days": 35,
+          "max_intra_gap_days": 62,
+          "max_gap_days": 62
+        }
+      ]
+    },
+    "turnaround": {
+      "min_turnaround_days": 1,
+      "gaps_under_days": {
+        "7": 82,
+        "14": 385
+      }
+    },
+    "hosting": {
+      "counts_by_host": {
+        "Frisk Asker": 56,
+        "Tønsberg": 16,
+        "Holmen": 28,
+        "Jutul": 28,
+        "Ringerike": 30,
+        "Kongsberg": 8,
+        "Skien": 8,
+        "Sandefjord Penguins": 4,
+        "Jar": 37
+      },
+      "spread": 52,
+      "club_age_group_matrix": [
+        {
+          "club": "Frisk Asker",
+          "age_group": "U7",
+          "teams": 3,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Holmen",
+          "age_group": "U7",
+          "teams": 3,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U7",
+          "teams": 5,
+          "hosted": 2,
+          "unresolved": false
+        },
+        {
+          "club": "Jutul",
+          "age_group": "U7",
+          "teams": 3,
+          "hosted": 2,
+          "unresolved": false
+        },
+        {
+          "club": "Sandefjord Penguins",
+          "age_group": "U7",
+          "teams": 1,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U7",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Frisk Asker",
+          "age_group": "JU8",
+          "teams": 1,
+          "hosted": 3,
+          "unresolved": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "JU8",
+          "teams": 1,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Jutul",
+          "age_group": "JU8",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "JU8",
+          "teams": 1,
+          "hosted": 2,
+          "unresolved": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "JU8",
+          "teams": 1,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Frisk Asker",
+          "age_group": "U8",
+          "teams": 5,
+          "hosted": 3,
+          "unresolved": false
+        },
+        {
+          "club": "Holmen",
+          "age_group": "U8",
+          "teams": 4,
+          "hosted": 5,
+          "unresolved": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U8",
+          "teams": 4,
+          "hosted": 3,
+          "unresolved": false
+        },
+        {
+          "club": "Jutul",
+          "age_group": "U8",
+          "teams": 4,
+          "hosted": 4,
+          "unresolved": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U8",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U8",
+          "teams": 2,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Sandefjord Penguins",
+          "age_group": "U8",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U8",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U8",
+          "teams": 1,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Frisk Asker",
+          "age_group": "U9",
+          "teams": 4,
+          "hosted": 4,
+          "unresolved": false
+        },
+        {
+          "club": "Holmen",
+          "age_group": "U9",
+          "teams": 3,
+          "hosted": 5,
+          "unresolved": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U9",
+          "teams": 3,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Jutul",
+          "age_group": "U9",
+          "teams": 3,
+          "hosted": 5,
+          "unresolved": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U9",
+          "teams": 1,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U9",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Sandefjord Penguins",
+          "age_group": "U9",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U9",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U9",
+          "teams": 1,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Frisk Asker",
+          "age_group": "JU10",
+          "teams": 2,
+          "hosted": 4,
+          "unresolved": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "JU10",
+          "teams": 3,
+          "hosted": 3,
+          "unresolved": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "JU10",
+          "teams": 1,
+          "hosted": 2,
+          "unresolved": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "JU10",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Frisk Asker",
+          "age_group": "U10",
+          "teams": 6,
+          "hosted": 12,
+          "unresolved": false
+        },
+        {
+          "club": "Holmen",
+          "age_group": "U10",
+          "teams": 4,
+          "hosted": 7,
+          "unresolved": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "teams": 6,
+          "hosted": 6,
+          "unresolved": false
+        },
+        {
+          "club": "Jutul",
+          "age_group": "U10",
+          "teams": 3,
+          "hosted": 3,
+          "unresolved": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "teams": 1,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "teams": 4,
+          "hosted": 6,
+          "unresolved": false
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U10",
+          "teams": 1,
+          "hosted": 0,
+          "unresolved": true
+        },
+        {
+          "club": "Frisk Asker",
+          "age_group": "U11",
+          "teams": 4,
+          "hosted": 12,
+          "unresolved": false
+        },
+        {
+          "club": "Holmen",
+          "age_group": "U11",
+          "teams": 2,
+          "hosted": 3,
+          "unresolved": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U11",
+          "teams": 8,
+          "hosted": 10,
+          "unresolved": false
+        },
+        {
+          "club": "Jutul",
+          "age_group": "U11",
+          "teams": 2,
+          "hosted": 2,
+          "unresolved": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U11",
+          "teams": 1,
+          "hosted": 2,
+          "unresolved": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U11",
+          "teams": 2,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Sandefjord Penguins",
+          "age_group": "U11",
+          "teams": 1,
+          "hosted": 2,
+          "unresolved": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U11",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U11",
+          "teams": 3,
+          "hosted": 5,
+          "unresolved": false
+        },
+        {
+          "club": "Frisk Asker",
+          "age_group": "JU12",
+          "teams": 2,
+          "hosted": 7,
+          "unresolved": false
+        },
+        {
+          "club": "Jutul",
+          "age_group": "JU12",
+          "teams": 1,
+          "hosted": 4,
+          "unresolved": false
+        },
+        {
+          "club": "Kongsberg/Tønsberg",
+          "age_group": "JU12",
+          "teams": 1,
+          "hosted": 2,
+          "unresolved": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "JU12",
+          "teams": 2,
+          "hosted": 9,
+          "unresolved": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "JU12",
+          "teams": 1,
+          "hosted": 4,
+          "unresolved": false
+        },
+        {
+          "club": "Frisk Asker",
+          "age_group": "U12",
+          "teams": 3,
+          "hosted": 11,
+          "unresolved": false
+        },
+        {
+          "club": "Holmen",
+          "age_group": "U12",
+          "teams": 2,
+          "hosted": 7,
+          "unresolved": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U12",
+          "teams": 4,
+          "hosted": 12,
+          "unresolved": false
+        },
+        {
+          "club": "Jutul",
+          "age_group": "U12",
+          "teams": 2,
+          "hosted": 7,
+          "unresolved": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U12",
+          "teams": 1,
+          "hosted": 3,
+          "unresolved": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U12",
+          "teams": 2,
+          "hosted": 9,
+          "unresolved": false
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U12",
+          "teams": 3,
+          "hosted": 10,
+          "unresolved": false
+        }
+      ],
+      "unresolved_obligations": [
+        {
+          "club": "Frisk Asker",
+          "age_group": "U7"
+        },
+        {
+          "club": "Sandefjord Penguins",
+          "age_group": "U7"
+        },
+        {
+          "club": "Jar",
+          "age_group": "JU8"
+        },
+        {
+          "club": "Skien",
+          "age_group": "JU8"
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U8"
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U8"
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U9"
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U9"
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U10"
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U10"
+        }
+      ],
+      "by_club": {
+        "Frisk Asker": {
+          "hosted": 56,
+          "unresolved": 1
+        },
+        "Holmen": {
+          "hosted": 28,
+          "unresolved": 0
+        },
+        "Jar": {
+          "hosted": 37,
+          "unresolved": 1
+        },
+        "Jutul": {
+          "hosted": 28,
+          "unresolved": 0
+        },
+        "Sandefjord Penguins": {
+          "hosted": 4,
+          "unresolved": 1
+        },
+        "Tønsberg": {
+          "hosted": 16,
+          "unresolved": 3
+        },
+        "Ringerike": {
+          "hosted": 30,
+          "unresolved": 1
+        },
+        "Skien": {
+          "hosted": 8,
+          "unresolved": 1
+        },
+        "Kongsberg": {
+          "hosted": 6,
+          "unresolved": 2
+        },
+        "Kongsberg/Tønsberg": {
+          "hosted": 2,
+          "unresolved": 0
+        }
+      },
+      "by_age_group": {
+        "U7": {
+          "hosted": 6,
+          "unresolved": 2
+        },
+        "JU8": {
+          "hosted": 6,
+          "unresolved": 2
+        },
+        "U8": {
+          "hosted": 18,
+          "unresolved": 2
+        },
+        "U9": {
+          "hosted": 18,
+          "unresolved": 2
+        },
+        "JU10": {
+          "hosted": 10,
+          "unresolved": 0
+        },
+        "U10": {
+          "hosted": 34,
+          "unresolved": 2
+        },
+        "U11": {
+          "hosted": 38,
+          "unresolved": 0
+        },
+        "JU12": {
+          "hosted": 26,
+          "unresolved": 0
+        },
+        "U12": {
+          "hosted": 59,
+          "unresolved": 0
+        }
+      }
+    },
+    "month_distribution": {
+      "2026-10": 36,
+      "2026-11": 45,
+      "2026-12": 25,
+      "2027-01": 43,
+      "2027-02": 41,
+      "2027-03": 25
+    },
+    "half_distribution": {
+      "before_christmas": 106,
+      "after_christmas": 109,
+      "unsplit": 0
+    },
+    "half_deviation_pct": 1.3953488372093024
+  },
+  "export": {
+    "dir": "export/2026-09-14T0828",
+    "output_files": {
+      "excel": "export/2026-09-14T0828/season_plan.xlsx",
+      "ical": "export/2026-09-14T0828/season_plan.ics",
+      "csv_games": "export/2026-09-14T0828/season_plan.csv",
+      "csv_overview": "export/2026-09-14T0828/season_plan_overview.csv",
+      "input_html": "export/2026-09-14T0828/input.html",
+      "calendars_html": "export/2026-09-14T0828/calendars.html",
+      "html": "export/2026-09-14T0828/season_plan.html",
+      "html_report": "export/2026-09-14T0828/season_plan_report.html",
+      "manual_schedule": "export/2026-09-14T0828/manual_schedule.html",
+      "spond": "export/2026-09-14T0828/season_plan_spond.xlsx",
+      "spond_games": "export/2026-09-14T0828/season_plan_spond_games.xlsx",
+      "review_packets": "export/2026-09-14T0828/review_packets"
+    },
+    "fingerprint": "232d859b7999513a448d6bb0e2bb5d9886e3fc2e6804c1bc2bcb7a17dd33ad1b",
+    "verify_result": {
+      "ok": true,
+      "violations": [],
+      "skipped": [],
+      "club_controlled_allocations_used": [],
+      "unresolved_hosting_obligations": [
+        {
+          "club": "Frisk Asker",
+          "age_group": "U7"
+        },
+        {
+          "club": "Sandefjord Penguins",
+          "age_group": "U7"
+        },
+        {
+          "club": "Jar",
+          "age_group": "JU8"
+        },
+        {
+          "club": "Skien",
+          "age_group": "JU8"
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U8"
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U8"
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U9"
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U9"
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U10"
+        },
+        {
+          "club": "Tønsberg",
+          "age_group": "U10"
+        }
+      ],
+      "manual_calendar_placements": [],
+      "manual_external_conflict_placements": [
+        {
+          "tournament_id": "19c43cc2",
+          "host_club": "Ringerike",
+          "age_group": "JU12",
+          "date": "2026-10-17"
+        },
+        {
+          "tournament_id": "5b8e099a",
+          "host_club": "Frisk Asker",
+          "age_group": "U8",
+          "date": "2026-12-05"
+        },
+        {
+          "tournament_id": "99ee1a4c",
+          "host_club": "Frisk Asker",
+          "age_group": "U11",
+          "date": "2026-12-06"
+        },
+        {
+          "tournament_id": "504b8496",
+          "host_club": "Ringerike",
+          "age_group": "U12",
+          "date": "2026-12-06"
+        },
+        {
+          "tournament_id": "37d5a6c6",
+          "host_club": "Frisk Asker",
+          "age_group": "U12",
+          "date": "2026-12-06"
+        },
+        {
+          "tournament_id": "829bf5ae",
+          "host_club": "Frisk Asker",
+          "age_group": "U9",
+          "date": "2026-12-06"
+        },
+        {
+          "tournament_id": "f421bf47",
+          "host_club": "Frisk Asker",
+          "age_group": "U12",
+          "date": "2026-12-12"
+        },
+        {
+          "tournament_id": "b87bf15a",
+          "host_club": "Frisk Asker",
+          "age_group": "JU12",
+          "date": "2026-12-13"
+        },
+        {
+          "tournament_id": "0fda037c",
+          "host_club": "Frisk Asker",
+          "age_group": "U8",
+          "date": "2026-12-13"
+        },
+        {
+          "tournament_id": "6c2bdd0c",
+          "host_club": "Tønsberg",
+          "age_group": "U12",
+          "date": "2027-02-07"
+        },
+        {
+          "tournament_id": "766482b8",
+          "host_club": "Frisk Asker",
+          "age_group": "U12",
+          "date": "2027-02-13"
+        },
+        {
+          "tournament_id": "8e29b82f",
+          "host_club": "Frisk Asker",
+          "age_group": "U9",
+          "date": "2027-02-13"
+        },
+        {
+          "tournament_id": "051f71f4",
+          "host_club": "Jar",
+          "age_group": "U12",
+          "date": "2027-02-14"
+        },
+        {
+          "tournament_id": "cb195fcb",
+          "host_club": "Tønsberg",
+          "age_group": "U11",
+          "date": "2027-03-06"
+        }
+      ],
+      "manual_participation_placements": [
+        {
+          "club": "Tønsberg",
+          "label": "Tønsberg Grå (Tønsberg, U12)",
+          "age_group": "U12",
+          "half": "before_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Rød (Jar, JU10)",
+          "age_group": "JU10",
+          "half": "before_christmas",
+          "actual": "3",
+          "target": "4"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Blå (Jar, U12)",
+          "age_group": "U12",
+          "half": "after_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Lilla",
+          "age_group": "U11",
+          "half": "after_christmas",
+          "actual": "3",
+          "target": "5"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Oransje",
+          "age_group": "U11",
+          "half": "after_christmas",
+          "actual": "4",
+          "target": "5"
+        },
+        {
+          "club": "Tønsberg",
+          "label": "Tønsberg Rød (Tønsberg, U12)",
+          "age_group": "U12",
+          "half": "after_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 1 (Frisk Asker, U12)",
+          "age_group": "U12",
+          "half": "before_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 3 (Frisk Asker, U11)",
+          "age_group": "U11",
+          "half": "after_christmas",
+          "actual": "4",
+          "target": "5"
+        },
+        {
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 2 (Frisk Asker, U12)",
+          "age_group": "U12",
+          "half": "after_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Blå (Jar, U11)",
+          "age_group": "U11",
+          "half": "after_christmas",
+          "actual": "4",
+          "target": "5"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Hvit (Jar, U11)",
+          "age_group": "U11",
+          "half": "after_christmas",
+          "actual": "3",
+          "target": "5"
+        },
+        {
+          "club": "Tønsberg",
+          "label": "Tønsberg Hvit (Tønsberg, U12)",
+          "age_group": "U12",
+          "half": "before_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Hvit (Jar, U12)",
+          "age_group": "U12",
+          "half": "before_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Svart (Jar, U11)",
+          "age_group": "U11",
+          "half": "after_christmas",
+          "actual": "4",
+          "target": "5"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Grønn (Jar, U11)",
+          "age_group": "U11",
+          "half": "after_christmas",
+          "actual": "4",
+          "target": "5"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Svart (Jar, U12)",
+          "age_group": "U12",
+          "half": "before_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Rød (Jar, U11)",
+          "age_group": "U11",
+          "half": "after_christmas",
+          "actual": "3",
+          "target": "5"
+        },
+        {
+          "club": "Holmen",
+          "label": "Holmen Hockey Hvit (Holmen, U12)",
+          "age_group": "U12",
+          "half": "after_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Jutul",
+          "label": "Jutul Rød (Jutul, U12)",
+          "age_group": "U12",
+          "half": "after_christmas",
+          "actual": "6",
+          "target": "7"
+        },
+        {
+          "club": "Jar",
+          "label": "Jar Gul (Jar, U11)",
+          "age_group": "U11",
+          "half": "after_christmas",
+          "actual": "4",
+          "target": "5"
+        }
+      ]
+    }
+  },
+  "fingerprint_consistent": true
+}
