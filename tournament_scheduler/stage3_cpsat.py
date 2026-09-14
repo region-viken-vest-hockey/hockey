@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 
 from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .models import Team
-from .planning_contract import CANDIDATE_SCHEMA_VERSION
+from .planning_contract import CANDIDATE_SCHEMA_VERSION, NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP
 from .stage3_cpsat_club_cap import build_club_excess_terms
 from .stage3_cpsat_diagnostics import raise_host_not_represented
 from .stage3_cpsat_slots import (
@@ -100,6 +100,24 @@ def _solve_slot_group(
     x: "dict[tuple[int, TeamIdentity], Any]" = {}
 
     for slot in slots:
+        exact_required = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(slot.age_group)
+        invalid_no_bye_size = slot.roster_size % 2 == 1 or (
+            exact_required is not None and slot.roster_size != exact_required
+        )
+        if invalid_no_bye_size:
+            raise CpSatNoCandidate(
+                "INFEASIBLE_NO_BYE_ROSTER_SIZE",
+                perf_counter() - started,
+                baseline_candidate_fingerprint=baseline_fingerprint,
+                problem_fingerprint=problem_fingerprint,
+                diagnostics={
+                    "reason": "bye_team_not_allowed",
+                    "tournament_id": slot.tournament_id,
+                    "age_group": slot.age_group,
+                    "roster_size": slot.roster_size,
+                    "required_team_count": exact_required,
+                },
+            )
         eligible = teams_by_age_group.get(slot.age_group, [])
         for identity in eligible:
             x[(slot.index, identity)] = model.NewBoolVar(

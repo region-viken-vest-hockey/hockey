@@ -49,6 +49,12 @@ CANDIDATE_SCHEMA_VERSION = 1
 # cross, regardless of fairness/host/objective trade-offs.
 HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT = 3
 
+# Pause/bye teams are not allowed in any materialized tournament: every
+# scheduled team must play in every round. With the current U12/JU12 capacity
+# of 4 teams this also means those tournaments must be exactly 4 teams / 6 games.
+NO_BYE_MIN_TEAMS_PER_TOURNAMENT = 4
+NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP = {"U12": 4, "JU12": 4}
+
 
 # ---------------------------------------------------------------------------
 # planning_problem.json
@@ -452,6 +458,44 @@ def verify_candidate(
             club = identity[0]
             if club:
                 club_counts_this_tournament[club] = club_counts_this_tournament.get(club, 0) + 1
+
+        team_count = len(t.get("teams", []))
+        team_labels = [
+            str(team.get("label"))
+            for team in t.get("teams", [])
+            if isinstance(team, dict) and team.get("label")
+        ]
+        played_by_round: Dict[int, set[str]] = {}
+        for game in t.get("games", []) or []:
+            try:
+                round_number = int(game.get("round_number") or 0)
+            except (AttributeError, TypeError, ValueError):
+                continue
+            if round_number <= 0:
+                continue
+            for side in ("home", "away"):
+                label = game.get(side)
+                if label:
+                    played_by_round.setdefault(round_number, set()).add(str(label))
+        bye_rounds = {
+            round_number: [label for label in team_labels if label not in playing]
+            for round_number, playing in played_by_round.items()
+            if any(label not in playing for label in team_labels)
+        }
+        required_team_count = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(str(t.get("age_group") or ""))
+        invalid_exact_count = required_team_count is not None and team_count != required_team_count
+        if team_count % 2 == 1 or bye_rounds or invalid_exact_count:
+            requirement = (
+                f"exactly {required_team_count} teams"
+                if required_team_count is not None
+                else "an even number of teams"
+            )
+            _violate(
+                "bye_team_not_allowed",
+                f"Tournament {t_id} ({t.get('age_group')}) has {team_count} teams; "
+                f"tournaments must have {requirement} and no pause/bye rounds",
+                t_id,
+            )
 
         # issue #326: a hard ceiling, independent of any fairness/host/
         # objective trade-off -- 4+ teams from one club in one tournament is

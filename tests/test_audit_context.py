@@ -107,7 +107,7 @@ def test_context_falls_back_to_stage2_calendar_summary_when_bundle_missing(tmp_p
 def test_context_includes_selected_plan_cross_checks(tmp_path):
     PipelineState(tmp_path).write_stage(
         StageName.CONFIG,
-        {"round_length_minutes": {"U10": 15}},
+        {"round_length_minutes": {"U10": 15}, "parallel_games": {"U10": 3}},
         status=StageStatus.DONE,
     )
     PipelineState(tmp_path).write_stage(
@@ -172,6 +172,11 @@ def test_context_includes_selected_plan_cross_checks(tmp_path):
     assert summary["expected_csv_game_rows"] == 4
     assert summary["duration_summary"]["max_minutes"] == 40
     assert summary["duration_summary"]["missing_duration_count"] == 1
+    utilisation = summary["tournament_utilisation_summary"]
+    assert utilisation["tournaments_with_byes_or_invalid_no_bye_roster"] == 2
+    assert utilisation["bye_examples"][0]["configured_parallel_game_capacity"] == 6
+    assert utilisation["bye_examples"][0]["full_capacity_game_count"] == 15
+    assert utilisation["underfilled_by_age_group"] == {"U10": 2}
     assert summary["host_participation_summary"]["tournaments_where_host_club_not_in_participants"] == 1
     assert summary["team_daily_participation_summary"]["duplicate_team_day_count"] == 1
     assert summary["same_club_per_tournament_summary"]["tournaments_with_more_than_two_from_same_club"] == 1

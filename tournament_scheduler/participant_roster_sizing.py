@@ -14,6 +14,7 @@ from datetime import date
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT
+from tournament_scheduler.planning_contract import NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP
 
 
 def club_demand_shares(planner, age_group: str, period: Optional[str] = None) -> Dict[str, float]:
@@ -121,25 +122,53 @@ def target_tournaments_for_age_group(planner, age_group: str, period: Optional[s
     total_target, capacity = _participation_demand(planner, age_group, period)
     if capacity == 0:
         return 0
-    return max(1, math.ceil(total_target / capacity))
+    exact_size = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(age_group)
+    if exact_size is not None:
+        return total_target // exact_size if capacity >= exact_size else 0
+    # No-bye invariant: do not create a leftover odd-sized tournament slot.
+    return len(plan_roster_sizes(total_target, capacity))
 
 
 def plan_roster_sizes(demand: int, capacity: int) -> List[int]:
-    """Split `demand` participations into balanced per-slot roster sizes.
+    """Split participation demand into legal no-bye roster sizes.
 
-    issue #316: the number of slots is `ceil(demand / capacity)`, same as
-    `target_tournaments_for_age_group`. Sizes are then balanced (differing by
-    at most one team) rather than greedily filled to `capacity` slot by slot
-    -- greedy filling can strand a final slot below `MIN_TEAMS_PER_TOURNAMENT`
-    even when the demand is perfectly packable (e.g. 49 participations at
-    capacity 4 greedily yields 12 full slots + 1 stranded team, but balances
-    into 10x4 + 3x3 = 49).
+    Every materialized tournament must have an even roster and at least four
+    teams. If demand cannot be represented exactly with even sizes within the
+    configured capacity, the remainder is left as an explicit participation
+    shortfall/manual evidence by later verification instead of creating a
+    pause/bye tournament.
     """
-    if demand <= 0 or capacity <= 0:
+    if demand <= 0 or capacity < 4:
         return []
-    slot_count = math.ceil(demand / capacity)
-    base, remainder = divmod(demand, slot_count)
-    return [base + 1] * remainder + [base] * (slot_count - remainder)
+    max_even_capacity = capacity if capacity % 2 == 0 else capacity - 1
+    if max_even_capacity < 4:
+        return []
+
+    best: List[int] = []
+    best_total = 0
+    max_slots = demand // 4
+    for slot_count in range(1, max_slots + 1):
+        max_total = min(demand, slot_count * max_even_capacity)
+        # Largest even total this slot count can realize.
+        total = max_total if max_total % 2 == 0 else max_total - 1
+        min_total = slot_count * 4
+        if total < min_total:
+            continue
+        base_even = (total // slot_count) // 2 * 2
+        sizes = [base_even] * slot_count
+        remainder = total - sum(sizes)
+        idx = 0
+        while remainder > 0 and idx < slot_count:
+            add = min(remainder, max_even_capacity - sizes[idx])
+            add -= add % 2
+            if add > 0:
+                sizes[idx] += add
+                remainder -= add
+            idx += 1
+        if remainder == 0 and sum(sizes) > best_total:
+            best = sizes
+            best_total = sum(sizes)
+    return sorted(best, reverse=True)
 
 
 def plan_roster_sizes_for_age_group(planner, age_group: str, period: Optional[str] = None) -> List[int]:
@@ -151,6 +180,10 @@ def plan_roster_sizes_for_age_group(planner, age_group: str, period: Optional[st
     total_target, capacity = _participation_demand(planner, age_group, period)
     if capacity == 0:
         return []
+    exact_size = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(age_group)
+    if exact_size is not None:
+        full_slots = total_target // exact_size if capacity >= exact_size else 0
+        return [exact_size] * full_slots
     return plan_roster_sizes(total_target, capacity)
 
 

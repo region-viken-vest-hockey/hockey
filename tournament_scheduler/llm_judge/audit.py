@@ -46,6 +46,12 @@ def build_audit_prompt(context: dict[str, Any]) -> str:
         "passed. The scheduler and its deterministic verifier may share a logic defect, or "
         "may simply be missing a rule. Explain anything that does not make operational sense.",
         "",
+        "Hard policy: pause/bye teams are invalid in every age group. If "
+        "`plan_audit_summary.tournament_utilisation_summary.tournaments_with_byes_or_invalid_no_bye_roster` "
+        "is greater than zero, or you independently find any odd-sized/byed tournament, the overall "
+        "status must be `FAIL` -- never `REVIEW_REQUIRED` or `PASS`. Repeated even-roster but "
+        "low-utilisation tournaments should still be reported as planning-quality findings.",
+        "",
         "Hard policy: a tournament with more than "
         f"{context.get('hard_max_club_teams_per_tournament', 3)} teams from the same club is "
         "an invalid plan, not a quality concern. If "

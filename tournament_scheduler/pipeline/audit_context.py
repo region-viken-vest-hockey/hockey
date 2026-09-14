@@ -19,7 +19,10 @@ from pathlib import Path
 from typing import Any
 
 from ..host_representation import clubs_represent_same_club
-from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+from ..planning_contract import (
+    HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
+    NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP,
+)
 from .audit_result import current_export_fingerprint, current_run_id
 from .fingerprints import stable_payload_sha256
 from .state import PipelineState, StageName
@@ -175,15 +178,15 @@ def _tournament_ref(tournament: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _count_bye_rows(tournament: dict[str, Any]) -> int:
-    """Count CSV pause/bye rows implied by the persisted tournament games."""
+def _bye_rounds(tournament: dict[str, Any]) -> dict[int, list[str]]:
+    """Return pause/bye teams by round implied by the persisted tournament games."""
     team_labels = {
         str(team.get("label"))
         for team in tournament.get("teams") or []
         if isinstance(team, dict) and team.get("label")
     }
     if not team_labels:
-        return 0
+        return {}
     played_by_round: dict[int, set[str]] = defaultdict(set)
     for game in tournament.get("games") or []:
         if not isinstance(game, dict):
@@ -200,7 +203,16 @@ def _count_bye_rows(tournament: dict[str, Any]) -> int:
                 label = label.get("label")
             if label:
                 played_by_round[round_number].add(str(label))
-    return sum(len(team_labels - played) for played in played_by_round.values())
+    return {
+        round_number: sorted(team_labels - played)
+        for round_number, played in sorted(played_by_round.items())
+        if team_labels - played
+    }
+
+
+def _count_bye_rows(tournament: dict[str, Any]) -> int:
+    """Count CSV pause/bye rows implied by the persisted tournament games."""
+    return sum(len(labels) for labels in _bye_rounds(tournament).values())
 
 
 def _summarize_plan_for_audit(
@@ -226,6 +238,9 @@ def _summarize_plan_for_audit(
     missing_duration: list[dict[str, Any]] = []
     duration_values: list[int] = []
     bye_row_count = sum(_count_bye_rows(tournament) for tournament in tournaments)
+    utilisation_examples: list[dict[str, Any]] = []
+    blocking_byes: list[dict[str, Any]] = []
+    underfilled_by_age: Counter[str] = Counter()
     for tournament in tournaments:
         games = [g for g in tournament.get("games") or [] if isinstance(g, dict)]
         round_count = max([int(g.get("round_number") or 0) for g in games] or [0])
@@ -258,6 +273,33 @@ def _summarize_plan_for_audit(
                 "game_count": len(games),
             }
         )
+        teams = [team for team in tournament.get("teams") or [] if isinstance(team, dict)]
+        team_count = len(teams)
+        age_group = str(tournament.get("age_group") or "")
+        configured_capacity = None
+        if isinstance(config_checkpoint, dict):
+            pg = (config_checkpoint.get("parallel_games") or {}).get(age_group)
+            if isinstance(pg, int) and pg > 0:
+                configured_capacity = pg * 2
+        full_team_count = configured_capacity or team_count
+        max_full_game_count = full_team_count * (full_team_count - 1) // 2 if full_team_count > 1 else 0
+        bye_rounds = _bye_rounds(tournament)
+        utilisation_row = {
+            **_tournament_ref(tournament),
+            "team_count": team_count,
+            "game_count": len(games),
+            "configured_parallel_game_capacity": configured_capacity,
+            "full_capacity_game_count": max_full_game_count,
+            "bye_rounds": {str(k): v for k, v in bye_rounds.items()},
+            "pause_team_count": sum(len(v) for v in bye_rounds.values()),
+            "underfilled": bool(team_count and max_full_game_count and len(games) < max_full_game_count),
+        }
+        utilisation_examples.append(utilisation_row)
+        if utilisation_row["underfilled"]:
+            underfilled_by_age[age_group] += 1
+        exact_required = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(age_group)
+        if team_count % 2 == 1 or bye_rounds or (exact_required is not None and team_count != exact_required):
+            blocking_byes.append({**utilisation_row, "required_team_count": exact_required})
 
     host_missing: list[dict[str, Any]] = []
     club_count_over_two: list[dict[str, Any]] = []
@@ -320,6 +362,12 @@ def _summarize_plan_for_audit(
         "csv_pause_row_count": bye_row_count,
         "expected_csv_game_rows": sum(len(t.get("games") or []) for t in tournaments) + bye_row_count,
         "team_day_entry_count": sum(team_day_counts.values()),
+        "tournament_utilisation_summary": {
+            "tournaments_with_byes_or_invalid_no_bye_roster": len(blocking_byes),
+            "bye_examples": blocking_byes[:20],
+            "underfilled_by_age_group": dict(sorted(underfilled_by_age.items())),
+            "examples": utilisation_examples[:50],
+        },
         "duration_summary": {
             "min_minutes": min(duration_values) if duration_values else None,
             "max_minutes": max(duration_values) if duration_values else None,
@@ -553,8 +601,14 @@ def _build_checklist_evidence_guide(
         {
             "item_id": 3,
             "question": question_by_id[3],
-            "primary_evidence": ["plan_audit_summary.duration_summary"],
-            "summary": plan_audit_summary.get("duration_summary"),
+            "primary_evidence": [
+                "plan_audit_summary.duration_summary",
+                "plan_audit_summary.tournament_utilisation_summary",
+            ],
+            "summary": {
+                "duration_summary": plan_audit_summary.get("duration_summary"),
+                "tournament_utilisation_summary": plan_audit_summary.get("tournament_utilisation_summary"),
+            },
         },
         {
             "item_id": 4,
@@ -602,9 +656,13 @@ def _build_checklist_evidence_guide(
                 "publication_readiness",
                 "deterministic_verify_result",
                 "plan_audit_summary",
+                "plan_audit_summary.tournament_utilisation_summary",
                 "calendar_evidence_summary",
             ],
-            "summary": {"publication_readiness": publication_readiness},
+            "summary": {
+                "publication_readiness": publication_readiness,
+                "tournament_utilisation_summary": plan_audit_summary.get("tournament_utilisation_summary"),
+            },
         },
     ]
 
