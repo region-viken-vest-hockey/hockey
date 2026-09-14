@@ -8,12 +8,23 @@ cover the balanced packing helper directly (fast, no `SeasonPlanner` needed).
 
 from datetime import date
 
+from tournament_scheduler.participant_relocation import relocate_structurally_impossible_scheduled_slots
 from tournament_scheduler.participant_selection import (
     MIN_TEAMS_PER_TOURNAMENT,
     plan_roster_sizes,
     rebalance_roster_sizes_across_dates,
     relocate_structurally_impossible_slots,
 )
+
+
+class _StubRoster:
+    """Minimal `Roster` double: only `by_age_group` is used by relocation."""
+
+    def __init__(self, team_count: int):
+        self._team_count = team_count
+
+    def by_age_group(self, age_group):
+        return [object()] * self._team_count
 
 
 class TestPlanRosterSizes:
@@ -313,3 +324,67 @@ class TestRelocateStructurallyImpossibleSlots:
         )
         assert sizes_by_date[date(2026, 9, 5)] == []
         assert evidence == []
+
+
+class TestRelocateStructurallyImpossibleScheduledSlots:
+    """issue #318: `relocate_structurally_impossible_scheduled_slots` fans
+    `relocate_structurally_impossible_slots` out across a full season's
+    `scheduled` list. These cover the production U12 shape end to end and
+    the planning-half boundary the per-group unit tests can't exercise."""
+
+    @staticmethod
+    def _period_for_date(tournament_date):
+        return "before_christmas" if tournament_date < date(2027, 1, 1) else "after_christmas"
+
+    def test_seventeen_teams_target_seven_capacity_four_all_thirty_slots_materialize(self):
+        """Production U12 shape: 17 teams, half target 7, capacity 4 needs
+        30 slots. A skeleton that asks one date for 6 parallel slots (6*3=18
+        > 17, structurally impossible) but leaves another legal date in the
+        same half free must relocate the excess slot so all 30 still land
+        somewhere in the half."""
+        overloaded = date(2026, 12, 13)
+        other_dates = [date(2026, 12, d) for d in (6, 20, 27)]
+        padding_dates = [date(2026, 11, d) for d in (1, 8, 15)]
+        relocation_target = date(2026, 11, 29)
+        scheduled = [(overloaded, "U12")] * 6
+        for d, count in zip(other_dates, (5, 5, 5)):
+            scheduled.extend([(d, "U12")] * count)
+        for d in padding_dates:
+            scheduled.extend([(d, "U12")] * 3)  # pad to 30 total, none overloaded
+        assert len(scheduled) == 30
+
+        new_scheduled, evidence = relocate_structurally_impossible_scheduled_slots(
+            _StubRoster(17),
+            scheduled,
+            free_dates=[relocation_target, date(2027, 1, 10)],
+            period_for_date=self._period_for_date,
+        )
+
+        assert len(new_scheduled) == 30
+        assert evidence == []
+        counts_by_date: dict = {}
+        for d, _ in new_scheduled:
+            counts_by_date[d] = counts_by_date.get(d, 0) + 1
+        assert counts_by_date[overloaded] == 5
+        assert counts_by_date[relocation_target] == 1
+
+    def test_relocation_never_crosses_the_planning_half_boundary(self):
+        """Even when an after-christmas date is free and would otherwise be
+        a viable candidate, an excess before-christmas slot must never be
+        relocated across the half boundary."""
+        overloaded = date(2026, 12, 13)
+        after_christmas_free_date = date(2027, 1, 10)
+        before_christmas_free_date = date(2026, 12, 20)
+        scheduled = [(overloaded, "U12")] * 6
+
+        new_scheduled, evidence = relocate_structurally_impossible_scheduled_slots(
+            _StubRoster(17),
+            scheduled,
+            free_dates=[after_christmas_free_date, before_christmas_free_date],
+            period_for_date=self._period_for_date,
+        )
+
+        assert evidence == []
+        assert all(self._period_for_date(d) == "before_christmas" for d, _ in new_scheduled)
+        assert (after_christmas_free_date, "U12") not in new_scheduled
+        assert (before_christmas_free_date, "U12") in new_scheduled
