@@ -68,7 +68,7 @@ tournament_scheduler/review/review_packet_exporter.py	425
 tournament_scheduler/rules_model.py	675
 tournament_scheduler/season_planner.py	2021
 tournament_scheduler/spond/spond_exporter.py	401
-tournament_scheduler/stage3_cpsat.py	649
+tournament_scheduler/stage3_cpsat.py	650
 # stage3_decision.py grew by 1 line for issue #324 (one extra weight-name
 # entry, `same_club_excess_over_2`, in the existing `_V2_OPTIMIZER_WEIGHT_NAMES`
 # tuple literal) -- not a splittable chunk on its own.
