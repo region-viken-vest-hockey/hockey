@@ -6,13 +6,13 @@ from dataclasses import dataclass
 
 import pytest
 
-ortools = pytest.importorskip(
-    "ortools", reason="OR-Tools is the optional 'cpsat' extra; skip when not installed"
-)
 from ortools.sat.python import cp_model
 
 from tournament_scheduler.stage3_cpsat_club_cap import build_club_excess_terms
 
+ortools = pytest.importorskip(
+    "ortools", reason="OR-Tools is the optional 'cpsat' extra; skip when not installed"
+)
 
 @dataclass
 class _Slot:
