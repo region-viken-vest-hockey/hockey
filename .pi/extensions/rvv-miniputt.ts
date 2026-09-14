@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { normalizeArgs } from "../lib/arg-utils";
 import { parseStatusArgs, parseLogsArgs, parseCalendarsArgs, parseScrapeArgs, parseScrapeLlmArgs } from "../lib/parsers";
@@ -10,8 +10,6 @@ import { LOG_LEVELS } from "../lib/types";
 import { loadBookupEnvFromDotenvx } from "../lib/dotenvx-helpers";
 import { isAuditPublicationBlocking, runPiHarnessAudit } from "../lib/operator-audit";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-
-const DEFAULT_PUBLISH_PLANNER_ITERATIONS = 1;
 
 function buildStatusCommandArgs(rawArgs: unknown, cwd: string): string[] {
   const params = parseStatusArgs(rawArgs);
@@ -43,44 +41,55 @@ function buildCalendarsCommandArgs(rawArgs: unknown, cwd: string): string[] {
   return args;
 }
 
-function splitPublishCommandArgs(rawArgs: unknown): { runArgs: string[]; publishArgs: string[]; workDir: string } {
+function buildPublishCommandArgs(rawArgs: unknown): { publishArgs: string[]; workDir: string } {
   const tokens = normalizeArgs(rawArgs).split(/\s+/).filter(Boolean);
-  const runArgs = ["operator", "run", "--resume-from", "1"];
   const publishArgs = ["operator", "publish", "--confirm-public"];
   let workDir = ".pipeline";
-  if (!tokens.includes("--iterations")) runArgs.push("--iterations", String(DEFAULT_PUBLISH_PLANNER_ITERATIONS));
 
-  const runValueFlags = new Set(["--input", "--work-dir", "--export-dir", "--log-level", "--iterations", "--manual-bookup-login-timeout"]);
-  const runBoolFlags = new Set(["--force-refresh", "--non-strict", "--allow-missing-sources", "--manual-bookup-login", "--no-timestamped-export", "--force"]);
   const publishValueFlags = new Set(["--work-dir", "--repo-dir", "--branch", "--remote", "--extra-public-file", "--allow-finding", "--verify-max-attempts", "--verify-retry-delay", "--run-id"]);
   const publishBoolFlags = new Set(["--no-push", "--dry-run", "--no-verify", "--confirm-public"]);
 
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
-    if (token === "--publish") continue;
-    if (runValueFlags.has(token) && i + 1 < tokens.length) {
-      const value = tokens[++i];
-      runArgs.push(token, value);
-      if (token === "--work-dir") {
-        workDir = value;
-        publishArgs.push(token, value);
-      }
-      continue;
-    }
-    if (runBoolFlags.has(token)) {
-      runArgs.push(token);
-      continue;
-    }
     if (publishValueFlags.has(token) && i + 1 < tokens.length) {
-      publishArgs.push(token, tokens[++i]);
+      const value = tokens[++i];
+      publishArgs.push(token, value);
+      if (token === "--work-dir") workDir = value;
       continue;
     }
-    if (publishBoolFlags.has(token)) {
-      if (token !== "--confirm-public") publishArgs.push(token);
+    if (publishBoolFlags.has(token) && token !== "--confirm-public") {
+      publishArgs.push(token);
     }
   }
 
-  return { runArgs, publishArgs, workDir };
+  return { publishArgs, workDir };
+}
+
+function validateExistingStage4Export(cwd: string, workDir: string): { ok: true; text: string } | { ok: false; text: string } {
+  const checkpointPath = resolve(cwd, workDir, "stage4_export.json");
+  if (!existsSync(checkpointPath)) {
+    return { ok: false, text: `Ingen Stage 4-eksport funnet (${checkpointPath}). Kjør /rvv-miniputt run først.` };
+  }
+
+  try {
+    const checkpoint = JSON.parse(readFileSync(checkpointPath, "utf-8")) as Record<string, unknown>;
+    const data = (checkpoint.data ?? {}) as Record<string, unknown>;
+    const outputFiles = data.output_files as Record<string, unknown> | undefined;
+    const errors = Array.isArray(data.errors) ? data.errors : [];
+
+    if (!outputFiles || Object.keys(outputFiles).length === 0) {
+      return { ok: false, text: `Stage 4-eksport mangler output_files (${checkpointPath}). Kjør /rvv-miniputt run først.` };
+    }
+    if (errors.length > 0) {
+      return { ok: false, text: `Stage 4-eksport har feil og kan ikke publiseres:\n${JSON.stringify(errors, null, 2)}` };
+    }
+
+    const exportDir = typeof data.export_dir === "string" ? data.export_dir : undefined;
+    const html = typeof outputFiles.html === "string" ? outputFiles.html : undefined;
+    return { ok: true, text: `Eksisterende Stage 4-eksport klar for publisering: ${exportDir ?? html ?? checkpointPath}` };
+  } catch (err: unknown) {
+    return { ok: false, text: `Kunne ikke lese Stage 4-eksport (${checkpointPath}): ${err instanceof Error ? err.message : String(err)}` };
+  }
 }
 
 function buildScrapeCommandArgs(rawArgs: unknown, cwd: string): string[] {
@@ -155,23 +164,23 @@ async function runCalendars(rawArgs: unknown, ctx: ExtensionContext): Promise<{ 
 }
 
 async function runPublish(rawArgs: unknown, ctx: ExtensionContext): Promise<{ status: "success" | "failure"; text: string }> {
-  const { runArgs, publishArgs, workDir } = splitPublishCommandArgs(rawArgs);
-  const runResult = await runRepoCli(runArgs, ctx, 1_800_000);
-  if (runResult.status !== "success") return runResult;
+  const { publishArgs, workDir } = buildPublishCommandArgs(rawArgs);
+  const exportCheck = validateExistingStage4Export(ctx.cwd, workDir);
+  if (!exportCheck.ok) return { status: "failure", text: exportCheck.text };
 
   const audit = await runPiHarnessAudit(ctx.cwd, resolve(ctx.cwd, workDir), ctx);
   const auditOk = audit.status === "success" && !isAuditPublicationBlocking(audit.auditStatus);
   if (!auditOk) {
     return {
       status: "failure",
-      text: [runResult.text, audit.text, "Publisering hoppet over fordi semantisk revisjon ikke passerte."].filter(Boolean).join("\n\n"),
+      text: [exportCheck.text, audit.text, "Publisering hoppet over fordi semantisk revisjon ikke passerte."].filter(Boolean).join("\n\n"),
     };
   }
 
   const publishResult = await runRepoCli(publishArgs, ctx, 1_800_000);
   return {
     status: publishResult.status,
-    text: [runResult.text, audit.text, publishResult.text].filter(Boolean).join("\n\n"),
+    text: [exportCheck.text, audit.text, publishResult.text].filter(Boolean).join("\n\n"),
   };
 }
 
@@ -193,12 +202,12 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
       "Kjør den firetrinns sesongplanleggingspipelinen for RVV-hockeyklubber. " +
       "Støtter gjenopptak fra et bestemt trinn. Trinn 3 kjører ett planleggingsforsøk som standard (sett --iterations for flere frø).\n" +
       "Valgfrie flagg: --input <input.xlsx> --work-dir <sti> --resume-from <trinn> --export-dir <sti> " +
-      "--log-level <info|verbose> --force-refresh --iterations <N> --publish\n" +
+      "--log-level <info|verbose> --force-refresh --iterations <N>\n" +
       "Trinn 2 gjenbruker kalenderdata fra cache (under 24 timer gammel) med mindre --force-refresh er satt.\n" +
       "Etter vellykket Stage 4 kjører Pi en semantisk safety-net-revisjon via repoets operator audit-context/audit-submit.\n" +
       "Hver kjøring logges strukturelt i eksportmappen som run-<dato>.jsonl for selvforbedringsanalyse.",
     getArgumentCompletions: (prefix) => {
-      const words = ["--input", "--work-dir", "--resume-from", "--export-dir", "--log-level", "--force-refresh", "--iterations", "--publish"];
+      const words = ["--input", "--work-dir", "--resume-from", "--export-dir", "--log-level", "--force-refresh", "--iterations"];
       const filtered = words.filter((w) => w.startsWith(prefix));
       if (prefix.startsWith("--log-level")) {
         return LOG_LEVELS.map((value) => ({ value, label: value }));
@@ -207,10 +216,7 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
     },
     handler: async (args, ctx) => {
       if (wantsPublish(args)) {
-        ctx.ui.setStatus("rvv-miniputt", "Kjører og publiserer...");
-        const result = await runPublish(args, ctx);
-        ctx.ui.setStatus("rvv-miniputt", undefined);
-        ctx.ui.notify(result.text, result.status === "success" ? "info" : "error");
+        ctx.ui.notify("--publish er ikke lenger del av /rvv-miniputt run. Kjør /rvv-miniputt run først, deretter /rvv-miniputt publish for å publisere eksisterende Stage 4-eksport.", "error");
         return;
       }
 
@@ -244,25 +250,21 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
   // -------------------------------------------------------------------------
   pi.registerCommand("rvv-miniputt publish", {
     description:
-      "Kjør hele RVV Miniputt-pipelinen og publiser resultatet til GitHub Pages. " +
-      "Dette bruker repoets operator-flyt: operator run --resume-from 1, Pi harness audit, " +
+      "Publiser den sist genererte RVV Miniputt Stage 4-eksporten til GitHub Pages uten å kjøre pipelinen på nytt. " +
+      "Kommandoen kontrollerer .pipeline/stage4_export.json, kjører Pi harness audit for gjeldende eksport, " +
       "deretter operator publish --confirm-public slik at Pages-publisering faktisk commits/pushes til gh-pages og verifiseres etterpå.\n" +
-      "Valgfrie flagg: --input <input.xlsx> --work-dir <sti> --export-dir <sti> " +
-      "--log-level <info|verbose> --force-refresh --non-strict --allow-missing-sources " +
-      "--iterations <N> --no-push --dry-run --no-verify",
+      "Valgfrie flagg: --work-dir <sti> --repo-dir <sti> --branch <navn> --remote <navn> " +
+      "--extra-public-file <sti> --allow-finding <id> --run-id <id> --no-push --dry-run --no-verify",
     getArgumentCompletions: (prefix) => {
       const words = [
-        "--input", "--work-dir", "--export-dir", "--log-level", "--force-refresh", "--non-strict",
-        "--allow-missing-sources", "--iterations", "--no-push", "--dry-run", "--no-verify",
+        "--work-dir", "--repo-dir", "--branch", "--remote", "--extra-public-file",
+        "--allow-finding", "--run-id", "--no-push", "--dry-run", "--no-verify",
         "--verify-max-attempts", "--verify-retry-delay",
       ];
-      if (prefix.startsWith("--log-level")) {
-        return LOG_LEVELS.map((value) => ({ value, label: value }));
-      }
       return words.filter((w) => w.startsWith(prefix)).map((value) => ({ value, label: value }));
     },
     handler: async (args, ctx) => {
-      ctx.ui.setStatus("rvv-miniputt", "Kjører og publiserer...");
+      ctx.ui.setStatus("rvv-miniputt", "Publiserer eksisterende eksport...");
       const result = await runPublish(args, ctx);
       ctx.ui.setStatus("rvv-miniputt", undefined);
       ctx.ui.notify(result.text, result.status === "success" ? "info" : "error");
@@ -402,9 +404,8 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
     }),
     async execute(_toolCallId, params, _signal, onUpdate, ctx) {
       if (wantsPublish(params.args ?? "")) {
-        onUpdate?.({ content: [{ type: "text", text: "[publish] ▶ Kjører pipeline og publiserer til GitHub Pages" }], details: {} });
-        const result = await runPublish(params.args ?? "", ctx);
-        return { content: [{ type: "text", text: result.text }], details: result };
+        const text = "--publish er ikke lenger del av rvv_miniputt_run. Kjør rvv_miniputt_run først, deretter rvv_miniputt_publish for å publisere eksisterende Stage 4-eksport.";
+        return { content: [{ type: "text", text }], details: { status: "failure", text } };
       }
 
       const result = await runPipeline(params.args ?? "", ctx, (e) => {
@@ -421,17 +422,17 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
     name: "rvv_miniputt_publish",
     label: "RVV Miniputt: Publish to GitHub Pages",
     description:
-      "Run the full RVV Miniputt pipeline and publish the result to GitHub Pages. " +
+      "Publish the most recently generated RVV Miniputt Stage 4 export to GitHub Pages without rerunning the pipeline. " +
       "Agent-callable equivalent of the '/rvv-miniputt publish' slash command. " +
-      "Runs the repo operator flow, Pi harness audit, then operator publish --confirm-public so the gh-pages branch is actually updated only after a fresh audit result.",
-    promptSnippet: "Run and publish RVV Miniputt to GitHub Pages",
+      "Checks the existing export, runs Pi harness audit for it, then invokes operator publish --confirm-public.",
+    promptSnippet: "Publish the existing RVV Miniputt export to GitHub Pages",
     promptGuidelines: [
-      "Use rvv_miniputt_publish instead of trying to pass publish flags through '/rvv-miniputt run'.",
-      "This performs the real Pages publish step (commit/push to gh-pages) only after a successful pipeline run and fresh Pi harness semantic audit.",
+      "Use rvv_miniputt_run first when you need a fresh export; rvv_miniputt_publish only publishes the existing Stage 4 export.",
+      "Do not pass publish flags through rvv_miniputt_run; publication is a separate explicit step.",
     ],
     parameters: Type.Object({
       args: Type.Optional(Type.String({
-        description: "Same flags as '/rvv-miniputt publish', e.g. '--force-refresh --iterations 3' when you explicitly want a wider seed search",
+        description: "Same flags as '/rvv-miniputt publish', e.g. '--no-push --dry-run' for a non-public publish rehearsal",
       })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
