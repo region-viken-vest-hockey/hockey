@@ -153,6 +153,7 @@ Review at least:
 - opponent diversity/repetition and other reported quality metrics;
 - source-health uncertainty;
 - rules/report wording against actual planner/verifier behavior;
+- the semantic safety-net audit result for the current export (`.pipeline/audit_result.json`);
 - privacy/public-bundle findings.
 
 ## Publication
@@ -165,7 +166,7 @@ make publish CONFIRM_PUBLIC=1
 make verify-publish
 ```
 
-Publication builds a separate allowlisted/privacy-checked public bundle and updates GitHub Pages only after explicit confirmation. Review packets and Spond exports are not public by default.
+Publication builds a separate allowlisted/privacy-checked public bundle and updates GitHub Pages only after explicit confirmation and a fresh semantic audit. In Pi, `/rvv-miniputt run` runs that harness audit automatically after Stage 4, and `/rvv-miniputt publish` runs it before calling the repository publish command. Review packets and Spond exports are not public by default.
 
 For recovery:
 

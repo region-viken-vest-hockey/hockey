@@ -8,6 +8,7 @@ import { runPipeline, type PipelineRunResult } from "../lib/pipeline-runner";
 import { interactiveGuide } from "../lib/interactive-guide";
 import { LOG_LEVELS } from "../lib/types";
 import { loadBookupEnvFromDotenvx } from "../lib/dotenvx-helpers";
+import { isAuditPublicationBlocking, runPiHarnessAudit } from "../lib/operator-audit";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 const DEFAULT_PUBLISH_PLANNER_ITERATIONS = 1;
@@ -42,12 +43,44 @@ function buildCalendarsCommandArgs(rawArgs: unknown, cwd: string): string[] {
   return args;
 }
 
-function buildPublishCommandArgs(rawArgs: unknown): string[] {
+function splitPublishCommandArgs(rawArgs: unknown): { runArgs: string[]; publishArgs: string[]; workDir: string } {
   const tokens = normalizeArgs(rawArgs).split(/\s+/).filter(Boolean);
-  const args = ["operator", "run", "--resume-from", "1", "--publish", "--confirm-public"];
-  if (!tokens.includes("--iterations")) args.push("--iterations", String(DEFAULT_PUBLISH_PLANNER_ITERATIONS));
-  args.push(...tokens);
-  return args;
+  const runArgs = ["operator", "run", "--resume-from", "1"];
+  const publishArgs = ["operator", "publish", "--confirm-public"];
+  let workDir = ".pipeline";
+  if (!tokens.includes("--iterations")) runArgs.push("--iterations", String(DEFAULT_PUBLISH_PLANNER_ITERATIONS));
+
+  const runValueFlags = new Set(["--input", "--work-dir", "--export-dir", "--log-level", "--iterations", "--manual-bookup-login-timeout"]);
+  const runBoolFlags = new Set(["--force-refresh", "--non-strict", "--allow-missing-sources", "--manual-bookup-login", "--no-timestamped-export", "--force"]);
+  const publishValueFlags = new Set(["--work-dir", "--repo-dir", "--branch", "--remote", "--extra-public-file", "--allow-finding", "--verify-max-attempts", "--verify-retry-delay", "--run-id"]);
+  const publishBoolFlags = new Set(["--no-push", "--dry-run", "--no-verify", "--confirm-public"]);
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (token === "--publish") continue;
+    if (runValueFlags.has(token) && i + 1 < tokens.length) {
+      const value = tokens[++i];
+      runArgs.push(token, value);
+      if (token === "--work-dir") {
+        workDir = value;
+        publishArgs.push(token, value);
+      }
+      continue;
+    }
+    if (runBoolFlags.has(token)) {
+      runArgs.push(token);
+      continue;
+    }
+    if (publishValueFlags.has(token) && i + 1 < tokens.length) {
+      publishArgs.push(token, tokens[++i]);
+      continue;
+    }
+    if (publishBoolFlags.has(token)) {
+      if (token !== "--confirm-public") publishArgs.push(token);
+    }
+  }
+
+  return { runArgs, publishArgs, workDir };
 }
 
 function buildScrapeCommandArgs(rawArgs: unknown, cwd: string): string[] {
@@ -122,7 +155,24 @@ async function runCalendars(rawArgs: unknown, ctx: ExtensionContext): Promise<{ 
 }
 
 async function runPublish(rawArgs: unknown, ctx: ExtensionContext): Promise<{ status: "success" | "failure"; text: string }> {
-  return runRepoCli(buildPublishCommandArgs(rawArgs), ctx, 1_800_000);
+  const { runArgs, publishArgs, workDir } = splitPublishCommandArgs(rawArgs);
+  const runResult = await runRepoCli(runArgs, ctx, 1_800_000);
+  if (runResult.status !== "success") return runResult;
+
+  const audit = await runPiHarnessAudit(ctx.cwd, resolve(ctx.cwd, workDir), ctx);
+  const auditOk = audit.status === "success" && !isAuditPublicationBlocking(audit.auditStatus);
+  if (!auditOk) {
+    return {
+      status: "failure",
+      text: [runResult.text, audit.text, "Publisering hoppet over fordi semantisk revisjon ikke passerte."].filter(Boolean).join("\n\n"),
+    };
+  }
+
+  const publishResult = await runRepoCli(publishArgs, ctx, 1_800_000);
+  return {
+    status: publishResult.status,
+    text: [runResult.text, audit.text, publishResult.text].filter(Boolean).join("\n\n"),
+  };
 }
 
 function wantsPublish(rawArgs: unknown): boolean {
@@ -145,6 +195,7 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
       "Valgfrie flagg: --input <input.xlsx> --work-dir <sti> --resume-from <trinn> --export-dir <sti> " +
       "--log-level <info|verbose> --force-refresh --iterations <N> --publish\n" +
       "Trinn 2 gjenbruker kalenderdata fra cache (under 24 timer gammel) med mindre --force-refresh er satt.\n" +
+      "Etter vellykket Stage 4 kjører Pi en semantisk safety-net-revisjon via repoets operator audit-context/audit-submit.\n" +
       "Hver kjøring logges strukturelt i eksportmappen som run-<dato>.jsonl for selvforbedringsanalyse.",
     getArgumentCompletions: (prefix) => {
       const words = ["--input", "--work-dir", "--resume-from", "--export-dir", "--log-level", "--force-refresh", "--iterations", "--publish"];
@@ -176,6 +227,7 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
             : e.stage === "config" ? "1/4 Konfig"
             : e.stage === "planning" ? "3/4 Planlegging"
             : e.stage === "export" ? "4/4 Eksport"
+            : e.stage === "audit" ? "Audit"
             : e.stage;
           ctx.ui.setStatus("rvv-miniputt", `${stageLabel}...`);
           if (e.status === "ok" && e.stage !== "scraping-extended") {
@@ -193,8 +245,8 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
   pi.registerCommand("rvv-miniputt publish", {
     description:
       "Kjør hele RVV Miniputt-pipelinen og publiser resultatet til GitHub Pages. " +
-      "Dette bruker repoets operator-flyt: operator run --resume-from 1 --publish --confirm-public, " +
-      "slik at Pages-publisering faktisk commits/pushes til gh-pages og verifiseres etterpå.\n" +
+      "Dette bruker repoets operator-flyt: operator run --resume-from 1, Pi harness audit, " +
+      "deretter operator publish --confirm-public slik at Pages-publisering faktisk commits/pushes til gh-pages og verifiseres etterpå.\n" +
       "Valgfrie flagg: --input <input.xlsx> --work-dir <sti> --export-dir <sti> " +
       "--log-level <info|verbose> --force-refresh --non-strict --allow-missing-sources " +
       "--iterations <N> --no-push --dry-run --no-verify",
@@ -333,14 +385,15 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
     name: "rvv_miniputt_run",
     label: "RVV Miniputt: Run Pipeline",
     description:
-      "Run the RVV Miniputt season-planning pipeline (config → scraping → planning → export). " +
+      "Run the RVV Miniputt season-planning pipeline (config → scraping → planning → export → Pi harness audit). " +
       "Stage 3 runs one planning attempt by default (override with --iterations for multiple seeds). " +
       "This is the agent-callable equivalent of the '/rvv-miniputt run' slash command — that " +
       "command is not a shell binary and cannot be invoked via Bash.",
-    promptSnippet: "Run the RVV Miniputt season-planning pipeline",
+    promptSnippet: "Run the RVV Miniputt season-planning pipeline and Pi harness audit",
     promptGuidelines: [
       "Use rvv_miniputt_run instead of running '/rvv-miniputt run' via Bash — it is a Pi slash command, not a shell command.",
       "Do not reimplement the pipeline by calling tournament_scheduler.pipeline.stageN_* Python modules directly; rvv_miniputt_run runs the full orchestrated pipeline with checkpointing and structured logging.",
+      "After Stage 4, this tool runs the semantic safety-net audit through the repository operator audit-context/audit-submit path and persists audit_result.json.",
     ],
     parameters: Type.Object({
       args: Type.Optional(Type.String({
@@ -369,11 +422,11 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
     description:
       "Run the full RVV Miniputt pipeline and publish the result to GitHub Pages. " +
       "Agent-callable equivalent of the '/rvv-miniputt publish' slash command. " +
-      "Uses the repo operator flow with --publish --confirm-public so the gh-pages branch is actually updated.",
+      "Runs the repo operator flow, Pi harness audit, then operator publish --confirm-public so the gh-pages branch is actually updated only after a fresh audit result.",
     promptSnippet: "Run and publish RVV Miniputt to GitHub Pages",
     promptGuidelines: [
       "Use rvv_miniputt_publish instead of trying to pass publish flags through '/rvv-miniputt run'.",
-      "This performs the real Pages publish step (commit/push to gh-pages) after a successful pipeline run.",
+      "This performs the real Pages publish step (commit/push to gh-pages) only after a successful pipeline run and fresh Pi harness semantic audit.",
     ],
     parameters: Type.Object({
       args: Type.Optional(Type.String({

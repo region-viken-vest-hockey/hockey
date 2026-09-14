@@ -144,7 +144,7 @@ make status
 make logs
 ```
 
-`make operator-run` is the normal goal-oriented entry point. `scripts/rvv-miniputt run` remains the direct pipeline/debugging entry point.
+`make operator-run` is the normal goal-oriented entry point. `scripts/rvv-miniputt run` remains the direct pipeline/debugging entry point. In Pi, `/rvv-miniputt run` also performs the required semantic safety-net audit after Stage 4 and stores the result as `.pipeline/audit_result.json`.
 
 If the operator loop asks a real human question:
 
@@ -162,7 +162,7 @@ make publish CONFIRM_PUBLIC=1
 make verify-publish
 ```
 
-Generation never implies publication. Public writes and rollback remain explicitly approved operations.
+Generation never implies publication. Public writes and rollback remain explicitly approved operations. Publishing requires a fresh semantic audit result for the current export; Pi runs that audit automatically before its publish adapter calls the repository publish command.
 
 ### 5. Related public workflows
 

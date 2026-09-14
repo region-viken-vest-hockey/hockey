@@ -18,6 +18,7 @@ import {
 } from "./pipeline-helpers";
 import { buildRunSummaryText } from "./log-inspector";
 import { loadBookupEnvFromDotenvx } from "./dotenvx-helpers";
+import { isAuditPublicationBlocking, runPiHarnessAudit } from "./operator-audit";
 import type { ProgressEvent } from "./types";
 
 export interface PipelineRunResult {
@@ -625,6 +626,27 @@ export async function runPipeline(rawArgs: unknown, ctx: ExtensionContext, onPro
       await execFileAsync(exe, ["-m", "tournament_scheduler.pipeline.calendar_viewer", "--work-dir", workDir, "--export-dir", timestampedExportDir], { cwd: cwdPath });
     }
   } catch {}
+
+  // The Pi harness owns the interactive semantic safety-net audit: after every
+  // successful Stage 4 export, read the repo-owned audit context, ask Pi's
+  // active model to judge it, and persist the result through operator
+  // audit-submit. This keeps the publication gate fresh without using the
+  // headless audit-run path that is deliberately disabled while Pi is active.
+  if (overallStatus === "success") {
+    if (signal?.aborted) return buildCancelledResult("før semantisk revisjon");
+    lines.push("Semantisk revisjon: kjører Pi harness-audit...");
+    onProgress?.({ stage: "audit", status: "start", message: "Kjører semantisk revisjon (Pi harness)..." });
+    const audit = await runPiHarnessAudit(cwdPath, workDir, ctx, (details) => logger.logLLMInteraction("audit", details));
+    lines.push(audit.text);
+    const auditOk = audit.status === "success" && !isAuditPublicationBlocking(audit.auditStatus);
+    onProgress?.({
+      stage: "audit",
+      status: auditOk ? "ok" : "error",
+      message: `Semantisk revisjon: ${audit.auditStatus ?? "INCOMPLETE"}`,
+    });
+    if (!auditOk) overallStatus = "failure";
+    lines.push("");
+  }
 
   // Keep exports only in the timestamped folder.
   lines.push(`Eksporter lagret i ${timestampedExportDir}\n`);

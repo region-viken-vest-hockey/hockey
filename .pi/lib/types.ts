@@ -103,7 +103,7 @@ export const LOG_LEVELS = ["info", "verbose"] as const;
 
 /** Progress event emitted by the pipeline runner as stages execute. */
 export interface ProgressEvent {
-  stage: "config" | "scraping" | "scraping-extended" | "planning" | "export" | "done";
+  stage: "config" | "scraping" | "scraping-extended" | "planning" | "export" | "audit" | "done";
   status: "start" | "ok" | "skip" | "error";
   message: string;
   /** Only set for status=error */

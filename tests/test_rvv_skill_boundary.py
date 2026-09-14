@@ -22,10 +22,15 @@ def test_rvv_skill_documents_checkpoint_review_and_single_club_troubleshooting()
     assert "scrape-merge" in text
 
 
-def test_rvv_extension_exposes_scrape_commands_and_tools() -> None:
+def test_rvv_extension_exposes_scrape_commands_tools_and_pi_audit() -> None:
     text = RVV_EXTENSION_FILE.read_text(encoding="utf-8")
+    audit_helper = (ROOT / ".pi" / "lib" / "operator-audit.ts").read_text(encoding="utf-8")
 
     assert 'rvv-miniputt scrape' in text
     assert 'rvv-miniputt scrape-llm' in text
     assert 'rvv_miniputt_scrape' in text
     assert 'rvv_miniputt_scrape_llm' in text
+    assert 'runPiHarnessAudit' in text
+    assert 'operator audit-context' in text
+    assert 'operator audit-submit' in audit_helper
+    assert 'interactive_harness' in audit_helper

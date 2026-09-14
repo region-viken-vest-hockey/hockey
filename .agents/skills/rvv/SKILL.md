@@ -33,6 +33,8 @@ Agent-callable tools mirror the slash commands 1:1:
 
 Use `rvv_miniputt_scrape` for single-club troubleshooting and `rvv_miniputt_scrape_llm` (backed by a Playwright worker) for blocked SPA/calendar sources.
 
+Pi's `/rvv-miniputt run` / `rvv_miniputt_run` adapter runs the semantic safety-net audit automatically after a successful Stage 4 export by reading the repository `operator audit-context`, asking the active Pi model for the harness judgment, and persisting the verdict through `operator audit-submit`. Pi's publish adapter runs the same audit before invoking `operator publish --confirm-public`; it must not use the headless `operator audit-run` path while `PI_SESSION_ID` is active.
+
 ### Non-Pi / cross-harness usage
 
 Use the repository-local entrypoints instead of Pi slash commands:
@@ -190,7 +192,9 @@ Operator checklist (answer every item; item 9 is open-ended and the most importa
 Execution model: when an interactive harness (Claude Code/Pi) is driving the run, the
 harness itself performs this audit in-session by reading `operator audit-context` output
 and reasoning adversarially against the checklist and evidence, then submitting its
-verdict via `operator audit-submit`. When no interactive harness is active (`RVV_HARNESS`,
+verdict via `operator audit-submit`. Pi's project adapter performs this automatically
+after each successful `/rvv-miniputt run` export and before `/rvv-miniputt publish`.
+When no interactive harness is active (`RVV_HARNESS`,
 `CLAUDE_CODE_SESSION_ID`, and `PI_SESSION_ID` all unset), the headless path
 (`operator audit-run --backend <name>`, cron/CI) calls a real LLM judge backend
 automatically instead.
