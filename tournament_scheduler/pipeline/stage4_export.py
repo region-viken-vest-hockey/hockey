@@ -291,20 +291,28 @@ def run(
     # around (see planning_contract.verify_candidate's manual_external_conflict_placements).
     external_conflict_entries: list[dict[str, str]] = []
     for item in getattr(plan, "unresolved_external_conflicts", None) or []:
+        conflict_host_club = str(item.get("host_club", "") or "")
+        conflict_reason = str(item.get("reason", "") or "")
+        # issue #330: every manual row needs a concrete operator action, not
+        # just a description of the conflict.
+        action = (
+            f"Handling: {conflict_host_club or 'RVV'} må bekrefte eller flytte "
+            "istiden manuelt for å løse den eksterne kalenderkonflikten."
+        )
         external_conflict_entries.append(
             {
                 "type": "MANUAL PLACEMENT REQUIRED — ekstern kalenderkonflikt",
                 "category": item.get("category", "manual_external_conflict"),
                 "date": str(item.get("date", "") or ""),
                 "arena": "",
-                "host_club": str(item.get("host_club", "") or ""),
+                "host_club": conflict_host_club,
                 "age_group": str(item.get("age_group", "") or ""),
                 "tournament_id": str(item.get("tournament_id", "") or ""),
                 "interval": "",
                 "conflicting_tournament_id": "",
                 "conflicting_age_group": "",
                 "conflicting_interval": "",
-                "message": str(item.get("reason", "") or ""),
+                "message": f"{conflict_reason} {action}".strip(),
             }
         )
     # Participation-target deviations are planning-quality signals, not booking work,
