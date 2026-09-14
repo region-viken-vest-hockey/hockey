@@ -33,6 +33,10 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.host_representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
+from tournament_scheduler.planning_contract_distribution import (
+    hosting_fairness as _hosting_fairness,
+    month_and_half_distribution as _month_and_half_distribution,
+)
 
 PLANNING_PROBLEM_SCHEMA_VERSION = 1
 CANDIDATE_SCHEMA_VERSION = 1
@@ -970,52 +974,11 @@ def score_candidate(
         ]
 
     # --- hosting fairness --------------------------------------------------
-    host_counts: Dict[str, int] = {}
-    for t in tournaments:
-        host = t.get("host_club") or t.get("arena")
-        if host:
-            host_counts[host] = host_counts.get(host, 0) + 1
-    hosting_spread = (max(host_counts.values()) - min(host_counts.values())) if host_counts else 0
-
-    # issue #266 P0: a single global spread scalar hides a club that hosts
-    # nothing in one age group while over-hosting in another. When *problem*
-    # carries the registered roster, report the full club x age-group
-    # coverage matrix (and its per-club/per-age-group rollups) alongside it.
-    hosting_coverage: Dict[str, Any] = {}
-    if problem is not None:
-        from tournament_scheduler.hosting_coverage import (
-            hosting_breakdown_by_club_and_age_group,
-            hosting_coverage_matrix,
-            unresolved_from_matrix,
-        )
-
-        coverage_rows = hosting_coverage_matrix(problem.get("teams", []), tournaments)
-        hosting_coverage = {
-            "club_age_group_matrix": coverage_rows,
-            "unresolved_obligations": unresolved_from_matrix(coverage_rows),
-            **hosting_breakdown_by_club_and_age_group(coverage_rows),
-        }
+    host_counts, hosting_spread, hosting_coverage = _hosting_fairness(tournaments, problem)
 
     # --- month distribution --------------------------------------------------
-    month_counts: Dict[str, int] = {}
-    for t in tournaments:
-        t_date = _parse_date(t.get("date"))
-        if t_date:
-            key = f"{t_date.year:04d}-{t_date.month:02d}"
-            month_counts[key] = month_counts.get(key, 0) + 1
-
-    half_counts: Dict[str, int] = {"before_christmas": 0, "after_christmas": 0, "unsplit": 0}
-    for t in tournaments:
-        t_date = _parse_date(t.get("date"))
-        if t_date is None:
-            continue
-        half_counts[planning_half.tournament_half(t_date, split_date)] += 1
-
-    split_total = half_counts["before_christmas"] + half_counts["after_christmas"]
-    half_deviation_pct = (
-        abs(half_counts["before_christmas"] - half_counts["after_christmas"]) / split_total * 100.0
-        if split_total
-        else 0.0
+    month_counts, half_counts, half_deviation_pct = _month_and_half_distribution(
+        tournaments, split_date, _parse_date
     )
 
     return {
