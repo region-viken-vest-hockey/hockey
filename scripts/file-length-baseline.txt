@@ -63,7 +63,6 @@ tournament_scheduler/planning_contract.py	1038
 tournament_scheduler/registrations.py	505
 tournament_scheduler/review/review_packet_exporter.py	425
 tournament_scheduler/rules_model.py	721
-tournament_scheduler/rules_report.py	473
 tournament_scheduler/season_planner.py	2035
 tournament_scheduler/spond/spond_exporter.py	401
 tournament_scheduler/stage3_cpsat.py	778
