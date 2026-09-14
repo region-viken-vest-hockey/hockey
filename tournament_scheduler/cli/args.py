@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from .args_audit import add_operator_audit_subparsers as _add_operator_audit_subparsers
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -828,6 +829,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the history as JSON",
     )
 
+    _add_operator_audit_subparsers(operator_sub)  # issue #325, see args_audit.py
     # logs
     logs = sub.add_parser("logs", help="Show structured pipeline run logs")
     logs.add_argument(

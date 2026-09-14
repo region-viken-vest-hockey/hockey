@@ -12,7 +12,10 @@
 # without restructuring their internal control flow -- deferred to a
 # separate, more careful pass rather than done as part of the file move.
 tournament_scheduler/application/decisions.py	673
-tournament_scheduler/cli/args.py	1731
+# args.py grew by 2 lines for issue #325 (one import + one call wiring in the
+# new operator audit-context/audit-submit/audit-run subparsers); the
+# subparsers themselves live in cli/args_audit.py, not here.
+tournament_scheduler/cli/args.py	1733
 tournament_scheduler/cli/pipeline_orchestrator/interactive_decision_emit.py	359
 tournament_scheduler/cli/pipeline_orchestrator/run_command.py	390
 tournament_scheduler/cli/pipeline_orchestrator/run_command_interactive.py	422
@@ -39,7 +42,10 @@ tournament_scheduler/pipeline/cancellation_workflow.py	407
 tournament_scheduler/pipeline/escalation.py	315
 tournament_scheduler/pipeline/input_workbook.py	310
 tournament_scheduler/pipeline/manual_adjustment_workflow.py	436
-tournament_scheduler/pipeline/operator_action.py	960
+# operator_action.py grew by 4 lines for issue #325 (semantic safety-net audit
+# gate wiring: one import, a two-line gate check, one registration call) --
+# the bulk of the new logic itself was split into pipeline/operator_action_audit.py.
+tournament_scheduler/pipeline/operator_action.py	964
 tournament_scheduler/pipeline/pages_bundle.py	422
 tournament_scheduler/pipeline/pages_publish.py	653
 tournament_scheduler/pipeline/registered_teams.py	369

@@ -151,9 +151,58 @@ Agent policy:
 - hard verification failure blocks export/publication;
 - review manual arena/hosting/calendar follow-up separately from plan-quality warnings;
 - generated output is derived data: correct input/config/code and regenerate rather than permanently patching HTML/CSV/Excel/iCal;
-- use the Stage 4 `output_files` map to know what the run actually produced.
+- use the Stage 4 `output_files` map to know what the run actually produced;
+- after export, before publication, a harness-led semantic safety-net audit must run and
+  produce PASS/REVIEW_REQUIRED/FAIL against the operator checklist below; publication is
+  gated on it (see "Semantic safety-net audit" and "Publication").
 
 Common outputs include the season-plan HTML/report, optional manual follow-up view, calendar/input views, Excel/CSV/iCal downloads, Spond workbooks and per-club review packets.
+
+## Semantic safety-net audit (post-export, pre-publication)
+
+This is the canonical policy source for the harness-led semantic safety-net audit (issue
+#325) — the independent, adversarial review an agent or the headless judge
+(`tournament_scheduler.llm_judge.audit`) performs after every Stage 4 export and before
+publication. Interactive harnesses and the headless path must use this checklist rather
+than defining their own criteria; `.claude/commands/rvv-miniputt/*` adapters must not
+redefine or duplicate it.
+
+Deterministic verification can only catch defects already encoded as rules. This audit's
+purpose is to catch the ones that aren't: assume the scheduler and its deterministic
+verifier may share a logic defect, or may simply be missing a rule. Do not conclude the
+schedule is correct merely because deterministic verification passed. Reconstruct
+important facts from the export, inspect patterns across the whole season, look for
+counterexamples and suspicious outliers, and explain anything that does not make
+operational sense.
+
+Operator checklist (answer every item; item 9 is open-ended and the most important):
+
+1. Antall cuper pr lag?
+2. Antall hjemmeturneringer pr lag?
+3. Lengde på turneringer?
+4. Er det faktisk ledig tid på is?
+5. Deltar vertsklubben i samme turnering?
+6. Deltar hvert lag maksimalt én gang per dag?
+7. Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?
+8. Er eksportformatene konsistente?
+9. Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?
+
+Execution model: when an interactive harness (Claude Code/Pi) is driving the run, the
+harness itself performs this audit in-session by reading `operator audit-context` output
+and reasoning adversarially against the checklist and evidence, then submitting its
+verdict via `operator audit-submit`. When no interactive harness is active (`RVV_HARNESS`,
+`CLAUDE_CODE_SESSION_ID`, and `PI_SESSION_ID` all unset), the headless path
+(`operator audit-run --backend <name>`, cron/CI) calls a real LLM judge backend
+automatically instead.
+
+Non-goals: this audit must not reimplement deterministic rule logic, must not become a
+second Python rules engine, must not duplicate SeasonPlanner policy, and must not perform
+fresh live calendar scraping — it cross-checks the *persisted* evidence bundle and source
+summary only.
+
+A harness `FAIL` or `REVIEW_REQUIRED` can occur even when deterministic checks all pass —
+that is the intended purpose of the audit. It can never override a deterministic hard
+`FAIL`. An incomplete or failed audit run is never equivalent to `PASS`.
 
 ## Stage gating policy (soft judgment)
 
@@ -217,10 +266,16 @@ Planning/export does not imply publication.
 Use:
 
 ```bash
+make audit-context
+make audit-run BACKEND=<claude|openai|llm_bridge>
+make audit-submit RESULT_FILE=<path>
 make publish-preview
 make publish CONFIRM_PUBLIC=1
 make verify-publish
 ```
+
+`make publish` refuses without a fresh `PASS` (or an operator-approved `REVIEW_REQUIRED`)
+semantic audit result for the current export — see "Semantic safety-net audit" above.
 
 Publication creates a separate allowlisted public bundle. Review packets and Spond exports are private/review artifacts by default and should not be assumed public.
 

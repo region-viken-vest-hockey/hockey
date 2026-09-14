@@ -19,12 +19,13 @@ KAMPVEILEDER_CONVERT ?= $(ROOT_DIR)/scripts/convert-kampveileder.sh
 DOTENVX ?= $(ROOT_DIR)/node_modules/.bin/dotenvx
 DOTENVX_ENV_FILE ?= $(ROOT_DIR)/.env.bookup
 
-export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CSV ARGS DOTENVX_ENV_FILE
+export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CSV ARGS DOTENVX_ENV_FILE BACKEND RESULT_FILE
 
 PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-report kampveileder-markdown \
 	operator-run operator-run-force run run-dotenvx status logs calendars calendars-refresh calendars-refresh-dotenvx sources-status \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
+	audit-context audit-run audit-submit \
 	publish-preview publish verify-publish publish-history rollback \
 	release-dry-run release
 
@@ -69,6 +70,12 @@ help:
 	@echo "  make questions-all                 Include answered/stale questions"
 	@echo "  make answer ID=<id> ANSWER='<text>'"
 	@echo "  make promote ID=<id> SCOPE=workspace [SCOPE_KEY=<key>]"
+	@echo ""
+	@echo "Semantic safety-net audit (issue #325 — required before publish):"
+	@echo "  make audit-context                 Print evidence inventory for the harness to review"
+	@echo "  make audit-run BACKEND=<name>      Headless audit (claude|openai|llm_bridge)"
+	@echo "  make audit-submit RESULT_FILE=<path>"
+	@echo "                                      Submit a structured audit verdict"
 	@echo ""
 	@echo "GitHub Pages publication and recovery:"
 	@echo "  make publish-preview [ARGS='...']  Non-mutating sanitized publish preview"
@@ -174,6 +181,17 @@ promote:
 	else \
 		"$(RVV)" operator promote "$$ID" "$$SCOPE" $(ARGS); \
 	fi
+
+audit-context:
+	@cd "$(ROOT_DIR)" && "$(RVV)" operator audit-context $(ARGS)
+
+audit-run:
+	@if [ -z "$${BACKEND:-}" ]; then echo "ERROR: make audit-run requires BACKEND=claude|openai|llm_bridge" >&2; exit 2; fi
+	@cd "$(ROOT_DIR)" && "$(RVV)" operator audit-run --backend "$$BACKEND" $(ARGS)
+
+audit-submit:
+	@if [ -z "$${RESULT_FILE:-}" ]; then echo "ERROR: make audit-submit requires RESULT_FILE=<path>" >&2; exit 2; fi
+	@cd "$(ROOT_DIR)" && "$(RVV)" operator audit-submit --result-file "$$RESULT_FILE" $(ARGS)
 
 publish-preview:
 	@cd "$(ROOT_DIR)" && "$(RVV)" operator publish --dry-run $(ARGS)

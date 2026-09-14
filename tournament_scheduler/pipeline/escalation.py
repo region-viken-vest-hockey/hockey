@@ -13,8 +13,7 @@ makes it a durable, auditable decision, and a later run that would raise the
 identical question in the identical context finds it already answered
 instead of blocking again. This is deliberately scoped to *identical*
 questions — a genuinely different problem (different summary), or the same
-problem in a context the scope says no longer applies, always gets its own
-id and is escalated normally.
+problem in a context the scope says no longer applies, always gets its own id and is escalated normally.
 """
 
 from __future__ import annotations
@@ -40,6 +39,7 @@ class EscalationType(str, Enum):
     DESTRUCTIVE_REPAIR = "destructive_repair"
     IMPOSSIBLE_CONSTRAINTS = "impossible_constraints"
     EXTERNAL_PUBLICATION = "external_publication"
+    AUDIT_REVIEW = "audit_review"
 
 
 _VALID_TYPES = {t.value for t in EscalationType}

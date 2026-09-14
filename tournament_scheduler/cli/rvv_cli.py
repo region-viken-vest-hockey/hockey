@@ -32,7 +32,7 @@ from ..application.operator_state import (
 )
 from .args import build_parser as _build_parser
 from .pipeline_orchestrator import (
-    _cmd_calendars,
+    _cmd_calendars, _cmd_operator_audit_context, _cmd_operator_audit_run, _cmd_operator_audit_submit,
     _cmd_operator_publish,
     _cmd_operator_publish_history,
     _cmd_operator_rollback,
@@ -359,7 +359,7 @@ def _cmd_operator(args: argparse.Namespace) -> int:
         "publish": _cmd_operator_publish,
         "verify": _cmd_operator_verify,
         "rollback": _cmd_operator_rollback,
-        "publish-history": _cmd_operator_publish_history,
+        "publish-history": _cmd_operator_publish_history, "audit-context": _cmd_operator_audit_context, "audit-submit": _cmd_operator_audit_submit, "audit-run": _cmd_operator_audit_run,
     }
     handler = handlers.get(args.operator_command)
     if handler is not None:

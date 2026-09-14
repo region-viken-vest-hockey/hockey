@@ -33,6 +33,9 @@ PUBLIC_TARGETS = [
     "questions-all",
     "answer",
     "promote",
+    "audit-context",
+    "audit-run",
+    "audit-submit",
     "publish-preview",
     "publish",
     "verify-publish",
@@ -143,6 +146,7 @@ class TestMakefileOperatorInterface:
             "sources-status": ["sources", "status"],
             "questions": ["operator", "questions"],
             "questions-all": ["operator", "questions", "--all"],
+            "audit-context": ["operator", "audit-context"],
             "publish-preview": ["operator", "publish", "--dry-run"],
             "verify-publish": ["operator", "verify"],
             "publish-history": ["operator", "publish-history"],
@@ -252,6 +256,8 @@ class TestMakefileOperatorInterface:
             ("answer", ["ID=q-1"], "requires ANSWER"),
             ("promote", [], "requires ID"),
             ("promote", ["ID=q-1"], "requires SCOPE"),
+            ("audit-run", [], "requires BACKEND"),
+            ("audit-submit", [], "requires RESULT_FILE"),
             ("publish", [], "CONFIRM_PUBLIC=1"),
             ("rollback", [], "requires RUN_ID"),
             ("rollback", ["RUN_ID=run-1"], "CONFIRM_PUBLIC=1"),
@@ -268,6 +274,14 @@ class TestMakefileOperatorInterface:
     def test_publish_rollback_and_release_delegate_only_after_safeguards(self, tmp_path):
         fake, log_path = _fake_cli(tmp_path)
         env = {"CALL_LOG": str(log_path)}
+
+        assert _run_make("audit-run", f"RVV={fake}", "BACKEND=llm_bridge", env=env).returncode == 0
+        assert _read_calls(log_path)[-1] == ["operator", "audit-run", "--backend", "llm_bridge"]
+
+        result_file = tmp_path / "audit_result.json"
+        result_file.write_text("{}", encoding="utf-8")
+        assert _run_make("audit-submit", f"RVV={fake}", f"RESULT_FILE={result_file}", env=env).returncode == 0
+        assert _read_calls(log_path)[-1] == ["operator", "audit-submit", "--result-file", str(result_file)]
 
         assert _run_make("publish", f"RVV={fake}", "CONFIRM_PUBLIC=1", env=env).returncode == 0
         assert _read_calls(log_path)[-1] == ["operator", "publish", "--confirm-public"]

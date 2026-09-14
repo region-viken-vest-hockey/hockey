@@ -14,6 +14,8 @@ Publish the season plan from the **last Stage 4 export already on disk** to GitH
 
 **What still stops this command even in auto-confirm mode:** hard validation failures are not bypassed by `--confirm-public` — it only skips the *approval* step, not correctness checks. If the last Stage 4 export recorded errors, or the export bundle fails sanitization, `operator publish` refuses to publish. If there is no prior successful export at all, stop and tell the user to run `/rvv-miniputt:run` first — do not fall back to running the pipeline yourself.
 
+`operator publish` also refuses without a fresh semantic safety-net audit result for the current export (a `PASS`, or an operator-approved `REVIEW_REQUIRED`) — see SKILL.md's "Semantic safety-net audit" section for the checklist and policy this adapter does not redefine. If publish fails for this reason, run `operator audit-context`/`operator audit-submit` (or `operator audit-run --backend <name>` headless) before retrying — do not skip or improvise the audit yourself.
+
 ## Steps
 
 1. Confirm there is a usable prior export: read `.pipeline/stage4_export.json` and check `data.output_files` is present and `data.errors` is empty. Check `data`, not the checkpoint's outer `status`/`stale` fields — those only reflect whether *later* pipeline stages have since been rerun (e.g. a fresh scrape), which is irrelevant here since this command never touches the pipeline; `operator publish` itself resolves the export directory straight from `data.output_files.html`'s parent, regardless of outer staleness. If `data.output_files` is missing or `data.errors` is non-empty, stop and tell the user no export is available to publish — do not run the pipeline to produce one.

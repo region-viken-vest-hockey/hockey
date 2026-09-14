@@ -355,15 +355,60 @@ def _init_repo(repo_dir) -> None:
     subprocess.run(["git", "-C", str(repo_dir), "commit", "-q", "-m", "init"], check=True)
 
 
+def _passing_audit_result(*, export_fingerprint: str, run_id: str = "") -> dict:
+    """A minimal, schema-valid PASS audit result for *export_fingerprint*
+    (issue #325) — used by tests that only care about the pre-existing
+    publish-gate behaviors (approval, sanitization, verify), not the audit
+    gate itself, so they stay green without needing their own audit fixture."""
+    return {
+        "schema_version": 1,
+        "audit_id": "test-audit",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "run_id": run_id,
+        "export_fingerprint": export_fingerprint,
+        "source_fingerprints": {},
+        "prompt_version": 1,
+        "runbook_version": "test",
+        "backend": "test",
+        "execution_mode": "headless",
+        "status": "PASS",
+        "checklist_findings": [
+            {
+                "item_id": i,
+                "question": f"q{i}",
+                "finding": "ok",
+                "severity": "info",
+                "confidence": "high",
+                "evidence": [],
+                "could_not_establish": False,
+            }
+            for i in range(1, 10)
+        ],
+        "potential_missing_rule": [],
+        "could_not_independently_establish": [],
+        "raw_response_ref": None,
+    }
+
+
 def _write_export(work_dir, *, content: str = "<h1>plan</h1>") -> None:
+    import hashlib
+
+    from tournament_scheduler.pipeline.audit_result import write_audit_result
+
     export_dir = work_dir / "export"
     export_dir.mkdir(exist_ok=True)
     (export_dir / "season_plan.html").write_text(content, encoding="utf-8")
+    export_fingerprint = hashlib.sha256(content.encode("utf-8")).hexdigest()
     PipelineState(work_dir).write_stage(
         StageName.EXPORT,
-        {"output_files": {"html": str(export_dir / "season_plan.html")}},
+        {
+            "output_files": {"html": str(export_dir / "season_plan.html")},
+            "export_fingerprint": export_fingerprint,
+        },
         status=StageStatus.DONE,
     )
+    errors = write_audit_result(work_dir, _passing_audit_result(export_fingerprint=export_fingerprint))
+    assert not errors, errors
 
 
 def _write_activity_export_files(work_dir) -> None:

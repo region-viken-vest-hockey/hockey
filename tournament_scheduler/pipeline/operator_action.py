@@ -17,8 +17,8 @@ Core actions registered by default:
 - ``rerun_planning`` — rerun Stage 3 with the current config/source data
 - ``compare_candidates`` — summarize Stage 3's recorded plan candidates (#4)
 - ``export_selected_plan`` — run Stage 4 export for the current plan
-- ``publish_pages`` — sanitize (#18), gate on a per-bundle approval (#19), publish
-  the current Stage 4 export to GitHub Pages (#17), and verify it's reachable (#20)
+- ``get_audit_context``/``submit_audit_result`` — assemble/persist the semantic safety-net audit verdict (#325)
+- ``publish_pages`` — sanitize (#18), gate on audit (#325) + per-bundle approval (#19), publish (#17), verify (#20)
 - ``verify_pages`` — re-check that the last published Pages content is reachable (#20)
 - ``rollback_pages`` — roll ``/latest/`` back to a previously published run (#20)
 
@@ -37,6 +37,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable
 
+from .operator_action_audit import apply_publish_audit_gate as _apply_publish_audit_gate, register_audit_actions as _register_audit_actions
 from .run_manifest import is_durable as _manifest_is_durable
 
 if TYPE_CHECKING:
@@ -583,6 +584,8 @@ def _execute_publish_pages(
     if not bundle_result.is_terminal_success:
         return bundle_result
 
+    if (blocked := _apply_publish_audit_gate(work_dir=work_dir, bundle_result=bundle_result, with_collision_warning=_with_collision_warning)) is not None:
+        return blocked
     bundle_fp = pages_publish.bundle_fingerprint(public_bundle_dir)
     target_fp = pages_publish.target_fingerprint(
         repo_dir=repo_dir, branch=branch, remote=remote, run_id=run_id
@@ -924,6 +927,7 @@ def build_default_registry() -> ActionRegistry:
         ),
         _execute_export_selected_plan,
     )
+    _register_audit_actions(registry)
     registry.register(
         OperatorAction(
             action_id="publish_pages",

@@ -10,6 +10,11 @@ the names imported directly by ``rvv_cli.py``.
 from __future__ import annotations
 
 from .calendars_scrape import _cmd_calendars, _cmd_scrape
+from .operator_audit import (
+    _cmd_operator_audit_context,
+    _cmd_operator_audit_run,
+    _cmd_operator_audit_submit,
+)
 from .operator_publish import (
     _cmd_operator_publish,
     _cmd_operator_publish_history,
@@ -23,6 +28,9 @@ from .run_command import _cmd_run
 
 __all__ = [
     "_cmd_calendars",
+    "_cmd_operator_audit_context",
+    "_cmd_operator_audit_run",
+    "_cmd_operator_audit_submit",
     "_cmd_operator_publish",
     "_cmd_operator_publish_history",
     "_cmd_operator_rollback",
