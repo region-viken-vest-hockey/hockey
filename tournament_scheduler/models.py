@@ -335,6 +335,19 @@ class SeasonPlan:
     # here for manual placement instead. Entry: {"age_group", "date",
     # "period", "candidate_hosts", "participant_clubs", "reason"}.
     unresolved_tournament_placements: List[Dict[str, object]] = field(default_factory=list)
+    # issue #327: per (age_group, period-or-None, club) proportional
+    # participation-fairness evidence -- registered demand share vs realized
+    # share of participation slots, plus intra-club sibling rotation spread.
+    # Computed from the full registered roster (unlike the exported
+    # tournaments list, which omits zero-participation teams), so this is
+    # populated by SeasonPlanner, not independently re-derivable from the
+    # plan's own tournaments. Non-blocking evidence only -- see
+    # `rules_model._club_participation_fairness_rule`; the #325 LLM auditor,
+    # not this list, judges whether a residual deficit is acceptable. Each
+    # entry: {"age_group", "period", "club", "teams", "target_share",
+    # "actual_share", "expected_slots", "actual_slots", "delta",
+    # "sibling_spread"}.
+    club_participation_fairness: List[Dict[str, object]] = field(default_factory=list)
 
 
 # Mapping of age groups whose player pools are known to overlap (e.g. a player

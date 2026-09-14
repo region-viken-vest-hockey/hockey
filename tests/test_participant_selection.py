@@ -9,6 +9,8 @@ cover the balanced packing helper directly (fast, no `SeasonPlanner` needed).
 from datetime import date
 from typing import Dict
 
+import pytest
+
 from tournament_scheduler.participant_relocation import relocate_structurally_impossible_scheduled_slots
 from tournament_scheduler.models import Roster, Team
 from tournament_scheduler.participant_selection import (
@@ -499,3 +501,126 @@ class TestPickScoredParticipantsClubCapTiering:
 
         assert len(selected) == 3
         assert planner._club_cap_overrides > 0
+
+
+class _FakeClubShareFairnessPlanner(_FakeClubCapPlanner):
+    """`_FakeClubCapPlanner` plus the roster-demand/running-count attributes
+    `club_share_deficit` needs (issue #327) -- kept a separate double so the
+    pre-#327 tiering tests above stay on the minimal interface and continue
+    exercising the "no club-share machinery available" fallback path."""
+
+    def __init__(self, teams, target_by_label, season_target_by_label, *, max_club_teams_per_tournament=2):
+        super().__init__(teams, target_by_label, max_club_teams_per_tournament)
+        self._season_target_by_label = season_target_by_label
+        self._tournament_participations: dict = {}
+        self._tournament_participations_by_half: dict = {"before_christmas": {}, "after_christmas": {}}
+
+    def _team_target_tournament_count(self, team, period=None):
+        return self._season_target_by_label[team.label]
+
+    def set_actual(self, label, count):
+        self._tournament_participations[label] = count
+
+
+class TestPickScoredParticipantsClubShareFairness:
+    """issue #327: a club materially behind its proportional demand share
+    (a large club with many registered teams) must be allowed a 3rd team
+    ahead of the hard-cap-only fallback, not only once literally no
+    under-cap candidate remains -- otherwise a large club can be
+    systematically underrepresented across the season purely because some
+    small club always has a technically-available 3rd candidate.
+    """
+
+    def test_third_team_from_a_materially_behind_club_beats_a_no_deficit_under_cap_candidate(self):
+        # Jar has 8 registered U11 teams vs. 4 each for three small clubs
+        # (20 teams total, all target 5) -- Jar's demand share is
+        # 8*5 / 20*5 = 40%, matching the issue's own worked example. Across
+        # prior tournaments this season, Jar only has 2 participations while
+        # each small club already has 3 (11 total participations so far):
+        # Jar's fair share of those 11 is 4.4, but it only has 2 -- a
+        # material (>=1) proportional deficit, while the small clubs are
+        # each roughly at (slightly above) their own 20% share.
+        jar_teams = [Team(club="Jar", label=f"Jar-{i}", age_group="U11") for i in range(1, 9)]
+        holmen = [Team(club="Holmen", label=f"Holmen-{i}", age_group="U11") for i in range(1, 5)]
+        jutul = [Team(club="Jutul", label=f"Jutul-{i}", age_group="U11") for i in range(1, 5)]
+        kongsberg = [Team(club="Kongsberg", label=f"Kongsberg-{i}", age_group="U11") for i in range(1, 5)]
+        teams = jar_teams + holmen + jutul + kongsberg
+        season_target_by_label = {team.label: 5 for team in teams}
+        # Only the club-share deficit should drive the outcome here -- keep
+        # every team's own fairness-model target/running-count identical
+        # (both candidates unplayed) so team-level `deficit_score` and
+        # `normalized_invite_count` contribute equally to both sides.
+        target_by_label = {team.label: 1 for team in teams}
+
+        planner = _FakeClubShareFairnessPlanner(teams, target_by_label, season_target_by_label)
+        planner.set_actual("Jar-1", 1)
+        planner.set_actual("Jar-2", 1)
+        for club_teams in (holmen, jutul, kongsberg):
+            planner.set_actual(club_teams[0].label, 1)
+            planner.set_actual(club_teams[1].label, 1)
+            planner.set_actual(club_teams[2].label, 1)
+
+        # Score the remaining candidates as if two Jar teams and one team
+        # each from the other three clubs are already selected for *this*
+        # tournament (at the preferred cap, every club already represented
+        # here) -- an unplayed 3rd Jar team (deficit-driven) vs. an unplayed
+        # 2nd Holmen team (under cap, no material deficit). `remaining=[]`
+        # keeps `club_diversity_penalty` at 0 for both, isolating the
+        # cap-penalty/club-share-deficit terms this change actually affects.
+        from tournament_scheduler.participant_selection import participant_selection_score
+
+        already_selected = [jar_teams[0], jar_teams[1], holmen[0], jutul[0], kongsberg[0]]
+        jar_score = participant_selection_score(planner, already_selected, [], jar_teams[2], "U11")
+        holmen_score = participant_selection_score(planner, already_selected, [], holmen[3], "U11")
+        assert jar_score < holmen_score
+
+    def test_third_team_stays_disfavored_when_club_is_already_at_its_fair_share(self):
+        """Two equally-sized clubs, both already at their proportional pace
+        -- a 3rd same-club team must still lose to a different, under-cap
+        club's candidate (the pre-#327 #324 behavior), since there is no
+        material club-share deficit to justify relaxing the cap."""
+        club_a = [Team(club="A", label=f"A-{i}", age_group="U11") for i in range(1, 4)]
+        club_b = [Team(club="B", label=f"B-{i}", age_group="U11") for i in range(1, 4)]
+        teams = club_a + club_b
+        season_target_by_label = {team.label: 3 for team in teams}
+        target_by_label = {team.label: 1 for team in teams}
+
+        planner = _FakeClubShareFairnessPlanner(teams, target_by_label, season_target_by_label)
+        planner.set_actual("A-1", 1)
+        planner.set_actual("A-2", 1)
+        planner.set_actual("B-1", 1)
+
+        from tournament_scheduler.participant_selection import participant_selection_score
+
+        # Both clubs already represented in `selected`; `remaining=[]` keeps
+        # `club_diversity_penalty` at 0 for both, isolating the cap-penalty/
+        # club-share-deficit terms (same isolation as the deficit-driven
+        # test above).
+        already_selected = [club_a[0], club_a[1], club_b[0]]
+        a_score = participant_selection_score(planner, already_selected, [], club_a[2], "U11")
+        b_score = participant_selection_score(planner, already_selected, [], club_b[1], "U11")
+        assert b_score < a_score
+
+
+class TestClubDemandShares:
+    """issue #327: `club_demand_shares` must reduce to `team_count /
+    total_team_count` for equal per-team targets, matching the issue's own
+    worked example (Jar 8/20 = 40%, Holmen 2/20 = 10%, Jutul 2/20 = 10%)."""
+
+    def test_matches_issue_worked_example_percentages(self):
+        from tournament_scheduler.participant_roster_sizing import club_demand_shares
+
+        jar = [Team(club="Jar", label=f"Jar-{i}", age_group="U11") for i in range(8)]
+        holmen = [Team(club="Holmen", label=f"Holmen-{i}", age_group="U11") for i in range(2)]
+        jutul = [Team(club="Jutul", label=f"Jutul-{i}", age_group="U11") for i in range(2)]
+        rest = [Team(club=f"Club{i}", label=f"Club{i}-team", age_group="U11") for i in range(8)]
+        teams = jar + holmen + jutul + rest
+        target_by_label = {team.label: 5 for team in teams}
+
+        planner = _FakeClubShareFairnessPlanner(teams, target_by_label, target_by_label)
+
+        shares = club_demand_shares(planner, "U11")
+
+        assert shares["Jar"] == pytest.approx(0.4)
+        assert shares["Holmen"] == pytest.approx(0.1)
+        assert shares["Jutul"] == pytest.approx(0.1)

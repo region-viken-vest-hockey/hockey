@@ -21,11 +21,20 @@ from tournament_scheduler.planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURN
 from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT as MIN_TEAMS_PER_TOURNAMENT, relocate_structurally_impossible_slots as relocate_structurally_impossible_slots
 from tournament_scheduler.participant_roster_sizing import (
     _participation_demand as _participation_demand,
+    club_demand_shares as club_demand_shares,
+    club_share_deficit as club_share_deficit,
     plan_roster_sizes as plan_roster_sizes,
     plan_roster_sizes_for_age_group as plan_roster_sizes_for_age_group,
     rebalance_roster_sizes_across_dates as rebalance_roster_sizes_across_dates,
     target_tournaments_for_age_group as target_tournaments_for_age_group,
 )
+
+# issue #327: a club materially behind its proportional demand share (see
+# `club_share_deficit`) needs at least this many slots of headroom before a
+# 3rd-or-later same-club candidate is allowed to compete ahead of the
+# hard-cap-only fallback tier -- a fractional/noise-level deficit must not
+# relax the #324 <=2 preference.
+CLUB_SHARE_DEFICIT_THRESHOLD = 1.0
 
 
 def default_target_count(num_free_dates: int) -> int:
@@ -368,6 +377,16 @@ def pick_scored_participants(
     silently exceeding it; callers (roster sizing / relocation / manual
     placement) surface that shortfall the same way they surface any other
     under-filled slot.
+
+    issue #327: a 3rd-or-later same-club candidate is also promoted into
+    this same legal tier -- ahead of the "no other legal candidate remains"
+    fallback -- when that club is materially behind its proportional demand
+    share (`club_share_deficit(...) >= CLUB_SHARE_DEFICIT_THRESHOLD`). A
+    large club can otherwise be systematically underrepresented across the
+    season even though its registration share says it should receive more
+    slots, purely because some different/under-cap-club candidate is always
+    technically available. The hard cap and `_club_cap_overrides` bookkeeping
+    are unaffected.
     """
     remaining = list(candidates)
     if not remaining or count <= 0:
@@ -380,7 +399,12 @@ def pick_scored_participants(
         hard_legal_pool = [team for team in remaining if _within_hard_club_cap(selected, team)]
         if not hard_legal_pool:
             break
-        legal_pool = [team for team in hard_legal_pool if _within_club_cap(planner, selected, age_group, team)]
+        legal_pool = [
+            team
+            for team in hard_legal_pool
+            if _within_club_cap(planner, selected, age_group, team)
+            or club_share_deficit(planner, age_group, period, team.club) >= CLUB_SHARE_DEFICIT_THRESHOLD
+        ]
         pool = legal_pool or hard_legal_pool
 
         chosen = min(
@@ -427,15 +451,36 @@ def participant_selection_score(
 
     club_count = sum(1 for s in selected if s.club == team.club)
     max_club = max_club_teams_for(planner, age_group, team.club)
+    club_deficit = club_share_deficit(planner, age_group, period, team.club)
     if max_club > 0:
         if club_count >= max_club:
             # issue #324: a 3rd-or-later team from one club must outrank
             # opponent/club diversity and fairness-deficit tie-breaks (the
             # terms below), so this stays legal only when it is the least
             # bad remaining candidate, not merely a competitive one.
-            score += (club_count - max_club + 1) * 1500.0
+            #
+            # issue #327: unless the club is materially behind its
+            # proportional demand share, in which case the cap penalty is
+            # cut down so the continuous deficit pull below can outrank a
+            # no-deficit different/under-cap-club candidate -- proportional
+            # club-share fairness is a legitimate higher-priority reason to
+            # use a 3rd (or, within the hard cap, 4th) team, not merely a
+            # last-resort filler.
+            if club_deficit >= CLUB_SHARE_DEFICIT_THRESHOLD:
+                score += (club_count - max_club + 1) * 150.0
+            else:
+                score += (club_count - max_club + 1) * 1500.0
         else:
             score += club_count * 20.0
+
+    # issue #327: a continuous pull toward a club's proportional demand
+    # share, on top of the cap-penalty relief above -- reducing the fixed
+    # cap-penalty step alone still leaves a within-cap different-club
+    # candidate favored by a fixed margin regardless of how large the
+    # deficit is; this term lets a materially larger deficit actually
+    # outrank that candidate rather than merely narrowing the gap to it.
+    # Never rewards a club that is already at/above its fair share.
+    score -= max(0.0, club_deficit) * 100.0
 
     deficit = deficit_score(planner, team, age_group, period)
     score -= deficit * 350.0

@@ -52,6 +52,9 @@ from tournament_scheduler.host_candidate_selection import participant_derived_ho
 from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
 from tournament_scheduler.planning_contract import external_calendar_conflict
+from tournament_scheduler.participant_roster_sizing import (
+    club_demand_shares as _club_demand_shares,
+)
 from tournament_scheduler.participant_selection import (
     cap_per_club_deficit_aware as _cap_per_club_deficit_aware,
     club_count_excess_over_2 as _club_count_excess_over_2,
@@ -393,6 +396,59 @@ class SeasonPlanner:
 
     def _team_key(self, team: Team) -> str:
         return team_key(team, self._duplicate_team_labels)
+
+    def _compute_club_participation_fairness(self, skipped_age_groups_set: Set[str]) -> List[Dict[str, object]]:
+        """Return per (age_group, period, club) proportional fairness evidence.
+
+        issue #327: non-blocking evidence -- registered demand share vs
+        realized share of participation slots, plus intra-club sibling
+        rotation spread -- for the Rules report / #325 LLM auditor to reason
+        about whether a residual per-team shortfall reflects a genuine
+        planner defect or an acceptable, capacity-limited proportional
+        outcome. Uses the full registered roster (`self.roster`), not the
+        exported plan's tournaments, since a zero-participation team would
+        otherwise be invisible.
+        """
+        periods: Tuple[Optional[str], ...] = (
+            ("before_christmas", "after_christmas") if self._has_split_tournament_targets() else (None,)
+        )
+        rows: List[Dict[str, object]] = []
+        for age_group in sorted({t.age_group for t in self.roster.teams} - skipped_age_groups_set):
+            teams = self.roster.by_age_group(age_group)
+            if not teams:
+                continue
+            for period in periods:
+                shares = _club_demand_shares(self, age_group, period)
+                if not shares:
+                    continue
+                counts = (
+                    self._tournament_participations_by_half.get(period, {})
+                    if period
+                    else self._tournament_participations
+                )
+                club_team_counts: Dict[str, List[int]] = {}
+                for team in teams:
+                    club_team_counts.setdefault(team.club, []).append(counts.get(self._team_key(team), 0))
+                total_invites = sum(sum(v) for v in club_team_counts.values())
+                for club, per_team_counts in sorted(club_team_counts.items()):
+                    target_share = shares.get(club, 0.0)
+                    actual_slots = sum(per_team_counts)
+                    expected_slots = target_share * total_invites
+                    rows.append(
+                        {
+                            "age_group": age_group,
+                            "period": period,
+                            "club": club,
+                            "teams": len(per_team_counts),
+                            "target_share": target_share,
+                            "actual_share": (actual_slots / total_invites) if total_invites else 0.0,
+                            "expected_slots": expected_slots,
+                            "actual_slots": actual_slots,
+                            "delta": actual_slots - expected_slots,
+                            "sibling_spread": (max(per_team_counts) - min(per_team_counts)) if per_team_counts else 0,
+                        }
+                    )
+        return rows
 
     def build_plan(self, start_date: datetime, end_date: datetime) -> SeasonPlan:
         # issue #300: wall-clock evidence per build phase, so canonical
@@ -1095,6 +1151,7 @@ class SeasonPlanner:
         plan.participation_targets_by_age_group = {
             age_group: dict(targets) for age_group, targets in self.participation_targets_by_age_group.items()
         }
+        plan.club_participation_fairness = self._compute_club_participation_fairness(skipped_age_groups_set)
 
         self._baseline_timings["total_seconds"] = round(perf_counter() - build_started, 6)
         return plan

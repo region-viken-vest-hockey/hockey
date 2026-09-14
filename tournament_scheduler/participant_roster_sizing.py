@@ -16,6 +16,66 @@ from typing import Dict, List, Optional, Sequence, Tuple
 from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT
 
 
+def club_demand_shares(planner, age_group: str, period: Optional[str] = None) -> Dict[str, float]:
+    """Return `{club: club_target_sum / age_group_target_sum}` for `age_group`.
+
+    issue #327: a club's fair proportional entitlement to participation slots
+    is its share of total registered *demand* (per-team targets, not raw team
+    counts) in the age group/half -- for equal per-team targets this reduces
+    to `club_team_count / total_team_count`, matching the issue's worked
+    example, but stays correct when explicit per-team targets differ.
+    """
+    teams = planner.roster.by_age_group(age_group)
+    totals: Dict[str, int] = {}
+    grand_total = 0
+    for team in teams:
+        target = planner._team_target_tournament_count(team, period)
+        totals[team.club] = totals.get(team.club, 0) + target
+        grand_total += target
+    if grand_total <= 0:
+        return {}
+    return {club: total / grand_total for club, total in totals.items()}
+
+
+def club_share_deficit(planner, age_group: str, period: Optional[str], club: str) -> float:
+    """Return how many participation slots `club` is behind its fair share.
+
+    issue #327: compares `club`'s actual running participation count in
+    `age_group`/`period` against `club_demand_shares(...)`'s proportional
+    entitlement out of the total participations already invited in this
+    age group/period so far -- a positive value means the club is
+    materially behind where its registered demand share says it should be.
+
+    Returns ``0.0`` (no deficit-driven relaxation) for any planner double
+    that doesn't expose the full-roster/running-count attributes this needs
+    (`_team_target_tournament_count`, `_tournament_participations`) -- those
+    are real `SeasonPlanner` machinery, not part of the minimal interface
+    `pick_scored_participants` otherwise requires, so a lightweight test/
+    caller-supplied planner stand-in simply gets the pre-#327 behavior.
+    """
+    teams = planner.roster.by_age_group(age_group)
+    if not teams:
+        return 0.0
+    try:
+        share = club_demand_shares(planner, age_group, period).get(club)
+        if not share:
+            return 0.0
+        if period in ("before_christmas", "after_christmas"):
+            counts = planner._tournament_participations_by_half.get(period, {})
+        else:
+            counts = planner._tournament_participations
+    except AttributeError:
+        return 0.0
+    total_invites = 0
+    club_invites = 0
+    for team in teams:
+        count = counts.get(planner._team_key(team), 0)
+        total_invites += count
+        if team.club == club:
+            club_invites += count
+    return share * total_invites - club_invites
+
+
 def _participation_demand(planner, age_group: str, period: Optional[str] = None) -> Tuple[int, int]:
     """Return `(total_target_participations, tournament_capacity)` for `age_group`.
 

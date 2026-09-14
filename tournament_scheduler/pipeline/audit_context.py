@@ -330,6 +330,13 @@ def _summarize_plan_for_audit(
             "duplicate_team_day_count": len(duplicate_team_days),
             "examples": duplicate_team_days[:20],
         },
+        # issue #327: proportional club-share fairness evidence, computed by
+        # SeasonPlanner from the full registered roster (not re-derivable
+        # from `tournaments` alone, which omits zero-participation teams)
+        # and passed through the checkpoint unchanged -- lets the semantic
+        # judge tell an acceptable, capacity-limited proportional shortfall
+        # apart from a genuine planner fairness defect.
+        "club_participation_fairness": list(plan_dict.get("club_participation_fairness") or []),
         "same_club_per_tournament_summary": {
             "tournaments_with_more_than_two_from_same_club": len(club_count_over_two),
             "max_club_count_distribution": dict(sorted(max_club_count_by_tournament.items())),
@@ -456,9 +463,15 @@ def _build_checklist_evidence_guide(
             "primary_evidence": [
                 "publication_readiness.reasons.participation_shortfalls",
                 "deterministic_verify_result.manual_participation_placements",
+                "plan_audit_summary.club_participation_fairness",
             ],
             "summary": {
                 "participation_shortfall_reasons": readiness_reasons.get("participation_shortfalls"),
+                # issue #327: a per-team shortfall next to a club whose
+                # `actual_share` is close to its `target_share` (with a
+                # small `sibling_spread`) is a capacity-limited proportional
+                # outcome, not necessarily a planner defect.
+                "club_participation_fairness": plan_audit_summary.get("club_participation_fairness"),
             },
         },
         {

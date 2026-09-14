@@ -294,6 +294,42 @@ def _participation_targets_by_age_group_rule(plan: SeasonPlan) -> dict[str, Any]
     }
 
 
+def _club_participation_fairness_rule(plan: SeasonPlan) -> dict[str, Any] | None:
+    """Informational: proportional club-share participation fairness evidence.
+
+    issue #327: deltakelse fordeles forholdsmessig etter en klubbs andel av
+    registrert deltakelsesbehov i aldersgruppen/halvdelen, ikke som et
+    eksakt mål per lag -- en stor klubb kan derfor legitimt trenge flere
+    3-lags-turneringer enn en liten klubb for å nå sin rettferdige andel.
+    This is evidence only, never a blocking rule: whether a residual
+    per-team shortfall reflects a genuine planner defect (see
+    ``_participation_shortfall_rule``) or an acceptable, capacity-limited
+    proportional outcome is a judgment the #325 LLM semantic auditor makes
+    from these numbers, not something this deterministic rule decides.
+    """
+    rows = list(plan.club_participation_fairness or [])
+    if not rows:
+        return None
+    return {
+        "id": "club_participation_fairness",
+        "title": "Forholdsmessig deltakelsesfordeling per klubb",
+        "type": "decision",
+        "scope": "klubb × aldersgruppe",
+        "owner": "deterministic_placement_workflow",
+        "description": (
+            "Deltakelse fordeles forholdsmessig etter hvor mange lag klubben har registrert i "
+            "aldersgruppen. Innen klubben roteres deltakelsen så jevnt som mulig. Det nominelle "
+            "deltakelsesmålet per lag brukes til å dimensjonere og balansere sesongen, men mindre "
+            "individuelle avvik er akseptable når klubbens samlede andel er rettferdig og "
+            "kapasiteten ellers er begrenset."
+        ),
+        "configured_value": "Faktisk andel ≈ registrert andel",
+        "status": f"{len(rows)} klubb/aldersgruppe-rader",
+        "ok": True,
+        "detail_rows": {"label": "Vis andelstall per klubb", "kind": "club_participation_fairness", "rows": rows},
+    }
+
+
 def _age_group_exact_match_rule(plan: SeasonPlan) -> dict[str, Any]:
     """Hard rule: a team's age group must exactly equal its tournament's.
 
@@ -645,6 +681,9 @@ def build_rules_model(plan: SeasonPlan) -> list[dict[str, Any]]:
     targets_rule = _participation_targets_by_age_group_rule(plan)
     if targets_rule is not None:
         rules.append(targets_rule)
+    fairness_rule = _club_participation_fairness_rule(plan)
+    if fairness_rule is not None:
+        rules.append(fairness_rule)
     rules.extend(_shared_host_decisions(plan))
     return rules
 

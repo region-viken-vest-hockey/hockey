@@ -137,6 +137,7 @@ def _dict_to_plan(d: dict[str, Any]) -> SeasonPlan:
         unresolved_external_conflicts=list(d.get("unresolved_external_conflicts", [])),
         unresolved_participation_shortfalls=list(d.get("unresolved_participation_shortfalls", [])),
         unresolved_tournament_placements=list(d.get("unresolved_tournament_placements", [])),
+        club_participation_fairness=list(d.get("club_participation_fairness", [])),
         participation_targets_by_age_group={
             ag: dict(targets) for ag, targets in d.get("participation_targets_by_age_group", {}).items()
         },
