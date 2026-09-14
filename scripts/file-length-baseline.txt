@@ -34,7 +34,7 @@ tournament_scheduler/ical/ical_exporter.py	388
 tournament_scheduler/llm_judge/prompts.py	319
 tournament_scheduler/models.py	371
 tournament_scheduler/participant_selection.py	462
-tournament_scheduler/audit_context.py	605
+tournament_scheduler/pipeline/audit_context.py	605
 tournament_scheduler/pipeline/activity_export.py	709
 tournament_scheduler/pipeline/bookup_host_bridge.py	302
 tournament_scheduler/pipeline/browser_worker.py	692
