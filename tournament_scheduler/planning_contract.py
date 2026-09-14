@@ -787,10 +787,18 @@ def verify_candidate(
     # hosting burden to another club and be rejected outright), but the
     # obligation must be visible so it can be surfaced as a manual-placement
     # item rather than swallowed.
-    from tournament_scheduler.hosting_coverage import hosting_coverage_matrix, unresolved_from_matrix
+    from tournament_scheduler.hosting_coverage import hosting_coverage_matrix
+    from tournament_scheduler.hosting_cross_age_repair import club_hosting_evidence, unresolved_with_evidence
 
     coverage_rows = hosting_coverage_matrix(problem.get("teams", []), tournaments)
-    unresolved_hosting_obligations = unresolved_from_matrix(coverage_rows)
+    # issue #328: also expose, per unresolved row, whichever of this club's
+    # own surplus/duplicate hosting assignments in a *different* age group
+    # could plausibly be repurposed -- evidence only, never auto-applied
+    # here (this is a pure verifier with no live planner to rebuild a
+    # tournament through; see `hosting_cross_age_repair_apply.py` for where
+    # SeasonPlanner actually attempts the repair).
+    coverage_evidence = club_hosting_evidence(problem.get("teams", []), tournaments)
+    unresolved_hosting_obligations = unresolved_with_evidence(coverage_rows, coverage_evidence, tournaments)
 
     return {
         "ok": not violations,

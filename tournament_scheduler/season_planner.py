@@ -51,6 +51,11 @@ from tournament_scheduler.arena_conflicts import find_arena_interval_collisions,
 from tournament_scheduler.host_candidate_selection import participant_derived_host_candidates as _participant_derived_host_candidates
 from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
+from tournament_scheduler.hosting_cross_age_repair import (
+    candidate_reallocation_slots as _candidate_reallocation_slots,
+    club_hosting_evidence as _club_hosting_evidence,
+)
+from tournament_scheduler.hosting_cross_age_repair_apply import attempt_cross_age_repairs as _attempt_cross_age_repairs
 from tournament_scheduler.planning_contract import external_calendar_conflict
 from tournament_scheduler.participant_roster_sizing import (
     club_demand_shares as _club_demand_shares,
@@ -902,6 +907,14 @@ class SeasonPlanner:
             host_counts_by_age[age_group][final_host_club] = host_counts_by_age[age_group].get(final_host_club, 0) + 1
         self._baseline_timings["tournament_building_loop"] = round(perf_counter() - t_tournament_building, 6)
 
+        # issue #328: before any downstream metric/coverage computation reads
+        # `plan.tournaments`, try to resolve a club x age-group hosting
+        # obligation left unmet above by repurposing one of that same
+        # physical club's own surplus/duplicate hosting assignments in a
+        # different age group. Everything below (warnings, coverage,
+        # fairness gate) then naturally reflects the repaired plan.
+        plan.cross_age_hosting_repairs = _attempt_cross_age_repairs(self, plan)
+
         expected_per_month = self._expected_monthly_load(start_date.date(), end_date.date(), len(scheduled))
         sequence_failures = self._sequence_same_arena_day_start_times(plan)
         interval_collisions = find_arena_interval_collisions(
@@ -987,14 +1000,24 @@ class SeasonPlanner:
             if team.age_group not in skipped_age_groups_set
         ]
         coverage_tournaments = [
-            {"host_club": t.host_club, "age_group": t.age_group} for t in plan.tournaments
+            {
+                "id": t.id,
+                "date": t.date.isoformat(),
+                "arena": t.arena,
+                "host_club": t.host_club,
+                "age_group": t.age_group,
+                "cancelled": t.cancelled,
+            }
+            for t in plan.tournaments
         ]
         substituted_away = {
             (age_group, original_host)
             for _date, age_group, original_host, _final_host in self.fallback_host_substitutions
         }
-        unresolved_hosting_obligations: List[Dict[str, str]] = []
-        for row in _hosting_coverage_matrix(coverage_teams, coverage_tournaments):
+        unresolved_hosting_obligations: List[Dict[str, object]] = []
+        coverage_rows_final = _hosting_coverage_matrix(coverage_teams, coverage_tournaments)
+        cross_age_evidence = _club_hosting_evidence(coverage_teams, coverage_tournaments)
+        for row in coverage_rows_final:
             if not row["unresolved"]:
                 continue
             club, age_group = row["club"], row["age_group"]
@@ -1008,8 +1031,21 @@ class SeasonPlanner:
                     f"{club} har lag i {age_group}, men fikk ikke tildelt vertskap for noen "
                     "turnering i denne aldersgruppen denne sesongen."
                 )
+            # issue #328: a repair was already attempted (see
+            # `cross_age_hosting_repairs` below) before this obligation was
+            # accepted as unresolved -- any remaining candidate donor slot
+            # here is one the repair pass itself rejected as infeasible, kept
+            # for operator/audit visibility rather than repeated silently.
             unresolved_hosting_obligations.append(
-                {"club": club, "age_group": age_group, "reason": reason, "category": "manual_hosting_obligation"}
+                {
+                    "club": club,
+                    "age_group": age_group,
+                    "reason": reason,
+                    "category": "manual_hosting_obligation",
+                    "candidate_reallocation_slots": _candidate_reallocation_slots(
+                        club, age_group, coverage_tournaments, cross_age_evidence
+                    ),
+                }
             )
         plan.unresolved_hosting_obligations = unresolved_hosting_obligations
         self._unresolved_hosting_obligations = unresolved_hosting_obligations

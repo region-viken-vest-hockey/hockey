@@ -77,6 +77,8 @@ Stage 3 separates **combinatorial execution** from **policy judgment**:
 
 Solvers may include CP-SAT and other search/repair mechanisms. No solver implementation is itself the business-policy source. A candidate becomes acceptable only after deterministic verification.
 
+Club x age-group hosting coverage is checked independently for every age group: every club with a registered team should host at least once in each age group it fields a team in. Before a coverage gap is accepted as an unresolved hosting obligation, repository code checks whether that same physical club already has a surplus/duplicate hosting assignment in a *different* age group that could legally be repurposed for the missing one (same arena/date, a freshly rebuilt tournament with real eligible participants and a re-verified duration) — never by simply relabeling an existing tournament's age group. A repair is only applied when it resolves the gap without breaking any other hard constraint or creating a new one; otherwise the obligation stays unresolved, with the repair candidates repository code considered and rejected kept as evidence for manual follow-up and the semantic safety-net audit.
+
 The durable ownership decision is in ADR 0002; Stage 3 optimization details are in ADR 0001.
 
 ## Structured agent decision flow

@@ -344,6 +344,10 @@ def _summarize_plan_for_audit(
         # an individual team's miss against the club aggregate above instead
         # of only seeing an unlabeled actual/target pair.
         "unresolved_participation_shortfalls": list(plan_dict.get("unresolved_participation_shortfalls") or []),
+        # issue #328: cross-age hosting-coverage repairs already attempted
+        # (repaired or rejected-with-reason) before this plan's remaining
+        # `unresolved_hosting_obligations` were accepted.
+        "cross_age_hosting_repairs": list(plan_dict.get("cross_age_hosting_repairs") or []),
         "same_club_per_tournament_summary": {
             "tournaments_with_more_than_two_from_same_club": len(club_count_over_two),
             "max_club_count_distribution": dict(sorted(max_club_count_by_tournament.items())),
@@ -496,9 +500,20 @@ def _build_checklist_evidence_guide(
             "primary_evidence": [
                 "deterministic_verify_result.unresolved_hosting_obligations",
                 "publication_readiness.reasons.unresolved_hosting",
+                "plan_audit_summary.cross_age_hosting_repairs",
             ],
             "summary": {
                 "unresolved_hosting": len(deterministic_verify_result.get("unresolved_hosting_obligations") or []),
+                # issue #328: an unresolved obligation with a non-empty
+                # `candidate_reallocation_slots` is exactly the "deficit with
+                # reusable surplus" defect pattern this checklist item exists
+                # to catch.
+                "unresolved_with_untried_reallocation_candidates": [
+                    {"club": item.get("club"), "age_group": item.get("age_group")}
+                    for item in (deterministic_verify_result.get("unresolved_hosting_obligations") or [])
+                    if item.get("candidate_reallocation_slots")
+                ],
+                "cross_age_hosting_repairs": plan_audit_summary.get("cross_age_hosting_repairs"),
             },
         },
         {

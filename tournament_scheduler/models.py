@@ -308,7 +308,18 @@ class SeasonPlan:
     # club host instead. Each entry: {"club": str, "age_group": str,
     # "reason": str}. Surfaced in manual_schedule.html as an explicit
     # "MANUAL PLACEMENT REQUIRED" item rather than silently dropped.
-    unresolved_hosting_obligations: List[Dict[str, str]] = field(default_factory=list)
+    unresolved_hosting_obligations: List[Dict[str, object]] = field(default_factory=list)
+    # issue #328: the cross-age hosting-coverage repair attempted, before
+    # `unresolved_hosting_obligations` above, for every club x age-group
+    # obligation the plan started out missing -- by repurposing a physical
+    # club's own surplus/duplicate hosting assignment in a *different* age
+    # group. A resolved obligation is removed from
+    # `unresolved_hosting_obligations`; a still-unresolved one also appears
+    # there, with its rejected candidates duplicated as evidence via
+    # `candidate_reallocation_slots`. Each entry: {"club", "age_group",
+    # "status": "repaired"|"unresolved", ...}. See
+    # `hosting_cross_age_repair_apply.attempt_cross_age_repairs`.
+    cross_age_hosting_repairs: List[Dict[str, object]] = field(default_factory=list)
     # Tournaments whose host has a genuine external calendar conflict the
     # planner/optimizer could not route around. Each entry: {"tournament_id",
     # "host_club", "age_group", "date", "reason"}. Non-blocking -- surfaced

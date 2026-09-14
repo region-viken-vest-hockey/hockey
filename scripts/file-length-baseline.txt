@@ -32,9 +32,20 @@ tournament_scheduler/html/data_computation.py	310
 tournament_scheduler/html/html_exporter.py	421
 tournament_scheduler/ical/ical_exporter.py	388
 tournament_scheduler/llm_judge/prompts.py	319
-tournament_scheduler/models.py	371
+# models.py grew by 24 lines for issue #328 (the new `cross_age_hosting_repairs`
+# SeasonPlan field plus its doc comment, and widening
+# `unresolved_hosting_obligations`'s value type to carry the new
+# `candidate_reallocation_slots` evidence) -- a single dataclass field, not a
+# splittable chunk on its own.
+tournament_scheduler/models.py	395
 tournament_scheduler/participant_selection.py	462
-tournament_scheduler/pipeline/audit_context.py	605
+# audit_context.py grew by 44 lines for issue #328 (a new
+# `cross_age_hosting_repairs` pass-through in `_summarize_plan_for_audit`,
+# plus a widened checklist item 2 summary surfacing unresolved obligations
+# whose `candidate_reallocation_slots` evidence repository code did not
+# already rule out) -- evidence packaging woven into two existing functions,
+# not a cohesive standalone chunk.
+tournament_scheduler/pipeline/audit_context.py	649
 tournament_scheduler/pipeline/activity_export.py	709
 tournament_scheduler/pipeline/bookup_host_bridge.py	302
 tournament_scheduler/pipeline/browser_worker.py	692
@@ -57,17 +68,27 @@ tournament_scheduler/pipeline/stage1_helpers.py	386
 tournament_scheduler/pipeline/stage2_scraping.py	848
 # stage3_helpers.py grew by 1 line for issue #323 (one extra plan-dict key,
 # `unresolved_tournament_placements`, in the existing `_plan_to_dict` mapping
-# literal) -- not a splittable chunk on its own.
-tournament_scheduler/pipeline/stage3_helpers.py	384
+# literal) -- not a splittable chunk on its own. Grew by 1 further line for
+# issue #328 (`cross_age_hosting_repairs`, the same pattern).
+tournament_scheduler/pipeline/stage3_helpers.py	386
 tournament_scheduler/pipeline/stage3_planning.py	613
 tournament_scheduler/pipeline/stage4_export.py	690
 tournament_scheduler/pipeline/state.py	505
 tournament_scheduler/pipeline/tournament_updater.py	930
-tournament_scheduler/planning_contract.py	1045
+# planning_contract.py grew by 8 lines for issue #328 (verify_candidate now
+# builds cross-age hosting-repair evidence and attaches it to each unresolved
+# obligation row instead of the bare club/age_group pair) -- a few lines woven
+# into an already-large verification function, not a splittable chunk.
+tournament_scheduler/planning_contract.py	1053
 tournament_scheduler/registrations.py	505
 tournament_scheduler/review/review_packet_exporter.py	425
 tournament_scheduler/rules_model.py	675
-tournament_scheduler/season_planner.py	2021
+# season_planner.py was already over this recorded baseline (2188 lines)
+# before issue #328 -- an untracked prior growth this change did not cause
+# and does not attempt to fix. issue #328 itself added the cross-age
+# hosting-repair call site, the enriched coverage-tournament/unresolved-
+# obligation dicts, and their imports (~36 lines) on top of that.
+tournament_scheduler/season_planner.py	2224
 tournament_scheduler/spond/spond_exporter.py	401
 tournament_scheduler/stage3_cpsat.py	650
 # stage3_decision.py grew by 1 line for issue #324 (one extra weight-name
