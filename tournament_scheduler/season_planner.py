@@ -1066,6 +1066,36 @@ class SeasonPlanner:
         # explicitly instead of the generic "not enough free slots" message,
         # so #314-style publication review gets concrete physical-capacity
         # evidence rather than an unexplained number.
+        plan.same_date_capacity_evidence = same_date_capacity_evidence
+        self._compute_participation_shortfalls_and_fairness(plan, skipped_age_groups_set)
+
+        self._baseline_timings["total_seconds"] = round(perf_counter() - build_started, 6)
+        return plan
+
+    def _compute_participation_shortfalls_and_fairness(
+        self, plan: SeasonPlan, skipped_age_groups_set: Set[str]
+    ) -> None:
+        """Recompute ``plan.unresolved_participation_shortfalls`` and
+        ``plan.club_participation_fairness`` from this planner's current
+        ``_tournament_participations``/``_tournament_participations_by_half``
+        counters and ``plan.same_date_capacity_evidence``.
+
+        Split out of ``build()`` (issue #327 follow-up) so
+        ``ManualAdjustmentWorkflow._refresh_plan_metadata`` can re-run it
+        after a post-export manual patch (host-club swap, date move) changes
+        which teams actually got invited. Without this, the #327 club-share
+        evidence handed to the #325 semantic auditor stayed a stale
+        pre-patch snapshot while ``deterministic_verify_result.manual_participation_placements``
+        (recomputed fresh at Stage 4 from the patched candidate) did not --
+        the two disagreed on exactly the runs that needed a patch.
+        """
+        same_date_capacity_evidence = plan.same_date_capacity_evidence or []
+
+        # issue #318: when a same-date parallel-slot capacity limit (not a
+        # generic shortage) is the reason a team came up short, say so
+        # explicitly instead of the generic "not enough free slots" message,
+        # so #314-style publication review gets concrete physical-capacity
+        # evidence rather than an unexplained number.
         capacity_shortfall_age_groups = {
             entry["age_group"]
             for entry in same_date_capacity_evidence
@@ -1201,14 +1231,40 @@ class SeasonPlanner:
                         )
         plan.unresolved_participation_shortfalls = unresolved_participation_shortfalls
         self._unresolved_participation_shortfalls = unresolved_participation_shortfalls
-        plan.same_date_capacity_evidence = same_date_capacity_evidence
         plan.participation_targets_by_age_group = {
             age_group: dict(targets) for age_group, targets in self.participation_targets_by_age_group.items()
         }
         plan.club_participation_fairness = club_participation_fairness_rows
 
-        self._baseline_timings["total_seconds"] = round(perf_counter() - build_started, 6)
-        return plan
+    def recompute_tournament_participations(self, plan: SeasonPlan) -> None:
+        """Repopulate ``_tournament_participations``/``_tournament_participations_by_half``
+        directly from ``plan.tournaments`` (non-cancelled tournaments only).
+
+        For use outside the incremental ``build()`` flow -- e.g. after a
+        post-export manual patch has changed tournament membership -- where
+        there is no per-selection bookkeeping to reuse. Mirrors
+        ``planning_contract.verify_candidate``'s own participation counting
+        so the two stay consistent (issue #327 follow-up).
+        """
+        self._tournament_participations = {self._team_key(team): 0 for team in self.roster.teams}
+        self._tournament_participations_by_half = {
+            "before_christmas": {self._team_key(team): 0 for team in self.roster.teams},
+            "after_christmas": {self._team_key(team): 0 for team in self.roster.teams},
+        }
+        split_date: Optional[date] = None
+        if plan.start_date and plan.end_date:
+            split_date = self._christmas_split_date(plan.start_date, plan.end_date)
+        for tournament in plan.tournaments:
+            if tournament.cancelled:
+                continue
+            half = planning_half.tournament_half(tournament.date, split_date) if split_date else None
+            for team in tournament.teams:
+                key = self._team_key(team)
+                self._tournament_participations[key] = self._tournament_participations.get(key, 0) + 1
+                if half in self._tournament_participations_by_half:
+                    self._tournament_participations_by_half[half][key] = (
+                        self._tournament_participations_by_half[half].get(key, 0) + 1
+                    )
 
     @property
     def collisions(self) -> List[Tuple[date, str, str]]:

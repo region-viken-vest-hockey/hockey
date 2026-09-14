@@ -336,6 +336,18 @@ class ManualAdjustmentWorkflow:
 
         plan.fairness_gate = planner._build_fairness_gate(plan)
 
+        # issue #327 follow-up: a manual patch (host-club swap, date move)
+        # can change which teams actually got invited, which would
+        # otherwise leave `plan.unresolved_participation_shortfalls` /
+        # `plan.club_participation_fairness` as a stale pre-patch snapshot
+        # while `deterministic_verify_result.manual_participation_placements`
+        # (recomputed fresh at Stage 4 from the patched candidate) is not --
+        # the #325 semantic auditor must see the same patched reality both
+        # places agree on.
+        planner.recompute_tournament_participations(plan)
+        skipped_set_for_fairness = {e["age_group"] for e in plan.skipped_age_groups}
+        planner._compute_participation_shortfalls_and_fairness(plan, skipped_set_for_fairness)
+
     def _collect_conflicts(self, plan: SeasonPlan) -> list[dict[str, Any]]:
         conflicts: list[dict[str, Any]] = []
         for tournament in plan.tournaments:
