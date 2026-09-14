@@ -11,6 +11,48 @@ from ..models import Game, SeasonPlan, Team, Tournament
 logger = logging.getLogger(__name__)
 
 
+def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]:
+    """Build manual-placement report rows for `plan.unresolved_tournament_placements`.
+
+    issue #323 P0: a tournament whose participant set (selected first, per
+    all hard constraints) had no candidate host among the participants' own
+    physical clubs with a free arena/time slot -- no tournament exists to
+    attach this to (the point is that nothing was placed), so
+    tournament-shaped fields are left blank. The original participant set
+    was never mutated to fit an unrelated host.
+    """
+    entries: list[dict[str, str]] = []
+    for item in getattr(plan, "unresolved_tournament_placements", None) or []:
+        age_group = str(item.get("age_group", "") or "")
+        date_value = str(item.get("date", "") or "")
+        candidate_hosts = item.get("candidate_hosts") or []
+        participant_clubs = item.get("participant_clubs") or []
+        entries.append(
+            {
+                "type": "MANUAL PLACEMENT REQUIRED — ingen vertsklubb blant deltakerne",
+                "category": "manual_tournament_placement",
+                "date": date_value,
+                "arena": "",
+                "host_club": "",
+                "age_group": age_group,
+                "tournament_id": "",
+                "interval": "",
+                "conflicting_tournament_id": "",
+                "conflicting_age_group": "",
+                "conflicting_interval": "",
+                "message": (
+                    "MANUAL PLACEMENT REQUIRED. "
+                    f"Age group: {age_group}. Date: {date_value or 'ukjent'}. "
+                    f"Participants: {', '.join(str(c) for c in participant_clubs) or 'ukjent'}. "
+                    f"Candidate hosts tried: {', '.join(str(c) for c in candidate_hosts) or 'ingen'}. "
+                    "Reason: none of the selected participants' clubs had a legal, free arena/time slot. "
+                    "Action: RVV must manually assign a host/arena/time for this age group and date."
+                ),
+            }
+        )
+    return entries
+
+
 def _dict_to_plan(d: dict[str, Any]) -> SeasonPlan:
     """Reconstruct a :class:`SeasonPlan` from the checkpoint dict."""
     tournaments: list[Tournament] = []

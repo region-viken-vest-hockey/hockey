@@ -12,13 +12,19 @@ baked-in constants. `tests/test_architecture_boundaries.py` enforces this.
 
 from __future__ import annotations
 
-import math
 from datetime import date, timedelta
-from typing import Dict, List, Optional, Sequence, Set, Tuple
+from typing import Dict, List, Optional, Sequence, Set
 
 from tournament_scheduler.host_representation import clubs_represent_same_club
 from tournament_scheduler.models import Team, overlapping_age_groups
 from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT as MIN_TEAMS_PER_TOURNAMENT, relocate_structurally_impossible_slots as relocate_structurally_impossible_slots
+from tournament_scheduler.participant_roster_sizing import (
+    _participation_demand as _participation_demand,
+    plan_roster_sizes as plan_roster_sizes,
+    plan_roster_sizes_for_age_group as plan_roster_sizes_for_age_group,
+    rebalance_roster_sizes_across_dates as rebalance_roster_sizes_across_dates,
+    target_tournaments_for_age_group as target_tournaments_for_age_group,
+)
 
 
 def default_target_count(num_free_dates: int) -> int:
@@ -114,164 +120,6 @@ def pick_spread_dates(
         used.add(best)
 
     return sorted(chosen)
-
-
-def _participation_demand(planner, age_group: str, period: Optional[str] = None) -> Tuple[int, int]:
-    """Return `(total_target_participations, tournament_capacity)` for `age_group`.
-
-    Shared by `target_tournaments_for_age_group` (how many tournament slots
-    that demand needs) and `plan_roster_sizes_for_age_group` (how the demand
-    should be packed into those slots) so the two never derive the demand
-    differently.
-    """
-    teams = planner.roster.by_age_group(age_group)
-    if len(teams) < MIN_TEAMS_PER_TOURNAMENT:
-        return 0, 0
-
-    age_group_targets = getattr(planner, "participation_targets_by_age_group", {}) or {}
-    age_group_target = age_group_targets.get(age_group, {}) if isinstance(age_group_targets, dict) else {}
-    before_target = age_group_target.get("before_christmas")
-    after_target = age_group_target.get("after_christmas")
-    if period == "before_christmas" and before_target is not None:
-        default_target = before_target
-    elif period == "after_christmas" and after_target is not None:
-        default_target = after_target
-    elif before_target is not None and after_target is not None:
-        default_target = before_target + after_target
-    else:
-        capacity = min(len(teams), max_teams_for(planner, age_group)) or 1
-        inferred = max(1, math.ceil(len(teams) / capacity))
-        default_target = planner.target_tournament_count or inferred
-
-    total_target = sum((t.target_tournament_count or default_target) for t in teams)
-    capacity = min(len(teams), max_teams_for(planner, age_group)) or 1
-    return total_target, capacity
-
-
-def target_tournaments_for_age_group(planner, age_group: str, period: Optional[str] = None) -> int:
-    """Return the number of tournaments to aim for in `age_group`.
-
-    When *period* is ``"before_christmas"`` or ``"after_christmas"`` and the
-    planner has an explicit per-age-group split target, the returned value uses
-    that half-season participation target as the default for teams in the age
-    group.
-    """
-    total_target, capacity = _participation_demand(planner, age_group, period)
-    if capacity == 0:
-        return 0
-    return max(1, math.ceil(total_target / capacity))
-
-
-def plan_roster_sizes(demand: int, capacity: int) -> List[int]:
-    """Split `demand` participations into balanced per-slot roster sizes.
-
-    issue #316: the number of slots is `ceil(demand / capacity)`, same as
-    `target_tournaments_for_age_group`. Sizes are then balanced (differing by
-    at most one team) rather than greedily filled to `capacity` slot by slot
-    -- greedy filling can strand a final slot below `MIN_TEAMS_PER_TOURNAMENT`
-    even when the demand is perfectly packable (e.g. 49 participations at
-    capacity 4 greedily yields 12 full slots + 1 stranded team, but balances
-    into 10x4 + 3x3 = 49).
-    """
-    if demand <= 0 or capacity <= 0:
-        return []
-    slot_count = math.ceil(demand / capacity)
-    base, remainder = divmod(demand, slot_count)
-    return [base + 1] * remainder + [base] * (slot_count - remainder)
-
-
-def plan_roster_sizes_for_age_group(planner, age_group: str, period: Optional[str] = None) -> List[int]:
-    """Return the planned roster size for each tournament slot in `age_group`.
-
-    The list has exactly `target_tournaments_for_age_group(planner, age_group,
-    period)` entries, in the order those slots should be filled.
-    """
-    total_target, capacity = _participation_demand(planner, age_group, period)
-    if capacity == 0:
-        return []
-    return plan_roster_sizes(total_target, capacity)
-
-
-def rebalance_roster_sizes_across_dates(
-    date_groups: Sequence[Tuple[date, int]],
-    flat_sizes: Sequence[int],
-    capacity: int,
-    distinct_team_count: int,
-    min_teams: int = MIN_TEAMS_PER_TOURNAMENT,
-) -> Tuple[Dict[date, List[int]], List[Dict[str, object]]]:
-    """Resize `flat_sizes` so no date's parallel-slot demand exceeds the
-    age group's distinct team pool.
-
-    issue #318: `flat_sizes` (from `plan_roster_sizes_for_age_group`) is
-    balanced for the *half* as a whole, but is consumed chronologically with
-    no regard for how many parallel same-age-group slots land on a single
-    date. When several slots share a date, the date's own eligible-team pool
-    (`distinct_team_count`, e.g. 17 for a 17-team age group -- a team can't
-    play twice on the same date) can be a tighter ceiling than either the
-    per-slot `capacity` or the half-wide balance.
-
-    `date_groups` is `(date, slot_count)` in chronological order, matching
-    the order `flat_sizes` was assigned in. Demand that a date can't absorb
-    is carried forward to the next date(s) with slack rather than dropped,
-    so the common case (roster-size sum on one date > distinct team count,
-    but the age group has enough *other* dates) is resolved without any lost
-    tournaments. Returns `(sizes_by_date, evidence)`:
-
-    - `sizes_by_date[date]` is the rebalanced list of roster sizes for that
-      date's slots (each within `[min_teams, capacity]`, possibly fewer
-      entries than the date's requested slot count when demand genuinely
-      runs out).
-    - `evidence` distinguishes two genuine-infeasibility causes so callers
-      never have to guess why a slot went unfilled:
-      - `"same_date_uniqueness_limit"`: this date structurally cannot host
-        its requested slot count for this age group at all (`slot_count *
-        min_teams > distinct_team_count`), independent of demand.
-      - `"same_date_participant_pool_capacity"`: after using every date's
-        full capacity, some participations still couldn't be placed before
-        the group ran out of dates; `limiting_dates` lists which dates were
-        at their team-pool ceiling.
-    """
-    sizes_by_date: Dict[date, List[int]] = {}
-    evidence: List[Dict[str, object]] = []
-    limiting_dates: List[date] = []
-    carry = 0
-    index = 0
-    for slot_date, slot_count in date_groups:
-        group_sizes = list(flat_sizes[index : index + slot_count])
-        index += slot_count
-
-        if slot_count * min_teams > distinct_team_count:
-            evidence.append(
-                {
-                    "category": "same_date_uniqueness_limit",
-                    "date": slot_date.isoformat(),
-                    "requested_slots": slot_count,
-                    "feasible_slots": distinct_team_count // min_teams if min_teams else slot_count,
-                    "distinct_team_count": distinct_team_count,
-                }
-            )
-
-        total_requested = sum(group_sizes) + carry
-        max_total = min(slot_count * capacity, distinct_team_count)
-        if total_requested > max_total:
-            limiting_dates.append(slot_date.isoformat())
-        available = min(total_requested, max_total)
-
-        usable_slot_count = min(slot_count, available // min_teams) if min_teams else slot_count
-        usable_total = min(available, usable_slot_count * capacity) if usable_slot_count > 0 else 0
-
-        sizes_by_date[slot_date] = plan_roster_sizes(usable_total, capacity) if usable_total > 0 else []
-        carry = total_requested - usable_total
-
-    if carry > 0:
-        evidence.append(
-            {
-                "category": "same_date_participant_pool_capacity",
-                "unplaced_participations": carry,
-                "limiting_dates": limiting_dates,
-            }
-        )
-    return sizes_by_date, evidence
 
 
 def next_age_group(
@@ -468,6 +316,15 @@ def pick_least_recently_grouped(
     return pick_scored_participants(planner, candidates, count, age_group)
 
 
+def _within_club_cap(planner, selected: Sequence[Team], age_group: str, team: Team) -> bool:
+    """Return whether adding `team` keeps its club at/under its preferred cap."""
+    max_club = max_club_teams_for(planner, age_group, team.club)
+    if max_club <= 0:
+        return True
+    club_count = sum(1 for s in selected if s.club == team.club)
+    return club_count < max_club
+
+
 def pick_scored_participants(
     planner,
     candidates: Sequence[Team],
@@ -477,7 +334,18 @@ def pick_scored_participants(
     *,
     hosting_priority_clubs: Optional[Set[str]] = None,
 ) -> List[Team]:
-    """Greedily build a subset by minimizing a single balance score."""
+    """Greedily build a subset by minimizing a single balance score.
+
+    issue #324 (reopened): a 3rd-or-later same-club candidate must not
+    compete in the same score pool as candidates that stay within the
+    preferred per-club cap -- a large deficit alone must never let it
+    outscore an available different/under-cap-club candidate. Each pick is
+    therefore restricted to the tier of candidates that stay within
+    `max_club_teams_for` whenever that tier is non-empty; the full
+    (cap-exceeding) pool is only considered once no legal candidate remains,
+    which is exactly the "no other legal candidate can complete the roster"
+    fallback `_club_cap_overrides` is meant to track.
+    """
     remaining = list(candidates)
     if not remaining or count <= 0:
         return []
@@ -486,8 +354,11 @@ def pick_scored_participants(
     selected: List[Team] = []
 
     while remaining and len(selected) < count:
+        legal_pool = [team for team in remaining if _within_club_cap(planner, selected, age_group, team)]
+        pool = legal_pool or remaining
+
         chosen = min(
-            remaining,
+            pool,
             key=lambda team: (
                 participant_selection_score(
                     planner, selected, remaining, team, age_group, period,

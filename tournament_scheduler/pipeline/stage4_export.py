@@ -42,7 +42,7 @@ from ..csv.csv_exporter import CsvExporter
 from ..html.html_exporter import HtmlExporter
 from .stage1_config import load_effective_config
 from .state import PipelineState, StageName, StageStatus
-from .stage4_helpers import _dict_to_plan
+from .stage4_helpers import _dict_to_plan, build_tournament_placement_entries
 from .calendar_viewer import generate_html as _generate_calendars_html
 from .input_viewer import generate_html as _generate_input_html
 from .activity_viewer import generate_activity_artifacts as _generate_activity_artifacts
@@ -286,44 +286,9 @@ def run(
                 ),
             }
         )
-    # issue #323 P0: a tournament whose participant set (selected first,
-    # per all hard constraints) had no candidate host among the
-    # participants' own physical clubs with a free arena/time slot -- no
-    # tournament exists to attach this to (the point is that nothing was
-    # placed), so tournament-shaped fields are left blank. The original
-    # participant set was never mutated to fit an unrelated host.
-    tournament_placement_entries: list[dict[str, str]] = []
-    for item in getattr(plan, "unresolved_tournament_placements", None) or []:
-        age_group = str(item.get("age_group", "") or "")
-        date_value = str(item.get("date", "") or "")
-        candidate_hosts = item.get("candidate_hosts") or []
-        participant_clubs = item.get("participant_clubs") or []
-        tournament_placement_entries.append(
-            {
-                "type": "MANUAL PLACEMENT REQUIRED — ingen vertsklubb blant deltakerne",
-                "category": "manual_tournament_placement",
-                "date": date_value,
-                "arena": "",
-                "host_club": "",
-                "age_group": age_group,
-                "tournament_id": "",
-                "interval": "",
-                "conflicting_tournament_id": "",
-                "conflicting_age_group": "",
-                "conflicting_interval": "",
-                "message": (
-                    "MANUAL PLACEMENT REQUIRED. "
-                    f"Age group: {age_group}. Date: {date_value or 'ukjent'}. "
-                    f"Participants: {', '.join(str(c) for c in participant_clubs) or 'ukjent'}. "
-                    f"Candidate hosts tried: {', '.join(str(c) for c in candidate_hosts) or 'ingen'}. "
-                    "Reason: none of the selected participants' clubs had a legal, free arena/time slot. "
-                    "Action: RVV must manually assign a host/arena/time for this age group and date."
-                ),
-            }
-        )
-    # Genuine external calendar conflicts the planner/optimizer couldn't
-    # route around (non-blocking, see planning_contract.verify_candidate's
-    # manual_external_conflict_placements) -- surfaced the same way.
+    tournament_placement_entries = build_tournament_placement_entries(plan)
+    # Genuine external calendar conflicts the planner/optimizer couldn't route
+    # around (see planning_contract.verify_candidate's manual_external_conflict_placements).
     external_conflict_entries: list[dict[str, str]] = []
     for item in getattr(plan, "unresolved_external_conflicts", None) or []:
         external_conflict_entries.append(
@@ -342,16 +307,12 @@ def run(
                 "message": str(item.get("reason", "") or ""),
             }
         )
-    # Participation-target deviations are planning-quality signals, not
-    # booking work, so they stay out of the table above but are still
-    # rendered in their own page section (`_participation_section_html`)
-    # since `publication_readiness` must be visible to the operator.
+    # Participation-target deviations are planning-quality signals, not booking work,
+    # so they stay out of the table above but are still rendered in their own page
+    # section (`_participation_section_html`) since `publication_readiness` requires it.
     candidate_entries = (
-        collision_entries
-        + manual_host_entries
-        + unresolved_hosting_entries
-        + external_conflict_entries
-        + tournament_placement_entries
+        collision_entries + manual_host_entries + unresolved_hosting_entries
+        + external_conflict_entries + tournament_placement_entries
     )
     manual_entries = [entry for entry in candidate_entries if entry.get("category") in MANUAL_SCHEDULE_CATEGORIES]
     participation_entries = list(getattr(plan, "unresolved_participation_shortfalls", None) or [])

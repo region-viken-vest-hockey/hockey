@@ -7,10 +7,13 @@ cover the balanced packing helper directly (fast, no `SeasonPlanner` needed).
 """
 
 from datetime import date
+from typing import Dict
 
 from tournament_scheduler.participant_relocation import relocate_structurally_impossible_scheduled_slots
+from tournament_scheduler.models import Roster, Team
 from tournament_scheduler.participant_selection import (
     MIN_TEAMS_PER_TOURNAMENT,
+    pick_scored_participants,
     plan_roster_sizes,
     rebalance_roster_sizes_across_dates,
     relocate_structurally_impossible_slots,
@@ -388,3 +391,95 @@ class TestRelocateStructurallyImpossibleScheduledSlots:
         assert all(self._period_for_date(d) == "before_christmas" for d, _ in new_scheduled)
         assert (after_christmas_free_date, "U12") not in new_scheduled
         assert (before_christmas_free_date, "U12") in new_scheduled
+
+
+class _FakeFairnessModel:
+    """Stub returning a fixed per-team planning target, independent of the
+    age group's own team list or running counts (only `pick_scored_participants`'s
+    club-cap tiering is under test here, not real fairness math)."""
+
+    def __init__(self, target_by_label: dict):
+        self._target_by_label = target_by_label
+
+    def planning_target_games_for_team(self, team, age_group_teams, running_game_counts):
+        return self._target_by_label[team.label]
+
+
+class _FakeClubCapPlanner:
+    """Minimal planner double exposing exactly what `participant_selection_score`
+    and `_within_club_cap` read, with no `SeasonPlanner`/`build_plan` machinery."""
+
+    def __init__(self, teams, target_by_label, max_club_teams_per_tournament=2):
+        self.roster = Roster(teams=teams)
+        self.max_club_teams_per_tournament = max_club_teams_per_tournament
+        self._running_game_counts = {team.label: 0 for team in teams}
+        self._invite_counts = {team.label: 0 for team in teams}
+        self._club_age_group_team_counts = {team.label: 1 for team in teams}
+        self._opponent_history = {}
+        self._grouped_with = {}
+        self._club_cap_overrides = 0
+        self.fairness_model = _FakeFairnessModel(target_by_label)
+
+    def _team_key(self, team):
+        return team.label
+
+    def _team_at_target(self, team, period=None):
+        return False
+
+
+class TestPickScoredParticipantsClubCapTiering:
+    """issue #324 (reopened): a large club's high-deficit teams must not
+    outcompete available legal (<=2-per-club) candidates for a roster slot
+    just because their fairness deficit is bigger than the club-cap
+    penalty -- the production regression was a `Jarhallen` U11 tournament
+    that filled 6/6 with one club's teams despite four other clubs having
+    eligible, never-yet-invited teams for that same slot.
+    """
+
+    def test_high_deficit_club_does_not_crowd_out_available_other_clubs(self):
+        """Jar's 6 teams are all given a much larger fairness deficit
+        (target 20 vs 0 played) than the 4 other clubs' teams (target 1
+        each). Under the old single-score-pool selection, Jar's deficit term
+        (-350 * 20 = -7000) dwarfed the club-cap penalty for a 3rd+ Jar pick
+        (+1500 per excess step), so Jar could fill the whole 6-team roster.
+        With tiered selection, the 4 other-club teams stay in the legal
+        (<=2-per-club) tier and must be exhausted before a 3rd Jar team is
+        even considered -- exactly enough supply exists here (2 Jar + 4
+        others = 6) that no override should ever be needed.
+        """
+        jar_teams = [Team(club="Jar", label=f"Jar U11-{i}", age_group="U11") for i in range(1, 7)]
+        other_teams = [
+            Team(club=club, label=f"{club} U11", age_group="U11")
+            for club in ("Kongsberg", "Skien", "Holmen", "Ringerike")
+        ]
+        teams = jar_teams + other_teams
+        target_by_label = {team.label: 20 for team in jar_teams}
+        target_by_label.update({team.label: 1 for team in other_teams})
+
+        planner = _FakeClubCapPlanner(teams, target_by_label)
+
+        selected = pick_scored_participants(planner, teams, count=6, age_group="U11")
+
+        club_counts: Dict[str, int] = {}
+        for team in selected:
+            club_counts[team.club] = club_counts.get(team.club, 0) + 1
+
+        assert club_counts.get("Jar", 0) <= 2
+        assert set(club_counts) == {"Jar", "Kongsberg", "Skien", "Holmen", "Ringerike"}
+        assert planner._club_cap_overrides == 0
+
+    def test_third_team_is_still_allowed_when_no_legal_alternative_remains(self):
+        """When every other club's sole team is already excluded (simulated
+        here by a roster with no other clubs at all), the flat cap must
+        remain a soft preference, not a hard filter -- a 3rd Jar team is the
+        only way to complete the roster and must be selected, with the
+        exception measurable via `_club_cap_overrides`."""
+        jar_teams = [Team(club="Jar", label=f"Jar U11-{i}", age_group="U11") for i in range(1, 4)]
+        target_by_label = {team.label: 20 for team in jar_teams}
+
+        planner = _FakeClubCapPlanner(jar_teams, target_by_label)
+
+        selected = pick_scored_participants(planner, jar_teams, count=3, age_group="U11")
+
+        assert len(selected) == 3
+        assert planner._club_cap_overrides > 0

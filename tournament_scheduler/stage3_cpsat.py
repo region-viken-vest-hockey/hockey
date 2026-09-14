@@ -11,19 +11,30 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from copy import deepcopy
-from dataclasses import dataclass
 from datetime import date
 from itertools import combinations
 from time import perf_counter
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from . import planning_half
-from .game_generation import generate_round_robin_games
 from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .models import Team
-from .planning_contract import CANDIDATE_SCHEMA_VERSION, _parse_date, _team_identity
+from .planning_contract import CANDIDATE_SCHEMA_VERSION
+from .stage3_cpsat_club_cap import build_club_excess_terms
+from .stage3_cpsat_diagnostics import raise_host_not_represented
+from .stage3_cpsat_slots import (
+    TeamIdentity as TeamIdentity,
+    _TournamentSlot as _TournamentSlot,
+    _active_slots as _active_slots,
+    _baseline_same_club_pairings as _baseline_same_club_pairings,
+    _games_to_dicts as _games_to_dicts,
+    _group_slots_by_half as _group_slots_by_half,
+    _parallel_games as _parallel_games,
+    _registered_team_map as _registered_team_map,
+    _resolve_participation_target as _resolve_participation_target,
+    _resolve_split_date as _resolve_split_date,
+    _team_dict as _team_dict,
+)
 
-TeamIdentity = Tuple[str, str, str]
 ENGINE_VERSION = 1
 
 
@@ -54,173 +65,6 @@ class CpSatNoCandidate(RuntimeError):
         # fluke without re-instrumenting anything.
         self.diagnostics = dict(diagnostics or {})
         super().__init__(f"CP-SAT returned no candidate ({status})")
-
-
-@dataclass(frozen=True)
-class _TournamentSlot:
-    index: int
-    tournament_id: str
-    age_group: str
-    on_date: date
-    host_club: str
-    roster_size: int
-    baseline_team_ids: tuple[TeamIdentity, ...]
-    pinned: bool
-
-
-def _registered_team_map(
-    candidate: Dict[str, Any], problem: Optional[Dict[str, Any]]
-) -> Dict[TeamIdentity, Dict[str, Any]]:
-    """Return the participant universe, preserving original team payloads."""
-    result: Dict[TeamIdentity, Dict[str, Any]] = {}
-    if problem:
-        for raw in problem.get("teams", []) or []:
-            if isinstance(raw, dict):
-                result[_team_identity(raw)] = dict(raw)
-    for tournament in candidate.get("tournaments", []) or []:
-        for raw in tournament.get("teams", []) or []:
-            if isinstance(raw, dict):
-                result.setdefault(_team_identity(raw), dict(raw))
-    return result
-
-
-def _active_slots(candidate: Dict[str, Any], problem: Optional[Dict[str, Any]]) -> list[_TournamentSlot]:
-    pinned_ids = {
-        str(value)
-        for value in (((problem or {}).get("manual_adjustments") or {}).get("pinned_tournament_ids", []) or [])
-    }
-    slots: list[_TournamentSlot] = []
-    for index, tournament in enumerate(candidate.get("tournaments", []) or []):
-        if tournament.get("cancelled"):
-            continue
-        on_date = _parse_date(tournament.get("date"))
-        if on_date is None:
-            continue
-        baseline = tuple(_team_identity(team) for team in tournament.get("teams", []) or [])
-        tournament_id = str(tournament.get("id", index))
-        slots.append(
-            _TournamentSlot(
-                index=index,
-                tournament_id=tournament_id,
-                age_group=str(tournament.get("age_group", "")),
-                on_date=on_date,
-                host_club=str(tournament.get("host_club") or ""),
-                roster_size=len(baseline),
-                baseline_team_ids=baseline,
-                pinned=tournament_id in pinned_ids,
-            )
-        )
-    return slots
-
-
-def _baseline_same_club_pairings(slots: Iterable[_TournamentSlot]) -> int:
-    """Count same-club round-robin games implied by baseline rosters."""
-    total = 0
-    for slot in slots:
-        for left, right in combinations(slot.baseline_team_ids, 2):
-            if left[0] == right[0]:
-                total += 1
-    return total
-
-
-def _parallel_games(tournament: Dict[str, Any], problem: Optional[Dict[str, Any]]) -> int:
-    if problem:
-        configured = (problem.get("parallel_games") or {}).get(tournament.get("age_group"))
-        if isinstance(configured, int) and configured > 0:
-            return configured
-    games = tournament.get("games", []) or []
-    if games:
-        return max(int(game.get("parallel_slot", 0)) for game in games) + 1
-    return 1
-
-
-def _team_dict(identity: TeamIdentity, source: Dict[TeamIdentity, Dict[str, Any]]) -> Dict[str, Any]:
-    raw = source.get(identity)
-    if raw is not None:
-        return dict(raw)
-    club, label, age_group = identity
-    return {"club": club, "label": label, "age_group": age_group}
-
-
-def _games_to_dicts(teams: list[Team], parallel_games: int) -> list[Dict[str, Any]]:
-    return [
-        {
-            "home": game.home.label,
-            "away": game.away.label,
-            "parallel_slot": game.parallel_slot,
-            "round_number": game.round_number,
-        }
-        for game in generate_round_robin_games(teams, parallel_games)
-    ]
-
-
-def _resolve_participation_target(
-    identity: TeamIdentity,
-    team_map: Dict[TeamIdentity, Dict[str, Any]],
-    problem: Optional[Dict[str, Any]],
-    half_label: str,
-) -> Optional[int]:
-    """Resolve the authoritative participation target for *identity* in this half.
-
-    An explicit per-team ``target_tournament_count`` override
-    (season-wide by definition) always wins, mirroring
-    ``SeasonPlanner._team_target_tournament_count``'s precedence. Otherwise
-    the age group's ``participation_targets_by_age_group`` before/after
-    value for *half_label* is the authoritative per-team, per-half target.
-    Returns ``None`` when neither is configured (non-canonical age group),
-    signalling the caller should fall back to the legacy baseline-lock
-    behavior for that identity.
-    """
-    team = team_map.get(identity) or {}
-    explicit = team.get("target_tournament_count")
-    if isinstance(explicit, int):
-        return explicit
-    if half_label not in ("before_christmas", "after_christmas"):
-        return None
-    age_group = identity[2]
-    targets = ((problem or {}).get("participation_targets_by_age_group") or {}).get(age_group) or {}
-    half_target = targets.get(half_label)
-    return half_target if isinstance(half_target, int) else None
-
-
-def _resolve_split_date(
-    problem: Optional[Dict[str, Any]], slots: "list[_TournamentSlot]"
-) -> Optional[date]:
-    """Resolve the shared Christmas-half boundary for *slots* (issue #298).
-
-    Prefers ``problem["christmas_split_date"]`` -- the single boundary every
-    engine already agrees on (:mod:`planning_half`) -- and only falls back to
-    deriving it from the slot dates themselves when no problem contract is
-    available (e.g. a bare candidate/tests).
-    """
-    raw = (problem or {}).get("christmas_split_date")
-    if raw:
-        parsed = _parse_date(raw)
-        if parsed is not None:
-            return parsed
-    dates = [slot.on_date for slot in slots]
-    if not dates:
-        return None
-    return planning_half.christmas_split_date(min(dates), max(dates))
-
-
-def _group_slots_by_half(
-    slots: "list[_TournamentSlot]", split_date: Optional[date]
-) -> "list[tuple[str, list[_TournamentSlot]]]":
-    """Partition *slots* into independent before/after-Christmas solver groups.
-
-    Uses the shared :mod:`planning_half` contract from issue #293 as the
-    solver boundary (issue #298 Phase 2): each half is solved as its own
-    smaller participant-assignment model instead of one monolithic Oct-Apr
-    model, which shrinks the assignment/pair-variable count and keeps a
-    half-2 registration change from perturbing half-1's solve. Empty halves
-    are dropped rather than solved as a no-op.
-    """
-    groups: "dict[str, list[_TournamentSlot]]" = defaultdict(list)
-    for slot in slots:
-        groups[planning_half.tournament_half(slot.on_date, split_date)].append(slot)
-    ordered_labels = ["before_christmas", "after_christmas", "unsplit"]
-    return [(label, groups[label]) for label in ordered_labels if groups.get(label)]
 
 
 def _solve_slot_group(
@@ -273,34 +117,23 @@ def _solve_slot_group(
             if host_vars:
                 model.Add(sum(host_vars) >= 1)
             else:
-                # issue #323 P0: after the baseline/Stage 3 host-derivation
-                # fix, a slot's fixed host_club should always have at least
-                # one roster-eligible representing team for this age group --
-                # an empty host_vars here means that invariant was violated
-                # upstream. Fail loudly (routing through the same
-                # CpSatNoCandidate fallback as a genuine solver infeasibility)
-                # instead of silently building a model that can't enforce
-                # host representation at all.
-                diagnostics = {
-                    "half": half_label,
-                    "mode": "feasibility_only" if feasibility_only else "quality",
-                    "team_count": len(team_map),
-                    "slot_count": len(slots),
-                    "solve_budget_seconds": float(solve_budget_seconds),
-                    "seed": int(seed),
-                    "status": "HOST_NOT_REPRESENTED_IN_ROSTER",
-                    "runtime_seconds": round(perf_counter() - started, 6),
-                    "violated_constraint": "host_representation",
-                    "tournament_id": slot.tournament_id,
-                    "host_club": slot.host_club,
-                    "age_group": slot.age_group,
-                }
-                raise CpSatNoCandidate(
-                    "HOST_NOT_REPRESENTED_IN_ROSTER",
-                    perf_counter() - started,
-                    baseline_candidate_fingerprint=baseline_fingerprint,
+                # issue #323 P0: an empty host_vars here means the upstream
+                # host-representation invariant was violated -- see
+                # stage3_cpsat_diagnostics.raise_host_not_represented.
+                raise_host_not_represented(
+                    CpSatNoCandidate,
+                    half_label=half_label,
+                    feasibility_only=feasibility_only,
+                    team_count=len(team_map),
+                    slot_count=len(slots),
+                    solve_budget_seconds=solve_budget_seconds,
+                    seed=seed,
+                    started=started,
+                    tournament_id=slot.tournament_id,
+                    host_club=slot.host_club,
+                    age_group=slot.age_group,
+                    baseline_fingerprint=baseline_fingerprint,
                     problem_fingerprint=problem_fingerprint,
-                    diagnostics=diagnostics,
                 )
 
     baseline_participations: Counter[TeamIdentity] = Counter()
@@ -466,32 +299,9 @@ def _solve_slot_group(
                 if left[0] == right[0]:
                     same_club_terms.append(meet)
 
-        # issue #324: explicitly model 3rd-or-later teams from one club in
-        # one tournament, per (slot, club) -- `same_club_terms` above (pair
-        # co-occurrence) is correlated with this but not equivalent, so a
-        # candidate could improve the aggregate pairing count while still
-        # clustering 3+ teams from one club in a slot. `club_excess_terms`
-        # closes that gap with its own dedicated, heavily-weighted term.
-        club_excess_terms: "list[Any]" = []
-        club_excess_serial = 0
-        for slot in slots:
-            eligible = teams_by_age_group.get(slot.age_group, [])
-            clubs_in_slot: "dict[str, list[Any]]" = defaultdict(list)
-            for identity in eligible:
-                clubs_in_slot[identity[0]].append(x[(slot.index, identity)])
-            for club_vars in clubs_in_slot.values():
-                if len(club_vars) <= 2:
-                    continue
-                club_excess_serial += 1
-                club_count = model.NewIntVar(
-                    0, len(club_vars), f"club_count_{club_excess_serial}"
-                )
-                model.Add(club_count == sum(club_vars))
-                excess_over_2 = model.NewIntVar(
-                    0, len(club_vars), f"club_excess_over_2_{club_excess_serial}"
-                )
-                model.Add(excess_over_2 >= club_count - 2)
-                club_excess_terms.append(excess_over_2)
+        # issue #324: explicit per-(slot, club) 3rd-or-later concentration
+        # term -- see stage3_cpsat_club_cap.build_club_excess_terms.
+        club_excess_terms = build_club_excess_terms(model, x, slots, teams_by_age_group)
 
         repeat_excess_terms: "list[Any]" = []
         third_plus_excess_terms: "list[Any]" = []
