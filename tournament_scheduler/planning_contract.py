@@ -41,6 +41,14 @@ from tournament_scheduler.planning_contract_distribution import (
 PLANNING_PROBLEM_SCHEMA_VERSION = 1
 CANDIDATE_SCHEMA_VERSION = 1
 
+# issue #326: the hard ceiling on teams from one club in one tournament.
+# Distinct from the separate, lower `max_club_teams_per_tournament`/
+# `same_club_excess_over_2` *preference* (issue #324, normally 2) that every
+# planning engine still strongly prefers when feasible -- this is the
+# absolute maximum no planning engine, verifier or publication gate may ever
+# cross, regardless of fairness/host/objective trade-offs.
+HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT = 3
+
 
 # ---------------------------------------------------------------------------
 # planning_problem.json
@@ -419,6 +427,7 @@ def verify_candidate(
             continue
 
         seen_identities: set[TeamIdentity] = set()
+        club_counts_this_tournament: Dict[str, int] = {}
         for team in t.get("teams", []):
             if not team.get("label"):
                 continue
@@ -440,6 +449,21 @@ def verify_candidate(
                 )
             participations[identity] = participations.get(identity, 0) + 1
             team_dates.setdefault(identity, []).append((t_date, t_id))
+            club = identity[0]
+            if club:
+                club_counts_this_tournament[club] = club_counts_this_tournament.get(club, 0) + 1
+
+        # issue #326: a hard ceiling, independent of any fairness/host/
+        # objective trade-off -- 4+ teams from one club in one tournament is
+        # never valid, unlike the separate 2-team soft preference.
+        for club, count in club_counts_this_tournament.items():
+            if count > HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT:
+                _violate(
+                    "club_hard_max_exceeded",
+                    f"Tournament {t_id} has {count} teams from club {club!r}, "
+                    f"exceeding the hard maximum of {HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT}",
+                    t_id,
+                )
 
     for identity, entries in team_dates.items():
         display = _display_label(identity, duplicate_labels)

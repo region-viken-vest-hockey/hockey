@@ -56,6 +56,7 @@ from .models import Team
 from . import planning_half
 from .planning_contract import (
     CANDIDATE_SCHEMA_VERSION,
+    HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
     _parse_date,
     _team_identity,
     external_calendar_conflict,
@@ -565,6 +566,20 @@ def _swap_is_valid(
         return False
     # Neither team may end up appearing twice in its new tournament.
     if team_a in b.team_ids or team_b in a.team_ids:
+        return False
+    # issue #326: a move that would push 4+ teams from one club into one
+    # tournament is illegal outright and must be rejected before scoring --
+    # the steep `same_club_excess_over_2` objective weight only discourages
+    # a 2 -> 3 move, it does not forbid 3 -> 4+.
+    new_a_club_count = sum(
+        1 for i, tid in enumerate(a.team_ids) if i != pos_a and tid[0] == team_b[0]
+    ) + 1
+    if new_a_club_count > HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT:
+        return False
+    new_b_club_count = sum(
+        1 for i, tid in enumerate(b.team_ids) if i != pos_b and tid[0] == team_a[0]
+    ) + 1
+    if new_b_club_count > HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT:
         return False
     # Neither team may end up double-booked on the other tournament's date.
     if a.date != b.date:

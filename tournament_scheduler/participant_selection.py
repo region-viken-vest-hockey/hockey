@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Sequence, Set
 
 from tournament_scheduler.host_representation import clubs_represent_same_club
 from tournament_scheduler.models import Team, overlapping_age_groups
+from tournament_scheduler.planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT as MIN_TEAMS_PER_TOURNAMENT, relocate_structurally_impossible_slots as relocate_structurally_impossible_slots
 from tournament_scheduler.participant_roster_sizing import (
     _participation_demand as _participation_demand,
@@ -325,6 +326,18 @@ def _within_club_cap(planner, selected: Sequence[Team], age_group: str, team: Te
     return club_count < max_club
 
 
+def _within_hard_club_cap(selected: Sequence[Team], team: Team) -> bool:
+    """Return whether adding `team` keeps its club at/under the hard maximum.
+
+    issue #326: unlike `_within_club_cap`'s preferred cap, this is never
+    relaxed -- `pick_scored_participants` must not select a team that would
+    push its club's count in this tournament past
+    `HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT`, even as a last-resort fallback.
+    """
+    club_count = sum(1 for s in selected if s.club == team.club)
+    return club_count < HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+
+
 def pick_scored_participants(
     planner,
     candidates: Sequence[Team],
@@ -345,6 +358,16 @@ def pick_scored_participants(
     (cap-exceeding) pool is only considered once no legal candidate remains,
     which is exactly the "no other legal candidate can complete the roster"
     fallback `_club_cap_overrides` is meant to track.
+
+    issue #326: that cap-exceeding fallback pool is itself bounded by
+    `HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT` -- a 2 -> 3 relaxation is still
+    allowed when no under-cap candidate remains, but a team that would push
+    its club to a 4th (or later) selection in this tournament is never
+    legal, at any tier. If every remaining candidate would breach that hard
+    maximum, selection stops early and the roster is left short rather than
+    silently exceeding it; callers (roster sizing / relocation / manual
+    placement) surface that shortfall the same way they surface any other
+    under-filled slot.
     """
     remaining = list(candidates)
     if not remaining or count <= 0:
@@ -354,8 +377,11 @@ def pick_scored_participants(
     selected: List[Team] = []
 
     while remaining and len(selected) < count:
-        legal_pool = [team for team in remaining if _within_club_cap(planner, selected, age_group, team)]
-        pool = legal_pool or remaining
+        hard_legal_pool = [team for team in remaining if _within_hard_club_cap(selected, team)]
+        if not hard_legal_pool:
+            break
+        legal_pool = [team for team in hard_legal_pool if _within_club_cap(planner, selected, age_group, team)]
+        pool = legal_pool or hard_legal_pool
 
         chosen = min(
             pool,

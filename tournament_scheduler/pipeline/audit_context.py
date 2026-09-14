@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from .audit_result import current_export_fingerprint, current_run_id
 from .fingerprints import stable_payload_sha256
 from .state import PipelineState, StageName
@@ -259,6 +260,7 @@ def _summarize_plan_for_audit(
 
     host_missing: list[dict[str, Any]] = []
     club_count_over_two: list[dict[str, Any]] = []
+    club_count_over_hard_max: list[dict[str, Any]] = []
     max_club_count_by_tournament = Counter()
     team_day_counts: Counter[tuple[str, str]] = Counter()
     for tournament in tournaments:
@@ -280,6 +282,13 @@ def _summarize_plan_for_audit(
             offenders = {club: count for club, count in club_counts.items() if count > 2}
             if offenders:
                 club_count_over_two.append({**_tournament_ref(tournament), "club_counts_over_two": offenders})
+            hard_max_offenders = {
+                club: count for club, count in club_counts.items() if count > HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+            }
+            if hard_max_offenders:
+                club_count_over_hard_max.append(
+                    {**_tournament_ref(tournament), "club_counts_over_hard_max": hard_max_offenders}
+                )
 
         date = str(tournament.get("date") or "")
         for team in teams:
@@ -325,6 +334,12 @@ def _summarize_plan_for_audit(
             "tournaments_with_more_than_two_from_same_club": len(club_count_over_two),
             "max_club_count_distribution": dict(sorted(max_club_count_by_tournament.items())),
             "examples": club_count_over_two[:20],
+            # issue #326: teams from one club above HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+            # is an invalid plan, not a quality preference -- any non-empty
+            # list here must drive a FAIL verdict, never REVIEW_REQUIRED.
+            "tournaments_over_hard_max": len(club_count_over_hard_max),
+            "hard_max": HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
+            "hard_max_examples": club_count_over_hard_max[:20],
         },
     }
 
@@ -568,6 +583,7 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
 
     return {
         "audit_prompt_version": AUDIT_PROMPT_VERSION,
+        "hard_max_club_teams_per_tournament": HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
         "runbook_version": _runbook_version(),
         "audit_mission": AUDIT_MISSION,
         "checklist": [dict(item) for item in AUDIT_CHECKLIST],

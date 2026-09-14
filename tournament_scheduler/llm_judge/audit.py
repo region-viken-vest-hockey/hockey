@@ -46,6 +46,14 @@ def build_audit_prompt(context: dict[str, Any]) -> str:
         "passed. The scheduler and its deterministic verifier may share a logic defect, or "
         "may simply be missing a rule. Explain anything that does not make operational sense.",
         "",
+        "Hard policy: a tournament with more than "
+        f"{context.get('hard_max_club_teams_per_tournament', 3)} teams from the same club is "
+        "an invalid plan, not a quality concern. If "
+        "`plan_audit_summary.same_club_per_tournament_summary.tournaments_over_hard_max` is "
+        "greater than zero, or you independently find such a tournament, the overall status "
+        "must be `FAIL` -- never `REVIEW_REQUIRED` or `PASS` -- regardless of any other score "
+        "or `production_ready` label.",
+        "",
         "Audit mission:",
         json.dumps(context.get("audit_mission"), ensure_ascii=False, indent=2),
         "",

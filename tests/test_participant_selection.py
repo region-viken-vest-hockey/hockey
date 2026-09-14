@@ -468,6 +468,22 @@ class TestPickScoredParticipantsClubCapTiering:
         assert set(club_counts) == {"Jar", "Kongsberg", "Skien", "Holmen", "Ringerike"}
         assert planner._club_cap_overrides == 0
 
+    def test_hard_cap_leaves_roster_short_instead_of_selecting_a_4th_same_club_team(self):
+        """issue #326: when every candidate is from one club, the preferred
+        (<=2) tier is empty, so `pick_scored_participants` falls back to the
+        cap-exceeding pool -- but that fallback must itself stop at 3 teams,
+        never silently pick a 4th, even though the caller asked for a
+        6-team roster and 6 Jar teams are available.
+        """
+        jar_teams = [Team(club="Jar", label=f"Jar U11-{i}", age_group="U11") for i in range(1, 7)]
+        target_by_label = {team.label: 1 for team in jar_teams}
+        planner = _FakeClubCapPlanner(jar_teams, target_by_label)
+
+        selected = pick_scored_participants(planner, jar_teams, count=6, age_group="U11")
+
+        assert len(selected) == 3
+        assert all(team.club == "Jar" for team in selected)
+
     def test_third_team_is_still_allowed_when_no_legal_alternative_remains(self):
         """When every other club's sole team is already excluded (simulated
         here by a roster with no other clubs at all), the flat cap must

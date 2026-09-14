@@ -88,6 +88,34 @@ class TestVerifyCandidateSelfConsistency:
         result = verify_candidate({"tournaments": [t1, t2]})
         assert result["ok"], result["violations"]
 
+    def test_four_teams_from_same_club_is_hard_violation(self):
+        # issue #326: 3 teams from one club is the allowed fallback max; 4+
+        # must always be a hard violation, with or without a `problem`.
+        teams = [
+            _team("Jar", "Jar 1", "U11"),
+            _team("Jar", "Jar 2", "U11"),
+            _team("Jar", "Jar 3", "U11"),
+            _team("Jar", "Jar 4", "U11"),
+            _team("Kongsberg", "Kongsberg 1", "U11"),
+        ]
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "U11", teams)]}
+        result = verify_candidate(candidate)
+        assert not result["ok"]
+        codes = {v["code"] for v in result["violations"]}
+        assert "club_hard_max_exceeded" in codes
+
+    def test_three_teams_from_same_club_is_not_a_hard_violation(self):
+        teams = [
+            _team("Jar", "Jar 1", "U11"),
+            _team("Jar", "Jar 2", "U11"),
+            _team("Jar", "Jar 3", "U11"),
+            _team("Kongsberg", "Kongsberg 1", "U11"),
+        ]
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jarhallen", "U11", teams)]}
+        result = verify_candidate(candidate)
+        codes = {v["code"] for v in result["violations"]}
+        assert "club_hard_max_exceeded" not in codes
+
     def test_duplicate_team_in_same_tournament_flagged(self):
         team = _team("Jar", "Jar 1", "U10")
         candidate = {

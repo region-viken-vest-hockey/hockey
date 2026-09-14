@@ -540,6 +540,34 @@ class TestSearchStateIncrementalMatchesFullRecompute:
             slot_a, _pos_a, slot_b, _pos_b = move
             assert slots[slot_a].age_group == slots[slot_b].age_group
 
+    def test_swap_rejected_when_it_would_create_a_4th_same_club_team(self):
+        """issue #326: a swap that would push a tournament to 4+ teams from
+        one club is illegal outright, regardless of objective weight."""
+        from tournament_scheduler.stage3_optimizer import _build_slots, _swap_is_valid
+
+        jar_heavy = [
+            _team("Jar", "Jar 1", "U11"),
+            _team("Jar", "Jar 2", "U11"),
+            _team("Jar", "Jar 3", "U11"),
+            _team("Kongsberg", "Kongsberg 1", "U11"),
+        ]
+        other = [
+            _team("Jar", "Jar 4", "U11"),
+            _team("Skien", "Skien 1", "U11"),
+        ]
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-10", "Jarhallen", "U11", jar_heavy),
+                _tournament("t2", "2026-01-17", "Skienhallen", "U11", other),
+            ],
+        }
+        slots, _ = _build_slots(candidate, None)
+
+        # Swap in "Jar 4" (slot 1, pos 0) for "Kongsberg 1" (slot 0, pos 3):
+        # slot 0 would end up with 4 Jar teams.
+        assert not _swap_is_valid(slots, 0, 3, 1, 0)
+
     def test_incremental_date_swaps_match_full_objective(self):
         from tournament_scheduler.stage3_optimizer import (
             DEFAULT_WEIGHTS,

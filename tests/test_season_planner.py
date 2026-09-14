@@ -2972,8 +2972,20 @@ class TestProportionalHosting:
         the test expects `club_cap_overrides` to be nonzero here -- that is
         the issue #324 exception path working as designed, not a bug.
 
-        Key acceptance: the per-team game-count spread stays bounded and all
-        teams participate.
+        issue #326: that exception path is itself now bounded by a hard
+        maximum of 3 teams from one club per tournament -- previously it
+        could relax all the way up to filling a whole 6-team tournament
+        with Jar teams to equalize participation within this same 7-week
+        season (perfect 0 spread), which is exactly the same-club
+        clustering issue #326 forbids. With the hard cap in place, this
+        deliberately extreme roster can no longer fully equalize within
+        only 7 tournaments, so the spread bound below is loosened
+        accordingly -- the hard cap invariant (never 4+ from one club) is
+        what this test now primarily guards, not a tight spread bound.
+
+        Key acceptance: no tournament ever exceeds the hard per-club cap,
+        the per-team game-count spread stays bounded, and all teams
+        participate.
         """
         start, end = season_window
         free_dates = all_weekend_dates(start, end)
@@ -3003,6 +3015,14 @@ class TestProportionalHosting:
         # roster), and the exception is measurable via club_cap_overrides.
         assert planner.club_cap_overrides > 0
 
+        # issue #326: the hard maximum is never exceeded, regardless of how
+        # far behind Jar's teams are on participation.
+        for t in plan.tournaments:
+            club_counts = Counter(team.club for team in t.teams)
+            assert all(count <= 3 for count in club_counts.values()), (
+                f"Tournament {t.date} has a club with >3 teams: {club_counts}"
+            )
+
         # (1) All tournaments have minimum team count
         assert all(len(t.teams) >= MIN_TEAMS_PER_TOURNAMENT for t in plan.tournaments)
 
@@ -3028,18 +3048,21 @@ class TestProportionalHosting:
         assert u10_counts, "No U10 game counts found"
         absolute_spread = max(u10_counts) - min(u10_counts)
 
-        # Normalized spread should be at most 5 (one tournament's games)
-        assert absolute_spread <= 5, (
-            f"Game-count spread {absolute_spread} exceeds 1-tournament gap"
+        # issue #326: with the per-club cap now hard-bounded at 3, this
+        # deliberately extreme roster can no longer equalize participation
+        # within only 7 tournaments the way an unbounded relaxation could --
+        # bounded to roughly 2 tournaments' worth of games rather than 1.
+        assert absolute_spread <= 10, (
+            f"Game-count spread {absolute_spread} exceeds the expected bound"
         )
 
-        # (4) Normalized spread metric passes a lenient gate
+        # (4) The fairness gate reports the spread (as a warning, not a hard
+        # failure) rather than silently hiding it.
         gate = planner._build_fairness_gate(plan)
         metrics = gate.get("metrics", []) if isinstance(gate, dict) else []
         spread_metric = next(m for m in metrics if m.get("key") == "game_count_spread")
-        assert spread_metric["value"] < 0.5, (
-            f"Normalized spread {spread_metric['value']} >= 0.5 "
-            f"(absolute spread: {absolute_spread})"
+        assert spread_metric["status"] in ("pass", "warn"), (
+            f"Unexpected fairness-gate status for game_count_spread: {spread_metric}"
         )
 
 

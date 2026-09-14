@@ -13,6 +13,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from .planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+
 
 def build_club_excess_terms(model: Any, x: dict, slots, teams_by_age_group: dict) -> list:
     """Return one `excess_over_2` IntVar per (slot, club) with 3+ eligible teams.
@@ -21,6 +23,12 @@ def build_club_excess_terms(model: Any, x: dict, slots, teams_by_age_group: dict
     that team in that slot; `identity[0]` is the team's club. Each returned
     term is constrained to `>= club_count - 2`, so it is 0 unless the model
     actually assigns a 3rd-or-later team from that club to that slot.
+
+    issue #326: alongside that soft `excess_over_2` objective term, every
+    (slot, club) pair with 3+ eligible teams also gets a real hard
+    constraint capping `club_count` at `HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT`
+    -- the solver must never return a candidate with 4+ teams from one club
+    in one tournament, no matter how cheap the objective makes it.
     """
     club_excess_terms: list = []
     club_excess_serial = 0
@@ -35,6 +43,7 @@ def build_club_excess_terms(model: Any, x: dict, slots, teams_by_age_group: dict
             club_excess_serial += 1
             club_count = model.NewIntVar(0, len(club_vars), f"club_count_{club_excess_serial}")
             model.Add(club_count == sum(club_vars))
+            model.Add(club_count <= HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT)
             excess_over_2 = model.NewIntVar(0, len(club_vars), f"club_excess_over_2_{club_excess_serial}")
             model.Add(excess_over_2 >= club_count - 2)
             club_excess_terms.append(excess_over_2)
