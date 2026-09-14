@@ -344,7 +344,15 @@ class SeasonPlan:
     # issue #323 P0: tournaments whose selected participants had no
     # candidate host club with a free slot -- never auto-placed, surfaced
     # here for manual placement instead. Entry: {"age_group", "date",
-    # "period", "candidate_hosts", "participant_clubs", "reason"}.
+    # "period", "candidate_hosts", "participant_clubs", "reason",
+    # "category": "manual_tournament_placement"}. issue #330: also carries
+    # the exact roster the deduplicated "participant_clubs" list loses --
+    # "participant_teams": [{"club", "label", "age_group"}, ...],
+    # "participant_team_count": int, and "search_attempted": bool
+    # (False when no candidate host club existed at all; True when a
+    # genuine per-candidate-host slot search ran and found nothing --
+    # whether that search was exhaustive is #329's territory, not
+    # recorded here).
     unresolved_tournament_placements: List[Dict[str, object]] = field(default_factory=list)
     # issue #327: per (age_group, period-or-None, club) proportional
     # participation-fairness evidence -- registered demand share vs realized

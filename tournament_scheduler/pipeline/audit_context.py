@@ -353,6 +353,13 @@ def _summarize_plan_for_audit(
         # (repaired or rejected-with-reason) before this plan's remaining
         # `unresolved_hosting_obligations` were accepted.
         "cross_age_hosting_repairs": list(plan_dict.get("cross_age_hosting_repairs") or []),
+        # issue #330: concrete tournament-placement search failures (a real
+        # roster/date that could not get a participant-host arena/time) --
+        # distinct from `unresolved_hosting_obligations`'
+        # (a club x age-group hosting deficit with no tournament object
+        # behind it yet). Passed through unchanged so the judge can tell the
+        # two kinds of "unresolved" apart instead of conflating them.
+        "unresolved_tournament_placements": list(plan_dict.get("unresolved_tournament_placements") or []),
         "same_club_per_tournament_summary": {
             "tournaments_with_more_than_two_from_same_club": len(club_count_over_two),
             "max_club_count_distribution": dict(sorted(max_club_count_by_tournament.items())),
@@ -506,6 +513,7 @@ def _build_checklist_evidence_guide(
                 "deterministic_verify_result.unresolved_hosting_obligations",
                 "publication_readiness.reasons.unresolved_hosting",
                 "plan_audit_summary.cross_age_hosting_repairs",
+                "plan_audit_summary.unresolved_tournament_placements",
             ],
             "summary": {
                 "unresolved_hosting": len(deterministic_verify_result.get("unresolved_hosting_obligations") or []),
@@ -519,6 +527,15 @@ def _build_checklist_evidence_guide(
                     if item.get("candidate_reallocation_slots")
                 ],
                 "cross_age_hosting_repairs": plan_audit_summary.get("cross_age_hosting_repairs"),
+                # issue #330: a club x age-group hosting deficit
+                # (`unresolved_hosting`, above) is not the same defect as a
+                # concrete roster/date that failed to find a participant-host
+                # arena/time -- surface both counts side by side so the
+                # judge does not conflate them.
+                "unresolved_tournament_placement_count": len(
+                    plan_audit_summary.get("unresolved_tournament_placements") or []
+                ),
+                "unresolved_tournament_placements": plan_audit_summary.get("unresolved_tournament_placements"),
             },
         },
         {

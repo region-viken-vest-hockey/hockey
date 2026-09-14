@@ -441,6 +441,58 @@ class TestRunStage4:
         manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
         assert "ingen vertsklubb blant deltakerne" in manual_html.lower()
         assert "U10" in manual_html
+        # issue #330: an older/hand-built record without `participant_teams`
+        # must render an explicit "unknown" marker instead of guessing a
+        # team count from the deduplicated club list, or crashing.
+        assert "Participant clubs:" in manual_html
+        assert "Team count: ukjent" in manual_html
+
+    def test_export_unresolved_tournament_placement_shows_exact_roster(self, tmp_path):
+        """issue #330: a deduplicated club list (e.g. "Frisk Asker, Jar")
+        must never stand in for the actual team roster -- the exact team
+        labels and count must be recoverable from manual_schedule.html."""
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
+        plan_checkpoint = _make_plan_dict()
+        plan_checkpoint["plan"]["unresolved_tournament_placements"] = [
+            {
+                "age_group": "U10",
+                "date": "2025-10-05",
+                "period": "before_christmas",
+                "candidate_hosts": ["Jar", "Kongsberg"],
+                "participant_clubs": ["Frisk Asker", "Jar"],
+                "participant_teams": [
+                    {"club": "Frisk Asker", "label": "Frisk Asker 1", "age_group": "U10"},
+                    {"club": "Frisk Asker", "label": "Frisk Asker 2", "age_group": "U10"},
+                    {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
+                ],
+                "participant_team_count": 3,
+                "category": "manual_tournament_placement",
+                "search_attempted": True,
+                "reason": "no_participant_host_slot",
+            }
+        ]
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        files = result.get("output_files", {})
+        manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
+        assert "Participant clubs: Frisk Asker, Jar" in manual_html
+        assert "Team count: 3" in manual_html
+        assert "Frisk Asker 1" in manual_html
+        assert "Frisk Asker 2" in manual_html
+        assert "Jar 1" in manual_html
 
     @pytest.mark.parametrize("category", ["participation_under_target", "participation_over_target"])
     def test_participation_deviations_render_in_their_own_manual_schedule_section(self, tmp_path, category):

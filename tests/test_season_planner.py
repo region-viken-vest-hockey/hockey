@@ -714,6 +714,16 @@ class TestSeasonPlanner:
         assert unresolved[0]["candidate_hosts"] == ["Jar"]
         placed_age_groups = {t.age_group for t in same_day}
         assert unresolved[0]["age_group"] not in placed_age_groups
+        # issue #330: the exact roster (not just a deduplicated club set)
+        # and search provenance must survive on the record.
+        assert unresolved[0]["category"] == "manual_tournament_placement"
+        assert unresolved[0]["search_attempted"] is True
+        assert unresolved[0]["participant_team_count"] == len(unresolved[0]["participant_teams"])
+        assert {t["label"] for t in unresolved[0]["participant_teams"]} <= {
+            "Jar U7-1", "Jar U7-2", "Jar U7-3",
+            "Jar U8-1", "Jar U8-2", "Jar U8-3",
+            "Jar U9-1", "Jar U9-2", "Jar U9-3",
+        }
 
     def test_each_tournament_is_single_age_group_with_round_robin_games(self, planner_and_plan):
         _, plan, *_ = planner_and_plan

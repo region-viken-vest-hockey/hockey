@@ -27,10 +27,23 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
         date_value = str(item.get("date", "") or "")
         candidate_hosts = item.get("candidate_hosts") or []
         participant_clubs = item.get("participant_clubs") or []
+        participant_teams = item.get("participant_teams") or []
+        # issue #330: prefer the exact roster over the deduplicated club set
+        # -- "Participants: Frisk Asker, Jar" reads as a two-team tournament
+        # when it may have been several Frisk/Jar teams. Older/hand-built
+        # checkpoint records without `participant_teams` fall back to an
+        # explicit "unknown" marker rather than guessing a team count from
+        # the club list.
+        if participant_teams:
+            team_count = item.get("participant_team_count", len(participant_teams))
+            team_labels = ", ".join(str(t.get("label") or t.get("club") or "?") for t in participant_teams)
+            roster_clause = f"Team count: {team_count}. Teams: {team_labels}. "
+        else:
+            roster_clause = "Team count: ukjent (eldre eksportdata uten lagliste). "
         entries.append(
             {
                 "type": "MANUAL PLACEMENT REQUIRED — ingen vertsklubb blant deltakerne",
-                "category": "manual_tournament_placement",
+                "category": str(item.get("category") or "manual_tournament_placement"),
                 "date": date_value,
                 "arena": "",
                 "host_club": "",
@@ -43,7 +56,8 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
                 "message": (
                     "MANUAL PLACEMENT REQUIRED. "
                     f"Age group: {age_group}. Date: {date_value or 'ukjent'}. "
-                    f"Participants: {', '.join(str(c) for c in participant_clubs) or 'ukjent'}. "
+                    f"Participant clubs: {', '.join(str(c) for c in participant_clubs) or 'ukjent'}. "
+                    f"{roster_clause}"
                     f"Candidate hosts tried: {', '.join(str(c) for c in candidate_hosts) or 'ingen'}. "
                     "Reason: none of the selected participants' clubs had a legal, free arena/time slot. "
                     "Action: RVV must manually assign a host/arena/time for this age group and date."

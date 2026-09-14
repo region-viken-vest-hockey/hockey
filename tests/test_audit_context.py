@@ -188,6 +188,56 @@ def test_context_includes_selected_plan_cross_checks(tmp_path):
     )
 
 
+def test_unresolved_tournament_placements_reach_the_audit_context(tmp_path):
+    """issue #330: a concrete tournament-placement search failure (a real
+    roster/date that could not get a participant-host arena/time) must
+    reach the audit evidence -- distinct from a hosting-obligation
+    deficit -- with the exact roster preserved, not just a deduplicated
+    club set."""
+    PipelineState(tmp_path).write_stage(
+        StageName.CONFIG,
+        {"round_length_minutes": {"U10": 15}},
+        status=StageStatus.DONE,
+    )
+    PipelineState(tmp_path).write_stage(
+        StageName.PLANNING,
+        {
+            "plan": {
+                "tournaments": [],
+                "unresolved_tournament_placements": [
+                    {
+                        "age_group": "U10",
+                        "date": "2027-03-14",
+                        "period": "before_christmas",
+                        "candidate_hosts": ["Frisk Asker", "Jar"],
+                        "participant_clubs": ["Frisk Asker", "Jar"],
+                        "participant_teams": [
+                            {"club": "Frisk Asker", "label": "Frisk Asker 1", "age_group": "U10"},
+                            {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
+                        ],
+                        "participant_team_count": 2,
+                        "category": "manual_tournament_placement",
+                        "search_attempted": True,
+                        "reason": "no_participant_host_slot",
+                    }
+                ],
+            }
+        },
+        status=StageStatus.DONE,
+    )
+    _write_export(tmp_path, fingerprint="fp-1")
+
+    context = build_audit_context(work_dir=tmp_path)
+    summary = context["plan_audit_summary"]
+
+    assert summary["unresolved_tournament_placements"][0]["participant_team_count"] == 2
+    assert summary["unresolved_tournament_placements"][0]["participant_teams"][0]["label"] == "Frisk Asker 1"
+
+    item_2 = next(item for item in context["checklist_evidence_guide"] if item["item_id"] == 2)
+    assert "plan_audit_summary.unresolved_tournament_placements" in item_2["primary_evidence"]
+    assert item_2["summary"]["unresolved_tournament_placement_count"] == 1
+
+
 def test_host_participation_cross_check_uses_shared_registration_constituents(tmp_path):
     PipelineState(tmp_path).write_stage(
         StageName.PLANNING,

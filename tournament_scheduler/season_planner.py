@@ -768,6 +768,13 @@ class SeasonPlanner:
                         "period": period,
                         "candidate_hosts": [],
                         "participant_clubs": sorted({t.club for t in participants}),
+                        "participant_teams": [
+                            {"club": t.club, "label": t.label, "age_group": t.age_group}
+                            for t in participants
+                        ],
+                        "participant_team_count": len(participants),
+                        "category": "manual_tournament_placement",
+                        "search_attempted": False,
                         "reason": "no_participant_host_slot",
                     }
                 )
@@ -818,6 +825,13 @@ class SeasonPlanner:
                         "period": period,
                         "candidate_hosts": list(candidate_hosts),
                         "participant_clubs": sorted({t.club for t in participants}),
+                        "participant_teams": [
+                            {"club": t.club, "label": t.label, "age_group": t.age_group}
+                            for t in participants
+                        ],
+                        "participant_team_count": len(participants),
+                        "category": "manual_tournament_placement",
+                        "search_attempted": True,
                         "reason": "no_participant_host_slot",
                     }
                 )
