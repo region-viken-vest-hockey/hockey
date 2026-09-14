@@ -170,12 +170,14 @@ than defining their own criteria; `.claude/commands/rvv-miniputt/*` adapters mus
 redefine or duplicate it.
 
 Deterministic verification can only catch defects already encoded as rules. This audit's
-purpose is to catch the ones that aren't: assume the scheduler and its deterministic
-verifier may share a logic defect, or may simply be missing a rule. Do not conclude the
-schedule is correct merely because deterministic verification passed. Reconstruct
-important facts from the export, inspect patterns across the whole season, look for
-counterexamples and suspicious outliers, and explain anything that does not make
-operational sense.
+purpose is to catch the ones that aren't: simulate a careful human review of the exported
+season plan, assume the scheduler and its deterministic verifier may share a logic defect,
+or may simply be missing a rule, and look for inconsistent output, suspicious operational
+patterns, likely planner/export bugs, and concrete candidates for new planner rules. Do not
+conclude the schedule is correct merely because deterministic verification passed.
+Reconstruct important facts from the export, cross-check outputs against each other,
+inspect patterns across the whole season, look for counterexamples and suspicious
+outliers, and explain anything that does not make operational sense.
 
 Operator checklist (answer every item; item 9 is open-ended and the most important):
 

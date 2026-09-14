@@ -22,6 +22,7 @@ def _context() -> dict:
         "run_id": "run-1",
         "export_fingerprint": "fp-1",
         "source_fingerprints": {},
+        "audit_mission": {"purpose": "find missing rules and inconsistent output"},
         "export_dir": "/tmp/export",
         "output_files": {"html": "season_plan.html"},
         "deterministic_verify_result": {"ok": True, "violations": []},
@@ -72,6 +73,8 @@ def test_prompt_includes_fingerprints_and_evidence():
     prompt = build_audit_prompt(_context())
     assert "fp-1" in prompt
     assert "run-1" in prompt
+    assert "Simulate a careful human reviewer" in prompt
+    assert "missing rules" in prompt
 
 
 class TestRunHeadlessAudit:

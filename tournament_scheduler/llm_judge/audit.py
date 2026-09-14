@@ -36,11 +36,18 @@ def build_audit_prompt(context: dict[str, Any]) -> str:
         "You are performing an independent, adversarial semantic safety-net audit of a "
         "youth hockey tournament season-plan export, immediately before publication.",
         "",
+        "Your job is not to rubber-stamp the deterministic verifier. Simulate a careful "
+        "human reviewer: reconstruct important facts from the evidence below, cross-check "
+        "outputs against each other, look for contradictions, counterexamples and suspicious "
+        "outliers across the whole season, and report possible missing planner rules with "
+        "concrete examples.",
+        "",
         "Do not assume the schedule is correct merely because deterministic verification "
         "passed. The scheduler and its deterministic verifier may share a logic defect, or "
-        "may simply be missing a rule. Reconstruct important facts from the evidence below, "
-        "look for counterexamples and suspicious outliers across the whole season, and "
-        "explain anything that does not make operational sense.",
+        "may simply be missing a rule. Explain anything that does not make operational sense.",
+        "",
+        "Audit mission:",
+        json.dumps(context.get("audit_mission"), ensure_ascii=False, indent=2),
         "",
         f"Run id: {context.get('run_id')}",
         f"Export fingerprint: {context.get('export_fingerprint')}",
@@ -53,11 +60,24 @@ def build_audit_prompt(context: dict[str, Any]) -> str:
         "Publication readiness (already computed):",
         json.dumps(context.get("publication_readiness"), ensure_ascii=False, indent=2),
         "",
+        "Checklist evidence guide. Use this to avoid overlooking persisted evidence, but do "
+        "not treat the summaries as proof that the schedule is correct. If a referenced summary "
+        "contains a count, contradiction, outlier or examples, reason from it; if evidence is "
+        "missing where a human reviewer would need it, report that as an audit finding:",
+        json.dumps(context.get("checklist_evidence_guide"), ensure_ascii=False, indent=2),
+        "",
         "Persisted source/calendar evidence (do not perform fresh live scraping):",
         json.dumps(context.get("calendar_evidence_summary"), ensure_ascii=False, indent=2),
         "",
+        "Selected-plan audit summary (use this for tournament duration, host participation, "
+        "per-team daily participation and same-club participant-count cross-checks):",
+        json.dumps(context.get("plan_audit_summary"), ensure_ascii=False, indent=2),
+        "",
         "Export output files (cross-check export-format consistency, checklist item 8):",
         json.dumps(context.get("output_files"), ensure_ascii=False, indent=2),
+        "",
+        "Export consistency summary:",
+        json.dumps(context.get("export_consistency_summary"), ensure_ascii=False, indent=2),
         "",
         "Operator checklist — answer every item; item 9 is open-ended and the most important:",
         *checklist_lines,

@@ -59,6 +59,108 @@ def test_context_includes_evidence_inventory(tmp_path):
     assert context["publication_readiness"] is not None
     assert context["evidence_bundle"] == {"source_summary": {"sources_scanned": 3, "blocked_sources": []}}
     assert context["calendar_evidence_summary"] == {"sources_scanned": 3, "blocked_sources": []}
+    assert "plan_audit_summary" in context
+    assert "export_consistency_summary" in context
+    assert "missing rules" in context["audit_mission"]["purpose"]
+    assert [item["item_id"] for item in context["checklist_evidence_guide"]] == list(range(1, 10))
+
+
+def test_context_falls_back_to_stage2_calendar_summary_when_bundle_missing(tmp_path):
+    export_dir = tmp_path / "export"
+    export_dir.mkdir()
+    PipelineState(tmp_path).write_stage(
+        StageName.SCRAPING,
+        {
+            "sources": [
+                {"name": "Jar", "type": "ical", "event_count": 12, "from_cache": True},
+                {"name": "Holmen", "type": "html", "events": [{"title": "A"}], "blocked": False},
+            ],
+            "events_by_club": {"Jar": [{"title": "A"}], "Holmen": []},
+            "club_calendar_status": {"Jar": "ok", "Holmen": "sparse"},
+            "blocked": [],
+            "empty_sources": ["Holmen"],
+            "cached": ["Jar"],
+            "start_date": "2026-10-01",
+            "end_date": "2027-03-31",
+        },
+        status=StageStatus.DONE,
+    )
+    PipelineState(tmp_path).write_stage(
+        StageName.EXPORT,
+        {
+            "export_dir": str(export_dir),
+            "output_files": {},
+            "verify_result": {"ok": True, "violations": []},
+            "export_fingerprint": "fp-1",
+        },
+        status=StageStatus.DONE,
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    assert context["evidence_bundle"] is None
+    assert context["calendar_evidence_summary"]["sources_scanned"] == 2
+    assert context["calendar_evidence_summary"]["event_counts_by_club"] == {"Jar": 1, "Holmen": 0}
+    assert context["calendar_evidence_summary"]["per_source"][0]["name"] == "Jar"
+
+
+def test_context_includes_selected_plan_cross_checks(tmp_path):
+    PipelineState(tmp_path).write_stage(
+        StageName.CONFIG,
+        {"round_length_minutes": {"U10": 15}},
+        status=StageStatus.DONE,
+    )
+    PipelineState(tmp_path).write_stage(
+        StageName.PLANNING,
+        {
+            "plan": {
+                "team_game_counts": {"A": 1, "B": 1, "C": 1},
+                "tournaments": [
+                    {
+                        "id": "t1",
+                        "date": "2026-10-10",
+                        "age_group": "U10",
+                        "arena": "Arena",
+                        "host_club": "Jar",
+                        "start_time": "10:00",
+                        "teams": [
+                            {"label": "A", "club": "Jar", "age_group": "U10"},
+                            {"label": "B", "club": "Jar", "age_group": "U10"},
+                            {"label": "C", "club": "Jar", "age_group": "U10"},
+                        ],
+                        "games": [
+                            {"home": "A", "away": "B", "round_number": 1},
+                            {"home": "A", "away": "C", "round_number": 2},
+                        ],
+                    },
+                    {
+                        "id": "t2",
+                        "date": "2026-10-10",
+                        "age_group": "U10",
+                        "arena": "Arena 2",
+                        "host_club": "Holmen",
+                        "teams": [{"label": "A", "club": "Jar", "age_group": "U10"}],
+                        "games": [],
+                    },
+                ],
+            }
+        },
+        status=StageStatus.DONE,
+    )
+    _write_export(tmp_path, fingerprint="fp-1")
+
+    context = build_audit_context(work_dir=tmp_path)
+    summary = context["plan_audit_summary"]
+
+    assert summary["tournament_count"] == 2
+    assert summary["game_count"] == 2
+    assert summary["csv_pause_row_count"] == 2
+    assert summary["expected_csv_game_rows"] == 4
+    assert summary["duration_summary"]["max_minutes"] == 40
+    assert summary["duration_summary"]["missing_duration_count"] == 1
+    assert summary["host_participation_summary"]["tournaments_where_host_club_not_in_participants"] == 1
+    assert summary["team_daily_participation_summary"]["duplicate_team_day_count"] == 1
+    assert summary["same_club_per_tournament_summary"]["tournaments_with_more_than_two_from_same_club"] == 1
 
 
 def test_context_records_prompt_and_runbook_version(tmp_path):
