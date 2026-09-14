@@ -725,6 +725,134 @@ class TestSeasonPlanner:
             "Jar U9-1", "Jar U9-2", "Jar U9-3",
         }
 
+    def test_alternate_roster_retry_rescues_unmet_hosting_deficit_club(self, season_window):
+        """issue #329 P0: when the participant-derived candidate hosts have
+        no free slot, but a club with an unmet hosting obligation for this
+        age group has an eligible team that simply wasn't in the original
+        roster, the planner must retry with that club given hosting
+        priority before giving up -- mirrors the Kongsberg U10 scenario in
+        the steering issue (a club that participates but is starved of
+        hosting because its team never wins the default selection)."""
+        start, end = season_window
+        free_date = start.date()
+        jar1 = Team(club="Jar", label="Jar U10-1", age_group="U10", target_tournament_count=1)
+        jar2 = Team(club="Jar", label="Jar U10-2", age_group="U10", target_tournament_count=1)
+        holmen1 = Team(club="Holmen", label="Holmen U10-1", age_group="U10", target_tournament_count=1)
+        kongsberg1 = Team(club="Kongsberg", label="Kongsberg U10-1", age_group="U10", target_tournament_count=1)
+        roster = Roster(teams=[jar1, jar2, holmen1, kongsberg1])
+        busy = CalendarEvent(
+            date=free_date.strftime("%d.%m.%Y"),
+            name="busy",
+            datetime=datetime.combine(free_date, datetime.min.time()),
+            duration_hours=24.0,
+        )
+        planner = SeasonPlanner(
+            scheduler=OfflineScheduler([free_date]),
+            roster=roster,
+            club_arenas={"Jar": "Jarhallen", "Holmen": "Holmenhallen", "Kongsberg": "Kongsberghallen"},
+            parallel_games_for_age_group={"U10": 2},
+            round_length_for_age_group={"U10": 60},
+            # Jar and Holmen (the clubs the default selection would pick)
+            # are fully booked all day; only Kongsberg's arena is free.
+            events_by_club={"Jar": [busy], "Holmen": [busy], "Kongsberg": []},
+        )
+        # Force a genuine unmet hosting obligation for Kongsberg regardless
+        # of the real coverage-floor heuristic (which needs at least as many
+        # scheduled tournaments as clubs to guarantee every club a floor
+        # target, not met by this minimal single-tournament fixture).
+        with patch(
+            "tournament_scheduler.season_planner._hosting_targets_for_age_group",
+            return_value={"Jar": 0, "Holmen": 0, "Kongsberg": 1},
+        ):
+            # Force the *default* participant selection (the loop's own
+            # first call, identified by its single-club `hosting_priority_clubs`)
+            # to exclude Kongsberg, exactly as the real scorer already can --
+            # the point of this test is the retry behavior once that
+            # happens, not reproducing the exact scoring tie-break.
+            forced = {"done": False}
+            real_select = participant_selection.select_participants
+
+            def selective(age_group, period=None, *, exclude_team_keys=None,
+                          planned_roster_size=None, hosting_priority_clubs=None):
+                if not forced["done"] and hosting_priority_clubs is not None and len(hosting_priority_clubs) == 1:
+                    forced["done"] = True
+                    return [jar1, jar2, holmen1]
+                return real_select(
+                    planner, age_group, period,
+                    exclude_team_keys=exclude_team_keys,
+                    planned_roster_size=planned_roster_size,
+                    hosting_priority_clubs=hosting_priority_clubs,
+                )
+
+            planner._select_participants = selective
+            plan = planner.build_plan(start, end)
+
+        assert planner.unresolved_tournament_placements == []
+        assert len(plan.tournaments) == 1
+        tournament = plan.tournaments[0]
+        assert tournament.host_club == "Kongsberg"
+        assert {team.label for team in tournament.teams} == {
+            "Jar U10-1", "Jar U10-2", "Holmen U10-1", "Kongsberg U10-1",
+        }
+
+    def test_alternate_roster_retry_records_attempt_when_still_unresolved(self, season_window):
+        """issue #329/#330: when the hosting-deficit-biased retry also fails
+        to find a legal slot, the tournament still goes to manual placement,
+        but the evidence must record that an alternate composition was
+        actually tried (`alternate_roster_attempted`) rather than only
+        recording the single frozen roster that failed."""
+        start, end = season_window
+        free_date = start.date()
+        jar1 = Team(club="Jar", label="Jar U10-1", age_group="U10", target_tournament_count=1)
+        jar2 = Team(club="Jar", label="Jar U10-2", age_group="U10", target_tournament_count=1)
+        holmen1 = Team(club="Holmen", label="Holmen U10-1", age_group="U10", target_tournament_count=1)
+        kongsberg1 = Team(club="Kongsberg", label="Kongsberg U10-1", age_group="U10", target_tournament_count=1)
+        roster = Roster(teams=[jar1, jar2, holmen1, kongsberg1])
+        busy = CalendarEvent(
+            date=free_date.strftime("%d.%m.%Y"),
+            name="busy",
+            datetime=datetime.combine(free_date, datetime.min.time()),
+            duration_hours=24.0,
+        )
+        planner = SeasonPlanner(
+            scheduler=OfflineScheduler([free_date]),
+            roster=roster,
+            club_arenas={"Jar": "Jarhallen", "Holmen": "Holmenhallen", "Kongsberg": "Kongsberghallen"},
+            parallel_games_for_age_group={"U10": 2},
+            round_length_for_age_group={"U10": 60},
+            # Every candidate club, including the retry's Kongsberg, is
+            # booked all day -- no legal composition can be placed.
+            events_by_club={"Jar": [busy], "Holmen": [busy], "Kongsberg": [busy]},
+        )
+        with patch(
+            "tournament_scheduler.season_planner._hosting_targets_for_age_group",
+            return_value={"Jar": 0, "Holmen": 0, "Kongsberg": 1},
+        ):
+            forced = {"done": False}
+            real_select = participant_selection.select_participants
+
+            def selective(age_group, period=None, *, exclude_team_keys=None,
+                          planned_roster_size=None, hosting_priority_clubs=None):
+                if not forced["done"] and hosting_priority_clubs is not None and len(hosting_priority_clubs) == 1:
+                    forced["done"] = True
+                    return [jar1, jar2, holmen1]
+                return real_select(
+                    planner, age_group, period,
+                    exclude_team_keys=exclude_team_keys,
+                    planned_roster_size=planned_roster_size,
+                    hosting_priority_clubs=hosting_priority_clubs,
+                )
+
+            planner._select_participants = selective
+            plan = planner.build_plan(start, end)
+
+        assert plan.tournaments == []
+        unresolved = planner.unresolved_tournament_placements
+        assert len(unresolved) == 1
+        assert unresolved[0]["search_attempted"] is True
+        assert unresolved[0]["alternate_roster_attempted"] is True
+        assert unresolved[0]["candidate_hosts"] == ["Jar", "Holmen"]
+
     def test_each_tournament_is_single_age_group_with_round_robin_games(self, planner_and_plan):
         _, plan, *_ = planner_and_plan
         for tournament in plan.tournaments:

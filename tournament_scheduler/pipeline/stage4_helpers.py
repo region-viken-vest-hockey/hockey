@@ -40,6 +40,17 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
             roster_clause = f"Team count: {team_count}. Teams: {team_labels}. "
         else:
             roster_clause = "Team count: ukjent (eldre eksportdata uten lagliste). "
+        # issue #329: whether a hosting-deficit-biased alternate roster was
+        # tried before giving up -- lets the operator/auditor tell "no
+        # alternative composition existed at all" apart from "an alternative
+        # was tried and still failed".
+        if "alternate_roster_attempted" in item:
+            retry_clause = (
+                "Alternativ lagsammensetning forsøkt: "
+                f"{'ja' if item.get('alternate_roster_attempted') else 'nei'}. "
+            )
+        else:
+            retry_clause = ""
         entries.append(
             {
                 "type": "MANUAL PLACEMENT REQUIRED — ingen vertsklubb blant deltakerne",
@@ -58,6 +69,7 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
                     f"Age group: {age_group}. Date: {date_value or 'ukjent'}. "
                     f"Participant clubs: {', '.join(str(c) for c in participant_clubs) or 'ukjent'}. "
                     f"{roster_clause}"
+                    f"{retry_clause}"
                     f"Candidate hosts tried: {', '.join(str(c) for c in candidate_hosts) or 'ingen'}. "
                     "Reason: none of the selected participants' clubs had a legal, free arena/time slot. "
                     "Action: RVV must manually assign a host/arena/time for this age group and date."

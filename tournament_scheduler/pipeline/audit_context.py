@@ -535,6 +535,18 @@ def _build_checklist_evidence_guide(
                 "unresolved_tournament_placement_count": len(
                     plan_audit_summary.get("unresolved_tournament_placements") or []
                 ),
+                # issue #329: a placement whose `search_attempted` is True but
+                # `alternate_roster_attempted` is False/absent means no
+                # hosting-deficit club existed to retry with at all -- worth
+                # noting separately from one where a retry ran and still
+                # failed, since the former is closer to "genuinely no legal
+                # alternative" and the latter still deserves scrutiny of
+                # whether the bounded retry itself was too narrow.
+                "unresolved_tournament_placements_without_alternate_roster_retry": [
+                    {"age_group": item.get("age_group"), "date": item.get("date")}
+                    for item in (plan_audit_summary.get("unresolved_tournament_placements") or [])
+                    if item.get("search_attempted") and not item.get("alternate_roster_attempted")
+                ],
                 "unresolved_tournament_placements": plan_audit_summary.get("unresolved_tournament_placements"),
             },
         },

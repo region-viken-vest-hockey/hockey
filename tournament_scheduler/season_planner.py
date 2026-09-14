@@ -716,9 +716,13 @@ class SeasonPlanner:
                 planned_roster_size=planned_roster_size,
                 hosting_priority_clubs={original_host_club},
             )
-            teams_used_today_by_age_group.setdefault((tournament_date, age_group), set()).update(
-                self._team_key(team) for team in participants
-            )
+            # issue #329: `teams_used_today_by_age_group`/`_record_grouping`
+            # bookkeeping is deferred until the participant roster is truly
+            # final (below) -- an alternate-roster retry may still replace
+            # `participants` after a failed host/slot search, and committing
+            # this cumulative fairness/invite-count state against a roster
+            # that ends up discarded would corrupt every later selection in
+            # this run.
 
             if len(participants) < MIN_TEAMS_PER_TOURNAMENT:
                 # issue #316: a parallel same-age-group/same-date slot that
@@ -742,7 +746,6 @@ class SeasonPlanner:
                     )
                 continue
 
-            self._record_grouping(participants, period)
             parallel_games = self._parallel_games_for(age_group)
             provisional_games = self.generate_round_robin_games(participants, parallel_games)
 
@@ -811,13 +814,78 @@ class SeasonPlanner:
                 reserved_events_by_club=reserved_events_by_club,
             )
 
+            alternate_roster_attempted = False
+            if slot is None and slot_search_active:
+                # issue #329 P0: before declaring manual placement, retry once
+                # with a participant roster that gives soft hosting priority
+                # to clubs which still have an unmet hosting obligation for
+                # this age group and were not already among the candidate
+                # hosts just tried. A club can have a registered, eligible
+                # team (e.g. Kongsberg U10) that simply never gets selected
+                # into this roster under the default fairness/diversity
+                # scoring, permanently starving its hosting coverage even
+                # though a legal alternative composition exists. This stays
+                # local to this one slot/date -- it does not touch the date
+                # skeleton or any other tournament's placement (that coupled
+                # date/host-swap search is explicitly out of scope here; see
+                # the #329 steering issue).
+                deficit_clubs = {
+                    club
+                    for club, target in host_targets_by_age.get(age_group, {}).items()
+                    if target > host_counts_by_age.get(age_group, {}).get(club, 0)
+                    and club not in candidate_hosts
+                }
+                if deficit_clubs:
+                    alternate_roster_attempted = True
+                    retry_participants = self._select_participants(
+                        age_group,
+                        period,
+                        exclude_team_keys=already_used_today,
+                        planned_roster_size=planned_roster_size,
+                        hosting_priority_clubs={original_host_club} | deficit_clubs,
+                    )
+                    if retry_participants and (
+                        {t.club for t in retry_participants} != {t.club for t in participants}
+                    ):
+                        retry_candidate_hosts = self._participant_derived_host_candidates(
+                            participants=retry_participants,
+                            age_group=age_group,
+                            original_host=original_host_club,
+                            tournament_date=tournament_date,
+                            host_targets_by_age=host_targets_by_age,
+                            host_counts_by_age=host_counts_by_age,
+                        )
+                        if retry_candidate_hosts:
+                            retry_search_host = (
+                                original_host_club
+                                if original_host_constituents & set(retry_candidate_hosts)
+                                else retry_candidate_hosts[0]
+                            )
+                            retry_games = self.generate_round_robin_games(retry_participants, parallel_games)
+                            retry_slot = self._find_slot_for_tournament(
+                                tournament_date,
+                                retry_search_host,
+                                age_group,
+                                retry_games,
+                                candidate_hosts=retry_candidate_hosts,
+                                reserved_events_by_club=reserved_events_by_club,
+                            )
+                            if retry_slot is not None:
+                                participants = retry_participants
+                                provisional_games = retry_games
+                                candidate_hosts = retry_candidate_hosts
+                                search_host = retry_search_host
+                                slot = retry_slot
+
             if slot is not None:
                 final_host_club, start_time, _slot_end = slot
             elif slot_search_active:
                 # A genuine search ran across every participant-derived
-                # candidate host and found no legal, free arena/time slot --
-                # do not invent an unrelated host or mutate participants to
-                # fit one; surface it for manual placement instead.
+                # candidate host (including the #329 alternate-roster retry
+                # above, when applicable) and found no legal, free arena/time
+                # slot -- do not invent an unrelated host or mutate
+                # participants to fit one; surface it for manual placement
+                # instead.
                 self._unresolved_tournament_placements.append(
                     {
                         "age_group": age_group,
@@ -832,6 +900,13 @@ class SeasonPlanner:
                         "participant_team_count": len(participants),
                         "category": "manual_tournament_placement",
                         "search_attempted": True,
+                        # issue #329: True when a hosting-deficit-biased
+                        # alternate roster was tried and still failed to
+                        # yield a legal host/slot (`False` means no such
+                        # deficit club existed to retry with at all) -- lets
+                        # the audit tell "no alternative composition existed"
+                        # apart from "the composition retry itself failed".
+                        "alternate_roster_attempted": alternate_roster_attempted,
                         "reason": "no_participant_host_slot",
                     }
                 )
@@ -842,6 +917,15 @@ class SeasonPlanner:
                 # best participant-derived host with a default start time.
                 final_host_club = search_host
                 start_time = DEFAULT_TOURNAMENT_START_TIME
+
+            # `participants` is now final (the #329 alternate-roster retry
+            # above, if it ran and succeeded, has already replaced it) --
+            # commit the deferred same-day/fairness bookkeeping exactly once,
+            # against the roster that is actually used.
+            teams_used_today_by_age_group.setdefault((tournament_date, age_group), set()).update(
+                self._team_key(team) for team in participants
+            )
+            self._record_grouping(participants, period)
 
             if final_host_club != original_host_club:
                 self._fallback_host_substitutions.append(
