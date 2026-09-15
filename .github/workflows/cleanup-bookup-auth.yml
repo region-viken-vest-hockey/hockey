@@ -37,7 +37,8 @@ jobs:
       - name: Verify focused cleanup
         run: |
           python -m pip install --disable-pip-version-check --upgrade "pip<26"
-          python -m pip install -r requirements.txt
+          python -m pip install --require-hashes -r requirements.lock
+          python -m pip install --no-deps -e .
           python -m compileall -q tournament_scheduler tests
           npm ci --ignore-scripts
           npm run check:pi
