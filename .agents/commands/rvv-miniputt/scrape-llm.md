@@ -4,7 +4,7 @@ Use this only after deterministic Stage 2 scraping identifies a source that need
 
 ## Harness boundary
 
-`sc​​rape-llm` is a **browser-capability workflow**, not a second scheduler CLI implementation.
+`scrape-llm` is a **browser-capability workflow**, not a second scheduler CLI implementation.
 
 - **Pi:** use `/rvv-miniputt scrape-llm` / `rvv_miniputt_scrape_llm`. Pi owns the browser interaction and active-model transport.
 - **Other browser-enabled harnesses:** perform only the browser/navigation work in the harness.
