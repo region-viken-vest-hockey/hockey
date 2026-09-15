@@ -7,10 +7,6 @@ from unittest.mock import MagicMock, patch
 from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
 from tournament_scheduler.pipeline.scraper_brp_exigo import _parse_brp_exigo_day
 from tournament_scheduler.pipeline.scraper_forumbooking import _parse_forumbooking_schedule
-from tournament_scheduler.pipeline.scraper_credentialed import (
-    _manual_bookup_login_enabled,
-    _wait_for_manual_bookup_login,
-)
 from tournament_scheduler.pipeline.stage2_scraping import (
     SOURCE_FIXED_ALLOCATION,
     SOURCE_ICAL,
@@ -41,19 +37,6 @@ def _make_config_with_sources(sources):
         "teams": [{"club": "Kongsberg", "label": "Kongsberg U10", "age_group": "U10"}],
         "sources": sources,
     }
-
-
-class TestManualBookupLogin:
-    def test_manual_bookup_login_env_flag_is_truthy(self, monkeypatch):
-        monkeypatch.setenv("RVV_BOOKUP_MANUAL_LOGIN", "yes")
-        assert _manual_bookup_login_enabled() is True
-
-    def test_manual_bookup_login_requires_interactive_stdin(self, monkeypatch):
-        monkeypatch.setattr("sys.stdin.isatty", lambda: False)
-        ok, message = _wait_for_manual_bookup_login(MagicMock(), "Tønsberg", timeout_seconds=15)
-
-        assert ok is False
-        assert "interaktiv stdin" in message
 
 
 class TestRunStage2:
@@ -1310,7 +1293,7 @@ class TestCredentialedFallbackGate:
         mock_cred.assert_called_once()
 
     def test_credentialed_fallback_proceeds_past_guard_for_registered_source(self, tmp_path, monkeypatch):
-        """When the source has credentials registered AND initial_navigation, _run_credentialed_bookup_or_outlook is called.
+        """When the source has credentials registered AND initial_navigation, _run_credentialed_browser is called.
 
         The existing tests use 'Teamup' which has no credential_env_vars and therefore
         short-circuits at line 40 inside _try_credentialed_scrape.  This test uses a
@@ -1321,18 +1304,18 @@ class TestCredentialedFallbackGate:
         from tournament_scheduler.pipeline.scraper_strategies import CalendarEngine, ScraperStrategy
 
         fake_strategy = ScraperStrategy(
-            engine=CalendarEngine.BOOKUP_SPA,
-            url="https://bookup.example.com",
-            credential_env_vars=["BOOKUP_EMAIL", "BOOKUP_PASSWORD"],
-            initial_navigation=[{"action": "fill", "selector": "#email", "text": "BOOKUP_EMAIL"}],
+            engine=CalendarEngine.OUTLOOK_IFRAME,
+            url="https://private-calendar.example.com",
+            credential_env_vars=["CALENDAR_USER", "CALENDAR_PASSWORD"],
+            initial_navigation=[{"cmd": "type", "selector": "#email", "text": "${CALENDAR_USER}"}],
         )
 
-        monkeypatch.setenv("BOOKUP_EMAIL", "test@example.com")
-        monkeypatch.setenv("BOOKUP_PASSWORD", "secret")
+        monkeypatch.setenv("CALENDAR_USER", "test@example.com")
+        monkeypatch.setenv("CALENDAR_PASSWORD", "secret")
 
         state = PipelineState(tmp_path / "pipeline")
         cfg = _make_config_with_sources([
-            {"name": "Bookup", "type": SOURCE_ICAL, "url": "https://bookup.example.com/ical"},
+            {"name": "Private calendar", "type": SOURCE_ICAL, "url": "https://private-calendar.example.com/ical"},
         ])
 
         with patch(
@@ -1342,7 +1325,7 @@ class TestCredentialedFallbackGate:
             "tournament_scheduler.pipeline.scraper_credentialed.get_strategy",
             return_value=fake_strategy,
         ), patch(
-            "tournament_scheduler.pipeline.scraper_credentialed._run_credentialed_bookup_or_outlook",
+            "tournament_scheduler.pipeline.scraper_credentialed._run_credentialed_browser",
             return_value=([], ""),
         ) as mock_cred_run:
             run(

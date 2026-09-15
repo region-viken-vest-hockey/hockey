@@ -21,9 +21,9 @@ Known/working deterministic sources today include Ringerike/Frisk Asker
 (Forumbooking weekly HTML), Skien (BRP/Exigo daily Next.js payload), and Jutul
 (StyledCalendar widget).
 
-A BookUp source for Tønsberg has a known URL but requires
-BOOKUP_EMAIL/BOOKUP_PASSWORD and may still need manual/MFA recovery before the
-full private booking calendar can be trusted.
+Tønsberg uses BookUp's public JavaScript-rendered availability calendar. Stage 2
+reads it deterministically with Playwright; no account, credential, MFA, or
+session handoff is required.
 
 Sandefjord Penguins is *not* a BookUp/credentialed source for the RVV
 Miniputt pipeline (issue #261): the club has a known, fixed weekly ice-time
@@ -31,9 +31,8 @@ allocation instead of a bookable calendar, modelled deterministically in
 `tournament_scheduler.sandefjord_allocation` and fed into Stage 2 as a
 `"fixed_allocation"` source (`pipeline.fixed_allocation_source`). The entry
 below keeps `source`/`kind=OUTLOOK` only so `is_known` stays true for the
-older, non-pipeline `scheduling_command`/`season_command`/`reschedule_command`
-CLI tools that still build a live `CalendarDataSource` from the registry --
-the Stage 1-4 pipeline never scrapes it.
+legacy registry consumers that still inspect `CalendarDataSource`; the
+Stage 1-4 pipeline uses the fixed-allocation source instead.
 """
 
 import logging

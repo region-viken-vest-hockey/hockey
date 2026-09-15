@@ -26,7 +26,6 @@ empty ``sources`` list to the checkpoint (useful for tests / partial runs).
 
 from __future__ import annotations
 
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -46,10 +45,7 @@ from .scraper_constants import (
 from .scraper_constants import SOURCE_ICAL  # noqa: F401 -- re-exported for tests
 from .scraper_bookup import _run_bookup_scraper
 from .scraper_brp_exigo import _run_brp_exigo_scraper
-from .scraper_credentialed import (
-    _manual_bookup_login_enabled,
-    _try_credentialed_scrape,
-)
+from .scraper_credentialed import _try_credentialed_scrape
 from .fixed_allocation_source import run_fixed_allocation_source
 from .scraper_event_helpers import _events_to_dicts, _group_events_by_club, _group_club_calendar_status
 from .scraper_forumbooking import _run_forumbooking_scraper
@@ -469,11 +465,6 @@ def run(
     blocked: list[dict[str, Any]] = []
     empty_sources: list[dict[str, Any]] = []
 
-    if _manual_bookup_login_enabled():
-        # Manual MFA means a human may need to interact with the visible BookUp
-        # browser. Keep scraping sequential to avoid multiple login windows and
-        # racing status prompts for Tønsberg/Sandefjord.
-        max_workers = 1
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_source = {
@@ -637,11 +628,9 @@ def _scrape_source(
         _strategy = None if source_type in _ICAL_SOURCE_TYPES else get_strategy(name)
         _scraper_type = get_deterministic_scraper_type(_strategy) if _strategy is not None else None
 
-        # BookUp sources can expose a tiny public placeholder calendar while the
-        # useful arena schedule is behind login. If credentials are declared,
-        # the public scrape is not trustworthy enough to use as fallback: a
-        # failed login must surface as blocked/manual-recovery-needed instead
-        # of silently accepting a handful of generic "Booket" entries.
+        # A future non-BookUp source may explicitly declare credentials. In that
+        # case the credentialed adapter is attempted before public scraping.
+        # Current BookUp sources are public and never enter this branch.
         credentialed_required = _strategy is not None and requires_credentials(_strategy)
         if credentialed_required:
             events, _cred_error = _try_credentialed_scrape(
@@ -786,20 +775,8 @@ if __name__ == "__main__":  # pragma: no cover
         "--force-refresh", action="store_true",
         help="Ignore the unified scrape cache and re-scrape every source"
     )
-    parser.add_argument(
-        "--manual-bookup-login", action="store_true",
-        help="Open BookUp in a visible browser and wait for manual Vipps/SMS MFA"
-    )
-    parser.add_argument(
-        "--manual-bookup-login-timeout", type=int, default=None, metavar="SECONDS",
-        help="Maximum seconds to wait for manual BookUp MFA/login (default: 300)"
-    )
     cli_args = parser.parse_args()
 
-    if cli_args.manual_bookup_login:
-        os.environ["RVV_BOOKUP_MANUAL_LOGIN"] = "1"
-    if cli_args.manual_bookup_login_timeout is not None:
-        os.environ["RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT"] = str(cli_args.manual_bookup_login_timeout)
 
     from .run_log_paths import append_stage_log_line  # noqa: E402
     from .state import PipelineState, StageName  # noqa: E402

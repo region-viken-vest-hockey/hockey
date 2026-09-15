@@ -141,26 +141,14 @@ def _run_stage2(
     stage failed in non-strict mode (pipeline continues but ``run_failed``
     should be set).
     """
-    import os
-
     from ...llm_judge import get_judge_if_headless
     from ...pipeline.stage2_scraping import run as stage2_run
     from ...pipeline.state import StageName
 
     allow_missing_sources = getattr(args, "allow_missing_sources", False)
-    if getattr(args, "manual_bookup_login", False):
-        os.environ["RVV_BOOKUP_MANUAL_LOGIN"] = "1"
-    timeout = getattr(args, "manual_bookup_login_timeout", None)
-    if timeout is not None:
-        os.environ["RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT"] = str(timeout)
 
     if resume_from <= 2:
         _console.print("[bold]Stage 2:[/bold] Skraping...")
-        if getattr(args, "manual_bookup_login", False):
-            _console.print(
-                "  [cyan]ℹ[/cyan] BookUp manuell innlogging er aktiv — "
-                "fullfør Vipps/SMS i nettleseren når den åpnes."
-            )
         if getattr(args, "force_refresh", False):
             try:
                 _force_refresh_stage2_inputs(args.work_dir)

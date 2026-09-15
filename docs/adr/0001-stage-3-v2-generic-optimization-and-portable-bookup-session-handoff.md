@@ -55,6 +55,8 @@ Legacy planner implementations may remain as baselines, fallbacks or migration a
 
 ## BookUp/browser recovery boundary
 
+> **Current status (2026-09-15):** BookUp no longer requires authentication in RVV. Tønsberg is scraped from the public availability view, so the BookUp credential/MFA/session-handoff mechanism described below has been retired. The general rule that browser-recovered data must return through repository validation still applies.
+
 Browser authentication/session handling is an adapter/runtime concern; source validity remains a repository concern.
 
 ```text

@@ -123,19 +123,6 @@ def _cmd_scrape(args: argparse.Namespace) -> int:
             _console.print(f"  [cyan]{s.get('name', '?')}[/cyan] ({s.get('type', '?')})")
         return 1
 
-    if getattr(args, "manual_bookup_login", False):
-        import os
-
-        os.environ["RVV_BOOKUP_MANUAL_LOGIN"] = "1"
-        _console.print(
-            "[cyan]ℹ[/cyan] BookUp manuell innlogging er aktiv — "
-            "fullfør Vipps/SMS i nettleseren når den åpnes."
-        )
-    timeout = getattr(args, "manual_bookup_login_timeout", None)
-    if timeout is not None:
-        import os
-
-        os.environ["RVV_BOOKUP_MANUAL_LOGIN_TIMEOUT"] = str(timeout)
 
     _console.print(
         f"[bold]Skraper:[/bold] {source_cfg['name']} "
