@@ -1,25 +1,16 @@
 /**
- * ScraperAgent — Pi-driven browser scraping agent.
+ * Pi browser-recovery agent.
  *
- * Launches the Python browserWorker as a child process, sends commands,
- * and uses Pi's configured model to analyze page snapshots and decide
- * the next action.
- *
- * Usage:
- *   const agent = new ScraperAgent(ctx);
- *   const events = await agent.scrape("https://...", { iframe: true });
- *   await agent.close();
+ * Repository code owns source strategy, cache validation and Stage 2 state.
+ * This class owns only Pi/browser transport: drive browser_worker.py, ask the
+ * active Pi model what navigation action to take, and return extracted events.
  */
 
-import { spawn, type ChildProcess } from "node:child_process";
-import { resolve } from "node:path";
-import { cwd } from "node:process";
-import { existsSync } from "node:fs";
+import type { UserMessage } from "@earendil-works/pi-ai";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 export interface NavigationStep {
   cmd: "click" | "goto" | "type" | "wait" | "extract" | "manual_login";
@@ -33,15 +24,10 @@ export interface NavigationStep {
 }
 
 export interface ScrapeOptions {
-  /** Navigate/click inside the page's first iframe. */
   iframe?: boolean;
-  /** Strategy for event extraction. */
-  strategy?: "outlook" | "date_param" | "auto";
-  /** Month start for date-param extraction (YYYY-MM-DD). */
+  strategy?: "outlook" | "date_param" | "styledcalendar" | "bookup" | "forumbooking" | "auto";
   month_start?: string;
-  /** Maximum number of LLM-guided iterations before giving up. */
   maxIterations?: number;
-  /** Pre-loop navigation steps (e.g. login), from scraper strategy. */
   initialNavigation?: NavigationStep[];
 }
 
@@ -75,108 +61,64 @@ interface LLMAction {
   wait_ms?: number;
 }
 
-// ---------------------------------------------------------------------------
-// System prompts by calendar system type
-// ---------------------------------------------------------------------------
-
 function systemPrompt(type: string, url: string): string {
-  const base = [
-    "Du er en agent som navigerer ishall-kalendere for å finne bookinger.",
+  const lines = [
+    "Du navigerer en ishall-kalender for å hente bookingdata.",
+    "Repository-strategien har allerede valgt kilde og URL; du skal bare navigere siden.",
     "",
-    "**Hva du ser etter:**",
-    "Ishall-bookinger ser typisk slik ut:",
-    "- Datoer med tidsluker (f.eks. '08:00-09:30' eller 'kl 08.00-09.30')",
-    "- Hallnavn som 'Kongsberghallen', 'Jar Isforum', 'Bærum ishall'",
-    "- Lag-/klubbnavn som 'Kongsberg', 'Jar', 'Jutul', 'Skien'",
-    "- Aktiviteter som 'ishockey', 'kunstløp', 'trening', 'kamp'",
-    "- Månedsoversikter med ukedager og datoer",
+    "Mulige handlinger:",
+    "- click: klikk en knapp/lenke med selector fra interactive-listen",
+    "- goto: naviger til URL",
+    "- extract: kall browser-workerens innebygde event-parser",
+    "- wait: vent kort på JS-rendering",
+    "- scroll: rull siden",
+    "- done: avslutt når relevant periode er hentet",
     "",
-    "**Dine mulige handlinger:**",
-    '1. **click** -- Klikk på en knapp eller lenke. Bruk CSS/text-selector fra interactive-listen.',
-    '2. **goto** -- Naviger til en ny URL (for date-parameter kalendere).',
-    '3. **extract** -- Ekstraher kalenderdata fra siden (kaller innebygd parser).',
-    '4. **wait** -- Vent i N millisekunder.',
-    '5. **scroll** -- Rull siden (up/down).',
-    '6. **done** -- Signaliser at du er ferdig. Returner events hvis du har ekstrahert noen.',
-    "",
-    "**Regler:**",
-    "- Svar ALLTID med et JSON-objekt -- ingen forklarende tekst utenfor JSON.",
-    "- For Outlook iframe-kalendere: se etter en 'Go to next month'-knapp.",
-    "- For date-parameter kalendere: endre datoen i URL-en.",
-    '- Bruk **extract** for å kalle den innebygde event-parseren.',
-    "- Når du er ferdig, returner **done**.",
+    "Svar alltid med ett JSON-objekt og ingen tekst utenfor JSON.",
+    "Ikke finn opp events; bruk extract for faktiske bookingdata.",
+    `Strategi: ${type}`,
+    `Kilde: ${url}`,
   ];
-
-  if (type === "outlook") {
-    base.push(
-      "",
-      "**Outlook iframe:**",
-      "- Siden har et iframe-element med kalenderen.",
-      "- Klikk 'Go to next month' / 'Go to previous month' for å navigere.",
-      "- events finnes som aria-label-attributter i iframen.",
-    );
-  } else if (type === "bookup") {
-    base.push(
-      "",
-      "**Bookup:**",
-      "- Bruk date-parameter for å navigere: ?date=YYYY-MM-DD",
-      "- Bookinger vises som tabellrekker med tidspunkt og formål.",
-    );
-  } else if (type === "forumbooking") {
-    base.push(
-      "",
-      "**Forumbooking:**",
-      "- Nettsiden viser en månedskalender.",
-      "- Se etter navigasjonsknapper for å bytte måned.",
-    );
-  }
-
-  base.push("", `**Kilde:** ${url}`);
-  return base.join("\n");
+  if (type === "outlook") lines.push("Outlook-kalendere kan ligge i iframe og ha 'next month'-knapp.");
+  if (type === "forumbooking") lines.push("Forumbooking viser vanligvis uke/måned og har navigasjonsknapper.");
+  if (type === "bookup") lines.push("BookUp kan kreve at 'Se tilgjengelighet' åpnes før kalenderen vises.");
+  return lines.join("\n");
 }
 
-export function userMessage(
-  snapshot: WorkerResponse,
-  iteration: number,
-  maxIterations: number,
-): string {
-  const lines: string[] = [
+export function userMessage(snapshot: WorkerResponse, iteration: number, maxIterations: number): string {
+  const lines = [
     `Iterasjon ${iteration}/${maxIterations}`,
-    "",
-    "--- Side-status ---",
     `Tittel: ${snapshot.title ?? "ukjent"}`,
     `URL: ${snapshot.url ?? "ukjent"}`,
     "",
     "Synlig HTML (første 3000 tegn):",
     redactCredentials((snapshot.html ?? "").slice(0, 3000)),
   ];
-
   if (snapshot.iframe_html) {
-    lines.push("", "Iframe HTML (første 3000 tegn):");
-    lines.push(redactCredentials(snapshot.iframe_html.slice(0, 3000)));
+    lines.push("", "Iframe HTML (første 3000 tegn):", redactCredentials(snapshot.iframe_html.slice(0, 3000)));
   }
-
-  if (snapshot.interactive && snapshot.interactive.length > 0) {
+  if (snapshot.interactive?.length) {
     lines.push("", "Interaktive elementer:");
     for (const el of snapshot.interactive.slice(0, 30)) {
       lines.push(`  <${el.tag}> "${redactCredentials(el.text)}" → ${el.selector}`);
     }
   }
-
-  if (snapshot.events && snapshot.events.length > 0) {
+  if (snapshot.events?.length) {
     lines.push("", `Allerede ekstraherte events (${snapshot.events.length}):`);
-    for (const e of snapshot.events.slice(0, 10)) {
-      lines.push(`  ${e.date} ${e.name} (${e.duration_hours}h)`);
+    for (const event of snapshot.events.slice(0, 10)) {
+      lines.push(`  ${event.date} ${event.name} (${event.duration_hours}h)`);
     }
   }
-
-  lines.push("", "Hva vil du gjøre? Svar med et JSON-objekt.");
+  lines.push("", "Hva vil du gjøre? Returner ett JSON-objekt.");
   return lines.join("\n");
 }
 
-// ---------------------------------------------------------------------------
-// LLM client — calls Pi's configured model via HTTP
-// ---------------------------------------------------------------------------
+function responseText(response: { content?: Array<{ type: string; text?: string }> }): string {
+  return (response.content ?? [])
+    .filter((item): item is { type: "text"; text: string } => item.type === "text" && typeof item.text === "string")
+    .map((item) => item.text)
+    .join("\n");
+}
 
 async function callLLM(
   ctx: ExtensionContext,
@@ -185,113 +127,50 @@ async function callLLM(
   onUsage?: (details: Record<string, unknown>) => void,
   meta: Record<string, unknown> = {},
 ): Promise<string> {
-  const model = ctx.model;
-  if (!model) {
-    throw new Error("Ingen modell konfigurert i Pi");
-  }
-
-  const baseUrl = model.baseUrl.replace(/\/+$/, "");
-  const apiKey = model.provider
-    ? await ctx.modelRegistry.getApiKeyForProvider(model.provider)
-    : undefined;
-
-  // Determine the endpoint and payload format based on the API type
-  // OpenAI-compatible format is the most universal
-  const url = `${baseUrl}/v1/chat/completions`;
-
-  const payload = {
-    model: model.id,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-    temperature: 0.1,
-    max_tokens: 2000,
+  if (!ctx.model) throw new Error("Ingen aktiv modell konfigurert i Pi");
+  const started = Date.now();
+  const message: UserMessage = {
+    role: "user",
+    content: [{ type: "text", text: user }],
+    timestamp: Date.now(),
   };
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (apiKey) {
-    headers["Authorization"] = `Bearer ${apiKey}`;
-  }
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-    signal: ctx.signal,
+  const response = await ctx.modelRegistry.complete(
+    ctx.model,
+    { systemPrompt: system, messages: [message] },
+    { signal: ctx.signal },
+  );
+  if (response.stopReason === "aborted") throw new Error("Pi model call ble avbrutt");
+  const content = responseText(response);
+  onUsage?.({
+    ...meta,
+    backend: `pi:${ctx.model.provider}/${ctx.model.id}`,
+    model: ctx.model.id,
+    provider: ctx.model.provider,
+    duration_ms: Date.now() - started,
+    response_chars: content.length,
   });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`LLM API feil (${response.status}): ${text.slice(0, 200)}`);
-  }
-
-  const result = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-    usage?: {
-      prompt_tokens?: number;
-      completion_tokens?: number;
-      total_tokens?: number;
-    };
-  };
-  const content = result?.choices?.[0]?.message?.content ?? "";
-  const usage = result.usage;
-  if (usage && onUsage) {
-    const totalTokens = usage.total_tokens ?? (usage.prompt_tokens ?? 0) + (usage.completion_tokens ?? 0);
-    onUsage({
-      ...meta,
-      model: model.id,
-      provider: model.provider ?? undefined,
-      prompt_tokens: usage.prompt_tokens ?? 0,
-      completion_tokens: usage.completion_tokens ?? 0,
-      total_tokens: totalTokens,
-      tokens: totalTokens,
-      response_chars: content.length,
-    });
-  }
   return content;
 }
 
-// ---------------------------------------------------------------------------
-// JSON extraction from LLM output
-// ---------------------------------------------------------------------------
-
 function extractJSON(text: string): Record<string, unknown> | null {
   let cleaned = text.trim();
-  for (const fence of ["```json", "```"]) {
-    if (cleaned.startsWith(fence)) {
-      cleaned = cleaned.slice(fence.length).trim();
-      if (cleaned.endsWith("```")) cleaned = cleaned.slice(0, -3).trim();
-    }
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
   }
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
-  if (start !== -1 && end !== -1 && end > start) {
-    cleaned = cleaned.slice(start, end + 1);
-  }
+  if (start >= 0 && end > start) cleaned = cleaned.slice(start, end + 1);
   try {
-    return JSON.parse(cleaned) as Record<string, unknown>;
+    const parsed = JSON.parse(cleaned);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
   } catch {
     return null;
   }
 }
 
-// ---------------------------------------------------------------------------
-// Action dispatch
-// ---------------------------------------------------------------------------
-
-function isManualBookupLoginEnabled(): boolean {
-  return [process.env.RVV_BOOKUP_MANUAL_LOGIN, process.env.BOOKUP_MANUAL_LOGIN]
-    .some((value) => ["1", "true", "yes", "y", "on"].includes(String(value ?? "").trim().toLowerCase()));
-}
-
 function parseAction(data: Record<string, unknown>): LLMAction | null {
   const action = String(data.action ?? "");
-  if (!["click", "goto", "extract", "done", "wait", "scroll"].includes(action)) {
-    return null;
-  }
+  if (!["click", "goto", "extract", "done", "wait", "scroll"].includes(action)) return null;
   return {
     action: action as LLMAction["action"],
     selector: String(data.selector ?? data.css ?? ""),
@@ -303,17 +182,19 @@ function parseAction(data: Record<string, unknown>): LLMAction | null {
   };
 }
 
-// ---------------------------------------------------------------------------
-// ScraperAgent class
-// ---------------------------------------------------------------------------
+function isManualBookupLoginEnabled(): boolean {
+  return [process.env.RVV_BOOKUP_MANUAL_LOGIN, process.env.BOOKUP_MANUAL_LOGIN]
+    .some((value) => ["1", "true", "yes", "y", "on"].includes(String(value ?? "").trim().toLowerCase()));
+}
 
 export class ScraperAgent {
   private proc: ChildProcess | null = null;
   private buffer = "";
-  private ctx: ExtensionContext;
-  private pythonPath: string;
-  private onLLMInteraction?: (details: Record<string, unknown>) => void;
-  private onActivity?: (message: string) => void;
+  private readonly ctx: ExtensionContext;
+  private readonly pythonPath: string;
+  private readonly onLLMInteraction?: (details: Record<string, unknown>) => void;
+  private readonly onActivity?: (message: string) => void;
+  private abortHandler?: () => void;
 
   constructor(
     ctx: ExtensionContext,
@@ -327,324 +208,182 @@ export class ScraperAgent {
     this.pythonPath = existsSync(venv) ? venv : "python3";
   }
 
-  /** Start the browser worker process. */
   async start(): Promise<void> {
     if (this.proc) return;
-
-    const workerPath = resolve(
-      this.ctx.cwd,
-      "tournament_scheduler",
-      "pipeline",
-      "browser_worker.py",
-    );
-
-    this.proc = spawn(this.pythonPath, [workerPath], {
-      stdio: ["pipe", "pipe", "pipe"],
-      cwd: this.ctx.cwd,
-    });
+    const workerPath = resolve(this.ctx.cwd, "tournament_scheduler", "pipeline", "browser_worker.py");
+    this.proc = spawn(this.pythonPath, [workerPath], { stdio: ["pipe", "pipe", "pipe"], cwd: this.ctx.cwd });
     this.onActivity?.("Browser worker startet");
-
     this.proc.stderr?.on("data", (chunk: Buffer) => {
-      const text = chunk.toString();
-      if (text.trim()) {
-        console.error(`[browserWorker stderr] ${text.trim().slice(0, 200)}`);
-      }
+      const text = chunk.toString().trim();
+      if (text) console.error(`[browserWorker stderr] ${text.slice(0, 500)}`);
     });
-
-    this.proc.on("exit", (code) => {
-      this.proc = null;
-    });
+    this.proc.on("exit", () => { this.proc = null; });
+    this.abortHandler = () => this.proc?.kill("SIGTERM");
+    if (this.ctx.signal?.aborted) this.abortHandler();
+    else this.ctx.signal?.addEventListener("abort", this.abortHandler, { once: true });
   }
 
-  /** Send a command and wait for the response. */
   async send(cmd: Record<string, unknown>): Promise<WorkerResponse> {
-    if (!this.proc) throw new Error("Worker not started");
-
-    return new Promise((resolve, reject) => {
-      const data = JSON.stringify(cmd) + "\n";
-      const timeout = setTimeout(() => {
-        reject(new Error(`Worker timeout for command: ${cmd.cmd}`));
-      }, 45_000);
-
-      const onData = (chunk: Buffer) => {
+    if (!this.proc) throw new Error("Browser worker er ikke startet");
+    return new Promise((resolvePromise, rejectPromise) => {
+      const timeout = setTimeout(() => rejectPromise(new Error(`Worker timeout for command: ${cmd.cmd}`)), 45_000);
+      const onData = (chunk: Buffer): void => {
         this.buffer += chunk.toString();
-        const nl = this.buffer.indexOf("\n");
-        if (nl === -1) return;
-
-        const line = this.buffer.slice(0, nl);
-        this.buffer = this.buffer.slice(nl + 1);
+        const newline = this.buffer.indexOf("\n");
+        if (newline < 0) return;
+        const line = this.buffer.slice(0, newline);
+        this.buffer = this.buffer.slice(newline + 1);
         clearTimeout(timeout);
         this.proc?.stdout?.removeListener("data", onData);
-
         try {
-          resolve(JSON.parse(line) as WorkerResponse);
-        } catch (e) {
-          reject(new Error(`Ugyldig JSON fra worker: ${line.slice(0, 200)}`));
+          resolvePromise(JSON.parse(line) as WorkerResponse);
+        } catch {
+          rejectPromise(new Error(`Ugyldig JSON fra browser worker: ${line.slice(0, 300)}`));
         }
       };
-
       this.proc?.stdout?.on("data", onData);
-      this.proc?.stdin?.write(data);
+      this.proc?.stdin?.write(`${JSON.stringify(cmd)}\n`);
     });
   }
 
-  /** Scrape a single calendar source. */
-  async scrape(
-    url: string,
-    options: ScrapeOptions = {},
-  ): Promise<CalendarEvent[]> {
-    await this.start();
-    const maxIter = options.maxIterations ?? 15;
-    const systemType = options.strategy ?? "auto";
-    const allEvents: CalendarEvent[] = [];
-
-    // Step 1: Load the page
-    this.onActivity?.(`Laster ${url}`);
-    let snap = await this.send({
-      cmd: "goto",
-      url,
-      wait_ms: 3000,
-    });
-
-    if (!snap.ok) {
-      throw new Error(`Kunne ikke laste ${url}: ${snap.error}`);
-    }
-
-    // Step 1.5: Execute pre-loop navigation (e.g. login for BookUp)
-    const navSteps = options.initialNavigation ?? [];
-
-    // Credential pre-flight: warn if placeholders resolve to empty strings
-    const credWarnings: string[] = [];
-    for (const step of navSteps) {
-      if (step.cmd === "type" || step.cmd === "goto") {
-        const raw = step.text ?? step.url ?? "";
-        const matches = String(raw).matchAll(/\$\{(\w+)\}/g);
-        for (const m of matches) {
-          const varName = m[1];
-          const resolved = process.env[varName];
-          if (!resolved) {
-            const sourceName = step.cmd === "type"
-              ? `${step.cmd} ${step.selector ?? "?"}`
-              : `${step.cmd} ${String(raw).slice(0, 60)}`;
-            credWarnings.push(`  ${varName} (brukes i ${sourceName})`);
-          }
-        }
-      }
-    }
-    if (credWarnings.length > 0) {
-      console.warn(
-        `[ScraperAgent] Advarsel: ${credWarnings.length} credential-plassholdere uten verdi for ${url}:\n` +
-        credWarnings.join("\n")
-      );
-    }
-
-    for (let si = 0; si < navSteps.length; si++) {
-      const step = navSteps[si];
-      const wait_ms = step.wait_ms ?? 1500;
+  private async runInitialNavigation(steps: NavigationStep[], snap: WorkerResponse, fallbackUrl: string): Promise<WorkerResponse> {
+    let current = snap;
+    for (const step of steps) {
+      const waitMs = step.wait_ms ?? 1500;
       try {
         if (step.cmd === "manual_login") {
-          if (isManualBookupLoginEnabled()) {
-            const message = step.text || "Fullfør eventuell Vipps/SMS-MFA i nettleseren.";
-            this.onActivity?.("Venter på manuell BookUp-innlogging/MFA");
-            await this.ctx.ui.input(`${message}\n\nTrykk Enter her når BookUp-kalenderen er synlig.`, "");
-            snap = await this.send({ cmd: "snapshot" });
-          }
+          if (!isManualBookupLoginEnabled()) continue;
+          await this.ctx.ui.input(`${step.text || "Fullfør eventuell manuell innlogging/MFA i nettleseren."}\n\nTrykk Enter når kalenderen er synlig.`, "");
+          current = await this.send({ cmd: "snapshot" });
         } else if (step.cmd === "click") {
-          snap = await this.send({
-            cmd: "click",
-            selector: step.selector ?? "",
-            iframe: step.iframe ?? false,
-            wait_ms,
-          });
+          current = await this.send({ cmd: "click", selector: step.selector ?? "", iframe: step.iframe ?? false, wait_ms: waitMs });
         } else if (step.cmd === "type") {
-          const typedText = step.text ? substituteEnvVars(step.text) : "";
-          snap = await this.send({
-            cmd: "type",
-            selector: step.selector ?? "",
-            text: typedText,
-            wait_ms,
-          });
+          current = await this.send({ cmd: "type", selector: step.selector ?? "", text: substituteEnvVars(step.text ?? ""), wait_ms: waitMs });
         } else if (step.cmd === "goto") {
-          const gotoUrl = step.url ? substituteEnvVars(step.url) : url;
-          snap = await this.send({
-            cmd: "goto",
-            url: gotoUrl,
-            wait_ms: step.wait_ms ?? 3000,
-          });
+          current = await this.send({ cmd: "goto", url: substituteEnvVars(step.url ?? fallbackUrl), wait_ms: step.wait_ms ?? 3000 });
         } else if (step.cmd === "wait") {
-          await new Promise((r) => setTimeout(r, wait_ms));
-          // Re-snapshot after wait
-          snap = { ...snap, html: snap.html, iframe_html: snap.iframe_html };
+          await new Promise((resolveWait) => setTimeout(resolveWait, waitMs));
+        } else if (step.cmd === "extract") {
+          current = await this.send({ cmd: "extract", strategy: step.strategy ?? "auto", iframe: step.iframe ?? false });
         }
-      } catch (err) {
-        console.error(`init-nav step ${si + 1}/${navSteps.length} feilet:`, err);
-        // Continue — initial nav is best-effort
+      } catch (err: unknown) {
+        console.error(`Initial browser navigation step failed: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
+    return current;
+  }
 
-    // Step 2: If there's an iframe, detect it
-    const hasIframe = !!(snap.iframe_html && snap.iframe_html.length > 100);
+  async scrape(url: string, options: ScrapeOptions = {}): Promise<CalendarEvent[]> {
+    await this.start();
+    const maxIterations = options.maxIterations ?? 15;
+    const strategy = options.strategy ?? "auto";
+    const events: CalendarEvent[] = [];
 
-    // Step 3: Agent loop
-    for (let i = 1; i <= maxIter; i++) {
-      this.onActivity?.(`Iterasjon ${i}/${maxIter} — prøver ekstraksjon`);
-      // Try extraction first
-      const extractResult = await this.send({
+    this.onActivity?.(`Laster ${url}`);
+    let snapshot = await this.send({ cmd: "goto", url, wait_ms: 3000 });
+    if (!snapshot.ok) throw new Error(`Kunne ikke laste ${url}: ${snapshot.error ?? "ukjent feil"}`);
+    snapshot = await this.runInitialNavigation(options.initialNavigation ?? [], snapshot, url);
+    const detectedIframe = Boolean(snapshot.iframe_html && snapshot.iframe_html.length > 100);
+
+    for (let iteration = 1; iteration <= maxIterations; iteration++) {
+      if (this.ctx.signal?.aborted) throw new Error("Browser recovery ble avbrutt");
+      this.onActivity?.(`Iterasjon ${iteration}/${maxIterations} — prøver ekstraksjon`);
+      const extracted = await this.send({
         cmd: "extract",
-        strategy: systemType,
-        iframe: options.iframe ?? hasIframe,
+        strategy,
+        iframe: options.iframe ?? detectedIframe,
         month_start: options.month_start,
       });
-      if (extractResult.ok && extractResult.events) {
-        allEvents.push(...extractResult.events);
-        if (extractResult.events.length > 0) {
-          this.onActivity?.(`Iterasjon ${i}/${maxIter} — fant ${extractResult.events.length} events (totalt ${allEvents.length})`);
-        }
-        if (allEvents.length > 0) {
-          // We got events — if it's a date-param calendar we're likely done
-          // For iframe/outlook we need to navigate all months
-        }
+      if (extracted.ok && extracted.events?.length) {
+        events.push(...extracted.events);
+        this.onActivity?.(`Fant ${extracted.events.length} events (totalt ${events.length})`);
       }
 
-      // Send snapshot to Pi's model
-      const system = systemPrompt(systemType, url);
-      const user = userMessage(snap, i, maxIter);
-      let llmText: string;
+      let raw: string;
       try {
-        this.onActivity?.(`Iterasjon ${i}/${maxIter} — spør modellen om neste trekk`);
-        llmText = await callLLM(this.ctx, system, user, this.onLLMInteraction, {
-          iteration: i,
-          max_iterations: maxIter,
-          url,
-          strategy: systemType,
-          iframe: options.iframe ?? hasIframe,
-        });
-      } catch (err) {
-        console.error(`LLM-feil (iter ${i}):`, err);
-        // Continue anyway — try a generic approach
-        if (hasIframe) {
-          // Try clicking "next month"
-          const clickResult = await this.send({
+        this.onActivity?.(`Iterasjon ${iteration}/${maxIterations} — spør aktiv Pi-modell`);
+        raw = await callLLM(
+          this.ctx,
+          systemPrompt(strategy, url),
+          userMessage({ ...snapshot, events: extracted.events }, iteration, maxIterations),
+          this.onLLMInteraction,
+          { iteration, max_iterations: maxIterations, url, strategy },
+        );
+      } catch (err: unknown) {
+        console.error(`Pi model call failed during browser recovery: ${err instanceof Error ? err.message : String(err)}`);
+        if (detectedIframe) {
+          const fallback = await this.send({
             cmd: "click",
             selector: 'button[aria-label*="next month"]',
             iframe: true,
             wait_ms: 1500,
           });
-          if (clickResult.ok) {
-            snap = clickResult;
+          if (fallback.ok) {
+            snapshot = fallback;
             continue;
           }
         }
         break;
       }
 
-      const parsed = extractJSON(llmText);
-      if (!parsed) {
-        console.error(`Kunne ikke tolke LLM-svar (iter ${i}): ${llmText.slice(0, 200)}`);
-        continue;
-      }
+      const parsed = extractJSON(raw);
+      const action = parsed ? parseAction(parsed) : null;
+      if (!action) continue;
+      if (action.action === "done") break;
 
-      const action = parseAction(parsed);
-      if (!action) {
-        continue;
-      }
-
-      if (action.action === "done") {
-        this.onActivity?.(`Iterasjon ${i}/${maxIter} — modellen ba om ferdig`);
-        break;
-      }
-
-      // Execute the action
-      this.onActivity?.(`Iterasjon ${i}/${maxIter} — utfører ${action.action}`);
+      this.onActivity?.(`Iterasjon ${iteration}/${maxIterations} — ${action.action}`);
       if (action.action === "click") {
-        snap = await this.send({
+        snapshot = await this.send({
           cmd: "click",
           selector: action.selector,
-          iframe: action.iframe ?? hasIframe,
+          iframe: action.iframe ?? detectedIframe,
           wait_ms: action.wait_ms ?? 1500,
         });
       } else if (action.action === "goto") {
-        snap = await this.send({
-          cmd: "goto",
-          url: action.url,
-          wait_ms: 3000,
-        });
+        snapshot = await this.send({ cmd: "goto", url: action.url, wait_ms: 3000 });
       } else if (action.action === "extract") {
-        const ex = await this.send({
+        const extra = await this.send({
           cmd: "extract",
-          strategy: action.strategy ?? systemType,
-          iframe: action.iframe ?? hasIframe,
+          strategy: action.strategy ?? strategy,
+          iframe: action.iframe ?? detectedIframe,
           month_start: options.month_start,
         });
-        if (ex.ok && ex.events) {
-          allEvents.push(...ex.events);
-        }
+        if (extra.ok && extra.events?.length) events.push(...extra.events);
       } else if (action.action === "wait") {
-        await new Promise((r) => setTimeout(r, action.wait_ms ?? 1000));
-        snap = {
-          ...snap,
-          html: snap.html,
-          iframe_html: snap.iframe_html,
-        };
+        await new Promise((resolveWait) => setTimeout(resolveWait, action.wait_ms ?? 1000));
+      } else if (action.action === "scroll") {
+        snapshot = await this.send({ cmd: "scroll", direction: "down" });
       }
 
-      if (!snap.ok) {
-        break;
-      }
+      if (!snapshot.ok) break;
     }
 
-    this.onActivity?.(`Fullført — ${allEvents.length} events samlet`);
-    return allEvents;
+    this.onActivity?.(`Fullført — ${events.length} events samlet`);
+    return events;
   }
 
-  /** Shut down the worker. */
   async close(): Promise<void> {
-    if (this.proc) {
-      try {
-        await this.send({ cmd: "exit" });
-      } catch {
-        this.proc.kill("SIGTERM");
-      }
-      this.proc = null;
+    if (this.abortHandler) this.ctx.signal?.removeEventListener("abort", this.abortHandler);
+    this.abortHandler = undefined;
+    if (!this.proc) return;
+    try {
+      await this.send({ cmd: "exit" });
+    } catch {
+      this.proc.kill("SIGTERM");
     }
+    this.proc = null;
   }
 }
 
-
-// ---------------------------------------------------------------------------
-// Env-var substitution helper
-// ---------------------------------------------------------------------------
-
-/** Substitute ``$VAR_NAME`` placeholders from ``process.env``. */
 export function substituteEnvVars(text: string): string {
-  return text.replace(/\$\{(\w+)\}/g, (_match, name: string) => {
-    return process.env[name] ?? '';
-  });
+  return text.replace(/\$\{(\w+)\}/g, (_match, name: string) => process.env[name] ?? "");
 }
 
-/**
- * Defense-in-depth (layer 3): scrub any literal occurrences of the resolved
- * ``BOOKUP_EMAIL``/``BOOKUP_PASSWORD`` credential values from text before it
- * is sent to the LLM. This is a fallback in case the Python-side DOM
- * sanitization in browser_worker.py (`_sanitize_html()` /
- * `_redact_credentials()`, layers 1-2) misses a path (e.g. a credential
- * value echoed into an interactive-element label or placeholder). Used by
- * `userMessage()` on `snapshot.html`, `snapshot.iframe_html`, and
- * interactive-element text.
- *
- * Longer-term alternative (out of scope here): out-of-band browser auth —
- * a persistent authenticated browser session established once outside the
- * LLM loop, so credential/login UI state never reaches a snapshot at all.
- */
 export function redactCredentials(text: string): string {
   let result = text;
-  for (const envVar of ['BOOKUP_EMAIL', 'BOOKUP_PASSWORD']) {
+  for (const envVar of ["BOOKUP_EMAIL", "BOOKUP_PASSWORD"]) {
     const value = process.env[envVar];
-    if (value) {
-      result = result.split(value).join('[REDACTED]');
-    }
+    if (value) result = result.split(value).join("[REDACTED]");
   }
   return result;
 }
-
-
