@@ -15,6 +15,8 @@ Read `AGENTS.md` first for repository-wide precedence and hygiene rules.
 
 ## Command boundary
 
+Shared non-Pi command procedures live under `.agents/commands/rvv-miniputt/`. Claude, Codex, ChatGPT, and future harness adapters should load the matching shared procedure and add only harness-specific metadata/transport/UI behavior. Do not copy command procedure text or RVV policy into every harness.
+
 ### Pi
 
 Pi provides the RVV-specific `/rvv-miniputt ...` command/tool integration. Use the Pi command directly there; it is not a shell binary.
@@ -46,7 +48,7 @@ python3 -m tournament_scheduler.cli.rvv_cli ...
 
 Human-friendly operation is exposed through `make help` and the Makefile.
 
-Harness adapters may add UI/browser/progress integration but must not redefine shared pipeline policy.
+Harness adapters may add UI/browser/progress integration but must not redefine shared pipeline policy. For supported non-Pi command workflows, load the corresponding `.agents/commands/rvv-miniputt/<command>.md` procedure instead of duplicating it in the harness directory.
 
 A plain terminal/CI session cannot drive a browser for `scrape-llm --club <name>`. When that source needs LLM-guided recovery and no browser-enabled harness is available, use `scripts/rvv-miniputt recovery-targets` to list blocked sources, recover the events out-of-band, then `python3 -m tournament_scheduler.cli.rvv_cli recovery-inject --source "<name>"` (or `scripts/rvv-miniputt scrape-merge` to rebuild the Stage 2 checkpoint from recovered cache data) to rehydrate the cache through the same validation/merge path as any other source.
 
@@ -162,22 +164,9 @@ Common outputs include the season-plan HTML/report, optional manual follow-up vi
 
 ## Semantic safety-net audit (post-export, pre-publication)
 
-This is the canonical policy source for the harness-led semantic safety-net audit (issue
-#325) — the independent, adversarial review an agent or the headless judge
-(`tournament_scheduler.llm_judge.audit`) performs after every Stage 4 export and before
-publication. Interactive harnesses and the headless path must use this checklist rather
-than defining their own criteria; `.claude/commands/rvv-miniputt/*` adapters must not
-redefine or duplicate it.
+This is the canonical policy source for the harness-led semantic safety-net audit — the independent, adversarial review an agent or the headless judge (`tournament_scheduler.llm_judge.audit`) performs after every Stage 4 export and before publication. Interactive harnesses and the headless path must use this checklist rather than defining their own criteria; harness adapters must not redefine or duplicate it.
 
-Deterministic verification can only catch defects already encoded as rules. This audit's
-purpose is to catch the ones that aren't: simulate a careful human review of the exported
-season plan, assume the scheduler and its deterministic verifier may share a logic defect,
-or may simply be missing a rule, and look for inconsistent output, suspicious operational
-patterns, likely planner/export bugs, and concrete candidates for new planner rules. Do not
-conclude the schedule is correct merely because deterministic verification passed.
-Reconstruct important facts from the export, cross-check outputs against each other,
-inspect patterns across the whole season, look for counterexamples and suspicious
-outliers, and explain anything that does not make operational sense.
+Deterministic verification can only catch defects already encoded as rules. This audit's purpose is to catch the ones that aren't: simulate a careful human review of the exported season plan, assume the scheduler and its deterministic verifier may share a logic defect, or may simply be missing a rule, and look for inconsistent output, suspicious operational patterns, likely planner/export bugs, and concrete candidates for new planner rules. Do not conclude the schedule is correct merely because deterministic verification passed. Reconstruct important facts from the export, cross-check outputs against each other, inspect patterns across the whole season, look for counterexamples and suspicious outliers, and explain anything that does not make operational sense.
 
 Operator checklist (answer every item; item 9 is open-ended and the most important):
 
@@ -191,24 +180,11 @@ Operator checklist (answer every item; item 9 is open-ended and the most importa
 8. Er eksportformatene konsistente?
 9. Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?
 
-Execution model: when an interactive harness (Claude Code/Pi) is driving the run, the
-harness itself performs this audit in-session by reading `operator audit-context` output
-and reasoning adversarially against the checklist and evidence, then submitting its
-verdict via `operator audit-submit`. Pi's project adapter performs this automatically
-after each successful `/rvv-miniputt run` export and before `/rvv-miniputt publish`.
-When no interactive harness is active (`RVV_HARNESS`,
-`CLAUDE_CODE_SESSION_ID`, and `PI_SESSION_ID` all unset), the headless path
-(`operator audit-run --backend <name>`, cron/CI) calls a real LLM judge backend
-automatically instead.
+Execution model: when an interactive harness (Claude Code/Pi) is driving the run, the harness itself performs this audit in-session by reading `operator audit-context` output and reasoning adversarially against the checklist and evidence, then submitting its verdict via `operator audit-submit`. Pi's project adapter performs this automatically after each successful `/rvv-miniputt run` export and before `/rvv-miniputt publish`. When no interactive harness is active (`RVV_HARNESS`, `CLAUDE_CODE_SESSION_ID`, and `PI_SESSION_ID` all unset), the headless path (`operator audit-run --backend <name>`, cron/CI) calls a real LLM judge backend automatically instead.
 
-Non-goals: this audit must not reimplement deterministic rule logic, must not become a
-second Python rules engine, must not duplicate SeasonPlanner policy, and must not perform
-fresh live calendar scraping — it cross-checks the *persisted* evidence bundle and source
-summary only.
+Non-goals: this audit must not reimplement deterministic rule logic, must not become a second Python rules engine, must not duplicate SeasonPlanner policy, and must not perform fresh live calendar scraping — it cross-checks the *persisted* evidence bundle and source summary only.
 
-A harness `FAIL` or `REVIEW_REQUIRED` can occur even when deterministic checks all pass —
-that is the intended purpose of the audit. It can never override a deterministic hard
-`FAIL`. An incomplete or failed audit run is never equivalent to `PASS`.
+A harness `FAIL` or `REVIEW_REQUIRED` can occur even when deterministic checks all pass — that is the intended purpose of the audit. It can never override a deterministic hard `FAIL`. An incomplete or failed audit run is never equivalent to `PASS`.
 
 ## Stage gating policy (soft judgment)
 
@@ -280,8 +256,7 @@ make publish CONFIRM_PUBLIC=1
 make verify-publish
 ```
 
-`make publish` refuses without a fresh `PASS` (or an operator-approved `REVIEW_REQUIRED`)
-semantic audit result for the current export — see "Semantic safety-net audit" above.
+`make publish` refuses without a fresh `PASS` (or an operator-approved `REVIEW_REQUIRED`) semantic audit result for the current export — see "Semantic safety-net audit" above.
 
 Publication creates a separate allowlisted public bundle. Review packets and Spond exports are private/review artifacts by default and should not be assumed public.
 
