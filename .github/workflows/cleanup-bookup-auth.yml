@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/cleanup-bookup-auth.yml"
+      - "tests/test_cli_architecture.py"
 
 permissions:
   contents: write
@@ -42,7 +43,7 @@ jobs:
           python -m compileall -q tournament_scheduler tests
           npm ci --ignore-scripts
           npm run check:pi
-          python -m pytest -q --no-cov tests/test_stage2_scraping.py tests/test_browser_worker.py tests/test_rvv_cli_portability.py tests/test_makefile_operator_interface.py tests/test_scraper_strategies.py
+          python -m pytest -q --no-cov tests/test_stage2_scraping.py tests/test_browser_worker.py tests/test_rvv_cli_portability.py tests/test_makefile_operator_interface.py tests/test_scraper_strategies.py tests/test_cli_architecture.py
           python - <<'PY'
           from pathlib import Path
           forbidden = (
