@@ -62,6 +62,9 @@ DECISION_ACTION_IDS: frozenset[str] = frozenset(
         # demoted to manual placement. Same rationale as assign_shared_host:
         # a genuinely new capability, not a policy tweak.
         "resolve_arena_conflict",
+        # Select one deterministic, repository-generated local repair option
+        # by id; the application layer validates/applies the concrete mutation.
+        "apply_repair_option",
     }
 )
 
@@ -73,6 +76,7 @@ _REQUIRED_ARGUMENTS: dict[str, tuple[str, ...]] = {
     "request_operator": ("question",),
     "assign_shared_host": ("chosen_club",),
     "resolve_arena_conflict": ("keep_tournament_id",),
+    "apply_repair_option": ("option_id", "candidate_fingerprint"),
 }
 
 # Actions that may proceed even when the context carries human-approval

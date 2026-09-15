@@ -233,36 +233,48 @@ def _emit_stage3_interactive_decision(
         if cp_sat_shadow is not None:
             summary = {**summary, "cp_sat_shadow": cp_sat_shadow}
         baseline_hard_violations = _baseline_hard_violations_for_plan(plan, problem)
-        available = ["optimize_plan", "keep_baseline", "request_operator", "abort"]
-        if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
-            available.remove("optimize_plan")
-        if cp_sat_shadow is not None and cp_sat_shadow.get("candidate_ref"):
-            # issue #310: a verified automatic CP-SAT candidate is directly
-            # applicable via candidate_ref, resolved against
-            # stage3_cpsat_cache -- without this, the only way to adopt it
-            # was to re-run optimize_plan(engine="cp_sat") and re-solve.
-            available.append("apply_candidate")
-        context = DecisionContext(
-            run_id=run_id,
-            capability="stage3_interactive",
-            stage="planning",
-            objective=(
-                "Decide whether this Stage 3 plan is good enough to finalize "
-                "(keep_baseline), or another optimization attempt is worth "
-                "the search budget (optimize_plan)."
-            ),
-            facts=summary,
-            baseline_hard_violations=tuple(baseline_hard_violations),
-            available_actions=tuple(available),
-            # issue #262 P0: optimize_plan on this first attempt already
-            # runs the Stage 3 v2 optimizer too (see _run_stage3_v2_optimize),
-            # so it needs the same schema the else-branch below attaches.
-            action_parameters=(
-                {"optimize_plan": _OPTIMIZE_PLAN_SCHEMAS["v2_optimizer"]}
-                if "optimize_plan" in available
-                else {}
-            ),
-        )
+        if any(str(v).startswith("host_team_missing:") for v in baseline_hard_violations):
+            from ...host_team_missing_repair import build_host_team_missing_decision_context
+
+            context = build_host_team_missing_decision_context(
+                extract_candidate(plan),
+                problem,
+                run_id=run_id,
+                candidate_ref=f"stage3_interactive:attempt_{attempts_used}",
+            )
+            if cp_sat_shadow is not None:
+                context = _dc_replace(context, facts={**context.facts, "cp_sat_shadow": cp_sat_shadow})
+        else:
+            available = ["optimize_plan", "keep_baseline", "request_operator", "abort"]
+            if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
+                available.remove("optimize_plan")
+            if cp_sat_shadow is not None and cp_sat_shadow.get("candidate_ref"):
+                # issue #310: a verified automatic CP-SAT candidate is directly
+                # applicable via candidate_ref, resolved against
+                # stage3_cpsat_cache -- without this, the only way to adopt it
+                # was to re-run optimize_plan(engine="cp_sat") and re-solve.
+                available.append("apply_candidate")
+            context = DecisionContext(
+                run_id=run_id,
+                capability="stage3_interactive",
+                stage="planning",
+                objective=(
+                    "Decide whether this Stage 3 plan is good enough to finalize "
+                    "(keep_baseline), or another optimization attempt is worth "
+                    "the search budget (optimize_plan)."
+                ),
+                facts=summary,
+                baseline_hard_violations=tuple(baseline_hard_violations),
+                available_actions=tuple(available),
+                # issue #262 P0: optimize_plan on this first attempt already
+                # runs the Stage 3 v2 optimizer too (see _run_stage3_v2_optimize),
+                # so it needs the same schema the else-branch below attaches.
+                action_parameters=(
+                    {"optimize_plan": _OPTIMIZE_PLAN_SCHEMAS["v2_optimizer"]}
+                    if "optimize_plan" in available
+                    else {}
+                ),
+            )
         interactive_state = {
             "run_id": run_id,
             "attempts_used": attempts_used,

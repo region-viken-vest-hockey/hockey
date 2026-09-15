@@ -341,6 +341,36 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                     use_pareto_for_stage3 = True
                 else:
                     use_v2_optimizer_for_stage3 = True
+            elif decision_action.action_id == "apply_repair_option":
+                from ...host_team_missing_repair import apply_host_team_missing_repair_option
+                from ...planning_contract import extract_candidate
+                from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
+
+                best_plan = stage3_interactive_state.get("best_plan")
+                repair_cfg = state.read_stage(StageName.CONFIG) or {}
+                repair_scraping = state.read_stage(StageName.SCRAPING) or {}
+                repair_start = datetime.strptime(repair_cfg["start_date"], "%Y-%m-%d")
+                repair_end = datetime.strptime(repair_cfg["end_date"], "%Y-%m-%d")
+                problem = _mid_planning_decision_problem(repair_cfg, repair_scraping, repair_start, repair_end)
+                outcome = apply_host_team_missing_repair_option(
+                    extract_candidate(best_plan),
+                    problem,
+                    option_id=str((decision_action.arguments or {}).get("option_id") or ""),
+                    expected_fingerprint=str((decision_action.arguments or {}).get("candidate_fingerprint") or ""),
+                    run_id=_current_run_id(state),
+                )
+                if not outcome.get("ok"):
+                    _console.print(f"[red]✗[/red] Reparasjon avvist: {outcome.get('reason')}")
+                    return 1
+                checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
+                invalidate_stale_candidate_checkpoint_keys(checkpoint)
+                checkpoint["plan"] = outcome["candidate"]
+                checkpoint["source"] = "host_team_missing_repair_applied"
+                checkpoint["host_team_missing_repair_result"] = {
+                    key: value for key, value in outcome.items() if key != "candidate"
+                }
+                state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
+                _clear_stage3_interactive_state(state)
             elif decision_action.action_id == "apply_candidate":
                 candidate_ref = (decision_action.arguments or {}).get("candidate_ref")
                 pending_candidates = stage3_interactive_state.get("pending_candidates")
