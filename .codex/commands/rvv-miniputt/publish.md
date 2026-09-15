@@ -1,11 +1,5 @@
-Publish the most recently generated RVV Miniputt export to GitHub Pages. Never runs or reruns the pipeline.
+# RVV Miniputt: Publish (Codex)
 
-Use:
+Codex transport adapter only. Read and execute `.agents/commands/rvv-miniputt/publish.md`.
 
-```bash
-scripts/rvv-miniputt operator publish --confirm-public <user-args>
-```
-
-Before publishing, confirm `.pipeline/stage4_export.json` exists and its `errors` list is empty; if not, stop and tell the user to run `/rvv-miniputt run` first instead of running the pipeline yourself. Do not run `/rvv-miniputt publish` in the shell.
-
-Report which export bundle was published, the published URL, any verification warning, and any publish failure.
+Shared repository policy belongs in `AGENTS.md`; shared RVV policy belongs in `.agents/skills/rvv/SKILL.md`. Do not duplicate either here.
