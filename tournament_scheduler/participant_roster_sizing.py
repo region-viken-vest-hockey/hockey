@@ -13,8 +13,8 @@ import math
 from datetime import date
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
 from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT
-from tournament_scheduler.planning_contract import NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP
 
 
 def club_demand_shares(planner, age_group: str, period: Optional[str] = None) -> Dict[str, float]:
@@ -111,6 +111,29 @@ def _participation_demand(planner, age_group: str, period: Optional[str] = None)
     return total_target, capacity
 
 
+def _registered_team_count(planner, age_group: str) -> int:
+    return len(planner.roster.by_age_group(age_group))
+
+
+def _effective_shape_for(planner, age_group: str):
+    """Effective-shape rule: the shape the complete registered pool actually supports.
+
+    Falls back to ``registered_team_count=0`` for a lightweight test/caller
+    planner stand-in that doesn't expose the rounds/parallel-games
+    attributes -- matching the rest of this module's tolerance for a
+    minimal planner interface (see `club_share_deficit`).
+    """
+    registered_team_count = _registered_team_count(planner, age_group)
+    rounds = getattr(planner, "rounds_per_tournament_for_age_group", {}) or {}
+    parallel = getattr(planner, "parallel_games_for_age_group", {}) or {}
+    return compute_effective_tournament_shape(
+        age_group,
+        registered_team_count,
+        configured_rounds=rounds.get(age_group) if isinstance(rounds, dict) else None,
+        parallel_game_capacity=parallel.get(age_group) if isinstance(parallel, dict) else None,
+    )
+
+
 def target_tournaments_for_age_group(planner, age_group: str, period: Optional[str] = None) -> int:
     """Return the number of tournaments to aim for in `age_group`.
 
@@ -122,9 +145,11 @@ def target_tournaments_for_age_group(planner, age_group: str, period: Optional[s
     total_target, capacity = _participation_demand(planner, age_group, period)
     if capacity == 0:
         return 0
-    exact_size = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(age_group)
-    if exact_size is not None:
-        return total_target // exact_size if capacity >= exact_size else 0
+    shape = _effective_shape_for(planner, age_group)
+    if shape.has_explicit_target:
+        if shape.effective_team_count < 2:
+            return 0
+        return total_target // shape.effective_team_count
     # No-bye invariant: do not create a leftover odd-sized tournament slot.
     return len(plan_roster_sizes(total_target, capacity))
 
@@ -180,10 +205,11 @@ def plan_roster_sizes_for_age_group(planner, age_group: str, period: Optional[st
     total_target, capacity = _participation_demand(planner, age_group, period)
     if capacity == 0:
         return []
-    exact_size = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(age_group)
-    if exact_size is not None:
-        full_slots = total_target // exact_size if capacity >= exact_size else 0
-        return [exact_size] * full_slots
+    shape = _effective_shape_for(planner, age_group)
+    if shape.has_explicit_target:
+        if shape.effective_team_count < 2:
+            return []
+        return [shape.effective_team_count] * (total_target // shape.effective_team_count)
     return plan_roster_sizes(total_target, capacity)
 
 

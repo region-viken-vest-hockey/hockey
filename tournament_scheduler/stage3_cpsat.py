@@ -18,7 +18,8 @@ from typing import Any, Dict, Optional
 
 from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .models import Team
-from .planning_contract import CANDIDATE_SCHEMA_VERSION, NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP
+from .effective_tournament_shape import compute_effective_tournament_shape, shape_violation
+from .planning_contract import CANDIDATE_SCHEMA_VERSION
 from .stage3_cpsat_club_cap import build_club_excess_terms
 from .stage3_cpsat_diagnostics import raise_host_not_represented
 from .stage3_cpsat_slots import (
@@ -100,11 +101,22 @@ def _solve_slot_group(
     x: "dict[tuple[int, TeamIdentity], Any]" = {}
 
     for slot in slots:
-        exact_required = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(slot.age_group)
-        invalid_no_bye_size = slot.roster_size % 2 == 1 or (
-            exact_required is not None and slot.roster_size != exact_required
+        # Effective-shape rule: judge the fixed skeleton's roster size against the
+        # shape the *complete registered pool* for this age group actually
+        # supports, not an unconditional even/exact-4 rule -- an
+        # input-constrained shape (the whole pool is too small) is legal,
+        # only an avoidable one (the pool could support a bigger no-bye
+        # shape) is infeasible.
+        registered_team_count = len(teams_by_age_group.get(slot.age_group, []))
+        rounds_per_tournament = (problem or {}).get("rounds_per_tournament") or {}
+        parallel_games_capacity = (problem or {}).get("parallel_games") or {}
+        shape = compute_effective_tournament_shape(
+            slot.age_group,
+            registered_team_count,
+            configured_rounds=rounds_per_tournament.get(slot.age_group),
+            parallel_game_capacity=parallel_games_capacity.get(slot.age_group),
         )
-        if invalid_no_bye_size:
+        if shape_violation(shape, slot.roster_size, 0):
             raise CpSatNoCandidate(
                 "INFEASIBLE_NO_BYE_ROSTER_SIZE",
                 perf_counter() - started,
@@ -115,7 +127,7 @@ def _solve_slot_group(
                     "tournament_id": slot.tournament_id,
                     "age_group": slot.age_group,
                     "roster_size": slot.roster_size,
-                    "required_team_count": exact_required,
+                    "required_team_count": shape.effective_team_count,
                 },
             )
         eligible = teams_by_age_group.get(slot.age_group, [])

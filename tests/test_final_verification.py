@@ -116,8 +116,76 @@ def test_unknown_calendar_is_valid_but_review_required():
     assert result["publication_readiness"]["status"] == "REVIEW_REQUIRED"
 
 
+def test_configured_round_mismatch_uses_effective_input_constrained_rounds():
+    teams = [
+        {"club": f"Club {idx}", "label": f"Team {idx}", "age_group": "U10"}
+        for idx in range(1, 5)
+    ]
+    games = [
+        {"home": "Team 1", "away": "Team 2", "parallel_slot": 0, "round_number": 1},
+        {"home": "Team 3", "away": "Team 4", "parallel_slot": 1, "round_number": 1},
+        {"home": "Team 1", "away": "Team 3", "parallel_slot": 0, "round_number": 2},
+        {"home": "Team 2", "away": "Team 4", "parallel_slot": 1, "round_number": 2},
+        {"home": "Team 1", "away": "Team 4", "parallel_slot": 0, "round_number": 3},
+        {"home": "Team 2", "away": "Team 3", "parallel_slot": 1, "round_number": 3},
+    ]
+    problem = _problem()
+    problem["teams"] = teams
+    problem["rounds_per_tournament"] = {"U10": 5}
+    problem["parallel_games"] = {"U10": 3}
+
+    result = verify_final_candidate(_candidate(teams=teams, games=games), problem)
+
+    assert result["ok"] is True, result["violations"]
+    assert result["input_constrained_shapes"][0]["effective_round_count"] == 3
+
+
+def test_avoidable_configured_round_mismatch_still_blocks():
+    registered = [
+        {"club": f"Club {idx}", "label": f"Team {idx}", "age_group": "U10"}
+        for idx in range(1, 9)
+    ]
+    teams = registered[:4]
+    games = [
+        {"home": "Team 1", "away": "Team 2", "parallel_slot": 0, "round_number": 1},
+        {"home": "Team 3", "away": "Team 4", "parallel_slot": 1, "round_number": 1},
+        {"home": "Team 1", "away": "Team 3", "parallel_slot": 0, "round_number": 2},
+        {"home": "Team 2", "away": "Team 4", "parallel_slot": 1, "round_number": 2},
+        {"home": "Team 1", "away": "Team 4", "parallel_slot": 0, "round_number": 3},
+        {"home": "Team 2", "away": "Team 3", "parallel_slot": 1, "round_number": 3},
+    ]
+    problem = _problem()
+    problem["teams"] = registered
+    problem["rounds_per_tournament"] = {"U10": 5}
+    problem["parallel_games"] = {"U10": 3}
+
+    result = verify_final_candidate(_candidate(teams=teams, games=games), problem)
+
+    assert result["ok"] is False
+    assert "configured_round_count_mismatch" in {item["code"] for item in result["violations"]}
+
+
 def test_problem_less_verification_cannot_be_publishable():
-    result = verify_final_candidate(_candidate())
+    # An even-sized roster so the fixture only exercises the "no problem ->
+    # never publishable" behavior under test, independent of the (also
+    # problem-less, therefore strict) no-bye rule.
+    even_teams = [
+        {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
+        {"club": "Kongsberg", "label": "Kongsberg 1", "age_group": "U10"},
+        {"club": "Holmen", "label": "Holmen 1", "age_group": "U10"},
+        {"club": "Jutul", "label": "Jutul 1", "age_group": "U10"},
+    ]
+    # A standard 4-team round-robin (circle method): no bye rounds, no team
+    # double-booked within a round.
+    even_games = [
+        {"home": "Jar 1", "away": "Kongsberg 1", "parallel_slot": 0, "round_number": 1},
+        {"home": "Holmen 1", "away": "Jutul 1", "parallel_slot": 1, "round_number": 1},
+        {"home": "Jar 1", "away": "Holmen 1", "parallel_slot": 0, "round_number": 2},
+        {"home": "Kongsberg 1", "away": "Jutul 1", "parallel_slot": 1, "round_number": 2},
+        {"home": "Jar 1", "away": "Jutul 1", "parallel_slot": 0, "round_number": 3},
+        {"home": "Kongsberg 1", "away": "Holmen 1", "parallel_slot": 1, "round_number": 3},
+    ]
+    result = verify_final_candidate(_candidate(teams=even_teams, games=even_games))
     assert result["ok"] is True
     assert result["publishable"] is False
     assert result["publication_readiness"]["status"] == "REVIEW_REQUIRED"

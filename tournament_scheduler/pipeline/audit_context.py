@@ -18,11 +18,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from ..effective_tournament_shape import compute_effective_tournament_shape, shape_violation
 from ..host_representation import clubs_represent_same_club
-from ..planning_contract import (
-    HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
-    NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP,
-)
+from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from .audit_result import current_export_fingerprint, current_run_id
 from .fingerprints import stable_payload_sha256
 from .state import PipelineState, StageName
@@ -231,8 +229,19 @@ def _summarize_plan_for_audit(
 
     tournaments = [t for t in plan_dict.get("tournaments") or [] if isinstance(t, dict)]
     ice_times = {}
+    # Effective-shape rule: the complete registered pool per age group, needed to tell
+    # an avoidable bye/underscheduling shape apart from a genuine
+    # input-constrained one -- degrades to the unconditional previous check
+    # when unavailable (audit evidence, not a gate, so a graceful fallback is
+    # fine here).
+    registered_count_by_age_group: Counter[str] = Counter()
+    rounds_per_tournament: dict[str, Any] = {}
     if isinstance(config_checkpoint, dict):
         ice_times = dict(config_checkpoint.get("ice_time_minutes") or {})
+        rounds_per_tournament = dict(config_checkpoint.get("rounds_per_tournament") or {})
+        for team in config_checkpoint.get("teams") or []:
+            if isinstance(team, dict) and team.get("age_group"):
+                registered_count_by_age_group[str(team["age_group"])] += 1
 
     duration_examples: list[dict[str, Any]] = []
     missing_duration: list[dict[str, Any]] = []
@@ -240,6 +249,7 @@ def _summarize_plan_for_audit(
     bye_row_count = sum(_count_bye_rows(tournament) for tournament in tournaments)
     utilisation_examples: list[dict[str, Any]] = []
     blocking_byes: list[dict[str, Any]] = []
+    input_constrained_shape_examples: list[dict[str, Any]] = []
     underfilled_by_age: Counter[str] = Counter()
     for tournament in tournaments:
         games = [g for g in tournament.get("games") or [] if isinstance(g, dict)]
@@ -298,9 +308,22 @@ def _summarize_plan_for_audit(
         utilisation_examples.append(utilisation_row)
         if utilisation_row["underfilled"]:
             underfilled_by_age[age_group] += 1
-        exact_required = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(age_group)
-        if team_count % 2 == 1 or bye_rounds or (exact_required is not None and team_count != exact_required):
-            blocking_byes.append({**utilisation_row, "required_team_count": exact_required})
+        if registered_count_by_age_group:
+            shape = compute_effective_tournament_shape(
+                age_group,
+                registered_count_by_age_group.get(age_group, 0),
+                configured_rounds=rounds_per_tournament.get(age_group),
+                parallel_game_capacity=configured_capacity // 2 if configured_capacity else None,
+            )
+            bye_round_count = len(bye_rounds)
+            if shape_violation(shape, team_count, bye_round_count):
+                blocking_byes.append({**utilisation_row, "required_team_count": shape.effective_team_count})
+            elif shape.input_constrained and team_count == shape.effective_team_count:
+                input_constrained_shape_examples.append({**utilisation_row, **shape.as_dict()})
+        elif team_count % 2 == 1 or bye_rounds:
+            # No registered-pool evidence available this run -- fall back to
+            # the unconditional previous check (audit evidence only).
+            blocking_byes.append({**utilisation_row, "required_team_count": None})
 
     host_missing: list[dict[str, Any]] = []
     club_count_over_two: list[dict[str, Any]] = []
@@ -366,6 +389,10 @@ def _summarize_plan_for_audit(
         "tournament_utilisation_summary": {
             "tournaments_with_byes_or_invalid_no_bye_roster": len(blocking_byes),
             "bye_examples": blocking_byes[:20],
+            # Effective-shape rule: tournaments whose odd/bye-having shape is a
+            # legitimate input-constrained adaptation (the registered pool
+            # was too small for the preferred shape), not a planner defect.
+            "input_constrained_shape_examples": input_constrained_shape_examples[:20],
             "underfilled_by_age_group": dict(sorted(underfilled_by_age.items())),
             "examples": utilisation_examples[:50],
         },

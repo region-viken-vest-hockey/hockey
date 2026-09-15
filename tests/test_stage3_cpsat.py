@@ -453,8 +453,13 @@ class TestOptimizeCandidateCpSat:
         with pytest.raises(CpSatNoCandidate) as excinfo:
             optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
 
-        assert excinfo.value.status == "INFEASIBLE_NO_BYE_ROSTER_SIZE"
-        assert excinfo.value.diagnostics["reason"] == "bye_team_not_allowed"
+        # Effective-shape rule: a single-team roster is no longer flagged as an
+        # avoidable bye/underscheduling defect (there is no bigger
+        # registered pool this age group could have supplied), so the
+        # solver now reaches -- and correctly reports -- the actual
+        # conflict this fixture is about.
+        assert excinfo.value.status == "BASELINE_CONSTRAINT_CONFLICT"
+        assert excinfo.value.diagnostics["violated_constraint"] == "no_duplicate_participation_on_one_date"
 
     def test_empty_candidate_returns_empty_status_without_solving(self):
         candidate = {"schema_version": 1, "tournaments": []}

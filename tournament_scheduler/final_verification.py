@@ -13,6 +13,7 @@ from itertools import combinations
 from typing import Any
 
 from tournament_scheduler.host_representation import constituent_clubs
+from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
 from tournament_scheduler.limited_rounds import minimum_same_club_games_for_limited_rounds
 from tournament_scheduler.models import Team
 from tournament_scheduler.planning_contract import verify_candidate as _verify_candidate
@@ -57,6 +58,20 @@ def _check_games(
     rounds_per_tournament = (problem or {}).get("rounds_per_tournament") or {}
     configured_rounds = rounds_per_tournament.get(age_group)
     limited_rounds = isinstance(configured_rounds, int) and configured_rounds > 0
+    expected_limited_rounds = configured_rounds
+    if limited_rounds and problem is not None:
+        registered_count = sum(
+            1
+            for team in problem.get("teams", []) or []
+            if isinstance(team, dict) and str(team.get("age_group") or "") == age_group
+        )
+        shape = compute_effective_tournament_shape(
+            age_group,
+            registered_count,
+            configured_rounds=int(configured_rounds),
+            parallel_game_capacity=((problem.get("parallel_games") or {}).get(age_group)),
+        )
+        expected_limited_rounds = shape.effective_round_count
     expected = {tuple(sorted(pair)) for pair in combinations(labels, 2)}
     actual: Counter[tuple[str, str]] = Counter()
     used_by_round: dict[int, set[str]] = defaultdict(set)
@@ -143,11 +158,12 @@ def _check_games(
             for g in (tournament.get("games") or [])
             if isinstance(g, dict)
         }
-        if actual_rounds and max(actual_rounds) != configured_rounds:
+        if actual_rounds and max(actual_rounds) != expected_limited_rounds:
             _add(
                 violations,
                 "configured_round_count_mismatch",
-                f"Tournament {tid} has {max(actual_rounds)} round(s); configured for {configured_rounds}",
+                f"Tournament {tid} has {max(actual_rounds)} round(s); expected {expected_limited_rounds} "
+                f"for configured {configured_rounds}",
                 tid,
             )
         if problem is not None:
@@ -164,7 +180,7 @@ def _check_games(
             min_same = minimum_same_club_games_for_limited_rounds(
                 teams,
                 int(parallel),
-                int(configured_rounds),
+                int(expected_limited_rounds or configured_rounds),
             )
             if same_club_count > min_same:
                 _add(
@@ -231,11 +247,13 @@ def verify_final_candidate(
 ) -> dict[str, Any]:
     """Run base verification plus final minimum-size and game-integrity checks."""
     result = dict(_verify_candidate(candidate, problem))
-    violations = [
-        dict(item)
-        for item in (result.get("violations") or [])
-        if dict(item).get("code") != "bye_team_not_allowed"
-    ]
+    # Effective-shape rule: `verify_candidate` now only raises `bye_team_not_allowed`
+    # for an avoidable bye/underscheduling shape (the registered pool could
+    # support a bigger no-bye shape) -- a genuine input-constrained
+    # adaptation is reported separately as `input_constrained_shapes` and is
+    # never in `violations`. Final verification must therefore keep, not
+    # discard, this violation instead of blanket-stripping it as before.
+    violations = [dict(item) for item in (result.get("violations") or [])]
 
     registered_by_age: Counter[str] = Counter()
     if problem is not None:

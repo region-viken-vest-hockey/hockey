@@ -703,3 +703,34 @@ class TestScoreCandidate:
         report = score_candidate({"tournaments": [t1, t2]})
         assert report["hosting"]["counts_by_host"]["Jar"] == 2
         assert report["month_distribution"] == {"2026-01": 1, "2026-02": 1}
+
+
+class TestVerifyCandidateInputConstrainedShape:
+    """Effective-shape rule: avoidable bye/underscheduling vs input-constrained adaptation."""
+
+    def test_small_full_registered_pool_is_input_constrained_not_a_violation(self):
+        # Only 5 teams registered for JU10 in the whole roster -- the
+        # tournament uses all of them, so the resulting odd/bye shape is
+        # unavoidable, not a planner defect.
+        registered = [_team(f"Club{i}", f"Team {i}", "JU10") for i in range(5)]
+        tournament = _tournament("t1", "2026-01-10", "Arena1", "JU10", registered)
+        problem = {"teams": registered, "rounds_per_tournament": {"JU10": 5}}
+        result = verify_candidate({"tournaments": [tournament]}, problem)
+        assert result["ok"], result["violations"]
+        assert "bye_team_not_allowed" not in {v["code"] for v in result["violations"]}
+        shapes = result["input_constrained_shapes"]
+        assert len(shapes) == 1
+        assert shapes[0]["registered_team_count"] == 5
+        assert shapes[0]["effective_team_count"] == 5
+
+    def test_large_registered_pool_with_small_subset_is_still_avoidable(self):
+        # 8 teams registered for U10, but the tournament only uses 4 of
+        # them -- the full pool could have supported a bigger no-bye shape,
+        # so this remains a hard violation.
+        registered = [_team(f"Club{i}", f"Team {i}", "U10") for i in range(8)]
+        tournament = _tournament("t1", "2026-01-10", "Arena1", "U10", registered[:4])
+        problem = {"teams": registered, "rounds_per_tournament": {"U10": 5}, "parallel_games": {"U10": 3}}
+        result = verify_candidate({"tournaments": [tournament]}, problem)
+        assert not result["ok"]
+        assert "bye_team_not_allowed" in {v["code"] for v in result["violations"]}
+        assert result["input_constrained_shapes"] == []

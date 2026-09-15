@@ -33,6 +33,12 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.host_representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
+from tournament_scheduler.effective_tournament_shape import (
+    NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP,
+    NO_BYE_MIN_TEAMS_PER_TOURNAMENT,
+    compute_effective_tournament_shape,
+    shape_violation,
+)
 from tournament_scheduler.planning_contract_distribution import (
     hosting_fairness as _hosting_fairness,
     month_and_half_distribution as _month_and_half_distribution,
@@ -48,13 +54,6 @@ CANDIDATE_SCHEMA_VERSION = 1
 # absolute maximum no planning engine, verifier or publication gate may ever
 # cross, regardless of fairness/host/objective trade-offs.
 HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT = 3
-
-# Pause/bye teams are not allowed in any materialized tournament: every
-# scheduled team must play in every round. With the current U12/JU12 capacity
-# of 4 teams this also means those tournaments must be exactly 4 teams / 6 games.
-NO_BYE_MIN_TEAMS_PER_TOURNAMENT = 4
-NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP = {"U12": 4, "JU12": 4}
-
 
 # ---------------------------------------------------------------------------
 # planning_problem.json
@@ -427,6 +426,10 @@ def verify_candidate(
     duplicate_labels = _duplicate_labels(tournaments)
     team_dates: Dict[TeamIdentity, List[Tuple[date, str]]] = {}
     participations: Dict[TeamIdentity, int] = {}
+    # Effective-shape rule: per-tournament-id count of rounds with a bye/rest, deferred
+    # here and consumed by the problem-dependent shape check below (which
+    # needs the full registered pool to judge avoidable vs input-constrained).
+    bye_round_shapes: Dict[str, int] = {}
 
     for t in tournaments:
         t_id = t.get("id", "?")
@@ -485,20 +488,29 @@ def verify_candidate(
             for round_number, playing in played_by_round.items()
             if any(label not in playing for label in team_labels)
         }
-        required_team_count = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(str(t.get("age_group") or ""))
-        invalid_exact_count = required_team_count is not None and team_count != required_team_count
-        if team_count % 2 == 1 or bye_rounds or invalid_exact_count:
-            requirement = (
-                f"exactly {required_team_count} teams"
-                if required_team_count is not None
-                else "an even number of teams"
-            )
-            _violate(
-                "bye_team_not_allowed",
-                f"Tournament {t_id} ({t.get('age_group')}) has {team_count} teams; "
-                f"tournaments must have {requirement} and no pause/bye rounds",
-                t_id,
-            )
+        # Effective-shape rule: without a `problem`, the complete registered team pool
+        # for the age group is unknowable, so avoidable vs input-constrained
+        # scarcity can't be distinguished -- fall back to the unconditional
+        # "even, no bye, exact U12/JU12" rule. When a `problem` is supplied,
+        # the shape-aware check below (using the real registered pool)
+        # replaces this instead.
+        if problem is None:
+            required_team_count = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(str(t.get("age_group") or ""))
+            invalid_exact_count = required_team_count is not None and team_count != required_team_count
+            if team_count % 2 == 1 or bye_rounds or invalid_exact_count:
+                requirement = (
+                    f"exactly {required_team_count} teams"
+                    if required_team_count is not None
+                    else "an even number of teams"
+                )
+                _violate(
+                    "bye_team_not_allowed",
+                    f"Tournament {t_id} ({t.get('age_group')}) has {team_count} teams; "
+                    f"tournaments must have {requirement} and no pause/bye rounds",
+                    t_id,
+                )
+        else:
+            bye_round_shapes.setdefault(t_id, len(bye_rounds))
 
         # issue #326: a hard ceiling, independent of any fairness/host/
         # objective trade-off -- 4+ teams from one club in one tournament is
@@ -546,6 +558,7 @@ def verify_candidate(
             "manual_calendar_placements": [],
             "manual_external_conflict_placements": [],
             "manual_participation_placements": [],
+            "input_constrained_shapes": [],
         }
 
     # --- problem-dependent checks -------------------------------------------
@@ -557,6 +570,19 @@ def verify_candidate(
         (t["club"], t["label"], t["age_group"]): t.get("target_tournament_count")
         for t in problem.get("teams", [])
     }
+
+    # Effective-shape rule: the complete canonical registered pool per age group --
+    # never derived from the candidate's own tournaments, which would let a
+    # planner manufacture scarcity by selecting too few of the available
+    # registered teams.
+    registered_count_by_age_group: Dict[str, int] = {}
+    for team in problem.get("teams", []):
+        ag = team.get("age_group")
+        if ag:
+            registered_count_by_age_group[ag] = registered_count_by_age_group.get(ag, 0) + 1
+    rounds_per_tournament = problem.get("rounds_per_tournament") or {}
+    parallel_games_capacity = problem.get("parallel_games") or {}
+    input_constrained_shapes: List[Dict[str, Any]] = []
     default_target = problem.get("target_tournament_count")
     participation_targets_by_age_group = problem.get("participation_targets_by_age_group") or {}
 
@@ -704,6 +730,38 @@ def verify_candidate(
                 f"Tournament {t_id} is hosted by excluded club {host_club!r}",
                 t_id,
             )
+
+        # Effective-shape rule: replaces the unconditional "even, no bye, exact
+        # U12/JU12" rule above (problem-less branch only) with a check
+        # against the shape the complete registered pool actually supports
+        # -- an avoidable bye/underscheduling (the pool could support a
+        # bigger no-bye shape) is still a hard violation, but a genuine
+        # input-constrained adaptation (the whole pool is too small) is
+        # non-blocking evidence instead.
+        shape_age_group = str(t.get("age_group") or "")
+        shape = compute_effective_tournament_shape(
+            shape_age_group,
+            registered_count_by_age_group.get(shape_age_group, 0),
+            configured_rounds=rounds_per_tournament.get(shape_age_group),
+            parallel_game_capacity=parallel_games_capacity.get(shape_age_group),
+        )
+        actual_team_count = len(t.get("teams", []))
+        actual_bye_round_count = bye_round_shapes.get(t_id, 0)
+        if shape_violation(shape, actual_team_count, actual_bye_round_count):
+            requirement = (
+                f"{shape.effective_team_count} teams"
+                if not shape.input_constrained
+                else f"{shape.effective_team_count} teams (input-constrained, {shape.registered_team_count} registered)"
+            )
+            _violate(
+                "bye_team_not_allowed",
+                f"Tournament {t_id} ({shape_age_group}) has {actual_team_count} teams; "
+                f"the registered pool supports {requirement} with at most "
+                f"{shape.unavoidable_bye_count} unavoidable rest round(s)",
+                t_id,
+            )
+        elif shape.input_constrained and actual_team_count == shape.effective_team_count:
+            input_constrained_shapes.append({"tournament_id": t_id, **shape.as_dict()})
 
         # issue #323: this check is already scoped to the tournament's OWN
         # participant list (`t.get("teams", [])`), not the roster-wide set
@@ -866,6 +924,7 @@ def verify_candidate(
         "manual_calendar_placements": manual_calendar_placements,
         "manual_external_conflict_placements": manual_external_conflict_placements,
         "manual_participation_placements": manual_participation_placements,
+        "input_constrained_shapes": input_constrained_shapes,
     }
 
 
