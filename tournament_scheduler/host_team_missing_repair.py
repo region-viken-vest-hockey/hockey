@@ -3,6 +3,21 @@
 This is the first small, planner-neutral repair-option capability: Python
 enumerates concrete local repairs and applies only a selected option id against
 an unchanged candidate fingerprint, then reruns the independent verifier.
+
+Every host-club registered team is either turned into a hard-feasible option or
+recorded in ``rejected_candidates`` with an explicit reason. Pre-checks reuse
+the vocabulary the targeted roster repair already uses
+(``already_participating``/``already_plays_same_date``/``at_participation_max``),
+and anything they cannot decide locally falls back to the canonical verifier's
+own violation code (e.g. ``club_hard_max_exceeded``, ``bye_team_not_allowed``,
+``arena_interval_conflict``) -- so no legal option is hidden by an ad-hoc
+ranking policy, and no illegal option is exposed.
+
+An option is only exposed when applying it leaves a candidate that passes the
+full independent verifier. When a candidate carries several independent
+``host_team_missing`` findings, no single local option can satisfy that gate,
+so the context reports the rejection evidence and hands control back to the
+broader search/escalation loop instead of committing partial progress.
 """
 
 from __future__ import annotations
@@ -11,9 +26,10 @@ import copy
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
+from . import planning_half
 from .application.decisions import DecisionContext
 from .effective_tournament_shape import compute_effective_tournament_shape
 from .game_generation import generate_tournament_games
@@ -163,6 +179,7 @@ def apply_host_team_missing_repair_option(
 
 
 def _participant_options(candidate, problem, tournament, finding_id: str, fingerprint: str):
+    """Legal participant repairs for one finding, plus explicit rejections."""
     out: List[RepairOption] = []
     rejected: List[Dict[str, Any]] = []
     age_group = tournament.get("age_group")
@@ -171,54 +188,93 @@ def _participant_options(candidate, problem, tournament, finding_id: str, finger
     current = {_identity(t) for t in teams}
     t_date = _parse_date(tournament.get("date"))
     required = _effective_size(problem, age_group)
-    at_size = required is not None and len(teams) >= required
     existing_counts = _participation_counts(candidate)
+    half_counts = _participations_by_half(candidate, problem)
     same_date = _same_date_identities(candidate, t_date, except_tournament_id=tournament.get("id"))
-    candidates = host_eligible_teams(problem.get("teams", []), host, age_group)
+    registered = list(problem.get("teams", []))
+    # Every registered team whose club label shares a constituent with the host
+    # is considered, not just the exact-age-group subset: a host-club sibling
+    # in the wrong age group is still useful rejection evidence.
+    host_registered = [
+        team for team in registered if clubs_represent_same_club(team.get("club", ""), host or "")
+    ]
+    candidates = host_eligible_teams(registered, host, age_group)
+    ineligible = [team for team in host_registered if team.get("age_group") != age_group]
+
     if str(tournament.get("id")) in {str(item) for item in (problem.get("manual_adjustments") or {}).get("pinned_tournament_ids", [])}:
         return [], [
-            {
-                "finding_id": finding_id,
-                "tournament_id": tournament.get("id"),
-                "team": _team_ref(add),
-                "reason": "manual_restriction_forbids_mutation",
-            }
-            for add in candidates
+            {**_participant_base(finding_id, tournament, add), "reason": "manual_restriction_forbids_mutation"}
+            for add in host_registered
         ]
+
+    for add in ineligible:
+        rejected.append(
+            {
+                **_participant_base(finding_id, tournament, add),
+                "reason": "age_group_mismatch",
+                "registered_age_group": add.get("age_group"),
+            }
+        )
+
+    # A tournament already at its configured/effective size can only be
+    # repaired by a replacement. Without an explicit target both growth and
+    # replacement are attempted, so an append that would break the legal
+    # roster shape still leaves the replacement family available.
+    if required is not None and len(teams) >= required:
+        remove_pool: List[Any] = list(teams)
+    elif required is not None:
+        remove_pool = [None]
+    else:
+        remove_pool = [None, *teams]
+
     for add in candidates:
         add_id = _identity(add)
-        base = {"finding_id": finding_id, "tournament_id": tournament.get("id"), "team": _team_ref(add)}
+        base = _participant_base(finding_id, tournament, add)
         if add_id in current:
             rejected.append({**base, "reason": "already_participating"})
             continue
         if add_id in same_date:
             rejected.append({**base, "reason": "already_plays_same_date"})
             continue
-        if _at_participation_max(add_id, existing_counts.get(add_id, 0), problem, t_date):
-            rejected.append({**base, "reason": "at_participation_max"})
+        limit = _participation_limit_reason(add_id, existing_counts, half_counts, problem, t_date)
+        if limit is not None:
+            rejected.append({**base, "reason": limit})
             continue
-        remove_pool = teams if at_size else [None]
         for remove in remove_pool:
+            entry = dict(base)
+            if remove is not None:
+                entry["remove_team"] = _team_ref(remove)
             trial = copy.deepcopy(candidate)
             action = "replace_participant" if remove else "append_participant"
             _mutate_participants(trial, tournament.get("id"), remove, add, problem)
             result = verify_candidate(trial, dict(problem))
-            if result.get("ok"):
-                suffix = f"{_slug(add_id)}" + (f":for:{_slug(_identity(remove))}" if remove else "")
-                deficit = _participation_deficit(add_id, existing_counts.get(add_id, 0), problem, t_date)
-                out.append(RepairOption(
-                    option_id=f"{fingerprint[:12]}:{finding_id}:{action}:{suffix}",
-                    finding_id=finding_id,
-                    action=action,
-                    tournament_id=str(tournament.get("id")),
-                    arguments={"add_team": _team_ref(add), **({"remove_team": _team_ref(remove)} if remove else {})},
-                    hard_feasible=True,
-                    effects={"host_team_missing": -1, "participation_deficit_delta": -1 if deficit > 0 else 0, "participation_deficit": deficit},
-                    evidence={"verification_ok": True},
-                ))
-            else:
-                rejected.append({**base, **({"remove_team": _team_ref(remove)} if remove else {}), "reason": "verification_failed", "violations": _codes(result)})
+            if not result.get("ok"):
+                rejected.append(
+                    {**entry, "reason": _primary_violation_reason(result), "violations": _codes(result)}
+                )
+                continue
+            suffix = f"{_slug(add_id)}" + (f":for:{_slug(_identity(remove))}" if remove else "")
+            deficit = _participation_deficit(add_id, existing_counts.get(add_id, 0), problem, t_date)
+            out.append(RepairOption(
+                option_id=f"{fingerprint[:12]}:{finding_id}:{action}:{suffix}",
+                finding_id=finding_id,
+                action=action,
+                tournament_id=str(tournament.get("id")),
+                arguments={"add_team": _team_ref(add), **({"remove_team": _team_ref(remove)} if remove else {})},
+                hard_feasible=True,
+                effects={
+                    "host_team_missing": -1,
+                    "participation_deficit_delta": -1 if deficit > 0 else 0,
+                    "participation_deficit": deficit,
+                    "roster_size_delta": 0 if remove else 1,
+                },
+                evidence={"verification_ok": True},
+            ))
     return out, rejected
+
+
+def _participant_base(finding_id: str, tournament, team) -> Dict[str, Any]:
+    return {"finding_id": finding_id, "tournament_id": tournament.get("id"), "team": _team_ref(team)}
 
 
 def _rehost_options(candidate, problem, tournament, finding_id: str, fingerprint: str):
@@ -273,7 +329,15 @@ def _rehost_options(candidate, problem, tournament, finding_id: str, fingerprint
                     evidence={"date": tournament.get("date"), "start_time": start, "end_time": _end_time(start, duration), "calendar_status": statuses.get(host, "known")},
                 ))
             else:
-                rejected.append({**base, "arena": arena, "start_time": start, "reason": "verification_failed", "violations": _codes(result)})
+                rejected.append(
+                    {
+                        **base,
+                        "arena": arena,
+                        "start_time": start,
+                        "reason": _primary_violation_reason(result),
+                        "violations": _codes(result),
+                    }
+                )
     return out, rejected
 
 
@@ -359,10 +423,63 @@ def _same_date_identities(candidate, t_date, *, except_tournament_id) -> set[Tea
     return out
 
 
-def _at_participation_max(identity, current_count: int, problem, t_date) -> bool:
+def _split_date(problem) -> Optional[date]:
+    """Before/after-Christmas cut-off, resolved exactly like the verifier does."""
+    configured = problem.get("christmas_split_date")
+    if configured:
+        return _parse_date(configured)
+    start = _parse_date(problem.get("start_date"))
+    end = _parse_date(problem.get("end_date"))
+    if start and end:
+        return planning_half.christmas_split_date(start, end)
+    return None
+
+
+def _participations_by_half(candidate, problem) -> Dict[str, Dict[TeamIdentity, int]]:
+    split = _split_date(problem)
+    counts: Dict[str, Dict[TeamIdentity, int]] = {"before_christmas": {}, "after_christmas": {}}
+    for t in candidate.get("tournaments", []):
+        t_date = _parse_date(t.get("date"))
+        if t_date is None:
+            continue
+        bucket = counts.get(planning_half.tournament_half(t_date, split))
+        if bucket is None:
+            continue
+        for team in t.get("teams", []) or []:
+            ident = _identity(team)
+            bucket[ident] = bucket.get(ident, 0) + 1
+    return counts
+
+
+def _participation_limit_reason(
+    identity, existing_counts, half_counts, problem, t_date
+) -> Optional[str]:
+    """Why *identity* may not take one more participation, or ``None``.
+
+    Covers both an explicit season-wide target (``at_participation_max``) and
+    the authoritative per-half participation target the verifier enforces when
+    no explicit target is configured (``incompatible_half_target``).
+    """
     team = next((t for t in problem.get("teams", []) if _identity(t) == identity), {})
     target = team.get("target_tournament_count", problem.get("target_tournament_count"))
-    return isinstance(target, int) and current_count >= target
+    if isinstance(target, int) and not isinstance(target, bool):
+        if existing_counts.get(identity, 0) >= target:
+            return "at_participation_max"
+    half_targets = (problem.get("participation_targets_by_age_group") or {}).get(identity[2]) or {}
+    if not half_targets or t_date is None:
+        return None
+    half = planning_half.tournament_half(t_date, _split_date(problem))
+    half_target = half_targets.get(half)
+    if isinstance(half_target, int) and not isinstance(half_target, bool):
+        if half_counts.get(half, {}).get(identity, 0) >= half_target:
+            return "incompatible_half_target"
+    return None
+
+
+def _primary_violation_reason(result) -> str:
+    """Canonical verifier code that blocked a trial, as an explicit reason."""
+    codes = _codes(result)
+    return codes[0] if codes else "verification_failed"
 
 
 def _participation_deficit(identity, current_count: int, problem, t_date) -> int:

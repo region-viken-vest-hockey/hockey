@@ -21,7 +21,7 @@ def _game(home, away, round_number):
     return {"home": home, "away": away, "round_number": round_number, "parallel_slot": 0}
 
 
-def _tournament(tid, host, teams, *, arena=None, start="10:00"):
+def _tournament(tid, host, teams, *, arena=None, start="10:00", date="2026-01-10", age_group="U12"):
     labels = [team["label"] for team in teams]
     games = [
         _game(labels[0], labels[3], 1),
@@ -33,8 +33,8 @@ def _tournament(tid, host, teams, *, arena=None, start="10:00"):
     ]
     return {
         "id": tid,
-        "date": "2026-01-10",
-        "age_group": "U12",
+        "date": date,
+        "age_group": age_group,
         "host_club": host,
         "arena": arena or f"{host} Arena",
         "start_time": start,
@@ -172,3 +172,335 @@ def test_stale_option_or_failed_application_does_not_mutate_candidate():
     assert not stale["ok"]
     assert stale["reason"] == "stale_candidate_fingerprint"
     assert candidate == original
+
+
+def _arenas(*clubs, status="known"):
+    return {club: f"{club} Arena" for club in clubs}, {club: status for club in clubs}
+
+
+def test_shared_joint_registration_resolves_to_legal_physical_constituents():
+    """A joint registration represents either physical host, and a rehost may
+    target any represented physical constituent of the current participants."""
+    arenas, statuses = _arenas("Jutul", "Jar", "Ull", "B", "C", "D", "E")
+    candidate = {
+        "schema_version": 1,
+        "tournaments": [
+            _tournament("t1", "Jutul", [_team("Jar/Ull"), _team("C"), _team("D"), _team("E")]),
+        ],
+    }
+    problem = {
+        "teams": [_team("Jutul/Jar"), _team("Jar/Ull"), _team("C"), _team("D"), _team("E")],
+        "parallel_games": {"U12": 2},
+        "club_arenas": arenas,
+        "club_calendar_status": statuses,
+        "club_busy_intervals": {},
+    }
+
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem)
+
+    # A team registered as "Jutul/Jar" satisfies the Jutul host obligation.
+    participant_options = [o for o in repair_set["options"] if o["action"] == "replace_participant"]
+    assert {o["arguments"]["add_team"]["club"] for o in participant_options} == {"Jutul/Jar"}
+    # "Jar/Ull" participants resolve to two physical host candidates.
+    rehost_hosts = {o["arguments"]["host_club"] for o in repair_set["options"] if o["action"] == "rehost"}
+    assert {"Jar", "Ull"} <= rehost_hosts
+
+
+def test_host_club_team_in_wrong_age_group_is_rejected_with_explicit_reason():
+    arenas, statuses = _arenas("Host", "B", "C", "D", "E")
+    candidate = {
+        "schema_version": 1,
+        "tournaments": [_tournament("t1", "Host", [_team("B"), _team("C"), _team("D"), _team("E")])],
+    }
+    problem = {
+        "teams": [
+            _team("Host", "Host 1"),
+            _team("Host", "Host U16", age="U16"),
+            _team("B"),
+            _team("C"),
+            _team("D"),
+            _team("E"),
+        ],
+        "parallel_games": {"U12": 2},
+        "club_arenas": arenas,
+        "club_calendar_status": statuses,
+        "club_busy_intervals": {},
+    }
+
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem)
+
+    mismatched = [
+        r for r in repair_set["rejected_candidates"]
+        if r["reason"] == "age_group_mismatch" and r["team"]["label"] == "Host U16"
+    ]
+    assert mismatched and mismatched[0]["registered_age_group"] == "U16"
+
+
+def test_incompatible_half_target_is_rejected_with_explicit_reason():
+    arenas, statuses = _arenas("Host", "B", "C", "D", "E")
+    candidate = {
+        "schema_version": 1,
+        "tournaments": [
+            _tournament("t1", "Host", [_team("B"), _team("C"), _team("D"), _team("E")], date="2026-01-10"),
+            _tournament("t2", "B", [_team("Host", "Host 1"), _team("B"), _team("C"), _team("D")], date="2026-01-17", arena="B Arena"),
+        ],
+    }
+    problem = {
+        "teams": [_team("Host", "Host 1"), _team("B"), _team("C"), _team("D"), _team("E")],
+        "parallel_games": {"U12": 2},
+        "club_arenas": arenas,
+        "club_calendar_status": statuses,
+        "club_busy_intervals": {},
+        "start_date": "2026-01-01",
+        "end_date": "2026-06-30",
+        "participation_targets_by_age_group": {"U12": {"before_christmas": 1, "after_christmas": 1}},
+    }
+
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem)
+
+    assert any(
+        r["reason"] == "incompatible_half_target" and r["team"]["label"] == "Host 1"
+        for r in repair_set["rejected_candidates"]
+    )
+
+
+def test_hard_per_club_cap_violation_is_rejected_with_explicit_reason():
+    """A repair that leaves a club above the hard per-tournament cap must be
+    rejected by the canonical verifier with its explicit code, never exposed."""
+    b_teams = [_team("B", f"B{index}") for index in range(1, 6)]
+    candidate = {"schema_version": 1, "tournaments": [_tournament("t1", "Host", list(b_teams))]}
+    problem = {
+        "teams": [_team("Host", "Host 1"), *b_teams],
+        "parallel_games": {"U12": 4},
+        "club_arenas": {"Host": "Host Arena", "B": "B Arena"},
+        "club_calendar_status": {"Host": "known", "B": "known"},
+        "club_busy_intervals": {},
+    }
+
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem)
+
+    assert repair_set["options"] == []
+    assert any(r["reason"] == "club_hard_max_exceeded" for r in repair_set["rejected_candidates"])
+
+
+def test_no_explicit_target_still_offers_replacement_when_growth_breaks_shape():
+    """Without an explicit target, an append that breaks the legal roster
+    shape must not hide the replacement family that keeps the size legal."""
+    teams = [_team("B", age="U10"), _team("C", age="U10"), _team("D", age="U10"), _team("E", age="U10")]
+    candidate = {
+        "schema_version": 1,
+        "tournaments": [_tournament("t1", "Host", teams, age_group="U10")],
+    }
+    problem = {
+        "teams": [_team("Host", "Host 1", age="U10"), *teams, _team("F", age="U10")],
+        "parallel_games": {"U10": 2},
+        "club_arenas": {club: f"{club} Arena" for club in ("Host", "B", "C", "D", "E", "F")},
+        "club_calendar_status": {club: "known" for club in ("Host", "B", "C", "D", "E", "F")},
+        "club_busy_intervals": {},
+    }
+
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem)
+
+    assert {
+        (o["action"], o["arguments"].get("remove_team", {}).get("label"))
+        for o in repair_set["options"]
+        if o["action"] == "replace_participant"
+    } == {
+        ("replace_participant", "B"),
+        ("replace_participant", "C"),
+        ("replace_participant", "D"),
+        ("replace_participant", "E"),
+    }
+    # Appending would break the no-bye shape; that rejection stays visible.
+    assert any(r["reason"] == "bye_team_not_allowed" for r in repair_set["rejected_candidates"])
+
+
+def test_no_legal_local_option_returns_rejection_evidence_and_escalation_actions():
+    """When no local repair is legal, the context must hand back why each
+    candidate failed plus the broader search/escalation actions."""
+    arenas, statuses = _arenas("Host", "F", "G")
+    candidate = {
+        "schema_version": 1,
+        "tournaments": [
+            _tournament("t1", "Host", [_team("B"), _team("C"), _team("D"), _team("E")]),
+            _tournament("t2", "F", [_team("Host", "Host 1"), _team("Host", "Host 2"), _team("F"), _team("G")]),
+        ],
+    }
+    problem = {
+        "teams": [
+            _team("Host", "Host 1"),
+            _team("Host", "Host 2"),
+            _team("B"),
+            _team("C"),
+            _team("D"),
+            _team("E"),
+            _team("F"),
+            _team("G"),
+        ],
+        "parallel_games": {"U12": 2},
+        # The represented clubs B..E have no trusted arena evidence, so no
+        # rehost is legal either.
+        "club_arenas": arenas,
+        "club_calendar_status": statuses,
+        "club_busy_intervals": {},
+    }
+    context = build_host_team_missing_decision_context(candidate, problem, run_id="run-1")
+
+    assert context.facts["repair_options"] == []
+    reasons = {r["reason"] for r in context.facts["rejected_candidates"]}
+    assert {"already_plays_same_date", "arena_not_configured"} <= reasons
+    assert context.available_actions == ("optimize_plan", "request_operator")
+    assert "apply_repair_option" not in context.available_actions
+    assert context.warnings
+
+
+def test_context_answers_registration_question_from_canonical_input_evidence():
+    """Canonical registered teams answer ''does this club field the age group?''
+    before any operator question -- the context exposes the repair instead."""
+    candidate = _invalid_candidate()
+    problem = _problem()
+
+    context = build_host_team_missing_decision_context(candidate, problem, run_id="run-1")
+
+    assert context.capability == "host_team_missing_repair"
+    assert "apply_repair_option" in context.available_actions
+    assert context.requires_human_approval is False
+    registered_labels = {
+        option["arguments"]["add_team"]["label"]
+        for option in context.facts["repair_options"]
+        if option["action"] in {"append_participant", "replace_participant"}
+    }
+    assert registered_labels == {"Host 1", "Host 2"}
+
+
+def _u11_round_robin(tid, day, host, teams):
+    labels = [team["label"] for team in teams]
+    rotation, games = list(labels), []
+    for round_number in range(1, len(rotation)):
+        for index in range(len(rotation) // 2):
+            games.append(
+                {
+                    "home": rotation[index],
+                    "away": rotation[-1 - index],
+                    "parallel_slot": 0,
+                    "round_number": round_number,
+                }
+            )
+        rotation = [rotation[0]] + [rotation[-1]] + rotation[1:-1]
+    return {
+        "id": tid,
+        "date": day,
+        "age_group": "U11",
+        "host_club": host,
+        "arena": f"{host} Arena",
+        "start_time": "10:00",
+        "duration_minutes": 90,
+        "teams": teams,
+        "games": games,
+    }
+
+
+def _frisk_style_u11_fixture():
+    """Faithful U11 fixture: a Frisk Asker-hosted tournament whose participants
+    are all other clubs, while Frisk Asker has two registered U11 teams.
+
+    Built through the canonical ``build_planning_problem`` contract (not a
+    hand-rolled problem dict) so the production problem shape, club arena
+    resolution and calendar evidence are exercised end to end.
+    """
+    from datetime import date
+
+    from tournament_scheduler.planning_contract import build_planning_problem
+
+    registered = [
+        _team(club, f"{club} {index}", age="U11")
+        for club in ("Frisk Asker", "Jar", "Kongsberg", "Holmen", "Ringerike")
+        for index in (1, 2)
+    ]
+    config = {
+        "teams": registered,
+        "parallel_games": {"U11": 2},
+        "rounds_per_tournament": {"U11": 3},
+        "ice_time_minutes": {"U11": 90},
+    }
+    scraping = {
+        "club_calendar_status": {team["club"]: "known" for team in registered},
+        "events_by_club": {},
+    }
+    problem = build_planning_problem(config, scraping, date(2026, 9, 1), date(2027, 4, 30))
+    candidate = {
+        "schema_version": 1,
+        "tournaments": [
+            _u11_round_robin(
+                "t1",
+                "2026-10-10",
+                "Frisk Asker",
+                [_team("Jar", "Jar 1", age="U11"), _team("Kongsberg", "Kongsberg 1", age="U11"),
+                 _team("Holmen", "Holmen 1", age="U11"), _team("Ringerike", "Ringerike 1", age="U11")],
+            ),
+            _u11_round_robin(
+                "t2",
+                "2026-10-17",
+                "Jar",
+                [_team("Jar", "Jar 2", age="U11"), _team("Kongsberg", "Kongsberg 2", age="U11"),
+                 _team("Holmen", "Holmen 2", age="U11"), _team("Ringerike", "Ringerike 2", age="U11")],
+            ),
+        ],
+    }
+    return candidate, problem
+
+
+def test_production_frisk_style_u11_host_missing_is_repaired_atomically():
+    candidate, problem = _frisk_style_u11_fixture()
+    original = deepcopy(candidate)
+
+    verification = verify_candidate(candidate, problem)
+    assert [v["code"] for v in verification["violations"]] == ["host_team_missing"]
+
+    context = build_host_team_missing_decision_context(candidate, problem, run_id="run-1")
+    assert "apply_repair_option" in context.available_actions
+    registered_host_teams = {
+        option["arguments"]["add_team"]["label"]
+        for option in context.facts["repair_options"]
+        if option["action"] == "replace_participant"
+    }
+    assert registered_host_teams == {"Frisk Asker 1", "Frisk Asker 2"}
+
+    option = next(o for o in context.facts["repair_options"] if o["action"] == "replace_participant")
+    decision = decide(
+        context,
+        DecisionAction(
+            action_id="apply_repair_option",
+            arguments={
+                "option_id": option["option_id"],
+                "candidate_fingerprint": context.facts["candidate_fingerprint"],
+            },
+        ),
+    )
+    assert decision.accepted
+
+    applied = apply_host_team_missing_repair_option(
+        candidate,
+        problem,
+        option_id=option["option_id"],
+        expected_fingerprint=context.facts["candidate_fingerprint"],
+        run_id="run-1",
+    )
+
+    assert applied["ok"] and applied["verification"]["ok"]
+    assert candidate == original
+    repaired = applied["candidate"]["tournaments"][0]
+    assert any(team["club"] == "Frisk Asker" for team in repaired["teams"])
+    assert len(repaired["games"]) == 6
+
+
+def test_pinned_tournament_reports_manual_restriction_for_every_mutation():
+    candidate = _invalid_candidate()
+    problem = _problem()
+    problem["manual_adjustments"] = {"pinned_tournament_ids": ["t1"]}
+
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem)
+
+    assert repair_set["options"] == []
+    reasons = {entry["reason"] for entry in repair_set["rejected_candidates"]}
+    assert reasons == {"manual_restriction_forbids_mutation"}

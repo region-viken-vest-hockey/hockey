@@ -100,6 +100,44 @@ def _emit_interactive_decision_context(
     return 2
 
 
+def _host_team_missing_repair_context(
+    plan: "dict[str, Any]",
+    problem: "dict[str, Any] | None",
+    *,
+    run_id: str,
+    candidate_ref: str,
+    require_options: bool = False,
+) -> "Any | None":
+    """Repair :class:`DecisionContext` for *plan*, or ``None``.
+
+    Only built when independent verification actually reports
+    ``host_team_missing``, so a healthy plan never pays for option
+    enumeration. The caller must never hand-edit participant/host values: the
+    context exposes exactly the repository-generated option ids and their
+    rejection evidence.
+
+    *require_options* additionally suppresses the context when no legal local
+    option exists, letting a caller fall back to the ordinary comparison
+    context (which can still offer ``keep_baseline``); the first-attempt path
+    keeps it ``False`` so the rejection evidence is always surfaced.
+    """
+    from ...host_team_missing_repair import build_host_team_missing_decision_context
+    from ...planning_contract import extract_candidate
+
+    violations = _baseline_hard_violations_for_plan(plan, problem)
+    if not any(str(v).startswith("host_team_missing:") for v in violations):
+        return None
+    context = build_host_team_missing_decision_context(
+        extract_candidate(plan),
+        problem,
+        run_id=run_id,
+        candidate_ref=candidate_ref,
+    )
+    if require_options and not context.facts.get("repair_options"):
+        return None
+    return context
+
+
 def _emit_stage3_interactive_decision(
     state: "Any",
     work_dir: str,
@@ -233,15 +271,14 @@ def _emit_stage3_interactive_decision(
         if cp_sat_shadow is not None:
             summary = {**summary, "cp_sat_shadow": cp_sat_shadow}
         baseline_hard_violations = _baseline_hard_violations_for_plan(plan, problem)
-        if any(str(v).startswith("host_team_missing:") for v in baseline_hard_violations):
-            from ...host_team_missing_repair import build_host_team_missing_decision_context
-
-            context = build_host_team_missing_decision_context(
-                extract_candidate(plan),
-                problem,
-                run_id=run_id,
-                candidate_ref=f"stage3_interactive:attempt_{attempts_used}",
-            )
+        repair_context = _host_team_missing_repair_context(
+            plan,
+            problem,
+            run_id=run_id,
+            candidate_ref=f"stage3_interactive:attempt_{attempts_used}",
+        )
+        if repair_context is not None:
+            context = repair_context
             if cp_sat_shadow is not None:
                 context = _dc_replace(context, facts={**context.facts, "cp_sat_shadow": cp_sat_shadow})
         else:
@@ -285,47 +322,61 @@ def _emit_stage3_interactive_decision(
         attempts_used += 1
         best_plan = interactive_state["best_plan"]
         best_attempt = interactive_state.get("best_attempt", 1)
+        # A later attempt that re-introduces host_team_missing must not be
+        # answered by yet another opaque optimize_plan retry loop: when a local
+        # repair exists, expose it here too. When none exists, fall through to
+        # the ordinary comparison context so keep_baseline stays available.
+        repair_context = _host_team_missing_repair_context(
+            plan,
+            problem,
+            run_id=run_id,
+            candidate_ref=f"stage3_interactive:attempt_{attempts_used}",
+            require_options=True,
+        )
         report = None
-        try:
-            report = build_ab_report(extract_candidate(best_plan), extract_candidate(plan), problem)
-        except (ValueError, KeyError) as exc:
-            log_fn(f"stage3_interactive attempt {attempts_used}: could not build A/B report: {exc}")
-
-        available = list(STAGE3_DECISION_ACTIONS)
-        if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
-            available.remove("optimize_plan")
-        if report is not None:
-            context = build_stage3_decision_context(
-                report,
-                run_id=run_id,
-                baseline_ref=f"stage3_interactive:attempt_{best_attempt}",
-                candidate_ref=f"stage3_interactive:attempt_{attempts_used}",
-                objective=(
-                    f"Decide whether Stage 3 attempt {attempts_used} should replace "
-                    f"the current best attempt ({best_attempt}), request another "
-                    "optimization attempt, ask the operator, or keep the current best."
-                ),
-                # issue #262 P0: optimize_plan now runs the Stage 3 v2
-                # optimizer (see _run_stage3_v2_optimize), not a legacy
-                # SeasonPlanner rerun -- attach the schema that matches what
-                # will actually execute.
-                optimize_plan_schema="v2_optimizer",
-            )
-            context = _dc_replace(context, available_actions=tuple(available) + ("abort",))
+        if repair_context is not None:
+            context = repair_context
         else:
-            # A/B report couldn't be built — fall back to keep/abort only,
-            # never silently apply an uncompared candidate. Still
-            # independently verify the current best plan so a hard-failing
-            # baseline can't be finalized via keep_baseline just because the
-            # A/B comparison itself broke.
-            context = DecisionContext(
-                run_id=run_id,
-                capability="stage3_optimize",
-                stage="planning",
-                objective="Could not build an old-vs-new comparison report for this attempt.",
-                baseline_hard_violations=tuple(_baseline_hard_violations_for_plan(best_plan, problem)),
-                available_actions=("keep_baseline", "request_operator", "abort"),
-            )
+            try:
+                report = build_ab_report(extract_candidate(best_plan), extract_candidate(plan), problem)
+            except (ValueError, KeyError) as exc:
+                log_fn(f"stage3_interactive attempt {attempts_used}: could not build A/B report: {exc}")
+
+            available = list(STAGE3_DECISION_ACTIONS)
+            if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
+                available.remove("optimize_plan")
+            if report is not None:
+                context = build_stage3_decision_context(
+                    report,
+                    run_id=run_id,
+                    baseline_ref=f"stage3_interactive:attempt_{best_attempt}",
+                    candidate_ref=f"stage3_interactive:attempt_{attempts_used}",
+                    objective=(
+                        f"Decide whether Stage 3 attempt {attempts_used} should replace "
+                        f"the current best attempt ({best_attempt}), request another "
+                        "optimization attempt, ask the operator, or keep the current best."
+                    ),
+                    # issue #262 P0: optimize_plan now runs the Stage 3 v2
+                    # optimizer (see _run_stage3_v2_optimize), not a legacy
+                    # SeasonPlanner rerun -- attach the schema that matches what
+                    # will actually execute.
+                    optimize_plan_schema="v2_optimizer",
+                )
+                context = _dc_replace(context, available_actions=tuple(available) + ("abort",))
+            else:
+                # A/B report couldn't be built — fall back to keep/abort only,
+                # never silently apply an uncompared candidate. Still
+                # independently verify the current best plan so a hard-failing
+                # baseline can't be finalized via keep_baseline just because the
+                # A/B comparison itself broke.
+                context = DecisionContext(
+                    run_id=run_id,
+                    capability="stage3_optimize",
+                    stage="planning",
+                    objective="Could not build an old-vs-new comparison report for this attempt.",
+                    baseline_hard_violations=tuple(_baseline_hard_violations_for_plan(best_plan, problem)),
+                    available_actions=("keep_baseline", "request_operator", "abort"),
+                )
         if cp_sat_shadow is not None:
             context = _dc_replace(context, facts={**context.facts, "cp_sat_shadow": cp_sat_shadow})
         interactive_state["attempts_used"] = attempts_used

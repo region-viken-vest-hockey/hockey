@@ -1910,3 +1910,253 @@ class TestStage3CpSatCacheAndBudgetGuard:
         interactive_state = _read_stage3_interactive_state(state)
         facts = interactive_state["last_context"]["facts"]
         assert facts["cp_sat_shadow"]["skipped_reason"] == "wall_clock_ceiling"
+
+
+def _host_missing_plan() -> dict[str, Any]:
+    teams = [_team("B", "B", "U10"), _team("C", "C", "U10"), _team("D", "D", "U10"), _team("E", "E", "U10")]
+    return {
+        "plan": {
+            "schema_version": 1,
+            "tournaments": [
+                {
+                    "id": "t1",
+                    "date": "2026-09-05",
+                    "age_group": "U10",
+                    "host_club": "Host",
+                    "arena": "Host Arena",
+                    "start_time": "10:00",
+                    "duration_minutes": 120,
+                    "teams": teams,
+                    "games": _round_robin_games([t["label"] for t in teams]),
+                }
+            ],
+        },
+        "warnings": [],
+    }
+
+
+def _host_missing_problem() -> dict[str, Any]:
+    clubs = ("Host", "B", "C", "D", "E")
+    return {
+        "teams": [
+            _team("B", "B", "U10"),
+            _team("C", "C", "U10"),
+            _team("D", "D", "U10"),
+            _team("E", "E", "U10"),
+            _team("Host", "Host 1", "U10"),
+        ],
+        "parallel_games": {"U10": 2},
+        "club_arenas": {club: f"{club} Arena" for club in clubs},
+        "club_calendar_status": {club: "known" for club in clubs},
+        "club_busy_intervals": {},
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+    }
+
+
+def _no_local_option_plan_and_problem() -> tuple[dict[str, Any], dict[str, Any]]:
+    """A host_team_missing candidate whose only host sibling already plays on
+    the same date and whose represented clubs have no trusted arena evidence."""
+    t1_teams = [_team("B", "B", "U10"), _team("C", "C", "U10"), _team("D", "D", "U10"), _team("E", "E", "U10")]
+    t2_teams = [
+        _team("Host", "Host 1", "U10"),
+        _team("F", "F", "U10"),
+        _team("G", "G", "U10"),
+        _team("H", "H", "U10"),
+    ]
+    plan = {
+        "plan": {
+            "schema_version": 1,
+            "tournaments": [
+                {
+                    "id": "t1",
+                    "date": "2026-09-05",
+                    "age_group": "U10",
+                    "host_club": "Host",
+                    "arena": "Host Arena",
+                    "start_time": "10:00",
+                    "duration_minutes": 120,
+                    "teams": t1_teams,
+                    "games": _round_robin_games([t["label"] for t in t1_teams]),
+                },
+                {
+                    "id": "t2",
+                    "date": "2026-09-05",
+                    "age_group": "U10",
+                    "host_club": "F",
+                    "arena": "F Arena",
+                    "start_time": "13:00",
+                    "duration_minutes": 120,
+                    "teams": t2_teams,
+                    "games": _round_robin_games([t["label"] for t in t2_teams]),
+                },
+            ],
+        },
+        "warnings": [],
+    }
+    problem = {
+        "teams": [
+            _team("Host", "Host 1", "U10"),
+            *t1_teams,
+            *t2_teams[1:],
+        ],
+        "parallel_games": {"U10": 2},
+        "club_arenas": {"Host": "Host Arena", "F": "F Arena"},
+        "club_calendar_status": {"Host": "known", "F": "known"},
+        "club_busy_intervals": {},
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+    }
+    return plan, problem
+
+
+class TestStage3HostTeamMissingRepairContext:
+    """issue #349: the interactive Stage 3 controller must expose repository
+    generated local host_team_missing repairs instead of burning opaque
+    optimizer attempts (or asking the operator to diagnose registration)."""
+
+    _CFG = {"start_date": "2026-09-01", "end_date": "2027-04-30"}
+
+    def _emit(self, state, tmp_path, plan, problem):
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import (
+            _emit_stage3_interactive_decision,
+        )
+
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit._mid_planning_decision_problem",
+            return_value=problem,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit._maybe_run_stage3_cp_sat_shadow",
+            return_value=None,
+        ):
+            return _emit_stage3_interactive_decision(
+                state, str(tmp_path), self._CFG, {}, None, None, plan, lambda msg: None,
+            )
+
+    def test_first_attempt_exposes_repair_options_before_optimizer_retries(self, state, tmp_path, capsys):
+        exit_code = self._emit(state, tmp_path, _host_missing_plan(), _host_missing_problem())
+        payload = json.loads(capsys.readouterr().out)
+
+        assert exit_code == 2
+        assert payload["capability"] == "host_team_missing_repair"
+        assert payload["facts"]["repair_options"]
+        assert "apply_repair_option" in payload["available_actions"]
+        option_ids = payload["action_parameters"]["apply_repair_option"]["option_id"]["enum"]
+        assert option_ids == [option["option_id"] for option in payload["facts"]["repair_options"]]
+
+    def test_later_attempt_with_local_options_still_exposes_them(self, state, tmp_path, capsys):
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import (
+            _write_stage3_interactive_state,
+        )
+
+        best = _plan_checkpoint(seed=1)
+        _write_stage3_interactive_state(
+            state,
+            {"run_id": "legacy", "attempts_used": 1, "best_attempt": 1, "best_plan": best, "pending_attempt": 1},
+        )
+
+        exit_code = self._emit(state, tmp_path, _host_missing_plan(), _host_missing_problem())
+        payload = json.loads(capsys.readouterr().out)
+
+        assert exit_code == 2
+        assert payload["capability"] == "host_team_missing_repair"
+        assert "apply_repair_option" in payload["available_actions"]
+        # attempt 2 proves the later-attempt branch, not the first-attempt one.
+        assert _read_stage3_interactive_state(state)["attempts_used"] == 2
+
+    def test_later_attempt_without_local_options_falls_back_to_comparison(self, state, tmp_path, capsys):
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import (
+            _write_stage3_interactive_state,
+        )
+
+        best = _plan_checkpoint(seed=1)
+        _write_stage3_interactive_state(
+            state,
+            {"run_id": "legacy", "attempts_used": 1, "best_attempt": 1, "best_plan": best, "pending_attempt": 1},
+        )
+        plan, problem = _no_local_option_plan_and_problem()
+
+        exit_code = self._emit(state, tmp_path, plan, problem)
+        payload = json.loads(capsys.readouterr().out)
+
+        assert exit_code == 2
+        # No local repair exists, so the ordinary comparison context (which can
+        # still keep the previous best) is offered instead of a dead end.
+        assert payload["capability"] != "host_team_missing_repair"
+        assert _read_stage3_interactive_state(state)["attempts_used"] == 2
+
+    def test_apply_repair_option_commits_verified_plan_and_skips_stage3_rerun(self, state, tmp_path):
+        """issue #349 production shape: the harness selects one repository
+        option id, the controller applies it atomically, the repaired plan is
+        committed to the checkpoint, and the run resumes into Stage 4 -- no
+        opaque optimizer retry loop and no registration question to the
+        operator."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import (
+            _stage3_interactive_state_path,
+            _write_stage3_interactive_state,
+        )
+        from tournament_scheduler.host_team_missing_repair import (
+            build_host_team_missing_decision_context,
+        )
+
+        plan = _host_missing_plan()
+        problem = _host_missing_problem()
+        context = build_host_team_missing_decision_context(plan["plan"], problem, run_id="legacy")
+        option = next(
+            o for o in context.facts["repair_options"] if o["action"] == "replace_participant"
+        )
+
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan,
+                "pending_attempt": 1,
+                "last_context": context.to_dict(),
+            },
+        )
+        state.write_stage(
+            StageName.CONFIG, {"start_date": "2026-09-01", "end_date": "2027-04-30"}, status=StageStatus.DONE
+        )
+        state.write_stage(
+            StageName.SCRAPING, {"sources": [], "blocked": []}, status=StageStatus.DONE
+        )
+        state.write_stage(StageName.PLANNING, plan, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {
+                    "action_id": "apply_repair_option",
+                    "rationale": "select the host-club participant repair",
+                    "arguments": {
+                        "option_id": option["option_id"],
+                        "candidate_fingerprint": context.facts["candidate_fingerprint"],
+                    },
+                }
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._mid_planning_decision_problem",
+            return_value=problem,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        checkpoint = state.read_stage(StageName.PLANNING)
+        assert checkpoint["source"] == "host_team_missing_repair_applied"
+        assert checkpoint["host_team_missing_repair_result"]["ok"] is True
+        assert any(team["club"] == "Host" for team in checkpoint["plan"]["tournaments"][0]["teams"])
+        assert not _stage3_interactive_state_path(state).exists()
