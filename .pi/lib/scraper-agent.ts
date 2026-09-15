@@ -13,7 +13,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 export interface NavigationStep {
-  cmd: "click" | "goto" | "type" | "wait" | "extract" | "manual_login";
+  cmd: "click" | "goto" | "type" | "wait" | "extract";
   selector?: string;
   text?: string;
   url?: string;
@@ -92,15 +92,15 @@ export function userMessage(snapshot: WorkerResponse, iteration: number, maxIter
     `URL: ${snapshot.url ?? "ukjent"}`,
     "",
     "Synlig HTML (første 3000 tegn):",
-    redactCredentials((snapshot.html ?? "").slice(0, 3000)),
+    (snapshot.html ?? "").slice(0, 3000),
   ];
   if (snapshot.iframe_html) {
-    lines.push("", "Iframe HTML (første 3000 tegn):", redactCredentials(snapshot.iframe_html.slice(0, 3000)));
+    lines.push("", "Iframe HTML (første 3000 tegn):", snapshot.iframe_html.slice(0, 3000));
   }
   if (snapshot.interactive?.length) {
     lines.push("", "Interaktive elementer:");
     for (const el of snapshot.interactive.slice(0, 30)) {
-      lines.push(`  <${el.tag}> "${redactCredentials(el.text)}" → ${el.selector}`);
+      lines.push(`  <${el.tag}> "${el.text}" → ${el.selector}`);
     }
   }
   if (snapshot.events?.length) {
@@ -182,10 +182,6 @@ function parseAction(data: Record<string, unknown>): LLMAction | null {
   };
 }
 
-function isManualBookupLoginEnabled(): boolean {
-  return [process.env.RVV_BOOKUP_MANUAL_LOGIN, process.env.BOOKUP_MANUAL_LOGIN]
-    .some((value) => ["1", "true", "yes", "y", "on"].includes(String(value ?? "").trim().toLowerCase()));
-}
 
 export class ScraperAgent {
   private proc: ChildProcess | null = null;
@@ -251,11 +247,7 @@ export class ScraperAgent {
     for (const step of steps) {
       const waitMs = step.wait_ms ?? 1500;
       try {
-        if (step.cmd === "manual_login") {
-          if (!isManualBookupLoginEnabled()) continue;
-          await this.ctx.ui.input(`${step.text || "Fullfør eventuell manuell innlogging/MFA i nettleseren."}\n\nTrykk Enter når kalenderen er synlig.`, "");
-          current = await this.send({ cmd: "snapshot" });
-        } else if (step.cmd === "click") {
+        if (step.cmd === "click") {
           current = await this.send({ cmd: "click", selector: step.selector ?? "", iframe: step.iframe ?? false, wait_ms: waitMs });
         } else if (step.cmd === "type") {
           current = await this.send({ cmd: "type", selector: step.selector ?? "", text: substituteEnvVars(step.text ?? ""), wait_ms: waitMs });
@@ -375,15 +367,7 @@ export class ScraperAgent {
   }
 }
 
+
 export function substituteEnvVars(text: string): string {
   return text.replace(/\$\{(\w+)\}/g, (_match, name: string) => process.env[name] ?? "");
-}
-
-export function redactCredentials(text: string): string {
-  let result = text;
-  for (const envVar of ["BOOKUP_EMAIL", "BOOKUP_PASSWORD"]) {
-    const value = process.env[envVar];
-    if (value) result = result.split(value).join("[REDACTED]");
-  }
-  return result;
 }

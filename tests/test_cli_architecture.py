@@ -31,8 +31,8 @@ def test_repository_launcher_is_transport_only() -> None:
 
     assert "-m tournament_scheduler.cli.rvv_cli" in text
     for forbidden in (
-        "BOOKUP_EMAIL",
-        "BOOKUP_PASSWORD",
+        "BOOKUP_",
+        "manual-bookup-login",
         "dotenvx",
         "stage1_config",
         "stage2_scraping",

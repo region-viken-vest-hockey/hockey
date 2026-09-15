@@ -47,7 +47,6 @@ tournament_scheduler/participant_selection.py	462
 # not a cohesive standalone chunk.
 tournament_scheduler/pipeline/audit_context.py	649
 tournament_scheduler/pipeline/activity_export.py	709
-tournament_scheduler/pipeline/bookup_host_bridge.py	302
 tournament_scheduler/pipeline/browser_worker.py	692
 tournament_scheduler/pipeline/calendar_viewer.py	467
 tournament_scheduler/pipeline/cancellation_workflow.py	407
@@ -62,7 +61,6 @@ tournament_scheduler/pipeline/pages_bundle.py	422
 tournament_scheduler/pipeline/pages_publish.py	653
 tournament_scheduler/pipeline/registered_teams.py	369
 tournament_scheduler/pipeline/run_manifest.py	804
-tournament_scheduler/pipeline/scraper_credentialed.py	427
 tournament_scheduler/pipeline/scraper_strategies.py	330
 tournament_scheduler/pipeline/stage1_helpers.py	386
 tournament_scheduler/pipeline/stage2_scraping.py	848

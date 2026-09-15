@@ -2,8 +2,8 @@
 Browser worker — long-lived Playwright process commanded via stdin/stdout JSON.
 
 The extension launches this as a child process and sends one JSON command per
-line on stdin. Each command is executed against a persistent Chromium page (headless by default;
-headed when `RVV_BOOKUP_MANUAL_LOGIN=1`), and the result is written as one JSON line on stdout.
+line on stdin. Each command is executed against a persistent headless Chromium page,
+and the result is written as one JSON line on stdout.
 
 Commands
 -------
@@ -43,7 +43,6 @@ from __future__ import annotations
 
 import base64
 import json
-import os
 import re
 import signal
 import sys
@@ -61,36 +60,12 @@ def _now_iso() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Credential-leak mitigation (defense-in-depth, layer 1: Python/DOM)
+# Snapshot privacy
 # ---------------------------------------------------------------------------
-#
-# When BookUp credentials (BOOKUP_EMAIL/BOOKUP_PASSWORD) are entered
-# on-demand during the run flow, page snapshots returned by this worker
-# (html, iframe_html, interactive element labels) are forwarded to the TS
-# extension layer and ultimately into LLM prompts (see
-# `.pi/lib/scraper-agent.ts::userMessage`).
-# To avoid the entered credential values ever reaching the LLM:
-#   1. (primary, this module) `_sanitize_html()` blanks `value="..."`
-#      attributes on password/email/username input fields before HTML is
-#      returned from `_snapshot()`.
-#   2. (this module, secondary) `_redact_credentials()` scrubs literal
-#      BOOKUP_EMAIL/BOOKUP_PASSWORD substrings from interactive-element
-#      label/placeholder text in `_interactive_elements()`.
-#   3. (TS layer, fallback) `redactCredentials()` in scraper-agent.ts scrubs
-#      the same substrings from `snapshot.html`/`iframe_html`/interactive
-#      text again before building the LLM user message, in case a path here
-#      is missed.
-#
-# Longer-term alternative (out of scope for this fix): out-of-band browser
-# auth — establish a persistent authenticated browser profile/cookie session
-# once, outside the LLM loop (e.g. via `initial_navigation` running headfully
-# once to save storage state), so no login UI/credential state is ever
-# captured in a snapshot or fed to the LLM at all.
+# Browser snapshots can be sent to an LLM during recovery. Blank values from
+# common login/account fields defensively even though current RVV calendar
+# sources, including BookUp, are public and require no authentication.
 
-# Matches `value="..."` / `value='...'` attributes on <input> elements whose
-# tag also declares a credential-related type or known field id/name, so we
-# never leak entered passwords/emails into HTML snapshots forwarded to the
-# extension/LLM layers.
 _CREDENTIAL_INPUT_RE = re.compile(
     r"""(<input\b[^>]*?\b(?:type=["']?(?:password|email)["']?|
           (?:id|name)=["']?(?:email|password|username|user|login)["']?)
@@ -111,22 +86,6 @@ def _sanitize_html(html: str) -> str:
         return html
     return _CREDENTIAL_INPUT_RE.sub(r"\1\2", html)
 
-
-def _redact_credentials(text: str) -> str:
-    """Replace any literal BookUp credential values found in `text`.
-
-    Defense-in-depth: even if a credential value somehow ends up in an
-    interactive-element label/placeholder echo (e.g. a form pre-filled by
-    the page itself), scrub any substring matching the resolved
-    `BOOKUP_EMAIL`/`BOOKUP_PASSWORD` env vars before it leaves this process.
-    """
-    if not text:
-        return text
-    for env_var in ("BOOKUP_EMAIL", "BOOKUP_PASSWORD"):
-        value = os.environ.get(env_var, "")
-        if value:
-            text = text.replace(value, "[REDACTED]")
-    return text
 
 
 # ---------------------------------------------------------------------------
@@ -150,10 +109,7 @@ class BrowserWorker:
 
         self._playwright = sync_playwright()
         p = self._playwright.__enter__()
-        headed = os.environ.get("RVV_BOOKUP_MANUAL_LOGIN", "").strip().lower() in {
-            "1", "true", "yes", "y", "on"
-        }
-        self._browser = p.chromium.launch(headless=not headed)
+        self._browser = p.chromium.launch(headless=True)
         self._page = self._browser.new_page()
         self._page.set_default_timeout(15_000)
 
@@ -247,7 +203,7 @@ class BrowserWorker:
                     sel = self._build_selector(buttons.nth(i))
                     elements.append({
                         "tag": tag,
-                        "text": _redact_credentials(label_text)[:80],
+                        "text": label_text[:80],
                         "selector": sel,
                     })
                 except Exception:
