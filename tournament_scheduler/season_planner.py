@@ -57,6 +57,10 @@ from tournament_scheduler.hosting_cross_age_repair import (
     club_hosting_evidence as _club_hosting_evidence,
 )
 from tournament_scheduler.hosting_cross_age_repair_apply import attempt_cross_age_repairs as _attempt_cross_age_repairs
+from tournament_scheduler.hosting_same_age_repair import (
+    same_age_reallocation_candidates as _same_age_reallocation_candidates,
+)
+from tournament_scheduler.hosting_same_age_repair_apply import attempt_same_age_repairs as _attempt_same_age_repairs
 from tournament_scheduler.planning_contract import external_calendar_conflict
 from tournament_scheduler.participant_roster_sizing import (
     club_demand_shares as _club_demand_shares,
@@ -826,73 +830,93 @@ class SeasonPlanner:
             )
 
             alternate_roster_attempted = False
+            alternate_rosters_tried = 0
             if slot is None and slot_search_active:
-                # issue #329 P0: before declaring manual placement, retry once
+                # issue #329 P0: before declaring manual placement, retry
                 # with a participant roster that gives soft hosting priority
-                # to clubs which still have an unmet hosting obligation for
-                # this age group and were not already among the candidate
+                # to a club which still has an unmet hosting obligation for
+                # this age group and was not already among the candidate
                 # hosts just tried. A club can have a registered, eligible
                 # team (e.g. Kongsberg U10) that simply never gets selected
                 # into this roster under the default fairness/diversity
                 # scoring, permanently starving its hosting coverage even
-                # though a legal alternative composition exists. This stays
-                # local to this one slot/date -- it does not touch the date
-                # skeleton or any other tournament's placement (that coupled
-                # date/host-swap search is explicitly out of scope here; see
-                # the #329 steering issue).
-                deficit_clubs = {
-                    club
-                    for club, target in host_targets_by_age.get(age_group, {}).items()
-                    if target > host_counts_by_age.get(age_group, {}).get(club, 0)
-                    and club not in candidate_hosts
-                }
-                if deficit_clubs:
+                # though a legal alternative composition exists. Deficit
+                # clubs are tried one at a time (largest hosting shortfall
+                # first) rather than unioned into a single alternate roster:
+                # a combined roster can still fail a free-slot search even
+                # when a roster biased toward just one of those clubs would
+                # have succeeded, which would otherwise mask an available
+                # placement. This stays local to this one slot/date -- it
+                # does not touch the date skeleton or any other tournament's
+                # placement (that coupled date/host-swap search is
+                # explicitly out of scope here; see the #329 steering
+                # issue).
+                deficit_clubs_by_shortfall = sorted(
+                    (
+                        club
+                        for club, target in host_targets_by_age.get(age_group, {}).items()
+                        if target > host_counts_by_age.get(age_group, {}).get(club, 0)
+                        and club not in candidate_hosts
+                    ),
+                    key=lambda club: (
+                        -(
+                            host_targets_by_age.get(age_group, {}).get(club, 0)
+                            - host_counts_by_age.get(age_group, {}).get(club, 0)
+                        ),
+                        club,
+                    ),
+                )
+                for deficit_club in deficit_clubs_by_shortfall:
                     alternate_roster_attempted = True
+                    alternate_rosters_tried += 1
                     retry_participants = self._select_participants(
                         age_group,
                         period,
                         exclude_team_keys=already_used_today,
                         planned_roster_size=planned_roster_size,
-                        hosting_priority_clubs={original_host_club} | deficit_clubs,
+                        hosting_priority_clubs={original_host_club, deficit_club},
                     )
-                    if retry_participants and (
-                        {t.club for t in retry_participants} != {t.club for t in participants}
+                    if not retry_participants or (
+                        {t.club for t in retry_participants} == {t.club for t in participants}
                     ):
-                        retry_candidate_hosts = self._participant_derived_host_candidates(
-                            participants=retry_participants,
-                            age_group=age_group,
-                            original_host=original_host_club,
-                            tournament_date=tournament_date,
-                            host_targets_by_age=host_targets_by_age,
-                            host_counts_by_age=host_counts_by_age,
-                        )
-                        if retry_candidate_hosts:
-                            retry_search_host = (
-                                original_host_club
-                                if original_host_constituents & set(retry_candidate_hosts)
-                                else retry_candidate_hosts[0]
-                            )
-                            retry_games = self._generate_tournament_games(age_group, retry_participants, parallel_games)
-                            retry_duration_evidence = occupancy_components(
-                                age_group,
-                                self.ice_time_for_age_group,
-                                round_count_for_games(retry_games),
-                            ).as_dict()
-                            retry_slot = self._find_slot_for_tournament(
-                                tournament_date,
-                                retry_search_host,
-                                age_group,
-                                retry_games,
-                                candidate_hosts=retry_candidate_hosts,
-                                reserved_events_by_club=reserved_events_by_club,
-                            )
-                            if retry_slot is not None:
-                                participants = retry_participants
-                                provisional_games = retry_games
-                                duration_evidence = retry_duration_evidence
-                                candidate_hosts = retry_candidate_hosts
-                                search_host = retry_search_host
-                                slot = retry_slot
+                        continue
+                    retry_candidate_hosts = self._participant_derived_host_candidates(
+                        participants=retry_participants,
+                        age_group=age_group,
+                        original_host=original_host_club,
+                        tournament_date=tournament_date,
+                        host_targets_by_age=host_targets_by_age,
+                        host_counts_by_age=host_counts_by_age,
+                    )
+                    if not retry_candidate_hosts:
+                        continue
+                    retry_search_host = (
+                        original_host_club
+                        if original_host_constituents & set(retry_candidate_hosts)
+                        else retry_candidate_hosts[0]
+                    )
+                    retry_games = self._generate_tournament_games(age_group, retry_participants, parallel_games)
+                    retry_duration_evidence = occupancy_components(
+                        age_group,
+                        self.ice_time_for_age_group,
+                        round_count_for_games(retry_games),
+                    ).as_dict()
+                    retry_slot = self._find_slot_for_tournament(
+                        tournament_date,
+                        retry_search_host,
+                        age_group,
+                        retry_games,
+                        candidate_hosts=retry_candidate_hosts,
+                        reserved_events_by_club=reserved_events_by_club,
+                    )
+                    if retry_slot is not None:
+                        participants = retry_participants
+                        provisional_games = retry_games
+                        duration_evidence = retry_duration_evidence
+                        candidate_hosts = retry_candidate_hosts
+                        search_host = retry_search_host
+                        slot = retry_slot
+                        break
 
             if slot is not None:
                 final_host_club, start_time, _slot_end = slot
@@ -918,13 +942,16 @@ class SeasonPlanner:
                         **duration_evidence,
                         "category": "manual_tournament_placement",
                         "search_attempted": True,
-                        # issue #329: True when a hosting-deficit-biased
-                        # alternate roster was tried and still failed to
-                        # yield a legal host/slot (`False` means no such
+                        # issue #329: True when at least one hosting-deficit-
+                        # biased alternate roster was tried and still failed
+                        # to yield a legal host/slot (`False` means no such
                         # deficit club existed to retry with at all) -- lets
                         # the audit tell "no alternative composition existed"
                         # apart from "the composition retry itself failed".
+                        # `alternate_rosters_tried` is how many distinct
+                        # deficit-club-biased rosters were attempted.
                         "alternate_roster_attempted": alternate_roster_attempted,
+                        "alternate_rosters_tried": alternate_rosters_tried,
                         "reason": "no_participant_host_slot",
                     }
                 )
@@ -1023,12 +1050,19 @@ class SeasonPlanner:
             host_counts_by_age[age_group][final_host_club] = host_counts_by_age[age_group].get(final_host_club, 0) + 1
         self._baseline_timings["tournament_building_loop"] = round(perf_counter() - t_tournament_building, 6)
 
-        # issue #328: before any downstream metric/coverage computation reads
-        # `plan.tournaments`, try to resolve a club x age-group hosting
-        # obligation left unmet above by repurposing one of that same
-        # physical club's own surplus/duplicate hosting assignments in a
-        # different age group. Everything below (warnings, coverage,
-        # fairness gate) then naturally reflects the repaired plan.
+        # issue #329: before any downstream metric/coverage computation reads
+        # `plan.tournaments`, first try to resolve a club x age-group
+        # hosting obligation left unmet above by reassigning host, on a
+        # tournament in that *same* age group where the club already
+        # participates, to that club -- no participant swap needed, so this
+        # is strictly cheaper/lower-risk than the cross-age repair below and
+        # gets first chance at each deficit row.
+        plan.same_age_hosting_repairs = _attempt_same_age_repairs(self, plan)
+        # issue #328: for any obligation the same-age repair above could not
+        # resolve, try repurposing one of that same physical club's own
+        # surplus/duplicate hosting assignments in a different age group.
+        # Everything below (warnings, coverage, fairness gate) then
+        # naturally reflects the repaired plan.
         plan.cross_age_hosting_repairs = _attempt_cross_age_repairs(self, plan)
 
         expected_per_month = self._expected_monthly_load(start_date.date(), end_date.date(), len(scheduled))
@@ -1123,6 +1157,7 @@ class SeasonPlanner:
                 "host_club": t.host_club,
                 "age_group": t.age_group,
                 "cancelled": t.cancelled,
+                "teams": [{"club": team.club} for team in t.teams],
             }
             for t in plan.tournaments
         ]
@@ -1133,6 +1168,7 @@ class SeasonPlanner:
         unresolved_hosting_obligations: List[Dict[str, object]] = []
         coverage_rows_final = _hosting_coverage_matrix(coverage_teams, coverage_tournaments)
         cross_age_evidence = _club_hosting_evidence(coverage_teams, coverage_tournaments)
+        cross_age_evidence_by_key = {(row["club"], row["age_group"]): row for row in cross_age_evidence}
         for row in coverage_rows_final:
             if not row["unresolved"]:
                 continue
@@ -1147,17 +1183,27 @@ class SeasonPlanner:
                     f"{club} har lag i {age_group}, men fikk ikke tildelt vertskap for noen "
                     "turnering i denne aldersgruppen denne sesongen."
                 )
-            # issue #328: a repair was already attempted (see
-            # `cross_age_hosting_repairs` below) before this obligation was
+            # issue #329/#328: both the same-age and cross-age repairs were
+            # already attempted (see `same_age_hosting_repairs` and
+            # `cross_age_hosting_repairs` above) before this obligation was
             # accepted as unresolved -- any remaining candidate donor slot
-            # here is one the repair pass itself rejected as infeasible, kept
+            # here is one a repair pass itself rejected as infeasible, kept
             # for operator/audit visibility rather than repeated silently.
+            # `registered_team_count` lets an operator immediately see
+            # whether this club even has a team to send, without cross-
+            # referencing a separate evidence table.
             unresolved_hosting_obligations.append(
                 {
                     "club": club,
                     "age_group": age_group,
                     "reason": reason,
                     "category": "manual_hosting_obligation",
+                    "registered_team_count": cross_age_evidence_by_key.get(
+                        (club, age_group), {}
+                    ).get("registered_team_count", 0),
+                    "same_age_reallocation_candidates": _same_age_reallocation_candidates(
+                        club, age_group, coverage_tournaments
+                    ),
                     "candidate_reallocation_slots": _candidate_reallocation_slots(
                         club, age_group, coverage_tournaments, cross_age_evidence
                     ),

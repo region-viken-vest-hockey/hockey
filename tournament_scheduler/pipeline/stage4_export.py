@@ -266,6 +266,22 @@ def run(
         club = str(item.get("club", "") or "")
         age_group = str(item.get("age_group", "") or "")
         reason = str(item.get("reason", "") or "")
+        # issue #329: both the same-age (host swap on a tournament the club
+        # already participates in) and cross-age (repurpose a surplus
+        # hosting slot) repairs were already tried before this obligation
+        # was accepted as unresolved -- surface that, plus the registered
+        # team count, so the row is actionable rather than a bare "manual
+        # placement required" with no context.
+        registered_team_count = item.get("registered_team_count")
+        team_count_clause = (
+            f"Registered teams: {registered_team_count}. " if registered_team_count is not None else ""
+        )
+        same_age_tried = len(item.get("same_age_reallocation_candidates") or [])
+        cross_age_tried = len(item.get("candidate_reallocation_slots") or [])
+        repair_clause = (
+            f"Same-age host-swap candidates considered and rejected: {same_age_tried}. "
+            f"Cross-age reallocation candidates considered and rejected: {cross_age_tried}. "
+        )
         unresolved_hosting_entries.append(
             {
                 "type": "MANUAL PLACEMENT REQUIRED — manglende vertskap",
@@ -281,8 +297,9 @@ def run(
                 "conflicting_interval": "",
                 "message": (
                     "MANUAL PLACEMENT REQUIRED. "
-                    f"Club: {club}. Age group: {age_group}. "
+                    f"Club: {club}. Age group: {age_group}. {team_count_clause}"
                     f"Reason: {reason or 'required hosting obligation has no verified feasible automatic slot'}. "
+                    f"{repair_clause}"
                     f"Action: {club}/RVV must provide or confirm a suitable {age_group} tournament slot."
                 ),
             }

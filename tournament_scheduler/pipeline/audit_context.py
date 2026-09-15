@@ -398,6 +398,10 @@ def _summarize_plan_for_audit(
         # an individual team's miss against the club aggregate above instead
         # of only seeing an unlabeled actual/target pair.
         "unresolved_participation_shortfalls": list(plan_dict.get("unresolved_participation_shortfalls") or []),
+        # issue #329: same-age hosting-coverage repairs already attempted
+        # (repaired or rejected-with-reason), before cross-age repair below,
+        # for this plan's remaining `unresolved_hosting_obligations`.
+        "same_age_hosting_repairs": list(plan_dict.get("same_age_hosting_repairs") or []),
         # issue #328: cross-age hosting-coverage repairs already attempted
         # (repaired or rejected-with-reason) before this plan's remaining
         # `unresolved_hosting_obligations` were accepted.
@@ -561,6 +565,7 @@ def _build_checklist_evidence_guide(
             "primary_evidence": [
                 "deterministic_verify_result.unresolved_hosting_obligations",
                 "publication_readiness.reasons.unresolved_hosting",
+                "plan_audit_summary.same_age_hosting_repairs",
                 "plan_audit_summary.cross_age_hosting_repairs",
                 "plan_audit_summary.unresolved_tournament_placements",
             ],
@@ -575,6 +580,7 @@ def _build_checklist_evidence_guide(
                     for item in (deterministic_verify_result.get("unresolved_hosting_obligations") or [])
                     if item.get("candidate_reallocation_slots")
                 ],
+                "same_age_hosting_repairs": plan_audit_summary.get("same_age_hosting_repairs"),
                 "cross_age_hosting_repairs": plan_audit_summary.get("cross_age_hosting_repairs"),
                 # issue #330: a club x age-group hosting deficit
                 # (`unresolved_hosting`, above) is not the same defect as a

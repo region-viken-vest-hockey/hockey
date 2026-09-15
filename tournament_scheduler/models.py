@@ -320,6 +320,15 @@ class SeasonPlan:
     # "status": "repaired"|"unresolved", ...}. See
     # `hosting_cross_age_repair_apply.attempt_cross_age_repairs`.
     cross_age_hosting_repairs: List[Dict[str, object]] = field(default_factory=list)
+    # issue #329: the same-age hosting-coverage repair attempted, before
+    # `cross_age_hosting_repairs` above, for every club x age-group
+    # obligation the plan started out missing -- by reassigning host to the
+    # deficit club on a tournament in that *same* age group where the club
+    # already has a participating team. Cheaper and lower-risk than a
+    # cross-age repair (no participant swap needed). Each entry: {"club",
+    # "age_group", "status": "repaired"|"unresolved", ...}. See
+    # `hosting_same_age_repair_apply.attempt_same_age_repairs`.
+    same_age_hosting_repairs: List[Dict[str, object]] = field(default_factory=list)
     # Tournaments whose host has a genuine external calendar conflict the
     # planner/optimizer could not route around. Each entry: {"tournament_id",
     # "host_club", "age_group", "date", "reason"}. Non-blocking -- surfaced

@@ -77,6 +77,7 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
         "same_date_capacity_evidence": list(plan.same_date_capacity_evidence),
         "arena_day_collisions": list(plan.arena_day_collisions),
         "unresolved_hosting_obligations": list(plan.unresolved_hosting_obligations),
+        "same_age_hosting_repairs": list(plan.same_age_hosting_repairs),
         "cross_age_hosting_repairs": list(plan.cross_age_hosting_repairs),
         "unresolved_external_conflicts": list(plan.unresolved_external_conflicts),
         "unresolved_participation_shortfalls": list(plan.unresolved_participation_shortfalls),

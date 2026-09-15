@@ -836,6 +836,7 @@ def verify_candidate(
     # item rather than swallowed.
     from tournament_scheduler.hosting_coverage import hosting_coverage_matrix
     from tournament_scheduler.hosting_cross_age_repair import club_hosting_evidence, unresolved_with_evidence
+    from tournament_scheduler.hosting_same_age_repair import same_age_reallocation_candidates
 
     coverage_rows = hosting_coverage_matrix(problem.get("teams", []), tournaments)
     # issue #328: also expose, per unresolved row, whichever of this club's
@@ -846,6 +847,15 @@ def verify_candidate(
     # SeasonPlanner actually attempts the repair).
     coverage_evidence = club_hosting_evidence(problem.get("teams", []), tournaments)
     unresolved_hosting_obligations = unresolved_with_evidence(coverage_rows, coverage_evidence, tournaments)
+    # issue #329: also expose, per unresolved row, tournaments in that same
+    # age group the club already participates in but does not host -- a
+    # cheaper/lower-risk repair than a cross-age reallocation since it needs
+    # no participant swap; see `hosting_same_age_repair_apply.py` for where
+    # SeasonPlanner actually attempts it.
+    for row in unresolved_hosting_obligations:
+        row["same_age_reallocation_candidates"] = same_age_reallocation_candidates(
+            row["club"], row["age_group"], tournaments
+        )
 
     return {
         "ok": not violations,
