@@ -146,7 +146,6 @@ def fixed_cohort_shape_for(planner, age_group: str):
     if (
         shape.registered_team_count == shape.effective_team_count
         and shape.effective_team_count >= MIN_TEAMS_PER_TOURNAMENT
-        and shape.effective_team_count % 2 == 0
         and (shape.has_explicit_target or shape.parallel_game_capacity is not None)
     ):
         return shape
@@ -303,11 +302,12 @@ def rebalance_roster_sizes_across_dates(
     sizes_by_date: Dict[date, List[int]] = {}
     evidence: List[Dict[str, object]] = []
     limiting_dates: List[date] = []
-    carry = 0
+    carry_sizes: List[int] = []
     index = 0
     for slot_date, slot_count in date_groups:
         group_sizes = list(flat_sizes[index : index + slot_count])
         index += slot_count
+        requested_sizes = carry_sizes + group_sizes
 
         if slot_count * min_teams > distinct_team_count:
             evidence.append(
@@ -320,19 +320,35 @@ def rebalance_roster_sizes_across_dates(
                 }
             )
 
-        total_requested = sum(group_sizes) + carry
+        total_requested = sum(requested_sizes)
         max_total = min(slot_count * capacity, distinct_team_count)
         if total_requested > max_total:
             limiting_dates.append(slot_date.isoformat())
-        available = min(total_requested, max_total)
 
-        usable_slot_count = min(slot_count, available // min_teams) if min_teams else slot_count
-        usable_total = min(available, usable_slot_count * capacity) if usable_slot_count > 0 else 0
+        # The incoming flat plan is already authoritative for per-slot roster
+        # shape. Preserve those whole slot sizes (including legal odd
+        # input-constrained effective shapes) rather than re-packing the date
+        # through the legacy even-only helper. Overflow is carried as whole
+        # future slots, so an infeasible same-date grouping is reported as a
+        # pool/date capacity problem instead of silently shrinking a roster.
+        planned_sizes: List[int] = []
+        overflow_sizes: List[int] = []
+        used_total = 0
+        for size in requested_sizes:
+            if (
+                len(planned_sizes) < slot_count
+                and min_teams <= size <= capacity
+                and used_total + size <= max_total
+            ):
+                planned_sizes.append(size)
+                used_total += size
+            else:
+                overflow_sizes.append(size)
 
-        planned_sizes = plan_roster_sizes(usable_total, capacity) if usable_total > 0 else []
         sizes_by_date[slot_date] = planned_sizes
-        carry = total_requested - sum(planned_sizes)
+        carry_sizes = overflow_sizes
 
+    carry = sum(carry_sizes)
     if carry > 0:
         evidence.append(
             {

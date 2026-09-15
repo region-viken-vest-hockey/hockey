@@ -2141,7 +2141,7 @@ class TestPerTeamGameCounts:
             (2, 3),
         ],
     )
-    def test_odd_team_count_materializes_only_no_bye_rosters(self, parallel_games, team_count):
+    def test_odd_input_constrained_full_pool_materializes_effective_roster(self, parallel_games, team_count):
         start, end = datetime(2026, 10, 1), datetime(2027, 4, 30)
         free_dates = all_weekend_dates(start, end)
 
@@ -2156,15 +2156,10 @@ class TestPerTeamGameCounts:
             parallel_games_for_age_group={"U10": parallel_games},
         )
         plan = planner.build_plan(start, end)
-        if team_count < 4:
-            assert not any(t.age_group == "U10" for t in plan.tournaments)
-            return
-
         tournament = next(t for t in plan.tournaments if t.age_group == "U10")
-        expected_team_count = team_count if team_count % 2 == 0 else team_count - 1
 
-        assert len(tournament.teams) == expected_team_count
-        assert tournament.get_bye_rounds() == {}
+        assert len(tournament.teams) == team_count
+        assert tournament.get_bye_rounds()
 
     def test_jar_vs_kongsberg_team_counts_skew_is_bounded(self):
         """Reproduces the club-size-skew scenario from the canonical input.xlsx:
