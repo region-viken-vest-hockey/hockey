@@ -1,6 +1,5 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { resolve } from "node:path";
-import { loadBookupEnvFromDotenvx } from "./dotenvx-helpers";
 import { formatProcessFailure, runPythonModule, runRepoCli } from "./repo-cli";
 import { ScraperAgent } from "./scraper-agent";
 
@@ -9,7 +8,6 @@ interface ScraperStrategyPayload {
   url?: string;
   has_iframe?: boolean;
   initial_navigation?: Array<Record<string, unknown>>;
-  credential_env_vars?: string[];
 }
 
 export interface BrowserRecoveryResult {
@@ -35,20 +33,6 @@ async function loadStrategy(source: string, ctx: ExtensionContext): Promise<Scra
   }
 }
 
-async function ensureStrategyCredentials(
-  source: string,
-  strategy: ScraperStrategyPayload,
-  ctx: ExtensionContext,
-): Promise<void> {
-  await loadBookupEnvFromDotenvx(ctx.cwd);
-  for (const envVar of strategy.credential_env_vars ?? []) {
-    if (process.env[envVar]) continue;
-    const value = await ctx.ui.input(`Innlogging kreves for ${source}. Angi ${envVar}:`, "");
-    if (!value) throw new Error(`Browser recovery for ${source} requires ${envVar}.`);
-    process.env[envVar] = value;
-  }
-}
-
 export async function recoverSourceWithPiBrowser(
   source: string,
   ctx: ExtensionContext,
@@ -62,7 +46,6 @@ export async function recoverSourceWithPiBrowser(
   const workDir = resolve(ctx.cwd, options.workDir ?? ".pipeline");
   const strategy = await loadStrategy(source, ctx);
   if (!strategy.url) throw new Error(`Repository browser strategy for ${source} has no URL.`);
-  await ensureStrategyCredentials(source, strategy, ctx);
 
   const activity = options.onActivity ?? (() => undefined);
   const agent = new ScraperAgent(ctx, undefined, activity);
