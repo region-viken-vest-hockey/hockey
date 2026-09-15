@@ -107,6 +107,24 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
                     )
 
     # --- Round length (minutes) ---
+    if "rounds_per_tournament" in raw:
+        rpt = raw["rounds_per_tournament"]
+        if not isinstance(rpt, dict):
+            errors.append("'rounds_per_tournament' må være et objekt (f.eks. {\"U8\": 5}).")
+        else:
+            for ag, count in rpt.items():
+                if not isinstance(ag, str) or not ag.strip():
+                    errors.append("'rounds_per_tournament' må bruke ikke-tomme tekstnøkler for aldersgrupper.")
+                    continue
+                if not _age_group_is_defined(ag):
+                    errors.append(f"Ukjent aldersgruppe '{ag}' i 'rounds_per_tournament'.")
+                    continue
+                if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+                    errors.append(
+                        f"'rounds_per_tournament[\"{ag}\"]' må være et positivt heltall, fikk: {count!r}."
+                    )
+
+    # --- Round length (minutes) ---
     if "round_length_minutes" in raw:
         rl = raw["round_length_minutes"]
         if not isinstance(rl, dict):
@@ -349,7 +367,7 @@ def _parse_config(raw: dict[str, Any], input_path: str | os.PathLike[str]) -> di
     """Build the Stage 1 checkpoint dict with only **computed** fields.
 
     Human-editable fields (start_date, end_date, age_groups, parallel_games,
-    global planning knobs, participation_targets_by_age_group, sources) are
+    rounds_per_tournament, global planning knobs, participation_targets_by_age_group, sources) are
     intentionally excluded — they live only in ``input.xlsx``.
     """
 
@@ -382,6 +400,7 @@ def _parse_config(raw: dict[str, Any], input_path: str | os.PathLike[str]) -> di
             "age_groups",
             "parallel_games",
             "round_length_minutes",
+            "rounds_per_tournament",
             "ice_time_minutes",
             "teams",
             "sources",

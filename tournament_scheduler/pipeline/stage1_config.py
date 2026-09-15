@@ -11,6 +11,7 @@ Workbook input format (all fields required unless marked optional)::
         "end_date": "YYYY-MM-DD",
         "age_groups": ["U10", "U12", ...],          // optional
         "parallel_games": {"U10": 3, "U7": 4, ...}, // optional
+        "rounds_per_tournament": {"U8": 5, ...},    // optional
         "round_length_minutes": {"U10": 10, ...},   // optional
         "ice_time_minutes": {"U10": 135, ...},       // required per active age group
         "teams": [                                   // list of teams (roster)
@@ -57,7 +58,7 @@ def load_effective_config(
 
     Reads the canonical ``input.xlsx`` workbook for human-editable fields
     (``start_date``, ``end_date``, ``age_groups``, ``parallel_games``,
-    per-age-group participation targets, global planning knobs, ``sources``) and merges
+    ``rounds_per_tournament``, per-age-group participation targets, global planning knobs, ``sources``) and merges
     in the computed fields (``teams``, ``round_length_minutes``, ``ice_time_minutes``) from the Stage 1 checkpoint.
 
     Returns a dict with the same shape that downstream stages expect,
@@ -77,6 +78,7 @@ def load_effective_config(
     merged["start_date"] = raw.get("start_date")
     merged["end_date"] = raw.get("end_date")
     merged["parallel_games"] = raw.get("parallel_games", {})
+    merged["rounds_per_tournament"] = raw.get("rounds_per_tournament", {})
     # The canonical workbook no longer supports a global
     # `target_tournament_count` / `deltakelser_per_lag` fallback — Stage 1
     # validation rejects it outright (see stage1_helpers.validate_config), so

@@ -1015,7 +1015,6 @@ class TestHarnessGate:
 
     def test_returns_true_when_one_source_has_events(self, tmp_path):
         """Gate must return True when at least one source has events."""
-        from unittest.mock import MagicMock
         from rich.console import Console
         from tournament_scheduler.cli.pipeline_orchestrator.stage2 import _check_stage2_checkpoint
 
@@ -1035,7 +1034,6 @@ class TestHarnessGate:
 
     def test_does_not_call_lm_studio_client(self, tmp_path):
         """Gate must proceed deterministically without importing or calling any LLM client."""
-        from unittest.mock import MagicMock, patch
         from rich.console import Console
         from tournament_scheduler.cli.pipeline_orchestrator.stage2 import _check_stage2_checkpoint
 

@@ -32,6 +32,7 @@ One row per active age group. Canonical columns:
 - `age_group`
 - `parallel_games`
 - `round_length_minutes`
+- `rounds_per_tournament` (optional)
 - `ice_time_minutes`
 - `deltakelser_per_lag_før_jul`
 - `deltakelser_per_lag_etter_jul`
@@ -41,7 +42,7 @@ The before/after participation values are the operator-facing participation conf
 
 English aliases such as `target_tournament_count_before_christmas` / `target_tournament_count_after_christmas` may be accepted for compatibility, but the Norwegian column names above are the canonical RVV workbook vocabulary.
 
-`round_length_minutes` means actual round/game length. `ice_time_minutes` is the configured base hall/arena ice allocation for the age group, expressed as an integer number of minutes to avoid Excel time-format ambiguity. Stage 1 requires a positive `ice_time_minutes` value for every active age group; new age groups must be given an explicit operator-approved value.
+`round_length_minutes` means actual round/game length. `rounds_per_tournament` means how many rounds are actually played in each tournament for that age group; omit it to keep the existing complete round-robin behavior. When `rounds_per_tournament` is set, Stage 1 requires a positive integer, the generator builds that many rounds directly, and same-physical-club matchups are avoided whenever a zero-same-club schedule is feasible. `ice_time_minutes` is the configured base hall/arena ice allocation for the age group, expressed as an integer number of minutes to avoid Excel time-format ambiguity. Stage 1 requires a positive `ice_time_minutes` value for every active age group; new age groups must be given an explicit operator-approved value.
 
 Tournament occupancy/end-time calculation is canonical:
 

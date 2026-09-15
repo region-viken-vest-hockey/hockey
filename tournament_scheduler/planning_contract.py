@@ -150,6 +150,7 @@ def build_planning_problem(
         "age_groups": roster.age_groups(),
         "clubs": dict(club_arenas),
         "parallel_games": _build_parallel_games(config),
+        "rounds_per_tournament": config.get("rounds_per_tournament") or {},
         "round_length_minutes": _build_round_length(config),
         "ice_time_minutes": _build_ice_time(config),
         "max_hosting_deviation": config.get("maxHostingDeviation", 1),

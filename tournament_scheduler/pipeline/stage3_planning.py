@@ -50,7 +50,19 @@ from ..season_planner import SeasonPlanner
 from .fingerprints import stable_payload_sha256
 from .not_started import NOT_STARTED_MESSAGE
 from .state import PipelineState, StageName, StageStatus
-from .stage3_helpers import (_build_club_arenas, _build_club_busy_intervals, _build_club_calendar_status, _build_events_by_club, _build_ice_time, _build_parallel_games, _build_roster, _build_round_length, _make_planner, _plan_to_dict)
+from .stage3_helpers import (
+    _build_club_arenas,
+    _build_club_busy_intervals,
+    _build_club_calendar_status,
+    _build_events_by_club,
+    _build_ice_time,
+    _build_parallel_games,
+    _build_roster,
+    _build_round_length,
+    _build_rounds_per_tournament,
+    _make_planner,
+    _plan_to_dict,
+)
 
 # ---------------------------------------------------------------------------
 # Candidate reproducibility and ranking
@@ -177,6 +189,7 @@ def compute_shared_registration_facts(
         club_calendar_status=club_calendar_status,
         club_busy_intervals=_build_club_busy_intervals(scraping_result),
         cheap_baseline=bool(config.get("stage3_cheap_baseline", False)),
+        rounds_per_tournament_config=_build_rounds_per_tournament(config),
     )
     probe_plan = probe_planner.build_plan(planning_start, end_date)
     if probe_plan is None or not probe_plan.tournaments:
@@ -318,6 +331,7 @@ def run(
     pg_config = _build_parallel_games(config)
     round_length_config = _build_round_length(config)
     ice_time_config = _build_ice_time(config)
+    rounds_per_tournament_config = _build_rounds_per_tournament(config)
     club_arenas = _build_club_arenas(config)
     max_hosting_deviation = config.get("maxHostingDeviation", 1)
     events_by_club = _build_events_by_club(scraping_result)
@@ -428,6 +442,7 @@ def run(
             club_busy_intervals=club_busy_intervals,
             cheap_baseline=cheap_baseline,
             shared_host_decisions=shared_host_choices or None,
+            rounds_per_tournament_config=rounds_per_tournament_config,
         )
         stop_heartbeat = threading.Event()
         heartbeat_started = datetime.now()

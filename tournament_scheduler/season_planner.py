@@ -21,6 +21,7 @@ from tournament_scheduler.game_generation import (
     best_round_subset as _best_round_subset,
     diversity_score as _diversity_score,
     generate_round_robin_games as _generate_round_robin_games,
+    generate_tournament_games as _generate_tournament_games,
     month_balance_score as _month_balance_score,
     pairwise_matchup_score as _pairwise_matchup_score,
     rebalance_rounds as _rebalance_rounds,
@@ -152,6 +153,7 @@ class SeasonPlanner:
         parallel_games_for_age_group: Optional[Dict[str, int]] = None,
         round_length_for_age_group: Optional[Dict[str, int]] = None,
         ice_time_for_age_group: Optional[Dict[str, int]] = None,
+        rounds_per_tournament_for_age_group: Optional[Dict[str, int]] = None,
         target_tournament_count: Optional[int] = None,
         participation_targets_by_age_group: Optional[Dict[str, Dict[str, int]]] = None,
         max_club_teams_per_tournament: int = 1,
@@ -179,6 +181,7 @@ class SeasonPlanner:
         self.parallel_games_for_age_group = parallel_games_for_age_group or {}
         self.round_length_for_age_group = round_length_for_age_group or {}
         self.ice_time_for_age_group = ice_time_for_age_group or dict(self.round_length_for_age_group)
+        self.rounds_per_tournament_for_age_group = rounds_per_tournament_for_age_group or {}
         self.target_tournament_count = target_tournament_count
         self.participation_targets_by_age_group = {
             age_group: dict(targets)
@@ -749,7 +752,7 @@ class SeasonPlanner:
                 continue
 
             parallel_games = self._parallel_games_for(age_group)
-            provisional_games = self.generate_round_robin_games(participants, parallel_games)
+            provisional_games = self._generate_tournament_games(age_group, participants, parallel_games)
             duration_evidence = occupancy_components(
                 age_group,
                 self.ice_time_for_age_group,
@@ -869,7 +872,7 @@ class SeasonPlanner:
                                 if original_host_constituents & set(retry_candidate_hosts)
                                 else retry_candidate_hosts[0]
                             )
-                            retry_games = self.generate_round_robin_games(retry_participants, parallel_games)
+                            retry_games = self._generate_tournament_games(age_group, retry_participants, parallel_games)
                             retry_duration_evidence = occupancy_components(
                                 age_group,
                                 self.ice_time_for_age_group,
@@ -940,7 +943,7 @@ class SeasonPlanner:
             teams_used_today_by_age_group.setdefault((tournament_date, age_group), set()).update(
                 self._team_key(team) for team in participants
             )
-            self._record_grouping(participants, period)
+            self._record_grouping(participants, period, games=provisional_games)
 
             if final_host_club != original_host_club:
                 self._fallback_host_substitutions.append(
@@ -949,7 +952,7 @@ class SeasonPlanner:
 
             arena = self.club_arenas.get(final_host_club, final_host_club)
 
-            games = self.generate_round_robin_games(participants, parallel_games)
+            games = self._generate_tournament_games(age_group, participants, parallel_games)
             self._record_opponent_history(games)
 
             # A club without scraped calendar data can still host its fair share
@@ -1678,9 +1681,9 @@ class SeasonPlanner:
             used_dates_by_age_group.setdefault(age_group, set()).add(tournament_date)
             scheduled_age_groups_by_date.setdefault(tournament_date, []).append(age_group)
             if participants:
-                self._record_grouping(participants)
                 parallel_games = self._parallel_games_for(age_group)
-                games = self.generate_round_robin_games(participants, parallel_games)
+                games = self._generate_tournament_games(age_group, participants, parallel_games)
+                self._record_grouping(participants, games=games)
                 self._record_opponent_history(games)
             self._record_month(tournament_date)
             if predicted_host_total:
@@ -1892,9 +1895,9 @@ class SeasonPlanner:
                     self._team_key(team) for team in participants
                 )
                 if participants:
-                    self._record_grouping(participants)
                     parallel_games = self._parallel_games_for(age_group)
-                    games = self.generate_round_robin_games(participants, parallel_games)
+                    games = self._generate_tournament_games(age_group, participants, parallel_games)
+                    self._record_grouping(participants, games=games)
                     self._record_opponent_history(games)
                 self._record_month(tournament_date)
                 by_date.setdefault(tournament_date, []).append(age_group)
@@ -2251,6 +2254,22 @@ class SeasonPlanner:
     def _parallel_games_for(self, age_group: str) -> int:
         return max(1, self.parallel_games_for_age_group.get(age_group, 1))
 
+    def _rounds_per_tournament_for(self, age_group: str) -> int | None:
+        configured = self.rounds_per_tournament_for_age_group.get(age_group)
+        return max(1, configured) if isinstance(configured, int) else None
+
+    def _generate_tournament_games(
+        self,
+        age_group: str,
+        participants: Sequence[Team],
+        parallel_games: int,
+    ) -> List[Game]:
+        return _generate_tournament_games(
+            participants,
+            parallel_games,
+            self._rounds_per_tournament_for(age_group),
+        )
+
     def _check_overlap_collision(
         self,
         tournament_date: date,
@@ -2262,9 +2281,22 @@ class SeasonPlanner:
                 return existing
         return None
 
-    def _record_grouping(self, participants: Sequence[Team], period: Optional[str] = None) -> None:
+    def _record_grouping(
+        self,
+        participants: Sequence[Team],
+        period: Optional[str] = None,
+        games: Sequence[Game] | None = None,
+    ) -> None:
         labels = [self._team_key(team) for team in participants]
-        games_added = max(0, len(participants) - 1)
+        if games is None:
+            games_added_by_key: Dict[str, int] | None = None
+            games_added = max(0, len(participants) - 1)
+        else:
+            games_added_by_key = {}
+            for game in games:
+                games_added_by_key[self._team_key(game.home)] = games_added_by_key.get(self._team_key(game.home), 0) + 1
+                games_added_by_key[self._team_key(game.away)] = games_added_by_key.get(self._team_key(game.away), 0) + 1
+            games_added = 0
         half_participations = (
             self._tournament_participations_by_half.get(period)
             if period in ("before_christmas", "after_christmas")
@@ -2278,7 +2310,12 @@ class SeasonPlanner:
                 half_participations[key] = half_participations.get(key, 0) + 1
             grouped = self._grouped_with.setdefault(key, set())
             grouped.update(label for label in labels if label != key)
-            self._running_game_counts[key] = self._running_game_counts.get(key, 0) + games_added
+            added = (
+                games_added_by_key.get(key, 0)
+                if games_added_by_key is not None
+                else games_added
+            )
+            self._running_game_counts[key] = self._running_game_counts.get(key, 0) + added
 
     def _record_opponent_history(self, games: Sequence[Game]) -> None:
         for game in games:

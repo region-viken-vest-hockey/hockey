@@ -175,6 +175,12 @@ class TestValidateConfig:
         errors = validate_config(raw, _DUMMY_INPUT_PATH)
         assert any("positivt heltall" in e for e in errors)
 
+    def test_rounds_per_tournament_must_be_positive_integer(self):
+        raw = _make_valid_raw()
+        raw["rounds_per_tournament"] = {"U10": 0}
+        errors = validate_config(raw, _DUMMY_INPUT_PATH)
+        assert any("rounds_per_tournament" in e and "positivt heltall" in e for e in errors)
+
     def test_error_messages_are_norwegian(self):
         errors = validate_config({}, _DUMMY_INPUT_PATH)
         # Norwegian error messages should contain Norwegian words

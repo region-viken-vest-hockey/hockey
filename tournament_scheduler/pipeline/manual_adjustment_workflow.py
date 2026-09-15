@@ -264,6 +264,8 @@ class ManualAdjustmentWorkflow:
         roster = _build_roster(cfg)
         pg_config = _build_parallel_games(cfg)
         round_length_config = _build_round_length(cfg)
+        from .stage3_helpers import _build_rounds_per_tournament
+        rounds_per_tournament_config = _build_rounds_per_tournament(cfg)
         ice_time_config = _build_ice_time(cfg)
         events_by_club = _build_events_by_club(self.state.read_stage(StageName.SCRAPING))
         club_arenas = _build_club_arenas(cfg)
@@ -279,6 +281,7 @@ class ManualAdjustmentWorkflow:
             cfg.get("fairness_thresholds", {}),
             cfg.get("target_tournament_count"),
             cfg.get("participation_targets_by_age_group"),
+            rounds_per_tournament_config=rounds_per_tournament_config,
         )
 
     def _prime_planner(self, planner, plan: SeasonPlan) -> None:

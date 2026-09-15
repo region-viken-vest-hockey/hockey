@@ -16,7 +16,7 @@ from itertools import combinations
 from typing import Any, Dict, Iterable, Optional, Tuple
 
 from . import planning_half
-from .game_generation import generate_round_robin_games
+from .game_generation import generate_tournament_games
 from .models import Team
 from .planning_contract import _parse_date, _team_identity
 
@@ -109,7 +109,11 @@ def _team_dict(identity: TeamIdentity, source: Dict[TeamIdentity, Dict[str, Any]
     return {"club": club, "label": label, "age_group": age_group}
 
 
-def _games_to_dicts(teams: list[Team], parallel_games: int) -> list[Dict[str, Any]]:
+def _games_to_dicts(
+    teams: list[Team],
+    parallel_games: int,
+    rounds_per_tournament: int | None = None,
+) -> list[Dict[str, Any]]:
     return [
         {
             "home": game.home.label,
@@ -117,7 +121,7 @@ def _games_to_dicts(teams: list[Team], parallel_games: int) -> list[Dict[str, An
             "parallel_slot": game.parallel_slot,
             "round_number": game.round_number,
         }
-        for game in generate_round_robin_games(teams, parallel_games)
+        for game in generate_tournament_games(teams, parallel_games, rounds_per_tournament)
     ]
 
 

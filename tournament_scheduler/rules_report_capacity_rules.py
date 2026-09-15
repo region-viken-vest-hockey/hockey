@@ -37,8 +37,9 @@ def capacity_and_config_rule_entries(planner) -> List[Dict[str, str]]:
                 "regel": f"Parallelle kamper for {ag}: {pg}",
                 "forklaring": (
                     f"For aldersgruppen {ag} spilles det {pg} kamper samtidig per runde. "
-                    f"Det gir plass til opptil {capacity} lag per turnering. Alle turneringer må ha et "
-                    "partall lag slik at hvert lag spiller hver runde; pause-/bye-lag er ikke tillatt. "
+                    f"Det gir plass til opptil {capacity} lag per turnering. "
+                    f"Runder per turnering: {planner.rounds_per_tournament_for_age_group.get(ag, 'full serie')}. "
+                    "Når et begrenset rundetall er satt, genereres kampene direkte for dette antallet runder og unngår interne klubboppgjør når det er mulig. "
                     + (
                         "For U12/JU12 betyr dagens kapasitet nøyaktig 4 lag / 6 kamper per turnering."
                         if ag in {"U12", "JU12"}

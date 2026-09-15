@@ -78,6 +78,25 @@ class TestPublicSheetWhitelist:
 
         assert read_public_teams(path) == []
 
+    def test_age_groups_accept_rounds_per_tournament(self, tmp_path):
+        path = tmp_path / "input.xlsx"
+        wb = openpyxl.Workbook()
+        settings = wb.active
+        settings.title = "Innstillinger"
+        settings.append(["felt", "verdi"])
+        settings.append(["start_date", "2025-09-01"])
+        settings.append(["end_date", "2026-04-01"])
+        age_groups = wb.create_sheet("Aldersgrupper")
+        age_groups.append(["age_group", "parallel_games", "rounds_per_tournament"])
+        age_groups.append(["U8", 4, 5])
+        teams = wb.create_sheet("Lag")
+        teams.append(["club", "label", "age_group"])
+        sources = wb.create_sheet("Kilder")
+        sources.append(["name", "type", "url"])
+        wb.save(path)
+
+        assert load_workbook_config(path)["rounds_per_tournament"] == {"U8": 5}
+
 
 class TestKilderSourceFiltering:
     """Issue #261: a fixed_allocation source needs no URL to be kept."""

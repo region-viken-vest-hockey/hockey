@@ -70,20 +70,9 @@ def read_public_teams(path: str | Path) -> list[dict[str, Any]]:
 def load_workbook_config(path: str | Path) -> dict[str, Any]:
     """Load the standard ``.xlsx`` pipeline input workbook as a config dict.
 
-    Expected sheets:
-    - ``Innstillinger``: columns ``felt`` and ``verdi`` for scalar settings.
-      Optional ``vekt_cap`` (float, default 10.0) sets the absolute cap for
-      preference-weight values; exceeded values trigger a :class:`UserWarning`.
-    - ``Aldersgrupper``: columns ``age_group``, ``parallel_games``, optional
-      ``round_length_minutes``, required ``ice_time_minutes``, optional
-      ``preferanse_vekt`` (float, default 0.0), and the authoritative per-team participation targets
-      ``deltakelser_per_lag_før_jul`` / ``target_tournament_count_before_christmas``
-      plus ``deltakelser_per_lag_etter_jul`` / ``target_tournament_count_after_christmas``
-      — required for every active age group (validated in Stage 1, not here).
-    - ``Lag``: columns ``club``, ``label``, ``age_group``.
-    - ``Kilder``: columns ``name``, ``type``, ``url``.
-    - ``Datopreferanser``: columns ``fra``, ``til``, ``vekt`` for global
-      date-range scoring adjustments (positive = penalise, negative = reward).
+    The canonical workbook contract is documented in
+    ``docs/rvv-miniputt-input-formats.md``; Stage 1 performs semantic
+    validation after this parser normalizes the sheet values.
     """
     workbook_path = Path(path)
     try:
@@ -105,7 +94,7 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
     vekt_cap: float = float(raw.pop("vekt_cap", 10.0))
 
     if "Aldersgrupper" in wb.sheetnames:
-        age_groups, parallel_games, round_lengths, ice_times, pref_weights, target_counts = _read_age_groups(
+        age_groups, parallel_games, round_lengths, rounds_per_tournament, ice_times, pref_weights, target_counts = _read_age_groups(
             wb["Aldersgrupper"], vekt_cap=vekt_cap
         )
         if age_groups:
@@ -114,6 +103,8 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
             raw["parallel_games"] = parallel_games
         if round_lengths:
             raw["round_length_minutes"] = round_lengths
+        if rounds_per_tournament:
+            raw["rounds_per_tournament"] = rounds_per_tournament
         if ice_times:
             raw["ice_time_minutes"] = ice_times
         if pref_weights:
@@ -215,10 +206,11 @@ def _read_age_groups(
     ws: Worksheet,
     *,
     vekt_cap: float = 10.0,
-) -> tuple[list[str], dict[str, int], dict[str, int], dict[str, int], dict[str, float], dict[str, dict[str, int]]]:
+) -> tuple[list[str], dict[str, int], dict[str, int], dict[str, int], dict[str, int], dict[str, float], dict[str, dict[str, int]]]:
     age_groups: list[str] = []
     parallel_games: dict[str, int] = {}
     round_lengths: dict[str, int] = {}
+    rounds_per_tournament: dict[str, int] = {}
     ice_times: dict[str, int] = {}
     preferanse_vekt: dict[str, float] = {}
     target_counts: dict[str, dict[str, int]] = {}
@@ -231,6 +223,8 @@ def _read_age_groups(
             parallel_games[age_group] = int(row["parallel_games"])
         if row.get("round_length_minutes") not in (None, ""):
             round_lengths[age_group] = int(row["round_length_minutes"])
+        if row.get("rounds_per_tournament") not in (None, ""):
+            rounds_per_tournament[age_group] = int(row["rounds_per_tournament"])
         if row.get("ice_time_minutes") not in (None, ""):
             ice_times[age_group] = int(row["ice_time_minutes"])
         if row.get("preferanse_vekt") not in (None, ""):
@@ -262,7 +256,7 @@ def _read_age_groups(
                 entry["after_christmas"] = target_after
             target_counts[age_group] = entry
 
-    return age_groups, parallel_games, round_lengths, ice_times, preferanse_vekt, target_counts
+    return age_groups, parallel_games, round_lengths, rounds_per_tournament, ice_times, preferanse_vekt, target_counts
 
 
 def _read_table(

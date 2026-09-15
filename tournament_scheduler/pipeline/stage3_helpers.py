@@ -139,6 +139,11 @@ def _build_round_length(config: dict[str, Any]) -> dict[str, int]:
     return dict(config.get("round_length_minutes", {}))
 
 
+def _build_rounds_per_tournament(config: dict[str, Any]) -> dict[str, int]:
+    """Extract configured tournament round counts from config."""
+    return dict(config.get("rounds_per_tournament", {}))
+
+
 def _build_ice_time(config: dict[str, Any]) -> dict[str, int]:
     """Extract configured base ice-time-minutes mapping from config."""
     return dict(config.get("ice_time_minutes", {}))
@@ -307,6 +312,7 @@ def _make_planner(
     club_busy_intervals: dict[str, list[dict[str, str]]] | None = None,
     cheap_baseline: bool = False,
     shared_host_decisions: dict[tuple[str, str], str] | None = None,
+    rounds_per_tournament_config: dict[str, int] | None = None,
 ) -> SeasonPlanner:
     """Construct a :class:`SeasonPlanner` with derived tournament sizing.
 
@@ -329,6 +335,7 @@ def _make_planner(
         parallel_games_for_age_group=pg_config or None,
         round_length_for_age_group=round_length_config or None,
         ice_time_for_age_group=ice_time_config or None,
+        rounds_per_tournament_for_age_group=rounds_per_tournament_config or None,
         target_tournament_count=target_tournament_count,
         participation_targets_by_age_group=participation_targets_by_age_group,
         max_hosting_deviation=max_hosting_deviation,

@@ -467,9 +467,12 @@ def _solve_slot_group(
             )
             for team in teams
         ]
+        age_group = tournaments_by_index[slot.index].get("age_group")
+        rounds = ((problem or {}).get("rounds_per_tournament") or {}).get(age_group)
         games = _games_to_dicts(
             model_teams,
             _parallel_games(tournaments_by_index[slot.index], problem),
+            rounds if isinstance(rounds, int) else None,
         )
         patches[slot.index] = {"teams": teams, "games": games}
 

@@ -1,6 +1,6 @@
 """Unit tests for browser snapshot sanitization and navigation behavior."""
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, call
 
 
 from tournament_scheduler.pipeline.browser_worker import (

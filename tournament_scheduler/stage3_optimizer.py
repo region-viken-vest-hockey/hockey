@@ -49,7 +49,7 @@ from datetime import date, timedelta
 from itertools import combinations
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from .game_generation import generate_round_robin_games
+from .game_generation import generate_tournament_games
 from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .host_representation import swap_breaks_host_representation as _swap_breaks_host_representation
 from .models import Team
@@ -102,6 +102,7 @@ class _Slot:
     age_group: str
     host_club: Optional[str]
     parallel_games: int
+    rounds_per_tournament: Optional[int] = None
     arena: Optional[str] = None
     team_ids: List[TeamIdentity] = field(default_factory=list)
     start_time: Optional[str] = None
@@ -121,6 +122,13 @@ def _infer_parallel_games(tournament: Dict[str, Any], problem: Optional[Dict[str
     if games:
         return max(g.get("parallel_slot", 0) for g in games) + 1
     return 1
+
+
+def _infer_rounds_per_tournament(tournament: Dict[str, Any], problem: Optional[Dict[str, Any]]) -> Optional[int]:
+    if not problem:
+        return None
+    rounds = (problem.get("rounds_per_tournament") or {}).get(tournament.get("age_group"))
+    return rounds if isinstance(rounds, int) and rounds > 0 else None
 
 
 def _infer_duration_minutes(tournament: Dict[str, Any], problem: Optional[Dict[str, Any]]) -> int:
@@ -157,6 +165,7 @@ def _build_slots(
                 age_group=tournament.get("age_group", ""),
                 host_club=tournament.get("host_club"),
                 parallel_games=_infer_parallel_games(tournament, problem),
+                rounds_per_tournament=_infer_rounds_per_tournament(tournament, problem),
                 arena=tournament.get("arena"),
                 team_ids=[_team_identity(t) for t in tournament.get("teams", [])],
                 start_time=tournament.get("start_time"),
@@ -958,7 +967,11 @@ def _rebuild_tournament(slot: _Slot) -> Dict[str, Any]:
         if host_teams:
             teams = host_teams + other_teams
 
-    games = generate_round_robin_games(teams, slot.parallel_games)
+    games = generate_tournament_games(
+        teams,
+        slot.parallel_games,
+        slot.rounds_per_tournament,
+    )
 
     tournament["teams"] = [
         {"club": t.club, "label": t.label, "age_group": t.age_group} for t in teams
