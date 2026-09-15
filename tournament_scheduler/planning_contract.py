@@ -38,6 +38,7 @@ from tournament_scheduler.effective_tournament_shape import (
     compute_effective_tournament_shape,
     shape_violation,
 )
+from tournament_scheduler.operator_waivers import find_participation_waiver
 from tournament_scheduler.planning_contract_distribution import (
     hosting_fairness as _hosting_fairness,
     month_and_half_distribution as _month_and_half_distribution,
@@ -64,6 +65,8 @@ def build_planning_problem(
     scraping_result: Optional[Dict[str, Any]],
     start_date: date,
     end_date: date,
+    *,
+    waivers: Optional[Iterable[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Build a normalized ``planning_problem`` dict from Stage 1/2 outputs.
 
@@ -167,6 +170,11 @@ def build_planning_problem(
         "club_busy_dates": club_busy_dates,
         "club_calendar_status": club_calendar_status,
         "club_busy_intervals": _build_club_busy_intervals(scraping_result),
+        # Explicit operator waivers are carried as part of the frozen problem
+        # snapshot so verification stays a pure function over this contract.
+        # Never populated by the planner/optimizer/agent path -- only an
+        # explicit operator CLI action writes the store this reads from.
+        "operator_waivers": [dict(waiver) for waiver in (waivers or [])],
     }
 
 
@@ -390,6 +398,10 @@ def verify_candidate(
     as such.
     """
     violations: List[Dict[str, Any]] = []
+    # Hard violations a matching, active operator waiver explicitly authorized.
+    # Kept separate from `violations` so they never block export, but never
+    # silently disappear either -- they are surfaced in the audit/evidence.
+    waived_violations: List[Dict[str, Any]] = []
     skipped: List[str] = []
     # issue #264: non-blocking record of tournaments placed inside a
     # club-controlled allocation window rather than an unconditionally free
@@ -601,6 +613,13 @@ def verify_candidate(
         if dated:
             split_date = planning_half.christmas_split_date(min(dated), max(dated))
     participations_by_half: Dict[str, Dict[TeamIdentity, int]] = {"before_christmas": {}, "after_christmas": {}}
+    # Which tournaments in each half a team participates in -- the scope a
+    # waiver is tied to, so a waiver cannot silently cover another (later)
+    # tournament the operator never authorized.
+    participation_ids_by_half: Dict[str, Dict[TeamIdentity, List[str]]] = {
+        "before_christmas": {},
+        "after_christmas": {},
+    }
     for t in tournaments:
         t_date = _parse_date(t.get("date"))
         if t_date is None:
@@ -608,9 +627,11 @@ def verify_candidate(
         half = planning_half.tournament_half(t_date, split_date)
         if half not in participations_by_half:
             continue
+        t_id = str(t.get("id", "?"))
         for team in t.get("teams", []):
             identity = _team_identity(team)
             participations_by_half[half][identity] = participations_by_half[half].get(identity, 0) + 1
+            participation_ids_by_half[half].setdefault(identity, []).append(t_id)
 
     # Arena occupancy is a full datetime interval (start_time + computed
     # duration), not just an arena/date pair — arenas routinely host more
@@ -868,11 +889,39 @@ def verify_candidate(
                 continue
             half_count = participations_by_half.get(half, {}).get(identity, 0)
             if half_count > half_target:
-                _violate(
-                    "participation_target_exceeded",
+                message = (
                     f"Team {_display_label(identity, duplicate_labels)!r} is scheduled in {half_count} "
-                    f"tournaments {half}, exceeding its configured participation target of {half_target}",
+                    f"tournaments {half}, exceeding its configured participation target of {half_target}"
                 )
+                waiver = find_participation_waiver(
+                    problem,
+                    identity=identity,
+                    half=half,
+                    actual=half_count,
+                    configured=half_target,
+                    tournament_ids=participation_ids_by_half.get(half, {}).get(identity, []),
+                )
+                if waiver is not None:
+                    waived_violations.append(
+                        {
+                            "code": "participation_target_exceeded",
+                            "message": message,
+                            "waived_by_operator": True,
+                            "waiver_id": waiver.get("id"),
+                            "waiver": {
+                                "team": identity,
+                                "half": half,
+                                "configured_value": half_target,
+                                "allowed_value": half_count,
+                                "tournament_id": (waiver.get("scope") or {}).get("tournament_id"),
+                                "reason": waiver.get("reason"),
+                                "created_at": waiver.get("created_at"),
+                                "created_by": waiver.get("created_by"),
+                            },
+                        }
+                    )
+                else:
+                    _violate("participation_target_exceeded", message)
             elif half_count < half_target:
                 manual_participation_placements.append(
                     {
@@ -917,6 +966,7 @@ def verify_candidate(
     return {
         "ok": not violations,
         "violations": violations,
+        "waived_violations": waived_violations,
         "skipped": skipped,
         "club_controlled_allocations_used": club_controlled_allocations_used,
         "unresolved_hosting_obligations": unresolved_hosting_obligations,

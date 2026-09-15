@@ -56,7 +56,7 @@ def _emit_stage3_pareto_decision(
         # choice that doesn't exist. Still independently verify the current
         # best plan so a hard-failing baseline can't be finalized via
         # keep_baseline just because the search produced no candidates.
-        problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+        problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
         best_plan = interactive_state.get("best_plan")
         context = DecisionContext(
             run_id=run_id,
@@ -81,7 +81,7 @@ def _emit_stage3_pareto_decision(
     if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
         available.remove("optimize_plan")
 
-    problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+    problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
     baseline_hard_violations = _baseline_hard_violations_for_plan(
         interactive_state.get("best_plan"), problem
     )

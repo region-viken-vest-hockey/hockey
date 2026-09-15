@@ -21,7 +21,7 @@ __all__ = [
 
 
 def _mid_planning_decision_problem(
-    cfg: "dict[str, Any]", scraping: "dict[str, Any]", start: "Any", end: "Any"
+    cfg: "dict[str, Any]", scraping: "dict[str, Any]", start: "Any", end: "Any", work_dir: "str | None" = None
 ) -> "dict[str, Any] | None":
     """Best-effort ``planning_problem`` for mid-planning critic decisions.
 
@@ -30,11 +30,17 @@ def _mid_planning_decision_problem(
     to self-consistency-only verification in that case
     (``planning_contract.verify_candidate``), matching how ``plan ab``
     already treats a missing ``--problem``.
+
+    *work_dir*, when given, folds this run's active operator waivers into the
+    problem so the same explicit exceptions the operator authorized are
+    visible to every mid-planning verification/repair decision.
     """
     try:
+        from ...operator_waivers import load_active_waivers
         from ...planning_contract import build_planning_problem
 
-        return build_planning_problem(cfg, scraping, start.date(), end.date())
+        waivers = load_active_waivers(work_dir) if work_dir else None
+        return build_planning_problem(cfg, scraping, start.date(), end.date(), waivers=waivers)
     except Exception:
         return None
 
@@ -154,6 +160,20 @@ def _reconcile_verified_manual_state(
         reconciled_participation.append(reconciled_entry)
 
     plan_dict["unresolved_participation_shortfalls"] = reconciled_participation
+    # Operator waivers: keep the explicit exceptions visible in the exported
+    # plan so the operator HTML/audit can distinguish "hard-valid with no
+    # exception" from "hard rule explicitly waived by the operator".
+    from ...operator_waivers import waiver_audit_rows
+
+    applied_waiver_ids = {
+        str(item.get("waiver_id"))
+        for item in (result.get("waived_violations") or [])
+        if item.get("waiver_id")
+    }
+    plan_dict["operator_waivers"] = [
+        row for row in waiver_audit_rows(problem) if str(row.get("id")) in applied_waiver_ids
+    ]
+    plan_dict["operator_waived_violations"] = list(result.get("waived_violations") or [])
     readiness = dict(result.get("publication_readiness") or {})
     # issue #323 P0: unresolved_tournament_placements is a baseline-planner-
     # time fact about tournaments that were never created -- there is no
@@ -211,7 +231,7 @@ def _write_run_evidence_bundle(
             except ValueError:
                 final_candidate = None
 
-        problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+        problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
         verify_result = (
             verify_final_candidate(final_candidate, problem)
             if final_candidate is not None

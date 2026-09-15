@@ -86,6 +86,8 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
         "club_participation_fairness": list(plan.club_participation_fairness),
         "participation_targets_by_age_group": dict(plan.participation_targets_by_age_group),
         "shared_host_decisions": list(plan.shared_host_decisions),
+        "operator_waivers": list(plan.operator_waivers),
+        "operator_waived_violations": list(plan.operator_waived_violations),
         "tournaments": [_tournament_to_dict(t) for t in plan.tournaments],
     }
     if plan.manual_adjustments:

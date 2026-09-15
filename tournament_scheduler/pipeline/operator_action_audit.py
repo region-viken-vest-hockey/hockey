@@ -125,8 +125,23 @@ def current_hard_violations(work_dir: str) -> list[str]:
         candidate = extract_candidate(plan)
     except (ValueError, KeyError):
         return []
+    # Honor this run's explicit operator waivers here too, so the publish gate
+    # blocks only *unwaived* hard violations -- a valid operator exception must
+    # not make publication impossible. Best-effort: fall back to the
+    # problem-free self-consistency verification when the problem can't be
+    # reconstructed.
+    problem = None
     try:
-        result = verify_final_candidate(candidate, None)
+        from .stage1_config import load_effective_config
+        from .stage4_export_verification import _build_export_verification_problem
+
+        state = PipelineState(work_dir)
+        effective_config = load_effective_config(state) or {}
+        problem = _build_export_verification_problem(effective_config, state)
+    except Exception:
+        problem = None
+    try:
+        result = verify_final_candidate(candidate, problem)
     except Exception:
         return []
     if result.get("ok", True):

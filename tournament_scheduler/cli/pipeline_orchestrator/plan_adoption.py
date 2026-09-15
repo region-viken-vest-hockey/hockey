@@ -162,7 +162,7 @@ def _run_mid_planning_critic_loop(
     best_plan = plan
     run_failed = False
     base_iterations = max(1, int(getattr(args, "iterations", 1) or 1))
-    problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+    problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
     try:
         from ...pipeline.run_manifest import RunManifest
 

@@ -21,6 +21,7 @@ export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CSV ARGS BACKEND RESU
 
 PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-report kampveileder-markdown \
 	operator-run operator-run-force run status logs calendars calendars-refresh sources-status \
+	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
 	audit-context audit-run audit-submit \
@@ -52,6 +53,8 @@ help:
 	@echo "  make calendars [ARGS='...']        scripts/rvv-miniputt calendars"
 	@echo "  make calendars-refresh             calendars --refresh"
 	@echo "  make sources-status [ARGS='...']   sources status"
+	@echo "  make waiver ARGS='list|create|revoke ...'"
+	@echo "                                      Operator-only, audited hard-rule exception (never agent-created)"
 	@echo "  make aktivitetskalender [ARGS='...']"
 	@echo "                                      Regenerate activities/ from Årshjul workbook"
 	@echo "  make aktivitetskalender-publish CONFIRM_PUBLIC=1 [ARGS='...']"
@@ -133,6 +136,9 @@ calendars-refresh:
 
 sources-status:
 	@cd "$(ROOT_DIR)" && "$(RVV)" sources status $(ARGS)
+
+waiver:
+	@cd "$(ROOT_DIR)" && "$(RVV)" waiver $(ARGS)
 
 aktivitetskalender:
 	@cd "$(ROOT_DIR)" && "$(RVV)" activities --input "$(ACTIVITY_INPUT)" $(ARGS)

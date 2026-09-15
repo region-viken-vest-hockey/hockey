@@ -185,6 +185,8 @@ def _dict_to_plan(d: dict[str, Any]) -> SeasonPlan:
             ag: dict(targets) for ag, targets in d.get("participation_targets_by_age_group", {}).items()
         },
         shared_host_decisions=list(d.get("shared_host_decisions", [])),
+        operator_waivers=list(d.get("operator_waivers", [])),
+        operator_waived_violations=list(d.get("operator_waived_violations", [])),
         team_last_game_dates={
             k: date.fromisoformat(v) for k, v in d.get("team_last_game_dates", {}).items()
         },

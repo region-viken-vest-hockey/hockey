@@ -65,6 +65,40 @@ def test_context_includes_evidence_inventory(tmp_path):
     assert [item["item_id"] for item in context["checklist_evidence_guide"]] == list(range(1, 10))
 
 
+def test_context_surfaces_operator_waivers_and_waived_violations(tmp_path):
+    from tournament_scheduler.operator_waivers import create_waiver
+
+    create_waiver(
+        tmp_path,
+        rule="participation_target_exceeded",
+        team={"club": "Frisk Asker", "label": "Frisk Asker 4", "age_group": "U11"},
+        tournament_id="e7276974",
+        half="before_christmas",
+        configured_value=5,
+        allowed_value=6,
+        reason="operator chose Frisk Asker 4 for host placement",
+        actor="operator",
+    )
+    PipelineState(tmp_path).write_stage(
+        StageName.EXPORT,
+        {
+            "export_dir": str(tmp_path),
+            "output_files": {},
+            "verify_result": {
+                "ok": True,
+                "violations": [],
+                "waived_violations": [{"code": "participation_target_exceeded"}],
+            },
+            "export_fingerprint": "fp-1",
+        },
+        status=StageStatus.DONE,
+    )
+    context = build_audit_context(work_dir=tmp_path)
+    assert context["operator_waivers"][0]["id"].startswith("waiver-")
+    assert context["operator_waivers"][0]["reason"].startswith("operator chose")
+    assert context["operator_waived_violations"] == [{"code": "participation_target_exceeded"}]
+
+
 def test_context_falls_back_to_stage2_calendar_summary_when_bundle_missing(tmp_path):
     export_dir = tmp_path / "export"
     export_dir.mkdir()

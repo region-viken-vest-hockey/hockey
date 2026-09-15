@@ -315,6 +315,7 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
     import os
 
     from ..planning_contract import build_planning_problem, extract_candidate
+    from ..operator_waivers import load_active_waivers
     from ..pipeline.state import PipelineState, StageName
     from ..stage3_ab import build_ab_report
 
@@ -354,7 +355,9 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
 
-    problem = build_planning_problem(config, scraping_result, start_date, end_date)
+    problem = build_planning_problem(
+        config, scraping_result, start_date, end_date, waivers=load_active_waivers(state.work_dir)
+    )
     new_candidate = _run_engine_or_report_error(
         _console,
         engine=_engine_id(args.engine),
@@ -451,6 +454,7 @@ def _cmd_plan_ab_participants(args: argparse.Namespace) -> int:
     import os
 
     from ..planning_contract import build_planning_problem, extract_candidate
+    from ..operator_waivers import load_active_waivers
     from ..pipeline.state import PipelineState, StageName
     from ..stage3_ab import build_ab_report
     from ..stage3_optimizer import (
@@ -497,7 +501,9 @@ def _cmd_plan_ab_participants(args: argparse.Namespace) -> int:
         _console.print("[red]✗[/red] --seeds må inneholde minst ett heltall.")
         return 1
 
-    problem = build_planning_problem(config, scraping_result, start_date, end_date)
+    problem = build_planning_problem(
+        config, scraping_result, start_date, end_date, waivers=load_active_waivers(state.work_dir)
+    )
     new_candidate = optimize_candidate_participants_bounded_multi_seed(
         old_candidate, problem, seeds=seeds, iterations=args.iterations
     )
@@ -859,6 +865,7 @@ def _cmd_plan_decide(args: argparse.Namespace) -> int:
 
 
 def _cmd_plan_problem(args: argparse.Namespace) -> int:
+    from ..operator_waivers import load_active_waivers
     from ..planning_contract import build_planning_problem
     from ..pipeline.state import PipelineState, StageName
 
@@ -885,7 +892,9 @@ def _cmd_plan_problem(args: argparse.Namespace) -> int:
         )
         return 1
 
-    problem = build_planning_problem(config, scraping_result, start_date, end_date)
+    problem = build_planning_problem(
+        config, scraping_result, start_date, end_date, waivers=load_active_waivers(state.work_dir)
+    )
     payload = json.dumps(problem, indent=2, ensure_ascii=False)
 
     if args.output:

@@ -35,6 +35,7 @@ from .effective_tournament_shape import compute_effective_tournament_shape
 from .game_generation import generate_tournament_games
 from .host_representation import clubs_represent_same_club, constituent_clubs, host_eligible_teams
 from .models import Team
+from .operator_waivers import find_participation_waiver
 from .planning_contract import _parse_date, external_calendar_conflict, verify_candidate
 
 TeamIdentity = Tuple[str, str, str]
@@ -236,7 +237,9 @@ def _participant_options(candidate, problem, tournament, finding_id: str, finger
         if add_id in same_date:
             rejected.append({**base, "reason": "already_plays_same_date"})
             continue
-        limit = _participation_limit_reason(add_id, existing_counts, half_counts, problem, t_date)
+        limit = _participation_limit_reason(
+            add_id, existing_counts, half_counts, problem, t_date, tournament.get("id")
+        )
         if limit is not None:
             rejected.append({**base, "reason": limit})
             continue
@@ -452,13 +455,17 @@ def _participations_by_half(candidate, problem) -> Dict[str, Dict[TeamIdentity, 
 
 
 def _participation_limit_reason(
-    identity, existing_counts, half_counts, problem, t_date
+    identity, existing_counts, half_counts, problem, t_date, tournament_id
 ) -> Optional[str]:
     """Why *identity* may not take one more participation, or ``None``.
 
     Covers both an explicit season-wide target (``at_participation_max``) and
     the authoritative per-half participation target the verifier enforces when
-    no explicit target is configured (``incompatible_half_target``).
+    no explicit target is configured (``incompatible_half_target``). A valid,
+    matching operator waiver for this exact tournament/half/resulting count
+    turns the half-target rejection into an allowed addition -- the verifier
+    then reports the resulting overage as operator-waived rather than
+    blocking, and the repair option is exposed for the operator to apply.
     """
     team = next((t for t in problem.get("teams", []) if _identity(t) == identity), {})
     target = team.get("target_tournament_count", problem.get("target_tournament_count"))
@@ -472,7 +479,17 @@ def _participation_limit_reason(
     half_target = half_targets.get(half)
     if isinstance(half_target, int) and not isinstance(half_target, bool):
         if half_counts.get(half, {}).get(identity, 0) >= half_target:
-            return "incompatible_half_target"
+            resulting = half_counts.get(half, {}).get(identity, 0) + 1
+            waiver = find_participation_waiver(
+                problem,
+                identity=identity,
+                half=half,
+                actual=resulting,
+                configured=half_target,
+                tournament_ids=[str(tournament_id or "")],
+            )
+            if waiver is None:
+                return "incompatible_half_target"
     return None
 
 

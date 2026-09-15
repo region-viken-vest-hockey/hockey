@@ -107,6 +107,28 @@ The controller must:
 
 Harness-specific `.claude`, `.chatgpt`, `.codex` and Pi files are transport/UI/browser adapters only. Shared RVV policy lives in repository code and `.agents/skills/rvv/SKILL.md`; shared non-Pi command procedures live under `.agents/commands/rvv-miniputt/`. Harness adapters should lazy-load those neutral files and add only harness-specific transport/UI behavior, never maintain independent copies.
 
+## Operator waivers for hard planning rules
+
+Deterministic verification distinguishes:
+
+- **structural invariants** (unknown team ids, corrupt/inconsistent serialization, invalid tournament identity, malformed data), which are never waivable by anyone; and
+- **hard planning rules** (for example `participation_target_exceeded`), which the planner/optimizer/agent must never cross autonomously but an authorized operator may explicitly waive for a precise scope.
+
+A waiver is a first-class, persisted, audited record (`<work_dir>/operator_waivers.json`) created only through the operator CLI:
+
+```bash
+scripts/rvv-miniputt waiver create --rule participation_target_exceeded \
+  --club "Frisk Asker" --team "Frisk Asker 4" --age-group U11 \
+  --tournament e7276974 --half before_christmas \
+  --allowed-value 6 --reason "operator chose Frisk Asker 4 for host placement"
+```
+
+The command validates the requested scope against the current Stage 1/Stage 3 checkpoints (team identity, tournament/half, configured target, and resulting count) before writing, so a waiver is always tied to a real, present overage. It records rule, scope, configured vs. accepted value, operator reason, actor and timestamp.
+
+Verification treats a matching active waiver as an explicit `waived_violations` finding rather than a hard `violation`: `verify_candidate`/`verify_final_candidate` stay pure functions over the `planning_problem`, whose `operator_waivers` list is the frozen snapshot of this run's active waivers. Stage 4 therefore exports a candidate with zero unwaived hard violations and any number of matching waivers, while publication readiness becomes `REVIEW_REQUIRED` (reason `operator_waivers`) so the exception stays visible in the evidence bundle, Stage 4 audit context and operator HTML. Revoking a waiver (or any change to its scope/values) restores the normal hard failure.
+
+Agents may suggest a waiver through `request_operator`, but there is no decision action that creates one; the planner/optimizer and agent paths never write the store. A one-off exception is never implemented as a global config change or `--non-strict`.
+
 ## Goal-oriented human/operator flow
 
 ```bash

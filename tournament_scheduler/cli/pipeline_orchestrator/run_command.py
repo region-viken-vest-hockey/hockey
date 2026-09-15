@@ -125,7 +125,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     best_attempt: int = 0
     last_attempt: int = 0
     attempt_qualities: list[tuple[int, dict[str, Any]]] = []
-    multi_seed_problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+    multi_seed_problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
     try:
         from ...pipeline.run_manifest import RunManifest
 
@@ -314,7 +314,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         return 1
 
     if not _assert_hard_verification_before_export(
-        plan, _mid_planning_decision_problem(cfg, scraping, start, end), strict, _console, _log
+        plan, _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir), strict, _console, _log
     ):
         _manifest_record(
             args.work_dir, "export", "blocked", "Hard-verification gate rejected the plan before export."
@@ -323,7 +323,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         _write_run_log(args, state, log_start, log_lines, success=False)
         return 1
     _reconcile_verified_manual_state(
-        plan, _mid_planning_decision_problem(cfg, scraping, start, end), _log
+        plan, _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir), _log
     )
 
     _manifest_set_active(args.work_dir, "export")

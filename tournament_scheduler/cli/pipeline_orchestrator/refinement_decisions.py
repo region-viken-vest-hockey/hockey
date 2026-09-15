@@ -16,6 +16,7 @@ def _refinement_decision_problem(state: "Any", plan_obj: "Any") -> "dict[str, An
     apply here).
     """
     try:
+        from ...operator_waivers import load_active_waivers
         from ...pipeline.state import StageName
         from ...planning_contract import build_planning_problem
 
@@ -25,7 +26,13 @@ def _refinement_decision_problem(state: "Any", plan_obj: "Any") -> "dict[str, An
             return None
         cfg = state.read_stage(StageName.CONFIG) or {}
         scraping = state.read_stage(StageName.SCRAPING) or {}
-        return build_planning_problem(cfg, scraping, start_date, end_date)
+        return build_planning_problem(
+            cfg,
+            scraping,
+            start_date,
+            end_date,
+            waivers=load_active_waivers(state.work_dir),
+        )
     except Exception:
         return None
 

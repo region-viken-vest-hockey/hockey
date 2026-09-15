@@ -351,7 +351,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 repair_scraping = state.read_stage(StageName.SCRAPING) or {}
                 repair_start = datetime.strptime(repair_cfg["start_date"], "%Y-%m-%d")
                 repair_end = datetime.strptime(repair_cfg["end_date"], "%Y-%m-%d")
-                problem = _mid_planning_decision_problem(repair_cfg, repair_scraping, repair_start, repair_end)
+                problem = _mid_planning_decision_problem(repair_cfg, repair_scraping, repair_start, repair_end, state.work_dir)
                 outcome = apply_host_team_missing_repair_option(
                     extract_candidate(best_plan),
                     problem,
@@ -499,7 +499,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     if resume_from <= 4:
         _verify_started = perf_counter()
         verification_ok = _assert_hard_verification_before_export(
-            plan, _mid_planning_decision_problem(cfg, scraping, start, end), strict, _console, _log
+            plan, _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir), strict, _console, _log
         )
         try:
             from ...pipeline.run_manifest import RunManifest
@@ -512,7 +512,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         if not verification_ok:
             return 1
         _reconcile_verified_manual_state(
-            plan, _mid_planning_decision_problem(cfg, scraping, start, end), _log
+            plan, _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir), _log
         )
 
     _generated_calendars, abort, _stage4_failed = _run_stage4_export(

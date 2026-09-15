@@ -217,6 +217,12 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
         }
 
     reasons: list[dict[str, Any]] = []
+    # An operator waiver never blocks export, but it must remain visible: a
+    # plan that only passes because a hard rule was explicitly waived is not
+    # the same as one that passes with no exception at all.
+    waived = list(result.get("waived_violations") or [])
+    if waived:
+        reasons.append({"code": "operator_waivers", "count": len(waived)})
     skipped = list(result.get("skipped") or [])
     if skipped:
         reasons.append(

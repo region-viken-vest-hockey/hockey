@@ -354,6 +354,16 @@ class SeasonPlan:
     # "rationale", "decided_by", "decided_at"}. Provenance only -- no
     # chain-of-thought. See `shared_host_decision.py`.
     shared_host_decisions: List[Dict[str, str]] = field(default_factory=list)
+    # Explicit operator-authorized waivers for hard planning rules this plan
+    # relies on (see `operator_waivers.py`). Provenance/audit only -- a
+    # waiver is created/revoked through the operator CLI, never by the
+    # planner. Each entry mirrors the persisted waiver record.
+    operator_waivers: List[Dict[str, object]] = field(default_factory=list)
+    # The hard verifier violations that were downgraded to non-blocking
+    # because a matching active operator waiver authorized exactly that
+    # scope. Kept visible so a waived exception is never indistinguishable
+    # from a clean pass.
+    operator_waived_violations: List[Dict[str, object]] = field(default_factory=list)
     # issue #323 P0: tournaments whose selected participants had no
     # candidate host club with a free slot -- never auto-placed, surfaced
     # here for manual placement instead. Entry: {"age_group", "date",

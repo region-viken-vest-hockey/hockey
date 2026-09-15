@@ -45,6 +45,7 @@ from .pipeline_orchestrator import (
 )
 from .plan_command import _cmd_plan
 from .recovery_cli import _cmd_recovery_inject, _cmd_recovery_targets, _cmd_scrape_merge
+from .waiver_command import _cmd_waiver
 from .reporting import _cmd_candidates, _cmd_logs, _cmd_sources_status, _cmd_status
 
 _console = Console()
@@ -1209,6 +1210,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_candidates(args)
     elif args.command == "plan":
         return _cmd_plan(args)
+    elif args.command == "waiver":
+        return _cmd_waiver(args)
     else:
         parser.print_help()
         return 0

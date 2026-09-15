@@ -342,6 +342,9 @@ def run(
     )
     manual_entries = [entry for entry in candidate_entries if entry.get("category") in MANUAL_SCHEDULE_CATEGORIES]
     participation_entries = list(getattr(plan, "unresolved_participation_shortfalls", None) or [])
+    # Explicit operator waivers this plan relies on -- rendered as their own
+    # section so a waived exception stays visibly distinct from a clean pass.
+    waiver_entries = list(getattr(plan, "operator_waivers", None) or [])
     # Fresh recomputation always wins, including the empty case -- a stale
     # stored collision list must not survive a verified zero-collision plan.
     plan.arena_day_collisions = collision_entries
@@ -530,7 +533,7 @@ def run(
     # Anything that cannot be treated as auto-confirmed hall time goes here:
     # arena/sequence collisions that could not be placed, plus tournaments
     # hosted by clubs whose calendar could not be scraped (provisional istid).
-    if (manual_entries or participation_entries) and not errors:
+    if (manual_entries or participation_entries or waiver_entries) and not errors:
         try:
             _progress("Genererer manuell-oppfølgingsvisning")
             _manual_path = primary_export_path / MANUAL_SCHEDULE_FILENAME
@@ -538,6 +541,7 @@ def run(
                 plan,
                 manual_entries=manual_entries,
                 participation_entries=participation_entries,
+                waiver_entries=waiver_entries,
                 generated_at=generated_at,
                 input_path=input_path,
                 date_range=str(pipeline_meta.get("date_range", "")),

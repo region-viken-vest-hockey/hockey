@@ -6,6 +6,15 @@ from typing import Any
 
 from .interactive_state_io import _current_run_id, _read_stage3_interactive_state
 
+
+def _active_waivers_for_state(state: "Any") -> "list[dict[str, Any]]":
+    """This run's active operator waivers, so an optimizer pass verifies
+    against the same explicit exceptions the operator authorized."""
+    from ...operator_waivers import load_active_waivers
+
+    return load_active_waivers(state.work_dir)
+
+
 def _run_stage3_v2_optimize(
     state: "Any",
     cfg: "dict[str, Any]",
@@ -59,7 +68,9 @@ def _run_stage3_v2_optimize(
         log_fn(f"optimize_plan: could not read baseline candidate: {exc}")
         return None, True
 
-    problem = build_planning_problem(cfg, scraping, start.date(), end.date())
+    problem = build_planning_problem(
+        cfg, scraping, start.date(), end.date(), waivers=_active_waivers_for_state(state)
+    )
 
     engine = str(arguments.get("engine") or "local_search").replace("-", "_")
     weights = arguments.get("weights")
@@ -191,7 +202,9 @@ def _run_stage3_pareto_optimize(
         log_fn(f"optimize_plan(pareto): could not read baseline candidate: {exc}")
         return None, True
 
-    problem = build_planning_problem(cfg, scraping, start.date(), end.date())
+    problem = build_planning_problem(
+        cfg, scraping, start.date(), end.date(), waivers=_active_waivers_for_state(state)
+    )
 
     result = optimize_candidate_pareto(
         baseline_candidate,

@@ -200,7 +200,7 @@ def _emit_stage3_interactive_decision(
 
     _t0 = perf_counter()
     run_id = _current_run_id(state)
-    problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+    problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
 
     # Resolve every internal arena/time double-booking in *this* candidate
     # before offering the optimize/apply comparison at all -- an interactive

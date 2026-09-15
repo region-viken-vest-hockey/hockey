@@ -222,6 +222,53 @@ For each pause:
 
 Do not persist or request hidden/private reasoning. The durable record only needs the action, relevant facts/outcome and concise rationale.
 
+## Operator waivers for hard planning rules
+
+A hard planning rule has two distinct meanings that must not be conflated:
+
+- **structural invariants** (unknown team ids, corrupt/inconsistent
+  serialization, invalid tournament identity, malformed data) are never
+  waivable by anyone, including an operator;
+- **hard planning rules** (for example a participation maximum) may never be
+  crossed autonomously by the planner/optimizer/agent, but an authorized
+  operator may explicitly waive one for a precise scope.
+
+The planner/optimizer/agent may *suggest* an operator waiver, but may never
+create, broaden or silently infer one: there is no decision action that does
+this, and no agent path writes the waiver store. Only an explicit operator
+action authorizes an exception. Without a matching active waiver, hard
+verification behavior is unchanged.
+
+Canonical operator capability (same CLI from every harness):
+
+```bash
+scripts/rvv-miniputt waiver list [--all]
+scripts/rvv-miniputt waiver create --rule participation_target_exceeded \
+  --club "Frisk Asker" --team "Frisk Asker 4" --age-group U11 \
+  --tournament e7276974 --half before_christmas \
+  --allowed-value 6 --reason "operator chose Frisk Asker 4 for host placement"
+scripts/rvv-miniputt waiver revoke <waiver-id> --reason "withdrawn"
+```
+
+Rules:
+
+- a waiver is tied to its exact scope (rule, team identity, half, tournament,
+  configured target, accepted actual); if the team/tournament/date/value
+  changes outside that scope it stops matching and the normal hard failure
+  returns -- never re-create it silently;
+- an operator-waived violation is reported as waived (not silently dropped)
+  and downgrades publication readiness to `REVIEW_REQUIRED`, so a plan that
+  only passes because of an exception is never indistinguishable from a
+  clean pass;
+- do not use `--non-strict` or a global participation-cap change as a
+  substitute for an operator waiver;
+- only explicitly classified waivable rules are accepted. Structural
+  invariants remain blocking for everyone.
+
+When the plan currently violates a hard rule with no matching waiver, use the
+normal `request_operator` action to ask the operator whether to author one;
+do not hand-edit checkpoints.
+
 ## Human escalation
 
 Escalate when the repository explicitly requires human authority or information, for example:

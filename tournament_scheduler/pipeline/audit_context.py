@@ -553,6 +553,8 @@ def _build_checklist_evidence_guide(
     export_consistency_summary: dict[str, Any],
     deterministic_verify_result: dict[str, Any],
     publication_readiness: dict[str, Any] | None,
+    operator_waivers: list[dict[str, Any]] | None = None,
+    operator_waived_violations: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Point the semantic judge at the strongest persisted evidence per checklist item."""
     question_by_id = {int(item["item_id"]): item["question"] for item in AUDIT_CHECKLIST}
@@ -689,12 +691,16 @@ def _build_checklist_evidence_guide(
             "primary_evidence": [
                 "publication_readiness",
                 "deterministic_verify_result",
+                "operator_waivers",
+                "operator_waived_violations",
                 "plan_audit_summary",
                 "plan_audit_summary.tournament_utilisation_summary",
                 "calendar_evidence_summary",
             ],
             "summary": {
                 "publication_readiness": publication_readiness,
+                "operator_waivers": operator_waivers,
+                "operator_waived_violations": operator_waived_violations,
                 "tournament_utilisation_summary": plan_audit_summary.get("tournament_utilisation_summary"),
             },
         },
@@ -722,6 +728,14 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
     output_files = export_checkpoint.get("output_files") or {}
 
     deterministic_verify_result = export_checkpoint.get("verify_result") or {}
+    operator_waived_violations = list(deterministic_verify_result.get("waived_violations") or [])
+    operator_waivers: list[dict[str, Any]] = []
+    if isinstance(plan_dict, dict) and plan_dict.get("operator_waivers"):
+        operator_waivers = list(plan_dict.get("operator_waivers") or [])
+    else:
+        from ..operator_waivers import load_active_waivers, waiver_audit_rows
+
+        operator_waivers = waiver_audit_rows({"operator_waivers": load_active_waivers(work_dir)})
     publication_readiness: dict[str, Any] | None = None
     if isinstance(plan_dict, dict) and plan_dict.get("publication_readiness"):
         publication_readiness = plan_dict.get("publication_readiness")
@@ -749,6 +763,8 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
         export_consistency_summary=export_consistency_summary,
         deterministic_verify_result=deterministic_verify_result,
         publication_readiness=publication_readiness,
+        operator_waivers=operator_waivers,
+        operator_waived_violations=operator_waived_violations,
     )
 
     return {
@@ -766,6 +782,8 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
         "export_dir": export_dir,
         "output_files": output_files,
         "deterministic_verify_result": deterministic_verify_result,
+        "operator_waivers": operator_waivers,
+        "operator_waived_violations": operator_waived_violations,
         "publication_readiness": publication_readiness,
         "evidence_bundle": evidence_bundle,
         "calendar_evidence_summary": calendar_evidence_summary,

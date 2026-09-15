@@ -117,11 +117,78 @@ def _participation_section_html(entries: list[dict[str, str]]) -> str:
     )
 
 
+def _waiver_section_html(entries: list[dict[str, object]]) -> str:
+    """Render the "Operator-godkjente unntak" section.
+
+    A plan that only passes verification because an authorized operator
+    explicitly waived a hard planning rule must not look identical to a plan
+    that passed with no exception at all -- this section keeps the rule,
+    exact scope, configured-vs-accepted value, reason and actor visible on
+    the operator page.
+    """
+    entries = [item for item in entries or [] if isinstance(item, dict)]
+    if not entries:
+        return ""
+
+    rule_labels = {
+        "participation_target_exceeded": "Deltakelsestak overskredet",
+    }
+    half_labels = {
+        "before_christmas": "Før jul",
+        "after_christmas": "Etter jul",
+    }
+
+    rows: list[str] = []
+    for idx, item in enumerate(entries, start=1):
+        rule = str(item.get("rule", "") or "")
+        team = item.get("team") or {}
+        club = str(team.get("club", "") or "")
+        label = str(team.get("label", "") or "")
+        age_group = str(team.get("age_group", "") or "")
+        half = half_labels.get(str(item.get("half", "") or ""), str(item.get("half", "") or "Hele sesongen"))
+        configured = str(item.get("configured_value", "") or "")
+        allowed = str(item.get("allowed_value", "") or "")
+        tournament_id = str(item.get("tournament_id", "") or "-")
+        reason = str(item.get("reason", "") or "")
+        created_by = str(item.get("created_by", "") or "")
+        created_at = str(item.get("created_at", "") or "")
+        rows.append(
+            "<tr>"
+            f'<td class="numeric-cell">{idx}</td>'
+            f"<td><strong>{_html.escape(age_group)}</strong></td>"
+            f"<td>{_html.escape(club)}</td>"
+            f"<td>{_html.escape(label)}</td>"
+            f"<td>{_html.escape(half)}</td>"
+            f'<td class="numeric-cell">{_html.escape(allowed)}/{_html.escape(configured)}</td>'
+            f"<td>{_html.escape(tournament_id)}</td>"
+            f"<td>{_html.escape(rule_labels.get(rule, rule))}</td>"
+            f"<td>{_html.escape(reason)}</td>"
+            f"<td>{_html.escape(created_by)}{(' &middot; ' + _html.escape(created_at)) if created_at else ''}</td>"
+            "</tr>"
+        )
+
+    return (
+        '<section class="report-section" id="operatorWaivers">'
+        '<div class="section-head"><div><p class="eyebrow">Operatorunntak</p>'
+        "<h2>Eksplisitt godkjente unntak fra harde planleggingsregler</h2></div>"
+        f'<p class="section-note">{len(entries)} unntak er godkjent av operatør. '
+        "Planen ville ellers blitt stoppet av verifiseringen. Unntaket gjelder kun nøyaktig "
+        "det viste laget, halvdelen, turneringen og verdien.</p>"
+        "</div>"
+        '<div class="table-wrap"><table class="report-table"><thead><tr>'
+        "<th>#</th><th>Aldersgruppe</th><th>Klubb</th><th>Lag</th><th>Halvdel</th>"
+        "<th>Godkjent/Konfigurert</th><th>Turnering</th><th>Regel</th><th>Begrunnelse</th><th>Godkjent av</th>"
+        f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+        "</section>"
+    )
+
+
 def _manual_schedule_html(
     plan: SeasonPlan,
     *,
     manual_entries: list[dict[str, str]] | None = None,
     participation_entries: list[dict[str, str]] | None = None,
+    waiver_entries: list[dict[str, object]] | None = None,
     generated_at: str = "",
     input_path: str = "",
     date_range: str = "",
@@ -250,6 +317,7 @@ def _manual_schedule_html(
         hidden_parts.append(f"Input: {input_path}")
 
     participation_section = _participation_section_html(list(participation_entries or []))
+    waiver_section = _waiver_section_html(list(waiver_entries or []))
     # issue #321: the hero count/copy above is specifically about ice-time
     # booking work (see the module docstring's `MANUAL_SCHEDULE_CATEGORIES`
     # note), so it stays scoped to `entries` -- participation findings get
@@ -271,6 +339,7 @@ def _manual_schedule_html(
         "$EXTRA_NOTE$": extra_note,
         "$ROWS$": rows_html,
         "$PARTICIPATION_SECTION$": participation_section,
+        "$WAIVER_SECTION$": waiver_section,
         "$HIDDEN_CONTEXT$": _html.escape(" · ".join(hidden_parts)),
     }
     html = MANUAL_SCHEDULE
