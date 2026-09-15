@@ -83,15 +83,19 @@ def intervals_overlap(first: ArenaInterval, second: ArenaInterval) -> bool:
     return first.arena == second.arena and first.start < second.end and second.start < first.end
 
 
-def arena_interval_collisions(intervals: Sequence[ArenaInterval]) -> list[dict[str, str]]:
-    """Return structured same-arena interval collisions.
+def arena_interval_collision_pairs(intervals: Sequence[ArenaInterval]) -> list[tuple[ArenaInterval, ArenaInterval]]:
+    """Return every pair of same-arena intervals that overlap, as raw
+    :class:`ArenaInterval` pairs (one pair per colliding combination, not
+    yet formatted). :func:`arena_interval_collisions` formats these into
+    reportable dicts; callers that need the underlying interval details
+    (e.g. to build a resolution decision) use this directly.
 
     Adjacent intervals (``first.end == second.start``) are allowed. Overnight
     intervals naturally collide with any interval that starts before their true
     next-day end time.
     """
     ordered = sorted(intervals, key=lambda item: (item.arena, item.start, item.end, item.tournament_id))
-    collisions: list[dict[str, str]] = []
+    pairs: list[tuple[ArenaInterval, ArenaInterval]] = []
     for idx, current in enumerate(ordered):
         for other in ordered[idx + 1 :]:
             if other.arena != current.arena:
@@ -99,8 +103,18 @@ def arena_interval_collisions(intervals: Sequence[ArenaInterval]) -> list[dict[s
             if other.start >= current.end:
                 break
             if intervals_overlap(current, other):
-                collisions.append(format_arena_collision(current, other))
-    return collisions
+                pairs.append((current, other))
+    return pairs
+
+
+def arena_interval_collisions(intervals: Sequence[ArenaInterval]) -> list[dict[str, str]]:
+    """Return structured same-arena interval collisions.
+
+    Adjacent intervals (``first.end == second.start``) are allowed. Overnight
+    intervals naturally collide with any interval that starts before their true
+    next-day end time.
+    """
+    return [format_arena_collision(first, second) for first, second in arena_interval_collision_pairs(intervals)]
 
 
 def find_arena_interval_collisions(

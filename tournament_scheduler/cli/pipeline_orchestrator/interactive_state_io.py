@@ -100,3 +100,39 @@ def _clear_shared_host_state(state: "Any") -> None:
         _shared_host_state_path(state).unlink(missing_ok=True)
     except Exception:
         pass
+
+
+def _arena_conflict_state_path(state: "Any") -> Path:
+    return state.work_dir / "arena_conflict_decision_state.json"
+
+
+def _read_arena_conflict_state(state: "Any", expected_run_id: str | None = None) -> dict[str, Any]:
+    path = _arena_conflict_state_path(state)
+    if not path.exists():
+        return {}
+    try:
+        import json as _json
+
+        data = _json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    if expected_run_id and data.get("run_id") != expected_run_id:
+        return {}
+    return data
+
+
+def _write_arena_conflict_state(state: "Any", data: dict[str, Any]) -> None:
+    import json as _json
+
+    _arena_conflict_state_path(state).write_text(
+        _json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def _clear_arena_conflict_state(state: "Any") -> None:
+    try:
+        _arena_conflict_state_path(state).unlink(missing_ok=True)
+    except Exception:
+        pass

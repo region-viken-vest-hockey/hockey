@@ -162,9 +162,29 @@ def _emit_stage3_interactive_decision(
 
     _t0 = perf_counter()
     run_id = _current_run_id(state)
+    problem = _mid_planning_decision_problem(cfg, scraping, start, end)
+
+    # Resolve every internal arena/time double-booking in *this* candidate
+    # before offering the optimize/apply comparison at all -- an interactive
+    # harness or headless judge decides which side of each collision keeps
+    # the automatic slot; the other is demoted to manual placement in
+    # *plan* itself (see ``arena_conflict_decisions``). A hard block from
+    # ``planning_contract.verify_candidate``'s own arena_interval_conflict
+    # check remains the backstop for any collision that reaches Stage 4
+    # unresolved (e.g. re-introduced by a later optimize_plan pass).
+    from .arena_conflict_decisions import _resolve_arena_conflict_decisions
+
+    ice_time_for_age_group = (problem or {}).get("ice_time_minutes") or (problem or {}).get(
+        "round_length_minutes"
+    ) or {}
+    arena_pause_code = _resolve_arena_conflict_decisions(
+        state, plan, ice_time_for_age_group, log_fn, interactive=True
+    )
+    if arena_pause_code is not None:
+        return arena_pause_code
+
     interactive_state = _read_stage3_interactive_state(state, expected_run_id=run_id)
     attempts_used = int(interactive_state.get("attempts_used", 0))
-    problem = _mid_planning_decision_problem(cfg, scraping, start, end)
 
     try:
         shadow_source_candidate = extract_candidate(plan)

@@ -16,11 +16,14 @@ from .interactive_decision_emit import (
     _emit_stage3_interactive_decision,
 )
 from .interactive_state_io import (
+    _clear_arena_conflict_state,
     _clear_shared_host_state,
     _clear_stage3_interactive_state,
     _current_run_id,
+    _read_arena_conflict_state,
     _read_shared_host_state,
     _read_stage3_interactive_state,
+    _write_arena_conflict_state,
     _write_shared_host_state,
 )
 from .manifest import _manifest_start_run
@@ -123,6 +126,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         _manifest_start_run(args.work_dir, args.input, getattr(args, "objective", None))
         _clear_stage3_interactive_state(state)
         _clear_shared_host_state(state)
+        _clear_arena_conflict_state(state)
         from ...pipeline.evidence_bundle import clear_stage3_attempt_log
         from .stage3_cpsat_cache import clear_cp_sat_cache
 
@@ -205,6 +209,75 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         # shared-host decision (pauses again if one remains) or proceeds
         # straight into Stage 3 once none remain, without an extra harness
         # round trip once everything is resolved.
+        decision_payload = None
+
+    # Internal arena/time double-booking resolution (see
+    # ``arena_conflict_decisions``) is, like the shared-host decision above,
+    # a distinct in-Stage-3 sub-decision -- it only becomes pending *after*
+    # Stage 3 has produced a candidate (collisions are a property of a built
+    # plan, not the pre-plan config), but it still can't reuse the
+    # prev_stage_num = resume_from - 1 contract below, and the harness
+    # answers it the same way: same --resume-from (still 3) plus
+    # --decision-action, detected via arena_conflict_decision_state.json's
+    # "pending" entry.
+    pending_arena_conflict = (
+        _read_arena_conflict_state(state, expected_run_id=_current_run_id(state)).get("pending")
+        if decision_payload is not None
+        else None
+    )
+    if decision_payload is not None and pending_arena_conflict is not None:
+        try:
+            arena_action = DecisionAction.from_dict(decision_payload)
+        except Exception as exc:
+            _console.print(f"[red]✗[/red] Ugyldig DecisionAction: {exc}")
+            return 1
+
+        arena_state = _read_arena_conflict_state(state, expected_run_id=_current_run_id(state))
+        arena_context = DecisionContext.from_dict(arena_state.get("last_context") or {})
+        arena_result = decide(arena_context, arena_action)
+        try:
+            record_llm_decision(str(state.work_dir), arena_context, arena_action, arena_result)
+        except Exception as exc:
+            _log(f"record_llm_decision failed: {exc}")
+        if not arena_result.accepted:
+            _console.print(f"[red]✗[/red] Avgjørelse avvist: {arena_result.rejection_reason}")
+            return 1
+
+        decisions_list = list(arena_state.get("decisions") or [])
+        unresolved_list = list(arena_state.get("unresolved") or [])
+        if arena_action.action_id == "resolve_arena_conflict":
+            from ...arena_conflict_decision import arena_conflict_decision_record
+
+            facts = dict(arena_context.facts)
+            side_ids = {str(s.get("tournament_id", "")) for s in facts.get("sides", [])}
+            keep = str(arena_action.arguments.get("keep_tournament_id", ""))
+            manual_id = next(iter(side_ids - {keep}), "")
+            decisions_list.append(
+                arena_conflict_decision_record(
+                    facts,
+                    keep,
+                    manual_id,
+                    str(arena_action.rationale or ""),
+                    decided_by="harness",
+                    decided_at=datetime.now(timezone.utc).isoformat(),
+                )
+            )
+        else:
+            unresolved_list.append({"key": pending_arena_conflict.get("key")})
+        _write_arena_conflict_state(
+            state,
+            {
+                "run_id": _current_run_id(state),
+                "decisions": decisions_list,
+                "unresolved": unresolved_list,
+                "pending": None,
+                "last_context": None,
+            },
+        )
+        # Answered — fall through the same way the shared-host block does:
+        # re-run Stage 3, which re-applies every recorded arena-conflict
+        # decision (matched by stable key) to the freshly rebuilt candidate
+        # and pauses again only if another collision remains unresolved.
         decision_payload = None
 
     if decision_payload is not None:

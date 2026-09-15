@@ -57,6 +57,11 @@ DECISION_ACTION_IDS: frozenset[str] = frozenset(
         # shared/joint registration carries a hosting obligation), not soft
         # policy -- distinct from growing the vocabulary for a policy tweak.
         "assign_shared_host",
+        # Which side of an internal arena/time double-booking (two of the
+        # plan's own tournaments) keeps the automatic slot -- the other is
+        # demoted to manual placement. Same rationale as assign_shared_host:
+        # a genuinely new capability, not a policy tweak.
+        "resolve_arena_conflict",
     }
 )
 
@@ -67,12 +72,20 @@ _REQUIRED_ARGUMENTS: dict[str, tuple[str, ...]] = {
     "apply_candidate": ("candidate_ref",),
     "request_operator": ("question",),
     "assign_shared_host": ("chosen_club",),
+    "resolve_arena_conflict": ("keep_tournament_id",),
 }
 
 # Actions that may proceed even when the context carries human-approval
 # requirements — everything else must route through a human gate first.
 _HUMAN_APPROVAL_SAFE_ACTIONS: frozenset[str] = frozenset(
-    {"abort", "keep_baseline", "request_operator", "present_for_review", "assign_shared_host"}
+    {
+        "abort",
+        "keep_baseline",
+        "request_operator",
+        "present_for_review",
+        "assign_shared_host",
+        "resolve_arena_conflict",
+    }
 )
 
 # Actions that could move the run past a hard violation and are therefore
