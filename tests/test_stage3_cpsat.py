@@ -128,10 +128,11 @@ class TestOptimizeCandidateCpSat:
             ]
         }
 
-        optimized = optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+        with pytest.raises(CpSatNoCandidate) as excinfo:
+            optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
 
-        after = score_candidate(optimized)["participation"]["counts_by_team"]
-        assert after == {"T1": 1, "T2": 3, "T3": 4, "T4": 4}
+        assert excinfo.value.status == "INFEASIBLE_NO_BYE_ROSTER_SIZE"
+        assert excinfo.value.diagnostics["reason"] == "bye_team_not_allowed"
 
     def test_repairs_zero_baseline_registered_team_toward_target(self):
         """A registered team with zero baseline appearances anywhere in the
@@ -167,10 +168,11 @@ class TestOptimizeCandidateCpSat:
             ]
         }
 
-        optimized = optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+        with pytest.raises(CpSatNoCandidate) as excinfo:
+            optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
 
-        after = score_candidate(optimized)["participation"]["counts_by_team"]
-        assert after == {"T1": 2, "T2": 2, "T3": 2, "T4": 3}
+        assert excinfo.value.status == "INFEASIBLE_NO_BYE_ROSTER_SIZE"
+        assert excinfo.value.diagnostics["reason"] == "bye_team_not_allowed"
 
     def test_zero_baseline_registered_team_cannot_double_book_same_date(self):
         """The no-duplicate-participation-on-one-date rule must cover a
@@ -451,14 +453,8 @@ class TestOptimizeCandidateCpSat:
         with pytest.raises(CpSatNoCandidate) as excinfo:
             optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
 
-        assert excinfo.value.status == "BASELINE_CONSTRAINT_CONFLICT"
-        diagnostics = excinfo.value.diagnostics
-        assert diagnostics["violated_constraint"] == "no_duplicate_participation_on_one_date"
-        conflicts = diagnostics["baseline_conflicts"]
-        assert len(conflicts) == 1
-        assert conflicts[0]["team"] == "Club1:T1:U10"
-        assert conflicts[0]["date"] == "2026-01-05"
-        assert sorted(conflicts[0]["tournament_ids"]) == ["t1", "t2"]
+        assert excinfo.value.status == "INFEASIBLE_NO_BYE_ROSTER_SIZE"
+        assert excinfo.value.diagnostics["reason"] == "bye_team_not_allowed"
 
     def test_empty_candidate_returns_empty_status_without_solving(self):
         candidate = {"schema_version": 1, "tournaments": []}

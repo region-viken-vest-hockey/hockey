@@ -255,8 +255,9 @@ def rebalance_roster_sizes_across_dates(
         usable_slot_count = min(slot_count, available // min_teams) if min_teams else slot_count
         usable_total = min(available, usable_slot_count * capacity) if usable_slot_count > 0 else 0
 
-        sizes_by_date[slot_date] = plan_roster_sizes(usable_total, capacity) if usable_total > 0 else []
-        carry = total_requested - usable_total
+        planned_sizes = plan_roster_sizes(usable_total, capacity) if usable_total > 0 else []
+        sizes_by_date[slot_date] = planned_sizes
+        carry = total_requested - sum(planned_sizes)
 
     if carry > 0:
         evidence.append(

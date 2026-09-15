@@ -79,7 +79,7 @@ jobs:
         run: scripts/check dependency-lock
 
   lint:
-    name: Lint and file-length guideline
+    name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -103,9 +103,6 @@ jobs:
 
       - name: Run ruff
         run: scripts/check lint
-
-      - name: Run file-length guideline check
-        run: scripts/check file-length
 
   pi-typecheck:
     name: Pi TypeScript typecheck

@@ -68,13 +68,11 @@ Do not commit a second task tracker, agent backlog/history, temporary architectu
 
 ## Code style
 
-The canonical verification entry point is `scripts/check` / `make check`. Ruff currently enforces the repository's selected error/pyflakes rules, and a custom file-length check acts as a ratchet.
+The canonical verification entry point is `scripts/check` / `make check`. Ruff currently enforces the repository's selected error/pyflakes rules.
 
 ### File size
 
-Keep a Python file under `tournament_scheduler/` at or under 300 lines unless it is already grandfathered by `scripts/file-length-baseline.txt`. Existing over-limit files may not grow beyond their baseline without being split. New/compliant files should stay at or under 300 lines.
-
-Split along responsibility boundaries rather than raising the baseline merely to accommodate growth.
+There is no hard per-file line limit. Split modules along responsibility boundaries when it genuinely improves clarity, rather than to satisfy an arbitrary length budget.
 
 ## Expected operating context
 

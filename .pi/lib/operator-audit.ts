@@ -297,6 +297,7 @@ export async function runPiHarnessAudit(
   ctx: ExtensionContext,
   logLLMInteraction?: (details: Record<string, unknown>) => void,
 ): Promise<PiHarnessAuditResult> {
+  // Repository equivalent: rvv-miniputt operator audit-context --work-dir <dir>
   const contextResult = await runRepoCli(cwd, ["operator", "audit-context", "--work-dir", workDir]);
   if (contextResult.status !== "success") {
     return { status: "failure", text: `Semantisk revisjon: kunne ikke hente audit-context.\n${contextResult.text}` };

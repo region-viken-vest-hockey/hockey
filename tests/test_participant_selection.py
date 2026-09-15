@@ -33,49 +33,47 @@ class _StubRoster:
 
 
 class TestPlanRosterSizes:
-    def test_seventeen_teams_capacity_four_target_seven_packs_into_thirty_slots(self):
-        """issue #316: U12 production case -- 17 teams * target 7 = 119
-        participations at capacity 4 must need exactly 30 slots (matching
-        `target_tournaments_for_age_group`'s own ceil(119/4) derivation) and
-        every one of those 119 participations must be packable."""
+    def test_seventeen_teams_capacity_four_target_seven_packs_into_full_no_bye_slots(self):
+        """17 teams * target 7 = 119 participations at capacity 4 now yields
+        only full, even no-bye tournaments; the leftover participations are
+        surfaced later as explicit shortfall evidence instead of a bye slot."""
         demand = 17 * 7
         capacity = 4
         sizes = plan_roster_sizes(demand, capacity)
 
-        assert len(sizes) == 30
-        assert sum(sizes) == demand
+        assert len(sizes) == 29
+        assert sum(sizes) == 116
 
-    def test_seven_teams_capacity_four_target_seven_packs_into_thirteen_slots(self):
-        """issue #316: JU12 production case -- 7 teams * target 7 = 49
-        participations at capacity 4 must need exactly 13 slots."""
+    def test_seven_teams_capacity_four_target_seven_packs_into_full_no_bye_slots(self):
+        """7 teams * target 7 = 49 participations at capacity 4 yields 12
+        full no-bye slots, leaving one participation for shortfall evidence."""
         demand = 7 * 7
         capacity = 4
         sizes = plan_roster_sizes(demand, capacity)
 
-        assert len(sizes) == 13
-        assert sum(sizes) == demand
+        assert len(sizes) == 12
+        assert sum(sizes) == 48
 
-    def test_planned_sizes_stay_within_min_and_capacity_and_sum_to_demand(self):
-        """issue #316: sizes must never fall below `MIN_TEAMS_PER_TOURNAMENT`
-        or exceed `tournament_capacity`, and must sum exactly to demand --
-        the packing must not silently drop or invent participations."""
+    def test_planned_sizes_stay_within_no_bye_bounds_and_do_not_invent_demand(self):
+        """Sizes must never create odd/bye tournaments or invent extra
+        participations when demand is not exactly representable."""
         demand = 17 * 7
         capacity = 4
         sizes = plan_roster_sizes(demand, capacity)
 
-        assert sum(sizes) == demand
+        assert sum(sizes) <= demand
         for size in sizes:
-            assert MIN_TEAMS_PER_TOURNAMENT <= size <= capacity
+            assert size % 2 == 0
+            assert 4 <= size <= capacity
 
-    def test_matches_issue_reported_balanced_packing_for_u12_and_ju12(self):
-        """issue #316: the issue's own worked examples -- U12 as 29 full
-        slots of 4 plus one slot of 3, JU12 as 10 full slots of 4 plus three
-        slots of 3 -- not a greedy-then-stranded-remainder split."""
+    def test_matches_no_bye_packing_for_u12_and_ju12(self):
+        """U12/JU12 capacity-4 planning now materializes only full no-bye
+        slots; unrepresented odd demand remains an explicit shortfall."""
         u12_sizes = plan_roster_sizes(17 * 7, 4)
-        assert sorted(u12_sizes) == sorted([4] * 29 + [3] * 1)
+        assert sorted(u12_sizes) == sorted([4] * 29)
 
         ju12_sizes = plan_roster_sizes(7 * 7, 4)
-        assert sorted(ju12_sizes) == sorted([4] * 10 + [3] * 3)
+        assert sorted(ju12_sizes) == sorted([4] * 12)
 
     def test_no_slot_is_stranded_below_minimum_when_demand_is_packable(self):
         """issue #316: greedy full-packing of 49 at capacity 4 leaves a
@@ -106,7 +104,7 @@ class TestRebalanceRosterSizesAcrossDates:
     def test_plenty_of_slack_matches_flat_plan_roster_sizes(self):
         """One slot per date, dates never share -- no date-group ever hits
         the distinct-team ceiling, so output must equal the flat plan."""
-        flat_sizes = plan_roster_sizes(17 * 7, 4)  # 29x4 + 1x3
+        flat_sizes = plan_roster_sizes(17 * 7, 4)  # 29x4; odd remainder is not materialized
         date_groups = [(date(2026, 9, d), 1) for d in range(1, 1 + len(flat_sizes))]
 
         sizes_by_date, evidence = rebalance_roster_sizes_across_dates(
@@ -123,8 +121,8 @@ class TestRebalanceRosterSizesAcrossDates:
         can absorb the 3-team overflow -- no demand should be lost."""
         capacity = 4
         distinct_team_count = 17
-        date_groups = [(date(2026, 9, 5), 5), (date(2026, 9, 12), 3)]
-        flat_sizes = [4, 4, 4, 4, 4, 3, 3, 3]  # 20 + 9 = 29 total; date 2 has room for 12 (3*4)
+        date_groups = [(date(2026, 9, 5), 5), (date(2026, 9, 12), 4)]
+        flat_sizes = [4, 4, 4, 4, 4, 4, 4, 4]  # 20 + 12; date 2 has a spare slot for carry
 
         sizes_by_date, evidence = rebalance_roster_sizes_across_dates(
             date_groups, flat_sizes, capacity, distinct_team_count
@@ -132,11 +130,11 @@ class TestRebalanceRosterSizesAcrossDates:
 
         first_total = sum(sizes_by_date[date(2026, 9, 5)])
         second_total = sum(sizes_by_date[date(2026, 9, 12)])
-        assert first_total == distinct_team_count  # capped at the team-pool ceiling
-        # The 3 teams that didn't fit on the first date are carried forward
-        # and absorbed by the second date's own slack (9 + 3 = 12 <= 3*4).
+        assert first_total == 16  # capped at the largest no-bye total below the team-pool ceiling
+        # The 4 teams that didn't fit on the first date are carried forward
+        # and absorbed by the second date's spare slot (12 + 4 = 16).
         assert first_total + second_total == sum(flat_sizes)
-        assert second_total <= min(3 * capacity, distinct_team_count)
+        assert second_total <= min(4 * capacity, distinct_team_count)
         for sizes in sizes_by_date.values():
             for size in sizes:
                 assert MIN_TEAMS_PER_TOURNAMENT <= size <= capacity
@@ -165,18 +163,18 @@ class TestRebalanceRosterSizesAcrossDates:
             assert MIN_TEAMS_PER_TOURNAMENT <= size <= 4
 
     def test_exact_boundary_slot_count_is_not_flagged_as_uniqueness_limit(self):
-        """5 slots * min_teams(3) == distinct_team_count(15) exactly -- every
+        """4 slots * min_teams(3) == distinct_team_count(12) exactly -- every
         team plays once, no slack, but it IS feasible. A `>=` in place of `>`
         here would wrongly report a structural uniqueness limit."""
-        date_groups = [(date(2026, 9, 5), 5)]
-        flat_sizes = [3, 3, 3, 3, 3]  # exactly uses all 15 teams
+        date_groups = [(date(2026, 9, 5), 4)]
+        flat_sizes = [4, 4, 4, 4]  # 16 requested, capped to the 12-team pool
 
         sizes_by_date, evidence = rebalance_roster_sizes_across_dates(
-            date_groups, flat_sizes, capacity=4, distinct_team_count=15
+            date_groups, flat_sizes, capacity=4, distinct_team_count=12
         )
 
         assert not any(e["category"] == "same_date_uniqueness_limit" for e in evidence)
-        assert sum(sizes_by_date[date(2026, 9, 5)]) == 15
+        assert sum(sizes_by_date[date(2026, 9, 5)]) == 12
 
     def test_genuine_end_of_season_shortfall_is_reported_with_limiting_dates(self):
         """Demand that can never be placed even after using every date's
@@ -190,9 +188,9 @@ class TestRebalanceRosterSizesAcrossDates:
 
         shortfall_entries = [e for e in evidence if e["category"] == "same_date_participant_pool_capacity"]
         assert len(shortfall_entries) == 1
-        assert shortfall_entries[0]["unplaced_participations"] == 3
+        assert shortfall_entries[0]["unplaced_participations"] == 4
         assert shortfall_entries[0]["limiting_dates"] == ["2026-09-05"]
-        assert sum(sizes_by_date[date(2026, 9, 5)]) == 17
+        assert sum(sizes_by_date[date(2026, 9, 5)]) == 16
 
 
 class TestRelocateStructurallyImpossibleSlots:
@@ -313,7 +311,7 @@ class TestRelocateStructurallyImpossibleSlots:
         distinct_team_count = 17
         date_a, date_b, date_c = date(2026, 9, 5), date(2026, 9, 12), date(2026, 9, 19)
         date_groups = [(date_a, 5), (date_b, 1), (date_c, 5)]
-        flat_sizes = [4, 4, 4, 4, 4, 1, 4, 4, 4, 4, 4]
+        flat_sizes = [4, 4, 4, 4, 4, 0, 4, 4, 4, 4, 4]
 
         _, evidence = rebalance_roster_sizes_across_dates(
             date_groups, flat_sizes, capacity, distinct_team_count

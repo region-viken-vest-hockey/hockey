@@ -77,9 +77,11 @@ def _make_duplicate_label_config():
             {"club": "Jar", "label": "Jar 1 U10", "age_group": "U10"},
             {"club": "Kongsberg", "label": "Kongsberg 1 U10", "age_group": "U10"},
             {"club": "Ringerike", "label": "Ringerike 1 U10", "age_group": "U10"},
+            {"club": "Skien", "label": "Skien 1 U10", "age_group": "U10"},
             {"club": "Jar", "label": "Jar 1 U11", "age_group": "U11"},
             {"club": "Kongsberg", "label": "Kongsberg 1 U11", "age_group": "U11"},
             {"club": "Ringerike", "label": "Ringerike 1 U11", "age_group": "U11"},
+            {"club": "Skien", "label": "Skien 1 U11", "age_group": "U11"},
         ],
     }
 
@@ -407,7 +409,7 @@ class TestRunStage3:
         ):
             run(cfg, {}, state, datetime(2025, 9, 1), datetime(2025, 12, 15))
 
-        assert make_planner.call_args.args[7] == 5
+        assert make_planner.call_args.args[8] == 5
         assert make_planner.call_args.kwargs["max_hosting_days_per_month"] == 2
 
     def test_plan_accepted_without_llm_evaluation(self, tmp_path):
@@ -482,7 +484,7 @@ class TestRunStage3:
         plan = result["plan"]
 
         assert state.is_done(StageName.PLANNING)
-        assert len(plan["team_game_counts"]) == 6
+        assert len(plan["team_game_counts"]) == 8
         assert any("U10" in key for key in plan["team_game_counts"])
         assert any("U11" in key for key in plan["team_game_counts"])
         assert plan["fairness_gate"]["status"] == "pass"

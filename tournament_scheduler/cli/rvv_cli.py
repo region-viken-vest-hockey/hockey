@@ -712,18 +712,41 @@ def _cmd_replan(args: argparse.Namespace) -> int:
 
 def _cmd_adjust(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt adjust`` — manual organizer adjustment loop."""
-    from .update_command import AdjustmentCommand
+    from ..pipeline.manual_adjustment_workflow import ManualAdjustmentWorkflow
 
-    cmd = AdjustmentCommand()
-    return cmd.run(
-        lock_dates=args.lock_date,
-        ban_dates=args.ban_date,
-        pin_tournaments=args.pin_tournament,
-        force_host_clubs=args.force_host_club,
-        exclude_host_clubs=args.exclude_host_club,
-        work_dir=args.work_dir,
-        export_dir=args.export_dir,
-        timestamped_export=args.timestamped_export,
+    plan, updater, state = _load_plan_and_updater(args.work_dir)
+    requested = {
+        "locked_dates": args.lock_date or [],
+        "banned_dates": args.ban_date or [],
+        "pinned_tournament_ids": args.pin_tournament or [],
+        "forced_host_clubs": args.force_host_club or [],
+        "excluded_host_clubs": args.exclude_host_club or [],
+    }
+    plan.manual_adjustments = ManualAdjustmentWorkflow.merge_manual_adjustments(
+        plan.manual_adjustments,
+        requested,
+    )
+
+    workflow = ManualAdjustmentWorkflow(state=state, updater=updater)
+    try:
+        result = workflow.apply(plan)
+    except ValueError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 1
+    if not result.success:
+        _console.print(f"[red]✗[/red] {result.summary_nb}")
+        return 1
+
+    updater.persist_update(plan, result)
+    _console.print(f"[green]✓[/green] {result.summary_nb}")
+    for warning in result.post_patch_warnings:
+        _console.print(f"[yellow]⚠[/yellow] {warning}")
+
+    _console.print("\n[bold]Re-eksporterer...[/bold]")
+    return _do_re_export(
+        args.work_dir,
+        args.export_dir,
+        timestamped_export=getattr(args, "timestamped_export", False),
     )
 
 
