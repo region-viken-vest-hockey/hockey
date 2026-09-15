@@ -503,3 +503,97 @@ def test_pinned_tournament_reports_manual_restriction_for_every_mutation():
     assert repair_set["options"] == []
     reasons = {entry["reason"] for entry in repair_set["rejected_candidates"]}
     assert reasons == {"manual_restriction_forbids_mutation"}
+
+
+def _surplus_remove_fixture():
+    teams_t1 = [_team("B"), _team("C"), _team("D"), _team("E")]
+    teams_t2 = [_team("Host", "Host 1"), _team("F"), _team("G"), _team("H")]
+    candidate = {
+        "schema_version": 1,
+        "arena_counts": {"Host Arena": 2},
+        "team_tournament_participations": {team["label"]: 1 for team in [*teams_t1, *teams_t2]},
+        "team_game_counts": {team["label"]: 3 for team in [*teams_t1, *teams_t2]},
+        "unresolved_tournament_placements": [{"tournament_id": "t1", "reason": "stale if kept"}],
+        "tournaments": [
+            _tournament("t1", "Host", teams_t1, date="2026-01-10"),
+            _tournament("t2", "Host", teams_t2, date="2026-01-10"),
+        ],
+    }
+    problem = {
+        "teams": [_team("Host", "Host 1"), *teams_t1, *teams_t2[1:]],
+        "parallel_games": {"U12": 2},
+        "club_arenas": {"Host": "Host Arena"},
+        "club_calendar_status": {"Host": "known"},
+        "club_busy_intervals": {},
+    }
+    return candidate, problem
+
+
+def test_surplus_tournament_with_no_participant_or_rehost_repair_exposes_remove_option():
+    candidate, problem = _surplus_remove_fixture()
+
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem, run_id="run-1")
+
+    options = [o for o in repair_set["options"] if o["action"] == "remove_tournament"]
+    assert len(options) == 1
+    option = options[0]
+    assert option["hard_feasible"] is True
+    assert option["effects"]["host_team_missing"] == -1
+    assert option["effects"]["tournament_count"] == -1
+    assert option["effects"]["hosting.Host.U12"] == -1
+    assert option["effects"]["participation.B"] == -1
+    assert option["effects"]["new_hard_violations"] == 0
+    reasons = {r["reason"] for r in repair_set["rejected_candidates"]}
+    assert {"already_plays_same_date", "arena_not_configured"} <= reasons
+
+
+def test_selected_remove_tournament_is_atomic_verified_and_refreshes_derived_state():
+    candidate, problem = _surplus_remove_fixture()
+    original = deepcopy(candidate)
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem)
+    option = next(o for o in repair_set["options"] if o["action"] == "remove_tournament")
+
+    applied = apply_host_team_missing_repair_option(
+        candidate,
+        problem,
+        option_id=option["option_id"],
+        expected_fingerprint=repair_set["candidate_fingerprint"],
+    )
+
+    assert applied["ok"]
+    assert applied["verification"]["ok"]
+    assert candidate == original
+    assert [t["id"] for t in applied["candidate"]["tournaments"]] == ["t2"]
+    assert applied["candidate"]["arena_counts"] == {"Host Arena": 1}
+    assert "B" not in applied["candidate"]["team_tournament_participations"]
+    assert applied["candidate"]["unresolved_tournament_placements"] == []
+
+
+def test_remove_tournament_rejected_when_it_creates_new_hosting_obligation():
+    candidate = _invalid_candidate()
+    candidate["tournaments"].append(
+        _tournament("t2", "F", [_team("Host", "Host 1"), _team("F"), _team("G"), _team("H")], date="2026-01-10")
+    )
+    problem = {
+        "teams": [
+            _team("Host", "Host 1"),
+            _team("B"),
+            _team("C"),
+            _team("D"),
+            _team("E"),
+            _team("F"),
+            _team("G"),
+            _team("H"),
+        ],
+        "parallel_games": {"U12": 2},
+        "club_arenas": {"Host": "Host Arena"},
+        "club_calendar_status": {"Host": "known"},
+        "club_busy_intervals": {},
+    }
+    # No legal participant or represented rehost, so removal is evaluated; it
+    # must still be rejected because Host would no longer host its U12 share.
+
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem)
+
+    assert [o for o in repair_set["options"] if o["action"] == "remove_tournament"] == []
+    assert any(r["reason"] == "hosting_obligation_would_be_unresolved" for r in repair_set["rejected_candidates"])

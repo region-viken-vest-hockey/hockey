@@ -95,6 +95,16 @@ def enumerate_host_team_missing_repairs(
         options.extend(r_options)
         rejected.extend(p_rejected)
         rejected.extend(r_rejected)
+        # Deletion is deliberately the next local family after participant
+        # repair and represented rehost have both failed for this finding. It
+        # is not offered as a substitute for a legal lower-impact local repair.
+        if not p_options and not r_options:
+            remove_option, remove_rejected = _remove_tournament_option(
+                candidate, problem, tournament, finding_id, fingerprint, verification
+            )
+            if remove_option is not None:
+                options.append(remove_option)
+            rejected.extend(remove_rejected)
     return {
         "run_id": run_id,
         "candidate_fingerprint": fingerprint,
@@ -161,6 +171,8 @@ def apply_host_team_missing_repair_option(
         _apply_participant_option(mutated, problem, option)
     elif option["action"] == "rehost":
         _apply_rehost_option(mutated, option)
+    elif option["action"] == "remove_tournament":
+        _apply_remove_tournament_option(mutated, option)
     else:
         return {"ok": False, "reason": "unsupported_action", "before_fingerprint": before}
 
@@ -280,6 +292,71 @@ def _participant_base(finding_id: str, tournament, team) -> Dict[str, Any]:
     return {"finding_id": finding_id, "tournament_id": tournament.get("id"), "team": _team_ref(team)}
 
 
+def _remove_tournament_option(candidate, problem, tournament, finding_id: str, fingerprint: str, before_verification):
+    """Verified local delete option for a surplus host-missing tournament.
+
+    The option is exposed only when deleting the tournament leaves the full
+    candidate hard-valid and does not create a new unresolved hosting
+    obligation. Participation shortfalls remain soft/manual evidence and are
+    reported as effects for the harness/operator to weigh.
+    """
+    pinned_ids = {str(item) for item in (problem.get("manual_adjustments") or {}).get("pinned_tournament_ids", [])}
+    base = {
+        "finding_id": finding_id,
+        "tournament_id": tournament.get("id"),
+        "host_club": tournament.get("host_club"),
+        "age_group": tournament.get("age_group"),
+    }
+    if str(tournament.get("id")) in pinned_ids:
+        return None, [{**base, "action": "remove_tournament", "reason": "manual_restriction_forbids_mutation"}]
+
+    trial = copy.deepcopy(candidate)
+    _apply_remove_tournament_option(trial, {"tournament_id": str(tournament.get("id"))})
+    after_verification = verify_candidate(trial, dict(problem))
+    before_unresolved = _unresolved_hosting_keys(before_verification)
+    after_unresolved = _unresolved_hosting_keys(after_verification)
+    new_unresolved = sorted(after_unresolved - before_unresolved)
+    if new_unresolved:
+        return None, [
+            {
+                **base,
+                "action": "remove_tournament",
+                "reason": "hosting_obligation_would_be_unresolved",
+                "unresolved_hosting_obligations": [
+                    dict(row) for row in after_verification.get("unresolved_hosting_obligations", [])
+                ],
+            }
+        ]
+    if not after_verification.get("ok"):
+        return None, [
+            {
+                **base,
+                "action": "remove_tournament",
+                "reason": _primary_violation_reason(after_verification),
+                "violations": _codes(after_verification),
+            }
+        ]
+
+    effects = _remove_tournament_effects(candidate, trial, tournament, before_verification, after_verification)
+    option = RepairOption(
+        option_id=f"{fingerprint[:12]}:{finding_id}:remove_tournament:{_slug(tournament.get('id'))}",
+        finding_id=finding_id,
+        action="remove_tournament",
+        tournament_id=str(tournament.get("id")),
+        arguments={"tournament_id": str(tournament.get("id"))},
+        hard_feasible=True,
+        effects=effects,
+        evidence={
+            "verification_ok": True,
+            "verification_preview": "pass",
+            "removed_host_club": tournament.get("host_club"),
+            "removed_age_group": tournament.get("age_group"),
+            "removed_team_count": len(tournament.get("teams", []) or []),
+        },
+    )
+    return option, []
+
+
 def _rehost_options(candidate, problem, tournament, finding_id: str, fingerprint: str):
     out: List[RepairOption] = []
     rejected: List[Dict[str, Any]] = []
@@ -354,6 +431,14 @@ def _apply_rehost_option(candidate, option):
     t.update(option["arguments"])
 
 
+def _apply_remove_tournament_option(candidate, option):
+    tournament_id = str(option["tournament_id"])
+    candidate["tournaments"] = [
+        t for t in candidate.get("tournaments", []) if str(t.get("id")) != tournament_id
+    ]
+    _refresh_candidate_derived_state(candidate, removed_tournament_id=tournament_id)
+
+
 def _mutate_participants(candidate, tournament_id, remove, add, problem):
     t = _find_tournament(candidate, tournament_id)
     teams = [dict(team) for team in t.get("teams", [])]
@@ -411,10 +496,105 @@ def _team_ref(team) -> Dict[str, Any]:
 def _participation_counts(candidate) -> Dict[TeamIdentity, int]:
     counts: Dict[TeamIdentity, int] = {}
     for t in candidate.get("tournaments", []):
+        if t.get("cancelled"):
+            continue
         for team in t.get("teams", []) or []:
             ident = _identity(team)
             counts[ident] = counts.get(ident, 0) + 1
     return counts
+
+
+def _unresolved_hosting_keys(verification) -> set[Tuple[str, str]]:
+    return {
+        (str(row.get("club", "")), str(row.get("age_group", "")))
+        for row in verification.get("unresolved_hosting_obligations", []) or []
+    }
+
+
+def _remove_tournament_effects(candidate, trial, tournament, before_verification, after_verification) -> Dict[str, Any]:
+    effects: Dict[str, Any] = {
+        "host_team_missing": _count_code(after_verification, "host_team_missing")
+        - _count_code(before_verification, "host_team_missing"),
+        "tournament_count": -1,
+        "new_hard_violations": len(after_verification.get("violations", []) or []),
+        "manual_participation_placements_delta": len(
+            after_verification.get("manual_participation_placements", []) or []
+        )
+        - len(before_verification.get("manual_participation_placements", []) or []),
+        "unresolved_hosting_obligations_delta": len(
+            after_verification.get("unresolved_hosting_obligations", []) or []
+        )
+        - len(before_verification.get("unresolved_hosting_obligations", []) or []),
+    }
+    host = tournament.get("host_club")
+    age_group = tournament.get("age_group")
+    if host and age_group:
+        effects[f"hosting.{host}.{age_group}"] = -1
+    before_counts = _participation_counts(candidate)
+    after_counts = _participation_counts(trial)
+    for team in tournament.get("teams", []) or []:
+        ident = _identity(team)
+        delta = after_counts.get(ident, 0) - before_counts.get(ident, 0)
+        label = team.get("label") or " / ".join(part for part in ident if part)
+        effects[f"participation.{label}"] = delta
+    return effects
+
+
+def _count_code(verification, code: str) -> int:
+    return sum(1 for violation in verification.get("violations", []) or [] if violation.get("code") == code)
+
+
+def _refresh_candidate_derived_state(candidate, *, removed_tournament_id: str) -> None:
+    tournaments = [t for t in candidate.get("tournaments", []) if not t.get("cancelled")]
+    arena_counts: Dict[str, int] = {}
+    participations: Dict[str, int] = {}
+    game_counts: Dict[str, int] = {}
+    for t in tournaments:
+        arena = t.get("arena")
+        if arena:
+            arena_counts[str(arena)] = arena_counts.get(str(arena), 0) + 1
+        for team in t.get("teams", []) or []:
+            label = str(team.get("label", ""))
+            if label:
+                participations[label] = participations.get(label, 0) + 1
+        for game in t.get("games", []) or []:
+            for side in ("home", "away"):
+                label = str(game.get(side, ""))
+                if label:
+                    game_counts[label] = game_counts.get(label, 0) + 1
+    if "arena_counts" in candidate:
+        candidate["arena_counts"] = arena_counts
+    if "team_tournament_participations" in candidate:
+        candidate["team_tournament_participations"] = participations
+    if "team_game_counts" in candidate:
+        candidate["team_game_counts"] = game_counts
+    for key in (
+        "arena_day_collisions",
+        "unresolved_hosting_obligations",
+        "unresolved_external_conflicts",
+        "unresolved_participation_shortfalls",
+        "unresolved_tournament_placements",
+        "targeted_roster_repairs",
+        "same_age_hosting_repairs",
+        "cross_age_hosting_repairs",
+        "operator_waived_violations",
+    ):
+        if isinstance(candidate.get(key), list):
+            candidate[key] = [
+                entry for entry in candidate[key] if not _entry_mentions_tournament(entry, removed_tournament_id)
+            ]
+
+
+def _entry_mentions_tournament(entry: Any, tournament_id: str) -> bool:
+    if isinstance(entry, Mapping):
+        for key, value in entry.items():
+            if "tournament" in str(key) and str(value) == tournament_id:
+                return True
+            if _entry_mentions_tournament(value, tournament_id):
+                return True
+    elif isinstance(entry, list):
+        return any(_entry_mentions_tournament(item, tournament_id) for item in entry)
+    return False
 
 
 def _same_date_identities(candidate, t_date, *, except_tournament_id) -> set[TeamIdentity]:
