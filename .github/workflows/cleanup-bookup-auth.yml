@@ -26,6 +26,12 @@ jobs:
       - name: Apply cleanup
         run: |
           python scripts/one-shot-cleanup-bookup-auth.py
+          cat >> .pi/lib/scraper-agent.ts <<'EOF'
+
+          export function substituteEnvVars(text: string): string {
+            return text.replace(/\$\{(\w+)\}/g, (_match, name: string) => process.env[name] ?? "");
+          }
+          EOF
           npm uninstall @dotenvx/dotenvx --package-lock-only --ignore-scripts
 
       - name: Verify focused cleanup
