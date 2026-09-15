@@ -23,7 +23,8 @@ def test_rules_report_markdown_matches_committed_doc(canonical_input_data):
                     duration_hours=2.0,
                 )
             ]
-        }
+        },
+        rounds_per_tournament_for_age_group=canonical_input_data.get("rounds_per_tournament", {}),
     )
 
     expected = Path("docs/rvv-miniputt-rules-report.md").read_text(encoding="utf-8")

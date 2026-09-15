@@ -196,4 +196,7 @@ def test_rules_doc_does_not_claim_same_club_games_are_filtered():
 
     text = Path("docs/rvv-miniputt-rules-report.md").read_text(encoding="utf-8")
     assert "hoppes det over kamper mellom to lag fra samme klubb" not in text
-    assert "Klubb-interne kamper følger round-robin" in text
+    # The limited-round wording must still describe same-club games as
+    # minimized/unavoidable, never as silently filtered out.
+    assert "Klubb-interne kamper unngås i begrensede runder" in text
+    assert "uunngåelig" in text

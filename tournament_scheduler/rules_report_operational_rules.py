@@ -14,6 +14,54 @@ from typing import Dict, List
 
 def operational_rule_entries(planner) -> List[Dict[str, str]]:
     """Return the club-cap-exception, hosting/arena, and warning-count entries."""
+    configured_rounds = getattr(planner, "rounds_per_tournament_for_age_group", {}) or {}
+    limited_age_groups = sorted(
+        age_group
+        for age_group, rounds in configured_rounds.items()
+        if isinstance(rounds, int) and rounds > 0
+    )
+    if limited_age_groups:
+        game_mode_entry = {
+            "regel": "Begrenset rundetall: ikke alle mot alle",
+            "forklaring": (
+                "For aldersgruppene "
+                + ", ".join(limited_age_groups)
+                + " er det konfigurert et fast antall runder per turnering. Lagene spiller da dette antallet runder "
+                "med unike motstandere, ikke en full serie der alle møter alle -- for eksempel 8 lag / 4 parallelle "
+                "kamper / 5 runder = 20 kamper og 5 kamper per lag, uten å bruke alle 28 mulige lagpar. "
+                "Aldersgrupper uten konfigurert rundetall spiller fortsatt full round-robin."
+            ),
+            "kategori": "Automatisk avgjørelse",
+        }
+        same_club_entry = {
+            "regel": "Klubb-interne kamper unngås i begrensede runder",
+            "forklaring": (
+                "Når en turnering spiller et begrenset antall runder, velges kampene slik at klubboppgjør unngås "
+                "når et lovlig program uten slike kamper finnes. Bare når et minimum antall klubb-interne kamper er "
+                "uunngåelig for det faktiske antallet lag/runder, tillates de. Uten konfigurert rundetall lager "
+                "round-robin-genereringen én kamp mellom hvert inviterte lagpar, også innad i samme klubb."
+            ),
+            "kategori": "Automatisk avgjørelse",
+        }
+    else:
+        game_mode_entry = {
+            "regel": "Round-robin: alle mot alle innen turneringen",
+            "forklaring": (
+                "Innenfor hver turnering spiller alle inviterte lag mot hverandre nøyaktig én gang (round-robin). "
+                "Turneringens størrelse og antall parallelle kamper avgjør hvor mange runder som trengs. "
+                "Hjemme/borte byttes annenhver runde for rettferdig fordeling."
+            ),
+            "kategori": "Automatisk avgjørelse",
+        }
+        same_club_entry = {
+            "regel": "Klubb-interne kamper følger round-robin",
+            "forklaring": (
+                "Hvis flere lag fra samme klubb deltar i samme turnering, behandles de som øvrige deltakere: "
+                "round-robin-genereringen lager én kamp mellom hvert inviterte lagpar, også mellom lag fra samme klubb. "
+                "Deltakerutvelgelsen forsøker å spre klubber, men dette er et mykt hensyn og ikke et kampfilter."
+            ),
+            "kategori": "Automatisk avgjørelse",
+        }
     return [
         {
             "regel": "Behovsbasert unntak fra klubb-tak per turnering",
@@ -56,24 +104,8 @@ def operational_rule_entries(planner) -> List[Dict[str, str]]:
             ),
             "kategori": "Automatisk avgjørelse",
         },
-        {
-            "regel": "Round-robin: alle mot alle innen turneringen",
-            "forklaring": (
-                "Innenfor hver turnering spiller alle inviterte lag mot hverandre nøyaktig én gang (round-robin). "
-                "Turneringens størrelse og antall parallelle kamper avgjør hvor mange runder som trengs. "
-                "Hjemme/borte byttes annenhver runde for rettferdig fordeling."
-            ),
-            "kategori": "Automatisk avgjørelse",
-        },
-        {
-            "regel": "Klubb-interne kamper følger round-robin",
-            "forklaring": (
-                "Hvis flere lag fra samme klubb deltar i samme turnering, behandles de som øvrige deltakere: "
-                "round-robin-genereringen lager én kamp mellom hvert inviterte lagpar, også mellom lag fra samme klubb. "
-                "Deltakerutvelgelsen forsøker å spre klubber, men dette er et mykt hensyn og ikke et kampfilter."
-            ),
-            "kategori": "Automatisk avgjørelse",
-        },
+        game_mode_entry,
+        same_club_entry,
         {
             "regel": "Klubbbelastning per turnering",
             "forklaring": (

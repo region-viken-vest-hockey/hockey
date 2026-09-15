@@ -40,7 +40,7 @@ class EffectiveTournamentShape:
     unavoidable_bye_count: int
     reason: Optional[str]
     # True when `preferred_no_bye_team_count` is a real target (an
-    # exact-size override or a rounds-derived minimum) that a single
+    # exact-size override or a capacity/rounds-derived minimum) that a single
     # tournament instance must reach. False for a generic age group with
     # neither: a season spreads its registered pool across many tournament
     # instances over time, so no single instance is required to draw the
@@ -103,24 +103,50 @@ def compute_effective_tournament_shape(
     registered team population for the age group -- never just the
     participants a planner already selected for one tournament -- or this
     cannot distinguish avoidable from input-constrained scarcity.
+
+    The normal participant target is ``2 x parallel_games`` (the number of
+    teams that can play simultaneously), independent of ``configured_rounds``,
+    which only sets how many rounds/games that cohort plays. An age group
+    without a capacity is only bounded by the smallest roster that can play
+    the configured rounds without repeating an opponent.
     """
     exact_override = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(age_group)
-    has_explicit_target = exact_override is not None or bool(configured_rounds)
+    capacity_cap = parallel_game_capacity * 2 if parallel_game_capacity and parallel_game_capacity > 0 else None
+
+    # Participant capacity and round count are independent dimensions:
+    # ``parallel_games`` describes how many simultaneous games (and therefore
+    # teams) one normal tournament can host, while ``rounds_per_tournament``
+    # describes how many rounds/games each team plays. A tournament is *not*
+    # required to be a complete round robin, so configured rounds must never
+    # be inverted into a participant count.
+    #
+    # Precedence:
+    # 1. explicit exact-team-count policy for the age group, if any;
+    # 2. otherwise ``2 x parallel_games`` as the normal participant target;
+    # 3. canonical registered-pool scarcity may reduce the effective shape;
+    # 4. configured rounds set the desired round count, capped only when the
+    #    effective pool cannot support that many unique-opponent rounds.
     if exact_override is not None:
         preferred = exact_override
+        has_explicit_target = True
+    elif capacity_cap is not None:
+        preferred = capacity_cap
+        has_explicit_target = True
     elif configured_rounds:
+        # Capacity is unknown for this age group, so the only deterministic
+        # lower bound is the smallest roster that can play the configured
+        # number of rounds without repeating an opponent. This is a floor for
+        # an otherwise unconstrained instance, not the normal target size.
         preferred = max(NO_BYE_MIN_TEAMS_PER_TOURNAMENT, _ceil_to_even(configured_rounds + 1))
+        has_explicit_target = True
     else:
-        # No configured round count and no exact-size override: a season
-        # spreads this age group's registered pool across many tournament
-        # instances over time, so there is no single-instance target size to
-        # enforce -- `preferred` here is only the informational ceiling
-        # (see `has_explicit_target` above).
+        # No configured round count, no capacity and no exact-size override: a
+        # season spreads this age group's registered pool across many
+        # tournament instances over time, so there is no single-instance
+        # target size to enforce -- `preferred` here is only the informational
+        # ceiling (see `has_explicit_target` above).
         preferred = registered_team_count
-
-    capacity_cap = parallel_game_capacity * 2 if parallel_game_capacity and parallel_game_capacity > 0 else None
-    if capacity_cap is not None:
-        preferred = min(preferred, capacity_cap)
+        has_explicit_target = False
 
     if registered_team_count < 2:
         return EffectiveTournamentShape(

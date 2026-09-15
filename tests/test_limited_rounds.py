@@ -48,6 +48,34 @@ def test_limited_rounds_are_deterministic():
     assert first == second
 
 
+def test_limited_rounds_6_teams_3_parallel_5_rounds_is_15_games():
+    teams = [Team(f"Club {i}", f"Team {i}", "U10") for i in range(1, 7)]
+    games = generate_limited_round_games(teams, parallel_games=3, rounds=5)
+
+    assert len(games) == 15
+    counts = Counter()
+    pairs = Counter()
+    by_round = defaultdict(list)
+    for game in games:
+        counts[game.home.label] += 1
+        counts[game.away.label] += 1
+        pairs[tuple(sorted((game.home.label, game.away.label)))] += 1
+        by_round[game.round_number].append(game)
+
+    assert set(counts.values()) == {5}
+    assert all(count == 1 for count in pairs.values())
+    assert sorted(len(round_games) for round_games in by_round.values()) == [3, 3, 3, 3, 3]
+
+
+def test_limited_rounds_do_not_require_all_pairs():
+    # 8 teams have 28 possible pairings; a 5-round / 4-parallel schedule
+    # deliberately plays only 20 of them.
+    games = generate_limited_round_games(_u8_teams(), parallel_games=4, rounds=5)
+    unique_pairs = {tuple(sorted((g.home.label, g.away.label))) for g in games}
+    assert len(unique_pairs) == 20
+    assert len(unique_pairs) < 28
+
+
 def test_final_verifier_rejects_avoidable_same_club_limited_round_game():
     teams = [{"club": t.club, "label": t.label, "age_group": t.age_group} for t in _u8_teams()]
     generated = generate_limited_round_games(_u8_teams(), 4, 5)

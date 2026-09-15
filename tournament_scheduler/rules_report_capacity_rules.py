@@ -38,43 +38,44 @@ def capacity_and_config_rule_entries(planner) -> List[Dict[str, str]]:
         for ag, pg in sorted(planner.parallel_games_for_age_group.items()):
             capacity = planner._max_teams_for(ag)
             configured_rounds = planner.rounds_per_tournament_for_age_group.get(ag)
-            exact_note = ""
-            if ag in NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP:
-                # Effective-shape rule: derive the actual U12/JU12 shape from the real
-                # registered pool and configured rounds (both come from
-                # input.xlsx via `planner`), using the same predicate the
-                # verifier/CP-SAT/roster sizing use, instead of a hardcoded
-                # team/game count that would go stale the moment either
-                # input changes.
-                shape = compute_effective_tournament_shape(
-                    ag,
-                    len(planner.roster.by_age_group(ag)),
-                    configured_rounds=configured_rounds,
-                    parallel_game_capacity=pg,
+            shape = compute_effective_tournament_shape(
+                ag,
+                len(planner.roster.by_age_group(ag)),
+                configured_rounds=configured_rounds,
+                parallel_game_capacity=pg,
+            )
+            total_games = shape.effective_round_count * (shape.effective_team_count // 2)
+            if shape.input_constrained:
+                shape_note = (
+                    f" Den registrerte lagpoolen for {ag} har {shape.registered_team_count} lag, færre enn den "
+                    f"normale deltakerkapasiteten {shape.preferred_no_bye_team_count}. Planleggeren tilpasser seg "
+                    f"til de {shape.effective_team_count} virkelige lagene / {shape.effective_round_count} runder "
+                    f"({total_games} kamper) i stedet for å finne opp lag."
                 )
-                total_games = shape.effective_team_count * (shape.effective_team_count - 1) // 2
-                if shape.input_constrained:
-                    exact_note = (
-                        f" Den registrerte lagpoolen for {ag} har {shape.registered_team_count} lag, færre enn de "
-                        f"foretrukne {shape.preferred_no_bye_team_count} -- planleggeren tilpasser seg til "
-                        f"{shape.effective_team_count} lag / {shape.effective_round_count} runder i stedet for å "
-                        "nekte hele sesongplanen."
+            else:
+                shape_note = (
+                    f" Med full registrert pool spiller turneringen {shape.effective_team_count} lag / "
+                    f"{shape.effective_round_count} runder ({total_games} kamper). En turnering som velger færre "
+                    "lag enn den fulle registrerte poolen tillater er alltid ugyldig."
+                )
+                if ag in NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP:
+                    shape_note = (
+                        f" For {ag} gjelder et eksplisitt krav om nøyaktig {shape.effective_team_count} lag."
+                        + shape_note
                     )
-                else:
-                    exact_note = (
-                        f" Når den registrerte lagpoolen for {ag} kan fylle det, er dagens foretrukne "
-                        f"turneringsstørrelse nøyaktig {shape.effective_team_count} lag ({shape.effective_round_count} "
-                        f"runder, {total_games} kamper totalt per turnering). En turnering som velger færre lag enn "
-                        "det den fulle registrerte poolen tillater er alltid ugyldig."
+                if configured_rounds and shape.effective_round_count < shape.effective_team_count - 1:
+                    shape_note += (
+                        " Dette er en bevisst begrenset motstanderplan: ikke alle lag møter alle, men hvert lag "
+                        "spiller det konfigurerte antallet runder."
                     )
             entries.append({
                 "regel": f"Parallelle kamper for {ag}: {pg}",
                 "forklaring": (
                     f"For aldersgruppen {ag} spilles det {pg} kamper samtidig per runde. "
-                    f"Det gir plass til opptil {capacity} lag per turnering. "
+                    f"Det gir normal deltakerkapasitet {capacity} lag per turnering ({pg} kamper x 2 lag). "
                     f"Runder per turnering: {configured_rounds or 'full serie'}. "
                     "Når et begrenset rundetall er satt, genereres kampene direkte for dette antallet runder og unngår interne klubboppgjør når det er mulig."
-                    + exact_note
+                    + shape_note
                 ),
                 "kategori": "Hard krav",
             })

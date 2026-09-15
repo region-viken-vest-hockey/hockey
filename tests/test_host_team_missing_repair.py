@@ -293,7 +293,6 @@ def test_no_explicit_target_still_offers_replacement_when_growth_breaks_shape():
     }
     problem = {
         "teams": [_team("Host", "Host 1", age="U10"), *teams, _team("F", age="U10")],
-        "parallel_games": {"U10": 2},
         "club_arenas": {club: f"{club} Arena" for club in ("Host", "B", "C", "D", "E", "F")},
         "club_calendar_status": {club: "known" for club in ("Host", "B", "C", "D", "E", "F")},
         "club_busy_intervals": {},

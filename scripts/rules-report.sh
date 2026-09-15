@@ -26,6 +26,7 @@ planner, _, _ = build_canonical_planner(
             )
         ]
     },
+    rounds_per_tournament_for_age_group=canonical_input.get("rounds_per_tournament", {}),
 )
 
 Path("docs/rvv-miniputt-rules-report.md").write_text(render_rules_markdown(planner), encoding="utf-8")

@@ -10,6 +10,47 @@ def test_full_pool_supports_preferred_shape_with_capacity_cap():
     assert shape.unavoidable_bye_count == 0
 
 
+def test_capacity_not_rounds_sets_normal_participant_count():
+    # U8 production shape: 4 simultaneous games (8 teams) playing 5 rounds.
+    # Configured rounds must not be inverted into a round-robin participant
+    # count (which would wrongly derive 5 + 1 = 6 teams here).
+    shape = compute_effective_tournament_shape("U8", 8, configured_rounds=5, parallel_game_capacity=4)
+    assert not shape.input_constrained
+    assert shape.preferred_no_bye_team_count == 8
+    assert shape.effective_team_count == 8
+    assert shape.effective_round_count == 5
+    assert shape.unavoidable_bye_count == 0
+
+
+def test_capacity_and_rounds_independent_for_smaller_capacity():
+    # 3 simultaneous games => 6 teams; 5 configured rounds is a limited
+    # schedule (not a full round robin, which would need 5 rounds for 6
+    # teams only incidentally).
+    shape = compute_effective_tournament_shape("U10", 6, configured_rounds=5, parallel_game_capacity=3)
+    assert not shape.input_constrained
+    assert shape.effective_team_count == 6
+    assert shape.effective_round_count == 5
+
+
+def test_registered_pool_below_capacity_adapts_without_inventing_teams():
+    shape = compute_effective_tournament_shape("U8", 7, configured_rounds=5, parallel_game_capacity=4)
+    assert shape.input_constrained
+    assert shape.reason == "registered_pool_too_small"
+    assert shape.registered_team_count == 7
+    assert shape.preferred_no_bye_team_count == 8
+    assert shape.effective_team_count == 7
+    assert shape.effective_round_count == 5
+    assert shape.unavoidable_bye_count == 5
+
+
+def test_registered_pool_far_below_capacity_reduces_rounds():
+    shape = compute_effective_tournament_shape("U8", 4, configured_rounds=5, parallel_game_capacity=4)
+    assert shape.input_constrained
+    assert shape.effective_team_count == 4
+    assert shape.effective_round_count == 3
+    assert shape.unavoidable_bye_count == 0
+
+
 def test_exact_pool_matches_preferred_shape():
     shape = compute_effective_tournament_shape("U10", 6, configured_rounds=5)
     assert not shape.input_constrained
