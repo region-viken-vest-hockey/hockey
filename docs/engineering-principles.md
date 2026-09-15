@@ -70,6 +70,20 @@ Do not commit a second task tracker, agent backlog/history, temporary architectu
 
 The canonical verification entry point is `scripts/check` / `make check`. Ruff currently enforces the repository's selected error/pyflakes rules.
 
+### Code design
+
+Use Clean Code and SOLID principles as pragmatic design heuristics, not as reasons to add abstraction for its own sake.
+
+- Prefer cohesive functions, classes and modules with one clear responsibility and one main reason to change.
+- Keep dependency direction explicit: domain/planning rules should not depend on CLI, harness, rendering or infrastructure details.
+- Prefer simple functions and composition over inheritance, framework patterns, factories or interfaces that do not solve a current coupling/testability problem.
+- Keep business rules in one canonical implementation. Do not duplicate scheduling, validation, source or export policy across planner paths, adapters or renderers.
+- Use explicit typed boundaries when they clarify ownership between subsystems, especially when multiple callers or harnesses share the same capability.
+- Keep functions/classes/modules small enough to understand and test in isolation. When a module accumulates unrelated responsibilities, split it along responsibility/domain boundaries.
+- Avoid god modules/classes, hidden global coupling, long parameter plumbing that obscures ownership, and helpers that mix domain decisions with I/O or presentation.
+- Refactor incrementally around behavior-preserving seams. Prefer extracting a clear responsibility over broad rewrites.
+- Do not introduce speculative abstractions, one-class-per-file ceremony, needless indirection, or "clean code" refactors that make the execution path harder to follow.
+
 ### File size
 
 There is no hard per-file line limit. Split modules along responsibility boundaries when it genuinely improves clarity, rather than to satisfy an arbitrary length budget.
