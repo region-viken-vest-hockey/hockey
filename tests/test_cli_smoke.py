@@ -1,8 +1,8 @@
 """CLI integration/smoke test: exercise the portable CLI end-to-end via a
 real subprocess, with zero calendar sources so no network call is ever made.
 
-Marked ``integration`` (subprocess-based, per pytest.ini's existing
-convention) so it's excluded from the default quick ``pytest`` run but can
+Marked ``integration`` (subprocess-based, per pyproject.toml's existing
+pytest convention) so it's excluded from the default quick ``pytest`` run but can
 be targeted explicitly, e.g. by CI: ``pytest -m integration tests/test_cli_smoke.py``.
 """
 

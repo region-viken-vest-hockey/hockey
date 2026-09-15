@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "rvv-miniputt"
 version = "2.0.0"
 description = "RVV Miniputt tournament scheduler pipeline"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "requests>=2.31",
     "beautifulsoup4>=4.12",
@@ -38,7 +38,10 @@ cpsat = [
 rvv-miniputt = "tournament_scheduler.cli.rvv_cli:main"
 
 [tool.pytest.ini_options]
-timeout = 30
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
 addopts = [
     "--verbose",
     "-m",
