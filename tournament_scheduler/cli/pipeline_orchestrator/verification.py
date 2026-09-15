@@ -216,7 +216,11 @@ def _write_run_evidence_bundle(
     """
     try:
         from ...final_verification import verify_final_candidate
-        from ...pipeline.evidence_bundle import build_run_evidence_bundle, read_stage3_attempt_log
+        from ...pipeline.evidence_bundle import (
+            build_final_operator_evidence,
+            build_run_evidence_bundle,
+            read_stage3_attempt_log,
+        )
         from ...pipeline.run_manifest import RunManifest
         from ...pipeline.state import StageName
         from ...planning_contract import extract_candidate, score_candidate
@@ -239,8 +243,22 @@ def _write_run_evidence_bundle(
         )
         score_result = score_candidate(final_candidate, problem=problem) if final_candidate is not None else None
 
+        run_id = str(manifest.get("run_id") or "")
+        final_candidate_fingerprint = None
+        if final_candidate is not None:
+            from ...pipeline.fingerprints import stable_payload_sha256
+
+            final_candidate_fingerprint = stable_payload_sha256(final_candidate.get("tournaments", []))
+        final_operator_evidence = build_final_operator_evidence(
+            run_id=run_id,
+            plan_dict=(plan or {}).get("plan") if isinstance(plan, dict) else None,
+            final_candidate_fingerprint=final_candidate_fingerprint,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            final_verify_result=verify_result,
+        )
+
         bundle = build_run_evidence_bundle(
-            run_id=str(manifest.get("run_id") or ""),
+            run_id=run_id,
             input_fingerprint=manifest.get("input_fingerprint"),
             decision_log=manifest.get("decision_log"),
             scraping_checkpoint=scraping,
@@ -252,6 +270,7 @@ def _write_run_evidence_bundle(
             export_output_files=export_checkpoint.get("output_files"),
             export_fingerprint=export_checkpoint.get("export_fingerprint"),
             export_verify_result=export_checkpoint.get("verify_result"),
+            final_operator_evidence=final_operator_evidence,
         )
 
         export_dir = export_checkpoint.get("export_dir")

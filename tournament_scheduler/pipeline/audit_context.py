@@ -108,6 +108,51 @@ def _read_evidence_bundle(export_dir: "str | None") -> dict[str, Any] | None:
         return None
 
 
+def _bound_final_operator_evidence(
+    evidence_bundle: dict[str, Any] | None,
+    *,
+    run_id: str | None,
+    export_fingerprint: str | None,
+) -> dict[str, Any] | None:
+    """Return canonical final operator evidence only when it is bound to
+    this exact run/export fingerprint.
+
+    Older exports do not contain this field; mismatched fields are ignored so
+    stale reconciled state cannot silently contaminate a newer audit context.
+    """
+    if not isinstance(evidence_bundle, dict):
+        return None
+    evidence = evidence_bundle.get("final_operator_evidence")
+    if not isinstance(evidence, dict):
+        return None
+    if str(evidence.get("run_id") or "") != str(run_id or ""):
+        return None
+    if str(evidence.get("export_fingerprint") or "") != str(export_fingerprint or ""):
+        return None
+    return evidence
+
+
+def _plan_dict_with_final_operator_evidence(
+    plan_dict: dict[str, Any] | None,
+    final_operator_evidence: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(plan_dict, dict) or not isinstance(final_operator_evidence, dict):
+        return plan_dict
+    merged = dict(plan_dict)
+    for key in (
+        "publication_readiness",
+        "unresolved_hosting_obligations",
+        "unresolved_external_conflicts",
+        "unresolved_participation_shortfalls",
+        "unresolved_tournament_placements",
+        "operator_waivers",
+        "operator_waived_violations",
+    ):
+        if key in final_operator_evidence:
+            merged[key] = final_operator_evidence.get(key)
+    return merged
+
+
 def _summarize_scraping_checkpoint(scraping_checkpoint: dict[str, Any] | None) -> dict[str, Any]:
     """Small source/calendar inventory for the semantic audit.
 
@@ -726,25 +771,40 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
     manifest = RunManifest(work_dir).read()
     export_dir = export_checkpoint.get("export_dir")
     output_files = export_checkpoint.get("output_files") or {}
+    run_id = current_run_id(work_dir)
+    export_fingerprint = current_export_fingerprint(work_dir)
+
+    evidence_bundle = _read_evidence_bundle(export_dir)
+    final_operator_evidence = _bound_final_operator_evidence(
+        evidence_bundle,
+        run_id=run_id,
+        export_fingerprint=export_fingerprint,
+    )
+    plan_dict = _plan_dict_with_final_operator_evidence(plan_dict, final_operator_evidence)
 
     deterministic_verify_result = export_checkpoint.get("verify_result") or {}
-    operator_waived_violations = list(deterministic_verify_result.get("waived_violations") or [])
+    operator_waived_violations = list((final_operator_evidence or {}).get("operator_waived_violations") or [])
+    if not operator_waived_violations:
+        operator_waived_violations = list(deterministic_verify_result.get("waived_violations") or [])
     operator_waivers: list[dict[str, Any]] = []
-    if isinstance(plan_dict, dict) and plan_dict.get("operator_waivers"):
+    if isinstance(final_operator_evidence, dict) and final_operator_evidence.get("operator_waivers"):
+        operator_waivers = list(final_operator_evidence.get("operator_waivers") or [])
+    elif isinstance(plan_dict, dict) and plan_dict.get("operator_waivers"):
         operator_waivers = list(plan_dict.get("operator_waivers") or [])
     else:
         from ..operator_waivers import load_active_waivers, waiver_audit_rows
 
         operator_waivers = waiver_audit_rows({"operator_waivers": load_active_waivers(work_dir)})
     publication_readiness: dict[str, Any] | None = None
-    if isinstance(plan_dict, dict) and plan_dict.get("publication_readiness"):
+    if isinstance(final_operator_evidence, dict) and final_operator_evidence.get("publication_readiness"):
+        publication_readiness = final_operator_evidence.get("publication_readiness")
+    elif isinstance(plan_dict, dict) and plan_dict.get("publication_readiness"):
         publication_readiness = plan_dict.get("publication_readiness")
     else:
         from ..final_verification import publication_readiness as _compute_readiness
 
         publication_readiness = _compute_readiness(deterministic_verify_result)
 
-    evidence_bundle = _read_evidence_bundle(export_dir)
     calendar_evidence_summary = (evidence_bundle or {}).get("source_summary") or {}
     if not calendar_evidence_summary:
         calendar_evidence_summary = _summarize_scraping_checkpoint(scraping_checkpoint)
@@ -773,8 +833,8 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
         "runbook_version": _runbook_version(),
         "audit_mission": AUDIT_MISSION,
         "checklist": [dict(item) for item in AUDIT_CHECKLIST],
-        "run_id": current_run_id(work_dir),
-        "export_fingerprint": current_export_fingerprint(work_dir),
+        "run_id": run_id,
+        "export_fingerprint": export_fingerprint,
         "source_fingerprints": {
             "input_fingerprint": manifest.get("input_fingerprint"),
             "effective_config_fingerprint": manifest.get("effective_config_fingerprint"),

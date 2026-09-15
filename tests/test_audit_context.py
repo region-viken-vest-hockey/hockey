@@ -65,6 +65,87 @@ def test_context_includes_evidence_inventory(tmp_path):
     assert [item["item_id"] for item in context["checklist_evidence_guide"]] == list(range(1, 10))
 
 
+def test_bound_final_operator_evidence_overrides_stale_stage3_manual_state(tmp_path):
+    RunManifest(tmp_path).start_run("test objective", run_id="run-1")
+    PipelineState(tmp_path).write_stage(
+        StageName.PLANNING,
+        {
+            "plan": {
+                "tournaments": [],
+                "unresolved_participation_shortfalls": [
+                    {"club": "Jar", "label": "A", "age_group": "U10", "actual": "3", "target": "5"},
+                    {"club": "Jar", "label": "B", "age_group": "U10", "actual": "3", "target": "5"},
+                ],
+                "publication_readiness": {
+                    "status": "REVIEW_REQUIRED",
+                    "publishable": False,
+                    "reasons": [{"code": "participation_shortfalls", "count": 2}],
+                },
+            }
+        },
+        status=StageStatus.DONE,
+    )
+    _write_export(tmp_path, fingerprint="fp-1")
+    export_dir = tmp_path / "export"
+    (export_dir / "evidence_bundle.json").write_text(
+        json.dumps(
+            {
+                "source_summary": {"sources_scanned": 3, "blocked_sources": []},
+                "final_operator_evidence": {
+                    "run_id": "run-1",
+                    "export_fingerprint": "fp-1",
+                    "final_candidate_fingerprint": "fp-1",
+                    "publication_readiness": {
+                        "status": "REVIEW_REQUIRED",
+                        "publishable": False,
+                        "reasons": [{"code": "participation_shortfalls", "count": 1}],
+                    },
+                    "unresolved_participation_shortfalls": [
+                        {"club": "Jar", "label": "A", "age_group": "U10", "actual": "4", "target": "5"}
+                    ],
+                    "unresolved_tournament_placements": [
+                        {"age_group": "U10", "date": "2027-03-14", "reason": "no_participant_host_slot"}
+                    ],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    assert context["publication_readiness"]["reasons"] == [{"code": "participation_shortfalls", "count": 1}]
+    assert len(context["plan_audit_summary"]["unresolved_participation_shortfalls"]) == 1
+    assert context["plan_audit_summary"]["unresolved_tournament_placements"][0]["reason"] == "no_participant_host_slot"
+
+
+def test_mismatched_final_operator_evidence_does_not_override_stage3_state(tmp_path):
+    RunManifest(tmp_path).start_run("test objective", run_id="run-1")
+    PipelineState(tmp_path).write_stage(
+        StageName.PLANNING,
+        {"plan": {"tournaments": [], "unresolved_participation_shortfalls": [{"label": "stale-but-current-run"}]}},
+        status=StageStatus.DONE,
+    )
+    _write_export(tmp_path, fingerprint="fp-1")
+    export_dir = tmp_path / "export"
+    (export_dir / "evidence_bundle.json").write_text(
+        json.dumps(
+            {
+                "final_operator_evidence": {
+                    "run_id": "run-1",
+                    "export_fingerprint": "different-fingerprint",
+                    "unresolved_participation_shortfalls": [{"label": "wrong-export"}],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    assert context["plan_audit_summary"]["unresolved_participation_shortfalls"] == [{"label": "stale-but-current-run"}]
+
+
 def test_context_surfaces_operator_waivers_and_waived_violations(tmp_path):
     from tournament_scheduler.operator_waivers import create_waiver
 

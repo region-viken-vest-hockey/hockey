@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from tournament_scheduler.pipeline.evidence_bundle import (
     append_stage3_attempt_log_entry,
+    build_final_operator_evidence,
     build_run_evidence_bundle,
     build_stage3_attempt_entry,
     clear_stage3_attempt_log,
@@ -94,6 +95,33 @@ class TestBuildStage3AttemptEntry:
         entry_a = build_stage3_attempt_entry(attempt=1, candidate=_candidate(1), problem=None)
         entry_b = build_stage3_attempt_entry(attempt=1, candidate=_candidate(2), problem=None)
         assert entry_a["candidate_fingerprint"] != entry_b["candidate_fingerprint"]
+
+
+class TestBuildFinalOperatorEvidence:
+    def test_preserves_reconciled_plan_manual_only_findings(self):
+        evidence = build_final_operator_evidence(
+            run_id="run-123",
+            plan_dict={
+                "publication_readiness": {
+                    "status": "REVIEW_REQUIRED",
+                    "publishable": False,
+                    "reasons": [{"code": "tournament_placement_shortfall", "count": 1}],
+                },
+                "unresolved_participation_shortfalls": [{"label": "Jar 1"}],
+                "unresolved_tournament_placements": [{"age_group": "U10", "reason": "no_participant_host_slot"}],
+                "operator_waivers": [{"id": "w1"}],
+                "operator_waived_violations": [{"waiver_id": "w1"}],
+            },
+            final_candidate_fingerprint="candidate-fp",
+            export_fingerprint="export-fp",
+            final_verify_result={"ok": True, "manual_participation_placements": []},
+        )
+
+        assert evidence["run_id"] == "run-123"
+        assert evidence["export_fingerprint"] == "export-fp"
+        assert evidence["publication_readiness"]["reasons"][0]["code"] == "tournament_placement_shortfall"
+        assert evidence["unresolved_tournament_placements"][0]["reason"] == "no_participant_host_slot"
+        assert evidence["operator_waived_violations"] == [{"waiver_id": "w1"}]
 
 
 class TestBuildRunEvidenceBundle:

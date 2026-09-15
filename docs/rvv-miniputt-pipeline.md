@@ -155,7 +155,7 @@ make operator-run
 
 ## Stage 4 — review/export bundle
 
-Stage 4 re-verifies the selected candidate immediately before serialization. Hard verification failure blocks export.
+Stage 4 re-verifies the selected candidate immediately before serialization. Hard verification failure blocks export. After final verification, the pipeline reconciles candidate-derived findings with legitimate plan/manual-only findings that cannot be inferred from materialized tournaments, then writes a fingerprint-bound final operator evidence object. Export output, `evidence_bundle.json`, publication readiness and the semantic audit context consume that reconciled state instead of treating the older Stage 3 planning checkpoint as final truth.
 
 A normal timestamped `export/<timestamp>/` may contain:
 

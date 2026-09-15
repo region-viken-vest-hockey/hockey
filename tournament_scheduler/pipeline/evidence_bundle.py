@@ -103,6 +103,40 @@ def build_stage3_attempt_entry(
     }
 
 
+def build_final_operator_evidence(
+    *,
+    run_id: str,
+    plan_dict: dict[str, Any] | None,
+    final_candidate_fingerprint: str | None,
+    export_fingerprint: str | None,
+    final_verify_result: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Return the reconciled final operator/readiness state for one export.
+
+    This object is intentionally built from the already-reconciled selected
+    plan, not from a later candidate-only verifier run. Some operator findings
+    (for example tournament placements that never materialized as candidate
+    tournaments) cannot be rediscovered from ``tournaments`` alone, so every
+    final consumer needs this fingerprint-bound state instead of rebuilding its
+    own near-copy from a different lifecycle snapshot.
+    """
+    if not isinstance(plan_dict, dict):
+        return None
+    return {
+        "run_id": run_id,
+        "final_candidate_fingerprint": final_candidate_fingerprint,
+        "export_fingerprint": export_fingerprint,
+        "final_verify_result": dict(final_verify_result or {}),
+        "publication_readiness": dict(plan_dict.get("publication_readiness") or {}),
+        "unresolved_hosting_obligations": list(plan_dict.get("unresolved_hosting_obligations") or []),
+        "unresolved_external_conflicts": list(plan_dict.get("unresolved_external_conflicts") or []),
+        "unresolved_participation_shortfalls": list(plan_dict.get("unresolved_participation_shortfalls") or []),
+        "unresolved_tournament_placements": list(plan_dict.get("unresolved_tournament_placements") or []),
+        "operator_waivers": list(plan_dict.get("operator_waivers") or []),
+        "operator_waived_violations": list(plan_dict.get("operator_waived_violations") or []),
+    }
+
+
 def build_run_evidence_bundle(
     *,
     run_id: str,
@@ -117,6 +151,7 @@ def build_run_evidence_bundle(
     export_output_files: dict[str, str] | None,
     export_fingerprint: str | None = None,
     export_verify_result: dict[str, Any] | None = None,
+    final_operator_evidence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the sanitized evidence bundle for one pipeline run.
 
@@ -168,6 +203,7 @@ def build_run_evidence_bundle(
         "final_candidate": final_candidate_summary,
         "final_verify_result": final_verify_result,
         "final_score_result": final_score_result,
+        "final_operator_evidence": final_operator_evidence,
         "export": {
             "dir": export_dir,
             "output_files": dict(export_output_files or {}),
