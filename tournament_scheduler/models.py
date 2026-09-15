@@ -320,6 +320,10 @@ class SeasonPlan:
     # "status": "repaired"|"unresolved", ...}. See
     # `hosting_cross_age_repair_apply.attempt_cross_age_repairs`.
     cross_age_hosting_repairs: List[Dict[str, object]] = field(default_factory=list)
+    # Deterministic targeted repairs for tournaments whose materialized
+    # participant count was below the shared effective shape.
+    # Each entry records added teams and rejected direct-fill candidates.
+    targeted_roster_repairs: List[Dict[str, object]] = field(default_factory=list)
     # issue #329: the same-age hosting-coverage repair attempted, before
     # `cross_age_hosting_repairs` above, for every club x age-group
     # obligation the plan started out missing -- by reassigning host to the

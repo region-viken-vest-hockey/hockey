@@ -174,6 +174,7 @@ def _dict_to_plan(d: dict[str, Any]) -> SeasonPlan:
         same_date_capacity_evidence=list(d.get("same_date_capacity_evidence", [])),
         arena_day_collisions=list(d.get("arena_day_collisions", [])),
         unresolved_hosting_obligations=list(d.get("unresolved_hosting_obligations", [])),
+        targeted_roster_repairs=list(d.get("targeted_roster_repairs", [])),
         same_age_hosting_repairs=list(d.get("same_age_hosting_repairs", [])),
         cross_age_hosting_repairs=list(d.get("cross_age_hosting_repairs", [])),
         unresolved_external_conflicts=list(d.get("unresolved_external_conflicts", [])),

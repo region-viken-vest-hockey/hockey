@@ -86,6 +86,9 @@ from tournament_scheduler.participant_selection import (
 from tournament_scheduler.participant_relocation import (
     relocate_structurally_impossible_scheduled_slots as _relocate_structurally_impossible_scheduled_slots,
 )
+from tournament_scheduler.participant_roster_repair import (
+    attempt_underfilled_roster_repairs as _attempt_underfilled_roster_repairs,
+)
 from tournament_scheduler.roster_size_planning import (
     compute_rebalanced_roster_sizes as _compute_rebalanced_roster_sizes,
 )
@@ -1049,6 +1052,19 @@ class SeasonPlanner:
             host_counts_by_age.setdefault(age_group, {})
             host_counts_by_age[age_group][final_host_club] = host_counts_by_age[age_group].get(final_host_club, 0) + 1
         self._baseline_timings["tournament_building_loop"] = round(perf_counter() - t_tournament_building, 6)
+
+        # Before any broader plan-quality optimization or hosting repair
+        # consumes this baseline, repair local construction defects
+        # where a tournament is shorter than the shared effective shape even
+        # though the registered pool has legal, under-target teams available.
+        # This keeps a one-team roster deficit from triggering a season-wide
+        # reshuffle as the first repair mechanism.
+        plan.targeted_roster_repairs = _attempt_underfilled_roster_repairs(
+            self,
+            plan,
+            split_date=split_date,
+            has_split_targets=has_split_targets,
+        )
 
         # issue #329: before any downstream metric/coverage computation reads
         # `plan.tournaments`, first try to resolve a club x age-group
