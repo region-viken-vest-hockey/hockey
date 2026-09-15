@@ -1,27 +1,32 @@
 # RVV Miniputt: scrape-llm
 
-Use this only when deterministic scraping has identified a source that needs browser/LLM-assisted recovery. Shared source-validity and recovery policy remains in `.agents/skills/rvv/SKILL.md`.
+Use this only after deterministic Stage 2 scraping identifies a source that needs browser/LLM-assisted recovery. Shared source-validity and recovery policy remains in `.agents/skills/rvv/SKILL.md`.
 
-Canonical repository entrypoint:
+## Harness boundary
 
-```bash
-scripts/rvv-miniputt scrape-llm --club "<name>" <user-args>
-```
+`sc​​rape-llm` is a **browser-capability workflow**, not a second scheduler CLI implementation.
 
-Fallback command surface:
+- **Pi:** use `/rvv-miniputt scrape-llm` / `rvv_miniputt_scrape_llm`. Pi owns the browser interaction and active-model transport.
+- **Other browser-enabled harnesses:** perform only the browser/navigation work in the harness.
+- **Terminal/CI without browser control:** do not pretend the repository CLI can drive the browser. Use the recovery handoff described below.
 
-```bash
-python3 -m tournament_scheduler.cli.rvv_cli scrape-llm --club "<name>" <user-args>
-```
+The Python `rvv-miniputt scrape-llm` command may be used for capability/strategy diagnostics, but it intentionally does not implement browser automation itself.
 
-The portable CLI does not itself create browser capability. Use the active harness's browser integration when available. If the active environment cannot perform live browser recovery, use the repository recovery path instead:
+## Canonical recovery handoff
+
+List the blocked sources from repository state:
 
 ```bash
 scripts/rvv-miniputt recovery-targets
-python3 -m tournament_scheduler.cli.rvv_cli recovery-inject --source "<name>"
+```
+
+After the harness/browser has recovered event data, return it through the repository validation path:
+
+```bash
+scripts/rvv-miniputt recovery-inject --source "<name>"
 scripts/rvv-miniputt scrape-merge
 ```
 
-Recovered events must return through repository validation/merge before they are trusted. Never write recovered browser data directly into authoritative checkpoints/cache structures in a harness-specific format.
+Recovered events must pass repository validation/merge before they are trusted. Never write browser output directly into authoritative checkpoints or cache structures in a harness-specific format.
 
-After successful recovery/merge, continue the canonical run/resume flow rather than maintaining a separate harness-side pipeline.
+After successful recovery, continue the canonical shared `run`/resume flow so Python reassesses Stage 2 and owns all later decisions.
