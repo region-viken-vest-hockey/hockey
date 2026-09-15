@@ -25,6 +25,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from rich.console import Console
 
 from ..models import SeasonPlan, Tournament
+from ..occupancy import tournament_end_time
 
 console = Console()
 
@@ -65,6 +66,7 @@ class SpondExporter:
         *,
         club: str | None = None,
         round_length_for_age_group: Optional[dict[str, int]] = None,
+        ice_time_for_age_group: Optional[dict[str, int]] = None,
     ) -> str:
         """Build and save a Spond-compatible Excel workbook to *output_path*."""
         wb = openpyxl.Workbook()
@@ -76,6 +78,7 @@ class SpondExporter:
             plan,
             club=club,
             round_length_for_age_group=round_length_for_age_group,
+            ice_time_for_age_group=ice_time_for_age_group,
         )
         self._style_header_row(sheet, 1)
         self._configure_sheet(sheet)
@@ -95,6 +98,7 @@ class SpondExporter:
         basename: str = "season_plan_spond",
         clubs: Iterable[str] | None = None,
         round_length_for_age_group: Optional[dict[str, int]] = None,
+        ice_time_for_age_group: Optional[dict[str, int]] = None,
     ) -> dict[str, str]:
         """Write one prefiltered workbook per club and return club -> path."""
         out_dir = Path(output_dir)
@@ -112,6 +116,7 @@ class SpondExporter:
                 str(path),
                 club=club,
                 round_length_for_age_group=round_length_for_age_group,
+                ice_time_for_age_group=ice_time_for_age_group,
             )
         return written
 
@@ -122,12 +127,13 @@ class SpondExporter:
         *,
         club: str | None = None,
         round_length_for_age_group: Optional[dict[str, int]] = None,
+        ice_time_for_age_group: Optional[dict[str, int]] = None,
     ) -> str:
         """Build a printable workbook with one game-schedule sheet per tournament."""
         wb = openpyxl.Workbook()
         wb.remove(wb.active)
 
-        round_length_for_age_group = round_length_for_age_group or {}
+        ice_time_for_age_group = ice_time_for_age_group or {}
         used_titles: set[str] = set()
         tournaments = self._tournaments_for_club(plan, club)
 
@@ -146,7 +152,7 @@ class SpondExporter:
                 self._write_schedule_attachment_sheet(
                     sheet,
                     tournament,
-                    round_length_for_age_group,
+                    ice_time_for_age_group,
                 )
 
         out = Path(output_path)
@@ -166,8 +172,9 @@ class SpondExporter:
         *,
         club: str | None = None,
         round_length_for_age_group: Optional[dict[str, int]] = None,
+        ice_time_for_age_group: Optional[dict[str, int]] = None,
     ) -> None:
-        round_length_for_age_group = round_length_for_age_group or {}
+        ice_time_for_age_group = ice_time_for_age_group or {}
         sheet.append(_SPOND_HEADERS)
 
         for tournament in sorted(plan.tournaments, key=lambda t: t.date):
@@ -175,10 +182,10 @@ class SpondExporter:
                 continue
 
             if self.game_level:
-                for row in self._game_rows_for_tournament(tournament, round_length_for_age_group):
+                for row in self._game_rows_for_tournament(tournament, ice_time_for_age_group):
                     sheet.append(row)
             else:
-                sheet.append(self._summary_row_for_tournament(tournament, round_length_for_age_group))
+                sheet.append(self._summary_row_for_tournament(tournament, ice_time_for_age_group))
 
         if sheet.max_row:
             end_ref = sheet.cell(row=sheet.max_row, column=sheet.max_column).coordinate
@@ -189,7 +196,7 @@ class SpondExporter:
         self,
         sheet: Worksheet,
         tournament: Tournament,
-        round_length_for_age_group: dict[str, int],
+        ice_time_for_age_group: dict[str, int],
     ) -> None:
         date_str = tournament.date.strftime("%d.%m.%Y")
         title = f"{date_str} ({self._weekday_name(tournament.date)}) — {tournament.age_group} — {tournament.arena}"
@@ -210,11 +217,9 @@ class SpondExporter:
         time_bits = []
         if tournament.start_time:
             time_bits.append(f"Start: {tournament.start_time}")
-            round_length = round_length_for_age_group.get(tournament.age_group)
-            if round_length:
-                end_time = tournament.end_time(round_length)
-                if end_time:
-                    time_bits.append(f"Slutt: {end_time}")
+            end_time = tournament_end_time(tournament, ice_time_for_age_group)
+            if end_time:
+                time_bits.append(f"Slutt: {end_time}")
         if time_bits:
             sheet.append([" • ".join(time_bits)])
 
@@ -245,7 +250,7 @@ class SpondExporter:
     def _summary_row_for_tournament(
         self,
         tournament: Tournament,
-        round_length_for_age_group: dict[str, int],
+        ice_time_for_age_group: dict[str, int],
     ) -> list[str]:
         date_str = tournament.date.strftime("%d.%m.%Y")
         arena = tournament.arena
@@ -255,9 +260,7 @@ class SpondExporter:
         start_time = tournament.start_time or ""
         end_time = ""
         if tournament.start_time:
-            round_length = round_length_for_age_group.get(tournament.age_group)
-            if round_length:
-                end_time = tournament.end_time(round_length) or ""
+            end_time = tournament_end_time(tournament, ice_time_for_age_group) or ""
 
         activity = f"{age_group} Turnering — {arena}"
         if tournament.cancelled:
@@ -279,7 +282,7 @@ class SpondExporter:
     def _game_rows_for_tournament(
         self,
         tournament: Tournament,
-        round_length_for_age_group: dict[str, int],
+        ice_time_for_age_group: dict[str, int],
     ) -> list[list[str]]:
         rows: list[list[str]] = []
         date_str = tournament.date.strftime("%d.%m.%Y")
@@ -289,9 +292,7 @@ class SpondExporter:
         start_time = tournament.start_time or ""
         end_time = ""
         if tournament.start_time:
-            round_length = round_length_for_age_group.get(tournament.age_group)
-            if round_length:
-                end_time = tournament.end_time(round_length) or ""
+            end_time = tournament_end_time(tournament, ice_time_for_age_group) or ""
 
         for game in tournament.games:
             activity = f"{age_group}: {game.home.label} vs {game.away.label}"
@@ -311,7 +312,7 @@ class SpondExporter:
             ])
 
         if not rows:
-            rows.append(self._summary_row_for_tournament(tournament, round_length_for_age_group))
+            rows.append(self._summary_row_for_tournament(tournament, ice_time_for_age_group))
         return rows
 
     @staticmethod

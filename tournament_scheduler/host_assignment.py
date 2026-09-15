@@ -22,7 +22,7 @@ from tournament_scheduler.hosting_coverage import (
     proportional_integer_targets as _shared_proportional_integer_targets,
 )
 from tournament_scheduler.models import Game, Team, Tournament
-from tournament_scheduler.utils.slot_finder import matchday_duration_minutes
+from tournament_scheduler.occupancy import required_ice_minutes
 from tournament_scheduler.warnings import holiday_heavy_weekend_dates
 
 
@@ -240,15 +240,12 @@ def find_slot_for_tournament(
     if not planner.events_by_club and not reserved_events_by_club:
         return None
 
-    round_length = planner.round_length_for_age_group.get(age_group)
-    if not round_length:
-        return None
-
-    if not games:
+    ice_time = getattr(planner, "ice_time_for_age_group", {}).get(age_group) or getattr(planner, "round_length_for_age_group", {}).get(age_group)
+    if not ice_time or not games:
         return None
 
     max_round = max(g.round_number for g in games)
-    required_minutes = matchday_duration_minutes(round_length, max_round)
+    required_minutes = required_ice_minutes(ice_time, max_round)
     if required_minutes <= 0:
         return None
 

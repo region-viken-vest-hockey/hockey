@@ -26,6 +26,7 @@ from tournament_scheduler import planning_half
 from tournament_scheduler.club_distances import furthest_traveling_team
 from tournament_scheduler.fairness_model import SeasonFairnessModel
 from tournament_scheduler.models import SeasonPlan, Tournament
+from tournament_scheduler.occupancy import tournament_end_time
 
 console = Console()
 
@@ -65,6 +66,7 @@ class SeasonPlanExporter:
         *,
         rules_report: Optional[List[Dict[str, str]]] = None,
         round_length_for_age_group: Optional[Dict[str, int]] = None,
+        ice_time_for_age_group: Optional[Dict[str, int]] = None,
     ) -> str:
         """Build and save the workbook for `plan` to `output_path`.
 
@@ -72,10 +74,9 @@ class SeasonPlanExporter:
         ``rules_report`` (from ``SeasonPlanner.rules_report()``) is
         provided.
 
-        ``round_length_for_age_group`` (optional mapping of age group ->
-        round length in minutes) is used to compute each tournament's end
-        time for the "Sluttid" overview column via
-        ``Tournament.end_time()``.
+        ``ice_time_for_age_group`` (optional mapping of age group -> configured
+        base ice minutes) is used to compute each tournament's occupied end
+        time for the "Sluttid" overview column.
 
         Returns the path the workbook was saved to.
         """
@@ -83,7 +84,7 @@ class SeasonPlanExporter:
 
         overview_sheet = self.workbook.active
         overview_sheet.title = "Sesongoversikt"
-        self._write_overview_sheet(overview_sheet, plan, round_length_for_age_group or {})
+        self._write_overview_sheet(overview_sheet, plan, ice_time_for_age_group or {})
 
         used_titles = {overview_sheet.title}
 
@@ -127,19 +128,18 @@ class SeasonPlanExporter:
         self,
         sheet: Worksheet,
         plan: SeasonPlan,
-        round_length_for_age_group: Optional[Dict[str, int]] = None,
+        ice_time_for_age_group: Optional[Dict[str, int]] = None,
     ) -> None:
         sheet.append(_OVERVIEW_HEADERS)
         self._style_header_row(sheet)
 
-        round_length_for_age_group = round_length_for_age_group or {}
+        ice_time_for_age_group = ice_time_for_age_group or {}
 
         _cancelled_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
         for tournament in plan.tournaments:
             travel_info = self._travel_info(tournament)
             status_prefix = "(AVLYST) " if tournament.cancelled else ""
-            round_length = round_length_for_age_group.get(tournament.age_group)
-            end_time = tournament.end_time(round_length) if round_length else None
+            end_time = tournament_end_time(tournament, ice_time_for_age_group)
             row = [
                 status_prefix + self._format_date(tournament.date),
                 self._weekday_name(tournament.date),

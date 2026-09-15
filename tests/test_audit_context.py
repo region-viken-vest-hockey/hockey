@@ -107,7 +107,7 @@ def test_context_falls_back_to_stage2_calendar_summary_when_bundle_missing(tmp_p
 def test_context_includes_selected_plan_cross_checks(tmp_path):
     PipelineState(tmp_path).write_stage(
         StageName.CONFIG,
-        {"round_length_minutes": {"U10": 15}, "parallel_games": {"U10": 3}},
+        {"round_length_minutes": {"U10": 15}, "ice_time_minutes": {"U10": 30}, "parallel_games": {"U10": 3}},
         status=StageStatus.DONE,
     )
     PipelineState(tmp_path).write_stage(
@@ -201,7 +201,7 @@ def test_unresolved_tournament_placements_reach_the_audit_context(tmp_path):
     club set."""
     PipelineState(tmp_path).write_stage(
         StageName.CONFIG,
-        {"round_length_minutes": {"U10": 15}},
+        {"round_length_minutes": {"U10": 15}, "ice_time_minutes": {"U10": 30}},
         status=StageStatus.DONE,
     )
     PipelineState(tmp_path).write_stage(

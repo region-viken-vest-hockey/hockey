@@ -79,6 +79,7 @@ def build_planning_problem(
         _build_club_busy_intervals,
         _build_club_calendar_status,
         _build_events_by_club,
+        _build_ice_time,
         _build_parallel_games,
         _build_round_length,
         _build_roster,
@@ -150,6 +151,7 @@ def build_planning_problem(
         "clubs": dict(club_arenas),
         "parallel_games": _build_parallel_games(config),
         "round_length_minutes": _build_round_length(config),
+        "ice_time_minutes": _build_ice_time(config),
         "max_hosting_deviation": config.get("maxHostingDeviation", 1),
         # Explicit season-wide override only; never populated by the
         # canonical workbook (see the `teams` comment above). Omitted when
@@ -593,12 +595,12 @@ def verify_candidate(
     from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
     from tournament_scheduler.pipeline.stage3_helpers import _tournament_from_dict
 
-    round_length_minutes = problem.get("round_length_minutes") or {}
+    ice_time_minutes = problem.get("ice_time_minutes") or problem.get("round_length_minutes") or {}
     club_calendar_status_for_conflicts = problem.get("club_calendar_status") or {}
     club_busy_intervals = problem.get("club_busy_intervals") or {}
     try:
         tournament_objs = [_tournament_from_dict(t) for t in candidate.get("tournaments", []) if not t.get("cancelled")]
-        for collision in find_arena_interval_collisions(tournament_objs, round_length_minutes):
+        for collision in find_arena_interval_collisions(tournament_objs, ice_time_minutes):
             _violate(
                 "arena_interval_conflict",
                 collision["message"],
@@ -613,7 +615,7 @@ def verify_candidate(
         # move) is still caught here rather than only by re-running the
         # planner that produced it.
         for tournament_obj in tournament_objs:
-            interval = tournament_interval(tournament_obj, round_length_minutes)
+            interval = tournament_interval(tournament_obj, ice_time_minutes)
             if interval is None or not interval.host_club:
                 continue
             if (

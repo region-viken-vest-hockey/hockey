@@ -24,6 +24,7 @@ from typing import Optional
 from icalendar import Calendar, Event, vText
 
 from ..models import SeasonPlan, Tournament, Game
+from ..occupancy import tournament_required_ice_minutes
 
 
 def _stable_uid(*parts: object) -> str:
@@ -59,10 +60,12 @@ class ICalExporter:
         game_duration_minutes: int = 60,
         start_hour: int = 9,
         round_length_for_age_group: Optional[dict[str, int]] = None,
+        ice_time_for_age_group: Optional[dict[str, int]] = None,
     ) -> None:
         self.game_duration_minutes = game_duration_minutes
         self.start_hour = start_hour
         self.round_length_for_age_group = round_length_for_age_group or {}
+        self.ice_time_for_age_group = ice_time_for_age_group or {}
 
     # ------------------------------------------------------------------
     # Internal helpers — tournament start/end datetimes
@@ -100,9 +103,8 @@ class ICalExporter:
         round length are available. Falls back to a duration based on
         ``game_duration_minutes`` and the number of games.
         """
-        round_length = self.round_length_for_age_group.get(tournament.age_group)
-        if tournament.start_time and round_length:
-            duration = tournament.duration_minutes(round_length)
+        if tournament.start_time:
+            duration = tournament_required_ice_minutes(tournament, self.ice_time_for_age_group)
             if duration > 0:
                 return dt_start + timedelta(minutes=duration)
 
@@ -322,13 +324,9 @@ class ICalExporter:
         built from the tournament's age group, arena, and team list.
         """
         dt_start = self._tournament_start_datetime(tournament)
-        round_length = self.round_length_for_age_group.get(tournament.age_group)
-        if tournament.start_time and round_length:
-            duration = tournament.duration_minutes(round_length)
-            if duration > 0:
-                dt_end = dt_start + timedelta(minutes=duration)
-            else:
-                dt_end = dt_start + timedelta(hours=8)
+        duration = tournament_required_ice_minutes(tournament, self.ice_time_for_age_group)
+        if tournament.start_time and duration > 0:
+            dt_end = dt_start + timedelta(minutes=duration)
         else:
             dt_end = dt_start + timedelta(hours=8)
 

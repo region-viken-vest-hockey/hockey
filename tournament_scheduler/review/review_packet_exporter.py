@@ -14,6 +14,7 @@ from rich.console import Console
 
 from ..club_distances import compute_team_travel_distances
 from ..models import SeasonPlan, Tournament, find_duplicate_labels, team_key
+from ..occupancy import tournament_end_time
 from ..spond.spond_exporter import SpondExporter
 
 console = Console()
@@ -110,6 +111,7 @@ class ReviewPacketExporter:
         *,
         clubs: Iterable[str] | None = None,
         round_length_for_age_group: Optional[dict[str, int]] = None,
+        ice_time_for_age_group: Optional[dict[str, int]] = None,
     ) -> dict[str, str]:
         """Write one packet directory per club and return club -> folder path."""
         root = Path(output_dir)
@@ -135,7 +137,7 @@ class ReviewPacketExporter:
                 plan,
                 club,
                 club_tournaments,
-                round_length_for_age_group or {},
+                ice_time_for_age_group or {},
             )
 
             spond_exporter = SpondExporter()
@@ -144,12 +146,14 @@ class ReviewPacketExporter:
                 str(spond_path),
                 club=club,
                 round_length_for_age_group=round_length_for_age_group,
+                ice_time_for_age_group=ice_time_for_age_group,
             )
             spond_exporter.export_schedule_attachment(
                 plan,
                 str(schedule_path),
                 club=club,
                 round_length_for_age_group=round_length_for_age_group,
+                ice_time_for_age_group=ice_time_for_age_group,
             )
 
             manifest = self._build_manifest(
@@ -178,7 +182,7 @@ class ReviewPacketExporter:
         plan: SeasonPlan,
         club: str,
         club_tournaments: list[Tournament],
-        round_length_for_age_group: dict[str, int],
+        ice_time_for_age_group: dict[str, int],
     ) -> None:
         wb = openpyxl.Workbook()
         overview = wb.active
@@ -211,10 +215,10 @@ class ReviewPacketExporter:
             hosted,
             away_count,
             club_team_travel,
-            round_length_for_age_group,
+            ice_time_for_age_group,
         )
-        self._write_tournaments_sheet(tournaments_sheet, club_tournaments, round_length_for_age_group)
-        self._write_hosting_sheet(hosting_sheet, hosted, round_length_for_age_group)
+        self._write_tournaments_sheet(tournaments_sheet, club_tournaments, ice_time_for_age_group)
+        self._write_hosting_sheet(hosting_sheet, hosted, ice_time_for_age_group)
         self._write_travel_sheet(travel_sheet, club_team_travel)
 
         for index, sheet in enumerate(wb.worksheets, start=1):
@@ -236,7 +240,7 @@ class ReviewPacketExporter:
         hosted: list[Tournament],
         away_count: int,
         club_team_travel: dict[str, int],
-        round_length_for_age_group: dict[str, int],
+        ice_time_for_age_group: dict[str, int],
     ) -> None:
         total_travel = sum(club_team_travel.values())
         sheet.append([f"Klubb: {club}"])
@@ -261,9 +265,7 @@ class ReviewPacketExporter:
             start_time = tournament.start_time or ""
             end_time = ""
             if tournament.start_time:
-                round_length = round_length_for_age_group.get(tournament.age_group)
-                if round_length:
-                    end_time = tournament.end_time(round_length) or ""
+                end_time = tournament_end_time(tournament, ice_time_for_age_group) or ""
             sheet.append([
                 tournament.date.isoformat(),
                 tournament.age_group,
@@ -279,7 +281,7 @@ class ReviewPacketExporter:
         self,
         sheet: Worksheet,
         tournaments: list[Tournament],
-        round_length_for_age_group: dict[str, int],
+        ice_time_for_age_group: dict[str, int],
     ) -> None:
         sheet.append([
             "Dato",
@@ -295,9 +297,7 @@ class ReviewPacketExporter:
             start_time = tournament.start_time or ""
             end_time = ""
             if tournament.start_time:
-                round_length = round_length_for_age_group.get(tournament.age_group)
-                if round_length:
-                    end_time = tournament.end_time(round_length) or ""
+                end_time = tournament_end_time(tournament, ice_time_for_age_group) or ""
             activity = f"{tournament.age_group} Turnering — {tournament.arena}"
             if tournament.cancelled:
                 activity = f"AVLYST: {activity}"
@@ -316,7 +316,7 @@ class ReviewPacketExporter:
         self,
         sheet: Worksheet,
         hosted: list[Tournament],
-        round_length_for_age_group: dict[str, int],
+        ice_time_for_age_group: dict[str, int],
     ) -> None:
         sheet.append(["Dato", "Aldersgruppe", "Arena", "Start", "Slutt", "Lag", "Kamper"])
         if not hosted:
@@ -326,9 +326,7 @@ class ReviewPacketExporter:
             start_time = tournament.start_time or ""
             end_time = ""
             if tournament.start_time:
-                round_length = round_length_for_age_group.get(tournament.age_group)
-                if round_length:
-                    end_time = tournament.end_time(round_length) or ""
+                end_time = tournament_end_time(tournament, ice_time_for_age_group) or ""
             sheet.append([
                 tournament.date.strftime("%d.%m.%Y"),
                 tournament.age_group,

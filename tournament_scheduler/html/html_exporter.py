@@ -19,6 +19,7 @@ from typing import Any
 
 from tournament_scheduler.club_distances import furthest_traveling_team
 from ..models import SeasonPlan
+from ..occupancy import tournament_end_time
 
 from .data_computation import (
     ICON_CALENDAR,
@@ -77,6 +78,7 @@ class HtmlExporter:
         output_files: dict[str, str] | None = None,
         pipeline_meta: dict[str, Any] | None = None,
         round_length_for_age_group: dict[str, int] | None = None,
+        ice_time_for_age_group: dict[str, int] | None = None,
         age_groups: list[str] | None = None,
         calendars_path: str | None = None,
         input_html_path: str | None = None,
@@ -91,10 +93,9 @@ class HtmlExporter:
         meta: Optional metadata from scraped data cache (total_events, source_count, etc.).
         output_files: Optional dict mapping format name to absolute file paths for download links.
         pipeline_meta: Optional pipeline-wide metadata with blocked sources, date range, etc.
-        round_length_for_age_group: Optional mapping of age group -> round
-            length in minutes, used together with each tournament's
-            ``start_time`` to compute and display a "HH:MM-HH:MM" time
-            range via ``Tournament.end_time()``.
+        ice_time_for_age_group: Optional mapping of age group -> configured
+            base ice minutes, used with ``start_time`` and round count to
+            compute the displayed occupied time range.
         calendars_path: Absolute path to the generated calendars.html file. When provided and
             the file exists, a navbar link to calendars.html is included.
         input_html_path: Absolute path to the generated input.html file (public overview of
@@ -103,7 +104,7 @@ class HtmlExporter:
         manual_schedule_path: Absolute path to the generated manual_schedule.html file. When
             provided and the file exists, a navbar link to the manual scheduling view is included.
         """
-        tournaments_json = self._plan_to_json(plan, round_length_for_age_group)
+        tournaments_json = self._plan_to_json(plan, ice_time_for_age_group)
 
         # Count unique teams
         all_teams: set[str] = set()
@@ -353,9 +354,9 @@ class HtmlExporter:
         return html
 
     @staticmethod
-    def _plan_to_json(plan: SeasonPlan, round_length_for_age_group: dict[str, int] | None = None) -> str:
+    def _plan_to_json(plan: SeasonPlan, ice_time_for_age_group: dict[str, int] | None = None) -> str:
         """Serialize the plan's tournaments to the compact JSON format used by the HTML."""
-        round_length_for_age_group = round_length_for_age_group or {}
+        ice_time_for_age_group = ice_time_for_age_group or {}
         data = []
         for t in plan.tournaments:
             games = [
@@ -379,11 +380,9 @@ class HtmlExporter:
             }
             if t.start_time:
                 entry["ts"] = t.start_time
-                round_length = round_length_for_age_group.get(t.age_group)
-                if round_length:
-                    end_time = t.end_time(round_length)
-                    if end_time:
-                        entry["te"] = end_time
+                end_time = tournament_end_time(t, ice_time_for_age_group)
+                if end_time:
+                    entry["te"] = end_time
             if t.cancelled:
                 entry["cx"] = True
                 entry["cr"] = t.cancellation_reason or ""

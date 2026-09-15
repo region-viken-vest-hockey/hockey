@@ -44,7 +44,7 @@ def _write_input_workbook(path: Path, raw: dict | None = None) -> None:
 
     if "age_groups" in raw:
         age_groups = wb.create_sheet("Aldersgrupper")
-        header_cols = ["age_group", "parallel_games", "round_length_minutes"]
+        header_cols = ["age_group", "parallel_games", "round_length_minutes", "ice_time_minutes"]
         target_by_age = raw.get("participation_targets_by_age_group", {})
         has_age_targets = any(target_by_age.get(age_group) for age_group in raw["age_groups"])
         if has_age_targets:
@@ -58,6 +58,7 @@ def _write_input_workbook(path: Path, raw: dict | None = None) -> None:
                 age_group,
                 raw.get("parallel_games", {}).get(age_group, 3),
                 raw.get("round_length_minutes", {}).get(age_group, 10),
+                raw.get("ice_time_minutes", {}).get(age_group, 90),
             ]
             if has_age_targets:
                 target = target_by_age.get(age_group, {})
@@ -286,6 +287,7 @@ class TestRunStage1:
         raw["age_groups"] = ["U10"]
         raw["parallel_games"] = {"U10": 3}
         raw["round_length_minutes"] = {"U10": 10}
+        raw["ice_time_minutes"] = {"U10": 90}
         raw["participation_targets_by_age_group"] = {"U10": {"before_christmas": 3, "after_christmas": 3}}
         _write_input_workbook(input_file, raw)
 
@@ -303,6 +305,8 @@ class TestRunStage1:
         assert effective["end_date"] == "2025-12-01"
         assert effective["age_groups"] == ["U10"]
         assert effective["parallel_games"] == {"U10": 3}
+        assert result["ice_time_minutes"] == {"U10": 90}
+        assert effective["ice_time_minutes"] == {"U10": 90}
         assert effective["sources"] == [
             {"name": "Kongsberg", "type": "outlook", "url": "https://example.test/calendar"}
         ]
@@ -372,6 +376,32 @@ class TestRunStage1:
         assert "Kongsberg 2" in message
         assert "Jar 1" in message
         assert "Kongsberg 1" not in message
+
+    def test_run_rejects_missing_or_non_positive_ice_time_for_active_age_group(self, tmp_path):
+        raw = _make_valid_raw()
+        raw["age_groups"] = ["U7", "U10"]
+        raw["ice_time_minutes"] = {"U7": 90, "U10": 0}
+        raw["participation_targets_by_age_group"] = {
+            "U7": {"before_christmas": 3, "after_christmas": 3},
+            "U10": {"before_christmas": 3, "after_christmas": 3},
+        }
+        input_file = tmp_path / "input.xlsx"
+        _write_input_workbook(input_file, raw)
+
+        state = PipelineState(tmp_path / "pipeline")
+        with pytest.raises(Stage1Error) as exc_info:
+            run(input_file, state)
+        message = "\n".join(exc_info.value.errors)
+        assert "ice_time_minutes" in message
+        assert "U10" in message
+
+        raw["ice_time_minutes"] = {"U7": 90, "U10": None}
+        _write_input_workbook(input_file, raw)
+        with pytest.raises(Stage1Error) as exc_info:
+            run(input_file, state)
+        message = "\n".join(exc_info.value.errors)
+        assert "ice_time_minutes" in message
+        assert "U10" in message
 
     def test_run_preserves_per_age_group_target_tournament_counts(self, tmp_path):
         """The per-age-group target columns in the Aldersgrupper sheet are preserved."""

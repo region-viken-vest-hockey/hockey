@@ -23,7 +23,7 @@ from ..warnings import (
 )
 from .cancellation_workflow import CancellationWorkflow
 from .stage1_config import load_effective_config
-from .stage3_helpers import _build_club_arenas, _build_events_by_club, _build_parallel_games, _build_roster, _build_round_length, _make_planner
+from .stage3_helpers import _build_club_arenas, _build_events_by_club, _build_ice_time, _build_parallel_games, _build_roster, _build_round_length, _make_planner
 from .state import PipelineState, StageName
 from .tournament_updater import TournamentUpdater, UpdateResult
 
@@ -264,6 +264,7 @@ class ManualAdjustmentWorkflow:
         roster = _build_roster(cfg)
         pg_config = _build_parallel_games(cfg)
         round_length_config = _build_round_length(cfg)
+        ice_time_config = _build_ice_time(cfg)
         events_by_club = _build_events_by_club(self.state.read_stage(StageName.SCRAPING))
         club_arenas = _build_club_arenas(cfg)
 
@@ -273,6 +274,7 @@ class ManualAdjustmentWorkflow:
             club_arenas,
             cfg.get("maxHostingDeviation", 1),
             round_length_config,
+            ice_time_config,
             events_by_club,
             cfg.get("fairness_thresholds", {}),
             cfg.get("target_tournament_count"),

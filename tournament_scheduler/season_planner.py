@@ -86,7 +86,7 @@ from tournament_scheduler.roster_size_planning import (
 )
 from tournament_scheduler.rules_report import rules_report as _rules_report
 from tournament_scheduler.scheduler import TournamentScheduler
-from tournament_scheduler.utils.slot_finder import matchday_duration_minutes
+from tournament_scheduler.occupancy import occupancy_components, round_count_for_games, tournament_required_ice_minutes
 from tournament_scheduler.warnings import (
     _club_calendar_available,
     compute_game_counts as _compute_game_counts,
@@ -151,6 +151,7 @@ class SeasonPlanner:
         club_arenas: Dict[str, str],
         parallel_games_for_age_group: Optional[Dict[str, int]] = None,
         round_length_for_age_group: Optional[Dict[str, int]] = None,
+        ice_time_for_age_group: Optional[Dict[str, int]] = None,
         target_tournament_count: Optional[int] = None,
         participation_targets_by_age_group: Optional[Dict[str, Dict[str, int]]] = None,
         max_club_teams_per_tournament: int = 1,
@@ -177,6 +178,7 @@ class SeasonPlanner:
         self.club_arenas = club_arenas
         self.parallel_games_for_age_group = parallel_games_for_age_group or {}
         self.round_length_for_age_group = round_length_for_age_group or {}
+        self.ice_time_for_age_group = ice_time_for_age_group or dict(self.round_length_for_age_group)
         self.target_tournament_count = target_tournament_count
         self.participation_targets_by_age_group = {
             age_group: dict(targets)
@@ -748,6 +750,11 @@ class SeasonPlanner:
 
             parallel_games = self._parallel_games_for(age_group)
             provisional_games = self.generate_round_robin_games(participants, parallel_games)
+            duration_evidence = occupancy_components(
+                age_group,
+                self.ice_time_for_age_group,
+                round_count_for_games(provisional_games),
+            ).as_dict()
 
             # issue #323 P0: candidate hosts are derived only from the
             # already-selected participants' own physical clubs -- never an
@@ -776,6 +783,7 @@ class SeasonPlanner:
                             for t in participants
                         ],
                         "participant_team_count": len(participants),
+                        **duration_evidence,
                         "category": "manual_tournament_placement",
                         "search_attempted": False,
                         "reason": "no_participant_host_slot",
@@ -803,7 +811,7 @@ class SeasonPlanner:
             # host was tried and none had a free slot".
             slot_search_active = bool(
                 (self.events_by_club or reserved_events_by_club)
-                and self.round_length_for_age_group.get(age_group)
+                and self.ice_time_for_age_group.get(age_group)
             )
             slot = self._find_slot_for_tournament(
                 tournament_date,
@@ -862,6 +870,11 @@ class SeasonPlanner:
                                 else retry_candidate_hosts[0]
                             )
                             retry_games = self.generate_round_robin_games(retry_participants, parallel_games)
+                            retry_duration_evidence = occupancy_components(
+                                age_group,
+                                self.ice_time_for_age_group,
+                                round_count_for_games(retry_games),
+                            ).as_dict()
                             retry_slot = self._find_slot_for_tournament(
                                 tournament_date,
                                 retry_search_host,
@@ -873,6 +886,7 @@ class SeasonPlanner:
                             if retry_slot is not None:
                                 participants = retry_participants
                                 provisional_games = retry_games
+                                duration_evidence = retry_duration_evidence
                                 candidate_hosts = retry_candidate_hosts
                                 search_host = retry_search_host
                                 slot = retry_slot
@@ -898,6 +912,7 @@ class SeasonPlanner:
                             for t in participants
                         ],
                         "participant_team_count": len(participants),
+                        **duration_evidence,
                         "category": "manual_tournament_placement",
                         "search_attempted": True,
                         # issue #329: True when a hosting-deficit-biased
@@ -1017,7 +1032,7 @@ class SeasonPlanner:
         sequence_failures = self._sequence_same_arena_day_start_times(plan)
         interval_collisions = find_arena_interval_collisions(
             plan.tournaments,
-            self.round_length_for_age_group,
+            self.ice_time_for_age_group,
         )
 
         plan.arena_counts = self._arena_counts(plan.tournaments)
@@ -1160,7 +1175,7 @@ class SeasonPlanner:
             for tournament in plan.tournaments:
                 if tournament.cancelled or tournament.manual_booking_reason:
                     continue
-                interval = tournament_interval(tournament, self.round_length_for_age_group)
+                interval = tournament_interval(tournament, self.ice_time_for_age_group)
                 if interval is None or not interval.host_club:
                     continue
                 duration_minutes = int((interval.end - interval.start).total_seconds() // 60)
@@ -1917,15 +1932,14 @@ class SeasonPlanner:
             ) = saved_state
 
     def _reservation_event_for_tournament(self, tournament: Tournament) -> Optional[CalendarEvent]:
-        round_length = self.round_length_for_age_group.get(tournament.age_group)
-        if not round_length or not tournament.games or not tournament.start_time:
+        if not tournament.games or not tournament.start_time:
             return None
         try:
             hour, minute = (int(part) for part in tournament.start_time.split(":", 1))
             start_at = datetime.combine(tournament.date, datetime.min.time()).replace(hour=hour, minute=minute)
         except (TypeError, ValueError):
             return None
-        duration_minutes = matchday_duration_minutes(round_length, max(g.round_number for g in tournament.games))
+        duration_minutes = tournament_required_ice_minutes(tournament, self.ice_time_for_age_group)
         if duration_minutes <= 0:
             return None
         return CalendarEvent(
@@ -1992,12 +2006,7 @@ class SeasonPlanner:
 
                 tournament.start_time = f"{cursor_minutes // 60:02d}:{cursor_minutes % 60:02d}"
 
-                round_length = self.round_length_for_age_group.get(tournament.age_group)
-                duration_minutes = (
-                    matchday_duration_minutes(round_length, max(g.round_number for g in tournament.games))
-                    if round_length and tournament.games
-                    else 0
-                )
+                duration_minutes = tournament_required_ice_minutes(tournament, self.ice_time_for_age_group)
                 cursor_minutes += duration_minutes + ARENA_DAY_SEQUENCE_BUFFER_MINUTES
 
         return sequence_failures

@@ -44,6 +44,15 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
         # tried before giving up -- lets the operator/auditor tell "no
         # alternative composition existed at all" apart from "an alternative
         # was tried and still failed".
+        if item.get("required_duration_minutes"):
+            duration_clause = (
+                f"Required duration: {item.get('required_duration_minutes')} min "
+                f"(base ice {item.get('configured_ice_time_minutes', 'ukjent')} min + "
+                f"round buffer {item.get('round_buffer_minutes', 'ukjent')} min for "
+                f"{item.get('round_count', 'ukjent')} rounds). "
+            )
+        else:
+            duration_clause = ""
         if "alternate_roster_attempted" in item:
             retry_clause = (
                 "Alternativ lagsammensetning forsøkt: "
@@ -64,11 +73,16 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
                 "conflicting_tournament_id": "",
                 "conflicting_age_group": "",
                 "conflicting_interval": "",
+                "required_duration_minutes": str(item.get("required_duration_minutes") or ""),
+                "configured_ice_time_minutes": str(item.get("configured_ice_time_minutes") or ""),
+                "round_count": str(item.get("round_count") or ""),
+                "round_buffer_minutes": str(item.get("round_buffer_minutes") or ""),
                 "message": (
                     "MANUAL PLACEMENT REQUIRED. "
                     f"Age group: {age_group}. Date: {date_value or 'ukjent'}. "
                     f"Participant clubs: {', '.join(str(c) for c in participant_clubs) or 'ukjent'}. "
                     f"{roster_clause}"
+                    f"{duration_clause}"
                     f"{retry_clause}"
                     f"Candidate hosts tried: {', '.join(str(c) for c in candidate_hosts) or 'ingen'}. "
                     "Reason: none of the selected participants' clubs had a legal, free arena/time slot. "

@@ -126,6 +126,24 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
                         f"'round_length_minutes[\"{ag}\"]' må være et positivt heltall, fikk: {minutes!r}."
                     )
 
+    # --- Configured base ice time (minutes) ---
+    ice_time_by_age = raw.get("ice_time_minutes")
+    if ice_time_by_age is not None:
+        if not isinstance(ice_time_by_age, dict):
+            errors.append("'ice_time_minutes' må være et objekt (f.eks. {\"U10\": 135}).")
+        else:
+            for ag, minutes in ice_time_by_age.items():
+                if not isinstance(ag, str) or not ag.strip():
+                    errors.append("'ice_time_minutes' må bruke ikke-tomme tekstnøkler for aldersgrupper.")
+                    continue
+                if not _age_group_is_defined(ag):
+                    errors.append(f"Ukjent aldersgruppe '{ag}' i 'ice_time_minutes'.")
+                    continue
+                if not isinstance(minutes, int) or minutes < 1:
+                    errors.append(
+                        f"'ice_time_minutes[\"{ag}\"]' må være et positivt heltall, fikk: {minutes!r}."
+                    )
+
     # --- Target tournament count by age group ---
     target_by_age = raw.get("participation_targets_by_age_group")
     if target_by_age is not None:
@@ -170,7 +188,16 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
                             f"ikke-negativt heltall, fikk: {value!r}."
                         )
 
-    # --- Every active age group must carry both half-targets ---
+    # --- Every active age group must carry configured base ice time and both half-targets ---
+    if defined_age_groups:
+        ice_time_dict = ice_time_by_age if isinstance(ice_time_by_age, dict) else {}
+        for ag in defined_age_groups:
+            if ag not in ice_time_dict:
+                errors.append(
+                    f"Aldersgruppen '{ag}' mangler 'ice_time_minutes' i arket 'Aldersgrupper'. "
+                    "Verdien er påkrevd og må oppgis eksplisitt."
+                )
+
     # `deltakelser_per_lag_før_jul` / `_etter_jul` are the authoritative
     # per-team participation targets for every active age group; a missing
     # or partial pair must fail loudly instead of silently falling back to a
@@ -330,6 +357,10 @@ def _parse_config(raw: dict[str, Any], input_path: str | os.PathLike[str]) -> di
     if "round_length_minutes" in raw and isinstance(raw["round_length_minutes"], dict):
         rl_dict.update({k: int(v) for k, v in raw["round_length_minutes"].items()})
 
+    ice_time_dict: dict[str, int] = {}
+    if "ice_time_minutes" in raw and isinstance(raw["ice_time_minutes"], dict):
+        ice_time_dict.update({k: int(v) for k, v in raw["ice_time_minutes"].items()})
+
     # Teams — expand from file reference if needed
     teams_val = raw["teams"]
     if isinstance(teams_val, str):
@@ -351,6 +382,7 @@ def _parse_config(raw: dict[str, Any], input_path: str | os.PathLike[str]) -> di
             "age_groups",
             "parallel_games",
             "round_length_minutes",
+            "ice_time_minutes",
             "teams",
             "sources",
             "target_tournament_count",
@@ -370,6 +402,7 @@ def _parse_config(raw: dict[str, Any], input_path: str | os.PathLike[str]) -> di
         "input_path": str(Path(input_path).resolve()),
         "teams": teams_data,
         "round_length_minutes": rl_dict,
+        "ice_time_minutes": ice_time_dict,
     }
 
     if "fairness_thresholds" in raw:

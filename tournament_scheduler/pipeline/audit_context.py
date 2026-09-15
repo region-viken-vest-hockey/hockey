@@ -230,9 +230,9 @@ def _summarize_plan_for_audit(
         return {}
 
     tournaments = [t for t in plan_dict.get("tournaments") or [] if isinstance(t, dict)]
-    round_lengths = {}
+    ice_times = {}
     if isinstance(config_checkpoint, dict):
-        round_lengths = dict(config_checkpoint.get("round_length_minutes") or {})
+        ice_times = dict(config_checkpoint.get("ice_time_minutes") or {})
 
     duration_examples: list[dict[str, Any]] = []
     missing_duration: list[dict[str, Any]] = []
@@ -244,14 +244,14 @@ def _summarize_plan_for_audit(
     for tournament in tournaments:
         games = [g for g in tournament.get("games") or [] if isinstance(g, dict)]
         round_count = max([int(g.get("round_number") or 0) for g in games] or [0])
-        round_length = round_lengths.get(str(tournament.get("age_group") or ""))
+        age_group = str(tournament.get("age_group") or "")
+        ice_time = ice_times.get(age_group)
+        round_buffer_minutes = 5 * round_count
         start_time = tournament.get("start_time")
         duration_minutes = None
         end_time = None
-        if round_count > 0 and isinstance(round_length, int) and round_length > 0:
-            from ..utils.slot_finder import matchday_duration_minutes
-
-            duration_minutes = matchday_duration_minutes(round_length, round_count)
+        if round_count > 0 and isinstance(ice_time, int) and ice_time > 0:
+            duration_minutes = ice_time + round_buffer_minutes
             duration_values.append(duration_minutes)
             if start_time:
                 try:
@@ -268,14 +268,15 @@ def _summarize_plan_for_audit(
                 "start_time": start_time,
                 "end_time": end_time,
                 "round_count": round_count,
-                "round_length_minutes": round_length,
+                "configured_ice_time_minutes": ice_time,
+                "round_buffer_minutes": round_buffer_minutes,
+                "required_duration_minutes": duration_minutes,
                 "duration_minutes": duration_minutes,
                 "game_count": len(games),
             }
         )
         teams = [team for team in tournament.get("teams") or [] if isinstance(team, dict)]
         team_count = len(teams)
-        age_group = str(tournament.get("age_group") or "")
         configured_capacity = None
         if isinstance(config_checkpoint, dict):
             pg = (config_checkpoint.get("parallel_games") or {}).get(age_group)

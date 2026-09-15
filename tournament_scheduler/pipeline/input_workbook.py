@@ -75,8 +75,8 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
       Optional ``vekt_cap`` (float, default 10.0) sets the absolute cap for
       preference-weight values; exceeded values trigger a :class:`UserWarning`.
     - ``Aldersgrupper``: columns ``age_group``, ``parallel_games``, optional
-      ``round_length_minutes``, optional ``preferanse_vekt`` (float, default 0.0),
-      and the authoritative per-team participation targets
+      ``round_length_minutes``, required ``ice_time_minutes``, optional
+      ``preferanse_vekt`` (float, default 0.0), and the authoritative per-team participation targets
       ``deltakelser_per_lag_før_jul`` / ``target_tournament_count_before_christmas``
       plus ``deltakelser_per_lag_etter_jul`` / ``target_tournament_count_after_christmas``
       — required for every active age group (validated in Stage 1, not here).
@@ -105,7 +105,7 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
     vekt_cap: float = float(raw.pop("vekt_cap", 10.0))
 
     if "Aldersgrupper" in wb.sheetnames:
-        age_groups, parallel_games, round_lengths, pref_weights, target_counts = _read_age_groups(
+        age_groups, parallel_games, round_lengths, ice_times, pref_weights, target_counts = _read_age_groups(
             wb["Aldersgrupper"], vekt_cap=vekt_cap
         )
         if age_groups:
@@ -114,6 +114,8 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
             raw["parallel_games"] = parallel_games
         if round_lengths:
             raw["round_length_minutes"] = round_lengths
+        if ice_times:
+            raw["ice_time_minutes"] = ice_times
         if pref_weights:
             raw["preferanse_vekt"] = pref_weights
         if target_counts:
@@ -213,10 +215,11 @@ def _read_age_groups(
     ws: Worksheet,
     *,
     vekt_cap: float = 10.0,
-) -> tuple[list[str], dict[str, int], dict[str, int], dict[str, float], dict[str, dict[str, int]]]:
+) -> tuple[list[str], dict[str, int], dict[str, int], dict[str, int], dict[str, float], dict[str, dict[str, int]]]:
     age_groups: list[str] = []
     parallel_games: dict[str, int] = {}
     round_lengths: dict[str, int] = {}
+    ice_times: dict[str, int] = {}
     preferanse_vekt: dict[str, float] = {}
     target_counts: dict[str, dict[str, int]] = {}
     for row in _rows_as_dicts(ws):
@@ -228,6 +231,8 @@ def _read_age_groups(
             parallel_games[age_group] = int(row["parallel_games"])
         if row.get("round_length_minutes") not in (None, ""):
             round_lengths[age_group] = int(row["round_length_minutes"])
+        if row.get("ice_time_minutes") not in (None, ""):
+            ice_times[age_group] = int(row["ice_time_minutes"])
         if row.get("preferanse_vekt") not in (None, ""):
             vekt = float(row["preferanse_vekt"])
             if abs(vekt) > vekt_cap:
@@ -257,7 +262,7 @@ def _read_age_groups(
                 entry["after_christmas"] = target_after
             target_counts[age_group] = entry
 
-    return age_groups, parallel_games, round_lengths, preferanse_vekt, target_counts
+    return age_groups, parallel_games, round_lengths, ice_times, preferanse_vekt, target_counts
 
 
 def _read_table(

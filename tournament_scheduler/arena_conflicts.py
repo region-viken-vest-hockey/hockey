@@ -1,7 +1,7 @@
 """Arena interval conflict detection for season plans.
 
 The season planner treats tournament occupancy as a full datetime interval,
-not just an arena/date pair.  These helpers are deliberately independent of
+not just an arena/date pair. These helpers are deliberately independent of
 ``SeasonPlanner`` so Stage 3 planning, Stage 4 export, and operator publish
 can all enforce the same hard scheduling rule.
 """
@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from typing import Iterable, Mapping, Sequence
 
 from tournament_scheduler.models import Tournament
+from tournament_scheduler.occupancy import tournament_required_ice_minutes
 
 
 @dataclass(frozen=True)
@@ -35,25 +36,16 @@ class ArenaInterval:
 
 def tournament_interval(
     tournament: Tournament,
-    round_length_for_age_group: Mapping[str, int],
-    *,
-    setup_buffer_minutes: int = 5,
+    ice_time_for_age_group: Mapping[str, int],
 ) -> ArenaInterval | None:
     """Return the full occupied interval for *tournament*, or ``None``.
 
     Cancelled tournaments, tournaments without a parseable ``start_time``, and
-    tournaments without a positive configured duration are ignored because they
-    cannot be evaluated as arena reservations.
+    tournaments without a positive configured occupancy duration are ignored.
     """
     if tournament.cancelled or not tournament.start_time:
         return None
-    round_length = round_length_for_age_group.get(tournament.age_group)
-    if not round_length:
-        return None
-    duration_minutes = tournament.matchday_duration_minutes(
-        round_length,
-        setup_buffer_minutes=setup_buffer_minutes,
-    )
+    duration_minutes = tournament_required_ice_minutes(tournament, ice_time_for_age_group)
     if duration_minutes <= 0:
         return None
     try:
@@ -75,18 +67,12 @@ def tournament_interval(
 
 def tournament_intervals(
     tournaments: Iterable[Tournament],
-    round_length_for_age_group: Mapping[str, int],
-    *,
-    setup_buffer_minutes: int = 5,
+    ice_time_for_age_group: Mapping[str, int],
 ) -> list[ArenaInterval]:
     """Return all evaluable arena intervals for *tournaments*."""
     intervals: list[ArenaInterval] = []
     for tournament in tournaments:
-        interval = tournament_interval(
-            tournament,
-            round_length_for_age_group,
-            setup_buffer_minutes=setup_buffer_minutes,
-        )
+        interval = tournament_interval(tournament, ice_time_for_age_group)
         if interval is not None:
             intervals.append(interval)
     return intervals
@@ -100,7 +86,7 @@ def intervals_overlap(first: ArenaInterval, second: ArenaInterval) -> bool:
 def arena_interval_collisions(intervals: Sequence[ArenaInterval]) -> list[dict[str, str]]:
     """Return structured same-arena interval collisions.
 
-    Adjacent intervals (``first.end == second.start``) are allowed.  Overnight
+    Adjacent intervals (``first.end == second.start``) are allowed. Overnight
     intervals naturally collide with any interval that starts before their true
     next-day end time.
     """
@@ -119,18 +105,10 @@ def arena_interval_collisions(intervals: Sequence[ArenaInterval]) -> list[dict[s
 
 def find_arena_interval_collisions(
     tournaments: Iterable[Tournament],
-    round_length_for_age_group: Mapping[str, int],
-    *,
-    setup_buffer_minutes: int = 5,
+    ice_time_for_age_group: Mapping[str, int],
 ) -> list[dict[str, str]]:
     """Build intervals for *tournaments* and return arena overlap collisions."""
-    return arena_interval_collisions(
-        tournament_intervals(
-            tournaments,
-            round_length_for_age_group,
-            setup_buffer_minutes=setup_buffer_minutes,
-        )
-    )
+    return arena_interval_collisions(tournament_intervals(tournaments, ice_time_for_age_group))
 
 
 def format_arena_collision(first: ArenaInterval, second: ArenaInterval) -> dict[str, str]:

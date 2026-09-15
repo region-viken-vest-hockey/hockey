@@ -32,6 +32,7 @@ One row per active age group. Canonical columns:
 - `age_group`
 - `parallel_games`
 - `round_length_minutes`
+- `ice_time_minutes`
 - `deltakelser_per_lag_før_jul`
 - `deltakelser_per_lag_etter_jul`
 - `preferanse_vekt` (optional)
@@ -40,7 +41,29 @@ The before/after participation values are the operator-facing participation conf
 
 English aliases such as `target_tournament_count_before_christmas` / `target_tournament_count_after_christmas` may be accepted for compatibility, but the Norwegian column names above are the canonical RVV workbook vocabulary.
 
-`round_length_minutes` means actual round/game length. Transition/setup time between rounds is modeled separately by the scheduler and must not be folded into this value.
+`round_length_minutes` means actual round/game length. `ice_time_minutes` is the configured base hall/arena ice allocation for the age group, expressed as an integer number of minutes to avoid Excel time-format ambiguity. Stage 1 requires a positive `ice_time_minutes` value for every active age group; new age groups must be given an explicit operator-approved value.
+
+Tournament occupancy/end-time calculation is canonical:
+
+```text
+required_duration_minutes = ice_time_minutes + 5 * number_of_rounds
+```
+
+The 5 minutes per round is the explicit transition/changeover buffer. The migrated historical `Istid` values below are treated as base ice allocations; transition buffer is added by the planner/export calculation rather than hidden in `round_length_minutes`.
+
+Migrated 2025–2026 `Istid` values used to seed root `input.xlsx`:
+
+| Age group | `ice_time_minutes` | Historical source |
+|---|---:|---|
+| U7 | 110 | `docs/2025/U7 Miniputt sesongen 2025 - 2026.xlsx` (`Istid fra`/`Istid til`) |
+| U8 | 90 | `docs/2025/U8 ETTER JUL_REVIDERT.xlsx` (`ISTID` duration cell) |
+| JU8 | 130 | `docs/2025/JU8 KLAR Miniputt sesongen 2025 - 2026.xlsx` (`Istid fra`/`Istid til`) |
+| U9 | 105 | `docs/2025/U9 ETTER JUL_Revidert.xlsx` (`ISTID` duration cell) |
+| U10 | 135 | `docs/2025/U10 ETTER JUL_REVIDERT.xlsx` (`ISTID` duration cell) |
+| JU10 | 110 | `docs/2025/JU10 KLAR Miniputt sesongen 2025 - 2026.xlsx` (`Istid fra`/`Istid til`) |
+| U11 | 135 | `docs/2025/U11 ETTER JUL_FERDIG_Revidert_1.xlsx` (`ISTID` duration cell) |
+| U12 | 75 | `docs/2025/U12 ETTER JUL_REVIDERT.xlsx` (`Istid` duration cell) |
+| JU12 | 175 | `docs/2025/JU12 KLAR REVIDERT Miniputt sesongen 2025 - 2026.xlsx` (`Istid fra`/`Istid til`) |
 
 When `Aldersgrupper` is present, its rows define the declared age groups used to validate `Lag` and age-group-specific configuration.
 

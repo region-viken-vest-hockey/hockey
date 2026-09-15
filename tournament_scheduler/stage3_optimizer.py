@@ -61,7 +61,8 @@ from .planning_contract import (
     _team_identity,
     external_calendar_conflict,
 )
-from .utils.slot_finder import matchday_duration_minutes, parse_time
+from .occupancy import required_ice_minutes
+from .utils.slot_finder import parse_time
 
 # Fixed candidate start times for the move_slots search (issue #262 P1).
 # The planning_problem contract does not carry per-time-of-day calendar
@@ -125,14 +126,14 @@ def _infer_parallel_games(tournament: Dict[str, Any], problem: Optional[Dict[str
 def _infer_duration_minutes(tournament: Dict[str, Any], problem: Optional[Dict[str, Any]]) -> int:
     if not problem:
         return 0
-    round_length = (problem.get("round_length_minutes") or {}).get(tournament.get("age_group"))
-    if not isinstance(round_length, int) or round_length <= 0:
+    ice_time = (problem.get("ice_time_minutes") or problem.get("round_length_minutes") or {}).get(tournament.get("age_group"))
+    if not isinstance(ice_time, int) or ice_time <= 0:
         return 0
     games = tournament.get("games") or []
     max_round = max((g.get("round_number", 0) for g in games), default=0)
     if max_round <= 0:
         return 0
-    return matchday_duration_minutes(round_length, max_round)
+    return required_ice_minutes(ice_time, max_round)
 
 
 def _build_slots(

@@ -209,12 +209,13 @@ def run(
         return checkpoint
 
     round_length_for_age_group: dict[str, int] = dict(effective_config.get("round_length_minutes", {}))
+    ice_time_for_age_group: dict[str, int] = dict(effective_config.get("ice_time_minutes") or effective_config.get("round_length_minutes", {}))
     # issue #314: a fresh recomputation is authoritative even when it comes
     # back empty. A truthiness fallback here (`derived_collisions or
     # stored`) cannot tell "not recomputed" from "recomputed and zero", so a
     # freshly verified `[]` used to silently resurrect a stale collision
     # list carried over from an earlier candidate/baseline.
-    stored_collisions = find_arena_interval_collisions(plan.tournaments, round_length_for_age_group)
+    stored_collisions = find_arena_interval_collisions(plan.tournaments, ice_time_for_age_group)
     # Enrich planner-stored collision dicts with the host club from the plan
     # (they may omit it) so the manual view can name who must act.
     host_by_tournament_id = {
@@ -355,6 +356,7 @@ def run(
             excel_path,
             rules_report=rules_report,
             round_length_for_age_group=round_length_for_age_group,
+            ice_time_for_age_group=ice_time_for_age_group,
         )
         output_files["excel"] = excel_path
     except Exception as exc:  # noqa: BLE001
@@ -364,7 +366,7 @@ def run(
     try:
         _progress("Eksporterer iCal-feed")
         ical_path = str(primary_export_path / f"{basename}.ics")
-        ICalExporter(round_length_for_age_group=round_length_for_age_group).export_tournament_summary(plan, ical_path)
+        ICalExporter(round_length_for_age_group=round_length_for_age_group, ice_time_for_age_group=ice_time_for_age_group).export_tournament_summary(plan, ical_path)
         output_files["ical"] = ical_path
     except Exception as exc:  # noqa: BLE001
         errors.append(f"iCal-eksport feilet: {exc}")
@@ -497,6 +499,7 @@ def run(
             meta=meta,
             output_files=output_files,
             pipeline_meta=pipeline_meta,
+            ice_time_for_age_group=ice_time_for_age_group,
             age_groups=configured_age_groups,
             calendars_path=_calendars_path,
             input_html_path=_input_html_path,
@@ -547,6 +550,7 @@ def run(
                 meta=meta,
                 output_files=output_files,
                 pipeline_meta=pipeline_meta,
+                ice_time_for_age_group=ice_time_for_age_group,
                 age_groups=configured_age_groups,
                 calendars_path=_calendars_path,
                 input_html_path=_input_html_path,
@@ -567,11 +571,13 @@ def run(
             plan,
             spond_path,
             round_length_for_age_group=round_length_for_age_group,
+            ice_time_for_age_group=ice_time_for_age_group,
         )
         exporter.export_schedule_attachment(
             plan,
             schedule_path,
             round_length_for_age_group=round_length_for_age_group,
+            ice_time_for_age_group=ice_time_for_age_group,
         )
         output_files["spond"] = spond_path
         output_files["spond_games"] = schedule_path
@@ -588,6 +594,7 @@ def run(
             review_dir,
             clubs=clubs,
             round_length_for_age_group=round_length_for_age_group,
+            ice_time_for_age_group=ice_time_for_age_group,
         )
         output_files["review_packets"] = str(review_dir)
     except Exception as exc:  # noqa: BLE001

@@ -12,6 +12,7 @@ Workbook input format (all fields required unless marked optional)::
         "age_groups": ["U10", "U12", ...],          // optional
         "parallel_games": {"U10": 3, "U7": 4, ...}, // optional
         "round_length_minutes": {"U10": 10, ...},   // optional
+        "ice_time_minutes": {"U10": 135, ...},       // required per active age group
         "teams": [                                   // list of teams (roster)
             {"club": "Kongsberg", "label": "Kongsberg U10A", "age_group": "U10"},
             ...
@@ -57,7 +58,7 @@ def load_effective_config(
     Reads the canonical ``input.xlsx`` workbook for human-editable fields
     (``start_date``, ``end_date``, ``age_groups``, ``parallel_games``,
     per-age-group participation targets, global planning knobs, ``sources``) and merges
-    in the computed fields (``teams``, ``round_length_minutes``) from the Stage 1 checkpoint.
+    in the computed fields (``teams``, ``round_length_minutes``, ``ice_time_minutes``) from the Stage 1 checkpoint.
 
     Returns a dict with the same shape that downstream stages expect,
     so callers see no API change.
@@ -96,6 +97,7 @@ def load_effective_config(
     # From Stage 1 checkpoint (computed)
     merged["teams"] = ckpt.get("teams", [])
     merged["round_length_minutes"] = ckpt.get("round_length_minutes", {})
+    merged["ice_time_minutes"] = ckpt.get("ice_time_minutes", {})
 
     # Preserve other computed/metadata fields from the checkpoint
     if "input_path" in ckpt:
@@ -113,8 +115,8 @@ def run(
     """Parse and validate *input_path*, write the Stage 1 checkpoint.
 
     The checkpoint stores the normalized roster/config fields (``teams`` expanded
-    from a file reference, ``round_length_minutes`` from the workbook, and any
-    per-age-group participation targets parsed from the workbook).
+    from a file reference, ``round_length_minutes`` and ``ice_time_minutes``
+    from the workbook, and any per-age-group participation targets parsed from the workbook).
     Human-editable fields (``start_date``, ``end_date``, ``age_groups``,
     ``parallel_games``, global planning knobs, ``sources``) live exclusively in ``input.xlsx``. Use
     :func:`load_effective_config` to merge both sources transparently.
@@ -133,8 +135,8 @@ def run(
     Returns
     -------
     dict
-        The computed config dict (teams, round_length_minutes, input_path,
-        optionally semantic_warnings) that was written to the checkpoint.
+        The computed config dict (teams, round_length_minutes, ice_time_minutes,
+        input_path, optionally semantic_warnings) that was written to the checkpoint.
 
     Raises
     ------

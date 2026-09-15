@@ -139,6 +139,11 @@ def _build_round_length(config: dict[str, Any]) -> dict[str, int]:
     return dict(config.get("round_length_minutes", {}))
 
 
+def _build_ice_time(config: dict[str, Any]) -> dict[str, int]:
+    """Extract configured base ice-time-minutes mapping from config."""
+    return dict(config.get("ice_time_minutes", {}))
+
+
 def _build_club_arenas(config: dict[str, Any]) -> dict[str, str]:
     """Build club→arena mapping, falling back to the global club registry."""
     return {
@@ -288,6 +293,7 @@ def _make_planner(
     club_arenas: dict[str, str],
     max_hosting_deviation: int = 1,
     round_length_config: dict[str, int] | None = None,
+    ice_time_config: dict[str, int] | None = None,
     events_by_club: dict[str, list[CalendarEvent]] | None = None,
     fairness_thresholds: dict[str, float] | None = None,
     target_tournament_count: int | None = None,
@@ -322,6 +328,7 @@ def _make_planner(
         club_arenas=club_arenas,
         parallel_games_for_age_group=pg_config or None,
         round_length_for_age_group=round_length_config or None,
+        ice_time_for_age_group=ice_time_config or None,
         target_tournament_count=target_tournament_count,
         participation_targets_by_age_group=participation_targets_by_age_group,
         max_hosting_deviation=max_hosting_deviation,
