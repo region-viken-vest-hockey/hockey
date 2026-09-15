@@ -29,16 +29,20 @@ If an active document contradicts current code or the controlled workbook, fix t
 
 `.agents/skills/rvv/SKILL.md` owns shared RVV policy. Harness command files are deliberately thin adapters and must not copy Stage 1–4 policy, source-validity rules, scheduling semantics, or publication policy.
 
-In Pi, `/rvv-miniputt ...` is provided by the RVV Pi extension and should be executed directly there. Pi slash commands are not shell binaries.
+The normal operator surface is the active harness:
 
-Outside Pi, use a harness-local adapter when available or the repository entrypoints:
+- In Pi, `/rvv-miniputt ...` is provided by the RVV Pi extension and should be executed directly there. Pi slash commands are not shell binaries.
+- In Claude, Codex, ChatGPT, and other non-Pi harnesses, use the harness adapter/shared procedure rather than inventing a new CLI flow.
 
-- `scripts/rvv-miniputt ...`
-- `python3 -m tournament_scheduler.cli.rvv_cli ...`
+All harnesses ultimately target the same Python command transport: `tournament_scheduler.cli.rvv_cli`.
 
-For the checkpoint-reviewed agent flow, use `scripts/rvv-miniputt run --interactive` and make decisions only from the returned `DecisionContext`, its `available_actions`, action parameter schema, and decision-action template.
+- Pi invokes it through `.pi/lib/repo-cli.ts`.
+- Non-Pi shared procedures invoke it through `scripts/rvv-miniputt`, which only selects the repository virtualenv and forwards arguments.
+- `python3 -m tournament_scheduler.cli.rvv_cli ...` is a low-level developer/test fallback, not a separate operator interface.
 
-Do not invoke `tournament_scheduler.pipeline.stageN_*` modules directly when that bypasses checkpointing, resumption, structured decisions, verification, or run logging.
+For the checkpoint-reviewed agent flow, use the shared `run` procedure, which calls `scripts/rvv-miniputt run --interactive`, and make decisions only from the returned `DecisionContext`, its `available_actions`, action parameter schema, and decision-action template.
+
+Do not invoke `tournament_scheduler.pipeline.stageN_*` modules directly from a harness when that bypasses checkpointing, resumption, structured decisions, verification, or run logging. Do not add another root scheduler CLI, interactive wizard, or harness-local orchestration implementation.
 
 ## Change ownership
 
