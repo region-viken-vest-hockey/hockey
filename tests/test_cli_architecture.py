@@ -10,6 +10,7 @@ LEGACY_ENTRYPOINTS = (
     ROOT / "tournament_scheduler.py",
     ROOT / "tournament_scheduler_interactive.py",
     ROOT / "tournament-scheduler.sh",
+    ROOT / "scripts" / "rvv-miniputt-checkpoint",
 )
 
 LEGACY_COMMAND_MODULES = (
