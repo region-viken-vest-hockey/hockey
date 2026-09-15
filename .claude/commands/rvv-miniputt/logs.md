@@ -4,23 +4,6 @@ description: "Inspect RVV Miniputt run logs from Claude"
 category: RVV
 ---
 
-Inspect RVV Miniputt logs.
+Claude transport adapter only. Read and execute `.agents/commands/rvv-miniputt/logs.md`.
 
-Use:
-
-```bash
-scripts/rvv-miniputt logs <user-args>
-```
-
-Fallback if needed:
-
-```bash
-python3 -m tournament_scheduler.cli.rvv_cli logs <user-args>
-```
-
-Never run `/rvv-miniputt logs` in the shell. Summarize the output and highlight actionable failures.
-
-Examples:
-- `/rvv-miniputt:logs`
-- `/rvv-miniputt:logs show latest`
-- `/rvv-miniputt:logs stats`
+Shared repository policy belongs in `AGENTS.md`; shared RVV policy belongs in `.agents/skills/rvv/SKILL.md`. Do not duplicate either here.

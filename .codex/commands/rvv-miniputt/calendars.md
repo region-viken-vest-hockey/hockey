@@ -1,6 +1,5 @@
-Generate RVV Miniputt calendar reports.
+# RVV Miniputt: Calendars (Codex)
 
-Use `scripts/rvv-miniputt calendars <user-args>`.
-Fallback if needed: `python3 -m tournament_scheduler.cli.rvv_cli calendars <user-args>`.
+Codex transport adapter only. Read and execute `.agents/commands/rvv-miniputt/calendars.md`.
 
-Never run `/rvv-miniputt calendars` in the shell. Report where the calendar output was written if the command succeeds.
+Shared repository policy belongs in `AGENTS.md`; shared RVV policy belongs in `.agents/skills/rvv/SKILL.md`. Do not duplicate either here.

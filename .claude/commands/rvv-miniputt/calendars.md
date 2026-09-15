@@ -4,18 +4,6 @@ description: "Generate RVV Miniputt calendar reports from Claude"
 category: RVV
 ---
 
-Generate RVV Miniputt calendar reports.
+Claude transport adapter only. Read and execute `.agents/commands/rvv-miniputt/calendars.md`.
 
-Use:
-
-```bash
-scripts/rvv-miniputt calendars <user-args>
-```
-
-Fallback if needed:
-
-```bash
-python3 -m tournament_scheduler.cli.rvv_cli calendars <user-args>
-```
-
-Never run `/rvv-miniputt calendars` in the shell. Report where the calendar output was written if the command succeeds.
+Shared repository policy belongs in `AGENTS.md`; shared RVV policy belongs in `.agents/skills/rvv/SKILL.md`. Do not duplicate either here.

@@ -31,6 +31,6 @@ def test_rvv_extension_exposes_scrape_commands_tools_and_pi_audit() -> None:
     assert 'rvv_miniputt_scrape' in text
     assert 'rvv_miniputt_scrape_llm' in text
     assert 'runPiHarnessAudit' in text
-    assert 'operator audit-context' in text
+    assert 'operator audit-context' in audit_helper
     assert 'operator audit-submit' in audit_helper
     assert 'interactive_harness' in audit_helper

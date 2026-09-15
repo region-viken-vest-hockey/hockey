@@ -24,7 +24,7 @@ The Python code is authoritative for facts, hard constraints, verification, pers
 | `input.xlsx` | Canonical controlled planning workbook. Defines season dates, age-group settings, teams, calendar sources and date preferences. |
 | Reviewed SharePoint registration export | Optional CSV/XLSX source used to rebuild only the `Lag` sheet in a controlled workbook copy. |
 | External club/hall calendars | Availability evidence collected in Stage 2. Source health and provenance are recorded before planning trusts the data. |
-| BookUp credentials/session | Local runtime credential/session input for gated sources. Never planner data and never public output. |
+| Browser/session credentials when required by a configured source | Runtime recovery input only. Never planner data and never public output. |
 
 The workbook contract is documented in [`docs/rvv-miniputt-input-formats.md`](docs/rvv-miniputt-input-formats.md).
 
@@ -118,69 +118,39 @@ GitHub Pages is the generated/public layer. WordPress should link or embed it ra
 
 ## Normal operator workflow
 
-### 1. Install and verify
+The normal operator interface is an agent harness, not a hand-driven CLI.
+
+- **Claude Code:** invoke the RVV Miniputt command/skill. The thin Claude adapter loads `.agents/skills/rvv/SKILL.md` and the matching shared command procedure.
+- **Pi:** use `/rvv-miniputt ...` or the matching `rvv_miniputt_*` tool. Pi adds UI/progress/browser recovery, while Python still owns Stage 1–4 behavior.
+
+For a normal season run, ask the harness to run RVV Miniputt. The shared `run` procedure drives the canonical interactive repository contract, reviews each `DecisionContext`, and only submits actions declared in `available_actions`. Do not manually sequence `stage1_config`, `stage2_scraping`, `stage3_planning`, or `stage4_export` from a harness.
+
+If the pipeline needs browser recovery, the harness performs only the browser-specific work and returns recovered evidence through the repository recovery capability. Python then re-validates the evidence and resumes the normal Stage 2 path.
+
+Generation never implies publication. Publication and rollback remain explicit operator decisions. Pi performs the semantic safety-net audit through the active Pi model before publication; other harnesses follow the shared publish procedure.
+
+### Developer verification
+
+Repository maintainers and CI may still use:
 
 ```bash
 make install
 make check
 ```
 
-### 2. Update registrations/workbook when needed
+The Makefile is a developer/CI convenience layer, not a separate source of scheduling behavior.
 
-```bash
-scripts/rvv-miniputt registrations validate registrations.csv --input input.xlsx
-scripts/rvv-miniputt registrations export registrations.csv --input input.xlsx --output input.updated.xlsx --dry-run
-scripts/rvv-miniputt registrations export registrations.csv --input input.xlsx --output input.updated.xlsx
-```
+## Command/transport surface
 
-Review the resulting workbook before replacing root `input.xlsx`.
+There is one Python command transport: `tournament_scheduler.cli.rvv_cli`.
 
-### 3. Check sources and generate a plan
+- Pi calls that module through `.pi/lib/repo-cli.ts`.
+- Non-Pi shared command procedures use `scripts/rvv-miniputt`, a thin virtualenv-selecting launcher for the same Python module.
+- The installed `rvv-miniputt` console script from `pyproject.toml` targets the same module.
 
-```bash
-make sources-status
-make operator-run
-make status
-make logs
-```
+These are transport mechanisms for harnesses, automation, tests and diagnostics—not independent operator products. Business rules, stage sequencing, defaults and verification must not be reimplemented in shell wrappers or harness adapters.
 
-`make operator-run` is the normal goal-oriented entry point. `scripts/rvv-miniputt run` remains the direct pipeline/debugging entry point. In Pi, `/rvv-miniputt run` also performs the required semantic safety-net audit after Stage 4 and stores the result as `.pipeline/audit_result.json`.
-
-If the operator loop asks a real human question:
-
-```bash
-make questions
-make answer ID=<id> ANSWER='<answer>'
-make operator-run
-```
-
-### 4. Review and publish
-
-```bash
-make publish-preview
-make publish CONFIRM_PUBLIC=1
-make verify-publish
-```
-
-Generation never implies publication. Public writes and rollback remain explicitly approved operations. Publishing requires a fresh semantic audit result for the current export; Pi runs that audit automatically before its publish adapter calls the repository publish command.
-
-### 5. Related public workflows
-
-```bash
-make aktivitetskalender
-make aktivitetskalender-publish CONFIRM_PUBLIC=1
-
-make registered-teams CSV=downloads/Miniputt-26-27.csv
-make registered-teams-publish CSV=downloads/Miniputt-26-27.csv CONFIRM_PUBLIC=1
-```
-
-These stage a complete Pages snapshot so updating one public view does not accidentally remove the others.
-
-## Command surface
-
-`Makefile` is the human menu. `scripts/rvv-miniputt` is the portable repository launcher. `python3 -m tournament_scheduler.cli.rvv_cli` is the Python fallback.
-
-Run `make help` for the maintained list of operator commands.
+Legacy root scheduler CLIs and the old interactive scheduler have been removed. New functionality should be added as repository/application capability first and exposed through the canonical transport only when a harness needs it.
 
 ## Repository map
 
@@ -189,9 +159,11 @@ Run `make help` for the maintained list of operator commands.
 | `input.xlsx` | Controlled season-planning workbook. |
 | `Årshjul for aktiviteter.xlsx` | Activity-calendar source workbook. |
 | `tournament_scheduler/` | Application/domain/infrastructure code for planning, verification, export and publication. |
-| `scripts/rvv-miniputt` | Portable CLI launcher. |
-| `Makefile` | Human operator menu; intentionally thin. |
+| `tournament_scheduler/cli/rvv_cli.py` | Canonical Python command transport used by harnesses/automation. |
+| `scripts/rvv-miniputt` | Thin non-Pi launcher for the canonical Python transport. |
+| `Makefile` | Developer/CI convenience targets; intentionally thin. |
 | `.agents/skills/rvv/` | Canonical shared agent runbook. |
+| `.agents/commands/rvv-miniputt/` | Shared harness-neutral command procedures. |
 | `.claude/`, `.chatgpt/`, `.codex/` | Thin harness adapters only. |
 | `.pi/` | RVV-specific Pi command/browser/UI integration. |
 | `docs/` | Maintained current documentation, ADRs and external/reference material. |

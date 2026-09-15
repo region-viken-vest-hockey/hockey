@@ -99,7 +99,7 @@ The controller must:
 4. submit the action through the same canonical command surface;
 5. repeat until the pipeline advances, escalates or finishes.
 
-Harness-specific `.claude`, `.chatgpt`, `.codex` and Pi files are transport/UI/browser adapters only. Shared policy belongs here, in repository code, or in `.agents/skills/rvv/SKILL.md`—never independently in each adapter.
+Harness-specific `.claude`, `.chatgpt`, `.codex` and Pi files are transport/UI/browser adapters only. Shared RVV policy lives in repository code and `.agents/skills/rvv/SKILL.md`; shared non-Pi command procedures live under `.agents/commands/rvv-miniputt/`. Harness adapters should lazy-load those neutral files and add only harness-specific transport/UI behavior, never maintain independent copies.
 
 ## Goal-oriented human/operator flow
 
@@ -198,4 +198,5 @@ Their `*-publish` variants stage a complete Pages snapshot and use the same expl
 - `system-architecture.md` — end-to-end boundaries/sources of truth;
 - ADRs — durable rationale;
 - `.agents/skills/rvv/SKILL.md` — shared agent operating policy;
+- `.agents/commands/rvv-miniputt/` — shared lazy-loaded non-Pi command procedures;
 - GitHub issues — live implementation backlog.

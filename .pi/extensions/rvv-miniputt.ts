@@ -1,418 +1,212 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { normalizeArgs } from "../lib/arg-utils";
-import { parseStatusArgs, parseLogsArgs, parseCalendarsArgs, parseScrapeArgs, parseScrapeLlmArgs } from "../lib/parsers";
-import { runPipeline, type PipelineRunResult } from "../lib/pipeline-runner";
+import { tokenizeArgs } from "../lib/arg-utils";
+import { recoverSourceWithPiBrowser } from "../lib/browser-recovery";
 import { interactiveGuide } from "../lib/interactive-guide";
-import { LOG_LEVELS } from "../lib/types";
-import { loadBookupEnvFromDotenvx } from "../lib/dotenvx-helpers";
 import { isAuditPublicationBlocking, runPiHarnessAudit } from "../lib/operator-audit";
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { runPipeline, type PipelineRunResult } from "../lib/pipeline-runner";
+import { formatProcessFailure, runRepoCli as runCanonicalCli } from "../lib/repo-cli";
+import { LOG_LEVELS, type ProgressEvent } from "../lib/types";
 
-function buildStatusCommandArgs(rawArgs: unknown, cwd: string): string[] {
-  const params = parseStatusArgs(rawArgs);
-  return ["status", "--work-dir", resolve(cwd, params.work_dir ?? ".pipeline")];
+interface CommandResult {
+  status: "success" | "failure" | "cancelled";
+  text: string;
 }
 
-function buildLogsCommandArgs(rawArgs: unknown, cwd: string): string[] {
-  const params = parseLogsArgs(rawArgs);
-  const args = ["logs", "--work-dir", resolve(cwd, params.work_dir ?? ".pipeline")];
-  switch (params.subcommand) {
-    case "show":
-      args.push("show", params.run_id ?? "latest");
-      break;
-    case "stats":
-      args.push("stats");
-      break;
-    case "list":
-    default:
-      args.push("list", "--count", String(params.count ?? 10));
-      break;
-  }
-  return args;
+function optionValue(tokens: string[], name: string): string | undefined {
+  const index = tokens.lastIndexOf(name);
+  return index >= 0 && index + 1 < tokens.length ? tokens[index + 1] : undefined;
 }
 
-function buildCalendarsCommandArgs(rawArgs: unknown, cwd: string): string[] {
-  const params = parseCalendarsArgs(rawArgs);
-  const args = ["calendars", "--work-dir", resolve(cwd, params.work_dir ?? ".pipeline")];
-  if (params.refresh) args.push("--refresh");
-  return args;
+function wantsPublish(rawArgs: unknown): boolean {
+  return tokenizeArgs(rawArgs).includes("--publish");
 }
 
-function buildPublishCommandArgs(rawArgs: unknown): { publishArgs: string[]; workDir: string } {
-  const tokens = normalizeArgs(rawArgs).split(/\s+/).filter(Boolean);
-  const publishArgs = ["operator", "publish", "--confirm-public"];
-  let workDir = ".pipeline";
-
-  const publishValueFlags = new Set(["--work-dir", "--repo-dir", "--branch", "--remote", "--extra-public-file", "--allow-finding", "--verify-max-attempts", "--verify-retry-delay", "--run-id"]);
-  const publishBoolFlags = new Set(["--no-push", "--dry-run", "--no-verify", "--confirm-public"]);
-
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i];
-    if (publishValueFlags.has(token) && i + 1 < tokens.length) {
-      const value = tokens[++i];
-      publishArgs.push(token, value);
-      if (token === "--work-dir") workDir = value;
-      continue;
-    }
-    if (publishBoolFlags.has(token) && token !== "--confirm-public") {
-      publishArgs.push(token);
-    }
-  }
-
-  return { publishArgs, workDir };
+async function runSimple(
+  command: string,
+  rawArgs: unknown,
+  ctx: ExtensionContext,
+  timeoutMs = 300_000,
+): Promise<CommandResult> {
+  const result = await runCanonicalCli(ctx, [command, ...tokenizeArgs(rawArgs)], { timeoutMs });
+  if (result.cancelled || ctx.signal?.aborted) return { status: "cancelled", text: "Avbrutt av bruker." };
+  if (result.code !== 0) return { status: "failure", text: formatProcessFailure(result) };
+  return {
+    status: "success",
+    text: [result.stdout.trim(), result.stderr.trim() ? `[stderr] ${result.stderr.trim()}` : ""].filter(Boolean).join("\n"),
+  };
 }
 
-function validateExistingStage4Export(cwd: string, workDir: string): { ok: true; text: string } | { ok: false; text: string } {
-  const checkpointPath = resolve(cwd, workDir, "stage4_export.json");
-  if (!existsSync(checkpointPath)) {
-    return { ok: false, text: `Ingen Stage 4-eksport funnet (${checkpointPath}). Kjør /rvv-miniputt run først.` };
-  }
+async function runPublish(rawArgs: unknown, ctx: ExtensionContext): Promise<CommandResult> {
+  const tokens = tokenizeArgs(rawArgs);
+  const workDir = resolve(ctx.cwd, optionValue(tokens, "--work-dir") ?? ".pipeline");
 
-  try {
-    const checkpoint = JSON.parse(readFileSync(checkpointPath, "utf-8")) as Record<string, unknown>;
-    const data = (checkpoint.data ?? {}) as Record<string, unknown>;
-    const outputFiles = data.output_files as Record<string, unknown> | undefined;
-    const errors = Array.isArray(data.errors) ? data.errors : [];
-
-    if (!outputFiles || Object.keys(outputFiles).length === 0) {
-      return { ok: false, text: `Stage 4-eksport mangler output_files (${checkpointPath}). Kjør /rvv-miniputt run først.` };
-    }
-    if (errors.length > 0) {
-      return { ok: false, text: `Stage 4-eksport har feil og kan ikke publiseres:\n${JSON.stringify(errors, null, 2)}` };
-    }
-
-    const exportDir = typeof data.export_dir === "string" ? data.export_dir : undefined;
-    const html = typeof outputFiles.html === "string" ? outputFiles.html : undefined;
-    return { ok: true, text: `Eksisterende Stage 4-eksport klar for publisering: ${exportDir ?? html ?? checkpointPath}` };
-  } catch (err: unknown) {
-    return { ok: false, text: `Kunne ikke lese Stage 4-eksport (${checkpointPath}): ${err instanceof Error ? err.message : String(err)}` };
-  }
-}
-
-function buildScrapeCommandArgs(rawArgs: unknown, cwd: string): string[] {
-  const params = parseScrapeArgs(rawArgs);
-  const args = ["scrape"];
-  if (params.club) args.push("--club", params.club);
-  args.push("--work-dir", resolve(cwd, params.work_dir ?? ".pipeline"));
-  if (params.manual_bookup_login) args.push("--manual-bookup-login");
-  if (typeof params.manual_bookup_login_timeout === "number" && Number.isFinite(params.manual_bookup_login_timeout)) {
-    args.push("--manual-bookup-login-timeout", String(params.manual_bookup_login_timeout));
-  }
-  return args;
-}
-
-function buildScrapeLlmCommandArgs(rawArgs: unknown, cwd: string): string[] {
-  const params = parseScrapeLlmArgs(rawArgs);
-  const args = ["scrape-llm"];
-  if (params.club) args.push("--club", params.club);
-  args.push("--work-dir", resolve(cwd, params.work_dir ?? ".pipeline"));
-  if (params.export_dir) args.push("--export-dir", resolve(cwd, params.export_dir));
-  if (params.endpoint) args.push("--endpoint", params.endpoint);
-  if (params.model) args.push("--model", params.model);
-  if (typeof params.max_iterations === "number" && Number.isFinite(params.max_iterations)) {
-    args.push("--max-iterations", String(params.max_iterations));
-  }
-  if (params.cache_results !== false) args.push("--cache-results");
-  if (params.debug_screenshots) args.push("--debug-screenshots");
-  return args;
-}
-
-async function runRepoCli(commandArgs: string[], ctx: ExtensionContext, timeout = 60_000): Promise<{ status: "success" | "failure"; text: string }> {
-  const python = resolve(ctx.cwd, "venv", "bin", "python3");
-  const exe = existsSync(python) ? python : "python3";
-  try {
-    await loadBookupEnvFromDotenvx(ctx.cwd);
-    const { execFile } = await import("node:child_process");
-    const { promisify } = await import("node:util");
-    const execFileAsync = promisify(execFile);
-    const { stdout, stderr } = await execFileAsync(exe, ["-m", "tournament_scheduler.cli.rvv_cli", ...commandArgs], {
-      cwd: ctx.cwd,
-      timeout,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const parts = [stdout.trim(), stderr.trim() ? `[stderr] ${stderr.trim()}` : ""].filter(Boolean);
-    return { status: "success", text: parts.join("\n") };
-  } catch (err: unknown) {
-    const execError = err as { stdout?: string; stderr?: string; message?: string };
-    const parts = [
-      execError.stdout?.trim(),
-      execError.stderr?.trim() ? `[stderr] ${execError.stderr.trim()}` : "",
-      execError.stdout || execError.stderr ? "" : (execError.message ?? String(err)),
-    ].filter(Boolean);
-    return { status: "failure", text: parts.join("\n") };
-  }
-}
-
-async function runCalendars(rawArgs: unknown, ctx: ExtensionContext): Promise<{ status: "success" | "failure"; text: string }> {
-  const params = parseCalendarsArgs(rawArgs);
-  const result = await runRepoCli(buildCalendarsCommandArgs(rawArgs, ctx.cwd), ctx, params.refresh ? 300_000 : 60_000);
-
-  if (result.status === "success" && !params.refresh) {
-    try {
-      const { copyFileSync } = await import("node:fs");
-      const absWorkDir = resolve(ctx.cwd, params.work_dir ?? ".pipeline");
-      const src = resolve(ctx.cwd, "export", "season_plan.html");
-      const dst = resolve(absWorkDir, "season_plan.html");
-      if (existsSync(src)) copyFileSync(src, dst);
-    } catch { /* best-effort */ }
-  }
-
-  return result;
-}
-
-async function runPublish(rawArgs: unknown, ctx: ExtensionContext): Promise<{ status: "success" | "failure"; text: string }> {
-  const { publishArgs, workDir } = buildPublishCommandArgs(rawArgs);
-  const exportCheck = validateExistingStage4Export(ctx.cwd, workDir);
-  if (!exportCheck.ok) return { status: "failure", text: exportCheck.text };
-
-  const audit = await runPiHarnessAudit(ctx.cwd, resolve(ctx.cwd, workDir), ctx);
+  const audit = await runPiHarnessAudit(ctx.cwd, workDir, ctx);
   const auditOk = audit.status === "success" && !isAuditPublicationBlocking(audit.auditStatus);
   if (!auditOk) {
     return {
       status: "failure",
-      text: [exportCheck.text, audit.text, "Publisering hoppet over fordi semantisk revisjon ikke passerte."].filter(Boolean).join("\n\n"),
+      text: [audit.text, "Publisering ble ikke forsøkt fordi semantisk revisjon blokkerer den."].join("\n\n"),
     };
   }
 
-  const publishResult = await runRepoCli(publishArgs, ctx, 1_800_000);
+  const publishTokens = tokens.filter((token) => token !== "--confirm-public");
+  const result = await runCanonicalCli(
+    ctx,
+    ["operator", "publish", "--confirm-public", ...publishTokens],
+    { timeoutMs: 30 * 60 * 1000 },
+  );
+  if (result.cancelled || ctx.signal?.aborted) return { status: "cancelled", text: "Publisering avbrutt av bruker." };
+  if (result.code !== 0) {
+    return { status: "failure", text: [audit.text, formatProcessFailure(result)].join("\n\n") };
+  }
   return {
-    status: publishResult.status,
-    text: [exportCheck.text, audit.text, publishResult.text].filter(Boolean).join("\n\n"),
+    status: "success",
+    text: [audit.text, result.stdout.trim(), result.stderr.trim()].filter(Boolean).join("\n\n"),
   };
 }
 
-function wantsPublish(rawArgs: unknown): boolean {
-  return normalizeArgs(rawArgs).split(/\s+/).filter(Boolean).includes("--publish");
+async function runPiScrapeLlm(rawArgs: unknown, ctx: ExtensionContext): Promise<CommandResult> {
+  const tokens = tokenizeArgs(rawArgs);
+  const club = optionValue(tokens, "--club");
+  if (!club) return { status: "failure", text: "--club <navn> er påkrevd." };
+  const workDir = resolve(ctx.cwd, optionValue(tokens, "--work-dir") ?? ".pipeline");
+  const maxIterationsRaw = optionValue(tokens, "--max-iterations");
+  const maxIterations = maxIterationsRaw ? Number.parseInt(maxIterationsRaw, 10) : undefined;
+
+  try {
+    const recovery = await recoverSourceWithPiBrowser(club, ctx, {
+      workDir,
+      mergeAfter: true,
+      maxIterations: Number.isFinite(maxIterations) ? maxIterations : undefined,
+      onActivity: (message) => ctx.ui.setStatus("rvv-miniputt", message),
+    });
+    return { status: "success", text: recovery.text };
+  } catch (err: unknown) {
+    return { status: ctx.signal?.aborted ? "cancelled" : "failure", text: err instanceof Error ? err.message : String(err) };
+  } finally {
+    ctx.ui.setStatus("rvv-miniputt", undefined);
+  }
 }
 
-function notifyPipelineResult(ctx: ExtensionContext, result: PipelineRunResult): void {
-  const level = result.status === "success" ? "info" : result.status === "cancelled" ? "warning" : "error";
+function notifyResult(ctx: ExtensionContext, result: CommandResult | PipelineRunResult): void {
+  const level = result.status === "success"
+    ? "info"
+    : result.status === "cancelled" || result.status === "needs_input"
+      ? "warning"
+      : "error";
   ctx.ui.notify(result.text, level);
 }
 
+function progressLabel(event: ProgressEvent): string {
+  if (event.stage === "config") return "1/4 Konfig";
+  if (event.stage === "scraping") return "2/4 Skraping";
+  if (event.stage === "scraping-extended") return `2x ${event.blockedName ?? "Recovery"}`;
+  if (event.stage === "planning") return "3/4 Planlegging";
+  if (event.stage === "export") return "4/4 Eksport";
+  if (event.stage === "audit") return "Audit";
+  return event.stage;
+}
+
+function handleProgress(ctx: ExtensionContext, event: ProgressEvent): void {
+  if (event.stage === "done") {
+    ctx.ui.setStatus("rvv-miniputt", undefined);
+    if (event.status === "ok") ctx.ui.notify(`✅ ${event.message}`, "info");
+    return;
+  }
+  ctx.ui.setStatus("rvv-miniputt", `${progressLabel(event)}: ${event.message}`);
+  if (event.status === "error") ctx.ui.notify(`❌ ${event.message}`, "error");
+}
+
+function pipelineToolUpdate(event: ProgressEvent): string {
+  const icon = event.status === "start" ? "▶" : event.status === "ok" ? "✅" : event.status === "skip" ? "⏭️" : "❌";
+  return `[${event.stage}] ${icon} ${event.message}`;
+}
+
 export default function rvvMiniputt(pi: ExtensionAPI): void {
-  // -------------------------------------------------------------------------
-  // /rvv-miniputt run
-  // -------------------------------------------------------------------------
   pi.registerCommand("rvv-miniputt run", {
     description:
-      "Kjør den firetrinns sesongplanleggingspipelinen for RVV-hockeyklubber. " +
-      "Støtter gjenopptak fra et bestemt trinn. Trinn 3 kjører ett planleggingsforsøk som standard (sett --iterations for flere frø).\n" +
-      "Valgfrie flagg: --input <input.xlsx> --work-dir <sti> --resume-from <trinn> --export-dir <sti> " +
-      "--log-level <info|verbose> --force-refresh --iterations <N>\n" +
-      "Trinn 2 gjenbruker kalenderdata fra cache (under 24 timer gammel) med mindre --force-refresh er satt.\n" +
-      "Etter vellykket Stage 4 kjører Pi en semantisk safety-net-revisjon via repoets operator audit-context/audit-submit.\n" +
-      "Hver kjøring logges strukturelt i eksportmappen som run-<dato>.jsonl for selvforbedringsanalyse.",
+      "Kjør RVV Miniputt gjennom repoets kanoniske interaktive pipeline. Pi leverer bare UI, modellvalg, cancellation og browser-recovery; Python eier Stage 1–4, defaults, regler og verifikasjon.",
     getArgumentCompletions: (prefix) => {
-      const words = ["--input", "--work-dir", "--resume-from", "--export-dir", "--log-level", "--force-refresh", "--iterations"];
-      const filtered = words.filter((w) => w.startsWith(prefix));
-      if (prefix.startsWith("--log-level")) {
-        return LOG_LEVELS.map((value) => ({ value, label: value }));
-      }
-      return filtered.length ? filtered.map((value) => ({ value, label: value })) : null;
+      const words = ["--input", "--work-dir", "--resume-from", "--export-dir", "--log-level", "--force-refresh", "--iterations", "--non-strict"];
+      if (prefix.startsWith("--log-level")) return LOG_LEVELS.map((value) => ({ value, label: value }));
+      return words.filter((word) => word.startsWith(prefix)).map((value) => ({ value, label: value }));
     },
     handler: async (args, ctx) => {
       if (wantsPublish(args)) {
-        ctx.ui.notify("--publish er ikke lenger del av /rvv-miniputt run. Kjør /rvv-miniputt run først, deretter /rvv-miniputt publish for å publisere eksisterende Stage 4-eksport.", "error");
+        ctx.ui.notify("Publisering er en egen capability. Kjør /rvv-miniputt run først og /rvv-miniputt publish etterpå.", "error");
         return;
       }
-
-      const result = await runPipeline(args, ctx, (e) => {
-        if (e.status === "error") {
-          ctx.ui.notify(`❌ ${e.message}`, "error");
-        } else if (e.stage === "done") {
-          ctx.ui.setStatus("rvv-miniputt", undefined);
-          ctx.ui.notify(e.status === "ok" ? "✅ Pipeline fullført" : `❌ ${e.message}`, e.status === "ok" ? "info" : "error");
-        } else {
-          const stageLabel = e.stage === "scraping-extended"
-            ? `2x: ${e.blockedName ?? "?"}`
-            : e.stage === "scraping" ? "2/4 Skraping"
-            : e.stage === "config" ? "1/4 Konfig"
-            : e.stage === "planning" ? "3/4 Planlegging"
-            : e.stage === "export" ? "4/4 Eksport"
-            : e.stage === "audit" ? "Audit"
-            : e.stage;
-          ctx.ui.setStatus("rvv-miniputt", `${stageLabel}...`);
-          if (e.status === "ok" && e.stage !== "scraping-extended") {
-            ctx.ui.notify(`✅ ${e.message}`, "info");
-          }
-        }
-      });
-      notifyPipelineResult(ctx, result);
+      const result = await runPipeline(args, ctx, (event) => handleProgress(ctx, event));
+      ctx.ui.setStatus("rvv-miniputt", undefined);
+      notifyResult(ctx, result);
     },
   });
 
-  // -------------------------------------------------------------------------
-  // /rvv-miniputt publish
-  // -------------------------------------------------------------------------
   pi.registerCommand("rvv-miniputt publish", {
     description:
-      "Publiser den sist genererte RVV Miniputt Stage 4-eksporten til GitHub Pages uten å kjøre pipelinen på nytt. " +
-      "Kommandoen kontrollerer .pipeline/stage4_export.json, kjører Pi harness audit for gjeldende eksport, " +
-      "deretter operator publish --confirm-public slik at Pages-publisering faktisk commits/pushes til gh-pages og verifiseres etterpå.\n" +
-      "Valgfrie flagg: --work-dir <sti> --repo-dir <sti> --branch <navn> --remote <navn> " +
-      "--extra-public-file <sti> --allow-finding <id> --run-id <id> --no-push --dry-run --no-verify",
-    getArgumentCompletions: (prefix) => {
-      const words = [
-        "--work-dir", "--repo-dir", "--branch", "--remote", "--extra-public-file",
-        "--allow-finding", "--run-id", "--no-push", "--dry-run", "--no-verify",
-        "--verify-max-attempts", "--verify-retry-delay",
-      ];
-      return words.filter((w) => w.startsWith(prefix)).map((value) => ({ value, label: value }));
-    },
+      "Publiser eksisterende Stage 4-eksport. Pi kjører harness-audit fra repoets audit-context og delegere selve publiseringen til operator publish.",
     handler: async (args, ctx) => {
-      ctx.ui.setStatus("rvv-miniputt", "Publiserer eksisterende eksport...");
+      ctx.ui.setStatus("rvv-miniputt", "Audit/publisering...");
       const result = await runPublish(args, ctx);
       ctx.ui.setStatus("rvv-miniputt", undefined);
-      ctx.ui.notify(result.text, result.status === "success" ? "info" : "error");
+      notifyResult(ctx, result);
     },
   });
 
-  // -------------------------------------------------------------------------
-  // /rvv-miniputt guide — interaktiv veiviser
-  // -------------------------------------------------------------------------
   pi.registerCommand("rvv-miniputt guide", {
-    description:
-      "Åpne en interaktiv veiviser som stiller spørsmål om hva du vil gjøre " +
-      "og guider deg gjennom pipeline-prosessen trinn for trinn.\n" +
-      "Ingen parametere nødvendig — veiviseren spor deg om alt som trengs.\n" +
-      "Anbefalt for nye brukere og énskjørs-kjøringer.",
-    handler: async (_args, ctx) => {
-      await interactiveGuide(ctx);
-    },
+    description: "Åpne Pi-veiviseren for RVV Miniputt.",
+    handler: async (_args, ctx) => interactiveGuide(ctx),
   });
 
-  // -------------------------------------------------------------------------
-  // /rvv-miniputt status
-  // -------------------------------------------------------------------------
   pi.registerCommand("rvv-miniputt status", {
-    description:
-      "Vis gjeldende status for alle fire trinn i sesongplanleggingspipelinen.\n" +
-      "Valgfritt flagg: --work-dir <sti>",
-    handler: async (args, ctx) => {
-      const result = await runRepoCli(buildStatusCommandArgs(args, ctx.cwd), ctx);
-      ctx.ui.notify(result.text, result.status === "success" ? "info" : "error");
-    },
+    description: "Vis kanonisk pipeline-status fra repo-CLI.",
+    handler: async (args, ctx) => notifyResult(ctx, await runSimple("status", args, ctx)),
   });
 
-  // -------------------------------------------------------------------------
-  // /rvv-miniputt logs
-  // -------------------------------------------------------------------------
   pi.registerCommand("rvv-miniputt logs", {
-    description:
-      "Vis pipeline-logging for selvforbedring. Underspørsmål:\n" +
-      "  list              — vis de siste kjøringene (standard)\n" +
-      "  show <run-id>     — vis detaljer for en bestemt kjøring\n" +
-      "  show latest       — vis detaljer for den nyeste kjøringen\n" +
-      "  stats             — vis aggregerte selvforbedringsstatistikker\n" +
-      "Viser også turneringsoppdateringer (team-drop/date-move) i show-visningen.\n" +
-      "Flagg: --count <N> (standard 10), --work-dir <sti>",
-    getArgumentCompletions: (prefix) => {
-      const words = ["list", "show", "stats", "--count", "--work-dir"];
-      return words.filter((w) => w.startsWith(prefix)).map((value) => ({ value, label: value }));
-    },
-    handler: async (args, ctx) => {
-      const result = await runRepoCli(buildLogsCommandArgs(args, ctx.cwd), ctx);
-      ctx.ui.notify(result.text, result.status === "success" ? "info" : "error");
-    },
+    description: "Vis kanoniske RVV-kjøringslogger via repo-CLI.",
+    handler: async (args, ctx) => notifyResult(ctx, await runSimple("logs", args, ctx)),
   });
 
-  // -------------------------------------------------------------------------
-  // /rvv-miniputt calendars
-  // -------------------------------------------------------------------------
   pi.registerCommand("rvv-miniputt calendars", {
-    description:
-      "Generer kalender-rapporter. Uten flagg: rask regenerering fra cache.\n" +
-      "Flagg: --refresh (full re-skraping via rvv-miniputt CLI), --work-dir <sti>\n" +
-      "Rapportene ligger i .pipeline/calendars.html og .pipeline/season_plan.html.",
-    getArgumentCompletions: (prefix) => {
-      const words = ["--refresh", "--work-dir"];
-      return words.filter((w) => w.startsWith(prefix)).map((value) => ({ value, label: value }));
-    },
-    handler: async (args, ctx) => {
-      const result = await runCalendars(args, ctx);
-      ctx.ui.notify(result.text, result.status === "success" ? "info" : "error");
-    },
+    description: "Generer/oppdater kalenderoversikt via repo-CLI.",
+    handler: async (args, ctx) => notifyResult(ctx, await runSimple("calendars", args, ctx, 10 * 60 * 1000)),
   });
 
-  // -------------------------------------------------------------------------
-  // /rvv-miniputt scrape
-  // -------------------------------------------------------------------------
   pi.registerCommand("rvv-miniputt scrape", {
-    description:
-      "Skraper en enkelt kalenderkilde for feilsøking.\n" +
-      "Flagg: --club <navn> --work-dir <sti>",
-    getArgumentCompletions: (prefix) => {
-      const words = ["--club", "--work-dir"];
-      return words.filter((w) => w.startsWith(prefix)).map((value) => ({ value, label: value }));
-    },
-    handler: async (args, ctx) => {
-      const result = await runRepoCli(buildScrapeCommandArgs(args, ctx.cwd), ctx, 120_000);
-      ctx.ui.notify(result.text, result.status === "success" ? "info" : "error");
-    },
+    description: "Kjør repoets deterministiske scrape for én kilde.",
+    handler: async (args, ctx) => notifyResult(ctx, await runSimple("scrape", args, ctx, 10 * 60 * 1000)),
   });
 
-  // -------------------------------------------------------------------------
-  // /rvv-miniputt scrape-llm
-  // -------------------------------------------------------------------------
   pi.registerCommand("rvv-miniputt scrape-llm", {
     description:
-      "Skraper en enkelt kalenderkilde med LLM-styrt navigering.\n" +
-      "Flagg: --club <navn> --work-dir <sti> --export-dir <sti> --endpoint <url> --model <navn>",
-    getArgumentCompletions: (prefix) => {
-      const words = ["--club", "--work-dir", "--export-dir", "--endpoint", "--model", "--max-iterations", "--cache-results", "--debug-screenshots"];
-      return words.filter((w) => w.startsWith(prefix)).map((value) => ({ value, label: value }));
-    },
-    handler: async (args, ctx) => {
-      const result = await runRepoCli(buildScrapeLlmCommandArgs(args, ctx.cwd), ctx, 300_000);
-      ctx.ui.notify(result.text, result.status === "success" ? "info" : "error");
-    },
+      "Recover én browser-kilde med Pi sin aktive modell/browser-worker, deretter repository recovery-inject + scrape-merge.",
+    handler: async (args, ctx) => notifyResult(ctx, await runPiScrapeLlm(args, ctx)),
   });
-
-  // ===========================================================================
-  // Agent-callable tools
-  //
-  // The /rvv-miniputt commands above are Pi slash commands, NOT shell binaries —
-  // running `/rvv-miniputt run` via the Bash tool will fail with "command not
-  // found". These tools are the agent-callable equivalents: call them directly
-  // instead of shelling out, and instead of reimplementing the pipeline by
-  // invoking tournament_scheduler.pipeline.stageN_* Python modules by hand
-  // (which skips checkpointing, resumption, and structured run logging).
-  // ===========================================================================
 
   pi.registerTool({
     name: "rvv_miniputt_run",
-    label: "RVV Miniputt: Run Pipeline",
+    label: "RVV Miniputt: Run",
     description:
-      "Run the RVV Miniputt season-planning pipeline (config → scraping → planning → export → Pi harness audit). " +
-      "Stage 3 runs one planning attempt by default (override with --iterations for multiple seeds). " +
-      "This is the agent-callable equivalent of the '/rvv-miniputt run' slash command — that " +
-      "command is not a shell binary and cannot be invoked via Bash.",
-    promptSnippet: "Run the RVV Miniputt season-planning pipeline and Pi harness audit",
+      "Run the canonical RVV interactive pipeline. Pi is a thin controller; repository code owns all Stage 1–4 behavior and verification.",
+    promptSnippet: "Run the canonical RVV Miniputt pipeline",
     promptGuidelines: [
-      "Use rvv_miniputt_run instead of running '/rvv-miniputt run' via Bash — it is a Pi slash command, not a shell command.",
-      "Do not reimplement the pipeline by calling tournament_scheduler.pipeline.stageN_* Python modules directly; rvv_miniputt_run runs the full orchestrated pipeline with checkpointing and structured logging.",
-      "After Stage 4, this tool runs the semantic safety-net audit through the repository operator audit-context/audit-submit path and persists audit_result.json.",
+      "Use this tool instead of invoking stageN_* modules directly.",
+      "The tool consumes repository DecisionContext objects and submits only declared DecisionActions.",
+      "Pi browser recovery is used only when the repository exposes recover_source; recovered evidence returns through recovery-inject and canonical Stage 2.",
     ],
     parameters: Type.Object({
-      args: Type.Optional(Type.String({
-        description: "Same flags as '/rvv-miniputt run', e.g. '--resume-from 2 --log-level verbose --manual-bookup-login'",
-      })),
+      args: Type.Optional(Type.String({ description: "Flags for rvv-miniputt run, e.g. '--resume-from 2 --log-level verbose'." })),
     }),
     async execute(_toolCallId, params, _signal, onUpdate, ctx) {
       if (wantsPublish(params.args ?? "")) {
-        const text = "--publish er ikke lenger del av rvv_miniputt_run. Kjør rvv_miniputt_run først, deretter rvv_miniputt_publish for å publisere eksisterende Stage 4-eksport.";
+        const text = "Publication is separate; use rvv_miniputt_run first and rvv_miniputt_publish afterwards.";
         return { content: [{ type: "text", text }], details: { status: "failure", text } };
       }
-
-      const result = await runPipeline(params.args ?? "", ctx, (e) => {
-        onUpdate?.({
-          content: [{ type: "text", text: `[${e.stage}] ${e.status === "start" ? "▶" : e.status === "ok" ? "✅" : e.status === "skip" ? "⏭️" : "❌"} ${e.message}` }],
-          details: {},
-        });
+      const result = await runPipeline(params.args ?? "", ctx, (event) => {
+        onUpdate?.({ content: [{ type: "text", text: pipelineToolUpdate(event) }], details: {} });
       });
       return { content: [{ type: "text", text: result.text }], details: result };
     },
@@ -420,20 +214,11 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: "rvv_miniputt_publish",
-    label: "RVV Miniputt: Publish to GitHub Pages",
-    description:
-      "Publish the most recently generated RVV Miniputt Stage 4 export to GitHub Pages without rerunning the pipeline. " +
-      "Agent-callable equivalent of the '/rvv-miniputt publish' slash command. " +
-      "Checks the existing export, runs Pi harness audit for it, then invokes operator publish --confirm-public.",
-    promptSnippet: "Publish the existing RVV Miniputt export to GitHub Pages",
-    promptGuidelines: [
-      "Use rvv_miniputt_run first when you need a fresh export; rvv_miniputt_publish only publishes the existing Stage 4 export.",
-      "Do not pass publish flags through rvv_miniputt_run; publication is a separate explicit step.",
-    ],
+    label: "RVV Miniputt: Publish",
+    description: "Run the Pi semantic audit for the current export and publish through the canonical repository operator command.",
+    promptSnippet: "Publish the current verified RVV Miniputt export",
     parameters: Type.Object({
-      args: Type.Optional(Type.String({
-        description: "Same flags as '/rvv-miniputt publish', e.g. '--no-push --dry-run' for a non-public publish rehearsal",
-      })),
+      args: Type.Optional(Type.String({ description: "Flags for operator publish, e.g. '--dry-run' or '--no-push'." })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const result = await runPublish(params.args ?? "", ctx);
@@ -444,17 +229,11 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "rvv_miniputt_status",
     label: "RVV Miniputt: Status",
-    description:
-      "Show the current status of all four RVV Miniputt pipeline stages. " +
-      "Agent-callable equivalent of the '/rvv-miniputt status' slash command.",
-    promptSnippet: "Show RVV Miniputt pipeline stage status",
-    parameters: Type.Object({
-      args: Type.Optional(Type.String({
-        description: "Same flags as '/rvv-miniputt status', e.g. '--work-dir .pipeline'",
-      })),
-    }),
+    description: "Show canonical RVV pipeline status.",
+    promptSnippet: "Show RVV Miniputt pipeline status",
+    parameters: Type.Object({ args: Type.Optional(Type.String()) }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const result = await runRepoCli(buildStatusCommandArgs(params.args ?? "", ctx.cwd), ctx);
+      const result = await runSimple("status", params.args ?? "", ctx);
       return { content: [{ type: "text", text: result.text }], details: result };
     },
   });
@@ -462,18 +241,11 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "rvv_miniputt_logs",
     label: "RVV Miniputt: Logs",
-    description:
-      "Read RVV Miniputt pipeline run logs and self-improvement statistics " +
-      "('list', 'show <run-id>'/'show latest', or 'stats'). " +
-      "Agent-callable equivalent of the '/rvv-miniputt logs' slash command.",
-    promptSnippet: "Read RVV Miniputt pipeline run logs and stats",
-    parameters: Type.Object({
-      args: Type.Optional(Type.String({
-        description: "Same arguments as '/rvv-miniputt logs', e.g. 'show latest', 'stats', 'list --count 5'",
-      })),
-    }),
+    description: "Read canonical RVV run logs.",
+    promptSnippet: "Read RVV Miniputt logs",
+    parameters: Type.Object({ args: Type.Optional(Type.String()) }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const result = await runRepoCli(buildLogsCommandArgs(params.args ?? "", ctx.cwd), ctx);
+      const result = await runSimple("logs", params.args ?? "", ctx);
       return { content: [{ type: "text", text: result.text }], details: result };
     },
   });
@@ -481,17 +253,11 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "rvv_miniputt_calendars",
     label: "RVV Miniputt: Calendars",
-    description:
-      "Generate calendar reports from cache, or force a full re-scrape with '--refresh'. " +
-      "Agent-callable equivalent of the '/rvv-miniputt calendars' slash command.",
-    promptSnippet: "Generate RVV Miniputt calendar reports",
-    parameters: Type.Object({
-      args: Type.Optional(Type.String({
-        description: "Same flags as '/rvv-miniputt calendars', e.g. '--refresh'",
-      })),
-    }),
+    description: "Generate calendar reports through the canonical repo CLI.",
+    promptSnippet: "Generate RVV calendar reports",
+    parameters: Type.Object({ args: Type.Optional(Type.String()) }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const result = await runCalendars(params.args ?? "", ctx);
+      const result = await runSimple("calendars", params.args ?? "", ctx, 10 * 60 * 1000);
       return { content: [{ type: "text", text: result.text }], details: result };
     },
   });
@@ -499,37 +265,26 @@ export default function rvvMiniputt(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "rvv_miniputt_scrape",
     label: "RVV Miniputt: Scrape",
-    description:
-      "Scrape a single club's calendar for troubleshooting. " +
-      "Agent-callable equivalent of the '/rvv-miniputt scrape' slash command.",
-    promptSnippet: "Scrape a single RVV Miniputt club calendar",
-    parameters: Type.Object({
-      args: Type.Optional(Type.String({
-        description: "Same flags as '/rvv-miniputt scrape', e.g. '--club Jar --work-dir .pipeline'",
-      })),
-    }),
+    description: "Run deterministic single-source scraping through the canonical repo CLI.",
+    promptSnippet: "Scrape one RVV calendar source deterministically",
+    parameters: Type.Object({ args: Type.Optional(Type.String()) }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const parsed = parseScrapeArgs(params.args ?? "");
-      const timeout = parsed.manual_bookup_login ? 900_000 : 120_000;
-      const result = await runRepoCli(buildScrapeCommandArgs(params.args ?? "", ctx.cwd), ctx, timeout);
+      const result = await runSimple("scrape", params.args ?? "", ctx, 10 * 60 * 1000);
       return { content: [{ type: "text", text: result.text }], details: result };
     },
   });
 
   pi.registerTool({
     name: "rvv_miniputt_scrape_llm",
-    label: "RVV Miniputt: Scrape LLM",
+    label: "RVV Miniputt: Browser Recovery",
     description:
-      "Scrape a single club's calendar with LLM-guided browser navigation. " +
-      "Agent-callable equivalent of the '/rvv-miniputt scrape-llm' slash command.",
-    promptSnippet: "Scrape a single RVV Miniputt club calendar with LLM navigation",
+      "Recover one browser-backed calendar source using Pi's active model/browser worker and feed evidence through repository recovery-inject + scrape-merge.",
+    promptSnippet: "Recover one RVV calendar source with Pi browser navigation",
     parameters: Type.Object({
-      args: Type.Optional(Type.String({
-        description: "Same flags as '/rvv-miniputt scrape-llm', e.g. '--club Holmen --debug-screenshots'",
-      })),
+      args: Type.Optional(Type.String({ description: "Requires '--club <name>'; optional '--work-dir' and '--max-iterations'." })),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const result = await runRepoCli(buildScrapeLlmCommandArgs(params.args ?? "", ctx.cwd), ctx, 300_000);
+      const result = await runPiScrapeLlm(params.args ?? "", ctx);
       return { content: [{ type: "text", text: result.text }], details: result };
     },
   });

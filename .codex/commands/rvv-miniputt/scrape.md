@@ -1,19 +1,5 @@
-Scrape a single club's calendar source and report the result.
+# RVV Miniputt: Scrape (Codex)
 
-Rules:
-- Never run `/rvv-miniputt ...` as a shell command.
-- Use `scripts/rvv-miniputt scrape --club "<name>" <user-args>`.
-- Fallback if needed: `python3 -m tournament_scheduler.cli.rvv_cli scrape --club "<name>" <user-args>`.
-- `--club` is required. The name must match a source in `input.xlsx` (e.g. `Jar`, `Holmen`, `Sandefjord`).
-- Report the event count, whether the source was blocked, and any LLM-fallback hint.
-- If the source requires LLM scraping, suggest running the scrape-llm command.
+Codex transport adapter only. Read and execute `.agents/commands/rvv-miniputt/scrape.md`.
 
-Flags:
-```
---club <name>      Source name (required)
---work-dir <path>  Pipeline work directory (default: .pipeline)
-```
-
-Examples:
-- `scripts/rvv-miniputt scrape --club Jar`
-- `scripts/rvv-miniputt scrape --club "Sandefjord"`
+Shared repository policy belongs in `AGENTS.md`; shared RVV policy belongs in `.agents/skills/rvv/SKILL.md`. Do not duplicate either here.

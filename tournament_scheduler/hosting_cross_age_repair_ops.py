@@ -7,7 +7,7 @@ of that module's `_try_repair`, not a standalone public API.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 from tournament_scheduler.host_representation import host_eligible_teams, host_represented_in
 from tournament_scheduler.models import Tournament

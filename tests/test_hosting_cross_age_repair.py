@@ -2,8 +2,6 @@
 
 from datetime import date
 
-import pytest
-
 from tournament_scheduler.hosting_cross_age_repair import (
     candidate_reallocation_slots,
     club_hosting_evidence,
