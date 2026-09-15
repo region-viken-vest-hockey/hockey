@@ -10,50 +10,12 @@ from pathlib import Path
 
 from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.rules_report import render_rules_markdown
-from tournament_scheduler.scheduler import TournamentScheduler
-from tournament_scheduler.season_planner import SeasonPlanner
-from tournament_scheduler.testing.canonical_input import load_canonical_roster
+from tournament_scheduler.testing.canonical_input import build_canonical_planner, load_canonical_input_data
 
 
-class FakeScheduler:
-    def __init__(self):
-        self._real_scheduler = TournamentScheduler(calendar_sources=[], conflict_checkers=[], date_parser=None)
-
-    def find_available_dates(self, start_date, end_date, **kwargs):
-        from tournament_scheduler.models import SchedulingResult
-
-        return SchedulingResult(
-            available_dates=[],
-            excluded_dates=[],
-            exclusion_breakdown={},
-            detailed_exclusions=[],
-            total_weekends_checked=0,
-        )
-
-    def find_arena_slot_for_date(
-        self,
-        check_date,
-        host_club,
-        required_minutes,
-        events_by_club,
-        preferred_start="11:00",
-    ):
-        return self._real_scheduler.find_arena_slot_for_date(
-            check_date,
-            host_club,
-            required_minutes,
-            events_by_club,
-            preferred_start=preferred_start,
-        )
-
-
-roster, parallel_games = load_canonical_roster()
-clubs = sorted({team.club for team in roster.teams})
-planner = SeasonPlanner(
-    scheduler=FakeScheduler(),
-    roster=roster,
-    club_arenas={club: f"{club}hallen" for club in clubs},
-    parallel_games_for_age_group=parallel_games,
+canonical_input = load_canonical_input_data()
+clubs = sorted({team["club"] for team in canonical_input["teams"]})
+planner, _, _ = build_canonical_planner(
     events_by_club={
         clubs[0]: [
             CalendarEvent(

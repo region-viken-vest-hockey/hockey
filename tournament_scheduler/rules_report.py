@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Dict, List
 
 from tournament_scheduler.rules_report_capacity_rules import capacity_and_config_rule_entries
@@ -84,7 +83,109 @@ def rules_report(planner) -> List[Dict[str, str]]:
     return report
 
 
+_MARKDOWN_SECTION_ORDER: tuple[tuple[str, str], ...] = (
+    ("Hard krav", "Policy rules"),
+    ("Konfigurasjonsstandard", "Configuration and guardrails"),
+    ("Mykt planleggingskrav", "Configuration and guardrails"),
+    ("Automatisk avgjørelse", "Implementation rules"),
+    ("Advarsel", "Warnings / diagnostics"),
+    ("Anbefaling", "Warnings / diagnostics"),
+)
+
+_MARKDOWN_SECTION_INTROS: dict[str, str] = {
+    "Policy rules": "| Rule | What it does | Kind |\n|---|---|---|",
+    "Configuration and guardrails": "| Rule | What it does | Kind |\n|---|---|---|",
+    "Implementation rules": "| Rule | What it does | Kind |\n|---|---|---|",
+    "Warnings / diagnostics": "| Rule | What it does | Kind |\n|---|---|---|",
+}
+
+_PRIMARY_SOURCE_FILES: tuple[str, ...] = (
+    "tournament_scheduler/rules_report.py",
+    "tournament_scheduler/rules_report_capacity_rules.py",
+    "tournament_scheduler/rules_report_operational_rules.py",
+    "tournament_scheduler/final_verification.py",
+    "tournament_scheduler/planning_contract.py",
+    "tournament_scheduler/arena_conflicts.py",
+    "tournament_scheduler/participant_selection.py",
+    "tournament_scheduler/warnings.py",
+    "tournament_scheduler/host_assignment.py",
+    "tournament_scheduler/season_planner.py",
+    "tournament_scheduler/game_generation.py",
+    "tournament_scheduler/models.py",
+    "tournament_scheduler/season_config.py",
+)
+
+
+def _markdown_table_cell(value: str) -> str:
+    """Return *value* escaped for a GitHub-flavoured Markdown table cell."""
+    return str(value).replace("\n", " ").replace("|", "\\|")
+
+
+def _render_rules_table(entries: list[Dict[str, str]]) -> list[str]:
+    rows = [_MARKDOWN_SECTION_INTROS["Policy rules"]]
+    rows.extend(
+        "| "
+        + " | ".join(
+            _markdown_table_cell(entry.get(key, ""))
+            for key in ("regel", "forklaring", "kategori")
+        )
+        + " |"
+        for entry in entries
+    )
+    return rows
+
+
 def render_rules_markdown(planner) -> str:
-    """Render the committed rules-report snapshot for docs / review."""
-    doc_path = Path(__file__).resolve().parents[1] / "docs" / "rvv-miniputt-rules-report.md"
-    return doc_path.read_text(encoding="utf-8")
+    """Render the committed rules-report snapshot for docs / review.
+
+    The snapshot is generated from ``rules_report(planner)`` so regeneration
+    catches drift between the planner's structured rule entries and the
+    committed Markdown document.
+    """
+    report = rules_report(planner)
+    by_section: dict[str, list[Dict[str, str]]] = {}
+    category_to_section = dict(_MARKDOWN_SECTION_ORDER)
+    for entry in report:
+        section = category_to_section.get(entry.get("kategori", ""), "Implementation rules")
+        by_section.setdefault(section, []).append(entry)
+
+    lines: list[str] = [
+        "# RVV Miniputt rules report",
+        "",
+        "This is a review/discussion snapshot of the current season-planning logic.",
+        "It is based on the planner code, not on the marketing/docs wording, so it calls out where a rule is truly hard, soft, automatic, or only a warning.",
+        "",
+        "## Policy vs implementation",
+        "",
+    ]
+
+    emitted_sections: set[str] = set()
+    for _, section in _MARKDOWN_SECTION_ORDER:
+        if section in emitted_sections:
+            continue
+        emitted_sections.add(section)
+        entries = by_section.get(section, [])
+        if not entries:
+            continue
+        lines.extend([f"### {section}", ""])
+        lines.extend(_render_rules_table(entries))
+        lines.append("")
+
+    lines.extend([
+        "## Final verification and publication readiness",
+        "",
+        "The search-time planning contract keeps `ok` narrowly defined as structural validity so planners and optimizers can compare candidates without turning every unresolved operational task into a hard solver failure. Immediately before production export, the stricter final verifier additionally checks that production tournaments are not below the three-team minimum and that each tournament's game list is a complete, non-duplicated round robin with no team scheduled twice in one round.",
+        "",
+        "The final verifier publishes a separate readiness state:",
+        "",
+        "- `INVALID`: at least one hard structural/integrity violation exists.",
+        "- `REVIEW_REQUIRED`: structurally valid, but unresolved hosting, calendar placement, external calendar conflict, participation shortfall, or incomplete verification remains.",
+        "- `PUBLISHABLE`: hard verification passed and none of those unresolved obligations remains.",
+        "",
+        "This classification is evidence for the operator/publication decision; it does not weaken the existing explicit human confirmation required to publish.",
+        "",
+        "## Primary source files",
+        "",
+    ])
+    lines.extend(f"- `{path}`" for path in _PRIMARY_SOURCE_FILES)
+    return "\n".join(lines) + "\n"
