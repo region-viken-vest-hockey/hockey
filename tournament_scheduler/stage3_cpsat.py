@@ -14,11 +14,13 @@ from copy import deepcopy
 from datetime import date
 from itertools import combinations
 from time import perf_counter
+from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
 from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .models import Team
 from .effective_tournament_shape import compute_effective_tournament_shape, shape_violation
+from .participant_roster_sizing import fixed_cohort_shape_for
 from .planning_contract import CANDIDATE_SCHEMA_VERSION
 from .stage3_cpsat_club_cap import build_club_excess_terms
 from .stage3_cpsat_diagnostics import raise_host_not_represented
@@ -137,7 +139,22 @@ def _solve_slot_group(
             )
         model.Add(sum(x[(slot.index, identity)] for identity in eligible) == slot.roster_size)
 
-        if slot.pinned:
+        fixed_cohort_shape = None
+        if problem is not None:
+            roster_view = SimpleNamespace(by_age_group=lambda group: teams_by_age_group.get(group, []))
+            planner_view = SimpleNamespace(
+                roster=roster_view,
+                rounds_per_tournament_for_age_group=rounds_per_tournament,
+                parallel_games_for_age_group=parallel_games_capacity,
+            )
+            fixed_cohort_shape = fixed_cohort_shape_for(planner_view, slot.age_group)
+
+        if fixed_cohort_shape is not None:
+            # Membership is not an optimization dimension for full-pool
+            # shapes: every registered identity must appear in every slot.
+            for identity in eligible:
+                model.Add(x[(slot.index, identity)] == 1)
+        elif slot.pinned:
             baseline_set = set(slot.baseline_team_ids)
             for identity in eligible:
                 model.Add(x[(slot.index, identity)] == int(identity in baseline_set))

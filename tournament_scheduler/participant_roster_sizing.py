@@ -134,6 +134,54 @@ def _effective_shape_for(planner, age_group: str):
     )
 
 
+def fixed_cohort_shape_for(planner, age_group: str):
+    """Return the effective shape when the whole registered pool is fixed.
+
+    When the complete Stage-1 registered pool is exactly the independently
+    derived effective tournament team count, there is no legal participant
+    subset to optimize: every materialized unpinned tournament for this age
+    group must use the full pool together.
+    """
+    shape = _effective_shape_for(planner, age_group)
+    if (
+        shape.registered_team_count == shape.effective_team_count
+        and shape.effective_team_count >= MIN_TEAMS_PER_TOURNAMENT
+        and shape.effective_team_count % 2 == 0
+        and (shape.has_explicit_target or shape.parallel_game_capacity is not None)
+    ):
+        return shape
+    return None
+
+
+def fixed_cohort_participants(
+    planner,
+    age_group: str,
+    period: Optional[str] = None,
+    *,
+    exclude_team_keys: Optional[set] = None,
+    planned_roster_size: Optional[int] = None,
+):
+    """Return the full registered cohort when membership is mathematically fixed.
+
+    ``None`` means the age group is not a fixed-cohort shape and generic
+    participant selection should run. A list (possibly empty) is authoritative:
+    the full cohort is selected unless it cannot legally be used for this slot
+    because the cohort has already reached its target or was already used on
+    this date. ``planned_roster_size`` is intentionally not allowed to shrink
+    the returned cohort below the effective team count.
+    """
+    shape = fixed_cohort_shape_for(planner, age_group)
+    if shape is None:
+        return None
+
+    registered = list(planner.roster.by_age_group(age_group))
+    if exclude_team_keys and any(planner._team_key(team) in exclude_team_keys for team in registered):
+        return []
+    if any(planner._team_at_target(team, period) for team in registered):
+        return []
+    return registered
+
+
 def target_tournaments_for_age_group(planner, age_group: str, period: Optional[str] = None) -> int:
     """Return the number of tournaments to aim for in `age_group`.
 
@@ -146,7 +194,7 @@ def target_tournaments_for_age_group(planner, age_group: str, period: Optional[s
     if capacity == 0:
         return 0
     shape = _effective_shape_for(planner, age_group)
-    if shape.has_explicit_target:
+    if fixed_cohort_shape_for(planner, age_group) is not None or shape.has_explicit_target:
         if shape.effective_team_count < 2:
             return 0
         return total_target // shape.effective_team_count
@@ -206,7 +254,7 @@ def plan_roster_sizes_for_age_group(planner, age_group: str, period: Optional[st
     if capacity == 0:
         return []
     shape = _effective_shape_for(planner, age_group)
-    if shape.has_explicit_target:
+    if fixed_cohort_shape_for(planner, age_group) is not None or shape.has_explicit_target:
         if shape.effective_team_count < 2:
             return []
         return [shape.effective_team_count] * (total_target // shape.effective_team_count)

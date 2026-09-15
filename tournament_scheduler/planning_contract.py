@@ -35,7 +35,6 @@ from tournament_scheduler import planning_half
 from tournament_scheduler.host_representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
 from tournament_scheduler.effective_tournament_shape import (
     NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP,
-    NO_BYE_MIN_TEAMS_PER_TOURNAMENT,
     compute_effective_tournament_shape,
     shape_violation,
 )

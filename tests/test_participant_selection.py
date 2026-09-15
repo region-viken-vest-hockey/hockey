@@ -17,8 +17,11 @@ from tournament_scheduler.participant_selection import (
     MIN_TEAMS_PER_TOURNAMENT,
     pick_scored_participants,
     plan_roster_sizes,
+    plan_roster_sizes_for_age_group,
     rebalance_roster_sizes_across_dates,
     relocate_structurally_impossible_slots,
+    select_participants,
+    target_tournaments_for_age_group,
 )
 
 
@@ -425,6 +428,52 @@ class _FakeClubCapPlanner:
 
     def _team_at_target(self, team, period=None):
         return False
+
+
+class _FixedCohortPlanner(_FakeClubCapPlanner):
+    def __init__(self, teams, target_by_label, *, parallel_games=3, rounds=5):
+        super().__init__(teams, target_by_label, max_club_teams_per_tournament=2)
+        self.parallel_games_for_age_group = {teams[0].age_group: parallel_games} if teams else {}
+        self.rounds_per_tournament_for_age_group = {teams[0].age_group: rounds} if teams else {}
+        self.target_tournament_count = None
+        self.participation_targets_by_age_group = {}
+        self._tournament_participations = {team.label: 0 for team in teams}
+        self._tournament_participations_by_half = {"before_christmas": {}, "after_christmas": {}}
+
+    def _team_target_tournament_count(self, team, period=None):
+        return self.fairness_model._target_by_label[team.label]
+
+    def _team_at_target(self, team, period=None):
+        return self._tournament_participations.get(team.label, 0) >= self._team_target_tournament_count(team, period)
+
+
+class TestFixedCohortParticipantSelection:
+    """Full-pool effective shapes bypass generic participant subset selection."""
+
+    def test_registered_count_equal_effective_count_selects_complete_pool_despite_planned_size_cap(self):
+        teams = [Team(club=f"Club{i}", label=f"U11-{i}", age_group="U11") for i in range(6)]
+        planner = _FixedCohortPlanner(teams, {team.label: 3 for team in teams}, parallel_games=3, rounds=5)
+
+        selected = select_participants(planner, "U11", planned_roster_size=4)
+
+        assert selected == teams
+
+    def test_fixed_cohort_stops_when_any_member_has_reached_target_instead_of_returning_partial_pool(self):
+        teams = [Team(club=f"Club{i}", label=f"U10-{i}", age_group="U10") for i in range(6)]
+        planner = _FixedCohortPlanner(teams, {team.label: 1 for team in teams}, parallel_games=3, rounds=5)
+        planner._tournament_participations[teams[0].label] = 1
+
+        assert select_participants(planner, "U10") == []
+
+    def test_fixed_cohort_volume_uses_common_participation_target_not_rotating_subsets(self):
+        teams = [
+            Team(club=f"Club{i}", label=f"U9-{i}", age_group="U9", target_tournament_count=4)
+            for i in range(6)
+        ]
+        planner = _FixedCohortPlanner(teams, {team.label: 4 for team in teams}, parallel_games=3, rounds=5)
+
+        assert target_tournaments_for_age_group(planner, "U9") == 4
+        assert plan_roster_sizes_for_age_group(planner, "U9") == [6, 6, 6, 6]
 
 
 class TestPickScoredParticipantsClubCapTiering:

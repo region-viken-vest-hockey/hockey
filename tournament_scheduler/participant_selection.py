@@ -23,6 +23,8 @@ from tournament_scheduler.participant_roster_sizing import (
     _participation_demand as _participation_demand,
     club_demand_shares as club_demand_shares,
     club_share_deficit as club_share_deficit,
+    fixed_cohort_participants as fixed_cohort_participants,
+    fixed_cohort_shape_for as fixed_cohort_shape_for,
     plan_roster_sizes as plan_roster_sizes,
     plan_roster_sizes_for_age_group as plan_roster_sizes_for_age_group,
     rebalance_roster_sizes_across_dates as rebalance_roster_sizes_across_dates,
@@ -196,6 +198,16 @@ def select_participants(
     among the selected participants without ever bypassing a hard
     eligibility check.
     """
+    fixed_cohort = fixed_cohort_participants(
+        planner,
+        age_group,
+        period,
+        exclude_team_keys=exclude_team_keys,
+        planned_roster_size=planned_roster_size,
+    )
+    if fixed_cohort is not None:
+        return fixed_cohort
+
     candidates = planner.roster.by_age_group(age_group)
     if not candidates:
         return []
