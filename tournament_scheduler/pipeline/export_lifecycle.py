@@ -45,6 +45,8 @@ def write_draft_manifest(
     generated_at: str,
     export_fingerprint: str | None,
     source_run_id: str | None,
+    canonical_season: str | None = None,
+    canonical_revision: str | None = None,
 ) -> dict[str, Any]:
     """Write the initial lifecycle marker for a generated export."""
     path = manifest_path(export_dir)
@@ -54,6 +56,8 @@ def write_draft_manifest(
         "export_id": export_id,
         "generated_at": generated_at,
         "export_fingerprint": export_fingerprint,
+        "canonical_season": canonical_season,
+        "canonical_revision": canonical_revision,
         "lifecycle_status": previous.get("lifecycle_status") if previous.get("lifecycle_status") == PUBLISHED_STATUS else DRAFT_STATUS,
         "published_at": previous.get("published_at"),
         "pages_commit": previous.get("pages_commit"),

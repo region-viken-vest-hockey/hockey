@@ -192,6 +192,10 @@ def run(
     output_files: dict[str, str] = {}
     generated_at = canonical_build_timestamp.isoformat()
     input_path = str(effective_config.get("input_path") or "input.xlsx")
+    raw_canonical_state = plan_checkpoint.get("canonical_state")
+    canonical_state = raw_canonical_state if isinstance(raw_canonical_state, dict) else {}
+    canonical_season = canonical_state.get("season")
+    canonical_revision = canonical_state.get("revision") or canonical_state.get("fingerprint")
     try:
         from .run_manifest import RunManifest
 
@@ -213,6 +217,8 @@ def run(
                 generated_at=generated_at,
                 export_fingerprint=export_fingerprint,
                 source_run_id=source_run_id,
+                canonical_season=canonical_season,
+                canonical_revision=canonical_revision,
             )
             output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
             pruned_exports = _prune_old_exports(primary_export_path.parent)
@@ -225,6 +231,8 @@ def run(
             "not_started": True,
             "message": message,
             "export_fingerprint": export_fingerprint,
+            "canonical_season": canonical_season,
+            "canonical_revision": canonical_revision,
             "export_lifecycle": lifecycle_manifest,
             "pruned_exports": pruned_exports,
         }
@@ -660,6 +668,8 @@ def run(
                 generated_at=generated_at,
                 export_fingerprint=export_fingerprint,
                 source_run_id=source_run_id,
+                canonical_season=canonical_season,
+                canonical_revision=canonical_revision,
             )
             output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
             pruned_exports = _prune_old_exports(primary_export_path.parent)
@@ -679,6 +689,8 @@ def run(
         "pruned_exports": pruned_exports,
         "verify_result": export_verify_result,
         "export_fingerprint": export_fingerprint,
+        "canonical_season": canonical_season,
+        "canonical_revision": canonical_revision,
         "export_lifecycle": lifecycle_manifest,
     }
     if errors and strict:

@@ -1139,6 +1139,24 @@ class TestRunStage4:
             f"Expected timestamped subfolder name like 2025-10-05T0900, got {excel_path.parent.name!r}"
         )
 
+    def test_canonical_export_records_season_revision_in_checkpoint_and_manifest(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        result = run(
+            {
+                "plan": _make_plan_dict(),
+                "canonical_state": {"season": "2026-2027", "revision": "rev-123"},
+            },
+            state,
+            export_dir=str(tmp_path / "export"),
+            build_timestamp="2025-01-02T03:04:05+00:00",
+        )
+
+        assert result["canonical_season"] == "2026-2027"
+        assert result["canonical_revision"] == "rev-123"
+        manifest = json.loads(Path(result["output_files"]["export_manifest"]).read_text(encoding="utf-8"))
+        assert manifest["canonical_season"] == "2026-2027"
+        assert manifest["canonical_revision"] == "rev-123"
+
     def test_stage4_spond_export_uses_tournament_rows(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
         input_path = tmp_path / "input.xlsx"

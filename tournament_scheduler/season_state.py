@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,6 +44,47 @@ def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
         os.fsync(handle.fileno())
         tmp_name = handle.name
     os.replace(tmp_name, path)
+
+
+def _write_promoted_state_atomic(
+    season_directory: Path,
+    schedule_payload: dict[str, Any],
+    decisions_payload: dict[str, Any],
+    *,
+    force: bool,
+) -> None:
+    """Atomically install both canonical season-state files as one boundary."""
+
+    parent = season_directory.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f".{season_directory.name}.", suffix=".tmp", dir=parent))
+    backup = parent / f".{season_directory.name}.backup"
+    try:
+        (staging / "schedule.json").write_bytes(_json_bytes(schedule_payload))
+        (staging / "decisions.json").write_bytes(_json_bytes(decisions_payload))
+        for staged_file in (staging / "schedule.json", staging / "decisions.json"):
+            with staged_file.open("rb") as handle:
+                os.fsync(handle.fileno())
+        if season_directory.exists():
+            if not force:
+                raise SeasonStateError(
+                    f"Canonical season state already exists for {season_directory.name}; "
+                    "use --force only for deliberate replacement"
+                )
+            if backup.exists():
+                shutil.rmtree(backup)
+            os.replace(season_directory, backup)
+            try:
+                os.replace(staging, season_directory)
+            except Exception:
+                os.replace(backup, season_directory)
+                raise
+            shutil.rmtree(backup, ignore_errors=True)
+        else:
+            os.replace(staging, season_directory)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging, ignore_errors=True)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -161,6 +203,7 @@ def promote_from_stage3(
     resolved_season = season or season_id_from_plan(plan_dict)
     sched_path = schedule_path(resolved_season, root=root)
     dec_path = decisions_path(resolved_season, root=root)
+    season_directory = season_dir(resolved_season, root=root)
     if (sched_path.exists() or dec_path.exists()) and not force:
         raise SeasonStateError(
             f"Canonical season state already exists for {resolved_season}; use --force only for deliberate replacement"
@@ -195,11 +238,9 @@ def promote_from_stage3(
         "decisions": _initial_decisions(plan_dict),
     }
 
-    # Prepare both files before replacing either destination.
-    _ = _json_bytes(schedule_payload)
-    _ = _json_bytes(decisions_payload)
-    _write_json_atomic(sched_path, schedule_payload)
-    _write_json_atomic(dec_path, decisions_payload)
+    # Install both files as one durable boundary; a failed promotion must not
+    # leave only schedule.json or only decisions.json behind.
+    _write_promoted_state_atomic(season_directory, schedule_payload, decisions_payload, force=force)
     return schedule_payload, decisions_payload
 
 
