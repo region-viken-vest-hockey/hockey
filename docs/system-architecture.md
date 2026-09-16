@@ -1,77 +1,47 @@
 # System architecture
 
-This document describes the current high-level RVV Miniputt system. It owns the end-to-end boundaries and sources of truth; detailed workbook fields belong in `rvv-miniputt-input-formats.md` and detailed pipeline operation belongs in `rvv-miniputt-pipeline.md`.
+This document describes the current high-level RVV Miniputt system. Detailed workbook fields belong in `rvv-miniputt-input-formats.md`; detailed operation belongs in `rvv-miniputt-pipeline.md`.
 
 ## System shape
 
-RVV Miniputt is primarily a repository-operated Python system, not a continuously hosted application.
+RVV Miniputt is a repository-operated Python system, not a continuously hosted application.
 
 It has three related workflows:
 
-1. **Season planning** — registrations/configuration + external calendar evidence → verified season plan + review/export bundle.
+1. **Season planning and canonical-season maintenance** — registrations/configuration + calendar evidence → verified schedule → promoted operational state → review/export bundle.
 2. **Påmeldte lag** — reviewed registration export → public registered-team snapshot.
 3. **Aktivitetskalender** — regional activity workbook → public activity-calendar snapshot.
 
-All three can feed the same sanitized GitHub Pages publication snapshot.
-
-## Season-planning flow
-
-```text
-Microsoft Forms
-      ↓
-Power Automate validation
-      ↓
-reviewed private SharePoint registrations
-      ↓
-controlled Lag import ─────────────┐
-                                   ↓
-controlled settings ─────────> root input.xlsx
-                                   ↓
-                         Stage 1: validate/config
-                                   ↓
-external hall/club calendars -> Stage 2: evidence collection
-                                   ↓
-                         Stage 3: plan/search/solve
-                                   ↓
-                         deterministic verification
-                                   ↓
-                         Stage 4: review/export bundle
-                                   ↓
-                         explicit publication approval
-                                   ↓
-                             GitHub Pages
-                                   ↓
-                         WordPress links/embeds
-```
+All three may feed the same sanitized GitHub Pages publication snapshot.
 
 ## Sources of truth
 
 - **SharePoint List** is the reviewed source for registration-workflow data.
-- **Root `input.xlsx`** is the canonical controlled input to season planning. Registration import replaces only `Lag`; planning/administrative sheets remain controlled in the workbook.
+- **Root `input.xlsx`** is the canonical controlled input to initial season planning.
 - **`Årshjul for aktiviteter.xlsx`** is the activity-calendar source workbook.
 - **External calendar sources** are authoritative for their own availability evidence, subject to source-health/provenance checks.
 - **Repository code and tests** define deterministic parsing, hard constraints, verification, metrics, persistence, export and publication safety.
-- **`season/<season>/schedule.json` and `season/<season>/decisions.json`** are the Git-backed canonical current season state after a verified candidate is deliberately promoted for club review/booking. The schedule file owns schedule facts; the decisions file owns approval/lock workflow state. After promotion, planning is baseline-aware by default: a normal Stage 3 run whose window matches a promoted season adopts the published schedule as its baseline (independent of `.pipeline`), approved/placement-locked tournaments are hard-preserve constraints, and a weighted change cost for published-but-unapproved tournaments is both measured and folded into the search objective (`tournament_scheduler.canonical_baseline`).
-- **`.agents/skills/rvv/SKILL.md`** is the shared agent runbook for contextual/soft decisions.
-- **GitHub issues** are the implementation backlog. ADRs preserve durable rationale.
+- **`season/<season>/schedule.json` and `season/<season>/decisions.json`** are the Git-backed canonical current season state after deliberate promotion. The schedule file owns schedule facts; the decisions file owns approval/lock workflow state.
+- **`.agents/skills/rvv/SKILL.md`** and `.agents/commands/rvv-miniputt/` are the shared harness-neutral operating policy/procedures.
+- **GitHub issues** are the implementation backlog; ADRs preserve durable rationale.
 
-Generated HTML, CSV, Excel, iCal, caches, checkpoints and Pages bundles are derived data, not new sources of truth. After baseline promotion, GitHub Pages remains the official published view, but the machine-readable operational truth is the canonical season state in Git.
+Generated HTML, CSV, Excel, iCal, caches, checkpoints and Pages bundles are derived data. After promotion, GitHub Pages remains the official published view, while the canonical season state in Git is the machine-readable operational truth.
 
 ## Runtime state and storage
 
-The normal runtime is local/agent/CI execution from the repository checkout:
-
 ```text
-controlled files in repo
-        ↓
-Python CLI / Make / harness adapter
-        ↓
-.pipeline/        local checkpoints, cache, manifest, logs, transient decisions
-season/<season>/  canonical promoted schedule + approval/lock state
-export/<time>/    review/export bundle regenerated from checkpoints or canonical state
-        ↓
+controlled inputs
+      ↓
+shared harness instructions
+      ↓
+scripts/rvv-miniputt / Python CLI
+      ↓
+.pipeline/        transient checkpoints/cache/logs
+season/<season>/  canonical schedule + decisions
+export/<time>/    generated review/export bundle
+      ↓
 public-bundle preparation + privacy gate
-        ↓
+      ↓
 gh-pages branch   published static snapshots
 ```
 
@@ -87,44 +57,64 @@ No database, queue, long-running web service or object store is required for nor
 - reproducible metrics and scorecards;
 - solver/search mechanics;
 - checkpoints, manifests, fingerprints and provenance;
+- canonical schedule/decision persistence;
 - action validation/application;
 - export, privacy and publication safety gates.
 
-### Agent/LLM owns contextual soft judgment
+### Active agent owns contextual soft judgment
 
 - which warning/quality dimension to address first;
 - which exposed recovery/search/refinement action to request;
 - soft trade-offs when no hard rule decides the result;
-- recovery strategy for suspicious/blocked sources;
-- recommendations and focused escalation.
+- focused recommendations and escalation;
+- semantic safety-net review using bounded repository evidence.
 
 The agent acts through validated repository capabilities/decision contracts. It cannot override a hard violation through prose.
 
 ### Human operator owns
 
-- credentials and MFA;
+- credentials/MFA;
 - explicit policy changes/exceptions requiring authority;
-- final public publication/rollback approval;
+- acceptance/promotion of the operational baseline;
+- public publication/rollback approval;
 - questions deliberately escalated by the system.
 
-ADR 0002 is the durable decision for this boundary.
+## Harness boundary
 
-## Adapter boundary
-
-Pi, Claude, ChatGPT, Codex, GitHub Actions and future interfaces are adapters over repository capabilities. They may provide command registration, UI/rendering, browser control, progress/cancellation or environment-specific launch details, but they must not maintain independent Stage 1–4 semantics.
-
-The conceptual adapter loop is:
+Claude, ChatGPT, Codex, Pi and future interactive agents all consume the same shared repository instructions and command procedures:
 
 ```text
-read shared RVV runbook
-invoke canonical repository capability
-receive DecisionContext/result
-choose one available validated action
-submit action
-repeat, escalate or finish
+AGENTS.md
+  ↓
+.agents/skills/rvv/SKILL.md
+  ↓
+.agents/commands/rvv-miniputt/<command>.md
+  ↓
+scripts/rvv-miniputt ...
+  ↓
+repository DecisionContext/result
+  ↓
+active harness chooses one declared action
 ```
 
-Pi retains RVV-specific browser/UI integration for recovery cases. Generic personal agent frameworks/tooling are intentionally outside this repository.
+There is no RVV-specific Pi scheduler/audit/scraper implementation. Harness-local code may exist only when a transport/UI capability truly cannot be expressed through the shared repository command surface, and it must remain thin.
+
+Browser-assisted source recovery is not tied to a particular harness. A browser-capable session may perform navigation/extraction and then hand recovered data back through repository `recovery-inject` / `scrape-merge`; repository validation determines whether it becomes trusted evidence.
+
+Generic personal agent frameworks/tooling stay outside this repository.
+
+## Canonical-season boundary
+
+Once a verified schedule is promoted, normal planning becomes baseline-aware:
+
+- durable tournament IDs survive ordinary moves/rehosting/participant edits;
+- approved placement/participant locks are hard-preserve constraints;
+- unapproved schedule changes receive weighted change-cost pressure to minimize churn;
+- `season move` handles targeted changes;
+- `season replan` + `season diff` + `season apply` handles bounded refinement;
+- `season approve` / `season unapprove` owns the approval lifecycle;
+- changed approval fingerprints become `stale_approval` and require explicit reapproval;
+- `season export` projects the exact current canonical revision before audit/publication.
 
 ## Microsoft 365 boundary
 
@@ -134,13 +124,13 @@ Use Microsoft 365 for intake and lightweight integration: Forms submission, regi
 
 GitHub Pages is a static publication target, not the planning system of record. Publication:
 
-1. starts from an already generated/reviewed export snapshot;
+1. starts from an already generated/reviewed export snapshot representing the intended canonical revision;
 2. creates a separate allowlisted public bundle;
 3. checks/redacts/blocklists sensitive/internal content;
 4. requires explicit public-write approval;
-5. updates the Pages branch and verifies the result.
+5. updates Pages and verifies the result.
 
-Spond exports and per-club review packets remain private/review artifacts unless a deliberate separate distribution step is performed. WordPress is the editorial/navigation layer and should link/embed generated Pages output instead of copying schedules by hand.
+Spond exports and per-club review packets remain private/review artifacts unless deliberately distributed separately. WordPress is the editorial/navigation layer and should link/embed generated Pages output rather than copy schedules by hand.
 
 ## Generated data
 

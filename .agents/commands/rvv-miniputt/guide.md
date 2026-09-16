@@ -1,6 +1,6 @@
 # RVV Miniputt: guide
 
-Use this as the shared non-Pi conversational guide procedure. Pi may provide its own native interactive guide UI, but the underlying command choices remain repository-owned.
+Use this as the shared conversational guide procedure for every agent harness.
 
 1. Determine which lifecycle the user's goal belongs to:
    - **initial season creation**: `run`, `status`, `logs`, `calendars`, `scrape`, `scrape-llm`, then audit/review and explicit baseline promotion;
@@ -20,4 +20,4 @@ Typical promoted-season routing:
 - improve unresolved/unapproved parts without churning booked tournaments -> `season replan`, inspect `season diff`, then verified `season apply`;
 - canonical schedule/decision state changed and the result should be reviewed/published -> `season export`, semantic audit, then `publish`.
 
-Do not call internal stage modules directly and do not define new scheduling/source/publication semantics in the guide.
+Do not call internal stage modules directly and do not define new scheduling/source/publication semantics in a harness-local guide or extension.

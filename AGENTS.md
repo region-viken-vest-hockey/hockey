@@ -6,8 +6,8 @@ This is the shared, harness-neutral instruction file. Keep always-on repository 
 
 Load task-specific guidance only when it is relevant:
 
-- For RVV Miniputt scraping, calendar collection/recovery, season planning, pipeline operation/debugging, export, review, or publication, read [`.agents/skills/rvv/SKILL.md`](.agents/skills/rvv/SKILL.md).
-- When invoking a supported non-Pi RVV command workflow, load only the matching shared procedure under [`.agents/commands/rvv-miniputt/`](.agents/commands/rvv-miniputt/) rather than keeping another copy in the harness adapter.
+- For RVV Miniputt scraping, calendar collection/recovery, season planning, canonical-season maintenance, pipeline operation/debugging, export, review, or publication, read [`.agents/skills/rvv/SKILL.md`](.agents/skills/rvv/SKILL.md).
+- For a supported RVV command workflow, load the matching shared procedure under [`.agents/commands/rvv-miniputt/`](.agents/commands/rvv-miniputt/) rather than keeping another copy in a harness adapter.
 - Before proposing or making architectural changes, read [`docs/engineering-principles.md`](docs/engineering-principles.md), [`docs/system-architecture.md`](docs/system-architecture.md), and [`docs/README.md`](docs/README.md).
 - Use the focused active document linked from `docs/README.md` for task-specific contracts such as workbook/input formats or pipeline behavior.
 
@@ -27,20 +27,21 @@ If an active document contradicts current code or the controlled workbook, fix t
 
 ## RVV Miniputt command surface
 
-`.agents/skills/rvv/SKILL.md` owns shared RVV policy. Harness command files are deliberately thin adapters and must not copy Stage 1–4 policy, source-validity rules, scheduling semantics, or publication policy.
+`.agents/skills/rvv/SKILL.md` owns shared RVV policy. `.agents/commands/rvv-miniputt/` owns shared command procedures. Claude, Codex, ChatGPT, Pi and future agent harnesses should consume the same files and execute the same repository-local command transport.
 
-The normal operator surface is the active harness:
+The canonical launcher for agent operation is:
 
-- In Pi, `/rvv-miniputt ...` is provided by the RVV Pi extension and should be executed directly there. Pi slash commands are not shell binaries.
-- In Claude, Codex, ChatGPT, and other non-Pi harnesses, use the harness adapter/shared procedure rather than inventing a new CLI flow.
+```bash
+scripts/rvv-miniputt ...
+```
 
-All harnesses ultimately target the same Python command transport: `tournament_scheduler.cli.rvv_cli`.
-
-- Pi invokes it through `.pi/lib/repo-cli.ts`.
-- Non-Pi shared procedures invoke it through `scripts/rvv-miniputt`, which only selects the repository virtualenv and forwards arguments.
-- `python3 -m tournament_scheduler.cli.rvv_cli ...` is a low-level developer/test fallback, not a separate operator interface.
+It selects the repository environment and forwards to `tournament_scheduler.cli.rvv_cli`. The installed `rvv-miniputt` console script and `python3 -m tournament_scheduler.cli.rvv_cli ...` target the same Python transport; the latter is a low-level developer/test fallback rather than a separate operator interface.
 
 For the checkpoint-reviewed agent flow, use the shared `run` procedure, which calls `scripts/rvv-miniputt run --interactive`, and make decisions only from the returned `DecisionContext`, its `available_actions`, action parameter schema, and decision-action template.
+
+The active harness itself should reason over the returned context. Do not add a harness-local second model call, duplicated decision controller, scheduler loop, semantic-audit implementation, or source-validity policy.
+
+If browser-assisted source recovery is ever needed, any browser-capable harness may perform only the browser/navigation extraction and then return the recovered evidence through the repository-owned `recovery-inject` / `scrape-merge` validation path. No harness-specific scraper implementation is required in this repository.
 
 Do not invoke `tournament_scheduler.pipeline.stageN_*` modules directly from a harness when that bypasses checkpointing, resumption, structured decisions, verification, or run logging. Do not add another root scheduler CLI, interactive wizard, or harness-local orchestration implementation.
 
@@ -48,7 +49,7 @@ Do not invoke `tournament_scheduler.pipeline.stageN_*` modules directly from a h
 
 When changing scheduling behavior, input semantics, source validity, export content, or publication rules, update the smallest active document that owns that behavior in the same change.
 
-Shared behavior needed by more than one harness belongs in repository/application code or the shared RVV runbook first. Harness adapters should only expose that capability.
+Shared behavior needed by more than one harness belongs in repository/application code or the shared RVV runbook first. Harness adapters should only expose transport/UI that is genuinely unavailable through the shared command surface.
 
 ### Direct cleanup vs tracked feature work
 

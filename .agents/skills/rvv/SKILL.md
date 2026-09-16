@@ -5,127 +5,66 @@ description: Canonical shared runbook for RVV Miniputt season planning, canonica
 
 # RVV Miniputt shared runbook
 
-This is the canonical agent-facing operating policy for the RVV Miniputt repository.
+This is the canonical agent-facing operating policy for RVV Miniputt. It is harness-neutral: Claude, Codex, ChatGPT, Pi and future agent harnesses should all consume this same policy and the shared procedures under `.agents/commands/rvv-miniputt/`.
 
-Use repository code for facts, hard constraints, validation, search/solver mechanics, persistence, export and publication safeguards. Use agent judgment only for contextual soft decisions among actions the repository exposes.
-
-There are two operating phases. **Before promotion**, create and review the season through the canonical Stage 1–4 pipeline and inspect each checkpoint (`stage1_config.json`, `stage2_scraping.json`, `stage3_planning.json`, `stage4_export.json`) before continuing. **After promotion**, `season/<season>/schedule.json` plus `decisions.json` are the durable operational truth for club review/ice booking; use canonical `season` operations for approvals, targeted moves, bounded replanning and re-export rather than treating every change as a request to regenerate the season from scratch.
+Use repository code for facts, hard constraints, validation, search/solver mechanics, persistence, export and publication safeguards. Use the active agent only for contextual soft judgment among actions the repository exposes. Do not create a second harness-local scheduler, decision controller, audit judge, or scraper.
 
 Read `AGENTS.md` first for repository-wide precedence and hygiene rules.
 
-## Command boundary
+## Operating lifecycle
 
-Shared non-Pi command procedures live under `.agents/commands/rvv-miniputt/`. Claude, Codex, ChatGPT, and future harness adapters should load the matching shared procedure and add only harness-specific metadata/transport/UI behavior. Do not copy command procedure text or RVV policy into every harness.
+There are two operating phases.
 
-### Pi
+### 1. Initial season creation
 
-Pi provides the RVV-specific `/rvv-miniputt ...` command/tool integration. Use the Pi command directly there; it is not a shell binary.
-
-Agent-callable tools mirror the slash commands 1:1:
-
-| Tool | Equivalent slash command |
-|---|---|
-| `rvv_miniputt_run` | `/rvv-miniputt run` |
-| `rvv_miniputt_season` | `/rvv-miniputt season` |
-| `rvv_miniputt_publish` | `/rvv-miniputt publish` |
-| `rvv_miniputt_status` | `/rvv-miniputt status` |
-| `rvv_miniputt_logs` | `/rvv-miniputt logs` |
-| `rvv_miniputt_calendars` | `/rvv-miniputt calendars` |
-| `rvv_miniputt_scrape` | `/rvv-miniputt scrape` |
-| `rvv_miniputt_scrape_llm` | `/rvv-miniputt scrape-llm` |
-
-Use `rvv_miniputt_season` for the promoted canonical-season lifecycle (promote/status/approvals/approve/unapprove/move/replan/diff/apply/export). Use `rvv_miniputt_scrape` for single-club troubleshooting and `rvv_miniputt_scrape_llm` (backed by a Playwright worker) for blocked SPA/calendar sources.
-
-Pi's `/rvv-miniputt run` / `rvv_miniputt_run` adapter runs the semantic safety-net audit automatically after a successful Stage 4 export by reading the repository `operator audit-context`, asking the active Pi model for the harness judgment, and persisting the verdict through `operator audit-submit`. Pi's publish adapter runs the same audit before invoking `operator publish --confirm-public`; it must not use the headless `operator audit-run` path while `PI_SESSION_ID` is active.
-
-### Non-Pi / cross-harness usage
-
-Use the repository-local entrypoints instead of Pi slash commands:
-
-```bash
-scripts/rvv-miniputt ...
-python3 -m tournament_scheduler.cli.rvv_cli ...
-```
-
-Human-friendly operation is exposed through `make help` and the Makefile.
-
-Harness adapters may add UI/browser/progress integration but must not redefine shared pipeline policy. For supported non-Pi command workflows, load the corresponding `.agents/commands/rvv-miniputt/<command>.md` procedure instead of duplicating it in the harness directory. Canonical promoted-season maintenance uses `.agents/commands/rvv-miniputt/season.md`.
-
-A plain terminal/CI session cannot drive a browser for `scrape-llm --club <name>`. When that source needs LLM-guided recovery and no browser-enabled harness is available, use `scripts/rvv-miniputt recovery-targets` to list blocked sources, recover the events out-of-band, then `python3 -m tournament_scheduler.cli.rvv_cli recovery-inject --source "<name>"` (or `scripts/rvv-miniputt scrape-merge` to rebuild the Stage 2 checkpoint from recovered cache data) to rehydrate the cache through the same validation/merge path as any other source.
-
-### Pi-only boundary
-
-The following remain Pi-specific and have no cross-harness equivalent:
-
-- `/rvv-miniputt ...` slash-command dispatch itself;
-- `rvv_miniputt_*` agent-callable tool registration;
-- `/rvv-miniputt guide` interactive wizard UX;
-- live Pi notifications/status updates during a run.
-
-## Normal operation
-
-### Initial season creation
-
-For a human/operator goal-oriented run:
-
-```bash
-make operator-run
-make status
-make logs
-```
-
-For checkpoint-reviewed agent operation:
+Create and review the season through the canonical Stage 1–4 pipeline. For checkpoint-reviewed agent operation:
 
 ```bash
 scripts/rvv-miniputt run --interactive --input input.xlsx
 ```
 
-Do not call individual `stageN_*` modules when doing so bypasses the normal checkpoint/decision/verification path.
+Inspect the repository-owned `DecisionContext` after each pause and continue only through declared actions. Stage checkpoints under `.pipeline/` are transient run state.
 
-When the verified schedule is deliberately accepted as the operational baseline for club review/ice booking, promote it explicitly through the shared `season` procedure. Do not make promotion an automatic side effect of an ordinary planner run.
+When a verified schedule is deliberately accepted as the operational baseline for club review/ice booking, promote it explicitly through the shared `season` procedure. Promotion is not an automatic side effect of an ordinary planner run.
 
-### Promoted-season maintenance
+### 2. Promoted-season maintenance
 
-Once `season/<season>/schedule.json` exists, normal operational work should use canonical season state:
+After promotion, `season/<season>/schedule.json` plus `season/<season>/decisions.json` are the durable operational truth. Use canonical `season` operations for approvals, targeted moves, bounded replanning and re-export rather than regenerating the season from scratch:
 
 ```bash
-scripts/rvv-miniputt season status --season <season>
-scripts/rvv-miniputt season approvals --season <season>
-scripts/rvv-miniputt season approve --season <season> --tournament-id <id> --note "ice booked"
-scripts/rvv-miniputt season unapprove --season <season> --tournament-id <id> --note "change requested"
-scripts/rvv-miniputt season move --season <season> --tournament-id <id> --date YYYY-MM-DD
-scripts/rvv-miniputt season replan --season <season> --iterations <n>
-scripts/rvv-miniputt season diff --season <season> --candidate <candidate.json>
-scripts/rvv-miniputt season apply --season <season> --candidate <candidate.json>
-scripts/rvv-miniputt season export --season <season>
+scripts/rvv-miniputt season status --season 2026-2027
+scripts/rvv-miniputt season approvals --season 2026-2027
+scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
+scripts/rvv-miniputt season unapprove --season 2026-2027 --tournament-id <id> --note "booking changed"
+scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
+scripts/rvv-miniputt season replan --season 2026-2027 --iterations 4000
+scripts/rvv-miniputt season diff --season 2026-2027 --candidate <candidate.json>
+scripts/rvv-miniputt season apply --season 2026-2027 --candidate <candidate.json>
+scripts/rvv-miniputt season export --season 2026-2027
 ```
 
-Typical lifecycle:
+Never hand-edit canonical season JSON to work around a lock or verifier.
 
-```text
-initial Stage 1–4 run
-  -> audit/review
-  -> explicit season promote
-  -> club confirms ice: approve/lock
-  -> club requests change: unapprove -> move -> reapprove when confirmed
-  -> broader unresolved problem: baseline-aware replan -> diff -> verified apply
-  -> season export
-  -> semantic audit
-  -> publish
+## Command boundary
+
+Shared procedures live under `.agents/commands/rvv-miniputt/` and are used by every harness. The repository-local transport is:
+
+```bash
+scripts/rvv-miniputt ...
 ```
 
-Do not hand-edit canonical JSON, checkpoints or generated artifacts. After canonical schedule **or decision state** changes, regenerate with `season export` before audit/publication so the reviewed/published bundle represents the intended current canonical state.
+Harness adapters may add genuinely necessary UI/transport integration, but must not redefine shared pipeline policy or create an independent reasoning loop. The active harness itself should read the shared procedure, inspect repository output, choose a declared action and invoke the next canonical command.
 
 ## Inputs
 
-The four-stage season planner uses:
+The four-stage planner uses:
 
 - root `input.xlsx` as the controlled planner workbook;
 - reviewed registration exports only through the controlled import path when `Lag` needs rebuilding;
 - external calendar/source evidence collected in Stage 2;
-- local browser/session access only when a configured source requires interactive recovery.
+- browser/session access only when a configured source genuinely requires interactive recovery.
 
-`Årshjul for aktiviteter.xlsx` and the public registered-team CSV workflow are related repository workflows but are not Stage 1–4 planner policy inputs.
+`Årshjul for aktiviteter.xlsx` and the public registered-team workflow are related repository workflows but are not Stage 1–4 planner policy inputs.
 
 See `docs/rvv-miniputt-input-formats.md` for the workbook contract.
 
@@ -138,8 +77,8 @@ Repository code validates and normalizes the controlled workbook.
 Agent policy:
 
 - do not invent missing teams, clubs, age groups or settings;
-- treat invalid/reversed season windows and invalid identities as input problems to fix, not as soft preferences;
-- when Stage 1 returns an explicit decision context, choose only from its available actions.
+- treat invalid/reversed season windows and invalid identities as input problems, not soft preferences;
+- choose only from actions declared by the returned context.
 
 ### Stage 2 — source/calendar evidence
 
@@ -148,9 +87,10 @@ Repository code owns extraction results, cache/provenance, source status and val
 Agent policy:
 
 - inspect blocked, empty and suspiciously sparse sources before trusting the plan;
-- prefer a bounded recovery/retry action when the context exposes one;
-- browser-assisted recovery is investigation/extraction only—the recovered result must return through repository validation/merge before it is trusted;
-- do not declare a source healthy merely because a request technically succeeded.
+- prefer bounded recovery/retry actions exposed by the repository;
+- do not declare a source healthy merely because a request technically succeeded;
+- browser-assisted recovery is optional and harness-neutral. If needed, perform only browser/navigation extraction and return recovered data through the canonical `recovery-inject` + `scrape-merge` path described in `.agents/commands/rvv-miniputt/scrape-llm.md`;
+- do not maintain a dedicated browser scraper inside a harness adapter.
 
 Useful commands:
 
@@ -158,37 +98,31 @@ Useful commands:
 make sources-status
 make calendars
 scripts/rvv-miniputt scrape --club <name>
-scripts/rvv-miniputt scrape-llm --club <name>
 scripts/rvv-miniputt recovery-targets
 ```
 
 ### Stage 3 — planning
 
-Repository code owns:
-
-- normalized planning problem;
-- hard constraints;
-- candidate schema;
-- solver/search primitives;
-- deterministic candidate verification;
-- reproducible quality metrics.
+Repository code owns the normalized planning problem, hard constraints, candidate schema, solver/search primitives, deterministic verification and reproducible metrics.
 
 Agent policy:
 
 - never accept a candidate with hard verification failures;
-- use available optimize/refine/apply/keep/request actions rather than hand-editing the complete season plan in prose;
-- compare candidates using the returned metrics/findings, not intuition alone;
-- prefer Pareto/multi-objective evidence when several valid trade-offs exist instead of pretending one global score is absolute policy;
-- do not turn a one-run preference into a new hard rule. If RVV wants a preference to become mandatory, implement/test it explicitly in deterministic code/configuration.
+- use exposed optimize/refine/apply/keep/request actions rather than editing the season plan in prose;
+- compare candidates using returned metrics/findings rather than intuition alone;
+- prefer Pareto/multi-objective evidence when several valid trade-offs exist;
+- do not turn a one-run preference into a new hard rule. If RVV wants a preference to become mandatory, implement/test it in deterministic code/configuration.
 
-Typical soft dimensions include participation balance, hosting distribution, temporal spacing, opponent diversity/repetition, travel and source uncertainty. The repository measures them; the agent decides contextual priority only when no hard rule decides the outcome.
+Typical soft dimensions include participation balance, hosting distribution, temporal spacing, opponent diversity/repetition, travel and source uncertainty.
 
-Once a season has been promoted to canonical state (`season/<season>/`), planning is baseline-aware by default — a normal Stage 3 run resolves the canonical files for its planning window (independent of `.pipeline`) and adopts the published schedule as its baseline, preserving durable IDs and placements instead of regenerating a season. Do not ask for a from-scratch season or hand-edit canonical files to work around a lock:
+Once a season has been promoted, Stage 3 is baseline-aware by default. A normal planning run whose window matches canonical state adopts that schedule as its baseline instead of regenerating it:
 
-- approved/placement-locked tournaments are hard-preserve constraints — a candidate that moves or drops one fails verification with `canonical_placement_locked`/`canonical_participants_locked`/`canonical_locked_tournament_missing`, and the search will not even propose moving one;
-- unapproved tournaments stay optimizable, but weighted change cost is folded into the search objective, so prefer the smallest change that resolves the problem;
-- use `season replan` to search around the canonical baseline, `season diff` to see the weighted change cost before committing, and `season apply` to persist a verified candidate atomically. A rejected candidate must leave `schedule.json`/`decisions.json` unchanged;
-- approval/lock state lives in `decisions.json`, separate from schedule facts. `season approve` re-verifies the current placement (approval is never a waiver of hard rules), `season unapprove` restores editability, and `season approvals` lists status. An approval whose protected-fields fingerprint changed is a deterministic `stale_approval` (its lock is dropped and it must be explicitly reapproved) — never silently still "approved".
+- approved/placement-locked tournaments are hard-preserve constraints;
+- unapproved tournaments remain optimizable, but weighted change cost is part of the search objective so prefer the smallest justified change;
+- use `season replan` around the canonical baseline, inspect `season diff`, and persist only through verified `season apply`;
+- a rejected candidate must leave `schedule.json` and `decisions.json` unchanged.
+
+Approval/lock state lives in `decisions.json`, separate from schedule facts. `season approve` re-verifies the current placement; approval is never a waiver of hard rules. `season unapprove` restores editability. `season approvals` lists status. If protected scheduling facts change, the stored fingerprint becomes a deterministic `stale_approval`, its lock is dropped, and explicit reapproval is required.
 
 ### Stage 4 — export/review
 
@@ -198,22 +132,71 @@ Agent policy:
 
 - hard verification failure blocks export/publication;
 - review manual arena/hosting/calendar follow-up separately from plan-quality warnings;
-- generated output is derived data: correct input/config/code/canonical season state and regenerate rather than permanently patching HTML/CSV/Excel/iCal;
+- generated output is derived data: correct source/config/code/canonical state and regenerate rather than permanently patching HTML/CSV/Excel/iCal;
 - use the Stage 4 `output_files` map to know what the run actually produced;
-- when exporting from canonical season state, ensure the export identifies the intended canonical season revision/fingerprint and regenerate after later canonical schedule/decision changes;
-- after export, before publication, a harness-led semantic safety-net audit must run and
-  produce PASS/REVIEW_REQUIRED/FAIL against the operator checklist below; publication is
-  gated on it (see "Semantic safety-net audit" and "Publication").
+- after canonical season state changes through move/apply/approve/unapprove, regenerate the exact current projection with `season export` before audit/publication.
 
-Common outputs include the season-plan HTML/report, optional manual follow-up view, calendar/input views, Excel/CSV/iCal downloads, Spond workbooks and per-club review packets.
+## Stage gating policy
 
-## Semantic safety-net audit (post-export, pre-publication)
+The repository's `DecisionContext` is authoritative. A hard violation always blocks `proceed`.
 
-This is the canonical policy source for the harness-led semantic safety-net audit — the independent, adversarial review an agent or the headless judge (`tournament_scheduler.llm_judge.audit`) performs after every Stage 4 export and before publication. Interactive harnesses and the headless path must use this checklist rather than defining their own criteria; harness adapters must not redefine or duplicate it.
+### Stage 1
 
-Deterministic verification can only catch defects already encoded as rules. This audit's purpose is to catch the ones that aren't: simulate a careful human review of the exported season plan, assume the scheduler and its deterministic verifier may share a logic defect, or may simply be missing a rule, and look for inconsistent output, suspicious operational patterns, likely planner/export bugs, and concrete candidates for new planner rules. Do not conclude the schedule is correct merely because deterministic verification passed. Reconstruct important facts from the export, cross-check outputs against each other, inspect patterns across the whole season, look for counterexamples and suspicious outliers, and explain anything that does not make operational sense.
+- `proceed` when at least one calendar source is configured and the date range is a realistic hockey season window;
+- `abort` when no sources are configured or the date range is clearly wrong.
 
-Operator checklist (answer every item; item 9 is open-ended and the most important):
+### Stage 2
+
+- `proceed` when enough configured sources have usable evidence for meaningful planning;
+- prefer repository-exposed retry/recovery actions for suspicious blocked sources;
+- `abort` when missing/blocked source evidence makes planning meaningless.
+
+### Stage 3
+
+- `proceed` when the plan is structurally plausible and hard-valid;
+- `abort` when the plan is empty/obviously wrong because of upstream/configuration failure;
+- planning-quality tradeoffs remain contextual soft judgment once hard validity is satisfied.
+
+Do not introduce a fixed threshold or magic weight in the runbook to solve a one-off tradeoff.
+
+## Structured decision protocol
+
+`run --interactive` returns a `DecisionContext` containing facts, hard violations, warnings, metrics, available actions and argument/template information.
+
+For each pause:
+
+1. read the current context;
+2. if a hard violation exists, do not bypass it;
+3. choose exactly one returned available action;
+4. use only the action's declared argument shape;
+5. submit a concise operational rationale;
+6. invoke the next canonical command and reassess the new context.
+
+Use `.agents/commands/rvv-miniputt/run.md` for the explicit resume contract. Do not infer `--resume-from` from intuition. Do not persist or request hidden/private reasoning; durable records need only the action, relevant facts/outcome and concise rationale.
+
+## Semantic safety-net audit
+
+After every Stage 4/canonical export and before publication, an interactive harness must perform the semantic safety-net audit itself using the active conversation/model. Do not implement a second harness-local model call or audit engine.
+
+Start with the bounded overview:
+
+```bash
+scripts/rvv-miniputt operator audit-context
+```
+
+The default context contains counts, distributions, worst/top-N examples, fingerprints and an evidence index, not the whole evidence universe. Pull exact detail only where needed through the canonical query capability:
+
+```bash
+scripts/rvv-miniputt operator audit-evidence --item 2
+scripts/rvv-miniputt operator audit-evidence --tournament <durable-id>
+scripts/rvv-miniputt operator audit-evidence --club Kongsberg
+scripts/rvv-miniputt operator audit-evidence --category participation_shortfalls
+scripts/rvv-miniputt operator audit-evidence --unresolved
+```
+
+Query results are bound to the same run/export fingerprint as the overview. Never combine stale evidence from another export.
+
+Audit checklist:
 
 1. Antall cuper pr lag?
 2. Antall hjemmeturneringer pr lag?
@@ -225,113 +208,33 @@ Operator checklist (answer every item; item 9 is open-ended and the most importa
 8. Er eksportformatene konsistente?
 9. Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?
 
-Execution model: when an interactive harness (Claude Code/Pi) is driving the run, the harness itself performs this audit in-session by reading `operator audit-context` output and reasoning adversarially against the checklist and evidence, then submitting its verdict via `operator audit-submit`. Pi's project adapter performs this automatically after each successful `/rvv-miniputt run` export and before `/rvv-miniputt publish`. When no interactive harness is active (`RVV_HARNESS`, `CLAUDE_CODE_SESSION_ID`, and `PI_SESSION_ID` all unset), the headless path (`operator audit-run --backend <name>`, cron/CI) calls a real LLM judge backend automatically instead.
+Submit the harness verdict through `operator audit-submit`. When no interactive harness is active, the documented headless `operator audit-run --backend <name>` path may call an LLM backend instead.
 
-Bounded context + selective evidence: `operator audit-context` never dumps the whole persisted evidence bundle. It returns a small, size-bounded overview of counts, distributions, worst/top-N examples and fingerprints, plus an `evidence_index` that advertises which detailed queries exist. Pull exact supporting evidence only where a suspicious area needs it, through the one repository-owned query capability (same command from every harness — never parse the raw artifacts yourself):
-
-```bash
-operator audit-evidence --item 2
-operator audit-evidence --tournament <durable-id>
-operator audit-evidence --club Kongsberg
-operator audit-evidence --category participation_shortfalls
-operator audit-evidence --unresolved
-```
-
-Query results are bound to the same run/export fingerprint as the overview they were advertised in, so stale evidence from another run/export is never silently mixed in. If `evidence_bundle.json` is present, it stays a persisted run artifact for the query capability to read — it is not part of the default context payload.
-
-Non-goals: this audit must not reimplement deterministic rule logic, must not become a second Python rules engine, must not duplicate SeasonPlanner policy, and must not perform fresh live calendar scraping — it cross-checks the *persisted* evidence bundle and source summary only.
-
-A harness `FAIL` or `REVIEW_REQUIRED` can occur even when deterministic checks all pass — that is the intended purpose of the audit. It can never override a deterministic hard `FAIL`. An incomplete or failed audit run is never equivalent to `PASS`.
-
-## Stage gating policy (soft judgment)
-
-This is the canonical soft-policy source for the proceed/abort decision an agent or the headless judge (`tournament_scheduler.llm_judge`) makes after each stage (see ADR 0002 — `docs/adr/0002-llm-directed-decision-ownership-and-thin-adapters.md`). Interactive harnesses and the headless judge path must use this policy rather than defining their own criteria. A hard violation in the `DecisionContext` always blocks `proceed`, regardless of this policy.
-
-### Stage 1 — Configuration
-
-- `proceed` when at least one calendar source is configured and the date range is a realistic hockey season window;
-- `abort` when no sources are configured, or the date range is clearly wrong (e.g. zero-length, reversed, or outside a plausible season).
-
-### Stage 2 — Scraping
-
-- `proceed` when most configured sources were scraped successfully;
-- `abort` when so many sources are blocked or empty that planning would be meaningless — as a starting heuristic, fewer than half the sources have usable data. Prefer `recover_source`/`retry_stage` over an outright `abort` when a blocked source looks recoverable before concluding the run cannot continue.
-
-### Stage 3 — Planning
-
-- `proceed` when the draft plan contains at least a handful of tournaments covering the configured clubs/age groups;
-- `abort` when the plan is empty or clearly wrong (e.g. zero tournaments planned despite configured sources/registrations) — that usually indicates a configuration or upstream data error, not a planning-quality judgment call.
-
-Planning-quality tradeoffs (which warning to address first, whether a small regression is worth a larger gain, whether to keep the baseline) are the agent's soft judgment to make once past this proceed/abort gate. Do not encode a new fixed threshold or magic weight here to answer one of those tradeoffs; expose the underlying facts/metrics instead.
-
-## Structured decision protocol
-
-`run --interactive` returns a `DecisionContext` with facts, hard violations, warnings, metrics (when relevant), available actions and action argument/template information.
-
-For each pause:
-
-1. read the current context;
-2. if a hard violation exists, do not bypass it;
-3. choose exactly one returned available action;
-4. use only the action's declared argument shape;
-5. submit a concise operational rationale;
-6. run the next canonical command and reassess the new context.
-
-Do not persist or request hidden/private reasoning. The durable record only needs the action, relevant facts/outcome and concise rationale.
+A harness `FAIL` or `REVIEW_REQUIRED` may occur even when deterministic checks pass. It can never override a deterministic hard `FAIL`; an incomplete audit is never `PASS`.
 
 ## Operator waivers for hard planning rules
 
-A hard planning rule has two distinct meanings that must not be conflated:
+Structural invariants such as corrupt serialization, invalid tournament identity or malformed data are never waivable. Explicitly classified hard planning rules may only be waived by an authorized operator for a precise scope.
 
-- **structural invariants** (unknown team ids, corrupt/inconsistent
-  serialization, invalid tournament identity, malformed data) are never
-  waivable by anyone, including an operator;
-- **hard planning rules** (for example a participation maximum) may never be
-  crossed autonomously by the planner/optimizer/agent, but an authorized
-  operator may explicitly waive one for a precise scope.
-
-The planner/optimizer/agent may *suggest* an operator waiver, but may never
-create, broaden or silently infer one: there is no decision action that does
-this, and no agent path writes the waiver store. Only an explicit operator
-action authorizes an exception. Without a matching active waiver, hard
-verification behavior is unchanged.
-
-Canonical operator capability (same CLI from every harness):
+The planner/optimizer/agent may suggest a waiver, but may never create, broaden or silently infer one. Canonical operator capability:
 
 ```bash
 scripts/rvv-miniputt waiver list [--all]
 scripts/rvv-miniputt waiver create --rule participation_target_exceeded \
   --club "Frisk Asker" --team "Frisk Asker 4" --age-group U11 \
-  --tournament e7276974 --half before_christmas \
-  --allowed-value 6 --reason "operator chose Frisk Asker 4 for host placement"
+  --tournament <id> --half before_christmas \
+  --allowed-value 6 --reason "operator-approved exception"
 scripts/rvv-miniputt waiver revoke <waiver-id> --reason "withdrawn"
 ```
 
-Rules:
-
-- a waiver is tied to its exact scope (rule, team identity, half, tournament,
-  configured target, accepted actual); if the team/tournament/date/value
-  changes outside that scope it stops matching and the normal hard failure
-  returns -- never re-create it silently;
-- an operator-waived violation is reported as waived (not silently dropped)
-  and downgrades publication readiness to `REVIEW_REQUIRED`, so a plan that
-  only passes because of an exception is never indistinguishable from a
-  clean pass;
-- do not use `--non-strict` or a global participation-cap change as a
-  substitute for an operator waiver;
-- only explicitly classified waivable rules are accepted. Structural
-  invariants remain blocking for everyone.
-
-When the plan currently violates a hard rule with no matching waiver, use the
-normal `request_operator` action to ask the operator whether to author one;
-do not hand-edit checkpoints.
+A matching waiver is narrowly scoped and becomes invalid when relevant tournament/team/date/value facts leave that scope. Waived violations remain visible and downgrade publication readiness; do not use `--non-strict` or global cap changes as substitutes.
 
 ## Human escalation
 
-Escalate when the repository explicitly requires human authority or information, for example:
+Escalate when the repository actually requires human authority/information, for example:
 
 - a real policy exception/change;
-- an interactive access step that cannot be completed by the active environment;
+- credentials/MFA or an unavailable interactive access step;
 - an impossible hard-constraint situation requiring organizer action;
 - public publication or rollback approval.
 
@@ -347,11 +250,9 @@ make operator-run
 
 ## Publication
 
-Planning/export does not imply publication.
+Planning/export does not imply publication. The export being published must represent the current canonical revision. If canonical schedule/decision state changed since the current export, run `season export` first and perform a fresh semantic audit.
 
-For a promoted canonical season, publication must follow the current canonical projection. If canonical schedule or decision state changed after the current export, run `scripts/rvv-miniputt season export --season <season>` first; audit and publish that fresh projection rather than knowingly publishing an older Stage 4 bundle.
-
-Use:
+Useful commands:
 
 ```bash
 make audit-context
@@ -363,11 +264,7 @@ make publish CONFIRM_PUBLIC=1
 make verify-publish
 ```
 
-`make publish` refuses without a fresh `PASS` (or an operator-approved `REVIEW_REQUIRED`) semantic audit result for the current export — see "Semantic safety-net audit" above.
-
-Publication creates a separate allowlisted public bundle. Review packets and Spond exports are private/review artifacts by default and should not be assumed public.
-
-Rollback is also explicit:
+Publication creates a separate allowlisted public bundle. Review packets and Spond exports are private/review artifacts by default. Rollback is explicit:
 
 ```bash
 make publish-history
@@ -383,15 +280,15 @@ make aktivitetskalender
 make registered-teams CSV=<reviewed-registration-export.csv>
 ```
 
-Their publishing variants use the same explicit Pages publication machinery but are not Stage 1–4 planner stages.
+Their publishing variants use the same publication machinery but are not Stage 1–4 planner stages.
 
 ## Documentation ownership
 
-Use these rather than creating new overlapping notes:
+Use these rather than creating overlapping notes:
 
 - `README.md` — what the system does, inputs/outputs, normal operation;
 - `docs/system-architecture.md` — current end-to-end boundaries;
-- `docs/rvv-miniputt-pipeline.md` — Stage 1–4 workflow plus canonical season lifecycle;
+- `docs/rvv-miniputt-pipeline.md` — Stage 1–4 and canonical-season workflow;
 - `docs/rvv-miniputt-input-formats.md` — workbook/input contract;
 - `docs/adr/` — durable architectural rationale;
 - GitHub issues — unfinished implementation work.

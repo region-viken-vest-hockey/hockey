@@ -4,13 +4,12 @@ Use this only after deterministic Stage 2 scraping identifies a source that need
 
 ## Harness boundary
 
-`scrape-llm` is a **browser-capability workflow**, not a second scheduler CLI implementation.
+`scrape-llm` is a **browser-capability workflow**, not a harness-specific scheduler or scraper implementation.
 
-- **Pi:** use `/rvv-miniputt scrape-llm` / `rvv_miniputt_scrape_llm`. Pi owns the browser interaction and active-model transport.
-- **Other browser-enabled harnesses:** perform only the browser/navigation work in the harness.
-- **Terminal/CI without browser control:** do not pretend the repository CLI can drive the browser. Use the recovery handoff described below.
+- **Browser-enabled harness:** perform only the browser/navigation work needed to recover the source data.
+- **Harness without browser control / terminal / CI:** do not pretend the repository CLI can drive a browser. Use an external browser-capable session and the recovery handoff below.
 
-The Python `rvv-miniputt scrape-llm` command may be used for capability/strategy diagnostics, but it intentionally does not implement browser automation itself.
+The Python `rvv-miniputt scrape-llm` command may be used for capability/strategy diagnostics, but it intentionally does not implement browser automation itself. Do not add a dedicated Pi/Claude/Codex/ChatGPT scraper to this repository.
 
 ## Canonical recovery handoff
 
