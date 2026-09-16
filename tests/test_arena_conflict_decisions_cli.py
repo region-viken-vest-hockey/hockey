@@ -41,6 +41,15 @@ def _candidate_with_collision():
     }
 
 
+def _candidate_with_unmappable_same_side_collision():
+    return {
+        "tournaments": [
+            _tournament("same-side-1", "U11", "Jar Isforum", "2026-11-07", "09:00"),
+            _tournament("same-side-2", "U11", "Jar Isforum", "2026-11-07", "09:15"),
+        ]
+    }
+
+
 class TestCollisionFacts:
     def test_detects_the_overlap(self):
         candidate = _candidate_with_collision()
@@ -175,6 +184,31 @@ class TestResolveArenaConflictDecisionsPauseAndResume:
         assert loser["manual_booking_reason"]
         assert winner["start_time"] == "09:00"
         assert collision_key(facts) == record["key"]
+
+    def test_unmappable_recorded_key_does_not_suppress_still_real_collision(self, tmp_path, capsys):
+        import json
+
+        from tournament_scheduler.arena_conflict_decision import arena_conflict_decision_record
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _current_run_id
+
+        state = PipelineState(tmp_path)
+        run_id = _current_run_id(state)
+        candidate = _candidate_with_unmappable_same_side_collision()
+        facts = _collision_facts(candidate, ICE_TIME)[0]
+        record = arena_conflict_decision_record(facts, "same-side-1", "same-side-2", "ambiguous same-side pair")
+        assert record["keep_side"] == record["manual_side"]
+        (tmp_path / "arena_conflict_decision_state.json").write_text(
+            json.dumps({"run_id": run_id, "decisions": [record], "unresolved": []}), encoding="utf-8"
+        )
+
+        pause_code = _resolve_arena_conflict_decisions(
+            state, {"plan": candidate}, ICE_TIME, lambda msg: None, interactive=True
+        )
+
+        assert pause_code == 2
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["capability"] == "arena_conflict_resolution"
+        assert _collision_facts(candidate, ICE_TIME)
 
     def test_stage3_emit_persists_recorded_arena_decision_before_stage4(self, tmp_path, monkeypatch, capsys):
         import json

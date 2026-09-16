@@ -147,7 +147,8 @@ def _resolve_arena_conflict_decisions(
     saved = _read_arena_conflict_state(state, expected_run_id=run_id)
     decisions = list(saved.get("decisions") or [])
     unresolved = list(saved.get("unresolved") or [])
-    resolved_keys = {d.get("key") for d in decisions} | {u.get("key") for u in unresolved}
+    unresolved_keys = {u.get("key") for u in unresolved}
+    applied_decision_keys: set[Any] = set()
 
     # Apply every already-resolved collision to *this* candidate first --
     # Stage 3 rebuilds tournaments with fresh ids/collisions every
@@ -172,9 +173,12 @@ def _resolve_arena_conflict_decisions(
             # Stable key matched but the recorded roles don't map cleanly
             # onto this rebuild's two sides (e.g. both sides share the same
             # age_group/host_club label) -- leave as a hard collision rather
-            # than guess which one the operator meant.
+            # than guess which one the operator meant. Importantly, do not
+            # mark this historical key as applied: a still-real collision must
+            # be surfaced again rather than hidden by its old record.
             continue
         _apply_arena_conflict_decision(candidate, keep, manual_id, str(record.get("rationale", "")))
+        applied_decision_keys.add(key)
 
     # Recompute after applying previous demotions. One manual placement can
     # remove several interval pairs involving the same tournament; do not ask
@@ -183,7 +187,8 @@ def _resolve_arena_conflict_decisions(
     facts_rows = _collision_facts(candidate, ice_time_for_age_group)
     for facts in facts_rows:
         facts["_key"] = collision_key(facts)
-    pending_rows = [f for f in facts_rows if f["_key"] not in resolved_keys]
+    suppressed_keys = applied_decision_keys | unresolved_keys
+    pending_rows = [f for f in facts_rows if f["_key"] not in suppressed_keys]
     if not pending_rows:
         _clear_arena_conflict_state(state)
         return None
