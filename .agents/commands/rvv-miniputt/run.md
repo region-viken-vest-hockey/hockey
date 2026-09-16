@@ -2,11 +2,15 @@
 
 Read `AGENTS.md` and `.agents/skills/rvv/SKILL.md` before operating the pipeline.
 
+Use this procedure for a genuine Stage 1–4 pipeline run: initial season creation, refreshed upstream input/calendar evidence, or another case where the full canonical pipeline is required. If the user's goal is instead to approve/unapprove, move, replan, diff/apply or re-export an already promoted canonical season, use `.agents/commands/rvv-miniputt/season.md` rather than treating ordinary club feedback as a request to regenerate the season.
+
 Use the canonical interactive repository command:
 
 ```bash
 scripts/rvv-miniputt run --interactive --input input.xlsx <user-args>
 ```
+
+When a matching canonical season already exists, Stage 3 is baseline-aware by default and adopts that durable schedule rather than regenerating the season from scratch.
 
 At each pause:
 
