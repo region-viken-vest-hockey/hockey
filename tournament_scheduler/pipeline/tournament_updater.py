@@ -542,9 +542,11 @@ class TournamentUpdater:
         # Determine parallel games.
         pg = parallel_games or self._infer_parallel_games_from_count(len(teams))
 
-        # Build the tournament.
-        import uuid
-        new_id = uuid.uuid4().hex[:8]
+        # Build the tournament. New logical tournaments receive a fresh opaque
+        # lifecycle ID; ordinary edits above keep the existing ID in place.
+        from tournament_scheduler.tournament_identity import allocate_tournament_id
+
+        new_id = allocate_tournament_id(t.id for t in plan.tournaments)
 
         # Reorder teams so the arena-owning club is first (correct home team).
         _home_club_new = _club_for_arena(arena) or resolved_host

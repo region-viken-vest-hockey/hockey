@@ -145,6 +145,7 @@ def _dict_to_plan(d: dict[str, Any]) -> SeasonPlan:
             "age_group": t_dict.get("age_group", ""),
             "teams": teams,
             "games": games,
+            "derived_from": list(t_dict.get("derived_from", []) or []),
             "host_club": t_dict.get("host_club"),
             "cancelled": bool(t_dict.get("cancelled", False)),
             "cancellation_reason": t_dict.get("cancellation_reason"),

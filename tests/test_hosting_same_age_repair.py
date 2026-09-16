@@ -144,7 +144,7 @@ class TestAttemptSameAgeRepairs:
         assert new_tournament.host_club == "Kongsberg"
         assert new_tournament.age_group == "U10"
         assert {t.club for t in new_tournament.teams} == {"Kongsberg", "Jar"}
-        assert not any(t.id == "t1" for t in plan.tournaments)
+        assert any(t.id == "t1" for t in plan.tournaments)
 
         coverage_teams = [{"club": t.club, "age_group": t.age_group} for t in planner.roster.teams]
         coverage_tournaments = [

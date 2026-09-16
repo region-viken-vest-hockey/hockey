@@ -41,6 +41,8 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
             "games": [_game_to_dict(g) for g in t.games],
             "start_time": t.start_time,
         }
+        if t.derived_from:
+            d["derived_from"] = list(t.derived_from)
         if t.cancelled:
             d["cancelled"] = True
             d["cancellation_reason"] = t.cancellation_reason
@@ -54,6 +56,9 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
 
     # Compute per-team tournament participation counts from the tournament list
     participations: dict[str, int] = {}
+    known_tournament_ids = {t.id for t in plan.tournaments if t.id}
+    for t in plan.tournaments:
+        known_tournament_ids.update(t.derived_from or [])
     for t in plan.tournaments:
         for team in t.teams:
             participations[team.label] = participations.get(team.label, 0) + 1
@@ -89,6 +94,7 @@ def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
         "operator_waivers": list(plan.operator_waivers),
         "operator_waived_violations": list(plan.operator_waived_violations),
         "tournaments": [_tournament_to_dict(t) for t in plan.tournaments],
+        "identity_registry": {"known_tournament_ids": sorted(known_tournament_ids)},
     }
     if plan.manual_adjustments:
         checkpoint["manual_adjustments"] = plan.manual_adjustments
@@ -378,6 +384,7 @@ def _tournament_from_dict(data: dict[str, Any]) -> Tournament:
     ]
     return Tournament(
         id=data.get("id", ""),
+        derived_from=list(data.get("derived_from", []) or []),
         date=date.fromisoformat(data["date"]),
         arena=data["arena"],
         age_group=data["age_group"],

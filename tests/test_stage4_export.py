@@ -58,6 +58,7 @@ def _file_hashes(root: Path) -> dict[str, str]:
 def _make_plan_dict():
     """Build a minimal but valid plan checkpoint dict."""
     t1 = {
+        "id": "rvv-0001",
         "date": "2025-10-05",
         "arena": "Kongsberghallen",
         "age_group": "U10",
@@ -118,6 +119,7 @@ def _make_multi_age_group_plan_dict():
     data = _make_plan_dict()
     data["plan"]["tournaments"].append(
         {
+            "id": "rvv-0002",
             "date": "2025-11-02",
             "arena": "Bærum ishall",
             "age_group": "JU11",
@@ -876,6 +878,7 @@ class TestRunStage4:
             opponent = "Skien" if host != "Skien" else "Kongsberg"
             tournaments.append(
                 {
+                    "id": f"rvv-{index + 1:04d}",
                     "date": (start + timedelta(days=index * 7)).isoformat(),
                     "arena": f"{host} arena",
                     "age_group": "U10",

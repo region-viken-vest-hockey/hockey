@@ -39,6 +39,7 @@ from tournament_scheduler.effective_tournament_shape import (
     shape_violation,
 )
 from tournament_scheduler.operator_waivers import find_participation_waiver
+from tournament_scheduler.tournament_identity import validate_tournament_identity
 from tournament_scheduler.planning_contract_distribution import (
     hosting_fairness as _hosting_fairness,
     month_and_half_distribution as _month_and_half_distribution,
@@ -425,6 +426,7 @@ def verify_candidate(
     manual_participation_placements: List[Dict[str, str]] = []
 
     tournaments = [t for t in candidate.get("tournaments", []) if not t.get("cancelled")]
+    violations.extend(validate_tournament_identity(candidate))
 
     def _violate(code: str, message: str, tournament_id: Optional[str] = None) -> None:
         entry: Dict[str, Any] = {"code": code, "message": message}

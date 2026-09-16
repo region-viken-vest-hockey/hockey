@@ -185,6 +185,7 @@ def _try_repair(
     final_host_club, start_time, _end = slot
 
     new_tournament = build_tournament(planner, donor.date, final_host_club, deficit_age_group, participants, games, start_time)
+    new_tournament.derived_from = [donor.id]
 
     remove_tournament_bookkeeping(planner, donor, period)
     planner._record_grouping(participants, period)

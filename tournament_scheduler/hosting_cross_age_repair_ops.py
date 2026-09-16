@@ -72,6 +72,7 @@ def build_tournament(planner, tournament_date, host_club, age_group, participant
     ag_weight = planner.preferanse_vekt_by_age_group.get(age_group, 0.0)
     date_pref_total = sum(p.vekt for p in planner.date_preferences if p.fra <= tournament_date <= p.til)
     return Tournament(
+        id=planner.allocate_tournament_id() if hasattr(planner, "allocate_tournament_id") else "",
         date=tournament_date,
         arena=arena,
         age_group=age_group,

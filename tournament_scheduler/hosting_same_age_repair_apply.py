@@ -135,6 +135,8 @@ def _try_repair(planner, plan, donor: Tournament, club: str, age_group: str) -> 
     new_tournament = build_tournament(
         planner, donor.date, final_host_club, age_group, donor.teams, donor.games, start_time
     )
+    new_tournament.id = donor.id
+    new_tournament.derived_from = list(donor.derived_from)
 
     move_hosting_day(planner, plan, donor, new_tournament)
 

@@ -62,6 +62,7 @@ from tournament_scheduler.hosting_same_age_repair import (
 )
 from tournament_scheduler.hosting_same_age_repair_apply import attempt_same_age_repairs as _attempt_same_age_repairs
 from tournament_scheduler.planning_contract import external_calendar_conflict
+from tournament_scheduler.tournament_identity import allocate_tournament_id
 from tournament_scheduler.participant_roster_sizing import (
     club_demand_shares as _club_demand_shares,
 )
@@ -232,6 +233,7 @@ class SeasonPlanner:
         self._month_load_warnings: List[Tuple[int, int, int, float, float]] = []
         self._per_team_share_warnings: List[Tuple[str, str, str, int, float]] = []
         self._feasibility_warnings: List[str] = []
+        self._allocated_tournament_ids: set[str] = set()
         self._tournament_participations: Dict[str, int] = {self._team_key(team): 0 for team in roster.teams}
         # issue #297: per-half participation counters so a team that used up
         # its season-wide budget in one half doesn't get excluded from the
@@ -494,6 +496,7 @@ class SeasonPlanner:
         # of console feel. See `baseline_timings`.
         build_started = perf_counter()
         self._baseline_timings = {}
+        self._allocated_tournament_ids = set()
 
         t = perf_counter()
         print("[plan] Henter tilgjengelige datoer...", flush=True)
@@ -1023,6 +1026,7 @@ class SeasonPlanner:
                 p.vekt for p in self.date_preferences if p.fra <= tournament_date <= p.til
             )
             tournament = Tournament(
+                id=self.allocate_tournament_id(),
                 date=tournament_date,
                 arena=arena,
                 age_group=age_group,
@@ -1995,6 +1999,12 @@ class SeasonPlanner:
                 self._team_game_counts,
                 self._club_cap_overrides,
             ) = saved_state
+
+    def allocate_tournament_id(self) -> str:
+        """Allocate a durable ID for a newly-created logical tournament."""
+        tournament_id = allocate_tournament_id(self._allocated_tournament_ids)
+        self._allocated_tournament_ids.add(tournament_id)
+        return tournament_id
 
     def _reservation_event_for_tournament(self, tournament: Tournament) -> Optional[CalendarEvent]:
         if not tournament.games or not tournament.start_time:
