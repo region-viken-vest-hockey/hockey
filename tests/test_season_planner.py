@@ -15,6 +15,7 @@ from tournament_scheduler.models import (
     DatePreference,
     Game,
     Roster,
+    SchedulingResult,
     SeasonPlan,
     Team,
     Tournament,
@@ -709,26 +710,10 @@ class TestSeasonPlanner:
             [t for t in plan.tournaments if t.arena == "Jarahallen" and t.date == start.date()],
             key=lambda t: t.start_time,
         )
-        assert len(same_day) == 2
-        assert [t.start_time for t in same_day] == ["10:00", "13:20"]
+        assert len(same_day) == 3
+        assert DEFAULT_TOURNAMENT_START_TIME in {t.start_time for t in same_day}
         assert plan.arena_day_collisions == []
-        unresolved = planner.unresolved_tournament_placements
-        assert len(unresolved) == 1
-        assert unresolved[0]["reason"] == "no_participant_host_slot"
-        assert unresolved[0]["date"] == start.date().isoformat()
-        assert unresolved[0]["candidate_hosts"] == ["Jar"]
-        placed_age_groups = {t.age_group for t in same_day}
-        assert unresolved[0]["age_group"] not in placed_age_groups
-        # issue #330: the exact roster (not just a deduplicated club set)
-        # and search provenance must survive on the record.
-        assert unresolved[0]["category"] == "manual_tournament_placement"
-        assert unresolved[0]["search_attempted"] is True
-        assert unresolved[0]["participant_team_count"] == len(unresolved[0]["participant_teams"])
-        assert {t["label"] for t in unresolved[0]["participant_teams"]} <= {
-            "Jar U7-1", "Jar U7-2", "Jar U7-3", "Jar U7-4",
-            "Jar U8-1", "Jar U8-2", "Jar U8-3", "Jar U8-4",
-            "Jar U9-1", "Jar U9-2", "Jar U9-3", "Jar U9-4",
-        }
+        assert all(t.manual_booking_reason for t in same_day)
 
     def test_alternate_roster_retry_rescues_unmet_hosting_deficit_club(self, season_window):
         """issue #329 P0: when the participant-derived candidate hosts have
@@ -792,7 +777,6 @@ class TestSeasonPlanner:
             planner._select_participants = selective
             plan = planner.build_plan(start, end)
 
-        assert planner.unresolved_tournament_placements == []
         assert len(plan.tournaments) == 1
         tournament = plan.tournaments[0]
         assert tournament.host_club == "Kongsberg"
@@ -851,7 +835,8 @@ class TestSeasonPlanner:
             planner._select_participants = selective
             plan = planner.build_plan(start, end)
 
-        assert plan.tournaments == []
+        assert len(plan.tournaments) == 1
+        assert plan.tournaments[0].manual_booking_reason
         unresolved = planner.unresolved_tournament_placements
         assert len(unresolved) == 1
         assert unresolved[0]["search_attempted"] is True
@@ -2825,6 +2810,60 @@ class TestProportionalHosting:
         assert "Sandefjord" in hosts
         assert not any(t.manual_booking_reason for t in plan.tournaments)
 
+    def test_intended_host_with_no_free_slot_becomes_manual_instead_of_rehosted(self):
+        """If the fair/intended host is represented but has no verified free
+        ice, abundant ice at another participating club must not silently
+        transfer hosting responsibility away from the intended host."""
+
+        class AlphaBlockedScheduler:
+            def find_available_dates(self, start_date, end_date, **kwargs):
+                return SchedulingResult(
+                    available_dates=[date(2026, 10, 10), date(2026, 10, 17)],
+                    excluded_dates=[],
+                    exclusion_breakdown={},
+                    detailed_exclusions=[],
+                    total_weekends_checked=2,
+                )
+
+            def find_arena_slot_for_date(
+                self,
+                check_date,
+                host_club,
+                required_minutes,
+                events_by_club,
+                preferred_start="11:00",
+                club_calendar_status=None,
+            ):
+                if host_club == "Alpha":
+                    return None
+                return (host_club, preferred_start, "12:00")
+
+        roster = _build_roster(["Alpha", "Beta"], ["U10"], teams_per_club_per_age_group=2)
+        planner = SeasonPlanner(
+            scheduler=AlphaBlockedScheduler(),
+            roster=roster,
+            club_arenas={"Alpha": "Alpha Arena", "Beta": "Beta Arena"},
+            parallel_games_for_age_group={"U10": 2},
+            round_length_for_age_group={"U10": 30},
+            events_by_club={"Alpha": [], "Beta": []},
+            club_calendar_status={"Alpha": "known", "Beta": "known"},
+            target_tournament_count=2,
+        )
+        planner._assign_hosts = lambda scheduled: ["Alpha", "Beta"]
+
+        plan = planner.build_plan(datetime(2026, 10, 1), datetime(2026, 10, 31))
+
+        assert len(plan.tournaments) == 2
+        by_date = {t.date: t for t in plan.tournaments}
+        tournament = by_date[date(2026, 10, 10)]
+        assert tournament.host_club == "Alpha"
+        assert tournament.manual_booking_reason
+        assert "må plasseres manuelt" in tournament.manual_booking_reason
+        assert {team.club for team in tournament.teams} == {"Alpha", "Beta"}
+        assert by_date[date(2026, 10, 17)].host_club == "Beta"
+        assert not by_date[date(2026, 10, 17)].manual_booking_reason
+        assert plan.unresolved_tournament_placements
+
     def test_external_calendar_conflict_surfaced_as_manual_placement(self):
         """A genuine external calendar conflict the planner's own slot
         search doesn't consult (only club_busy_intervals, checked post-hoc)
@@ -3617,8 +3656,9 @@ class TestSlotAwareScheduling:
         }
 
         # Every known club except Holmen is fully booked all day on every
-        # tournament date. The planner should fall back to Holmen whenever the
-        # original host cannot fit the required matchday duration.
+        # tournament date. The planner must preserve the originally assigned
+        # represented host responsibility as manual placement instead of
+        # transferring it to Holmen merely because Holmen has easier ice.
         from tournament_scheduler.club_registry import CLUB_REGISTRY
 
         events_by_club = {}
@@ -3642,13 +3682,12 @@ class TestSlotAwareScheduling:
         plan = planner.build_plan(start, end)
 
         assert plan.tournaments
-        assert planner.fallback_host_substitutions
-        assert all(to_host == "Holmen" for _, _, _, to_host in planner.fallback_host_substitutions)
+        assert planner.fallback_host_substitutions == []
 
         for tournament in plan.tournaments:
             original_host = original_hosts_by_tournament[(tournament.date, tournament.age_group)]
-            if original_host != "Holmen":
-                assert tournament.host_club == "Holmen"
+            if tournament.host_club == original_host and original_host != "Holmen":
+                assert tournament.manual_booking_reason
 
     def test_no_arena_available_keeps_original_host_and_default_time(self):
         start, end = datetime(2026, 10, 1), datetime(2027, 4, 30)

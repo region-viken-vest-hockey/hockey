@@ -826,18 +826,32 @@ class SeasonPlanner:
                 (self.events_by_club or reserved_events_by_club)
                 and self.ice_time_for_age_group.get(age_group)
             )
+            # Preserve the assigned/intended hosting responsibility once it
+            # is represented by the selected roster. Calendar convenience may
+            # decide whether that host can be placed automatically; it must
+            # not silently transfer this tournament to another participant
+            # host merely because that club has an easier free slot.
+            original_represented = bool(original_host_constituents & set(candidate_hosts))
+            original_target_remaining = any(
+                host_counts_by_age.get(age_group, {}).get(constituent, 0)
+                < host_targets_by_age.get(age_group, {}).get(constituent, 0)
+                for constituent in original_host_constituents
+            )
+            allow_participant_host_fallback = not (original_represented and original_target_remaining)
+            slot_candidate_hosts = candidate_hosts if allow_participant_host_fallback else None
             slot = self._find_slot_for_tournament(
                 tournament_date,
                 search_host,
                 age_group,
                 provisional_games,
-                candidate_hosts=candidate_hosts,
+                candidate_hosts=slot_candidate_hosts,
                 reserved_events_by_club=reserved_events_by_club,
             )
 
+            forced_manual_booking_reason: Optional[str] = None
             alternate_roster_attempted = False
             alternate_rosters_tried = 0
-            if slot is None and slot_search_active:
+            if slot is None and slot_search_active and allow_participant_host_fallback:
                 # issue #329 P0: before declaring manual placement, retry
                 # with a participant roster that gives soft hosting priority
                 # to a club which still has an unmet hosting obligation for
@@ -907,12 +921,18 @@ class SeasonPlanner:
                         self.ice_time_for_age_group,
                         round_count_for_games(retry_games),
                     ).as_dict()
+                    retry_allow_participant_host_fallback = not (
+                        original_host_constituents & set(retry_candidate_hosts)
+                    )
+                    retry_slot_candidate_hosts = (
+                        retry_candidate_hosts if retry_allow_participant_host_fallback else None
+                    )
                     retry_slot = self._find_slot_for_tournament(
                         tournament_date,
                         retry_search_host,
                         age_group,
                         retry_games,
-                        candidate_hosts=retry_candidate_hosts,
+                        candidate_hosts=retry_slot_candidate_hosts,
                         reserved_events_by_club=reserved_events_by_club,
                     )
                     if retry_slot is not None:
@@ -961,7 +981,12 @@ class SeasonPlanner:
                         "reason": "no_participant_host_slot",
                     }
                 )
-                continue
+                final_host_club = search_host
+                start_time = DEFAULT_TOURNAMENT_START_TIME
+                forced_manual_booking_reason = (
+                    f"Ingen verifisert ledig istid for {final_host_club} "
+                    f"{tournament_date.isoformat()} — turneringen må plasseres manuelt."
+                )
             else:
                 # No calendar/reservation data is available to search at all
                 # (calendar-less fixtures, pre-scrape runs) -- place at the
@@ -1014,8 +1039,8 @@ class SeasonPlanner:
                 )
             else:
                 calendar_verified = _club_calendar_available(final_host_club, self.available_calendar_clubs)
-            manual_booking_reason: Optional[str] = None
-            if not calendar_verified:
+            manual_booking_reason: Optional[str] = forced_manual_booking_reason
+            if manual_booking_reason is None and not calendar_verified:
                 manual_booking_reason = (
                     f"Kalender utilgjengelig for {final_host_club} — "
                     "istid må bookes/verifiseres manuelt."
@@ -1040,14 +1065,12 @@ class SeasonPlanner:
             )
             plan.tournaments.append(tournament)
             reservation = self._reservation_event_for_tournament(tournament)
-            if reservation is not None:
+            if reservation is not None and forced_manual_booking_reason is None:
                 reserved_events_by_club.setdefault(final_host_club, []).append(reservation)
-            # issue #323 P0: a genuine slot-search failure across every
-            # participant-derived candidate host is now caught earlier
-            # (`unresolved_tournament_placements`, above) and never reaches
-            # tournament creation at all, so `slot is None` here can only
-            # mean "no calendar data to search" -- no longer a collision to
-            # report via `slot_failures`.
+            # issue #323/#361: a genuine slot-search failure is recorded in
+            # `unresolved_tournament_placements` above and may still create a
+            # manual-placement tournament for the represented intended host;
+            # do not treat that as an arena collision or reserve verified ice.
             # Record actual host so the tracking dict reflects committed assignments.
             month_key = (tournament_date.year, tournament_date.month)
             self._hosting_days_by_club_month.setdefault(
@@ -1088,7 +1111,11 @@ class SeasonPlanner:
         expected_per_month = self._expected_monthly_load(start_date.date(), end_date.date(), len(scheduled))
         sequence_failures = self._sequence_same_arena_day_start_times(plan)
         interval_collisions = find_arena_interval_collisions(
-            plan.tournaments,
+            [
+                tournament
+                for tournament in plan.tournaments
+                if "må plasseres manuelt" not in (tournament.manual_booking_reason or "")
+            ],
             self.ice_time_for_age_group,
         )
 
@@ -2029,7 +2056,7 @@ class SeasonPlanner:
         groups: Dict[Tuple[date, str], List[Tournament]] = {}
         sequence_failures: List[Dict[str, str]] = []
         for tournament in plan.tournaments:
-            if tournament.cancelled:
+            if tournament.cancelled or "må plasseres manuelt" in (tournament.manual_booking_reason or ""):
                 continue
             groups.setdefault((tournament.date, tournament.arena), []).append(tournament)
 
