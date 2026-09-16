@@ -8,6 +8,8 @@ Load task-specific guidance only when it is relevant:
 
 - For RVV Miniputt scraping, calendar collection/recovery, season planning, canonical-season maintenance, pipeline operation/debugging, export, review, or publication, read [`.agents/skills/rvv/SKILL.md`](.agents/skills/rvv/SKILL.md).
 - When an already generated schedule/export is being handed off as the real club-review or ice-booking baseline and future experiments must not silently replace it, also read [`.agents/skills/rvv-review-baseline/SKILL.md`](.agents/skills/rvv-review-baseline/SKILL.md).
+- When the operator says one canonical tournament/ice slot is confirmed, approved, or booked and should be locked, also read [`.agents/skills/rvv-confirm-tournament/SKILL.md`](.agents/skills/rvv-confirm-tournament/SKILL.md).
+- When the operator asks to move one canonical tournament to a specific new date/arena/host/time, also read [`.agents/skills/rvv-move-tournament/SKILL.md`](.agents/skills/rvv-move-tournament/SKILL.md).
 - For a supported RVV command workflow, load the matching shared procedure under [`.agents/commands/rvv-miniputt/`](.agents/commands/rvv-miniputt/) rather than keeping another copy in a harness adapter.
 - Before proposing or making architectural changes, read [`docs/engineering-principles.md`](docs/engineering-principles.md), [`docs/system-architecture.md`](docs/system-architecture.md), and [`docs/README.md`](docs/README.md).
 - Use the focused active document linked from `docs/README.md` for task-specific contracts such as workbook/input formats or pipeline behavior.
