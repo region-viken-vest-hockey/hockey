@@ -26,6 +26,51 @@ def add_operator_audit_subparsers(operator_sub: "argparse._SubParsersAction") ->
         help="Pipeline work directory (default: .pipeline)",
     )
 
+    op_audit_evidence = operator_sub.add_parser(
+        "audit-evidence",
+        help="Return detailed semantic-audit evidence for one bounded selector "
+        "(item/tournament/club/age-group/category) instead of the whole evidence bundle",
+    )
+    op_audit_evidence.add_argument(
+        "--work-dir",
+        default=".pipeline",
+        help="Pipeline work directory (default: .pipeline)",
+    )
+    op_audit_evidence.add_argument(
+        "--item",
+        type=int,
+        default=None,
+        help="Operator-checklist item number (1-9)",
+    )
+    op_audit_evidence.add_argument(
+        "--tournament",
+        default=None,
+        help="Durable tournament id to retrieve evidence for",
+    )
+    op_audit_evidence.add_argument("--club", default=None, help="Club name (shared-registration aware)")
+    op_audit_evidence.add_argument(
+        "--age-group",
+        dest="age_group",
+        default=None,
+        help="Age group (for example U10, JU12)",
+    )
+    op_audit_evidence.add_argument(
+        "--category",
+        default=None,
+        help="Evidence category or finding type (for example participation_shortfalls)",
+    )
+    op_audit_evidence.add_argument(
+        "--unresolved",
+        action="store_true",
+        help="Only return unresolved/manual findings",
+    )
+    op_audit_evidence.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum records to return (default: repository evidence-query limit)",
+    )
+
     op_audit_submit = operator_sub.add_parser(
         "audit-submit",
         help="Persist a structured PASS/REVIEW_REQUIRED/FAIL semantic audit verdict (issue #325)",

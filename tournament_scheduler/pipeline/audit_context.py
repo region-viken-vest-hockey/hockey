@@ -21,11 +21,12 @@ from typing import Any
 from ..effective_tournament_shape import compute_effective_tournament_shape, shape_violation
 from ..host_representation import clubs_represent_same_club
 from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+from . import audit_evidence
 from .audit_result import current_export_fingerprint, current_run_id
 from .fingerprints import stable_payload_sha256
 from .state import PipelineState, StageName
 
-AUDIT_PROMPT_VERSION = 1
+AUDIT_PROMPT_VERSION = 2
 
 AUDIT_MISSION: dict[str, Any] = {
     "purpose": (
@@ -154,6 +155,30 @@ def _plan_dict_with_final_operator_evidence(
     return merged
 
 
+def _bound_lists(payload: dict[str, Any] | None, *, cap: int | None = None) -> dict[str, Any]:
+    """Replace any over-long list value with capped examples plus a ``*_count``.
+
+    Used to keep the *bounded* audit context small; the complete payload stays
+    available through ``operator audit-evidence``.
+    """
+    if not isinstance(payload, dict):
+        return payload or {}
+    limit = cap if isinstance(cap, int) and cap > 0 else audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES
+    bounded: dict[str, Any] = {}
+    for key, value in payload.items():
+        if isinstance(value, list) and len(value) > limit:
+            bounded[key] = value[:limit]
+            bounded[f"{key}_count"] = len(value)
+        else:
+            bounded[key] = value
+    return bounded
+
+
+def _bound_verify_result(verify_result: dict[str, Any] | None) -> dict[str, Any]:
+    """Return a size-bounded view of the deterministic verify result."""
+    return _bound_lists(verify_result)
+
+
 def _summarize_scraping_checkpoint(scraping_checkpoint: dict[str, Any] | None) -> dict[str, Any]:
     """Small source/calendar inventory for the semantic audit.
 
@@ -259,16 +284,19 @@ def _count_bye_rows(tournament: dict[str, Any]) -> int:
     return sum(len(labels) for labels in _bye_rounds(tournament).values())
 
 
-def _summarize_plan_for_audit(
+def _collect_plan_audit_facts(
     *,
     plan_dict: dict[str, Any] | None,
     config_checkpoint: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Derive compact cross-check facts from the persisted selected plan.
+    """Derive the complete cross-check fact set from the persisted selected plan.
 
     This is evidence packaging, not a second policy engine: it exposes simple
     counts/examples so the semantic judge can answer checklist items that the
-    export paths alone cannot establish.
+    export paths alone cannot establish. It deliberately returns the *full*
+    lists (never truncated); :func:`_summarize_plan_facts` derives the
+    bounded overview from it and the selective-evidence index keeps the rest
+    retrievable on demand.
     """
     if not isinstance(plan_dict, dict):
         return {}
@@ -432,31 +460,18 @@ def _summarize_plan_for_audit(
         "csv_pause_row_count": bye_row_count,
         "expected_csv_game_rows": sum(len(t.get("games") or []) for t in tournaments) + bye_row_count,
         "team_day_entry_count": sum(team_day_counts.values()),
-        "tournament_utilisation_summary": {
-            "tournaments_with_byes_or_invalid_no_bye_roster": len(blocking_byes),
-            "bye_examples": blocking_byes[:20],
-            # Effective-shape rule: tournaments whose odd/bye-having shape is a
-            # legitimate input-constrained adaptation (the registered pool
-            # was too small for the preferred shape), not a planner defect.
-            "input_constrained_shape_examples": input_constrained_shape_examples[:20],
-            "underfilled_by_age_group": dict(sorted(underfilled_by_age.items())),
-            "examples": utilisation_examples[:50],
-        },
-        "duration_summary": {
-            "min_minutes": min(duration_values) if duration_values else None,
-            "max_minutes": max(duration_values) if duration_values else None,
-            "missing_duration_count": len(missing_duration),
-            "missing_duration_examples": missing_duration[:10],
-            "longest_examples": duration_examples[:10],
-        },
-        "host_participation_summary": {
-            "tournaments_where_host_club_not_in_participants": len(host_missing),
-            "examples": host_missing[:20],
-        },
-        "team_daily_participation_summary": {
-            "duplicate_team_day_count": len(duplicate_team_days),
-            "examples": duplicate_team_days[:20],
-        },
+        "duration_values": duration_values,
+        "missing_duration": missing_duration,
+        "duration_examples": duration_examples,
+        "utilisation_examples": utilisation_examples,
+        "blocking_byes": blocking_byes,
+        "input_constrained_shape_examples": input_constrained_shape_examples,
+        "underfilled_by_age": dict(sorted(underfilled_by_age.items())),
+        "host_missing": host_missing,
+        "duplicate_team_days": duplicate_team_days,
+        "club_count_over_two": club_count_over_two,
+        "club_count_over_hard_max": club_count_over_hard_max,
+        "max_club_count_by_tournament": dict(sorted(max_club_count_by_tournament.items())),
         # issue #327: proportional club-share fairness evidence, computed by
         # SeasonPlanner from the full registered roster (not re-derivable
         # from `tournaments` alone, which omits zero-participation teams)
@@ -483,20 +498,79 @@ def _summarize_plan_for_audit(
         # roster/date that could not get a participant-host arena/time) --
         # distinct from `unresolved_hosting_obligations`'
         # (a club x age-group hosting deficit with no tournament object
-        # behind it yet). Passed through unchanged so the judge can tell the
-        # two kinds of "unresolved" apart instead of conflating them.
+        # behind it yet). Kept in full here so the selective-evidence API can
+        # retrieve an exact roster on demand.
         "unresolved_tournament_placements": list(plan_dict.get("unresolved_tournament_placements") or []),
+    }
+
+
+def _summarize_plan_facts(facts: dict[str, Any]) -> dict[str, Any]:
+    """Derive the *bounded* cross-check summary placed in the audit context.
+
+    Large collections (participation shortfalls, hosting repairs, unresolved
+    placements) are represented here by counts plus a capped set of
+    representative examples and an ``evidence_ref`` query command -- the
+    complete detail stays in the selective-evidence index.
+    """
+    if not facts:
+        return {}
+    duration_values: list[int] = facts["duration_values"]
+    return {
+        "tournament_count": facts["tournament_count"],
+        "game_count": facts["game_count"],
+        "csv_pause_row_count": facts["csv_pause_row_count"],
+        "expected_csv_game_rows": facts["expected_csv_game_rows"],
+        "team_day_entry_count": facts["team_day_entry_count"],
+        "tournament_utilisation_summary": {
+            "tournaments_with_byes_or_invalid_no_bye_roster": len(facts["blocking_byes"]),
+            "bye_examples": facts["blocking_byes"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+            # Effective-shape rule: tournaments whose odd/bye-having shape is a
+            # legitimate input-constrained adaptation (the registered pool
+            # was too small for the preferred shape), not a planner defect.
+            "input_constrained_shape_count": len(facts["input_constrained_shape_examples"]),
+            "input_constrained_shape_examples": facts["input_constrained_shape_examples"][
+                :audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES
+            ],
+            "underfilled_by_age_group": facts["underfilled_by_age"],
+            "underfilled_count": sum(1 for row in facts["utilisation_examples"] if row.get("underfilled")),
+            "examples": facts["utilisation_examples"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+            "evidence_ref": "operator audit-evidence --category blocking_byes",
+        },
+        "duration_summary": {
+            "min_minutes": min(duration_values) if duration_values else None,
+            "max_minutes": max(duration_values) if duration_values else None,
+            "missing_duration_count": len(facts["missing_duration"]),
+            "missing_duration_examples": facts["missing_duration"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+            "longest_examples": facts["duration_examples"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+            "evidence_ref": "operator audit-evidence --category tournament_duration",
+        },
+        "host_participation_summary": {
+            "tournaments_where_host_club_not_in_participants": len(facts["host_missing"]),
+            "examples": facts["host_missing"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+            "evidence_ref": "operator audit-evidence --category host_participation",
+        },
+        "team_daily_participation_summary": {
+            "duplicate_team_day_count": len(facts["duplicate_team_days"]),
+            "examples": facts["duplicate_team_days"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+            "evidence_ref": "operator audit-evidence --category duplicate_team_days",
+        },
         "same_club_per_tournament_summary": {
-            "tournaments_with_more_than_two_from_same_club": len(club_count_over_two),
-            "max_club_count_distribution": dict(sorted(max_club_count_by_tournament.items())),
-            "examples": club_count_over_two[:20],
+            "tournaments_with_more_than_two_from_same_club": len(facts["club_count_over_two"]),
+            "max_club_count_distribution": facts["max_club_count_by_tournament"],
+            "examples": facts["club_count_over_two"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
             # issue #326: teams from one club above HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
             # is an invalid plan, not a quality preference -- any non-empty
             # list here must drive a FAIL verdict, never REVIEW_REQUIRED.
-            "tournaments_over_hard_max": len(club_count_over_hard_max),
+            "tournaments_over_hard_max": len(facts["club_count_over_hard_max"]),
             "hard_max": HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
-            "hard_max_examples": club_count_over_hard_max[:20],
+            "hard_max_examples": facts["club_count_over_hard_max"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+            "evidence_ref": "operator audit-evidence --category same_club_participants",
         },
+        "unresolved_participation_shortfall_count": len(facts["unresolved_participation_shortfalls"]),
+        "club_participation_fairness_count": len(facts["club_participation_fairness"]),
+        "same_age_hosting_repair_count": len(facts["same_age_hosting_repairs"]),
+        "cross_age_hosting_repair_count": len(facts["cross_age_hosting_repairs"]),
+        "unresolved_tournament_placement_count": len(facts["unresolved_tournament_placements"]),
     }
 
 
@@ -592,176 +666,49 @@ def _summarize_export_consistency(
     return {"checks": checks, "mismatches": mismatches, "unknown": unknown}
 
 
-def _build_checklist_evidence_guide(
-    *,
-    plan_audit_summary: dict[str, Any],
-    calendar_evidence_summary: dict[str, Any],
-    export_consistency_summary: dict[str, Any],
-    deterministic_verify_result: dict[str, Any],
-    publication_readiness: dict[str, Any] | None,
-    operator_waivers: list[dict[str, Any]] | None = None,
-    operator_waived_violations: list[dict[str, Any]] | None = None,
-    approval_status: dict[str, Any] | None = None,
-) -> list[dict[str, Any]]:
-    """Point the semantic judge at the strongest persisted evidence per checklist item."""
-    question_by_id = {int(item["item_id"]): item["question"] for item in AUDIT_CHECKLIST}
-    readiness_reasons = (publication_readiness or {}).get("reasons")
-    if not isinstance(readiness_reasons, dict):
-        readiness_reasons = {}
-    return [
-        {
-            "item_id": 1,
-            "question": question_by_id[1],
-            "primary_evidence": [
-                "publication_readiness.reasons.participation_shortfalls",
-                "deterministic_verify_result.manual_participation_placements",
-                "plan_audit_summary.club_participation_fairness",
-                "plan_audit_summary.unresolved_participation_shortfalls",
-            ],
-            "summary": {
-                "participation_shortfall_reasons": readiness_reasons.get("participation_shortfalls"),
-                # issue #327: a per-team shortfall next to a club whose
-                # `actual_share` is close to its `target_share` (with a
-                # small `sibling_spread`) is a capacity-limited proportional
-                # outcome, not necessarily a planner defect.
-                "club_participation_fairness": plan_audit_summary.get("club_participation_fairness"),
-                # issue #327: each shortfall's own `category`/`reason` --
-                # `participation_under_target_club_share_ok` already reflects
-                # the club-share cross-check above; a plain
-                # `participation_under_target` entry does not and deserves
-                # closer scrutiny.
-                "unresolved_participation_shortfalls": plan_audit_summary.get(
-                    "unresolved_participation_shortfalls"
-                ),
-            },
-        },
-        {
-            "item_id": 2,
-            "question": question_by_id[2],
-            "primary_evidence": [
-                "deterministic_verify_result.unresolved_hosting_obligations",
-                "publication_readiness.reasons.unresolved_hosting",
-                "plan_audit_summary.same_age_hosting_repairs",
-                "plan_audit_summary.cross_age_hosting_repairs",
-                "plan_audit_summary.unresolved_tournament_placements",
-            ],
-            "summary": {
-                "unresolved_hosting": len(deterministic_verify_result.get("unresolved_hosting_obligations") or []),
-                # issue #328: an unresolved obligation with a non-empty
-                # `candidate_reallocation_slots` is exactly the "deficit with
-                # reusable surplus" defect pattern this checklist item exists
-                # to catch.
-                "unresolved_with_untried_reallocation_candidates": [
-                    {"club": item.get("club"), "age_group": item.get("age_group")}
-                    for item in (deterministic_verify_result.get("unresolved_hosting_obligations") or [])
-                    if item.get("candidate_reallocation_slots")
-                ],
-                "same_age_hosting_repairs": plan_audit_summary.get("same_age_hosting_repairs"),
-                "cross_age_hosting_repairs": plan_audit_summary.get("cross_age_hosting_repairs"),
-                # issue #330: a club x age-group hosting deficit
-                # (`unresolved_hosting`, above) is not the same defect as a
-                # concrete roster/date that failed to find a participant-host
-                # arena/time -- surface both counts side by side so the
-                # judge does not conflate them.
-                "unresolved_tournament_placement_count": len(
-                    plan_audit_summary.get("unresolved_tournament_placements") or []
-                ),
-                # issue #329: a placement whose `search_attempted` is True but
-                # `alternate_roster_attempted` is False/absent means no
-                # hosting-deficit club existed to retry with at all -- worth
-                # noting separately from one where a retry ran and still
-                # failed, since the former is closer to "genuinely no legal
-                # alternative" and the latter still deserves scrutiny of
-                # whether the bounded retry itself was too narrow.
-                "unresolved_tournament_placements_without_alternate_roster_retry": [
-                    {"age_group": item.get("age_group"), "date": item.get("date")}
-                    for item in (plan_audit_summary.get("unresolved_tournament_placements") or [])
-                    if item.get("search_attempted") and not item.get("alternate_roster_attempted")
-                ],
-                "unresolved_tournament_placements": plan_audit_summary.get("unresolved_tournament_placements"),
-            },
-        },
-        {
-            "item_id": 3,
-            "question": question_by_id[3],
-            "primary_evidence": [
-                "plan_audit_summary.duration_summary",
-                "plan_audit_summary.tournament_utilisation_summary",
-            ],
-            "summary": {
-                "duration_summary": plan_audit_summary.get("duration_summary"),
-                "tournament_utilisation_summary": plan_audit_summary.get("tournament_utilisation_summary"),
-            },
-        },
-        {
-            "item_id": 4,
-            "question": question_by_id[4],
-            "primary_evidence": [
-                "calendar_evidence_summary",
-                "deterministic_verify_result.manual_external_conflict_placements",
-            ],
-            "summary": {
-                "sources_scanned": calendar_evidence_summary.get("sources_scanned"),
-                "blocked_sources": calendar_evidence_summary.get("blocked_sources"),
-                "external_conflict_placements": len(
-                    deterministic_verify_result.get("manual_external_conflict_placements") or []
-                ),
-            },
-        },
-        {
-            "item_id": 5,
-            "question": question_by_id[5],
-            "primary_evidence": ["plan_audit_summary.host_participation_summary"],
-            "summary": plan_audit_summary.get("host_participation_summary"),
-        },
-        {
-            "item_id": 6,
-            "question": question_by_id[6],
-            "primary_evidence": ["plan_audit_summary.team_daily_participation_summary"],
-            "summary": plan_audit_summary.get("team_daily_participation_summary"),
-        },
-        {
-            "item_id": 7,
-            "question": question_by_id[7],
-            "primary_evidence": ["plan_audit_summary.same_club_per_tournament_summary"],
-            "summary": plan_audit_summary.get("same_club_per_tournament_summary"),
-        },
-        {
-            "item_id": 8,
-            "question": question_by_id[8],
-            "primary_evidence": ["export_consistency_summary"],
-            "summary": export_consistency_summary,
-        },
-        {
-            "item_id": 9,
-            "question": question_by_id[9],
-            "primary_evidence": [
-                "publication_readiness",
-                "deterministic_verify_result",
-                "operator_waivers",
-                "operator_waived_violations",
-                "approval_status",
-                "plan_audit_summary",
-                "plan_audit_summary.tournament_utilisation_summary",
-                "calendar_evidence_summary",
-            ],
-            "summary": {
-                "publication_readiness": publication_readiness,
-                "operator_waivers": operator_waivers,
-                "operator_waived_violations": operator_waived_violations,
-                "approval_status": approval_status,
-                "tournament_utilisation_summary": plan_audit_summary.get("tournament_utilisation_summary"),
-            },
-        },
-    ]
+def _build_checklist_evidence_guide(*, evidence_overview: dict[str, Any]) -> list[dict[str, Any]]:
+    """Point the semantic judge at the queryable evidence categories per checklist item.
+
+    Deliberately compact: it lists the canonical categories, counts, unresolved
+    counts and the exact ``operator audit-evidence`` command per item rather
+    than embedding the same large lists the overview already references.
+    """
+    by_item: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for category in evidence_overview.get("categories") or []:
+        item_id = category.get("checklist_item")
+        if isinstance(item_id, int):
+            by_item[item_id].append(category)
+
+    guide: list[dict[str, Any]] = []
+    for item in AUDIT_CHECKLIST:
+        item_id = int(item["item_id"])
+        categories = by_item.get(item_id, [])
+        guide.append(
+            {
+                "item_id": item_id,
+                "question": item["question"],
+                "categories": [category["category"] for category in categories],
+                "counts": {category["category"]: category["count"] for category in categories},
+                "unresolved_counts": {
+                    category["category"]: category["unresolved_count"]
+                    for category in categories
+                    if category.get("unresolved_count")
+                },
+                "evidence_commands": [category["evidence_ref"] for category in categories],
+            }
+        )
+    return guide
 
 
-def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
-    """Assemble the audit evidence inventory for the current run's export.
+def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
+    """Read persisted run artifacts and assemble the raw audit evidence base.
 
     Pure read of already-persisted checkpoints/artifacts: no fresh scraping,
     no re-deriving deterministic policy (the deterministic verify result is
-    read as Stage 4 already computed it, not recomputed here).
+    read as Stage 4 already computed it, not recomputed here). The returned
+    dict keeps the full finding lists so the selective-evidence index can
+    serve exact detail on demand; :func:`build_audit_context` derives the
+    bounded overview from it.
     """
     from .run_manifest import RunManifest
 
@@ -820,32 +767,18 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
     calendar_evidence_summary = (evidence_bundle or {}).get("source_summary") or {}
     if not calendar_evidence_summary:
         calendar_evidence_summary = _summarize_scraping_checkpoint(scraping_checkpoint)
-    plan_audit_summary = _summarize_plan_for_audit(
+    plan_audit_facts = _collect_plan_audit_facts(
         plan_dict=plan_dict,
         config_checkpoint=config_checkpoint,
     )
+    plan_audit_summary = _summarize_plan_facts(plan_audit_facts)
     export_consistency_summary = _summarize_export_consistency(
         output_files=output_files,
         plan_audit_summary=plan_audit_summary,
         plan_dict=plan_dict,
     )
-    checklist_evidence_guide = _build_checklist_evidence_guide(
-        plan_audit_summary=plan_audit_summary,
-        calendar_evidence_summary=calendar_evidence_summary,
-        export_consistency_summary=export_consistency_summary,
-        deterministic_verify_result=deterministic_verify_result,
-        publication_readiness=publication_readiness,
-        operator_waivers=operator_waivers,
-        operator_waived_violations=operator_waived_violations,
-        approval_status=approval_status,
-    )
 
     return {
-        "audit_prompt_version": AUDIT_PROMPT_VERSION,
-        "hard_max_club_teams_per_tournament": HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
-        "runbook_version": _runbook_version(),
-        "audit_mission": AUDIT_MISSION,
-        "checklist": [dict(item) for item in AUDIT_CHECKLIST],
         "run_id": run_id,
         "export_fingerprint": export_fingerprint,
         "source_fingerprints": {
@@ -859,9 +792,89 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
         "operator_waived_violations": operator_waived_violations,
         "approval_status": approval_status,
         "publication_readiness": publication_readiness,
-        "evidence_bundle": evidence_bundle,
         "calendar_evidence_summary": calendar_evidence_summary,
+        "plan_audit_facts": plan_audit_facts,
         "plan_audit_summary": plan_audit_summary,
         "export_consistency_summary": export_consistency_summary,
-        "checklist_evidence_guide": checklist_evidence_guide,
     }
+
+
+def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
+    """Assemble the *bounded* audit evidence overview for the current export.
+
+    The default context intentionally never embeds the wholesale
+    ``evidence_bundle`` or any unbounded finding list: it carries compact
+    summaries (counts, distributions, worst/top-N examples, fingerprints) plus
+    an ``evidence_index`` that tells the judge which selective
+    ``operator audit-evidence`` queries are available. Full detail remains
+    retrievable through :func:`build_audit_evidence`.
+    """
+    raw = _assemble_raw_audit_evidence(work_dir=work_dir)
+    index = audit_evidence.build_evidence_index(raw)
+    evidence_overview = audit_evidence.build_evidence_overview(index)
+    context = {
+        "audit_prompt_version": AUDIT_PROMPT_VERSION,
+        "hard_max_club_teams_per_tournament": HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
+        "runbook_version": _runbook_version(),
+        "audit_mission": AUDIT_MISSION,
+        "checklist": [dict(item) for item in AUDIT_CHECKLIST],
+        "run_id": raw["run_id"],
+        "export_fingerprint": raw["export_fingerprint"],
+        "source_fingerprints": raw["source_fingerprints"],
+        "export_dir": raw["export_dir"],
+        "output_files": raw["output_files"],
+        "deterministic_verify_result": _bound_verify_result(raw["deterministic_verify_result"]),
+        "operator_waivers": raw["operator_waivers"],
+        "operator_waived_violations": raw["operator_waived_violations"],
+        "approval_status": _bound_lists(raw["approval_status"]),
+        "publication_readiness": raw["publication_readiness"],
+        "calendar_evidence_summary": raw["calendar_evidence_summary"],
+        "plan_audit_summary": raw["plan_audit_summary"],
+        "export_consistency_summary": raw["export_consistency_summary"],
+        "checklist_evidence_guide": _build_checklist_evidence_guide(evidence_overview=evidence_overview),
+        "evidence_index": evidence_overview,
+    }
+    context["evidence_metrics"] = audit_evidence.build_overview_metrics(context, index)
+    return context
+
+
+def build_audit_evidence_index(*, work_dir: "str | Path") -> dict[str, Any]:
+    """Return the full (unbounded) selective-evidence index for the current run.
+
+    Used by the headless judge to resolve requested detail; it is never placed
+    in the bounded context itself.
+    """
+    raw = _assemble_raw_audit_evidence(work_dir=work_dir)
+    return audit_evidence.build_evidence_index(raw)
+
+
+def build_audit_evidence(
+    *,
+    work_dir: "str | Path",
+    item: int | None = None,
+    tournament: str | None = None,
+    club: str | None = None,
+    age_group: str | None = None,
+    category: str | None = None,
+    unresolved: bool = False,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Return detailed audit evidence matching the given selectors.
+
+    Reconstruction of the raw evidence is deterministic and read-only, and the
+    result is bound to the same ``run_id``/``export_fingerprint`` as the
+    overview that advertised these selectors, so stale evidence from another
+    run/export can never be mixed in silently.
+    """
+    raw = _assemble_raw_audit_evidence(work_dir=work_dir)
+    index = audit_evidence.build_evidence_index(raw)
+    return audit_evidence.query_evidence(
+        index,
+        item=item,
+        tournament=tournament,
+        club=club,
+        age_group=age_group,
+        category=category,
+        unresolved=unresolved,
+        limit=limit,
+    )

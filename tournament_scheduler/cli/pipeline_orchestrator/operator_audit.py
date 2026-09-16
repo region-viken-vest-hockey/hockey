@@ -1,10 +1,13 @@
-"""Operator audit-context/audit-submit/audit-run subcommands (issue #325).
+"""Operator audit-context/audit-evidence/audit-submit/audit-run
+subcommands (issue #325, bounded/queryable in issue #356).
 
 Mirrors the read-context/submit-decision shape of SKILL.md's "Structured
-decision protocol": an interactive harness reads ``audit-context``, reasons
-in-session, then submits its verdict via ``audit-submit``. ``audit-run`` is
-the headless-only path (no interactive harness active) that does all three
-steps — context, judge call, submit — in one command, for cron/CI.
+decision protocol": an interactive harness reads ``audit-context`` (a bounded
+overview), pulls exact supporting detail with ``audit-evidence`` when needed,
+then submits its verdict via ``audit-submit``. ``audit-run`` is the
+headless-only path (no interactive harness active) that does all of that —
+context, bounded judge call with evidence expansion, submit — in one command,
+for cron/CI.
 """
 
 from __future__ import annotations
@@ -34,6 +37,37 @@ def _cmd_operator_audit_context(args: argparse.Namespace) -> int:
 
     context_json = result.evidence[0] if result.evidence else "{}"
     print(context_json)
+    return 0
+
+
+def _cmd_operator_audit_evidence(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt operator audit-evidence`` — return detailed audit
+    evidence for one bounded selector, so a harness never has to parse the
+    raw artifacts or ingest the whole evidence bundle."""
+    from ...pipeline.operator_action import DEFAULT_REGISTRY, UnknownActionError
+
+    action = DEFAULT_REGISTRY.build(
+        "get_audit_evidence",
+        work_dir=args.work_dir,
+        item=getattr(args, "item", None),
+        tournament=getattr(args, "tournament", None),
+        club=getattr(args, "club", None),
+        age_group=getattr(args, "age_group", None),
+        category=getattr(args, "category", None),
+        unresolved=bool(getattr(args, "unresolved", False)),
+        limit=getattr(args, "limit", None),
+    )
+    try:
+        result = DEFAULT_REGISTRY.execute(action, approved=True)
+    except UnknownActionError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
+    if not result.is_terminal_success:
+        _console.print(f"[red]✗[/red] {result.summary}")
+        return 1
+
+    print(result.evidence[0] if result.evidence else "{}")
     return 0
 
 
@@ -79,7 +113,7 @@ def _cmd_operator_audit_run(args: argparse.Namespace) -> int:
     perform the audit itself in-session instead (issue #325)."""
     from ...llm_judge.audit import run_headless_audit
     from ...llm_judge.harness import is_harness_active
-    from ...pipeline.audit_context import build_audit_context
+    from ...pipeline.audit_context import build_audit_context, build_audit_evidence_index
     from ...pipeline.operator_action import DEFAULT_REGISTRY, UnknownActionError
 
     if is_harness_active() and not getattr(args, "force", False):
@@ -96,7 +130,8 @@ def _cmd_operator_audit_run(args: argparse.Namespace) -> int:
         _console.print("[red]✗[/red] Ingen Stage 4-eksport funnet — kjør eksport før revisjon.")
         return 1
 
-    result = run_headless_audit(context, args.backend)
+    evidence_index = build_audit_evidence_index(work_dir=args.work_dir)
+    result = run_headless_audit(context, args.backend, evidence_index=evidence_index)
 
     action = DEFAULT_REGISTRY.build("submit_audit_result", work_dir=args.work_dir, result=result)
     try:

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import json
 
-from tournament_scheduler.pipeline.audit_context import AUDIT_CHECKLIST, build_audit_context
+from tournament_scheduler.pipeline.audit_context import (
+    AUDIT_CHECKLIST,
+    build_audit_context,
+    build_audit_evidence,
+)
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 
@@ -57,12 +61,17 @@ def test_context_includes_evidence_inventory(tmp_path):
     assert context["output_files"]
     assert context["deterministic_verify_result"] == {"ok": True, "violations": []}
     assert context["publication_readiness"] is not None
-    assert context["evidence_bundle"] == {"source_summary": {"sources_scanned": 3, "blocked_sources": []}}
+    # issue #356: the default context never embeds the wholesale evidence
+    # bundle; it exposes a bounded, queryable evidence index instead.
+    assert "evidence_bundle" not in context
     assert context["calendar_evidence_summary"] == {"sources_scanned": 3, "blocked_sources": []}
     assert "plan_audit_summary" in context
     assert "export_consistency_summary" in context
     assert "missing rules" in context["audit_mission"]["purpose"]
     assert [item["item_id"] for item in context["checklist_evidence_guide"]] == list(range(1, 10))
+    assert context["evidence_index"]["export_fingerprint"] == "fp-1"
+    assert context["evidence_index"]["available_selectors"]["checklist_items"] == list(range(1, 10))
+    assert context["evidence_index"]["evidence_commands"]["item"] == "operator audit-evidence --item <n>"
 
 
 def test_bound_final_operator_evidence_overrides_stale_stage3_manual_state(tmp_path):
@@ -115,8 +124,12 @@ def test_bound_final_operator_evidence_overrides_stale_stage3_manual_state(tmp_p
     context = build_audit_context(work_dir=tmp_path)
 
     assert context["publication_readiness"]["reasons"] == [{"code": "participation_shortfalls", "count": 1}]
-    assert len(context["plan_audit_summary"]["unresolved_participation_shortfalls"]) == 1
-    assert context["plan_audit_summary"]["unresolved_tournament_placements"][0]["reason"] == "no_participant_host_slot"
+    assert context["plan_audit_summary"]["unresolved_participation_shortfall_count"] == 1
+    evidence = build_audit_evidence(work_dir=tmp_path, category="participation_shortfalls")
+    assert evidence["matched_record_count"] == 1
+    assert evidence["records"][0]["detail"]["actual"] == "4"
+    placements = build_audit_evidence(work_dir=tmp_path, category="unresolved_tournament_placements")
+    assert placements["records"][0]["detail"]["reason"] == "no_participant_host_slot"
 
 
 def test_mismatched_final_operator_evidence_does_not_override_stage3_state(tmp_path):
@@ -143,7 +156,9 @@ def test_mismatched_final_operator_evidence_does_not_override_stage3_state(tmp_p
 
     context = build_audit_context(work_dir=tmp_path)
 
-    assert context["plan_audit_summary"]["unresolved_participation_shortfalls"] == [{"label": "stale-but-current-run"}]
+    assert context["plan_audit_summary"]["unresolved_participation_shortfall_count"] == 1
+    evidence = build_audit_evidence(work_dir=tmp_path, category="participation_shortfalls")
+    assert evidence["records"][0]["detail"] == {"label": "stale-but-current-run"}
 
 
 def test_context_surfaces_operator_waivers_and_waived_violations(tmp_path):
@@ -213,7 +228,7 @@ def test_context_falls_back_to_stage2_calendar_summary_when_bundle_missing(tmp_p
 
     context = build_audit_context(work_dir=tmp_path)
 
-    assert context["evidence_bundle"] is None
+    assert "evidence_bundle" not in context
     assert context["calendar_evidence_summary"]["sources_scanned"] == 2
     assert context["calendar_evidence_summary"]["event_counts_by_club"] == {"Jar": 1, "Holmen": 0}
     assert context["calendar_evidence_summary"]["per_source"][0]["name"] == "Jar"
@@ -296,16 +311,19 @@ def test_context_includes_selected_plan_cross_checks(tmp_path):
     assert summary["team_daily_participation_summary"]["duplicate_team_day_count"] == 1
     assert summary["same_club_per_tournament_summary"]["tournaments_with_more_than_two_from_same_club"] == 1
 
-    # issue #327: per-team shortfall category/reason must reach the judge
-    # alongside the club-level fairness rows, both directly on the plan
-    # summary and referenced from checklist item 1's evidence guide.
-    assert summary["club_participation_fairness"][0]["club"] == "Jar"
-    assert summary["unresolved_participation_shortfalls"][0]["category"] == "participation_under_target_club_share_ok"
+    # issue #327: per-team shortfall category/reason must be retrievable on
+    # demand alongside the club-level fairness rows; the bounded overview
+    # carries only counts, and checklist item 1 references the queryable
+    # categories rather than re-embedding the lists.
+    assert summary["club_participation_fairness_count"] == 1
+    assert summary["unresolved_participation_shortfall_count"] == 1
+    shortfalls = build_audit_evidence(work_dir=tmp_path, category="participation_shortfalls")
+    assert shortfalls["records"][0]["finding_type"] == "participation_under_target_club_share_ok"
+    fairness = build_audit_evidence(work_dir=tmp_path, category="club_participation_fairness")
+    assert fairness["records"][0]["detail"]["club"] == "Jar"
     item_1 = next(item for item in context["checklist_evidence_guide"] if item["item_id"] == 1)
-    assert "plan_audit_summary.unresolved_participation_shortfalls" in item_1["primary_evidence"]
-    assert item_1["summary"]["unresolved_participation_shortfalls"][0]["category"] == (
-        "participation_under_target_club_share_ok"
-    )
+    assert "participation_shortfalls" in item_1["categories"]
+    assert item_1["counts"]["participation_shortfalls"] == 1
 
 
 def test_unresolved_tournament_placements_reach_the_audit_context(tmp_path):
@@ -350,12 +368,14 @@ def test_unresolved_tournament_placements_reach_the_audit_context(tmp_path):
     context = build_audit_context(work_dir=tmp_path)
     summary = context["plan_audit_summary"]
 
-    assert summary["unresolved_tournament_placements"][0]["participant_team_count"] == 2
-    assert summary["unresolved_tournament_placements"][0]["participant_teams"][0]["label"] == "Frisk Asker 1"
+    assert summary["unresolved_tournament_placement_count"] == 1
+    evidence = build_audit_evidence(work_dir=tmp_path, category="unresolved_tournament_placements")
+    assert evidence["records"][0]["detail"]["participant_team_count"] == 2
+    assert evidence["records"][0]["detail"]["participant_teams"][0]["label"] == "Frisk Asker 1"
 
     item_2 = next(item for item in context["checklist_evidence_guide"] if item["item_id"] == 2)
-    assert "plan_audit_summary.unresolved_tournament_placements" in item_2["primary_evidence"]
-    assert item_2["summary"]["unresolved_tournament_placement_count"] == 1
+    assert "unresolved_tournament_placements" in item_2["categories"]
+    assert item_2["counts"]["unresolved_tournament_placements"] == 1
 
 
 def test_host_participation_cross_check_uses_shared_registration_constituents(tmp_path):
@@ -393,7 +413,7 @@ def test_host_participation_cross_check_uses_shared_registration_constituents(tm
 def test_context_records_prompt_and_runbook_version(tmp_path):
     _write_export(tmp_path, fingerprint="fp-1")
     context = build_audit_context(work_dir=tmp_path)
-    assert context["audit_prompt_version"] == 1
+    assert context["audit_prompt_version"] == 2
     assert context["runbook_version"]
 
     # Stable across repeated calls when SKILL.md hasn't changed.

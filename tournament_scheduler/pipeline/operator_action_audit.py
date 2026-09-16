@@ -32,6 +32,15 @@ def register_audit_actions(registry: "ActionRegistry") -> None:
     )
     registry.register(
         OperatorAction(
+            "get_audit_evidence",
+            "Return detailed semantic-audit evidence matching a bounded selector (item/tournament/club/category).",
+            "llm_audit",
+            risk_level=RiskLevel.SAFE.value,
+        ),
+        execute_get_audit_evidence,
+    )
+    registry.register(
+        OperatorAction(
             "submit_audit_result",
             "Persist a structured semantic safety-net audit verdict.",
             "llm_audit",
@@ -69,6 +78,47 @@ def execute_get_audit_context(*, work_dir: str) -> "CapabilityResult":
         "Revisjonskontekst satt sammen.",
         capability="llm_audit",
         evidence=[json.dumps(context, ensure_ascii=False, default=str)],
+    )
+
+
+def execute_get_audit_evidence(
+    *,
+    work_dir: str,
+    item: int | None = None,
+    tournament: str | None = None,
+    club: str | None = None,
+    age_group: str | None = None,
+    category: str | None = None,
+    unresolved: bool = False,
+    limit: int | None = None,
+) -> "CapabilityResult":
+    """Return the detailed audit evidence matching one or more selectors.
+
+    The repository owns the query: harness adapters never parse the raw
+    artifacts themselves. Results remain bound to the same run/export
+    fingerprint as the bounded overview they were advertised in.
+    """
+    from .audit_context import build_audit_evidence
+    from .capability_result import CapabilityResult
+
+    result = build_audit_evidence(
+        work_dir=work_dir,
+        item=item,
+        tournament=tournament,
+        club=club,
+        age_group=age_group,
+        category=category,
+        unresolved=unresolved,
+        limit=limit,
+    )
+    if not result.get("export_fingerprint"):
+        return CapabilityResult.failed(
+            "Ingen Stage 4-eksport funnet — kjør eksport før revisjon.", capability="llm_audit"
+        )
+    return CapabilityResult.ok(
+        "Revisjonsbevis hentet.",
+        capability="llm_audit",
+        evidence=[json.dumps(result, ensure_ascii=False, default=str)],
     )
 
 

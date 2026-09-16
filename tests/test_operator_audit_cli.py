@@ -72,6 +72,38 @@ class TestAuditContextCommand:
         assert rc == 1
 
 
+class TestAuditEvidenceCommand:
+    def _write_plan_with_shortfall(self, work_dir) -> None:
+        PipelineState(work_dir).write_stage(
+            StageName.PLANNING,
+            {
+                "plan": {
+                    "tournaments": [],
+                    "unresolved_participation_shortfalls": [
+                        {"club": "Jar", "label": "Jar 1", "age_group": "U10", "actual": "3", "target": "5"}
+                    ],
+                }
+            },
+            status=StageStatus.DONE,
+        )
+        _write_export(work_dir)
+
+    def test_prints_detailed_evidence_for_a_category(self, tmp_path, capsys):
+        self._write_plan_with_shortfall(tmp_path)
+        rc = _cmd_operator(
+            _args("audit-evidence", "--work-dir", str(tmp_path), "--category", "participation_shortfalls")
+        )
+        assert rc == 0
+        printed = json.loads(capsys.readouterr().out)
+        assert printed["matched_record_count"] == 1
+        assert printed["export_fingerprint"] == "fp-1"
+        assert printed["records"][0]["detail"]["label"] == "Jar 1"
+
+    def test_fails_without_an_export(self, tmp_path, capsys):
+        rc = _cmd_operator(_args("audit-evidence", "--work-dir", str(tmp_path), "--item", "1"))
+        assert rc == 1
+
+
 class TestAuditSubmitCommand:
     def test_submits_a_valid_result_from_file(self, tmp_path):
         _write_export(tmp_path)

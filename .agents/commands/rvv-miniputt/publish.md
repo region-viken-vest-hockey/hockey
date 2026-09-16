@@ -25,7 +25,7 @@ python3 -m tournament_scheduler.cli.rvv_cli operator publish --confirm-public
 
 `--confirm-public` confirms the public-publication action only. It must not bypass hard verification, audit requirements, sanitization, or reachability checks.
 
-If publication fails because the semantic audit is missing/stale, use the canonical audit flow from the shared RVV skill (`operator audit-context` + harness judgment + `operator audit-submit`, or the documented headless `operator audit-run` path when appropriate) and retry only after the gate is satisfied.
+If publication fails because the semantic audit is missing/stale, use the canonical audit flow from the shared RVV skill (`operator audit-context` for the bounded overview, `operator audit-evidence --item/--tournament/--club/--category` to pull exact supporting detail, then harness judgment + `operator audit-submit`, or the documented headless `operator audit-run` path when appropriate) and retry only after the gate is satisfied.
 
 On failure, report the repository error and any pending operator questions. Do not improvise around a blocking gate.
 

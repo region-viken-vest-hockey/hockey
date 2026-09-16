@@ -61,8 +61,8 @@ function checklistLines(context: AuditContext): string[] {
   });
 }
 
-function buildPiAuditPrompt(context: AuditContext): string {
-  return [
+function buildPiAuditPrompt(context: AuditContext, evidenceAppendix?: string): string {
+  const lines = [
     "You are performing an independent, adversarial semantic safety-net audit of a youth hockey tournament season-plan export, immediately before publication.",
     "",
     "Do not assume the schedule is correct merely because deterministic verification passed. The scheduler and its deterministic verifier may share a logic defect, or may simply be missing a rule. Reconstruct important facts from the evidence below, look for counterexamples and suspicious outliers across the whole season, and explain anything that does not make operational sense.",
@@ -84,6 +84,18 @@ function buildPiAuditPrompt(context: AuditContext): string {
     "",
     "Persisted source/calendar evidence (do not perform fresh live scraping):",
     JSON.stringify(context.calendar_evidence_summary ?? {}, null, 2),
+    "",
+    "Selected-plan audit summary (bounded: counts, distributions and worst/top examples):",
+    JSON.stringify(context.plan_audit_summary ?? {}, null, 2),
+    "",
+    "Export consistency summary:",
+    JSON.stringify(context.export_consistency_summary ?? {}, null, 2),
+    "",
+    "Checklist evidence guide (canonical categories + query commands per item):",
+    JSON.stringify(context.checklist_evidence_guide ?? [], null, 2),
+    "",
+    "Queryable evidence index (bounded). This map shows what detailed evidence exists; it does not contain the whole evidence universe. Use `evidence_queries` to retrieve exact records for a suspicious area:",
+    JSON.stringify(context.evidence_index ?? {}, null, 2),
     "",
     "Export output files (cross-check export-format consistency, checklist item 8):",
     JSON.stringify(context.output_files ?? {}, null, 2),
@@ -114,10 +126,33 @@ function buildPiAuditPrompt(context: AuditContext): string {
         },
       ],
       could_not_independently_establish: ["string", "..."],
+      evidence_queries: [
+        {
+          category: "string (from available_selectors.categories)",
+          item: "int 1-9 (optional)",
+          tournament: "durable tournament id (optional)",
+          club: "string (optional)",
+          age_group: "string (optional)",
+          unresolved: "bool (optional)",
+          why: "string: what you are trying to establish",
+        },
+      ],
     }, null, 2),
     "",
+    "If you need exact supporting evidence, populate `evidence_queries` with at most 6 bounded selectors; the harness returns the matching records (through the repository's canonical audit-evidence capability) and asks you to conclude. Answer immediately with `evidence_queries: []` if the bounded overview is enough.",
+    "",
     "Respond with only the JSON object, no other text.",
-  ].join("\n");
+  ];
+  if (evidenceAppendix) {
+    lines.push(
+      "",
+      "Requested detailed evidence (resolved through the canonical repository audit-evidence capability). Use it to finalize your verdict; request more only if a specific question remains open:",
+      evidenceAppendix,
+      "",
+      "Now respond with the final JSON object only.",
+    );
+  }
+  return lines.join("\n");
 }
 
 function extractJsonObject(raw: string): Record<string, unknown> | null {
@@ -291,6 +326,22 @@ function formatAuditPayloadForOutput(payload: AuditResultPayload): string {
   return lines.join("\n");
 }
 
+function evidenceQueryArgs(query: Record<string, unknown>): string[] {
+  // Repository equivalent: rvv-miniputt operator audit-evidence --category <name>
+  const args = ["operator", "audit-evidence"];
+  if (query.item !== undefined && query.item !== null && query.item !== "") args.push("--item", String(query.item));
+  if (typeof query.tournament === "string" && query.tournament) args.push("--tournament", query.tournament);
+  if (typeof query.club === "string" && query.club) args.push("--club", query.club);
+  if (typeof query.age_group === "string" && query.age_group) args.push("--age-group", query.age_group);
+  if (typeof query.category === "string" && query.category) args.push("--category", query.category);
+  if (query.unresolved) args.push("--unresolved");
+  return args;
+}
+
+const MAX_EVIDENCE_QUERIES_PER_ROUND = 6;
+const MAX_EVIDENCE_ROUNDS = 2;
+const MAX_EVIDENCE_APPENDIX_CHARS = 60_000;
+
 export async function runPiHarnessAudit(
   cwd: string,
   workDir: string,
@@ -316,37 +367,73 @@ export async function runPiHarnessAudit(
 
   const backend = ctx.model ? `pi:${ctx.model.provider}/${ctx.model.id}` : "pi:no-active-model";
   let payload: AuditResultPayload;
-  let raw = "";
   if (!ctx.model) {
     payload = incompletePayload(context, backend, "Pi harness has no active model available for the semantic audit.");
   } else {
-    const prompt = buildPiAuditPrompt(context);
-    const started = Date.now();
-    const userMessage: UserMessage = {
-      role: "user",
-      content: [{ type: "text", text: prompt }],
-      timestamp: Date.now(),
-    };
-    try {
-      const response = await ctx.modelRegistry.complete(
-        ctx.model,
-        { systemPrompt: "You are an adversarial audit judge. Return only the requested JSON object.", messages: [userMessage] },
-        { signal: ctx.signal },
-      );
-      raw = responseText(response);
-      logLLMInteraction?.({ backend, duration_ms: Date.now() - started, raw_chars: raw.length });
-      if (response.stopReason === "aborted") {
-        payload = incompletePayload(context, backend, "Pi harness semantic audit was aborted.");
-      } else {
-        const parsed = extractJsonObject(raw);
-        payload = parsed
-          ? payloadFromModel(context, parsed, backend)
-          : incompletePayload(context, backend, `Pi harness could not parse audit model response as JSON: ${raw.slice(0, 500)}`);
+    const systemPrompt = "You are an adversarial audit judge. Return only the requested JSON object.";
+    let appendix: string | undefined;
+    let appendixChars = 0;
+    let raw = "";
+    let parsed: Record<string, unknown> | null = null;
+    let failureReason: string | null = null;
+
+    for (let round = 0; round <= MAX_EVIDENCE_ROUNDS; round += 1) {
+      const prompt = buildPiAuditPrompt(context, appendix);
+      const started = Date.now();
+      const userMessage: UserMessage = {
+        role: "user",
+        content: [{ type: "text", text: prompt }],
+        timestamp: Date.now(),
+      };
+      try {
+        const response = await ctx.modelRegistry.complete(
+          ctx.model,
+          { systemPrompt, messages: [userMessage] },
+          { signal: ctx.signal },
+        );
+        raw = responseText(response);
+        logLLMInteraction?.({ backend, duration_ms: Date.now() - started, raw_chars: raw.length });
+        if (response.stopReason === "aborted") {
+          failureReason = "Pi harness semantic audit was aborted.";
+          parsed = null;
+          break;
+        }
+      } catch (err: unknown) {
+        failureReason = `Pi harness audit model call failed: ${err instanceof Error ? err.message : String(err)}`;
+        logLLMInteraction?.({ backend, duration_ms: Date.now() - started, error: failureReason });
+        parsed = null;
+        break;
       }
-    } catch (err: unknown) {
-      const reason = `Pi harness audit model call failed: ${err instanceof Error ? err.message : String(err)}`;
-      logLLMInteraction?.({ backend, duration_ms: Date.now() - started, error: reason });
-      payload = incompletePayload(context, backend, reason);
+
+      parsed = extractJsonObject(raw);
+      const queries = parsed && Array.isArray(parsed.evidence_queries)
+        ? (parsed.evidence_queries as unknown[]).filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === "object")
+        : [];
+      if (!parsed || queries.length === 0 || round === MAX_EVIDENCE_ROUNDS) break;
+
+      const details: string[] = [];
+      for (const query of queries.slice(0, MAX_EVIDENCE_QUERIES_PER_ROUND)) {
+        const detail = await runRepoCli(cwd, [...evidenceQueryArgs(query), "--work-dir", workDir]);
+        if (detail.status !== "success" || !detail.stdout.trim()) continue;
+        const text = detail.stdout.trim();
+        if (appendixChars + text.length > MAX_EVIDENCE_APPENDIX_CHARS) break;
+        appendixChars += text.length;
+        details.push(text);
+      }
+      if (details.length === 0) break;
+      appendix = [appendix, ...details].filter(Boolean).join("\n");
+    }
+
+    if (failureReason) {
+      payload = incompletePayload(context, backend, failureReason);
+    } else if (parsed) {
+      payload = payloadFromModel(context, parsed, backend);
+    } else {
+      payload = incompletePayload(
+        context,
+        backend,
+        `Pi harness could not parse audit model response as JSON: ${raw.slice(0, 500)}`,
+      );
     }
   }
 

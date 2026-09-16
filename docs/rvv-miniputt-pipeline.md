@@ -217,6 +217,18 @@ Generated artifacts are derived data. Do not permanently patch them by hand; cor
 
 ## Review before publication
 
+The semantic safety-net audit is deliberately bounded. `rvv-miniputt operator audit-context` returns a compact overview (counts, distributions, worst/top-N examples, fingerprints, and an `evidence_index` of available queries) rather than the whole persisted evidence bundle. Exact supporting detail is retrieved on demand through the same repository-owned capability from every harness:
+
+```bash
+rvv-miniputt operator audit-evidence --item 2
+rvv-miniputt operator audit-evidence --tournament <durable-id>
+rvv-miniputt operator audit-evidence --club Kongsberg
+rvv-miniputt operator audit-evidence --category participation_shortfalls
+rvv-miniputt operator audit-evidence --unresolved
+```
+
+Every query result carries the same run id and export fingerprint as the overview that advertised it, so evidence from another run or export cannot be silently mixed in. Harness adapters call this capability instead of parsing `evidence_bundle.json` or other raw artifacts themselves.
+
 Review at least:
 
 - hard verification status;

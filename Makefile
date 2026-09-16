@@ -24,7 +24,7 @@ PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-repo
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
-	audit-context audit-run audit-submit \
+	audit-context audit-evidence audit-run audit-submit \
 	publish-preview publish verify-publish publish-history rollback \
 	release-dry-run release
 
@@ -72,6 +72,8 @@ help:
 	@echo ""
 	@echo "Semantic safety-net audit (issue #325 — required before publish):"
 	@echo "  make audit-context                 Print evidence inventory for the harness to review"
+	@echo "  make audit-evidence ARGS='--item 2'"
+	@echo "                                      Retrieve detailed evidence for a selector"
 	@echo "  make audit-run BACKEND=<name>      Headless audit (claude|openai|llm_bridge)"
 	@echo "  make audit-submit RESULT_FILE=<path>"
 	@echo "                                      Submit a structured audit verdict"
@@ -178,6 +180,9 @@ promote:
 
 audit-context:
 	@cd "$(ROOT_DIR)" && "$(RVV)" operator audit-context $(ARGS)
+
+audit-evidence:
+	@cd "$(ROOT_DIR)" && "$(RVV)" operator audit-evidence $(ARGS)
 
 audit-run:
 	@if [ -z "$${BACKEND:-}" ]; then echo "ERROR: make audit-run requires BACKEND=claude|openai|llm_bridge" >&2; exit 2; fi

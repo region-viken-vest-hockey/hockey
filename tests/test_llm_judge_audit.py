@@ -77,6 +77,15 @@ def test_prompt_includes_fingerprints_and_evidence():
     assert "missing rules" in prompt
 
 
+def test_prompt_advertises_the_selective_evidence_query_contract():
+    context = _context()
+    context["evidence_index"] = {"categories": [{"category": "participation_shortfalls", "count": 3}]}
+    prompt = build_audit_prompt(context)
+    assert "evidence_queries" in prompt
+    assert "participation_shortfalls" in prompt
+    assert "audit-evidence" not in prompt  # the judge asks by selector, not by shell command
+
+
 class TestRunHeadlessAudit:
     def test_golden_pass_response_produces_pass_result(self):
         with patch("urllib.request.urlopen", return_value=_mock_llm_bridge_response(_golden_response_json("PASS"))):
@@ -115,3 +124,42 @@ class TestRunHeadlessAudit:
             result = run_headless_audit(_context(), "llm_bridge")
         assert result["status"] == "INCOMPLETE"
         assert "boom" in result["could_not_independently_establish"][0]
+
+    def test_requested_evidence_is_resolved_through_the_canonical_query_api(self):
+        index = {
+            "run_id": "run-1",
+            "export_fingerprint": "fp-1",
+            "source_fingerprints": {},
+            "records": [
+                {
+                    "category": "participation_shortfalls",
+                    "finding_type": "participation_under_target",
+                    "checklist_item": 1,
+                    "unresolved": True,
+                    "severity": "major",
+                    "tournament_id": None,
+                    "club": "Jar",
+                    "clubs": ["Jar"],
+                    "age_group": "U10",
+                    "summary": "Jar U10: 3/5",
+                    "detail": {"label": "Jar 1"},
+                }
+            ],
+        }
+        first = json.dumps(
+            {
+                "status": "REVIEW_REQUIRED",
+                "checklist_findings": [],
+                "potential_missing_rule": [],
+                "could_not_independently_establish": [],
+                "evidence_queries": [{"category": "participation_shortfalls"}],
+            }
+        )
+        responses = [_mock_llm_bridge_response(first), _mock_llm_bridge_response(_golden_response_json("PASS"))]
+        with patch("urllib.request.urlopen", side_effect=responses):
+            result = run_headless_audit(_context(), "llm_bridge", evidence_index=index)
+
+        assert result["status"] == "PASS"
+        assert result["audit_metrics"]["evidence_rounds"] == 1
+        assert result["audit_metrics"]["evidence_queries"][0]["category"] == "participation_shortfalls"
+        assert result["audit_metrics"]["evidence_bytes_returned"] > 0

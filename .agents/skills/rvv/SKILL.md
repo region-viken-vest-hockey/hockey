@@ -189,6 +189,18 @@ Operator checklist (answer every item; item 9 is open-ended and the most importa
 
 Execution model: when an interactive harness (Claude Code/Pi) is driving the run, the harness itself performs this audit in-session by reading `operator audit-context` output and reasoning adversarially against the checklist and evidence, then submitting its verdict via `operator audit-submit`. Pi's project adapter performs this automatically after each successful `/rvv-miniputt run` export and before `/rvv-miniputt publish`. When no interactive harness is active (`RVV_HARNESS`, `CLAUDE_CODE_SESSION_ID`, and `PI_SESSION_ID` all unset), the headless path (`operator audit-run --backend <name>`, cron/CI) calls a real LLM judge backend automatically instead.
 
+Bounded context + selective evidence: `operator audit-context` never dumps the whole persisted evidence bundle. It returns a small, size-bounded overview of counts, distributions, worst/top-N examples and fingerprints, plus an `evidence_index` that advertises which detailed queries exist. Pull exact supporting evidence only where a suspicious area needs it, through the one repository-owned query capability (same command from every harness — never parse the raw artifacts yourself):
+
+```bash
+operator audit-evidence --item 2
+operator audit-evidence --tournament <durable-id>
+operator audit-evidence --club Kongsberg
+operator audit-evidence --category participation_shortfalls
+operator audit-evidence --unresolved
+```
+
+Query results are bound to the same run/export fingerprint as the overview they were advertised in, so stale evidence from another run/export is never silently mixed in. If `evidence_bundle.json` is present, it stays a persisted run artifact for the query capability to read — it is not part of the default context payload.
+
 Non-goals: this audit must not reimplement deterministic rule logic, must not become a second Python rules engine, must not duplicate SeasonPlanner policy, and must not perform fresh live calendar scraping — it cross-checks the *persisted* evidence bundle and source summary only.
 
 A harness `FAIL` or `REVIEW_REQUIRED` can occur even when deterministic checks all pass — that is the intended purpose of the audit. It can never override a deterministic hard `FAIL`. An incomplete or failed audit run is never equivalent to `PASS`.
@@ -303,6 +315,7 @@ Use:
 
 ```bash
 make audit-context
+make audit-evidence ARGS='--item 2'
 make audit-run BACKEND=<claude|openai|llm_bridge>
 make audit-submit RESULT_FILE=<path>
 make publish-preview
