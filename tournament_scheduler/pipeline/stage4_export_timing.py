@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .export_lifecycle import prune_draft_exports
 from .stage4_export_errors import Stage4Error
 
 DEFAULT_EXPORT_DIR = "export"
@@ -20,18 +20,18 @@ DEFAULT_BASENAME = "season_plan"
 # nested timestamp from being appended on top of it.
 _TIMESTAMP_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{4}$")
 
-# Only this many timestamped export runs are kept on disk (and therefore in
-# the repo, since they're committed as evidence). Older ones are deleted
-# automatically at the end of a successful export.
+# Keep this many draft/transient timestamped export runs on disk. Published
+# lifecycle manifests and unclassified legacy exports are protected from this
+# normal rolling cleanup.
 MAX_KEPT_EXPORTS = 3
 
 
 def _prune_old_exports(export_root: Path, *, keep: int = MAX_KEPT_EXPORTS) -> list[str]:
-    """Delete all but the ``keep`` most recent timestamped export directories.
+    """Delete old draft timestamped exports, preserving protected revisions.
 
-    Directory names sort chronologically (``YYYY-MM-DDTHHMM``), so the
-    oldest are simply the first entries once sorted. Non-timestamped
-    siblings (e.g. ``review_packets``, ``activities``) are left alone.
+    Directory names sort chronologically (``YYYY-MM-DDTHHMM``). Non-
+    timestamped siblings (e.g. ``review_packets``, ``activities``), published
+    exports and unclassified legacy exports are left alone.
     """
     if keep <= 0 or not export_root.is_dir():
         return []
@@ -39,11 +39,7 @@ def _prune_old_exports(export_root: Path, *, keep: int = MAX_KEPT_EXPORTS) -> li
         (p for p in export_root.iterdir() if p.is_dir() and _TIMESTAMP_DIR_RE.match(p.name)),
         key=lambda p: p.name,
     )
-    removed: list[str] = []
-    for old_run in runs[:-keep]:
-        shutil.rmtree(old_run, ignore_errors=True)
-        removed.append(old_run.name)
-    return removed
+    return prune_draft_exports(runs, keep=keep)
 
 
 def _resolve_build_timestamp(build_timestamp: str | int | float | datetime | None = None) -> datetime:

@@ -16,6 +16,7 @@ from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
 from tournament_scheduler.pipeline.not_started import NOT_STARTED_MESSAGE
 from tournament_scheduler.pipeline.pages_bundle import build_public_bundle
 from tournament_scheduler.pipeline.pages_publish import bundle_fingerprint
+from tournament_scheduler.pipeline.export_lifecycle import promote_export_manifest, read_export_manifest
 from tournament_scheduler.pipeline.stage4_export import Stage4Error, run
 from tournament_scheduler.serialization.season_plan import season_plan_from_dict
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
@@ -592,11 +593,9 @@ class TestRunStage4:
         assert "Skien" in manual_html
         assert "1 turnering(er) krever manuell istidsplanlegging" in manual_html
 
-    def test_only_last_3_timestamped_exports_are_kept(self, tmp_path):
-        """Only the 3 most recent timestamped export runs are kept on disk
-        (and therefore in the repo, since they're committed as evidence);
-        older ones are deleted automatically at the end of a successful
-        export."""
+    def test_only_last_3_draft_timestamped_exports_are_kept(self, tmp_path):
+        """Only the 3 most recent draft timestamped exports are kept on disk;
+        published/protected exports have a separate lifecycle."""
         state = PipelineState(tmp_path / "pipeline")
         input_path = tmp_path / "input.xlsx"
         _write_input_workbook(input_path, {})
@@ -621,6 +620,103 @@ class TestRunStage4:
         remaining = sorted(p.name for p in export_root.iterdir() if p.is_dir())
         assert remaining == timestamps[-3:]
         assert result["pruned_exports"] == [timestamps[0]]
+        manifest = read_export_manifest(export_root / timestamps[-1])
+        assert manifest is not None
+        assert manifest["lifecycle_status"] == "draft"
+        assert manifest["export_fingerprint"] == result["export_fingerprint"]
+
+    def test_published_exports_are_not_pruned_by_new_draft_exports(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
+        export_root = tmp_path / "export"
+
+        first = run(
+            _make_plan_dict(),
+            state,
+            export_dir=str(export_root),
+            timestamped_export=True,
+            build_timestamp=datetime(2026, 9, 1, 10, 0, tzinfo=timezone.utc),
+        )
+        first_dir = export_root / "2026-09-01T1000"
+        promote_export_manifest(
+            first_dir,
+            expected_export_fingerprint=first["export_fingerprint"],
+            source_run_id=None,
+            pages_run_id="run-1",
+            pages_bundle_fingerprint="bundle-1",
+            pages_commit="abc123",
+            pages_branch="gh-pages",
+        )
+
+        for day in (2, 3, 4, 5):
+            run(
+                _make_plan_dict(),
+                state,
+                export_dir=str(export_root),
+                timestamped_export=True,
+                build_timestamp=datetime(2026, 9, day, 10, 0, tzinfo=timezone.utc),
+            )
+
+        remaining = sorted(p.name for p in export_root.iterdir() if p.is_dir())
+        assert "2026-09-01T1000" in remaining
+        assert remaining[-3:] == ["2026-09-03T1000", "2026-09-04T1000", "2026-09-05T1000"]
+        assert read_export_manifest(first_dir)["lifecycle_status"] == "published"
+
+    def test_legacy_unclassified_exports_are_not_pruned_conservatively(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
+        export_root = tmp_path / "export"
+        legacy = export_root / "2026-08-31T1000"
+        legacy.mkdir(parents=True)
+        (legacy / "season_plan.html").write_text("legacy", encoding="utf-8")
+
+        for day in (1, 2, 3, 4):
+            run(
+                _make_plan_dict(),
+                state,
+                export_dir=str(export_root),
+                timestamped_export=True,
+                build_timestamp=datetime(2026, 9, day, 10, 0, tzinfo=timezone.utc),
+            )
+
+        assert legacy.exists()
+        assert read_export_manifest(legacy) is None
+
+    def test_promoting_export_refuses_fingerprint_mismatch(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        result = run(
+            _make_plan_dict(),
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=True,
+            build_timestamp=datetime(2026, 9, 1, 10, 0, tzinfo=timezone.utc),
+        )
+        export_dir = Path(result["export_dir"])
+
+        with pytest.raises(ValueError, match="fingerprint mismatch"):
+            promote_export_manifest(
+                export_dir,
+                expected_export_fingerprint="not-the-export-fingerprint",
+                source_run_id=None,
+                pages_run_id="run-1",
+                pages_bundle_fingerprint="bundle-1",
+                pages_commit="abc123",
+                pages_branch="gh-pages",
+            )
+
+        assert read_export_manifest(export_dir)["lifecycle_status"] == "draft"
 
     def test_produces_excel_file(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")

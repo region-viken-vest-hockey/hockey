@@ -680,7 +680,34 @@ def _execute_publish_pages(
     )
     publish_result.artifacts = list(publish_result.artifacts) + list(bundle_result.artifacts)
 
-    if push and verify and publish_result.status == "ok":
+    if publish_result.status in ("ok", "warning"):
+        try:
+            from .export_lifecycle import promote_export_manifest, read_export_manifest
+
+            if read_export_manifest(export_dir) is not None:
+                source_run_id = RunManifest(work_dir).read().get("run_id")
+                promoted = promote_export_manifest(
+                    export_dir,
+                    expected_export_fingerprint=export_checkpoint.get("export_fingerprint"),
+                    source_run_id=source_run_id,
+                    pages_run_id=run_id,
+                    pages_bundle_fingerprint=bundle_fp,
+                    pages_commit=_evidence_value(publish_result.to_dict(), "commit_sha"),
+                    pages_branch=_evidence_value(publish_result.to_dict(), "branch"),
+                )
+                publish_result.evidence = list(publish_result.evidence) + [
+                    f"source_export_dir={export_dir}",
+                    f"source_export_fingerprint={promoted.get('export_fingerprint')}",
+                    f"export_lifecycle_status={promoted.get('lifecycle_status')}",
+                ]
+        except Exception as exc:  # noqa: BLE001 - publication succeeded; surface lifecycle failure explicitly.
+            publish_result.problems = list(publish_result.problems) + [
+                f"Kunne ikke markere kildeeksporten som publisert: {exc}"
+            ]
+            if publish_result.status == "ok":
+                publish_result.status = "warning"
+
+    if push and verify and publish_result.status in ("ok", "warning"):
         urls = [a for a in publish_result.artifacts if isinstance(a, str) and a.startswith("http")]
         latest_url = urls[0] if urls else None
         run_url = urls[1] if len(urls) > 1 else None

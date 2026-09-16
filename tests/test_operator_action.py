@@ -9,6 +9,7 @@ import pytest
 
 from tournament_scheduler.pipeline.capability_result import CapabilityResult
 from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
+from tournament_scheduler.pipeline.export_lifecycle import read_export_manifest, write_draft_manifest
 from tournament_scheduler.pipeline.operator_action import (
     DEFAULT_REGISTRY,
     ActionRegistry,
@@ -448,6 +449,32 @@ class TestPublishPagesApprovalGate:
 
         assert result.status == "ok"
         assert any(e.startswith("commit_sha=") for e in result.evidence)
+
+    def test_successful_publish_promotes_timestamped_source_export_manifest(self, tmp_path):
+        _init_repo(tmp_path)
+        _write_export(tmp_path)
+        state = PipelineState(tmp_path)
+        export_checkpoint = state.read_stage(StageName.EXPORT)
+        export_dir = tmp_path / "export"
+        write_draft_manifest(
+            export_dir,
+            export_id="2026-09-01T1000",
+            generated_at="2026-09-01T10:00:00+00:00",
+            export_fingerprint=export_checkpoint["export_fingerprint"],
+            source_run_id=None,
+        )
+
+        action = DEFAULT_REGISTRY.build(
+            "publish_pages", work_dir=str(tmp_path), repo_dir=str(tmp_path), push=False, confirm_public=True
+        )
+        result = DEFAULT_REGISTRY.execute(action, approved=True)
+
+        assert result.status == "ok"
+        manifest = read_export_manifest(export_dir)
+        assert manifest["lifecycle_status"] == "published"
+        assert manifest["pages_run_id"] == "legacy"
+        assert manifest["pages_bundle_fingerprint"]
+        assert "export_lifecycle_status=published" in result.evidence
 
     def test_confirm_public_publishes_activity_subdirectory(self, tmp_path):
         _init_repo(tmp_path)

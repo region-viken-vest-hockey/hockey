@@ -35,6 +35,7 @@ from typing import Any
 
 from ..arena_conflicts import find_arena_interval_collisions
 from ..planning_contract import extract_candidate, verify_candidate
+from .export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
 from .fingerprints import stable_payload_sha256
 from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter
@@ -191,19 +192,41 @@ def run(
     output_files: dict[str, str] = {}
     generated_at = canonical_build_timestamp.isoformat()
     input_path = str(effective_config.get("input_path") or "input.xlsx")
+    try:
+        from .run_manifest import RunManifest
+
+        source_run_id = RunManifest(state.work_dir).read().get("run_id")
+    except Exception:
+        source_run_id = None
 
     if plan_dict.get("placeholder") == "not_started" or (plan_checkpoint.get("not_started") and not plan.tournaments):
         message = str(plan_dict.get("message") or NOT_STARTED_MESSAGE)
         _progress("Genererer tomme ikke-begynt-filer")
         output_files = _write_not_started_exports(primary_export_path, basename, message)
         _normalize_export_workbooks(primary_export_path, canonical_build_timestamp)
+        lifecycle_manifest = None
+        pruned_exports: list[str] = []
+        if _TIMESTAMP_DIR_RE.match(primary_export_path.name):
+            lifecycle_manifest = write_draft_manifest(
+                primary_export_path,
+                export_id=primary_export_path.name,
+                generated_at=generated_at,
+                export_fingerprint=export_fingerprint,
+                source_run_id=source_run_id,
+            )
+            output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
+            pruned_exports = _prune_old_exports(primary_export_path.parent)
         checkpoint = {
             "generated_at": generated_at,
             "input_path": input_path,
+            "export_dir": str(primary_export_path),
             "output_files": output_files,
             "errors": [],
             "not_started": True,
             "message": message,
+            "export_fingerprint": export_fingerprint,
+            "export_lifecycle": lifecycle_manifest,
+            "pruned_exports": pruned_exports,
         }
         state.write_stage(StageName.EXPORT, checkpoint, status=StageStatus.DONE)
         _progress("Eksport ferdig")
@@ -627,14 +650,23 @@ def run(
     except Exception as exc:  # noqa: BLE001
         errors.append(f"Normalisering av Excel-filer feilet: {exc}")
 
+    lifecycle_manifest = None
     pruned_exports: list[str] = []
     if not errors and _TIMESTAMP_DIR_RE.match(primary_export_path.name):
         try:
+            lifecycle_manifest = write_draft_manifest(
+                primary_export_path,
+                export_id=primary_export_path.name,
+                generated_at=generated_at,
+                export_fingerprint=export_fingerprint,
+                source_run_id=source_run_id,
+            )
+            output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
             pruned_exports = _prune_old_exports(primary_export_path.parent)
             if pruned_exports:
                 _progress(f"Fjernet {len(pruned_exports)} eldre eksport(er): {', '.join(pruned_exports)}")
         except Exception as exc:  # noqa: BLE001
-            errors.append(f"Opprydding av gamle eksporter feilet: {exc}")
+            errors.append(f"Opprydding/metadata for gamle eksporter feilet: {exc}")
 
     checkpoint: dict[str, Any] = {
         "generated_at": generated_at,
@@ -647,6 +679,7 @@ def run(
         "pruned_exports": pruned_exports,
         "verify_result": export_verify_result,
         "export_fingerprint": export_fingerprint,
+        "export_lifecycle": lifecycle_manifest,
     }
     if errors and strict:
         state.write_stage(StageName.EXPORT, checkpoint, status=StageStatus.FAILED)

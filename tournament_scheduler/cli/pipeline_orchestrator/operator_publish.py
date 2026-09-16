@@ -243,6 +243,13 @@ def _cmd_operator_publish_history(args: argparse.Namespace) -> int:
     for entry in history:
         marker = "[cyan]↩[/cyan]" if entry["kind"] == "rollback" else "[green]↑[/green]"
         label = "Tilbakerulling til" if entry["kind"] == "rollback" else "Publisert"
-        _console.print(f"{marker} {label} kjøring [bold]{entry['run_id']}[/bold]")
+        current = " [bold green](current latest)[/bold green]" if entry.get("current") == "true" else ""
+        _console.print(f"{marker} {label} kjøring [bold]{entry['run_id']}[/bold]{current}")
         _console.print(f"    [dim]{entry['date']}  commit {entry['commit_sha'][:12]}[/dim]")
+        if entry.get("source_export_dir"):
+            _console.print(
+                f"    [dim]source {entry['source_export_dir']}  "
+                f"fp {str(entry.get('source_export_fingerprint', ''))[:12]}  "
+                f"status {entry.get('source_export_status', '')}[/dim]"
+            )
     return 0

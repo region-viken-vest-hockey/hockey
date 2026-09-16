@@ -180,6 +180,39 @@ def _build_status_text(work_dir: Path) -> str:
             output_files = data.get("output_files") or {}
             for key, path in output_files.items():
                 lines.append(f"    {key}: {path}")
+            lifecycle = data.get("export_lifecycle") if isinstance(data, dict) else None
+            if isinstance(lifecycle, dict):
+                lines.append(
+                    "    lifecycle: "
+                    f"{lifecycle.get('lifecycle_status', 'unknown')} "
+                    f"(export {lifecycle.get('export_id', '-')}, "
+                    f"fp {str(lifecycle.get('export_fingerprint', ''))[:12]})"
+                )
+
+    try:
+        from ..pipeline.export_lifecycle import find_export_manifests
+
+        export_records = find_export_manifests(work_dir.parent / "export")
+    except Exception:
+        export_records = []
+    if export_records:
+        try:
+            from ..pipeline.pages_publish import list_publication_history
+
+            history = list_publication_history(repo_dir=str(work_dir.parent), branch="gh-pages")
+            current_pages_run_id = history[0].get("run_id") if history else None
+        except Exception:
+            current_pages_run_id = None
+        published = [r for r in export_records if r.get("lifecycle_status") == "published"]
+        drafts = [r for r in export_records if r.get("lifecycle_status") == "draft"]
+        lines.extend(["", f"Exports: {len(published)} published/protected, {len(drafts)} draft"])
+        for record in export_records[:5]:
+            marker = "published" if record.get("lifecycle_status") == "published" else "draft"
+            current = " current" if current_pages_run_id and record.get("pages_run_id") == current_pages_run_id else ""
+            lines.append(
+                f"  • {Path(str(record.get('export_dir'))).name}: {marker}{current} "
+                f"fp {str(record.get('export_fingerprint', ''))[:12]}"
+            )
 
     runs = _load_run_history(work_dir)
     if runs:

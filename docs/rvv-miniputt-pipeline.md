@@ -183,7 +183,10 @@ A normal timestamped `export/<timestamp>/` may contain:
 - `season_plan.ics`;
 - `season_plan_spond.xlsx` and `season_plan_spond_games.xlsx`;
 - `review_packets/` — per-club review material;
-- activity artifacts when the configured activity data is available.
+- activity artifacts when the configured activity data is available;
+- `export_manifest.json` — machine-readable lifecycle metadata for timestamped exports.
+
+Timestamped exports start as `draft`. The manifest records the export id, generated timestamp, export/candidate fingerprint and source run id. Normal Stage 4 retention prunes only old draft exports; published exports and unclassified legacy export directories are protected from the draft rolling window.
 
 The Stage 4 checkpoint's `output_files` map is the authoritative record of what that run actually produced. Exports regenerated with `season export` also record the canonical season revision/fingerprint in the checkpoint so operators can tell which Git-backed state was projected.
 
@@ -212,7 +215,7 @@ make publish CONFIRM_PUBLIC=1
 make verify-publish
 ```
 
-Publication builds a separate allowlisted/privacy-checked public bundle and updates GitHub Pages only after explicit confirmation and a fresh semantic audit. In Pi, `/rvv-miniputt run` runs that harness audit automatically after Stage 4, and `/rvv-miniputt publish` runs it before calling the repository publish command. Review packets and Spond exports are not public by default.
+Publication builds a separate allowlisted/privacy-checked public bundle and updates GitHub Pages only after explicit confirmation and a fresh semantic audit. Successful publication promotes the exact source export manifest from `draft` to `published`, binding it to the source export fingerprint plus the Pages run id, bundle fingerprint, branch and commit when available. Dry-runs and failed/blocked publication attempts do not promote an export. In Pi, `/rvv-miniputt run` runs that harness audit automatically after Stage 4, and `/rvv-miniputt publish` runs it before calling the repository publish command. Review packets and Spond exports are not public by default.
 
 For recovery:
 
