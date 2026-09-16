@@ -85,6 +85,9 @@ def run(
     strict: bool = True,
     timestamped_export: bool = True,
     build_timestamp: str | int | float | datetime | None = None,
+    verification_problem: dict[str, Any] | None = None,
+    effective_config_override: dict[str, Any] | None = None,
+    use_pipeline_metadata: bool = True,
 ) -> dict[str, Any]:
     """Export the Stage 3 plan to Excel, iCal, and CSV.
 
@@ -120,11 +123,12 @@ def run(
             raise Stage4Error(reason)
         return {}
 
-    effective_config: dict[str, Any] = {}
-    try:
-        effective_config = load_effective_config(state)
-    except Exception:
-        effective_config = {}
+    effective_config: dict[str, Any] = dict(effective_config_override or {})
+    if not effective_config and use_pipeline_metadata:
+        try:
+            effective_config = load_effective_config(state)
+        except Exception:
+            effective_config = {}
 
     try:
         from .run_manifest import RunManifest
@@ -153,7 +157,9 @@ def run(
     # the same `planning_problem` Stage 3 used and passing it here closes
     # that bypass: any caller that reaches this `run()`, guarded CLI path or
     # not, now gets the full verifier at the point that actually matters.
-    export_problem = _build_export_verification_problem(effective_config, state)
+    export_problem = verification_problem
+    if export_problem is None and use_pipeline_metadata:
+        export_problem = _build_export_verification_problem(effective_config, state)
     try:
         export_candidate = extract_candidate(plan_checkpoint)
     except ValueError:
@@ -266,6 +272,7 @@ def run(
             "message": message,
             "export_fingerprint": export_fingerprint,
             "verification_context": verification_context,
+            "reviewed_plan": dict(plan_dict),
             "canonical_season": canonical_season,
             "canonical_revision": canonical_revision,
             "export_lifecycle": lifecycle_manifest,
@@ -486,8 +493,11 @@ def run(
     _calendars_path: str | None = None
     _input_html_path: str | None = None
     try:
-        _progress("Samler pipeline-metadata for rapporten")
-        scraping_envelope = state.read_envelope(StageName.SCRAPING)
+        if use_pipeline_metadata:
+            _progress("Samler pipeline-metadata for rapporten")
+            scraping_envelope = state.read_envelope(StageName.SCRAPING)
+        else:
+            scraping_envelope = None
     except Exception as exc:
         logger.warning("Kunne ikke lese scraping-checkpoint for rapporten: %s", exc)
         scraping_envelope = None
@@ -521,12 +531,13 @@ def run(
                     exc,
                 )
     # Scrape metadata from cache for navbar
-    try:
-        from .cache_manager import ScrapedDataCache
-        _scrape_cache_data = ScrapedDataCache(state.work_dir).read()
-        meta = _scrape_cache_data.get("_meta")
-    except Exception as exc:
-        logger.warning("Kunne ikke lese scrape-cache for rapporten: %s", exc)
+    if use_pipeline_metadata:
+        try:
+            from .cache_manager import ScrapedDataCache
+            _scrape_cache_data = ScrapedDataCache(state.work_dir).read()
+            meta = _scrape_cache_data.get("_meta")
+        except Exception as exc:
+            logger.warning("Kunne ikke lese scrape-cache for rapporten: %s", exc)
     # --- Input viewer (input.html) — public overview of registered clubs/teams ---
     # Generated before the calendar viewer so calendars.html's navbar can link to it.
     # Only the whitelisted "Lag" worksheet is read (see input_workbook.PUBLIC_SHEET_WHITELIST).
@@ -728,6 +739,7 @@ def run(
         "verify_result": export_verify_result,
         "export_fingerprint": export_fingerprint,
         "verification_context": verification_context,
+        "reviewed_plan": dict(plan_dict),
         "canonical_season": canonical_season,
         "canonical_revision": canonical_revision,
         "approval_status": approval_status,

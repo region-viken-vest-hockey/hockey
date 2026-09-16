@@ -1214,6 +1214,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         move_tournament,
         load_decisions,
         load_schedule,
+        effective_config_from_verification_problem,
         planning_checkpoint_from_schedule,
         promote_from_stage3,
         schedule_path,
@@ -1253,12 +1254,22 @@ def _cmd_season(args: argparse.Namespace) -> int:
             schedule = load_schedule(args.season, root=args.root)
             checkpoint = planning_checkpoint_from_schedule(schedule)
             state = PipelineState(args.work_dir)
+            verification_context = schedule.get("verification_context") if isinstance(schedule.get("verification_context"), dict) else {}
+            verification_problem = verification_context.get("problem") if isinstance(verification_context, dict) else None
+            if not isinstance(verification_problem, dict):
+                raise SeasonStateError(
+                    "Canonical season export requires a promoted verification-context problem; "
+                    "re-promote from a provenance-bound Stage 4 handoff."
+                )
             result = run_export(
                 checkpoint,
                 state=state,
                 export_dir=args.export_dir,
                 strict=True,
                 timestamped_export=args.timestamped_export,
+                verification_problem=verification_problem,
+                effective_config_override=effective_config_from_verification_problem(verification_problem),
+                use_pipeline_metadata=False,
             )
             result["canonical_season"] = args.season
             result["canonical_revision"] = schedule.get("revision")

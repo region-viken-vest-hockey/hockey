@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import itertools
 import json
+import shutil
 from pathlib import Path
 
 import openpyxl
@@ -165,6 +166,23 @@ def test_promotion_persists_reviewed_export_provenance(tmp_path):
     ]
     assert promoted_from["verification_context_candidate_fingerprint"] == result["export_fingerprint"]
     assert promoted_from["verification_context_verified_ok"] is True
+    assert schedule["verification_context"]["problem_fingerprint"] == result["verification_context"]["problem_fingerprint"]
+
+
+def test_promotion_uses_reconciled_stage4_plan_snapshot_not_stale_stage3_fields(tmp_path):
+    work_dir, root, state, plan, _result = _stage_odd_team_export(tmp_path)
+
+    stage3_plan = dict(plan)
+    stage3_plan["publication_readiness"] = {"status": "stale_stage3"}
+    state.write_stage(StageName.PLANNING, {"plan": stage3_plan}, status=StageStatus.DONE)
+
+    reviewed_plan = dict(plan)
+    reviewed_plan["publication_readiness"] = {"status": "stage4_reconciled"}
+    run_export({"plan": reviewed_plan}, state, export_dir=str(tmp_path / "export2"), timestamped_export=False)
+
+    schedule, _decisions = promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    assert schedule["plan"]["publication_readiness"] == {"status": "stage4_reconciled"}
 
 
 # ---------------------------------------------------------------------------
@@ -225,6 +243,18 @@ def test_missing_verification_context_blocks_instead_of_context_free_fallback(tm
         promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
     assert "no verification-context provenance" in str(excinfo.value)
     assert not schedule_path("2026-2027", root=root).exists()
+
+
+def test_missing_reviewed_plan_snapshot_blocks_promotion(tmp_path):
+    work_dir, root, state, _plan, _result = _stage_odd_team_export(tmp_path)
+    export_path = state.checkpoint_path(StageName.EXPORT)
+    envelope = json.loads(export_path.read_text(encoding="utf-8"))
+    envelope["data"].pop("reviewed_plan")
+    export_path.write_text(json.dumps(envelope), encoding="utf-8")
+
+    with pytest.raises(SeasonStateError) as excinfo:
+        promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    assert "no reviewed final plan snapshot" in str(excinfo.value)
 
 
 def test_missing_problem_blocks_promotion(tmp_path):
@@ -335,6 +365,75 @@ def test_season_promote_cli_succeeds_for_reviewed_odd_team_export(tmp_path, caps
     summary = json.loads(captured[captured.index("{") : captured.rindex("}") + 1])
     assert summary["season"] == "2026-2027"
     assert summary["tournament_count"] == 1
+
+
+def test_canonical_season_export_uses_durable_context_after_pipeline_deleted(tmp_path, capsys):
+    from tournament_scheduler.cli.rvv_cli import main
+
+    work_dir, root, _state, _plan, _result = _stage_odd_team_export(tmp_path)
+    assert main(["season", "promote", "--work-dir", str(work_dir), "--root", str(root)]) == 0
+    capsys.readouterr()
+    shutil.rmtree(work_dir)
+
+    rc = main([
+        "season",
+        "export",
+        "--season",
+        "2026-2027",
+        "--work-dir",
+        str(work_dir),
+        "--root",
+        str(root),
+        "--export-dir",
+        str(tmp_path / "canonical-export"),
+        "--flat",
+        "--json",
+    ])
+
+    assert rc == 0
+    captured = capsys.readouterr().out
+    result = json.loads(captured[captured.index("{") : captured.rindex("}") + 1])
+    assert result["verify_result"]["ok"] is True
+    assert result["canonical_season"] == "2026-2027"
+
+
+def test_canonical_season_export_does_not_consume_later_stage1_config(tmp_path, capsys):
+    from tournament_scheduler.cli.rvv_cli import main
+
+    work_dir, root, state, _plan, _result = _stage_odd_team_export(tmp_path)
+    assert main(["season", "promote", "--work-dir", str(work_dir), "--root", str(root)]) == 0
+    capsys.readouterr()
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": [{"club": club, "label": f"JU8-{club}", "age_group": "JU8"} for club in "ABCDEF"],
+            "round_length_minutes": {"JU8": 10},
+            "ice_time_minutes": {"JU8": 60},
+        },
+        status=StageStatus.DONE,
+    )
+
+    rc = main([
+        "season",
+        "export",
+        "--season",
+        "2026-2027",
+        "--work-dir",
+        str(work_dir),
+        "--root",
+        str(root),
+        "--export-dir",
+        str(tmp_path / "canonical-export"),
+        "--flat",
+        "--json",
+    ])
+
+    assert rc == 0
+    captured = capsys.readouterr().out
+    result = json.loads(captured[captured.index("{") : captured.rindex("}") + 1])
+    assert result["verify_result"]["ok"] is True
 
 
 def test_season_promote_cli_refuses_stale_handoff(tmp_path, capsys):

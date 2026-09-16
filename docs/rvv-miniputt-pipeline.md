@@ -65,12 +65,18 @@ Promotion verifies the exact reviewed candidate against the verification context
 accepted the Stage 4 export, not against whatever Stage 1/2 state happens to be in
 `.pipeline` at promotion time. The Stage 4 checkpoint carries a versioned
 `verification_context` (source run id, candidate/export fingerprint, the normalized
-planning problem and its fingerprint). Promotion refuses with an explicit
-stale/missing-provenance error if the Stage 4 export is incomplete/stale, the selected
-candidate no longer matches the reviewed export, the source run differs, or the
-verification context is missing -- it never silently falls back to context-free
-verification. `promoted_from` in `schedule.json` records the source run, reviewed
-export/candidate fingerprint and verification-context fingerprint.
+planning problem and its fingerprint) plus the reviewed final plan snapshot after
+Stage 4 reconciliation. Promotion refuses with an explicit stale/missing-provenance
+error if the Stage 4 export is incomplete/stale, the selected candidate no longer
+matches the reviewed export, the source run differs, or the verification context is
+missing -- it never silently falls back to context-free verification. `schedule.json`
+records the reviewed plan snapshot, `promoted_from` records the source run,
+reviewed export/candidate fingerprint and verification-context fingerprint, and the
+canonical state retains the verification-context snapshot needed for later canonical
+exports. Legacy reviewed exports that lack either verification context or the reviewed
+plan snapshot are not promotable in-place; re-run Stage 4 for the same candidate to
+create a new provenance-bound reviewed handoff while preserving the old export as
+historical evidence.
 
 Promotion is deliberate and exclusive. An ordinary later Stage 3 run whose window matches the promoted season adopts that canonical schedule as its baseline rather than silently regenerating it.
 
@@ -118,7 +124,7 @@ Canonical writes are transactional: rejected verification or write failure must 
 
 Timestamped exports start as `draft`. `export_manifest.json` records export/candidate fingerprint, source run and (when applicable) canonical season/revision. Draft retention may prune old drafts; published exports and unclassified legacy exports are protected from the draft rolling window.
 
-`season export` regenerates review output from canonical state and records the current canonical revision in the Stage 4 checkpoint/manifest and generated HTML metadata.
+`season export` regenerates review output from canonical state and records the current canonical revision in the Stage 4 checkpoint/manifest and generated HTML metadata. It verifies with the durable verification context stored in canonical `schedule.json` and does not silently reload mutable Stage 1/2 checkpoints or scrape cache from `.pipeline`; deleting or replacing `.pipeline` must not change what the canonical revision means.
 
 After canonical schedule/decision state changes, regenerate with `season export` before audit/publication. Do not knowingly publish an older projection of newer canonical state.
 

@@ -172,8 +172,38 @@ def planning_checkpoint_from_schedule(schedule: dict[str, Any]) -> dict[str, Any
             "revision": schedule.get("revision"),
             "fingerprint": schedule.get("fingerprint"),
             "promoted_from": schedule.get("promoted_from", {}),
+            "verification_context": schedule.get("verification_context"),
         },
     }
+
+
+def effective_config_from_verification_problem(problem: dict[str, Any] | None) -> dict[str, Any]:
+    """Return the export-facing config fields preserved in a planning problem.
+
+    Canonical season export must not reload mutable Stage 1/2 checkpoints merely
+    to recover display/export settings. The normalized verification problem is
+    the durable context promoted with the season, and carries the fields Stage 4
+    needs for deterministic duration metadata and report labels.
+    """
+
+    if not isinstance(problem, dict):
+        return {}
+    config: dict[str, Any] = {}
+    for key in (
+        "start_date",
+        "end_date",
+        "age_groups",
+        "round_length_minutes",
+        "ice_time_minutes",
+        "rounds_per_tournament",
+        "parallel_games",
+        "participation_targets_by_age_group",
+    ):
+        value = problem.get(key)
+        if value is not None:
+            config[key] = value
+    config["age_groups_from_input"] = bool(problem.get("age_groups"))
+    return config
 
 
 def _initial_decisions(plan_dict: dict[str, Any]) -> dict[str, Any]:
@@ -265,7 +295,11 @@ def promote_from_stage3(
         messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
         raise SeasonStateError(f"Refusing promotion: selected candidate fails hard verification: {messages}")
 
-    plan_dict = dict(candidate)
+    reviewed_plan = bound_context.get("reviewed_plan")
+    if isinstance(reviewed_plan, dict):
+        plan_dict = dict(reviewed_plan)
+    else:
+        plan_dict = dict(candidate)
     plan_dict["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
     resolved_season = season or season_id_from_plan(plan_dict)
     sched_path = schedule_path(resolved_season, root=root)
@@ -290,6 +324,7 @@ def promote_from_stage3(
         # Immutable provenance for the transition into canonical state:
         # which run produced the baseline, which reviewed export
         # was promoted, and which verification context accepted it.
+        "verification_context": dict(bound_context["context"]),
         "promoted_from": {
             "work_dir": str(work_dir),
             "run_id": bound_context["run_id"],

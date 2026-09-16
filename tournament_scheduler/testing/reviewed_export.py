@@ -87,6 +87,7 @@ def write_reviewed_stage4_export(
         "verify_result": verify_result,
         "export_fingerprint": export_fingerprint,
         "verification_context": verification_context,
+        "reviewed_plan": dict(candidate),
     }
     state.write_stage(StageName.EXPORT, checkpoint, status=StageStatus.DONE)
     return checkpoint

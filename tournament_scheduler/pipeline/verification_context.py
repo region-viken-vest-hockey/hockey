@@ -154,9 +154,21 @@ def resolve_promotion_verification_context(
             "Cannot promote: the verification problem does not match its recorded fingerprint."
         )
 
+    reviewed_plan = export_checkpoint.get("reviewed_plan")
+    if not isinstance(reviewed_plan, dict):
+        raise VerificationContextError(
+            "Cannot promote: the Stage 4 export carries no reviewed final plan snapshot; "
+            "re-export the reviewed candidate so promotion cannot copy stale Stage 3 operator state."
+        )
+    if stable_payload_sha256(reviewed_plan.get("tournaments", [])) != export_fingerprint:
+        raise VerificationContextError(
+            "Cannot promote: the reviewed Stage 4 plan snapshot does not match the export fingerprint."
+        )
+
     return {
         "problem": problem,
         "context": context,
+        "reviewed_plan": reviewed_plan,
         "run_id": context_run_id,
         "candidate_fingerprint": candidate_fingerprint,
         "export_fingerprint": export_fingerprint,
