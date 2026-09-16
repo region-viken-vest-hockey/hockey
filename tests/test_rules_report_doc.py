@@ -25,6 +25,10 @@ def test_rules_report_markdown_matches_committed_doc(canonical_input_data):
             ]
         },
         rounds_per_tournament_for_age_group=canonical_input_data.get("rounds_per_tournament", {}),
+        # The committed markdown is a reproducible snapshot: never derive it
+        # from ambient `.pipeline` run state (generated, machine-specific).
+        use_plan_cache=False,
+        build_plan=True,
     )
 
     expected = Path("docs/rvv-miniputt-rules-report.md").read_text(encoding="utf-8")

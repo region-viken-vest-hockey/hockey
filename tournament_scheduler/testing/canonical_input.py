@@ -161,9 +161,20 @@ def build_canonical_planner(
     *,
     events_by_club: dict[str, list[CalendarEvent]] | None = None,
     free_dates: list[date] | None = None,
+    use_plan_cache: bool = True,
+    plan_cache_path: str | Path | None = None,
+    build_plan: bool = False,
     **planner_kwargs: Any,
 ) -> tuple[SeasonPlanner, datetime, datetime]:
-    """Build a SeasonPlanner from the canonical ``input.xlsx`` test fixture."""
+    """Build a SeasonPlanner from the canonical ``input.xlsx`` test fixture.
+
+    A prior Stage 3 run's planning checkpoint under ``.pipeline`` is reused by
+    default so fast/slow tests do not rebuild the whole season.  That ambient
+    state is generated runtime data, so any caller that needs a *reproducible*
+    result (documentation snapshots, sync tests) must pass
+    ``use_plan_cache=False``; ``build_plan=True`` then runs the deterministic
+    planner so plan-derived diagnostics are populated.
+    """
     data = load_canonical_input_data(path)
     roster = Roster(teams=[Team(**team) for team in data["teams"]])
     parallel_games = data.get("parallel_games", {})
@@ -179,8 +190,14 @@ def build_canonical_planner(
         **planner_kwargs,
     )
 
-    cached_plan_path = Path(__file__).resolve().parents[2] / ".pipeline" / "stage3_planning.json"
-    if cached_plan_path.exists():
+    cached_plan_path: Path | None = None
+    if use_plan_cache:
+        cached_plan_path = (
+            Path(plan_cache_path)
+            if plan_cache_path is not None
+            else Path(__file__).resolve().parents[2] / ".pipeline" / "stage3_planning.json"
+        )
+    if cached_plan_path is not None and cached_plan_path.exists():
         cached = json.loads(cached_plan_path.read_text(encoding="utf-8"))
         plan_data = cached.get("data", {}).get("plan", {})
         normalized_counts = _normalize_cached_team_game_counts(plan_data, roster)
@@ -205,5 +222,9 @@ def build_canonical_planner(
         planner._scan_per_team_share_warnings(skipped_age_groups=plan.skipped_age_groups)
         planner._canonical_plan = plan
         return planner, start, end
+
+    if build_plan:
+        plan = planner.build_plan(start, end)
+        planner._canonical_plan = plan
 
     return planner, start, end
