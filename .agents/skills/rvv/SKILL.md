@@ -146,6 +146,12 @@ Agent policy:
 
 Typical soft dimensions include participation balance, hosting distribution, temporal spacing, opponent diversity/repetition, travel and source uncertainty. The repository measures them; the agent decides contextual priority only when no hard rule decides the outcome.
 
+Once a season has been promoted to canonical state (`season/<season>/`), planning is baseline-aware. Do not ask for a from-scratch season or hand-edit canonical files to work around a lock:
+
+- approved/placement-locked tournaments are hard-preserve constraints — a candidate that moves or drops one fails verification with `canonical_placement_locked`/`canonical_participants_locked`/`canonical_locked_tournament_missing`;
+- use `season replan` to search around the canonical baseline, `season diff` to see the weighted change cost before committing, and `season apply` to persist a verified candidate atomically. A rejected candidate must leave `schedule.json`/`decisions.json` unchanged;
+- approval/lock state lives in `decisions.json`, separate from schedule facts, and an approval whose facts changed loses its approval instead of silently staying "approved".
+
 ### Stage 4 — export/review
 
 Stage 4 re-verifies the selected candidate before serialization.

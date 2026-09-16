@@ -51,7 +51,7 @@ external hall/club calendars -> Stage 2: evidence collection
 - **`Årshjul for aktiviteter.xlsx`** is the activity-calendar source workbook.
 - **External calendar sources** are authoritative for their own availability evidence, subject to source-health/provenance checks.
 - **Repository code and tests** define deterministic parsing, hard constraints, verification, metrics, persistence, export and publication safety.
-- **`season/<season>/schedule.json` and `season/<season>/decisions.json`** are the Git-backed canonical current season state after a verified candidate is deliberately promoted for club review/booking. The schedule file owns schedule facts; the decisions file owns approval/lock workflow state.
+- **`season/<season>/schedule.json` and `season/<season>/decisions.json`** are the Git-backed canonical current season state after a verified candidate is deliberately promoted for club review/booking. The schedule file owns schedule facts; the decisions file owns approval/lock workflow state. After promotion, planning is baseline-aware: approved/placement-locked tournaments are hard-preserve constraints and published-but-unapproved changes carry a measured change cost (`tournament_scheduler.canonical_baseline`).
 - **`.agents/skills/rvv/SKILL.md`** is the shared agent runbook for contextual/soft decisions.
 - **GitHub issues** are the implementation backlog. ADRs preserve durable rationale.
 

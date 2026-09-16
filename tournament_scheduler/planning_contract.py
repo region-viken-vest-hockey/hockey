@@ -32,6 +32,11 @@ from itertools import combinations
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from tournament_scheduler import planning_half
+from tournament_scheduler.canonical_baseline import (
+    locked_dates as _canonical_locked_dates,
+    pinned_tournament_ids as _canonical_pinned_tournament_ids,
+    verify_canonical_locks as _verify_canonical_locks,
+)
 from tournament_scheduler.host_representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
 from tournament_scheduler.effective_tournament_shape import (
     NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP,
@@ -68,6 +73,7 @@ def build_planning_problem(
     end_date: date,
     *,
     waivers: Optional[Iterable[Dict[str, Any]]] = None,
+    canonical_baseline: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Build a normalized ``planning_problem`` dict from Stage 1/2 outputs.
 
@@ -114,14 +120,23 @@ def build_planning_problem(
     ]
 
     manual_adjustments_raw = config.get("manual_adjustments", {}) or {}
+    baseline = canonical_baseline if canonical_baseline is not None else config.get("canonical_baseline")
+    if baseline is not None and not isinstance(baseline, dict):
+        baseline = None
+    pinned_tournament_ids = {str(v) for v in (manual_adjustments_raw.get("pinned_tournament_ids", []) or [])}
+    locked_dates = {str(d) for d in (manual_adjustments_raw.get("locked_dates", []) or [])}
+    if baseline:
+        # A canonical baseline's approved/placement-locked tournaments are
+        # hard-preserve constraints: pin them so a candidate can never drop
+        # them, and mark their dates locked so the date schedule keeps them.
+        pinned_tournament_ids.update(_canonical_pinned_tournament_ids(baseline))
+        locked_dates.update(_canonical_locked_dates(baseline))
     manual_adjustments = {
-        "locked_dates": sorted(str(d) for d in manual_adjustments_raw.get("locked_dates", []) or []),
+        "locked_dates": sorted(locked_dates),
         "banned_dates": sorted(str(d) for d in manual_adjustments_raw.get("banned_dates", []) or []),
         "forced_host_clubs": list(manual_adjustments_raw.get("forced_host_clubs", []) or []),
         "excluded_host_clubs": sorted(manual_adjustments_raw.get("excluded_host_clubs", []) or []),
-        "pinned_tournament_ids": sorted(
-            str(v) for v in (manual_adjustments_raw.get("pinned_tournament_ids", []) or [])
-        ),
+        "pinned_tournament_ids": sorted(pinned_tournament_ids),
     }
 
     date_preferences = [
@@ -171,6 +186,12 @@ def build_planning_problem(
         "club_busy_dates": club_busy_dates,
         "club_calendar_status": club_calendar_status,
         "club_busy_intervals": _build_club_busy_intervals(scraping_result),
+        # Canonical Git-backed baseline snapshot (see
+        # canonical_baseline.py), when this plan is a baseline-aware replan
+        # of a promoted season. Carries the approved/placement-locked
+        # snapshot so verify_candidate can hard-reject a candidate that moves
+        # or drops a booked tournament. ``None`` for a from-scratch plan.
+        "canonical_baseline": baseline,
         # Explicit operator waivers are carried as part of the frozen problem
         # snapshot so verification stays a pure function over this contract.
         # Never populated by the planner/optimizer/agent path -- only an
@@ -846,6 +867,17 @@ def verify_candidate(
     for pinned in pinned_ids:
         if pinned not in candidate_ids:
             _violate("pinned_tournament_missing", f"Pinned tournament {pinned!r} is missing from the candidate")
+
+    # Canonical baseline locks (see canonical_baseline.py): a tournament an
+    # operator approved/booked on a promoted season is a hard-preserve
+    # constraint, not a soft preference. This is a no-op for a from-scratch
+    # plan whose problem carries no canonical_baseline section.
+    for lock_violation in _verify_canonical_locks(problem.get("canonical_baseline"), candidate):
+        _violate(
+            lock_violation["code"],
+            lock_violation["message"],
+            lock_violation.get("tournament_id"),
+        )
 
     for identity in valid_teams | set(participations.keys()):
         count = participations.get(identity, 0)

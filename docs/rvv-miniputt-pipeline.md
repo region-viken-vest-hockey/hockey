@@ -23,9 +23,19 @@ scripts/rvv-miniputt season status --season 2026-2027
 scripts/rvv-miniputt season export --season 2026-2027
 scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
 scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
+scripts/rvv-miniputt season replan --season 2026-2027 --iterations 4000
+scripts/rvv-miniputt season diff --season 2026-2027 --candidate <candidate.json>
+scripts/rvv-miniputt season apply --season 2026-2027 --candidate <candidate.json>
 ```
 
 Promotion writes `season/<season>/schedule.json` (canonical schedule facts) and `season/<season>/decisions.json` (approval/lock workflow state). Stage 4 exports and publication bundles are derived projections; `.pipeline` may be deleted and the export can be regenerated from canonical season state. Canonical mutations load the current state, apply the bounded change to a clone, enforce approval/placement locks, run hard verification, and replace the state files only when accepted.
+
+After promotion, planning is **baseline-aware** rather than from-scratch. Repository code turns canonical schedule facts plus decision state into a `canonical_baseline` overlay (`tournament_scheduler.canonical_baseline`) that rides inside the planning problem:
+
+- `placement_locked`/approved tournaments are pinned and their dates are locked, and a candidate that moves or drops one fails hard verification (`canonical_placement_locked`, `canonical_participants_locked`, `canonical_locked_tournament_missing`) before any canonical write;
+- every other published tournament stays mutable, but `season diff` reports a weighted change cost (`none` < participant-only `participants` < `placement` < `replacement`) so search and the operator prefer the smallest change that resolves the problem; the A/B report exposes the same cost when the problem carries a baseline;
+- `season replan` runs the normal Stage 3 engine boundary starting from the canonical schedule (not a regenerated season), rejects any candidate that breaks a lock or hard verification, and writes the result to the transient Stage 3 checkpoint; `--apply` then persists it through the atomic canonical apply boundary;
+- `season apply` re-checks locks and hard verification itself, preserves durable IDs and approval records for surviving tournaments, invalidates a stale approval whose facts changed, and atomically replaces both canonical files or changes nothing.
 
 ## Canonical input
 

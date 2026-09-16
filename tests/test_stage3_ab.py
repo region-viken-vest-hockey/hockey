@@ -63,6 +63,33 @@ class TestBuildAbReport:
         assert report["promotable"]
         assert report["dominates_baseline"]
         assert report["production_ready"]
+        assert report["change_cost"] is None
+
+    def test_change_cost_reported_when_problem_carries_canonical_baseline(self):
+        from tournament_scheduler.canonical_baseline import build_canonical_baseline
+
+        candidate = _clustered_candidate()
+        baseline = build_canonical_baseline(
+            {
+                "season": "2026-2027",
+                "revision": "rev-1",
+                "plan": {"tournaments": candidate["tournaments"]},
+            },
+            {"decisions": {}},
+        )
+        moved = {
+            "schema_version": 1,
+            "tournaments": [
+                {**t, "date": "2027-01-15"} if t["id"] == "t1" else t
+                for t in candidate["tournaments"]
+            ],
+        }
+
+        report = build_ab_report(candidate, moved, {"canonical_baseline": baseline})
+
+        assert report["change_cost"] is not None
+        assert report["change_cost"]["counts"]["placement"] == 1
+        assert report["change_cost"]["counts"]["none"] == len(candidate["tournaments"]) - 1
 
     def test_worse_new_candidate_is_flagged_as_regression(self):
         old_candidate = _clustered_candidate()

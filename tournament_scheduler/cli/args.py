@@ -972,7 +972,7 @@ def build_parser() -> argparse.ArgumentParser:
     # season — canonical Git-backed promoted season state
     season = sub.add_parser(
         "season",
-        help="Promote, inspect and export canonical Git-backed season state",
+        help="Promote, inspect, replan and export canonical Git-backed season state",
     )
     season_sub = season.add_subparsers(dest="season_command")
 
@@ -1024,6 +1024,50 @@ def build_parser() -> argparse.ArgumentParser:
     season_move.add_argument("--host-club", default=None, help="New physical host club")
     season_move.add_argument("--start-time", default=None, help="New start time/placement value")
     season_move.add_argument("--json", action="store_true", help="Print updated schedule.json as JSON")
+
+    season_apply = season_sub.add_parser(
+        "apply",
+        help="Apply a verified baseline-aware replan candidate to canonical season state",
+    )
+    season_apply.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_apply.add_argument(
+        "--candidate",
+        required=True,
+        help="Path to a candidate/Stage 3 checkpoint JSON to apply",
+    )
+    season_apply.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_apply.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
+    season_apply.add_argument("--actor", default=None, help="Operator identity for the apply record")
+    season_apply.add_argument("--json", action="store_true", help="Print schedule/decisions/change-cost as JSON")
+
+    season_diff = season_sub.add_parser(
+        "diff",
+        help="Show the weighted change cost between canonical season state and a candidate",
+    )
+    season_diff.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_diff.add_argument(
+        "--candidate",
+        required=True,
+        help="Path to a candidate/Stage 3 checkpoint JSON to compare",
+    )
+    season_diff.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_diff.add_argument("--json", action="store_true", help="Print change cost as JSON")
+
+    season_replan = season_sub.add_parser(
+        "replan",
+        help="Bounded replan around promoted canonical state, preserving approved/locked tournaments",
+    )
+    season_replan.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_replan.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_replan.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for config/checkpoint")
+    season_replan.add_argument("--engine", default="local_search", help="Planner engine (local_search or cp_sat)")
+    season_replan.add_argument("--iterations", type=int, default=4000, help="Search iterations (local_search)")
+    season_replan.add_argument("--seed", type=int, default=0, help="Search seed")
+    season_replan.add_argument("--move-dates", action="store_true", help="Allow swapping tournament dates")
+    season_replan.add_argument("--move-hosts", action="store_true", help="Allow reassigning host clubs")
+    season_replan.add_argument("--move-slots", action="store_true", help="Allow reassigning start times")
+    season_replan.add_argument("--apply", action="store_true", help="Apply the verified result to canonical state")
+    season_replan.add_argument("--json", action="store_true", help="Print the replan result as JSON")
 
     # cancel
     cancel = sub.add_parser("cancel", help="Cancel a tournament and suggest/reschedule makeup dates")

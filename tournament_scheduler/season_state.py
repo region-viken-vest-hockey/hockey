@@ -363,3 +363,128 @@ def approve_tournament(
     decisions["updated_at"] = approved_at
     _write_json_atomic(decisions_path(season, root=root), decisions)
     return decisions
+
+
+def _reconcile_decisions(
+    existing: dict[str, Any],
+    plan_dict: dict[str, Any],
+    *,
+    now: str,
+) -> dict[str, Any]:
+    """Carry approval/lock state forward for surviving tournaments only.
+
+    A tournament whose identity survives keeps its record.  A previously
+    approved tournament whose facts changed (possible only when it was
+    approved without a placement lock) loses its approval and reverts to
+    ``pending_review`` -- an approval fingerprint that no longer matches the
+    schedule is not approval.  Removed tournaments drop their records; new
+    ids start at ``pending_review``.
+    """
+    reconciled: dict[str, Any] = {}
+    for tournament in plan_dict.get("tournaments", []) or []:
+        tournament_id = str(tournament.get("id") or "")
+        if not tournament_id:
+            continue
+        record = dict(existing.get(tournament_id) or {})
+        if not record:
+            record = {
+                "status": "pending_review",
+                "placement_locked": False,
+                "participants_locked": False,
+                "approved_fingerprint": None,
+                "approved_at": None,
+                "approved_by": None,
+                "note": "",
+            }
+        elif record.get("status") == "approved":
+            approved_fingerprint = record.get("approved_fingerprint")
+            if approved_fingerprint != stable_payload_sha256(tournament):
+                record = {
+                    "status": "pending_review",
+                    "placement_locked": False,
+                    "participants_locked": False,
+                    "approved_fingerprint": None,
+                    "approved_at": None,
+                    "approved_by": None,
+                    "note": "approval invalidated by schedule change",
+                    "invalidated_at": now,
+                }
+        reconciled[tournament_id] = record
+    return reconciled
+
+
+def apply_candidate(
+    *,
+    season: str,
+    candidate: dict[str, Any],
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    change_weights: dict[str, float] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Apply a verified replan candidate to canonical season state.
+
+    The candidate must be the output of baseline-aware planning: canonical
+    placement/participant locks are re-checked here (never trusting the
+    caller), the candidate is hard-verified (against *problem* when the
+    caller can reconstruct the full planning contract), and surviving
+    tournaments keep their durable ids and approval records.  Both canonical
+    files are replaced atomically; a rejected candidate leaves them
+    byte-unchanged.
+
+    Returns ``(schedule, decisions, change_cost)``.  ``actor`` is accepted
+    for symmetry with the other mutation entry points and is not written to
+    schedule facts.
+    """
+    from tournament_scheduler.canonical_baseline import (
+        build_canonical_baseline,
+        change_cost,
+        verify_canonical_locks,
+    )
+
+    schedule = load_schedule(season, root=root)
+    decisions = load_decisions(season, root=root)
+    baseline = build_canonical_baseline(schedule, decisions)
+    normalized_candidate = extract_candidate(candidate)
+
+    lock_violations = verify_canonical_locks(baseline, normalized_candidate)
+    if lock_violations:
+        messages = "; ".join(str(v.get("message")) for v in lock_violations)
+        raise SeasonStateError(f"Refusing canonical apply: candidate violates canonical locks: {messages}")
+
+    result = verify_candidate(normalized_candidate, problem) if problem else verify_candidate(normalized_candidate)
+    if not result.get("ok", True):
+        messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
+        raise SeasonStateError(f"Refusing canonical apply: candidate fails hard verification: {messages}")
+
+    plan = dict(normalized_candidate)
+    plan.pop("source", None)
+    plan["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
+    plan.setdefault("start_date", schedule["plan"].get("start_date"))
+    plan.setdefault("end_date", schedule["plan"].get("end_date"))
+
+    now = datetime.now(tz=timezone.utc).isoformat()
+    fingerprint = schedule_fingerprint(plan)
+    updated_schedule = {
+        **schedule,
+        "updated_at": now,
+        "revision": fingerprint,
+        "fingerprint": fingerprint,
+        "plan_schema_version": SEASON_PLAN_SCHEMA_VERSION,
+        "plan": plan,
+        "applied_from": {
+            "previous_revision": schedule.get("revision"),
+            "actor": actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator",
+        },
+    }
+    updated_decisions = {
+        **decisions,
+        "updated_at": now,
+        "schedule_fingerprint": fingerprint,
+        "decisions": _reconcile_decisions(decisions.get("decisions", {}), plan, now=now),
+    }
+    cost = change_cost(baseline, plan, weights=change_weights)
+    _write_season_state_atomic(
+        season_dir(season, root=root), updated_schedule, updated_decisions, require_absent=False
+    )
+    return updated_schedule, updated_decisions, cost

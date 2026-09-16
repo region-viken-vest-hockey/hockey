@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from .canonical_baseline import change_cost
 from .planning_contract import score_candidate, verify_candidate
 
 # (report path, direction) — "higher" means bigger is better, "lower" means
@@ -209,6 +210,15 @@ def build_ab_report(
     # baseline" — the baseline itself may carry pre-existing violations).
     production_ready = dominates_baseline and new_verification["ok"]
 
+    # Baseline-aware replanning (issue #355): when the problem carries a
+    # promoted canonical baseline, report how far the new candidate moves
+    # away from it.  This is an informational soft-cost metric — the hard
+    # approval locks are already enforced by verify_candidate — so search and
+    # the operator can prefer the smallest change that resolves the problem.
+    change_cost_report = None
+    if problem and problem.get("canonical_baseline"):
+        change_cost_report = change_cost(problem["canonical_baseline"], new_candidate)
+
     return {
         "old": {"verification": old_verification, "score": old_overall},
         "new": {"verification": new_verification, "score": new_overall},
@@ -218,6 +228,7 @@ def build_ab_report(
         "hard_constraint_regressed": hard_constraint_regressed,
         "dominates_baseline": dominates_baseline,
         "production_ready": production_ready,
+        "change_cost": change_cost_report,
         # Deprecated alias for production_ready, kept for existing callers.
         "promotable": production_ready,
     }
