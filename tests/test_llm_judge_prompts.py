@@ -105,7 +105,7 @@ def test_build_decision_prompt_quotes_canonical_policy_not_inline_thresholds() -
 
     prompt = build_decision_prompt(context)
 
-    assert "fewer than half" in prompt  # sourced from SKILL.md, not hardcoded here
+    assert "usable evidence for meaningful planning" in prompt  # sourced from SKILL.md, not hardcoded here
     assert ".agents/skills/rvv/SKILL.md" in prompt
     assert "PROCEED" in prompt
     assert "ABORT" in prompt

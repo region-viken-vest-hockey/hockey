@@ -32,15 +32,17 @@ from ..application.decisions import DecisionAction, DecisionContext
 # ---------------------------------------------------------------------------
 
 _SKILL_MD_PATH = Path(__file__).resolve().parents[2] / ".agents" / "skills" / "rvv" / "SKILL.md"
-_POLICY_SECTION_HEADING = "## Stage gating policy (soft judgment)"
 
+# Per-stage headings inside the canonical "## Stage gating policy" section of
+# SKILL.md. Kept as exact heading strings so a documentation edit that breaks a
+# heading degrades to the conservative fallback instead of crashing the judge.
 _STAGE_POLICY_HEADINGS: dict[str, str] = {
-    "config": "### Stage 1 — Configuration",
-    "stage1": "### Stage 1 — Configuration",
-    "scraping": "### Stage 2 — Scraping",
-    "stage2": "### Stage 2 — Scraping",
-    "planning": "### Stage 3 — Planning",
-    "stage3": "### Stage 3 — Planning",
+    "config": "### Stage 1",
+    "stage1": "### Stage 1",
+    "scraping": "### Stage 2",
+    "stage2": "### Stage 2",
+    "planning": "### Stage 3",
+    "stage3": "### Stage 3",
 }
 
 # Fallback text used only if SKILL.md is unreadable or has drifted away
