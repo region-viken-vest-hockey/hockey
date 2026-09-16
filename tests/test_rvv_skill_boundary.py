@@ -6,6 +6,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RVV_SKILL_FILE = ROOT / ".agents" / "skills" / "rvv" / "SKILL.md"
 REVIEW_BASELINE_SKILL_FILE = ROOT / ".agents" / "skills" / "rvv-review-baseline" / "SKILL.md"
+CONFIRM_TOURNAMENT_SKILL_FILE = ROOT / ".agents" / "skills" / "rvv-confirm-tournament" / "SKILL.md"
+MOVE_TOURNAMENT_SKILL_FILE = ROOT / ".agents" / "skills" / "rvv-move-tournament" / "SKILL.md"
 GUIDE_FILE = ROOT / ".agents" / "commands" / "rvv-miniputt" / "guide.md"
 SCRAPE_LLM_FILE = ROOT / ".agents" / "commands" / "rvv-miniputt" / "scrape-llm.md"
 
@@ -36,6 +38,32 @@ def test_review_baseline_skill_promotes_verified_state_and_isolates_experiments(
     assert "--export-dir export-test" in text
     assert "Never use `--force`" in text
     assert "Never mark an export `published` merely to protect it" in text
+
+
+def test_confirm_tournament_skill_defaults_to_placement_lock_only() -> None:
+    text = CONFIRM_TOURNAMENT_SKILL_FILE.read_text(encoding="utf-8")
+
+    assert "season approve" in text
+    assert "placement only" in text
+    assert "--participants-lock" in text
+    assert "only when the operator explicitly says" in text
+    assert "Do **not** add `--no-placement-lock`" in text
+    assert "season approvals --season <season> --json" in text
+    assert "Confirm <tournament-id> placement" in text
+    assert "does **not** authorize public GitHub Pages publication" in text
+
+
+def test_move_tournament_skill_unlocks_safely_and_does_not_silently_reapprove() -> None:
+    text = MOVE_TOURNAMENT_SKILL_FILE.read_text(encoding="utf-8")
+
+    assert "season unapprove" in text
+    assert "season move" in text
+    assert "restore the previous approval/lock scopes" in text
+    assert "Do not silently reapprove the new placement" in text
+    assert "durable id unchanged" in text
+    assert "unrelated tournaments are unchanged" in text
+    assert "Move tournament <tournament-id>" in text
+    assert "does **not** authorize public GitHub Pages publication" in text
 
 
 def test_shared_guide_routes_promoted_season_without_pi_special_case() -> None:
