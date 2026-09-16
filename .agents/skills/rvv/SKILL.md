@@ -1,6 +1,6 @@
 ---
 name: rvv
-description: Canonical shared runbook for RVV Miniputt season planning, calendar-source recovery, plan review, export, and publication. Use for work on the hockey repo's planning pipeline.
+description: Canonical shared runbook for RVV Miniputt season planning, canonical season maintenance, calendar-source recovery, review, export, and publication. Use for work on the hockey repo's planning pipeline and promoted season state.
 ---
 
 # RVV Miniputt shared runbook
@@ -9,7 +9,7 @@ This is the canonical agent-facing operating policy for the RVV Miniputt reposit
 
 Use repository code for facts, hard constraints, validation, search/solver mechanics, persistence, export and publication safeguards. Use agent judgment only for contextual soft decisions among actions the repository exposes.
 
-Treat this as a stage-by-stage pipeline, not a black box: review the checkpoint (`stage1_config.json`, `stage2_scraping.json`, `stage3_planning.json`, `stage4_export.json`) after each stage before continuing.
+There are two operating phases. **Before promotion**, create and review the season through the canonical Stage 1–4 pipeline and inspect each checkpoint (`stage1_config.json`, `stage2_scraping.json`, `stage3_planning.json`, `stage4_export.json`) before continuing. **After promotion**, `season/<season>/schedule.json` plus `decisions.json` are the durable operational truth for club review/ice booking; use canonical `season` operations for approvals, targeted moves, bounded replanning and re-export rather than treating every change as a request to regenerate the season from scratch.
 
 Read `AGENTS.md` first for repository-wide precedence and hygiene rules.
 
@@ -26,6 +26,7 @@ Agent-callable tools mirror the slash commands 1:1:
 | Tool | Equivalent slash command |
 |---|---|
 | `rvv_miniputt_run` | `/rvv-miniputt run` |
+| `rvv_miniputt_season` | `/rvv-miniputt season` |
 | `rvv_miniputt_publish` | `/rvv-miniputt publish` |
 | `rvv_miniputt_status` | `/rvv-miniputt status` |
 | `rvv_miniputt_logs` | `/rvv-miniputt logs` |
@@ -33,7 +34,7 @@ Agent-callable tools mirror the slash commands 1:1:
 | `rvv_miniputt_scrape` | `/rvv-miniputt scrape` |
 | `rvv_miniputt_scrape_llm` | `/rvv-miniputt scrape-llm` |
 
-Use `rvv_miniputt_scrape` for single-club troubleshooting and `rvv_miniputt_scrape_llm` (backed by a Playwright worker) for blocked SPA/calendar sources.
+Use `rvv_miniputt_season` for the promoted canonical-season lifecycle (promote/status/approvals/approve/unapprove/move/replan/diff/apply/export). Use `rvv_miniputt_scrape` for single-club troubleshooting and `rvv_miniputt_scrape_llm` (backed by a Playwright worker) for blocked SPA/calendar sources.
 
 Pi's `/rvv-miniputt run` / `rvv_miniputt_run` adapter runs the semantic safety-net audit automatically after a successful Stage 4 export by reading the repository `operator audit-context`, asking the active Pi model for the harness judgment, and persisting the verdict through `operator audit-submit`. Pi's publish adapter runs the same audit before invoking `operator publish --confirm-public`; it must not use the headless `operator audit-run` path while `PI_SESSION_ID` is active.
 
@@ -48,7 +49,7 @@ python3 -m tournament_scheduler.cli.rvv_cli ...
 
 Human-friendly operation is exposed through `make help` and the Makefile.
 
-Harness adapters may add UI/browser/progress integration but must not redefine shared pipeline policy. For supported non-Pi command workflows, load the corresponding `.agents/commands/rvv-miniputt/<command>.md` procedure instead of duplicating it in the harness directory.
+Harness adapters may add UI/browser/progress integration but must not redefine shared pipeline policy. For supported non-Pi command workflows, load the corresponding `.agents/commands/rvv-miniputt/<command>.md` procedure instead of duplicating it in the harness directory. Canonical promoted-season maintenance uses `.agents/commands/rvv-miniputt/season.md`.
 
 A plain terminal/CI session cannot drive a browser for `scrape-llm --club <name>`. When that source needs LLM-guided recovery and no browser-enabled harness is available, use `scripts/rvv-miniputt recovery-targets` to list blocked sources, recover the events out-of-band, then `python3 -m tournament_scheduler.cli.rvv_cli recovery-inject --source "<name>"` (or `scripts/rvv-miniputt scrape-merge` to rebuild the Stage 2 checkpoint from recovered cache data) to rehydrate the cache through the same validation/merge path as any other source.
 
@@ -62,6 +63,8 @@ The following remain Pi-specific and have no cross-harness equivalent:
 - live Pi notifications/status updates during a run.
 
 ## Normal operation
+
+### Initial season creation
 
 For a human/operator goal-oriented run:
 
@@ -78,6 +81,40 @@ scripts/rvv-miniputt run --interactive --input input.xlsx
 ```
 
 Do not call individual `stageN_*` modules when doing so bypasses the normal checkpoint/decision/verification path.
+
+When the verified schedule is deliberately accepted as the operational baseline for club review/ice booking, promote it explicitly through the shared `season` procedure. Do not make promotion an automatic side effect of an ordinary planner run.
+
+### Promoted-season maintenance
+
+Once `season/<season>/schedule.json` exists, normal operational work should use canonical season state:
+
+```bash
+scripts/rvv-miniputt season status --season <season>
+scripts/rvv-miniputt season approvals --season <season>
+scripts/rvv-miniputt season approve --season <season> --tournament-id <id> --note "ice booked"
+scripts/rvv-miniputt season unapprove --season <season> --tournament-id <id> --note "change requested"
+scripts/rvv-miniputt season move --season <season> --tournament-id <id> --date YYYY-MM-DD
+scripts/rvv-miniputt season replan --season <season> --iterations <n>
+scripts/rvv-miniputt season diff --season <season> --candidate <candidate.json>
+scripts/rvv-miniputt season apply --season <season> --candidate <candidate.json>
+scripts/rvv-miniputt season export --season <season>
+```
+
+Typical lifecycle:
+
+```text
+initial Stage 1–4 run
+  -> audit/review
+  -> explicit season promote
+  -> club confirms ice: approve/lock
+  -> club requests change: unapprove -> move -> reapprove when confirmed
+  -> broader unresolved problem: baseline-aware replan -> diff -> verified apply
+  -> season export
+  -> semantic audit
+  -> publish
+```
+
+Do not hand-edit canonical JSON, checkpoints or generated artifacts. After canonical schedule **or decision state** changes, regenerate with `season export` before audit/publication so the reviewed/published bundle represents the intended current canonical state.
 
 ## Inputs
 
@@ -161,8 +198,9 @@ Agent policy:
 
 - hard verification failure blocks export/publication;
 - review manual arena/hosting/calendar follow-up separately from plan-quality warnings;
-- generated output is derived data: correct input/config/code and regenerate rather than permanently patching HTML/CSV/Excel/iCal;
+- generated output is derived data: correct input/config/code/canonical season state and regenerate rather than permanently patching HTML/CSV/Excel/iCal;
 - use the Stage 4 `output_files` map to know what the run actually produced;
+- when exporting from canonical season state, ensure the export identifies the intended canonical season revision/fingerprint and regenerate after later canonical schedule/decision changes;
 - after export, before publication, a harness-led semantic safety-net audit must run and
   produce PASS/REVIEW_REQUIRED/FAIL against the operator checklist below; publication is
   gated on it (see "Semantic safety-net audit" and "Publication").
@@ -311,6 +349,8 @@ make operator-run
 
 Planning/export does not imply publication.
 
+For a promoted canonical season, publication must follow the current canonical projection. If canonical schedule or decision state changed after the current export, run `scripts/rvv-miniputt season export --season <season>` first; audit and publish that fresh projection rather than knowingly publishing an older Stage 4 bundle.
+
 Use:
 
 ```bash
@@ -351,7 +391,7 @@ Use these rather than creating new overlapping notes:
 
 - `README.md` — what the system does, inputs/outputs, normal operation;
 - `docs/system-architecture.md` — current end-to-end boundaries;
-- `docs/rvv-miniputt-pipeline.md` — Stage 1–4 workflow;
+- `docs/rvv-miniputt-pipeline.md` — Stage 1–4 workflow plus canonical season lifecycle;
 - `docs/rvv-miniputt-input-formats.md` — workbook/input contract;
 - `docs/adr/` — durable architectural rationale;
 - GitHub issues — unfinished implementation work.
