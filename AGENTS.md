@@ -54,6 +54,14 @@ When changing scheduling behavior, input semantics, source validity, export cont
 
 Shared behavior needed by more than one harness belongs in repository/application code or the shared RVV runbook first. Harness adapters should only expose transport/UI that is genuinely unavailable through the shared command surface.
 
+### Scheduling-rule changes
+
+Before implementing or modifying a scheduling rule, read the **Scheduling-rule implementation map** in [`docs/system-architecture.md`](docs/system-architecture.md) and identify the rule's authoritative owner.
+
+A persistent scheduling invariant must not live only in a baseline generator, one optimizer/search path, a renderer/exporter, or an agent/harness prompt. Put reusable facts/rule math in planner-independent deterministic code, make verification/measurement independent of the generator that proposed the candidate, expose repairs as validated repository actions, and derive reports/HTML from final authoritative state.
+
+For obligations such as hosting, keep **responsibility** separate from **automatic placement**. If the fair/intended host has no trustworthy/legal slot, preserve that host responsibility and surface manual placement; do not silently move the burden to another club merely because its calendar is easier.
+
 ### Direct cleanup vs tracked feature work
 
 - Routine non-critical cleanup, refactoring, documentation/test hygiene, and planner-internal cleanup that **does not intentionally change planning semantics** may be implemented directly on `main` when direct-main work is authorized. Do not create a GitHub issue merely as bookkeeping for that cleanup.
