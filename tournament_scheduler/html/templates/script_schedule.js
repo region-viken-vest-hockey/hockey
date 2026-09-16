@@ -17,6 +17,78 @@ function slotLabel(n) {
   return n >= 0 && n < labels.length ? labels[n] : 'Bane ' + (n + 1);
 }
 
+function tournamentTeams(t) {
+  if (Array.isArray(t.p) && t.p.length) return t.p;
+  const byLabel = {};
+  (t.m || []).forEach(function(match) {
+    [match[0], match[1]].forEach(function(label) {
+      if (!byLabel[label]) byLabel[label] = { c: getClubFromTeam(label), l: label, g: t.g };
+    });
+  });
+  return Object.values(byLabel);
+}
+
+function teamKey(team) {
+  return [team.c || '', team.g || '', team.l || ''].join('\u001f');
+}
+
+function teamOptionLabel(team) {
+  var label = team.l || '';
+  if (team.c && label !== team.c && label.indexOf(team.c + ' ') !== 0) {
+    label = team.c + ' – ' + label;
+  }
+  if (team.g) return label + ' (' + team.g + ')';
+  return label;
+}
+
+function tournamentHasClub(t, club) {
+  if (!club) return true;
+  if (t.h === club) return true;
+  return tournamentTeams(t).some(function(team) { return team.c === club; });
+}
+
+function tournamentHasTeam(t, selectedTeamKey) {
+  if (!selectedTeamKey) return true;
+  return tournamentTeams(t).some(function(team) { return teamKey(team) === selectedTeamKey; });
+}
+
+function availableTeams(age, club) {
+  const teamsByKey = new Map();
+  TOURNAMENTS.forEach(function(t) {
+    tournamentTeams(t).forEach(function(team) {
+      if (age && team.g !== age) return;
+      if (club && team.c !== club) return;
+      teamsByKey.set(teamKey(team), team);
+    });
+  });
+  return Array.from(teamsByKey.values()).sort(function(a, b) {
+    return (a.c || '').localeCompare(b.c || '') || (a.g || '').localeCompare(b.g || '') || (a.l || '').localeCompare(b.l || '');
+  });
+}
+
+function populateTeamOptions(reconcile) {
+  var teamSel = document.getElementById('filterTeam');
+  if (!teamSel) return;
+  var ageSel = document.getElementById('filterAge');
+  var clubSel = document.getElementById('filterClub');
+  var selected = teamSel.value;
+  var teams = availableTeams(ageSel ? ageSel.value : '', clubSel ? clubSel.value : '');
+  teamSel.innerHTML = '<option value="">Alle lag</option>';
+  teams.forEach(function(team) {
+    var o = document.createElement('option');
+    o.value = teamKey(team);
+    o.textContent = teamOptionLabel(team);
+    o.dataset.club = team.c || '';
+    o.dataset.age = team.g || '';
+    teamSel.appendChild(o);
+  });
+  if (reconcile && selected && teams.some(function(team) { return teamKey(team) === selected; })) {
+    teamSel.value = selected;
+  } else {
+    teamSel.value = '';
+  }
+}
+
 // Populate filter selects
 (function() {
   const arenaSel = document.getElementById('filterArena');
@@ -26,11 +98,12 @@ function slotLabel(n) {
   const arenas = [...new Set(TOURNAMENTS.map(t => t.a))].sort();
   const clubs = new Set();
   TOURNAMENTS.forEach(t => {
-    clubs.add(t.h);
-    t.m.forEach(([h, a]) => { clubs.add(getClubFromTeam(h)); clubs.add(getClubFromTeam(a)); });
+    if (t.h) clubs.add(t.h);
+    tournamentTeams(t).forEach(function(team) { if (team.c) clubs.add(team.c); });
   });
   arenas.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; arenaSel.appendChild(o); });
   [...clubs].sort().forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; clubSel.appendChild(o); });
+  populateTeamOptions(false);
 })();
 
 function buildMatchHTML(matches, byes) {
@@ -84,6 +157,7 @@ function render() {
   var ageSel = document.getElementById('filterAge');
   var arenaSel = document.getElementById('filterArena');
   var clubSel = document.getElementById('filterClub');
+  var teamSel = document.getElementById('filterTeam');
   var searchSel = document.getElementById('filterSearch');
   var approvalSel = document.getElementById('filterApproval');
   var timeline = document.getElementById('timeline');
@@ -95,6 +169,7 @@ function render() {
   var age = ageSel ? ageSel.value : '';
   var arena = arenaSel ? arenaSel.value : '';
   var club = clubSel ? clubSel.value : '';
+  var team = teamSel ? teamSel.value : '';
   var search = searchSel ? searchSel.value.toLowerCase().trim() : '';
   var approval = approvalSel ? approvalSel.value : '';
 
@@ -105,10 +180,8 @@ function render() {
     var t = TOURNAMENTS[i];
     if (age && t.g !== age) continue;
     if (arena && t.a !== arena) continue;
-    if (club && t.h !== club) {
-      var hasClub = t.m.some(function(m) { return getClubFromTeam(m[0]) === club || getClubFromTeam(m[1]) === club; });
-      if (!hasClub) continue;
-    }
+    if (!tournamentHasClub(t, club)) continue;
+    if (!tournamentHasTeam(t, team)) continue;
     if (search) {
       var haystack = (t.a + ' ' + t.h + ' ' + t.g + ' ' + t.m.map(function(m) { return m[0] + ' ' + m[1]; }).join(' ')).toLowerCase();
       if (haystack.indexOf(search) === -1) continue;
@@ -178,16 +251,21 @@ function render() {
 var ageFilter = document.getElementById('filterAge');
 var arenaFilter = document.getElementById('filterArena');
 var clubFilter = document.getElementById('filterClub');
+var teamFilter = document.getElementById('filterTeam');
 var searchFilter = document.getElementById('filterSearch');
 var clearFilter = document.getElementById('filterClear');
 var clubDashboard = document.getElementById('clubDashboard');
 
-if (ageFilter) ageFilter.addEventListener('change', render);
+if (ageFilter) ageFilter.addEventListener('change', function() {
+  populateTeamOptions(true);
+  render();
+});
 if (arenaFilter) arenaFilter.addEventListener('change', render);
 var approvalFilter = document.getElementById('filterApproval');
 if (approvalFilter) approvalFilter.addEventListener('change', render);
 if (clubFilter) clubFilter.addEventListener('change', function() {
   var club = this.value;
+  populateTeamOptions(true);
   var dashboard = clubDashboard;
   if (club && dashboard && CLUB_STATS[club]) {
     var s = CLUB_STATS[club];
@@ -202,13 +280,16 @@ if (clubFilter) clubFilter.addEventListener('change', function() {
   }
   render();
 });
+if (teamFilter) teamFilter.addEventListener('change', render);
 if (searchFilter) searchFilter.addEventListener('input', render);
 if (clearFilter) clearFilter.addEventListener('click', function() {
   if (ageFilter) ageFilter.value = '';
   if (arenaFilter) arenaFilter.value = '';
   if (clubFilter) clubFilter.value = '';
+  if (teamFilter) teamFilter.value = '';
   if (approvalFilter) approvalFilter.value = '';
   if (searchFilter) searchFilter.value = '';
+  populateTeamOptions(false);
   if (clubDashboard) clubDashboard.style.display = 'none';
   render();
 });

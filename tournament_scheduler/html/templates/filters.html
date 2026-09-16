@@ -1,14 +1,17 @@
 <!-- Filters -->
 <div class="filters">
+  <select id="filterClub" class="filter-select">
+    <option value="">Alle klubber</option>
+  </select>
   <select id="filterAge" class="filter-select">
     <option value="">Alle ($AGE_GROUPS$)</option>
     $AGE_GROUP_OPTIONS$
   </select>
+  <select id="filterTeam" class="filter-select">
+    <option value="">Alle lag</option>
+  </select>
   <select id="filterArena" class="filter-select">
     <option value="">Alle arenaer</option>
-  </select>
-  <select id="filterClub" class="filter-select">
-    <option value="">Alle klubber</option>
   </select>
   $APPROVAL_FILTER$
   <input type="text" id="filterSearch" class="filter-input" placeholder="Søk etter lag…">

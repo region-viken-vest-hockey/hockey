@@ -3,6 +3,8 @@ removing the separate 'Min ærlige dom' judgment section."""
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 
 
@@ -74,9 +76,96 @@ def _export_report_html(tmp_path: Path) -> str:
     return report_path.read_text(encoding="utf-8")
 
 
+def _make_multi_kongsberg_plan() -> SeasonPlan:
+    """Return a plan with multiple Kongsberg U10 teams in separate tournaments."""
+    teams = [
+        {"club": "Kongsberg", "label": "Kongsberg 1", "age_group": "U10"},
+        {"club": "Kongsberg", "label": "Kongsberg 2", "age_group": "U10"},
+        {"club": "Kongsberg", "label": "Kongsberg 3", "age_group": "U10"},
+        {"club": "Skien", "label": "Skien 1", "age_group": "U10"},
+    ]
+    plan_dict = {
+        "start_date": "2025-10-01",
+        "end_date": "2025-12-01",
+        "diversity_score": 1.0,
+        "pairwise_matchup_score": 1.0,
+        "month_balance_score": 1.0,
+        "arena_counts": {"Kongsberghallen": 2},
+        "fairness_gate": {"status": "pass", "score": 100, "metrics": []},
+        "tournaments": [
+            {
+                "date": "2025-10-05",
+                "arena": "Kongsberghallen",
+                "age_group": "U10",
+                "host_club": "Kongsberg",
+                "teams": [teams[0], teams[3]],
+                "games": [{"home": "Kongsberg 1", "away": "Skien 1", "parallel_slot": 0, "round_number": 1}],
+            },
+            {
+                "date": "2025-10-12",
+                "arena": "Kongsberghallen",
+                "age_group": "U10",
+                "host_club": "Kongsberg",
+                "teams": [teams[1], teams[3]],
+                "games": [{"home": "Kongsberg 2", "away": "Skien 1", "parallel_slot": 0, "round_number": 1}],
+            },
+            {
+                "date": "2025-10-19",
+                "arena": "Kongsberghallen",
+                "age_group": "U10",
+                "host_club": "Kongsberg",
+                "teams": [teams[2], teams[3]],
+                "games": [{"home": "Kongsberg 3", "away": "Skien 1", "parallel_slot": 0, "round_number": 1}],
+            },
+        ],
+    }
+    return season_plan_from_dict(plan_dict)
+
+
+def _export_schedule_html(plan: SeasonPlan, tmp_path: Path) -> str:
+    exporter = HtmlExporter()
+    out_path = tmp_path / "season_plan.html"
+    exporter.export(plan, out_path, age_groups=["U10"])
+    return out_path.read_text(encoding="utf-8")
+
+
+def _embedded_tournaments(html: str) -> list[dict]:
+    match = re.search(r"const TOURNAMENTS = (.*?);\nconst TEAM_GAME_COUNTS", html, re.S)
+    assert match, "TOURNAMENTS JSON should be embedded in schedule HTML"
+    return json.loads(match.group(1))
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
+class TestTeamFilter:
+    """The season schedule exposes exact team filtering for club review."""
+
+    def test_schedule_has_team_filter(self, tmp_path):
+        html = _export_schedule_html(_make_multi_kongsberg_plan(), tmp_path)
+        assert 'id="filterTeam"' in html
+        assert "Alle lag" in html
+
+    def test_serializes_exact_participant_identities_for_same_club_same_age_group(self, tmp_path):
+        html = _export_schedule_html(_make_multi_kongsberg_plan(), tmp_path)
+        tournaments = _embedded_tournaments(html)
+        identities = {
+            (team["c"], team["g"], team["l"])
+            for tournament in tournaments
+            for team in tournament["p"]
+        }
+        assert ("Kongsberg", "U10", "Kongsberg 1") in identities
+        assert ("Kongsberg", "U10", "Kongsberg 2") in identities
+        assert ("Kongsberg", "U10", "Kongsberg 3") in identities
+
+    def test_client_filter_uses_exact_team_identity_not_club_inference(self, tmp_path):
+        html = _export_schedule_html(_make_multi_kongsberg_plan(), tmp_path)
+        assert "function teamKey(team)" in html
+        assert "tournamentHasTeam(t, team)" in html
+        assert "teamKey(team) === selectedTeamKey" in html
+        assert "populateTeamOptions(true)" in html
+
 
 class TestNoJudgmentSection:
     """The separate 'Min ærlige dom' section must not appear in the report."""

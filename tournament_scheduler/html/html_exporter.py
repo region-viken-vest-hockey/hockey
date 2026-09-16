@@ -417,6 +417,10 @@ class HtmlExporter:
                 "a": t.arena,
                 "g": t.age_group,
                 "h": t.host_club or "",
+                "p": [
+                    {"c": team.club, "l": team.label, "g": team.age_group}
+                    for team in t.teams
+                ],
                 "m": games,
                 "b": bye_data,
                 "tr": travel_str,
