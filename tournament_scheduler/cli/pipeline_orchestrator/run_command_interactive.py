@@ -346,8 +346,15 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 from ...planning_contract import extract_candidate
                 from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
 
+                from ...pipeline.stage1_config import load_effective_config
+
                 best_plan = stage3_interactive_state.get("best_plan")
-                repair_cfg = state.read_stage(StageName.CONFIG) or {}
+                # issue #260-family bug: the raw Stage 1 checkpoint (state.read_stage)
+                # does not carry start_date/end_date -- those are only present in the
+                # merged effective config every other call site in this file uses
+                # (see cfg = _run_stage1(...) above). Match that pattern here instead
+                # of KeyError-ing on repair_cfg["start_date"].
+                repair_cfg = load_effective_config(state, input_path=args.input) or {}
                 repair_scraping = state.read_stage(StageName.SCRAPING) or {}
                 repair_start = datetime.strptime(repair_cfg["start_date"], "%Y-%m-%d")
                 repair_end = datetime.strptime(repair_cfg["end_date"], "%Y-%m-%d")
