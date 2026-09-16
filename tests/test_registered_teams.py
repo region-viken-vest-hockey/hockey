@@ -79,7 +79,14 @@ class TestRegisteredTeamsPayload:
             "Jar,Jar 1,U10,person@example.com,42,secret note\n",
         )
 
-        payload, report = build_registered_teams_payload(path)
+        # generated_at must be pinned: it otherwise reflects the live wall clock,
+        # and asserting that the private value "42" is absent from the whole
+        # serialized payload would then nondeterministically fail whenever the
+        # timestamp happens to contain "42".
+        payload, report = build_registered_teams_payload(
+            path,
+            generated_at="2026-07-30T12:00:00Z",
+        )
         public_text = json.dumps(payload, ensure_ascii=False)
 
         assert sorted(report["excluded_columns"]) == ["SharePointId", "comments", "email"]
