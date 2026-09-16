@@ -79,6 +79,76 @@ The agent acts through validated repository capabilities/decision contracts. It 
 - public publication/rollback approval;
 - questions deliberately escalated by the system.
 
+## Scheduling-rule implementation map
+
+Scheduling rules must have one authoritative implementation and remain valid across initial generation, optimization, repair, promoted-season maintenance and export. Do not fix a persistent invariant only in whichever planner path first exposed the bug.
+
+| Concern | Owning layer | Examples |
+|---|---|---|
+| Input/configured policy | controlled workbook/config parsing | participation targets, season window, source configuration |
+| Domain facts and reusable rule math | small planner-independent deterministic modules | hosting targets, coverage, participant eligibility, availability facts |
+| Hard/required verification | canonical verifier | host representation, target caps, collisions, required obligations |
+| Soft deterministic measurements | scorecard/fairness measurement | hosting deviation, participation spread, temporal spacing |
+| Feasible repair/action enumeration | canonical application/decision capability | `rehost_tournament`, participant swap, manual-placement fallback |
+| State mutation and persistence | canonical application/season operation | atomically apply validated changes while respecting locks/approvals |
+| Baseline generation/search | planner/optimizer implementations | propose candidates using the shared domain facts; never redefine the rule |
+| Rules/report/export | rules model and renderers | display serialized/recomputed facts; never become the business-policy engine |
+| Agent judgment | shared RVV decision protocol | choose among repository-exposed valid actions for soft trade-offs |
+| Harness adapters | transport/UI only | parse/display/invoke; no independent scheduling policy |
+
+The dependency direction for a scheduling rule is therefore:
+
+```text
+controlled policy / current evidence
+        ↓
+planner-independent domain facts + rule math
+        ↓
+verification + deterministic measurements
+        ↓
+validated feasible actions
+        ↓
+canonical mutation/persistence
+        ↓
+rules/report/export rendering
+```
+
+Generators and optimizers may consume these rules to construct candidates, but they do not own them. A rule that must remain true after later mutations must be independently measurable/verifiable outside the generator that produced the original candidate.
+
+Likewise, renderers and generated HTML must consume authoritative serialized/recomputed state; they must not infer or repair scheduling policy themselves.
+
+### Responsibility is separate from automatic placement
+
+For hosting and similar obligations, distinguish the domain responsibility from whether a verified automatic slot currently exists. Calendar convenience must not silently transfer responsibility to another club.
+
+Canonical behavior is:
+
+```text
+assign fair/intended hosting responsibility
+        ↓
+try verified automatic placement
+        ↓
+slot exists              no trustworthy/legal slot
+    ↓                              ↓
+automatic placement      keep responsibility with intended host
+                         + mark MANUAL PLACEMENT REQUIRED
+```
+
+A manual-placement tournament still counts toward the intended club's assigned hosting burden. Another club must not absorb that tournament merely because it has easier or more abundant ice, unless an explicit validated operator/decision action intentionally changes the hosting responsibility.
+
+### Change checklist for agents
+
+When implementing or modifying a scheduling rule:
+
+1. identify its authoritative deterministic owner before editing code;
+2. implement reusable facts/math below planner/CLI/rendering layers;
+3. make every candidate/mutation path consume or re-check the same rule;
+4. expose legal repairs through validated repository actions instead of ad-hoc planner or harness logic;
+5. preserve canonical IDs, provenance, approvals and locks when applying changes;
+6. derive rules/report/export output from the final authoritative state rather than cached/stale intermediate evidence;
+7. add regression coverage at the domain/verifier boundary and, when relevant, the mutation path that previously allowed the invariant to drift.
+
+If a proposed fix only changes a baseline generator, one optimizer, one renderer, or one harness prompt for a rule that must survive later changes, the fix is incomplete.
+
 ## Harness boundary
 
 Claude, ChatGPT, Codex, Pi and future interactive agents all consume the same shared repository instructions and command procedures:
