@@ -468,20 +468,29 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
 
     shared_host_decisions: list[dict[str, Any]] = []
     if resume_from == 3:
-        # issue #274: resolve every shared/joint-club hosting decision
-        # before Stage 3 actually builds a plan — pauses (returns here) for
-        # the harness to answer one at a time if no headless judge is
-        # configured, exactly like every other interactive decision point
-        # in this function. Only reachable for the plain (non-Pareto,
-        # non-v2-optimizer) first-time Stage 3 pass — those two branches
-        # above already returned, and a resumed `--resume-from 4` run skips
-        # this entirely (shared-host decisions were already resolved and
-        # baked into the checkpoint the first time Stage 3 ran).
-        pause_code, shared_host_decisions = _resolve_shared_host_decisions(
-            state, cfg, scraping, start, end, _log, interactive=True,
-        )
-        if pause_code is not None:
-            return pause_code
+        # issue #355: a promoted canonical season already encodes every
+        # shared/joint-club hosting decision in its published placements, so
+        # do not pause the harness to re-decide one before Stage 3 adopts
+        # the canonical baseline.
+        from ...canonical_baseline import resolve_canonical_state
+
+        if resolve_canonical_state(cfg, start.date(), end.date()) is not None:
+            shared_host_decisions = []
+        else:
+            # issue #274: resolve every shared/joint-club hosting decision
+            # before Stage 3 actually builds a plan — pauses (returns here) for
+            # the harness to answer one at a time if no headless judge is
+            # configured, exactly like every other interactive decision point
+            # in this function. Only reachable for the plain (non-Pareto,
+            # non-v2-optimizer) first-time Stage 3 pass — those two branches
+            # above already returned, and a resumed `--resume-from 4` run skips
+            # this entirely (shared-host decisions were already resolved and
+            # baked into the checkpoint the first time Stage 3 ran).
+            pause_code, shared_host_decisions = _resolve_shared_host_decisions(
+                state, cfg, scraping, start, end, _log, interactive=True,
+            )
+            if pause_code is not None:
+                return pause_code
 
     _stage3_started = perf_counter()
     plan, abort, _stage3_failed = _run_stage3(

@@ -192,6 +192,16 @@ def build_planning_problem(
         # snapshot so verify_candidate can hard-reject a candidate that moves
         # or drops a booked tournament. ``None`` for a from-scratch plan.
         "canonical_baseline": baseline,
+        # Soft, configurable change-cost policy (issue #355) used when the
+        # planner/search folds baseline change cost into its objective. Kept
+        # separate from the hard approval locks above: these only influence
+        # preference between hard-valid candidates, never correctness.
+        "canonical_change_weights": (
+            dict(config.get("canonical_change_weights"))
+            if isinstance(config.get("canonical_change_weights"), dict)
+            else None
+        ),
+        "canonical_change_cost_scale": config.get("canonical_change_cost_scale"),
         # Explicit operator waivers are carried as part of the frozen problem
         # snapshot so verification stays a pure function over this contract.
         # Never populated by the planner/optimizer/agent path -- only an

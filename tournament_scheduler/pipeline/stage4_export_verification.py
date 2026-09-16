@@ -28,18 +28,25 @@ def _build_export_verification_problem(
     if not effective_config or not start_raw or not end_raw:
         return None
     try:
+        from ..canonical_baseline import resolve_canonical_baseline
         from ..operator_waivers import load_active_waivers
         from ..planning_contract import build_planning_problem
 
         start = datetime.strptime(str(start_raw), "%Y-%m-%d")
         end = datetime.strptime(str(end_raw), "%Y-%m-%d")
         scraping_result = state.read_stage(StageName.SCRAPING)
+        # Baseline-aware verification (issue #355): when the season has been
+        # promoted to canonical state, fold its approval/placement locks into
+        # the problem so this export gate hard-rejects a candidate that moved
+        # or dropped approved/booked work -- not only self-consistency.
+        canonical_baseline = resolve_canonical_baseline(effective_config, start.date(), end.date())
         return build_planning_problem(
             effective_config,
             scraping_result,
             start.date(),
             end.date(),
             waivers=load_active_waivers(state.work_dir),
+            canonical_baseline=canonical_baseline,
         )
     except Exception:
         return None

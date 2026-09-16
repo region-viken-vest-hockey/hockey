@@ -294,3 +294,243 @@ def test_season_diff_cli_reports_change_cost(tmp_path, capsys):
     output = capsys.readouterr().out
     assert "placement: 1" in output
     assert "total: 3.0" in output
+
+
+# ---------------------------------------------------------------------------
+# Default-path baseline awareness (issue #355)
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_canonical_state_from_planning_window(tmp_path):
+    from tournament_scheduler.canonical_baseline import (
+        resolve_canonical_baseline,
+        resolve_canonical_season,
+        resolve_canonical_state,
+    )
+
+    root = _promote(tmp_path, [_tournament("t1")])
+
+    # A Sep-Apr planning window anchors the season id on either calendar year.
+    assert resolve_canonical_season({}, date(2026, 9, 1), date(2027, 4, 30), root=root) == "2026-2027"
+    assert resolve_canonical_season({}, date(2027, 1, 5), date(2027, 4, 30), root=root) == "2026-2027"
+    state = resolve_canonical_state({}, date(2026, 9, 1), date(2027, 4, 30), root=root)
+    assert state is not None
+    assert state["season"] == "2026-2027"
+    assert state["baseline"]["tournaments"][0]["id"] == "t1"
+    assert resolve_canonical_baseline({}, date(2026, 9, 1), date(2027, 4, 30), root=root) == state["baseline"]
+
+    # No canonical season for an unrelated window.
+    assert resolve_canonical_state({}, date(2029, 9, 1), date(2030, 4, 30), root=root) is None
+
+
+def test_default_stage3_adopts_promoted_baseline(tmp_path):
+    """A normal Stage 3 run must start from canonical state, not regenerate."""
+    from datetime import datetime
+
+    from tournament_scheduler.pipeline.stage3_planning import run
+
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("t1", date_str="2026-09-12"),
+            _tournament("t2", date_str="2026-10-10"),
+        ],
+    )
+    config = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "age_groups": ["U10"],
+        "parallel_games": {"U10": 2},
+        "teams": _teams(),
+        "canonical_season_root": str(root),
+    }
+    state = PipelineState(tmp_path / ".pipeline")
+
+    result = run(
+        config,
+        {},
+        state,
+        datetime(2026, 9, 1),
+        datetime(2027, 4, 30),
+        today=date(2026, 8, 1),
+    )
+
+    assert result["plan_source"] == "canonical_baseline"
+    assert result["canonical_state"]["season"] == "2026-2027"
+    # Durable ids survive; no wholly regenerated season replaced the baseline.
+    assert {t["id"] for t in result["plan"]["tournaments"]} == {"t1", "t2"}
+    assert {t["date"] for t in result["plan"]["tournaments"]} == {"2026-09-12", "2026-10-10"}
+    assert result["canonical_baseline_verification"]["ok"]
+    assert state.is_done(StageName.PLANNING)
+
+
+def test_export_verification_problem_carries_canonical_locks(tmp_path):
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    approve_tournament(season="2026-2027", tournament_id="t1", root=root, actor="booker")
+
+    state = PipelineState(tmp_path / ".pipeline")
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": _teams(),
+            "canonical_season_root": str(root),
+        },
+        status=StageStatus.DONE,
+    )
+
+    problem = _build_export_verification_problem(
+        {"start_date": "2026-09-01", "end_date": "2027-04-30", "teams": _teams(), "canonical_season_root": str(root)},
+        state,
+    )
+
+    assert problem is not None
+    assert problem["canonical_baseline"] is not None
+    moved = _plan([_tournament("t1", date_str="2026-09-19")])
+    assert not verify_candidate(moved, problem)["ok"]
+
+
+def _team(club, label, age_group="U10"):
+    return {"club": club, "label": label, "age_group": age_group}
+
+
+def _slot_candidate():
+    teams = [_team("A", "A1"), _team("B", "B1"), _team("C", "C1"), _team("D", "D1")]
+    other = [_team("A", "A1"), _team("B", "B1"), _team("E", "E1"), _team("F", "F1")]
+    return _plan(
+        [
+            _tournament("t1", teams=teams),
+            _tournament("t2", date_str="2026-10-10", arena="Arena B", host="A", teams=other),
+        ]
+    )
+
+
+def test_search_state_folds_in_canonical_change_cost():
+    from tournament_scheduler.canonical_baseline import DEFAULT_CHANGE_WEIGHTS
+    from tournament_scheduler.stage3_optimizer import (
+        DEFAULT_WEIGHTS,
+        _SearchState,
+        _build_slots,
+        _resolve_weights,
+    )
+
+    candidate = _slot_candidate()
+    baseline = build_canonical_baseline(_schedule(candidate["tournaments"]), {"decisions": {}})
+    slots, _ = _build_slots(candidate, None)
+    weights_by_age_group = {
+        slot.age_group: _resolve_weights(DEFAULT_WEIGHTS, None, slot.age_group) for slot in slots
+    }
+    state = _SearchState(slots, weights_by_age_group, baseline=baseline)
+
+    # The candidate equals the canonical baseline, so there is no change cost.
+    assert state.change_total == 0.0
+    assert state.total == state.full_objective(DEFAULT_WEIGHTS)
+
+    # Swapping two teams across the two tournaments changes both participant
+    # lists -> two participant changes, folded into the objective.
+    state.apply_team_swap(0, 2, 1, 2)
+    assert state.change_total == 2 * DEFAULT_CHANGE_WEIGHTS["participants"]
+    assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+
+    # Its own inverse restores both the fairness score and the change cost.
+    state.apply_team_swap(0, 2, 1, 2)
+    assert state.change_total == 0.0
+    assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+
+
+def test_optimizer_never_moves_placement_locked_tournament():
+    from tournament_scheduler.stage3_optimizer import optimize_candidate
+
+    candidate = _slot_candidate()
+    baseline = build_canonical_baseline(
+        _schedule(candidate["tournaments"]),
+        {"decisions": {"t1": {"placement_locked": True}}},
+    )
+    problem = {
+        "parallel_games": {"U10": 2},
+        "clubs": {"A": "Arena A", "B": "Arena B", "C": "Arena C", "D": "Arena D", "E": "Arena E", "F": "Arena F"},
+        "club_calendar_status": {},
+        "canonical_baseline": baseline,
+        "christmas_split_date": None,
+    }
+
+    result = optimize_candidate(
+        candidate,
+        problem,
+        iterations=400,
+        seed=1,
+        move_dates=True,
+        move_hosts=True,
+        move_slots=True,
+    )
+
+    locked = next(t for t in result["tournaments"] if t["id"] == "t1")
+    assert locked["date"] == "2026-09-12"
+    assert locked["host_club"] == "A"
+    assert locked["start_time"] == "10:00"
+    assert result["source"]["canonical_baseline"]["placed_locked_slots"] == 1
+
+
+def test_default_season_root_respects_env_override(monkeypatch):
+    from tournament_scheduler.canonical_baseline import (
+        SEASON_ROOT_ENV_VAR,
+        default_season_root,
+    )
+
+    monkeypatch.delenv(SEASON_ROOT_ENV_VAR, raising=False)
+    assert default_season_root() == "season"
+    monkeypatch.setenv(SEASON_ROOT_ENV_VAR, "/tmp/canonical-root")
+    assert default_season_root() == "/tmp/canonical-root"
+
+
+def test_high_change_cost_suppresses_published_churn():
+    from tournament_scheduler.stage3_optimizer import optimize_candidate
+
+    candidate = _slot_candidate()
+    baseline = build_canonical_baseline(_schedule(candidate["tournaments"]), {"decisions": {}})
+    problem = {
+        "parallel_games": {"U10": 2},
+        "canonical_baseline": baseline,
+        # An implausibly steep change-cost scale must dominate every soft
+        # fairness improvement, so the search keeps the published baseline.
+        "canonical_change_cost_scale": 1_000_000.0,
+        "christmas_split_date": None,
+    }
+
+    result = optimize_candidate(candidate, problem, iterations=500, seed=2)
+
+    assert change_cost(baseline, result)["total"] == 0.0
+
+
+def test_default_stage3_refuses_unreadable_canonical_state(tmp_path):
+    """Corrupt canonical state must fail loudly, never fall back to a fresh season."""
+    from datetime import datetime
+
+    import pytest as _pytest
+
+    from tournament_scheduler.pipeline.stage3_planning import Stage3Error, run
+
+    season_dir = tmp_path / "season" / "2026-2027"
+    season_dir.mkdir(parents=True)
+    (season_dir / "schedule.json").write_text(
+        json.dumps({"schema_version": 1, "season": "2026-2027", "plan": _plan([_tournament("t1")])}),
+        encoding="utf-8",
+    )
+    # decisions.json is intentionally missing -> unreadable canonical state.
+    config = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "age_groups": ["U10"],
+        "parallel_games": {"U10": 2},
+        "teams": _teams(),
+        "canonical_season_root": str(tmp_path / "season"),
+    }
+    state = PipelineState(tmp_path / ".pipeline")
+
+    with _pytest.raises(Stage3Error):
+        run(config, {}, state, datetime(2026, 9, 1), datetime(2027, 4, 30), today=date(2026, 8, 1))

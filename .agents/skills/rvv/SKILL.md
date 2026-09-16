@@ -146,9 +146,10 @@ Agent policy:
 
 Typical soft dimensions include participation balance, hosting distribution, temporal spacing, opponent diversity/repetition, travel and source uncertainty. The repository measures them; the agent decides contextual priority only when no hard rule decides the outcome.
 
-Once a season has been promoted to canonical state (`season/<season>/`), planning is baseline-aware. Do not ask for a from-scratch season or hand-edit canonical files to work around a lock:
+Once a season has been promoted to canonical state (`season/<season>/`), planning is baseline-aware by default — a normal Stage 3 run resolves the canonical files for its planning window (independent of `.pipeline`) and adopts the published schedule as its baseline, preserving durable IDs and placements instead of regenerating a season. Do not ask for a from-scratch season or hand-edit canonical files to work around a lock:
 
-- approved/placement-locked tournaments are hard-preserve constraints — a candidate that moves or drops one fails verification with `canonical_placement_locked`/`canonical_participants_locked`/`canonical_locked_tournament_missing`;
+- approved/placement-locked tournaments are hard-preserve constraints — a candidate that moves or drops one fails verification with `canonical_placement_locked`/`canonical_participants_locked`/`canonical_locked_tournament_missing`, and the search will not even propose moving one;
+- unapproved tournaments stay optimizable, but weighted change cost is folded into the search objective, so prefer the smallest change that resolves the problem;
 - use `season replan` to search around the canonical baseline, `season diff` to see the weighted change cost before committing, and `season apply` to persist a verified candidate atomically. A rejected candidate must leave `schedule.json`/`decisions.json` unchanged;
 - approval/lock state lives in `decisions.json`, separate from schedule facts, and an approval whose facts changed loses its approval instead of silently staying "approved".
 

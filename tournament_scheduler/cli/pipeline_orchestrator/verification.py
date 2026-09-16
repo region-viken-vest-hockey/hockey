@@ -36,11 +36,24 @@ def _mid_planning_decision_problem(
     visible to every mid-planning verification/repair decision.
     """
     try:
+        from ...canonical_baseline import resolve_canonical_baseline
         from ...operator_waivers import load_active_waivers
         from ...planning_contract import build_planning_problem
 
         waivers = load_active_waivers(work_dir) if work_dir else None
-        return build_planning_problem(cfg, scraping, start.date(), end.date(), waivers=waivers)
+        # Baseline-aware planning (issue #355): a promoted canonical season's
+        # locks belong in every mid-planning decision/verification problem, so
+        # the same constraints the export gate enforces are visible to each
+        # repair/optimize/apply decision as well.
+        canonical_baseline = resolve_canonical_baseline(cfg, start.date(), end.date())
+        return build_planning_problem(
+            cfg,
+            scraping,
+            start.date(),
+            end.date(),
+            waivers=waivers,
+            canonical_baseline=canonical_baseline,
+        )
     except Exception:
         return None
 

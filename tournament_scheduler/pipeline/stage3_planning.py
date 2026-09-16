@@ -62,7 +62,7 @@ from .stage3_helpers import (
     _build_rounds_per_tournament,
     _make_planner,
 )
-from ..serialization.season_plan import season_plan_to_dict
+from ..serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION, season_plan_to_dict
 
 # ---------------------------------------------------------------------------
 # Candidate reproducibility and ranking
@@ -224,6 +224,95 @@ def _shared_host_choices_from_config(config: dict[str, Any]) -> dict[tuple[str, 
 # ---------------------------------------------------------------------------
 
 
+def _adopt_canonical_baseline(
+    *,
+    config: dict[str, Any],
+    scraping_result: dict[str, Any],
+    state: PipelineState,
+    effective: Any,
+    planning_start: datetime,
+    end_date: datetime,
+    canonical_state: dict[str, Any],
+    existing_manual_adjustments: dict[str, Any],
+) -> dict[str, Any]:
+    """Seed Stage 3 from promoted canonical season state instead of regenerating.
+
+    Once a season is promoted, the canonical current schedule *is* the
+    operational baseline.  A normal Stage 3 run must not silently generate a
+    wholly new season and discard approved/booked work, so when canonical
+    state applies to this planning window this adopts it as the baseline
+    candidate (preserving durable tournament ids, order and published
+    placements) instead of calling :class:`SeasonPlanner`.  Any subsequent
+    refinement/``optimize_plan`` search starts from this baseline and is
+    hard-gated by the canonical locks carried in the planning problem.
+
+    The adopted plan is verified against the same problem contract every
+    other planner output is checked against (including the canonical
+    baseline section), and the result is recorded in the checkpoint rather
+    than raised here -- the normal pre-export hard-verification gate remains
+    the single authority that blocks a bad downstream export.
+    """
+    from ..planning_contract import build_planning_problem, verify_candidate
+
+    schedule = canonical_state.get("schedule") or {}
+    baseline = canonical_state.get("baseline")
+    plan_dict = dict(schedule.get("plan") or {})
+    plan_dict["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
+    if existing_manual_adjustments and not plan_dict.get("manual_adjustments"):
+        plan_dict["manual_adjustments"] = dict(existing_manual_adjustments)
+
+    problem = build_planning_problem(
+        config,
+        scraping_result,
+        planning_start.date(),
+        end_date.date(),
+        canonical_baseline=baseline,
+    )
+    verification = verify_candidate(plan_dict, problem) if problem else verify_candidate(plan_dict)
+
+    config_fingerprint = stable_payload_sha256(config)
+    source_fingerprint = stable_payload_sha256(scraping_result)
+    tournament_count = len(plan_dict.get("tournaments", []) or [])
+    print(
+        "[plan] Kanonisk sesong "
+        f"{canonical_state.get('season')} funnet - bruker publisert plan som baseline "
+        f"({tournament_count} turneringer, revisjon {schedule.get('revision')})",
+        flush=True,
+    )
+    checkpoint: dict[str, Any] = {
+        "plan": plan_dict,
+        "configured_start_date": effective.configured_start_date.isoformat(),
+        "effective_start_date": effective.effective_start_date.isoformat(),
+        "start_date_adjustment": effective.start_date_adjustment,
+        "rules_report": None,
+        "candidates": [
+            {
+                "attempt": 1,
+                "seed": None,
+                "planner_version": PLANNER_VERSION,
+                "config_fingerprint": config_fingerprint,
+                "source_fingerprint": source_fingerprint,
+                "status": "pass" if verification.get("ok", True) else "fail",
+                "score": None,
+                "tournament_count": tournament_count,
+                "rank": None,
+                "source": "canonical_baseline",
+            }
+        ],
+        "selected_candidate_attempt": 1,
+        "baseline_timings": {},
+        "plan_source": "canonical_baseline",
+        "canonical_state": {
+            "season": canonical_state.get("season"),
+            "revision": schedule.get("revision"),
+            "fingerprint": schedule.get("fingerprint"),
+        },
+        "canonical_baseline_verification": verification,
+    }
+    state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
+    return checkpoint
+
+
 def run(
     config: dict[str, Any],
     scraping_result: dict[str, Any],
@@ -327,6 +416,39 @@ def run(
         }
         state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
         return checkpoint
+
+    # Baseline-aware default (issue #355): if a season has been promoted to
+    # canonical state for this planning window, adopt the published schedule
+    # as the Stage 3 baseline instead of regenerating a wholly new season.
+    # The durable canonical files are resolved from the configured season
+    # root, independent of `.pipeline`, and the same overlay is folded into
+    # the planning problem so locks gate every later search.
+    from ..canonical_baseline import resolve_canonical_season, resolve_canonical_state
+
+    canonical_season = resolve_canonical_season(config, planning_start.date(), end_date.date())
+    canonical_state: dict[str, Any] | None = None
+    if canonical_season:
+        canonical_state = resolve_canonical_state(config, planning_start.date(), end_date.date())
+        if canonical_state is None:
+            # Canonical state exists but could not be read.  Falling through
+            # to a from-scratch plan here would silently regenerate the
+            # season, which is exactly what promoting it must prevent.
+            raise Stage3Error(
+                f"Kanonisk sesong {canonical_season} finnes, men kunne ikke leses. "
+                "Reparer season/<sesong>/schedule.json og decisions.json (eller fjern "
+                "dem bevisst) før planlegging."
+            )
+    if canonical_state and canonical_state.get("schedule"):
+        return _adopt_canonical_baseline(
+            config=config,
+            scraping_result=scraping_result,
+            state=state,
+            effective=effective,
+            planning_start=planning_start,
+            end_date=end_date,
+            canonical_state=canonical_state,
+            existing_manual_adjustments=existing_manual_adjustments,
+        )
 
     pg_config = _build_parallel_games(config)
     round_length_config = _build_round_length(config)

@@ -1,5 +1,6 @@
 import pytest
 
+from tournament_scheduler.canonical_baseline import SEASON_ROOT_ENV_VAR
 from tournament_scheduler.testing.canonical_input import (
     build_canonical_planner,
     canonical_input_has_teams,
@@ -7,6 +8,20 @@ from tournament_scheduler.testing.canonical_input import (
     load_canonical_roster,
     load_canonical_season_window,
 )
+
+
+@pytest.fixture(autouse=True)
+def _isolate_ambient_canonical_season_root(monkeypatch):
+    """Keep planning/verification tests independent of local canonical state.
+
+    A developer machine may have a deliberately promoted ``season/``
+    directory, and planning/verification otherwise resolve canonical state
+    from that root by default -- which would make the suite's result depend
+    on unrelated local operator state.  Tests that exercise canonical
+    resolution pass an explicit ``root``/``canonical_season_root`` and are
+    unaffected.
+    """
+    monkeypatch.setenv(SEASON_ROOT_ENV_VAR, "/nonexistent/rvv-canonical-season")
 
 
 @pytest.fixture

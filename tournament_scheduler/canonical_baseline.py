@@ -22,9 +22,29 @@ search, no I/O beyond loading canonical files, no planner internals.
 from __future__ import annotations
 
 import os
+from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
 
 CANONICAL_BASELINE_SCHEMA_VERSION = 1
+
+# Default canonical-state root, mirroring ``season_state.DEFAULT_SEASON_ROOT``
+# without importing it (``season_state`` imports this module lazily).  The
+# environment variable is an explicit override used by tests and hermetic
+# tooling so a committed repo ``season/`` cannot silently change an unrelated
+# planning/verification run.
+DEFAULT_SEASON_ROOT = "season"
+SEASON_ROOT_ENV_VAR = "RVV_CANONICAL_SEASON_ROOT"
+
+
+def default_season_root() -> str:
+    return os.environ.get(SEASON_ROOT_ENV_VAR) or DEFAULT_SEASON_ROOT
+
+
+# Soft multiplier applied to the weighted change cost when it is folded into
+# a search objective (see ``stage3_optimizer``).  Kept here next to the change
+# weights so the "prefer the smallest change" policy has one home; a caller
+# may override it through the problem's ``canonical_change_cost_scale`` key.
+DEFAULT_CHANGE_COST_SCALE = 5.0
 
 # Fields frozen by a placement lock.  ``host_club`` is the physical host;
 # ``arena``/``start_time`` are the booked slot; ``date`` is the day.
@@ -140,6 +160,100 @@ def canonical_baseline_for_window(
         return load_canonical_baseline(season, root=root)
     except SeasonStateError:
         return None
+
+
+def candidate_season_ids(start: date, end: date) -> List[str]:
+    """Plausible canonical season ids for a planning window, most specific first.
+
+    A season id is ``<first-year>-<second-year>``.  A planning window can be
+    expressed with either calendar year as its anchor (a Sep-Apr season, a
+    Jan-Apr spring window inside an ongoing season, ...), so every season
+    whose window could contain this planning window is a candidate; callers
+    pick the first one that actually exists on disk.
+    """
+    ids: List[str] = [f"{start.year}-{end.year}"]
+    for year in (end.year, start.year):
+        for candidate in (f"{year - 1}-{year}", f"{year}-{year + 1}"):
+            if candidate not in ids:
+                ids.append(candidate)
+    return ids
+
+
+def resolve_canonical_season(
+    config: Optional[Dict[str, Any]],
+    start: date,
+    end: date,
+    *,
+    root: Optional["str | os.PathLike[str]"] = None,
+) -> Optional[str]:
+    """Return the season id whose canonical state applies to this planning window.
+
+    An explicit ``config["canonical_season"]`` always wins.  Otherwise the
+    configured season root (``config["canonical_season_root"]`` or the
+    default ``season/``) is probed for the candidate ids above; the first
+    one with a ``schedule.json`` is used.  Returns ``None`` when no canonical
+    season applies -- the from-scratch planning path.
+    """
+    config = config or {}
+    explicit = config.get("canonical_season")
+    if explicit:
+        return str(explicit)
+    resolved_root = root or config.get("canonical_season_root") or default_season_root()
+    for season in candidate_season_ids(start, end):
+        if os.path.exists(os.path.join(str(resolved_root), season, "schedule.json")):
+            return season
+    return None
+
+
+def resolve_canonical_state(
+    config: Optional[Dict[str, Any]],
+    start: date,
+    end: date,
+    *,
+    root: Optional["str | os.PathLike[str]"] = None,
+) -> Optional[Dict[str, Any]]:
+    """Load the canonical season that applies to this planning window, if any.
+
+    Returns ``{"season", "root", "schedule", "decisions", "baseline"}`` or
+    ``None`` when no canonical season applies (the from-scratch path).  This
+    is the single resolver every default planning/verification path uses, so
+    a normal run reconstructs its baseline from the durable canonical files
+    even when ``.pipeline`` was deleted.
+    """
+    config = config or {}
+    season = resolve_canonical_season(config, start, end, root=root)
+    if not season:
+        return None
+    resolved_root = root or config.get("canonical_season_root") or default_season_root()
+    try:
+        from tournament_scheduler.season_state import load_decisions, load_schedule
+
+        schedule = load_schedule(season, root=resolved_root)
+        decisions = load_decisions(season, root=resolved_root)
+    except Exception:
+        # A broken/unreadable canonical file must not crash an unrelated
+        # planning run; the canonical CLI reports the underlying error when
+        # it is asked to load the file directly.
+        return None
+    return {
+        "season": season,
+        "root": str(resolved_root),
+        "schedule": schedule,
+        "decisions": decisions,
+        "baseline": build_canonical_baseline(schedule, decisions),
+    }
+
+
+def resolve_canonical_baseline(
+    config: Optional[Dict[str, Any]],
+    start: date,
+    end: date,
+    *,
+    root: Optional["str | os.PathLike[str]"] = None,
+) -> Optional[Dict[str, Any]]:
+    """Return the canonical baseline overlay for this planning window, if any."""
+    state = resolve_canonical_state(config, start, end, root=root)
+    return state["baseline"] if state else None
 
 
 def verify_canonical_locks(

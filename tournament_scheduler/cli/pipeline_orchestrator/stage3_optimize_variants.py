@@ -15,6 +15,26 @@ def _active_waivers_for_state(state: "Any") -> "list[dict[str, Any]]":
     return load_active_waivers(state.work_dir)
 
 
+def _canonical_baseline_for(cfg: "dict[str, Any]", start: "Any", end: "Any") -> "dict[str, Any] | None":
+    """Canonical baseline overlay for this planning window, if the season was promoted.
+
+    Passing it into every optimizer/search problem is what makes the default
+    interactive ``optimize_plan`` path baseline-aware rather than a
+    from-scratch search (issue #355): the search then preserves approved/
+    booked placements and measures change cost against the published
+    schedule.
+    """
+    from datetime import date as _date, datetime as _datetime
+
+    from ...canonical_baseline import resolve_canonical_baseline
+
+    start_date = start.date() if isinstance(start, _datetime) else start
+    end_date = end.date() if isinstance(end, _datetime) else end
+    if not isinstance(start_date, _date) or not isinstance(end_date, _date):
+        return None
+    return resolve_canonical_baseline(cfg, start_date, end_date)
+
+
 def _run_stage3_v2_optimize(
     state: "Any",
     cfg: "dict[str, Any]",
@@ -69,7 +89,12 @@ def _run_stage3_v2_optimize(
         return None, True
 
     problem = build_planning_problem(
-        cfg, scraping, start.date(), end.date(), waivers=_active_waivers_for_state(state)
+        cfg,
+        scraping,
+        start.date(),
+        end.date(),
+        waivers=_active_waivers_for_state(state),
+        canonical_baseline=_canonical_baseline_for(cfg, start, end),
     )
 
     engine = str(arguments.get("engine") or "local_search").replace("-", "_")
@@ -203,7 +228,12 @@ def _run_stage3_pareto_optimize(
         return None, True
 
     problem = build_planning_problem(
-        cfg, scraping, start.date(), end.date(), waivers=_active_waivers_for_state(state)
+        cfg,
+        scraping,
+        start.date(),
+        end.date(),
+        waivers=_active_waivers_for_state(state),
+        canonical_baseline=_canonical_baseline_for(cfg, start, end),
     )
 
     result = optimize_candidate_pareto(

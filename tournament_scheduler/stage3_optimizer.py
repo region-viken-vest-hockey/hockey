@@ -50,6 +50,10 @@ from itertools import combinations
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .game_generation import generate_tournament_games
+from .canonical_baseline import (
+    DEFAULT_CHANGE_COST_SCALE,
+    DEFAULT_CHANGE_WEIGHTS,
+)
 from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .host_representation import swap_breaks_host_representation as _swap_breaks_host_representation
 from .models import Team
@@ -197,10 +201,99 @@ def _resolve_weights(
     return resolved
 
 
+def _resolve_change_weights(overrides: Optional[Dict[str, float]]) -> Dict[str, float]:
+    resolved = dict(DEFAULT_CHANGE_WEIGHTS)
+    for key, value in (overrides or {}).items():
+        if key in resolved:
+            try:
+                resolved[key] = float(value)
+            except (TypeError, ValueError):
+                continue
+    return resolved
+
+
+def _normalize_optional(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    text = str(value)
+    return text or None
+
+
+def _baseline_snapshots(baseline: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    if not baseline:
+        return {}
+    return {
+        str(snapshot.get("id")): snapshot
+        for snapshot in baseline.get("tournaments", []) or []
+        if snapshot.get("id")
+    }
+
+
+def _slot_change_category(slot: "_Slot", snapshot: Optional[Dict[str, Any]]) -> str:
+    """Classify one slot against its canonical baseline snapshot.
+
+    Mirrors :func:`canonical_baseline.change_cost` exactly (placement beats
+    participant change), so an optimizer that folds this term into its
+    objective is minimizing the same cost the operator sees from
+    ``season diff``.
+    """
+    if snapshot is None:
+        return "replacement"
+    if (
+        slot.date.isoformat() != snapshot.get("date")
+        or _normalize_optional(slot.arena) != _normalize_optional(snapshot.get("arena"))
+        or _normalize_optional(slot.host_club) != _normalize_optional(snapshot.get("host_club"))
+        or _normalize_optional(slot.start_time) != _normalize_optional(snapshot.get("start_time"))
+    ):
+        return "placement"
+    if {tuple(identity) for identity in slot.team_ids} != {
+        tuple(entry) for entry in snapshot.get("participants", []) or []
+    }:
+        return "participants"
+    return "none"
+
+
+def _slot_change_cost(
+    slots: List["_Slot"],
+    snapshots: Dict[str, Dict[str, Any]],
+    change_weights: Dict[str, float],
+) -> float:
+    return sum(
+        change_weights[_slot_change_category(slot, snapshots.get(str(slot.tournament.get("id"))))]
+        for slot in slots
+    )
+
+
+def _locked_slot_indices(
+    slots: List["_Slot"], problem: Optional[Dict[str, Any]]
+) -> Tuple[Set[int], Set[int]]:
+    """Slot indices whose placement / participants are frozen by a canonical lock.
+
+    The final candidate is always checked against these by
+    ``planning_contract.verify_candidate``; excluding the slots from the move
+    generators too means the search never wastes its budget proposing a move
+    that a promoted baseline forbids.
+    """
+    locks = ((problem or {}).get("canonical_baseline") or {}).get("locks") or {}
+    placement: Set[int] = set()
+    participants: Set[int] = set()
+    for index, slot in enumerate(slots):
+        lock = locks.get(str(slot.tournament.get("id"))) or {}
+        if lock.get("placement"):
+            placement.add(index)
+        if lock.get("participants"):
+            participants.add(index)
+    return placement, participants
+
+
 def _objective(
     slots: List[_Slot],
     base_weights: Dict[str, float],
     per_age_group: Optional[Dict[str, Dict[str, float]]] = None,
+    *,
+    baseline: Optional[Dict[str, Any]] = None,
+    change_weights: Optional[Dict[str, float]] = None,
+    change_scale: Optional[float] = None,
 ) -> float:
     total = 0.0
 
@@ -249,6 +342,17 @@ def _objective(
             elif gap < 14:
                 total += weights["gap_under_14"]
 
+    # Baseline-aware planning (issue #355): when a promoted canonical
+    # baseline is present, fold the same weighted change cost the operator
+    # sees from ``season diff`` into the search objective, so the local
+    # search prefers the smallest change that resolves the problem instead
+    # of freely churning already-published tournaments.
+    if baseline is not None:
+        scale = DEFAULT_CHANGE_COST_SCALE if change_scale is None else float(change_scale)
+        total += scale * _slot_change_cost(
+            slots, _baseline_snapshots(baseline), _resolve_change_weights(change_weights)
+        )
+
     return total
 
 
@@ -272,10 +376,9 @@ class _SearchState:
     resulting change in the objective total (already added to
     :attr:`total`); calling the same method again with the same arguments is
     still its own inverse, so callers revert a rejected move exactly as
-    before. Host and start-time moves never change :attr:`total` -- neither
-    ``host_club``/``arena``/``start_time`` is an input to :func:`_objective`
-    -- so :meth:`move_host`/:meth:`move_slot_time` only maintain the arena
-    occupancy index, with no objective delta to compute.
+    before. With a canonical baseline present, ``host_club``/``arena``/
+    ``start_time``/``date`` changes also move :attr:`total` through the
+    folded-in change cost, so those moves return a delta too.
 
     :meth:`full_objective` recomputes :func:`_objective` from the live slot
     state and is used only to cross-check correctness (see
@@ -287,9 +390,17 @@ class _SearchState:
         self,
         slots: List[_Slot],
         weights_by_age_group: Dict[str, Dict[str, float]],
+        *,
+        baseline: Optional[Dict[str, Any]] = None,
+        change_weights: Optional[Dict[str, float]] = None,
+        change_scale: Optional[float] = None,
     ) -> None:
         self.slots = slots
         self.weights_by_age_group = weights_by_age_group
+        self.baseline = baseline
+        self.has_baseline = baseline is not None
+        self.change_weights = _resolve_change_weights(change_weights)
+        self.change_scale = DEFAULT_CHANGE_COST_SCALE if change_scale is None else float(change_scale)
         self.age_group_by_team: Dict[TeamIdentity, str] = {
             identity: slot.age_group for slot in slots for identity in slot.team_ids
         }
@@ -318,7 +429,32 @@ class _SearchState:
                 total += self._club_contribution(age_group, count)
         for team in self.dates_by_team:
             total += self._team_gap_contribution(team)
+        self._baseline_snapshots = _baseline_snapshots(baseline)
+        self._slot_change_categories = [self._category_for(slot) for slot in slots]
+        self.change_total = (
+            sum(self.change_weights[cat] for cat in self._slot_change_categories)
+            if self.has_baseline
+            else 0.0
+        )
+        if self.has_baseline:
+            total += self.change_scale * self.change_total
         self.total = total
+
+    def _category_for(self, slot: _Slot) -> str:
+        return _slot_change_category(slot, self._baseline_snapshots.get(str(slot.tournament.get("id"))))
+
+    def _refresh_slot_change(self, index: int) -> float:
+        """Recompute one slot's change category; return its objective delta."""
+        if not self.has_baseline:
+            return 0.0
+        new_category = self._category_for(self.slots[index])
+        old_category = self._slot_change_categories[index]
+        if new_category == old_category:
+            return 0.0
+        self._slot_change_categories[index] = new_category
+        delta = self.change_weights[new_category] - self.change_weights[old_category]
+        self.change_total += delta
+        return self.change_scale * delta
 
     # -- metric-contribution helpers (pure functions of counts) ------------
 
@@ -456,6 +592,8 @@ class _SearchState:
         a.team_ids[pos_a], b.team_ids[pos_b] = team_b, team_a
         a.changed = True
         b.changed = True
+        delta += self._refresh_slot_change(slot_a)
+        delta += self._refresh_slot_change(slot_b)
         self.total += delta
         return delta
 
@@ -473,6 +611,8 @@ class _SearchState:
         self._reindex_arena(slot_b, b.arena, old_b_date)
         a.date_changed = True
         b.date_changed = True
+        delta += self._refresh_slot_change(slot_a)
+        delta += self._refresh_slot_change(slot_b)
         self.total += delta
         return delta
 
@@ -492,27 +632,40 @@ class _SearchState:
             delta += self._move_team_date(team, old_date, new_date)
         slot.date = new_date
         self._reindex_arena(index, slot.arena, old_date)
-        slot.date_changed = True
+        slot.date_changed = new_date.isoformat() != slot.tournament.get("date")
+        delta += self._refresh_slot_change(index)
         self.total += delta
         return delta
 
-    def move_host(self, index: int, new_host: str, new_arena: Optional[str]) -> None:
-        # Host/arena are not inputs to _objective (only team_ids/dates are),
-        # so a host move never changes the objective total -- only the arena
-        # occupancy index needs to move with it.
+    def move_host(self, index: int, new_host: str, new_arena: Optional[str]) -> float:
+        # Host/arena are not fairness-objective inputs (only team_ids/dates
+        # are), so without a canonical baseline this move does not change
+        # :attr:`total` -- but with one, a host/arena change is a placement
+        # change and must be scored, so it returns its change-cost delta.
         slot = self.slots[index]
         old_arena, old_date = slot.arena, slot.date
         slot.host_club = new_host
         slot.arena = new_arena
-        slot.host_changed = True
+        slot.host_changed = (
+            _normalize_optional(new_host) != _normalize_optional(slot.tournament.get("host_club"))
+            or _normalize_optional(new_arena) != _normalize_optional(slot.tournament.get("arena"))
+        )
         self._reindex_arena(index, old_arena, old_date)
+        delta = self._refresh_slot_change(index)
+        self.total += delta
+        return delta
 
-    def move_slot_time(self, index: int, new_time: str) -> None:
-        # start_time is likewise not an _objective input; no arena/date
-        # index change either, since arena and date are unchanged.
+    def move_slot_time(self, index: int, new_time: str) -> float:
+        # start_time is likewise not a fairness-objective input, but it is a
+        # placement field in the canonical change-cost model.
         slot = self.slots[index]
         slot.start_time = new_time
-        slot.start_time_changed = True
+        slot.start_time_changed = _normalize_optional(new_time) != _normalize_optional(
+            slot.tournament.get("start_time")
+        )
+        delta = self._refresh_slot_change(index)
+        self.total += delta
+        return delta
 
     def full_objective(
         self,
@@ -520,7 +673,14 @@ class _SearchState:
         per_age_group: Optional[Dict[str, Dict[str, float]]] = None,
     ) -> float:
         """Reference recomputation from live slot state (debug/test only)."""
-        return _objective(self.slots, base_weights, per_age_group)
+        return _objective(
+            self.slots,
+            base_weights,
+            per_age_group,
+            baseline=self.baseline,
+            change_weights=self.change_weights,
+            change_scale=self.change_scale,
+        )
 
 
 def _candidate_swaps(
@@ -1111,7 +1271,23 @@ def optimize_candidate(
         age_group: _resolve_weights(resolved_weights, per_age_group_weights, age_group)
         for age_group in {slot.age_group for slot in slots}
     }
-    state = _SearchState(slots, weights_by_age_group)
+    # Baseline-aware planning (issue #355): a promoted canonical baseline
+    # rides in the problem contract.  The weighted change cost is folded into
+    # the objective below so the search prefers the smallest change that
+    # resolves the problem, and the canonical placement/participant locks
+    # are honoured by the move generators instead of only being caught by
+    # final verification.
+    canonical_baseline = (problem or {}).get("canonical_baseline")
+    canonical_change_weights = (problem or {}).get("canonical_change_weights")
+    canonical_change_scale = (problem or {}).get("canonical_change_cost_scale")
+    state = _SearchState(
+        slots,
+        weights_by_age_group,
+        baseline=canonical_baseline,
+        change_weights=canonical_change_weights if isinstance(canonical_change_weights, dict) else None,
+        change_scale=float(canonical_change_scale) if canonical_change_scale is not None else None,
+    )
+    placement_locked_indices, participant_locked_indices = _locked_slot_indices(slots, problem)
     # issue #265 P0: slot-to-age-group membership is static across the
     # search (only *which teams* occupy a slot changes), so build it once
     # instead of rescanning every slot on every proposal.
@@ -1167,13 +1343,18 @@ def optimize_candidate(
 
             if kind == "date":
                 date_move = _date_swap_candidates(slots, rng, date_swap_by_age_group)
-                if date_move is None or not _date_swap_is_valid(
-                    slots,
-                    *date_move,
-                    state=state,
-                    club_busy_intervals=club_busy_intervals,
-                    split_date=split_date,
-                    allow_cross_half_moves=allow_cross_half_moves,
+                if (
+                    date_move is None
+                    or date_move[0] in placement_locked_indices
+                    or date_move[1] in placement_locked_indices
+                    or not _date_swap_is_valid(
+                        slots,
+                        *date_move,
+                        state=state,
+                        club_busy_intervals=club_busy_intervals,
+                        split_date=split_date,
+                        allow_cross_half_moves=allow_cross_half_moves,
+                    )
                 ):
                     step += 1
                     continue
@@ -1192,11 +1373,15 @@ def optimize_candidate(
 
             if kind == "within_half_date":
                 within_half_move = _within_half_date_move_candidates(slots, rng, problem, split_date)
-                if within_half_move is None or not _within_half_date_move_is_valid(
-                    slots,
-                    *within_half_move,
-                    state=state,
-                    club_busy_intervals=club_busy_intervals,
+                if (
+                    within_half_move is None
+                    or within_half_move[0] in placement_locked_indices
+                    or not _within_half_date_move_is_valid(
+                        slots,
+                        *within_half_move,
+                        state=state,
+                        club_busy_intervals=club_busy_intervals,
+                    )
                 ):
                     step += 1
                     continue
@@ -1220,7 +1405,7 @@ def optimize_candidate(
                     step += 1
                     continue
                 index, new_host = host_move
-                if not _host_move_is_valid(
+                if index in placement_locked_indices or not _host_move_is_valid(
                     slots, index, new_host, club_arenas, club_calendar_status, state, club_busy_intervals, problem, host_eligibility_cache
                 ):
                     step += 1
@@ -1228,12 +1413,14 @@ def optimize_candidate(
                 valid_moves += 1
                 old_host, old_arena = slots[index].host_club, slots[index].arena
                 new_arena = club_arenas.get(new_host, old_arena)
-                state.move_host(index, new_host, new_arena)
-                # Host/arena are not _objective inputs, so this move never
-                # changes the score -- always "accept" (matches the prior
-                # delta<=0 SA rule, which always accepted a zero delta) and
-                # skip the temperature/acceptance machinery entirely.
-                accepted_moves += 1
+                delta = state.move_host(index, new_host, new_arena)
+                if _consider(delta, step):
+                    accepted_moves += 1
+                    if delta < -1e-9:
+                        improved_moves += 1
+                else:
+                    # Revert: moving the host/arena back is its own inverse.
+                    state.move_host(index, old_host, old_arena)
                 step += 1
                 continue
 
@@ -1243,13 +1430,21 @@ def optimize_candidate(
                     step += 1
                     continue
                 index, new_time = slot_move
-                if not _slot_time_move_is_valid(slots, index, new_time, state, club_busy_intervals):
+                if index in placement_locked_indices or not _slot_time_move_is_valid(
+                    slots, index, new_time, state, club_busy_intervals
+                ):
                     step += 1
                     continue
                 valid_moves += 1
-                state.move_slot_time(index, new_time)
-                # start_time is likewise not an _objective input.
-                accepted_moves += 1
+                old_time = slots[index].start_time
+                delta = state.move_slot_time(index, new_time)
+                if _consider(delta, step):
+                    accepted_moves += 1
+                    if delta < -1e-9:
+                        improved_moves += 1
+                else:
+                    # Revert: moving start_time back is its own inverse.
+                    state.move_slot_time(index, old_time)
                 step += 1
                 continue
 
@@ -1265,7 +1460,11 @@ def optimize_candidate(
             stop_reason = "no_moves_possible"
             break
         slot_a, pos_a, slot_b, pos_b = move
-        if not _swap_is_valid(slots, slot_a, pos_a, slot_b, pos_b, state, problem, host_eligibility_cache):
+        if (
+            slot_a in participant_locked_indices
+            or slot_b in participant_locked_indices
+            or not _swap_is_valid(slots, slot_a, pos_a, slot_b, pos_b, state, problem, host_eligibility_cache)
+        ):
             step += 1
             continue
         valid_moves += 1
@@ -1307,6 +1506,17 @@ def optimize_candidate(
         "move_dates": move_dates,
         "move_hosts": move_hosts,
         "move_slots": move_slots,
+        "canonical_baseline": (
+            {
+                "change_cost": state.change_total,
+                "change_cost_objective": state.change_scale * state.change_total,
+                "change_scale": state.change_scale,
+                "placed_locked_slots": len(placement_locked_indices),
+                "participants_locked_slots": len(participant_locked_indices),
+            }
+            if state.has_baseline
+            else None
+        ),
         "timings": timings,
         "search_summary": {
             "iterations_budget": iterations,
