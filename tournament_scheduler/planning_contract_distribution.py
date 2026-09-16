@@ -32,14 +32,19 @@ def hosting_fairness(tournaments: List[Dict[str, Any]], problem: Optional[Dict[s
     hosting_coverage: Dict[str, Any] = {}
     if problem is not None:
         from tournament_scheduler.hosting_coverage import (
+            hosting_balance_matrix,
             hosting_breakdown_by_club_and_age_group,
             hosting_coverage_matrix,
+            material_hosting_balance_imbalances,
             unresolved_from_matrix,
         )
 
         coverage_rows = hosting_coverage_matrix(problem.get("teams", []), tournaments)
+        balance_rows = hosting_balance_matrix(problem.get("teams", []), tournaments)
         hosting_coverage = {
             "club_age_group_matrix": coverage_rows,
+            "club_age_group_balance": balance_rows,
+            "balance_imbalances": material_hosting_balance_imbalances(balance_rows),
             "unresolved_obligations": unresolved_from_matrix(coverage_rows),
             **hosting_breakdown_by_club_and_age_group(coverage_rows),
         }

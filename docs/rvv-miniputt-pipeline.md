@@ -38,11 +38,11 @@ Collect configured calendar evidence, cache provenance and classify blocked/empt
 
 ### Stage 3 — planning
 
-Build/optimize candidate schedules through repository search/solver capabilities. Deterministic verification owns hard validity; agent judgment only chooses among exposed actions and soft tradeoffs.
+Build/optimize candidate schedules through repository search/solver capabilities. Deterministic verification owns hard validity; agent judgment only chooses among exposed actions and soft tradeoffs. Hosting fairness is recomputed from the current candidate whenever the plan is scored or verified: the evidence includes club × age-group proportional target, actual hosting count, deficit/excess and unresolved coverage so later rehosting/repair/search mutations cannot silently transfer one club's hosting burden to another.
 
 ### Stage 4 — export/review
 
-Re-verify the selected candidate and write the timestamped review bundle. Hard verification failure blocks export.
+Re-verify the selected candidate and write the timestamped review bundle. Hard verification failure blocks export. Remaining hosting-balance imbalances are non-hard review evidence: they keep the burden deficit/excess visible for operator follow-up unless verified alternatives have repaired it.
 
 A normal export may contain season HTML/report, manual follow-up view, calendar/input views, Excel/CSV/iCal, Spond workbooks, per-club review packets and `export_manifest.json` lifecycle/provenance metadata.
 

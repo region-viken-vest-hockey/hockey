@@ -231,6 +231,7 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
 
     for field, code in (
         ("unresolved_hosting_obligations", "unresolved_hosting"),
+        ("hosting_balance_imbalances", "hosting_balance_imbalances"),
         ("manual_calendar_placements", "manual_calendar_placements"),
         ("manual_external_conflict_placements", "external_calendar_conflicts"),
         ("manual_participation_placements", "participation_shortfalls"),

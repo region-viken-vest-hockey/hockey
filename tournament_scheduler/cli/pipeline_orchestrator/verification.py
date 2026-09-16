@@ -98,6 +98,8 @@ def _reconcile_verified_manual_state(
         }
         for item in result.get("unresolved_hosting_obligations") or []
     ]
+    plan_dict["hosting_balance"] = list(result.get("hosting_balance") or [])
+    plan_dict["hosting_balance_imbalances"] = list(result.get("hosting_balance_imbalances") or [])
     plan_dict["unresolved_external_conflicts"] = [
         {
             "tournament_id": item.get("tournament_id", ""),

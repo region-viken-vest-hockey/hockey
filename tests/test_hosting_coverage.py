@@ -1,8 +1,10 @@
 """Tests for `tournament_scheduler.hosting_coverage` (issue #266 P0)."""
 
 from tournament_scheduler.hosting_coverage import (
+    hosting_balance_matrix,
     hosting_breakdown_by_club_and_age_group,
     hosting_coverage_matrix,
+    material_hosting_balance_imbalances,
     hosting_targets_with_coverage_floor,
     proportional_integer_targets,
     required_club_age_group_pairs,
@@ -167,6 +169,44 @@ class TestProportionalIntegerTargets:
 
     def test_zero_total_gives_all_zero(self):
         assert proportional_integer_targets({"Jar": 3, "Jutul": 1}, 0) == {"Jar": 0, "Jutul": 0}
+
+
+class TestHostingBalanceMatrix:
+    def test_recomputes_target_actual_deficit_and_excess_after_rehost_drift(self):
+        teams = (
+            [_team("Frisk Asker", "JU12"), _team("Frisk Asker", "JU12")]
+            + [_team("Ringerike", "JU12"), _team("Ringerike", "JU12")]
+            + [_team("Kongsberg/Tønsberg", "JU12")]
+            + [_team("Skien", "JU12")]
+            + [_team("Jutul/Jar Kittens", "JU12")]
+        )
+        tournaments = (
+            [_tournament("Frisk Asker", "JU12") for _ in range(5)]
+            + [_tournament("Ringerike", "JU12") for _ in range(6)]
+            + [_tournament("Kongsberg", "JU12") for _ in range(2)]
+            + [_tournament("Skien", "JU12")]
+            + [_tournament("Jutul", "JU12")]
+        )
+
+        rows = hosting_balance_matrix(teams, tournaments)
+
+        by_club = {row["club"]: row for row in rows}
+        assert by_club["Frisk Asker"]["coverage_unresolved"] is False
+        assert by_club["Frisk Asker"]["target"] == 5
+        assert by_club["Ringerike"]["actual"] == 6
+        assert by_club["Ringerike"]["target"] == 4
+        assert by_club["Ringerike"]["excess"] == 2
+        assert by_club["Skien"]["target"] == 2
+        assert by_club["Skien"]["actual"] == 1
+        assert by_club["Skien"]["deficit"] == 1
+        assert by_club["Jutul/Jar Kittens"]["target"] == 2
+        assert by_club["Jutul/Jar Kittens"]["actual"] == 1
+        assert by_club["Jutul/Jar Kittens"]["deficit"] == 1
+
+        imbalances = {(row["club"], row["age_group"]): row["delta"] for row in material_hosting_balance_imbalances(rows)}
+        assert imbalances[("Ringerike", "JU12")] == 2
+        assert imbalances[("Skien", "JU12")] == -1
+        assert imbalances[("Jutul/Jar Kittens", "JU12")] == -1
 
 
 class TestHostingTargetsWithCoverageFloor:

@@ -19,6 +19,7 @@ Two distinct concerns, kept separate per issue #266:
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Tuple
 
 from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
@@ -100,6 +101,72 @@ def unresolved_from_matrix(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, str
         for row in rows
         if row.get("unresolved")
     ]
+
+
+def hosting_balance_matrix(
+    teams: Iterable[Dict[str, Any]],
+    tournaments: Iterable[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Return target-vs-actual hosting burden rows per club x age group.
+
+    Coverage answers whether a club hosts at least once in an age group.
+    This function preserves the second issue #266/#361 invariant: after
+    coverage, actual hosting burden should still be compared with the same
+    proportional targets the initial host assignment used. Rows include
+    ``target``, ``actual``, ``delta`` (actual - target), ``deficit`` and
+    ``excess`` so later host-changing operations can recompute and expose any
+    drift instead of silently transferring another club's share.
+    """
+    teams = list(teams)
+    tournaments = [t for t in tournaments if isinstance(t, dict) and not t.get("cancelled")]
+
+    team_counts_by_age: Dict[str, Dict[str, int]] = defaultdict(dict)
+    for row in hosting_coverage_matrix(teams, tournaments):
+        team_counts_by_age[row["age_group"]][row["club"]] = int(row.get("teams", 0))
+
+    tournament_counts_by_age: Dict[str, int] = defaultdict(int)
+    for tournament in tournaments:
+        age_group = tournament.get("age_group")
+        if age_group:
+            tournament_counts_by_age[age_group] += 1
+
+    targets_by_age: Dict[str, Dict[str, int]] = {}
+    unmet_by_age: Dict[str, set[str]] = {}
+    for age_group, weights in team_counts_by_age.items():
+        targets, unmet = hosting_targets_with_coverage_floor(
+            weights,
+            tournament_counts_by_age.get(age_group, 0),
+        )
+        targets_by_age[age_group] = targets
+        unmet_by_age[age_group] = set(unmet)
+
+    rows: List[Dict[str, Any]] = []
+    for row in hosting_coverage_matrix(teams, tournaments):
+        age_group = row["age_group"]
+        club = row["club"]
+        actual = int(row.get("hosted", 0))
+        target = int(targets_by_age.get(age_group, {}).get(club, 0))
+        delta = actual - target
+        rows.append(
+            {
+                "club": club,
+                "age_group": age_group,
+                "teams": int(row.get("teams", 0)),
+                "target": target,
+                "actual": actual,
+                "delta": delta,
+                "deficit": max(0, -delta),
+                "excess": max(0, delta),
+                "coverage_unresolved": bool(row.get("unresolved")),
+                "target_unmet_structural": club in unmet_by_age.get(age_group, set()),
+            }
+        )
+    return rows
+
+
+def material_hosting_balance_imbalances(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Rows where actual hosting differs from the proportional target."""
+    return [dict(row) for row in rows if int(row.get("delta", 0)) != 0]
 
 
 def hosting_breakdown_by_club_and_age_group(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:

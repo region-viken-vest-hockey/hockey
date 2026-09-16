@@ -999,11 +999,17 @@ def verify_candidate(
     # hosting burden to another club and be rejected outright), but the
     # obligation must be visible so it can be surfaced as a manual-placement
     # item rather than swallowed.
-    from tournament_scheduler.hosting_coverage import hosting_coverage_matrix
+    from tournament_scheduler.hosting_coverage import (
+        hosting_balance_matrix,
+        hosting_coverage_matrix,
+        material_hosting_balance_imbalances,
+    )
     from tournament_scheduler.hosting_cross_age_repair import club_hosting_evidence, unresolved_with_evidence
     from tournament_scheduler.hosting_same_age_repair import same_age_reallocation_candidates
 
     coverage_rows = hosting_coverage_matrix(problem.get("teams", []), tournaments)
+    hosting_balance_rows = hosting_balance_matrix(problem.get("teams", []), tournaments)
+    hosting_balance_imbalances = material_hosting_balance_imbalances(hosting_balance_rows)
     # issue #328: also expose, per unresolved row, whichever of this club's
     # own surplus/duplicate hosting assignments in a *different* age group
     # could plausibly be repurposed -- evidence only, never auto-applied
@@ -1029,6 +1035,8 @@ def verify_candidate(
         "skipped": skipped,
         "club_controlled_allocations_used": club_controlled_allocations_used,
         "unresolved_hosting_obligations": unresolved_hosting_obligations,
+        "hosting_balance": hosting_balance_rows,
+        "hosting_balance_imbalances": hosting_balance_imbalances,
         "manual_calendar_placements": manual_calendar_placements,
         "manual_external_conflict_placements": manual_external_conflict_placements,
         "manual_participation_placements": manual_participation_placements,

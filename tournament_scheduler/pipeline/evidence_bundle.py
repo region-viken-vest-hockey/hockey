@@ -130,6 +130,8 @@ def build_final_operator_evidence(
         "final_verify_result": dict(final_verify_result or {}),
         "publication_readiness": dict(plan_dict.get("publication_readiness") or {}),
         "unresolved_hosting_obligations": list(plan_dict.get("unresolved_hosting_obligations") or []),
+        "hosting_balance": list(plan_dict.get("hosting_balance") or []),
+        "hosting_balance_imbalances": list(plan_dict.get("hosting_balance_imbalances") or []),
         "unresolved_external_conflicts": list(plan_dict.get("unresolved_external_conflicts") or []),
         "unresolved_participation_shortfalls": list(plan_dict.get("unresolved_participation_shortfalls") or []),
         "unresolved_tournament_placements": list(plan_dict.get("unresolved_tournament_placements") or []),
