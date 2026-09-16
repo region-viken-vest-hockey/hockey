@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RVV_SKILL_FILE = ROOT / ".agents" / "skills" / "rvv" / "SKILL.md"
+REVIEW_BASELINE_SKILL_FILE = ROOT / ".agents" / "skills" / "rvv-review-baseline" / "SKILL.md"
 GUIDE_FILE = ROOT / ".agents" / "commands" / "rvv-miniputt" / "guide.md"
 SCRAPE_LLM_FILE = ROOT / ".agents" / "commands" / "rvv-miniputt" / "scrape-llm.md"
 
@@ -21,6 +22,20 @@ def test_rvv_skill_is_harness_neutral_and_documents_two_phase_lifecycle() -> Non
     assert "operator audit-submit" in text
     assert "rvv_miniputt_scrape" not in text
     assert "rvv_miniputt_scrape_llm" not in text
+
+
+def test_review_baseline_skill_promotes_verified_state_and_isolates_experiments() -> None:
+    text = REVIEW_BASELINE_SKILL_FILE.read_text(encoding="utf-8")
+
+    assert "Read `AGENTS.md`, `.agents/skills/rvv/SKILL.md`" in text
+    assert "scripts/rvv-miniputt season promote --work-dir <work-dir>" in text
+    assert "season/<season>/schedule.json" in text
+    assert "season/<season>/decisions.json" in text
+    assert "git status --short" in text
+    assert "--work-dir .pipeline-test" in text
+    assert "--export-dir export-test" in text
+    assert "Never use `--force`" in text
+    assert "Never mark an export `published` merely to protect it" in text
 
 
 def test_shared_guide_routes_promoted_season_without_pi_special_case() -> None:
