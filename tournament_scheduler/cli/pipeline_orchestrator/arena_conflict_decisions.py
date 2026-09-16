@@ -176,6 +176,13 @@ def _resolve_arena_conflict_decisions(
             continue
         _apply_arena_conflict_decision(candidate, keep, manual_id, str(record.get("rationale", "")))
 
+    # Recompute after applying previous demotions. One manual placement can
+    # remove several interval pairs involving the same tournament; do not ask
+    # the harness to decide stale pairs that no longer exist in the candidate
+    # that Stage 4 will verify.
+    facts_rows = _collision_facts(candidate, ice_time_for_age_group)
+    for facts in facts_rows:
+        facts["_key"] = collision_key(facts)
     pending_rows = [f for f in facts_rows if f["_key"] not in resolved_keys]
     if not pending_rows:
         _clear_arena_conflict_state(state)

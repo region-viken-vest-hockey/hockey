@@ -36,6 +36,41 @@ from .stage3_pareto_decision import _emit_stage3_pareto_decision
 from .stage3_run import _run_stage3
 from .verification import _assert_hard_verification_before_export, _mid_planning_decision_problem, _reconcile_verified_manual_state, _write_run_evidence_bundle
 
+
+def _emit_pending_stage3_subdecision_context(state: "Any", work_dir: str, resume_from: int) -> int | None:
+    """Re-emit an unanswered in-Stage-3 sub-decision, if one is pending.
+
+    Inspecting an interactive run with ``--resume-from 3`` and no fresh
+    ``--decision-action`` must show the current pending shared-host or
+    arena-conflict decision. It must not rebuild Stage 3 from scratch, because
+    that can re-ask already answered sub-decisions and lose convergence.
+    """
+    if resume_from != 3:
+        return None
+
+    import json as _json
+
+    from ...pipeline.run_log_paths import resolve_active_run_log_dir
+
+    run_id = _current_run_id(state)
+    for reader in (_read_shared_host_state, _read_arena_conflict_state):
+        saved = reader(state, expected_run_id=run_id)
+        if not saved.get("pending"):
+            continue
+        payload = saved.get("last_context")
+        if not isinstance(payload, dict) or not payload:
+            continue
+        try:
+            log_dir = resolve_active_run_log_dir(work_dir)
+            log_dir.mkdir(parents=True, exist_ok=True)
+            with open(log_dir / "decision_context.json", "w", encoding="utf-8") as fh:
+                _json.dump(payload, fh, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+        print(_json.dumps(payload, indent=2, ensure_ascii=False))
+        return 2
+    return None
+
 def _cmd_run_interactive(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt run --interactive`` (issue #260 Phase 5).
 
@@ -132,6 +167,11 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
 
         clear_stage3_attempt_log(state.work_dir)
         clear_cp_sat_cache(state)
+
+    if decision_payload is None:
+        pending_subdecision_code = _emit_pending_stage3_subdecision_context(state, args.work_dir, resume_from)
+        if pending_subdecision_code is not None:
+            return pending_subdecision_code
 
     stage3_search_iterations: int | None = None
     # issue #262 P0: optimize_plan must invoke the generic Stage 3 v2

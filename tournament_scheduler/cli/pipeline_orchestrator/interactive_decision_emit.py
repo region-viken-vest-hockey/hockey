@@ -221,6 +221,19 @@ def _emit_stage3_interactive_decision(
     if arena_pause_code is not None:
         return arena_pause_code
 
+    # Arena-conflict decisions mutate the candidate in memory by demoting the
+    # losing tournament to manual placement. Stage 4 and later invocations read
+    # the Stage 3 checkpoint from disk, so persist the resolved candidate before
+    # offering apply/keep/optimize. Otherwise Stage 3 can appear "done" while
+    # Stage 4 verifies the pre-resolution checkpoint and fails on the same hard
+    # arena_interval_conflict again.
+    try:
+        from ...pipeline.state import StageName, StageStatus
+
+        state.write_stage(StageName.PLANNING, plan, status=StageStatus.DONE)
+    except Exception as exc:
+        log_fn(f"stage3_interactive: could not persist resolved arena-conflict placements: {exc}")
+
     interactive_state = _read_stage3_interactive_state(state, expected_run_id=run_id)
     attempts_used = int(interactive_state.get("attempts_used", 0))
 
