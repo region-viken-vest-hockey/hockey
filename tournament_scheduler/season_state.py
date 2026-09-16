@@ -46,14 +46,20 @@ def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
     os.replace(tmp_name, path)
 
 
-def _write_promoted_state_atomic(
+def _write_season_state_atomic(
     season_directory: Path,
     schedule_payload: dict[str, Any],
     decisions_payload: dict[str, Any],
     *,
-    force: bool,
+    require_absent: bool,
 ) -> None:
-    """Atomically install both canonical season-state files as one boundary."""
+    """Install both canonical season-state files as one atomic boundary.
+
+    The directory is staged and swapped, so a failure never leaves only
+    ``schedule.json`` or only ``decisions.json`` behind.  ``require_absent``
+    refuses to replace existing canonical state (used by deliberate
+    promotion); mutation callers replace it and rely on the swap for rollback.
+    """
 
     parent = season_directory.parent
     parent.mkdir(parents=True, exist_ok=True)
@@ -66,7 +72,7 @@ def _write_promoted_state_atomic(
             with staged_file.open("rb") as handle:
                 os.fsync(handle.fileno())
         if season_directory.exists():
-            if not force:
+            if require_absent:
                 raise SeasonStateError(
                     f"Canonical season state already exists for {season_directory.name}; "
                     "use --force only for deliberate replacement"
@@ -240,7 +246,9 @@ def promote_from_stage3(
 
     # Install both files as one durable boundary; a failed promotion must not
     # leave only schedule.json or only decisions.json behind.
-    _write_promoted_state_atomic(season_directory, schedule_payload, decisions_payload, force=force)
+    _write_season_state_atomic(
+        season_directory, schedule_payload, decisions_payload, require_absent=not force
+    )
     return schedule_payload, decisions_payload
 
 
@@ -253,11 +261,15 @@ def move_tournament(
     arena: str | None = None,
     host_club: str | None = None,
     start_time: str | None = None,
+    problem: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Apply a bounded placement mutation to canonical schedule state.
 
     Approval/lock decisions are enforced before mutation.  The full serialized
-    candidate is re-verified before the schedule file is replaced.
+    candidate is re-verified before either canonical file is replaced, using
+    *problem* when the caller can reconstruct the planning contract (so
+    problem-dependent hard invariants are checked too).  A rejected mutation
+    leaves both canonical files byte-unchanged.
     """
 
     schedule = load_schedule(season, root=root)
@@ -290,7 +302,7 @@ def move_tournament(
         return schedule
 
     plan["tournaments"] = tournaments
-    result = verify_candidate(plan)
+    result = verify_candidate(plan, problem) if problem else verify_candidate(plan)
     if not result.get("ok", True):
         messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
         raise SeasonStateError(f"Refusing canonical mutation: candidate fails hard verification: {messages}")
@@ -306,12 +318,12 @@ def move_tournament(
             "plan": plan,
         }
     )
-    _write_json_atomic(schedule_path(season, root=root), updated_schedule)
-
     decisions = dict(decisions)
     decisions["schedule_fingerprint"] = fingerprint
     decisions["updated_at"] = now
-    _write_json_atomic(decisions_path(season, root=root), decisions)
+    _write_season_state_atomic(
+        season_dir(season, root=root), updated_schedule, decisions, require_absent=False
+    )
     return updated_schedule
 
 

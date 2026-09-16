@@ -12,6 +12,7 @@ from tournament_scheduler.season_state import (
     load_decisions,
     load_schedule,
     move_tournament,
+    planning_checkpoint_from_schedule,
     promote_from_stage3,
 )
 
@@ -126,6 +127,79 @@ def test_move_mutates_schedule_when_unlocked_and_rejects_locked_moves(tmp_path: 
 
     approve_tournament(season="2026-2027", tournament_id="u10-a-20260912", root=root, actor="booker")
     before = (root / "2026-2027" / "schedule.json").read_bytes()
+    before_decisions = (root / "2026-2027" / "decisions.json").read_bytes()
     with pytest.raises(SeasonStateError):
         move_tournament(season="2026-2027", tournament_id="u10-a-20260912", root=root, date="2026-09-14")
     assert (root / "2026-2027" / "schedule.json").read_bytes() == before
+    assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions
+
+
+def test_move_changes_only_intended_fields(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    original = load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]
+
+    moved = move_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        arena="Arena B",
+    )["plan"]["tournaments"][0]
+
+    for field in ("id", "date", "age_group", "host_club", "start_time", "teams", "games"):
+        assert moved[field] == original[field], field
+    assert moved["arena"] == "Arena B"
+
+
+def test_unknown_or_invalid_move_leaves_canonical_files_unchanged(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    before = (root / "2026-2027" / "schedule.json").read_bytes()
+    before_decisions = (root / "2026-2027" / "decisions.json").read_bytes()
+
+    with pytest.raises(SeasonStateError):
+        move_tournament(season="2026-2027", tournament_id="does-not-exist", root=root, date="2026-09-13")
+
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before
+    assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions
+
+
+def test_canonical_state_survives_pipeline_deletion_and_reloads(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    import shutil
+
+    shutil.rmtree(work_dir)
+
+    schedule = load_schedule("2026-2027", root=root)
+    decisions = load_decisions("2026-2027", root=root)
+    checkpoint = planning_checkpoint_from_schedule(schedule)
+
+    assert checkpoint["plan"] == schedule["plan"]
+    assert checkpoint["plan"]["tournaments"][0]["id"] == "u10-a-20260912"
+    assert decisions["decisions"]["u10-a-20260912"]["status"] == "pending_review"
+
+
+def test_repeated_noop_promotion_keeps_ids_and_order(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+
+    first, _ = promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    second, _ = promote_from_stage3(work_dir=work_dir, root=root, actor="tester", force=True)
+
+    first_ids = [t["id"] for t in first["plan"]["tournaments"]]
+    second_ids = [t["id"] for t in second["plan"]["tournaments"]]
+    assert first_ids == second_ids
+    assert first["fingerprint"] == second["fingerprint"]

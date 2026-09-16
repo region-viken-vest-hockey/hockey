@@ -186,9 +186,9 @@ A normal timestamped `export/<timestamp>/` may contain:
 - activity artifacts when the configured activity data is available;
 - `export_manifest.json` — machine-readable lifecycle metadata for timestamped exports.
 
-Timestamped exports start as `draft`. The manifest records the export id, generated timestamp, export/candidate fingerprint and source run id. Normal Stage 4 retention prunes only old draft exports; published exports and unclassified legacy export directories are protected from the draft rolling window.
+Timestamped exports start as `draft`. The manifest records the export id, generated timestamp, export/candidate fingerprint, source run id, and (when the export projects canonical season state) the canonical season id/revision. Normal Stage 4 retention prunes only old draft exports; published exports and unclassified legacy export directories are protected from the draft rolling window.
 
-The Stage 4 checkpoint's `output_files` map is the authoritative record of what that run actually produced. Exports regenerated with `season export` also record the canonical season revision/fingerprint in the checkpoint so operators can tell which Git-backed state was projected.
+The Stage 4 checkpoint's `output_files` map is the authoritative record of what that run actually produced. Exports regenerated with `season export` also record the canonical season revision/fingerprint in the checkpoint so operators can tell which Git-backed state was projected; the generated `season_plan.html`/`season_plan_report.html` expose the same revision in a `<meta name="season-revision">` tag so the published view identifies the live canonical state.
 
 Generated artifacts are derived data. Do not permanently patch them by hand; correct the source/config/code/canonical season state and regenerate.
 

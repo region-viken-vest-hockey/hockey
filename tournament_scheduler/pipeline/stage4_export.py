@@ -442,6 +442,8 @@ def run(
         "generated_at": generated_at,
         "input_path": input_path,
         "input_file": Path(input_path).name,
+        "canonical_season": canonical_season,
+        "canonical_revision": canonical_revision,
     }
     meta: dict[str, Any] | None = None
     _scrape_cache_data: dict[str, Any] = {}

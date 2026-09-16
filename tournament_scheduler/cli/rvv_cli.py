@@ -1268,6 +1268,15 @@ def _cmd_season(args: argparse.Namespace) -> int:
             return 0
 
         if args.season_command == "move":
+            from ..pipeline.stage1_config import load_effective_config
+            from ..pipeline.stage4_export_verification import _build_export_verification_problem
+
+            state = PipelineState(args.work_dir)
+            try:
+                effective_config = load_effective_config(state)
+            except Exception:
+                effective_config = {}
+            problem = _build_export_verification_problem(effective_config, state) if effective_config else None
             schedule = move_tournament(
                 season=args.season,
                 tournament_id=args.tournament_id,
@@ -1276,6 +1285,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 arena=args.arena,
                 host_club=args.host_club,
                 start_time=args.start_time,
+                problem=problem,
             )
             if args.json:
                 print(_json.dumps(schedule, ensure_ascii=False, indent=2, sort_keys=True))

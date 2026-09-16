@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from html import escape as _html_escape
 from pathlib import Path
 from typing import Any
 
@@ -165,6 +166,12 @@ class HtmlExporter:
         if scrape_stamp:
             scrape_meta += f" &middot; {scrape_stamp}"
 
+        canonical_revision = str(pipeline.get("canonical_revision", "") or "")
+        season_revision_meta = (
+            f'<meta name="season-revision" content="{_html_escape(canonical_revision, quote=True)}">'
+            if canonical_revision else ""
+        )
+
         # Pipeline metrics
         blocked = pipeline.get("blocked", [])
         blocked_count = len(blocked)
@@ -259,6 +266,7 @@ class HtmlExporter:
                 "$PAGE_TITLE$": page_title,
                 "$PAGE_SUBTITLE$": page_subtitle,
                 "$SEASON_LABEL$": season_label_str,
+                "$SEASON_REVISION_META$": season_revision_meta,
                 "$SCRAPE_META$": scrape_meta,
                 "$AGE_GROUPS$": " + ".join(display_age_groups),
                 "$TOURNAMENT_COUNT$": str(len(plan.tournaments)),

@@ -1156,6 +1156,23 @@ class TestRunStage4:
         manifest = json.loads(Path(result["output_files"]["export_manifest"]).read_text(encoding="utf-8"))
         assert manifest["canonical_season"] == "2026-2027"
         assert manifest["canonical_revision"] == "rev-123"
+        html_text = Path(result["output_files"]["html"]).read_text(encoding="utf-8")
+        assert '<meta name="season-revision" content="rev-123">' in html_text
+
+    def test_export_without_canonical_state_omits_season_revision_meta(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        result = run(
+            _make_plan_dict(),
+            state,
+            export_dir=str(tmp_path / "export"),
+            build_timestamp="2025-01-02T03:04:05+00:00",
+        )
+
+        assert result["canonical_season"] is None
+        assert result["canonical_revision"] is None
+        html_text = Path(result["output_files"]["html"]).read_text(encoding="utf-8")
+        assert "season-revision" not in html_text
+        assert "$SEASON_REVISION_META$" not in html_text
 
     def test_stage4_spond_export_uses_tournament_rows(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
