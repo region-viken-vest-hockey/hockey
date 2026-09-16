@@ -79,7 +79,22 @@ def _resolve_shared_host_decisions(
     ]
 
     if not pending_rows:
-        _clear_shared_host_state(state)
+        # Keep answered shared-host choices durable for this logical run.
+        # Later arena-conflict repairs re-enter Stage 3 and must reuse the
+        # same pre-plan choice instead of asking it again.
+        if decisions or unresolved:
+            _write_shared_host_state(
+                state,
+                {
+                    "run_id": run_id,
+                    "decisions": decisions,
+                    "unresolved": unresolved,
+                    "pending": None,
+                    "last_context": None,
+                },
+            )
+        else:
+            _clear_shared_host_state(state)
         return None, decisions
 
     try:
@@ -123,7 +138,16 @@ def _resolve_shared_host_decisions(
                 f"Delt vertskap {registration} ({age_group}): dommer valgte {chosen_club} "
                 f"({(action.rationale or '')[:200]})"
             )
-        _clear_shared_host_state(state)
+        _write_shared_host_state(
+            state,
+            {
+                "run_id": run_id,
+                "decisions": decisions,
+                "unresolved": unresolved,
+                "pending": None,
+                "last_context": None,
+            },
+        )
         return None, decisions
 
     if not interactive:

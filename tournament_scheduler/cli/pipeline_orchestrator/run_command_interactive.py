@@ -285,6 +285,31 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
 
         decisions_list = list(arena_state.get("decisions") or [])
         unresolved_list = list(arena_state.get("unresolved") or [])
+
+        from ...pipeline.state import StageName, StageStatus
+
+        checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
+        plan = checkpoint if "plan" in checkpoint else {"plan": checkpoint}
+        from .arena_conflict_decisions import (
+            _apply_arena_conflict_decision,
+            _candidate_dict,
+            _candidate_fingerprint,
+            _resolve_arena_conflict_decisions,
+        )
+
+        candidate = _candidate_dict(plan)
+        if candidate is None:
+            _console.print("[red]✗[/red] Fant ingen Stage 3-kandidat å reparere.")
+            return 1
+        expected_fingerprint = str(arena_context.facts.get("candidate_fingerprint") or "")
+        actual_fingerprint = _candidate_fingerprint(candidate)
+        if expected_fingerprint and actual_fingerprint != expected_fingerprint:
+            _console.print(
+                "[red]✗[/red] Arena-avgjørelse avvist: stale_candidate_fingerprint "
+                f"(expected {expected_fingerprint[:12]}, got {actual_fingerprint[:12]})."
+            )
+            return 1
+
         if arena_action.action_id == "resolve_arena_conflict":
             from ...arena_conflict_decision import arena_conflict_decision_record
 
@@ -302,6 +327,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                     decided_at=datetime.now(timezone.utc).isoformat(),
                 )
             )
+            _apply_arena_conflict_decision(candidate, keep, manual_id, str(arena_action.rationale or ""))
         else:
             unresolved_list.append({"key": pending_arena_conflict.get("key")})
         _write_arena_conflict_state(
@@ -314,11 +340,49 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 "last_context": None,
             },
         )
-        # Answered — fall through the same way the shared-host block does:
-        # re-run Stage 3, which re-applies every recorded arena-conflict
-        # decision (matched by stable key) to the freshly rebuilt candidate
-        # and pauses again only if another collision remains unresolved.
-        decision_payload = None
+        try:
+            from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
+
+            invalidate_stale_candidate_checkpoint_keys(checkpoint)
+        except Exception:
+            pass
+        if "plan" not in checkpoint:
+            checkpoint = {"plan": candidate}
+        state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
+
+        # Arena conflicts are post-plan repairs. Continue on the exact
+        # persisted candidate: emit the next remaining collision or, when the
+        # candidate is clean, emit the Stage 3 adoption context. Do not rebuild
+        # the whole season merely because one local conflict was answered.
+        from ...pipeline.stage1_config import load_effective_config
+
+        cfg = load_effective_config(state, input_path=args.input) or state.read_stage(StageName.CONFIG) or {}
+        scraping = state.read_stage(StageName.SCRAPING) or {}
+        try:
+            start = datetime.strptime(cfg["start_date"], "%Y-%m-%d")
+            end = datetime.strptime(cfg["end_date"], "%Y-%m-%d")
+        except Exception as exc:
+            _console.print(f"[red]✗[/red] Kunne ikke lese Stage 1-datoer for lokal arena-reparasjon: {exc}")
+            return 1
+        problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
+        ice_time_for_age_group = (problem or {}).get("ice_time_minutes") or (problem or {}).get(
+            "round_length_minutes"
+        ) or {}
+        next_pause = _resolve_arena_conflict_decisions(state, checkpoint, ice_time_for_age_group, _log, interactive=True)
+        if next_pause is not None:
+            state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
+            return next_pause
+        return _emit_stage3_interactive_decision(
+            state,
+            args.work_dir,
+            cfg,
+            scraping,
+            start,
+            end,
+            checkpoint,
+            _log,
+            suppress_auto_cp_sat_shadow=True,
+        )
 
     if decision_payload is not None:
         prev_stage_num = resume_from - 1

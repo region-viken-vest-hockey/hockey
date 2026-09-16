@@ -38,7 +38,7 @@ Collect configured calendar evidence, cache provenance and classify blocked/empt
 
 ### Stage 3 — planning
 
-Build/optimize candidate schedules through repository search/solver capabilities. Deterministic verification owns hard validity; agent judgment only chooses among exposed actions and soft tradeoffs. Hosting fairness is recomputed from the current candidate whenever the plan is scored or verified: the evidence includes club × age-group proportional target, actual hosting count, deficit/excess and unresolved coverage so later rehosting/repair/search mutations cannot silently transfer one club's hosting burden to another.
+Build/optimize candidate schedules through repository search/solver capabilities. Deterministic verification owns hard validity; agent judgment only chooses among exposed actions and soft tradeoffs. Run-scoped pre-plan choices such as shared-host assignment are reused for later Stage 3 attempts in the same logical run. Post-plan arena-conflict answers mutate the exact persisted Stage 3 candidate/checkpoint that produced the decision context, then recompute remaining collisions on that same candidate; only explicit optimize/search actions create a new candidate. Hosting fairness is recomputed from the current candidate whenever the plan is scored or verified: the evidence includes club × age-group proportional target, actual hosting count, deficit/excess and unresolved coverage so later rehosting/repair/search mutations cannot silently transfer one club's hosting burden to another.
 
 ### Stage 4 — export/review
 

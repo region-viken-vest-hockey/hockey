@@ -1341,10 +1341,12 @@ class TestSharedHostInteractiveDecision:
         assert "Kongsberg already hosts materially more" in threaded[0]["rationale"]
 
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_shared_host_state
-        # Resolved -- the pause-tracking state was cleared, not merely
-        # left with pending=None (compute_shared_registration_facts must
-        # not be asked about this registration again on a future resume).
-        assert _read_shared_host_state(state) == {}
+        # Resolved choices stay run-scoped so later Stage 3 re-entry (for
+        # arena-conflict repairs) reuses the pre-plan decision instead of
+        # asking the same shared-host question again.
+        shared_state = _read_shared_host_state(state)
+        assert shared_state["pending"] is None
+        assert shared_state["decisions"][0]["chosen_club"] == "Tønsberg"
 
     def test_shared_host_resolution_falls_through_to_stage3_context_with_cp_sat_shadow(
         self, state, tmp_path,
@@ -1423,7 +1425,9 @@ class TestSharedHostInteractiveDecision:
         assert fresh_context["facts"]["cp_sat_shadow"] == shadow_evidence
 
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_shared_host_state
-        assert _read_shared_host_state(state) == {}
+        shared_state = _read_shared_host_state(state)
+        assert shared_state["pending"] is None
+        assert shared_state["decisions"][0]["chosen_club"] == "Tønsberg"
 
     def test_rejected_decision_action_does_not_advance(self, state, tmp_path):
         cfg = _joint_club_cfg()
@@ -1499,8 +1503,9 @@ class TestSharedHostInteractiveDecision:
         assert decisions[0]["decided_by"] == "llm"
 
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_shared_host_state
-        # Fully resolved -- no leftover pending/side-state for next run.
-        assert _read_shared_host_state(state) == {}
+        shared_state = _read_shared_host_state(state)
+        assert shared_state["pending"] is None
+        assert shared_state["decisions"][0]["chosen_club"] == "Tønsberg"
 
     def test_no_judge_and_non_interactive_falls_back_without_pausing(self, state, tmp_path):
         """`_cmd_run` (never interactive) with no headless judge configured:

@@ -15,7 +15,7 @@ from tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive impo
 )
 from tournament_scheduler.pipeline.state import PipelineState
 
-ICE_TIME = {"U11": 30, "U10": 30}
+ICE_TIME = {"U11": 30, "U10": 30, "U12": 30}
 
 
 def _tournament(tid, age_group, arena, date_str, start_time):
@@ -46,6 +46,16 @@ def _candidate_with_unmappable_same_side_collision():
         "tournaments": [
             _tournament("same-side-1", "U11", "Jar Isforum", "2026-11-07", "09:00"),
             _tournament("same-side-2", "U11", "Jar Isforum", "2026-11-07", "09:15"),
+        ]
+    }
+
+
+def _candidate_with_two_collisions():
+    return {
+        "tournaments": [
+            _tournament("aaa11111", "U11", "Jar Isforum", "2026-11-07", "09:00"),
+            _tournament("bbb22222", "U10", "Jar Isforum", "2026-11-07", "09:15"),
+            _tournament("ccc33333", "U12", "Jar Isforum", "2026-11-07", "09:20"),
         ]
     }
 
@@ -251,3 +261,54 @@ class TestResolveArenaConflictDecisionsPauseAndResume:
         loser = next(t for t in persisted["plan"]["tournaments"] if t["id"] == "bbb22222")
         assert loser["start_time"] is None
         assert loser["manual_booking_reason"]
+
+    def test_answering_arena_conflict_mutates_checkpoint_without_replanning(self, tmp_path, monkeypatch, capsys):
+        import json
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        from tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive import _cmd_run_interactive
+        from tournament_scheduler.pipeline.state import StageName, StageStatus
+
+        state = PipelineState(tmp_path)
+        cfg = {"start_date": "2026-09-01", "end_date": "2027-04-30"}
+        state.write_stage(StageName.CONFIG, cfg, status=StageStatus.DONE)
+        state.write_stage(StageName.SCRAPING, {"sources": []}, status=StageStatus.DONE)
+        checkpoint = {"plan": _candidate_with_two_collisions(), "warnings": []}
+        state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
+
+        assert _resolve_arena_conflict_decisions(state, checkpoint, ICE_TIME, lambda msg: None, interactive=True) == 2
+        first_context = json.loads(capsys.readouterr().out)
+        keep = first_context["facts"]["sides"][0]["tournament_id"]
+
+        args = SimpleNamespace(
+            work_dir=str(tmp_path),
+            input="input.xlsx",
+            resume_from="3",
+            non_strict=False,
+            decision_action=json.dumps({
+                "action_id": "resolve_arena_conflict",
+                "arguments": {"keep_tournament_id": keep},
+                "rationale": "keep the harder slot",
+            }),
+            decision_action_file=None,
+        )
+        monkeypatch.setattr(
+            "tournament_scheduler.pipeline.stage1_config.load_effective_config",
+            lambda *args, **kwargs: cfg,
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._mid_planning_decision_problem",
+            return_value={"ice_time_minutes": ICE_TIME},
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
+        ) as run_stage3:
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        run_stage3.assert_not_called()
+        persisted = state.read_stage(StageName.PLANNING)
+        demoted = [t for t in persisted["plan"]["tournaments"] if t.get("start_time") is None]
+        assert len(demoted) == 1
+        second_context = json.loads(capsys.readouterr().out)
+        assert second_context["capability"] == "arena_conflict_resolution"

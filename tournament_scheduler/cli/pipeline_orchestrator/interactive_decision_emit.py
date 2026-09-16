@@ -149,6 +149,7 @@ def _emit_stage3_interactive_decision(
     log_fn: "Any",
     *,
     skip_auto_cp_sat_shadow: bool = False,
+    suppress_auto_cp_sat_shadow: bool = False,
     stage3_elapsed_seconds: float = 0.0,
 ) -> int:
     """Build, persist and print the Stage 3 :class:`DecisionContext` for the
@@ -242,7 +243,11 @@ def _emit_stage3_interactive_decision(
     except (ValueError, KeyError):
         shadow_source_candidate = None
 
-    if skip_auto_cp_sat_shadow:
+    if suppress_auto_cp_sat_shadow:
+        log_fn("stage3: skipping automatic CP-SAT shadow after local checkpoint repair")
+        cp_sat_shadow = None
+        _shadow_seconds = 0.0
+    elif skip_auto_cp_sat_shadow:
         log_fn(
             "stage3: skipping automatic CP-SAT shadow -- an explicit "
             "optimize_plan(engine=\"cp_sat\") pass just produced this plan"

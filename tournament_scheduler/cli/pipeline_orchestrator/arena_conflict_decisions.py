@@ -4,7 +4,9 @@ harness/agent or a headless judge (mirrors ``shared_host_decisions.py``)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Mapping
+
+from ...host_team_missing_repair import candidate_fingerprint
 
 from .interactive_state_io import (
     _clear_arena_conflict_state,
@@ -29,6 +31,11 @@ def _candidate_dict(plan: "dict[str, Any]") -> "dict[str, Any] | None":
     return None
 
 
+def _candidate_fingerprint(candidate: Mapping[str, Any]) -> str:
+    """Fingerprint the exact candidate checkpoint an arena context came from."""
+    return candidate_fingerprint(candidate)
+
+
 def _collision_facts(candidate: "dict[str, Any]", ice_time_for_age_group: "dict[str, int]") -> "list[dict[str, Any]]":
     """Return structured facts for every current arena/time collision pair
     in *candidate*'s tournaments (excludes tournaments already demoted to
@@ -49,6 +56,7 @@ def _collision_facts(candidate: "dict[str, Any]", ice_time_for_age_group: "dict[
                 "arena": current.arena,
                 "date": current.date,
                 "overlap": f"{current.interval_label} / {other.interval_label}",
+                "candidate_fingerprint": _candidate_fingerprint(candidate),
                 "sides": [
                     {
                         "tournament_id": current.tournament_id,
