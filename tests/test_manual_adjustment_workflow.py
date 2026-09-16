@@ -5,7 +5,7 @@ import openpyxl
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
 from tournament_scheduler.cli.rvv_cli import main as rvv_main
 from tournament_scheduler.pipeline.manual_adjustment_workflow import ManualAdjustmentWorkflow
-from tournament_scheduler.pipeline.stage3_helpers import _plan_to_dict
+from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.season_planner import SeasonPlanner
 
@@ -90,7 +90,7 @@ def _write_state(tmp_path):
     plan = _make_plan()
     state.write_stage(
         StageName.PLANNING,
-        {"plan": _plan_to_dict(plan), "rules_report": []},
+        {"plan": season_plan_to_dict(plan), "rules_report": []},
         status=StageStatus.DONE,
     )
     return state, plan
@@ -176,7 +176,7 @@ def _write_state_with_spread(tmp_path):
     plan = _make_plan_with_game_count_spread()
     state.write_stage(
         StageName.PLANNING,
-        {"plan": _plan_to_dict(plan), "rules_report": []},
+        {"plan": season_plan_to_dict(plan), "rules_report": []},
         status=StageStatus.DONE,
     )
     return state, plan
@@ -319,7 +319,7 @@ def test_manual_adjustment_unresolved_hosting_includes_cross_age_reallocation_ev
     )
     state.write_stage(
         StageName.PLANNING,
-        {"plan": _plan_to_dict(plan), "rules_report": []},
+        {"plan": season_plan_to_dict(plan), "rules_report": []},
         status=StageStatus.DONE,
     )
 

@@ -532,7 +532,7 @@ def count_critic_issues_from_dict(plan_dict: dict) -> int:
     This is the lightweight variant used by ``rvv-miniputt status`` to show a
     one-line summary without reconstructing the full SeasonPlan object.  The
     logic mirrors ``generate_critic_summary`` but operates on the JSON-safe dict
-    produced by ``_plan_to_dict``.
+    produced by ``SeasonPlanCodec.to_dict``.
     """
     count = 0
 
@@ -584,16 +584,16 @@ def count_issues_from_plan(plan_raw: Any) -> int:
     """Count critic issues from a raw plan value (SeasonPlan object or dict).
 
     Converts *plan_raw* to a JSON-serialisable dict via
-    :func:`~tournament_scheduler.pipeline.stage3_helpers._resolve_plan_dict`
+    :func:`~tournament_scheduler.serialization.season_plan.resolve_plan_dict`
     and then delegates to :func:`count_critic_issues_from_dict`.
 
     This is the single callable for all CLI commands that need an issue count
     without caring whether they hold a :class:`SeasonPlan` object or a plain
     dict.
     """
-    from ..pipeline.stage3_helpers import _resolve_plan_dict
+    from ..serialization.season_plan import resolve_plan_dict
 
-    plan_dict = _resolve_plan_dict(plan_raw)
+    plan_dict = resolve_plan_dict(plan_raw)
     if not plan_dict:
         return 0
     return count_critic_issues_from_dict(plan_dict)

@@ -8,10 +8,10 @@ import pytest
 
 from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
 from tournament_scheduler.pipeline.stage3_planning import (
-    _plan_to_dict,
     compute_shared_registration_facts,
     run,
 )
+from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.season_planner import _normalize_penalty_hints
 
@@ -779,7 +779,7 @@ class TestPlanToDict:
         )
         plan = SeasonPlan(tournaments=[tournament])
 
-        plan_dict = _plan_to_dict(plan)
+        plan_dict = season_plan_to_dict(plan)
 
         game_dict = plan_dict["tournaments"][0]["games"][0]
         assert game_dict["round_number"] == 3

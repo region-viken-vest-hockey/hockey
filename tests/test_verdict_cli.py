@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from tournament_scheduler.models import SeasonPlan
-from tournament_scheduler.pipeline.stage3_helpers import _plan_to_dict
+from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 
 
 # ---------------------------------------------------------------------------
@@ -37,7 +37,7 @@ def _verdict_args(**kwargs) -> argparse.Namespace:
 
 
 def _make_checkpoint(plan: SeasonPlan) -> dict:
-    return {"plan": _plan_to_dict(plan)}
+    return {"plan": season_plan_to_dict(plan)}
 
 
 def _patch_state(checkpoint):

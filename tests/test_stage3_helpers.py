@@ -9,10 +9,9 @@ from tournament_scheduler.pipeline.stage3_helpers import (
     _build_club_busy_intervals,
     _build_club_calendar_status,
     _build_events_by_club,
-    _plan_to_dict,
     _resolve_plan_dict,
 )
-from tournament_scheduler.pipeline.stage4_helpers import _dict_to_plan
+from tournament_scheduler.serialization.season_plan import season_plan_from_dict, season_plan_to_dict
 from tournament_scheduler.models import SeasonPlan
 
 
@@ -307,7 +306,7 @@ class TestResolvePlanDict:
         mock_plan.__dict__ = {"tournaments": []}
         expected = {"converted": True}
         with patch(
-            "tournament_scheduler.pipeline.stage3_helpers._plan_to_dict",
+            "tournament_scheduler.serialization.season_plan.season_plan_to_dict",
             return_value=expected,
         ) as mock_p2d:
             result = _resolve_plan_dict(mock_plan)
@@ -346,27 +345,27 @@ class TestGameCountSpreadByAgeGroupRoundTrip:
     def test_populated_dict_survives_round_trip(self):
         original = {"U7": 0, "U10": 3, "U12": 6}
         plan = self._make_minimal_plan(original)
-        d = _plan_to_dict(plan)
-        restored = _dict_to_plan(d)
+        d = season_plan_to_dict(plan)
+        restored = season_plan_from_dict(d)
         assert restored.game_count_spread_by_age_group == original
 
     def test_empty_dict_survives_round_trip(self):
         plan = self._make_minimal_plan({})
-        d = _plan_to_dict(plan)
-        restored = _dict_to_plan(d)
+        d = season_plan_to_dict(plan)
+        restored = season_plan_from_dict(d)
         assert restored.game_count_spread_by_age_group == {}
 
     def test_field_present_in_serialized_dict(self):
         spread = {"U9": 2}
         plan = self._make_minimal_plan(spread)
-        d = _plan_to_dict(plan)
+        d = season_plan_to_dict(plan)
         assert "game_count_spread_by_age_group" in d
         assert d["game_count_spread_by_age_group"] == spread
 
     def test_missing_key_defaults_to_empty_dict_on_deserialize(self):
         """Older checkpoints without the key should deserialize safely."""
         d = {"tournaments": [], "game_count_spread": 0}
-        plan = _dict_to_plan(d)
+        plan = season_plan_from_dict(d)
         assert plan.game_count_spread_by_age_group == {}
 
 
@@ -405,13 +404,13 @@ class TestUnresolvedManualPlacementFieldsRoundTrip:
             unresolved_participation_shortfalls=participation,
             unresolved_tournament_placements=placements,
         )
-        d = _plan_to_dict(plan)
+        d = season_plan_to_dict(plan)
         assert d["unresolved_hosting_obligations"] == hosting
         assert d["unresolved_external_conflicts"] == external
         assert d["unresolved_participation_shortfalls"] == participation
         assert d["unresolved_tournament_placements"] == placements
 
-        restored = _dict_to_plan(d)
+        restored = season_plan_from_dict(d)
         assert restored.unresolved_hosting_obligations == hosting
         assert restored.unresolved_external_conflicts == external
         assert restored.unresolved_participation_shortfalls == participation
@@ -420,7 +419,7 @@ class TestUnresolvedManualPlacementFieldsRoundTrip:
     def test_missing_keys_default_to_empty_lists_on_deserialize(self):
         """Older checkpoints without these keys should deserialize safely."""
         d = {"tournaments": [], "game_count_spread": 0}
-        plan = _dict_to_plan(d)
+        plan = season_plan_from_dict(d)
         assert plan.unresolved_hosting_obligations == []
         assert plan.unresolved_external_conflicts == []
         assert plan.unresolved_participation_shortfalls == []
@@ -448,13 +447,13 @@ class TestSharedHostDecisionsRoundTrip:
         ]
         plan = self._make_minimal_plan(shared_host_decisions=decisions)
 
-        d = _plan_to_dict(plan)
+        d = season_plan_to_dict(plan)
         assert d["shared_host_decisions"] == decisions
 
-        restored = _dict_to_plan(d)
+        restored = season_plan_from_dict(d)
         assert restored.shared_host_decisions == decisions
 
     def test_missing_key_defaults_to_empty_list_on_deserialize(self):
         d = {"tournaments": [], "game_count_spread": 0}
-        plan = _dict_to_plan(d)
+        plan = season_plan_from_dict(d)
         assert plan.shared_host_decisions == []

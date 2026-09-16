@@ -20,7 +20,7 @@ from tournament_scheduler.pipeline.tournament_updater import (
     TournamentUpdateError,
     TournamentValidationError,
 )
-from tournament_scheduler.pipeline.stage3_planning import _plan_to_dict
+from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 from tournament_scheduler.season_planner import SeasonPlanner
 
 
@@ -88,7 +88,7 @@ def make_state_with_plan(plan: SeasonPlan, tmp_path: Any) -> PipelineState:
     """Write a SeasonPlan to a temp pipeline checkpoint and return the state."""
     state = PipelineState(str(tmp_path / "pipeline"))
     plan_dict = {
-        "plan": _plan_to_dict(plan),
+        "plan": season_plan_to_dict(plan),
         "llm_confidence": 0.0,
         "llm_reasoning": "",
         "attempts": 1,

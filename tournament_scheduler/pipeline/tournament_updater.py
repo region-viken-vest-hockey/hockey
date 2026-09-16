@@ -28,8 +28,7 @@ from ..scheduler import TournamentScheduler
 from ..season_planner import SeasonPlanner
 from .state import PipelineState, StageName, StageStatus
 from .run_log_paths import resolve_active_run_log_dir
-from .stage3_planning import _plan_to_dict
-from .stage3_helpers import _tournament_from_dict
+from ..serialization.season_plan import season_plan_to_dict, tournament_from_dict
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +107,7 @@ class TournamentUpdater:
             raise ValueError("Ingen gyldig Stage 3-plan funnet. Kjør pipelinen først.")
 
         plan_data = data["plan"]
-        tournaments = [_tournament_from_dict(t) for t in plan_data.get("tournaments", [])]
+        tournaments = [tournament_from_dict(t) for t in plan_data.get("tournaments", [])]
 
         plan = SeasonPlan(
             tournaments=tournaments,
@@ -128,7 +127,7 @@ class TournamentUpdater:
 
     def plan_to_dict(self, plan: SeasonPlan) -> dict[str, Any]:
         """Convert a ``SeasonPlan`` back to a checkpoint-ready dict."""
-        return _plan_to_dict(plan)
+        return season_plan_to_dict(plan)
 
     # ------------------------------------------------------------------
     # Tournament lookup
@@ -657,7 +656,7 @@ class TournamentUpdater:
             log_entry: Optional update result to include in checkpoint metadata.
         """
         existing = self.state.read_stage(StageName.PLANNING)
-        plan_dict = _plan_to_dict(plan)
+        plan_dict = season_plan_to_dict(plan)
 
         # Preserve existing metadata (LLM confidence etc.) and add update info
         checkpoint: dict[str, Any] = {

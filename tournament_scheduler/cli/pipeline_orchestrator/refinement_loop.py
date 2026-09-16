@@ -69,8 +69,8 @@ def _run_refinement_loop(
     from datetime import date as _date
 
     from ...pipeline.manual_adjustment_workflow import ManualAdjustmentWorkflow
-    from ...pipeline.stage3_helpers import _resolve_plan_dict
-    from ...pipeline.stage4_helpers import _dict_to_plan
+    from ...serialization.season_plan import resolve_plan_dict
+    from ...serialization.season_plan import season_plan_from_dict
     from ...pipeline.state import StageName
     from ...stage3_optimizer import optimize_candidate
     from ..plan_critic import generate_critic_findings, suggest_moves
@@ -121,7 +121,7 @@ def _run_refinement_loop(
         # Snapshot the plan *before* any repair is applied, for the
         # verify+A/B decision below — must be captured now, since plan_obj
         # is mutated in place by move_date/apply() in the legacy branch.
-        before_candidate = _resolve_plan_dict(plan_obj)
+        before_candidate = resolve_plan_dict(plan_obj)
 
         # Generate every deterministic critic finding (uncapped/unranked —
         # which one matters most is a contextual judgment, not this
@@ -246,14 +246,14 @@ def _run_refinement_loop(
         # metrics and conflicts" step runs regardless of whether there are
         # manual_adjustments to process), so it is reused here rather than
         # duplicating that logic.
-        after_plan_obj = _dict_to_plan(after_candidate)
+        after_plan_obj = season_plan_from_dict(after_candidate)
         try:
             result = workflow.apply(after_plan_obj)
         except Exception as exc:
             log_fn(f"Refinement {iteration}: metadata recompute after optimize failed — stopping: {exc}")
             _console.print(f"  [yellow]⚠[/yellow] Refinement {iteration}: metadata-oppdatering feilet: {exc}")
             break
-        after_full_candidate = _resolve_plan_dict(after_plan_obj)
+        after_full_candidate = resolve_plan_dict(after_plan_obj)
 
         outcome, reason = _decide_refinement_candidate(
             before_candidate,

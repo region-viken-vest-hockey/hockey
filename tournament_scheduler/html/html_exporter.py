@@ -412,8 +412,8 @@ if __name__ == "__main__":  # pragma: no cover
         print("Fant ikke Stage 3-planen - kj\u00f8r Stage 3 f\u00f8rst.", file=sys.stderr)
         sys.exit(1)
 
-    from ..pipeline.stage4_export import _dict_to_plan
-    plan = _dict_to_plan(plan_ckpt["plan"])
+    from ..serialization.season_plan import season_plan_from_dict
+    plan = season_plan_from_dict(plan_ckpt["plan"])
 
     exporter = HtmlExporter()
     path = exporter.export(plan, args.output)

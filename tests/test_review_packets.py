@@ -6,8 +6,8 @@ import openpyxl
 
 from tournament_scheduler.cli.rvv_cli import main as rvv_main
 from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
-from tournament_scheduler.pipeline.stage3_helpers import _plan_to_dict
-from tournament_scheduler.pipeline.stage4_helpers import _dict_to_plan
+from tournament_scheduler.serialization.season_plan import season_plan_to_dict
+from tournament_scheduler.serialization.season_plan import season_plan_from_dict
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.pipeline.stage4_export import run
 
@@ -77,7 +77,7 @@ def _write_state(tmp_path):
     )
 
     plan = _make_plan()
-    state.write_stage(StageName.PLANNING, {"plan": _plan_to_dict(plan), "rules_report": []}, status=StageStatus.DONE)
+    state.write_stage(StageName.PLANNING, {"plan": season_plan_to_dict(plan), "rules_report": []}, status=StageStatus.DONE)
     return state, plan
 
 
@@ -85,7 +85,7 @@ def test_stage4_writes_club_review_packets(tmp_path):
     state, _plan = _write_state(tmp_path)
 
     result = run(
-        {"plan": _plan_to_dict(_make_plan())},
+        {"plan": season_plan_to_dict(_make_plan())},
         state,
         export_dir=str(tmp_path / "export"),
     )
@@ -117,7 +117,7 @@ def test_review_command_applies_change_request_and_reexports(tmp_path):
 
     # First generate review packets so the response template exists.
     run(
-        {"plan": _plan_to_dict(plan)},
+        {"plan": season_plan_to_dict(plan)},
         state,
         export_dir=str(tmp_path / "export"),
         timestamped_export=False,
@@ -150,7 +150,7 @@ def test_review_command_applies_change_request_and_reexports(tmp_path):
 
     assert code == 0
     assert (tmp_path / "review-export" / "season_plan.xlsx").exists()
-    updated = _dict_to_plan(state.read_stage(StageName.PLANNING)["plan"])
+    updated = season_plan_from_dict(state.read_stage(StageName.PLANNING)["plan"])
     assert updated.tournaments[0].host_club == "Kongsberg"
     assert updated.tournaments[0].arena == "Kongsberghallen"
     assert updated.manual_adjustments["forced_host_clubs"] == ["Kongsberg"]

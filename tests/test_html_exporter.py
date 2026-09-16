@@ -8,7 +8,7 @@ from pathlib import Path
 
 from tournament_scheduler.html.html_exporter import HtmlExporter
 from tournament_scheduler.models import SeasonPlan
-from tournament_scheduler.pipeline.stage4_export import _dict_to_plan
+from tournament_scheduler.serialization.season_plan import season_plan_from_dict
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +61,7 @@ def _make_minimal_plan() -> SeasonPlan:
             }
         ],
     }
-    return _dict_to_plan(plan_dict)
+    return season_plan_from_dict(plan_dict)
 
 
 def _export_report_html(tmp_path: Path) -> str:

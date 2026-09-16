@@ -16,7 +16,8 @@ from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
 from tournament_scheduler.pipeline.not_started import NOT_STARTED_MESSAGE
 from tournament_scheduler.pipeline.pages_bundle import build_public_bundle
 from tournament_scheduler.pipeline.pages_publish import bundle_fingerprint
-from tournament_scheduler.pipeline.stage4_export import Stage4Error, _dict_to_plan, run
+from tournament_scheduler.pipeline.stage4_export import Stage4Error, run
+from tournament_scheduler.serialization.season_plan import season_plan_from_dict
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 
 
@@ -159,7 +160,7 @@ def _make_spond_plan_dict():
 class TestDictToPlan:
     def test_round_trips_plan(self):
         plan_dict = _make_plan_dict()["plan"]
-        plan = _dict_to_plan(plan_dict)
+        plan = season_plan_from_dict(plan_dict)
         assert isinstance(plan, SeasonPlan)
         assert len(plan.tournaments) == 1
         t = plan.tournaments[0]
@@ -173,7 +174,7 @@ class TestDictToPlan:
     def test_round_trips_manual_booking_reason(self):
         plan_dict = _make_plan_dict()["plan"]
         plan_dict["tournaments"][0]["manual_booking_reason"] = "Kalender utilgjengelig for Tønsberg — istid må bookes manuelt."
-        plan = _dict_to_plan(plan_dict)
+        plan = season_plan_from_dict(plan_dict)
         assert plan.tournaments[0].manual_booking_reason == (
             "Kalender utilgjengelig for Tønsberg — istid må bookes manuelt."
         )
@@ -191,7 +192,7 @@ class TestDictToPlan:
                 "reason": "same_arena_same_day",
             }
         ]
-        plan = _dict_to_plan(plan_dict)
+        plan = season_plan_from_dict(plan_dict)
         assert plan.arena_day_collisions[0]["arena"] == "Jarahallen"
         assert plan.arena_day_collisions[0]["conflicting_age_group"] == "U10"
 
@@ -199,20 +200,20 @@ class TestDictToPlan:
         plan_dict = {"tournaments": [], "diversity_score": 0.0,
                      "pairwise_matchup_score": 0.0, "month_balance_score": 0.0,
                      "arena_counts": {}}
-        plan = _dict_to_plan(plan_dict)
+        plan = season_plan_from_dict(plan_dict)
         assert plan.start_date is None
 
     def test_raises_on_missing_tournament_date(self):
         plan_dict = _make_plan_dict()["plan"]
         plan_dict["tournaments"][0].pop("date")
         with pytest.raises(ValueError, match="date"):
-            _dict_to_plan(plan_dict)
+            season_plan_from_dict(plan_dict)
 
     def test_raises_on_empty_tournament_date(self):
         plan_dict = _make_plan_dict()["plan"]
         plan_dict["tournaments"][0]["date"] = ""
         with pytest.raises(ValueError, match="date"):
-            _dict_to_plan(plan_dict)
+            season_plan_from_dict(plan_dict)
 
     def test_warns_when_dropping_game_with_unknown_team_label(self, caplog):
         plan_dict = _make_plan_dict()["plan"]
@@ -223,8 +224,8 @@ class TestDictToPlan:
             {"home": "Kongsberg U10A", "away": "Missing U10A", "parallel_slot": 0, "round_number": 4}
         )
 
-        with caplog.at_level(logging.WARNING, logger="tournament_scheduler.pipeline.stage4_helpers"):
-            plan = _dict_to_plan(plan_dict)
+        with caplog.at_level(logging.WARNING, logger="tournament_scheduler.serialization.season_plan"):
+            plan = season_plan_from_dict(plan_dict)
 
         assert len(plan.tournaments[0].games) == 1
         assert any("Missing U10A" in record.message for record in caplog.records)
@@ -544,7 +545,7 @@ class TestRunStage4:
         manual_html = Path(files["manual_schedule"]).read_text(encoding="utf-8")
         assert "Ingen turneringer trenger manuell planlegging." in manual_html
         assert "Skien" in manual_html
-        plan = _dict_to_plan(plan_checkpoint["plan"])
+        plan = season_plan_from_dict(plan_checkpoint["plan"])
         assert plan.unresolved_participation_shortfalls[0]["club"] == "Skien"
 
     def test_manual_schedule_count_reconciles_with_rows(self, tmp_path):
@@ -966,7 +967,7 @@ class TestRunStage4:
         files = result.get("output_files", {})
         html = Path(files["html"]).read_text(encoding="utf-8")
 
-        payload = json.loads(HtmlExporter._plan_to_json(_dict_to_plan(_make_plan_dict()["plan"])))
+        payload = json.loads(HtmlExporter._plan_to_json(season_plan_from_dict(_make_plan_dict()["plan"])))
         assert payload[0]["m"][0][3] == 3
         assert 'Kamper per runde' in html
         assert 'round-group-header' in html
@@ -1213,7 +1214,7 @@ class TestRunStage4:
         assert envelope["data"]["input_path"] == str(input_path)
 
     def test_report_renders_generated_at_in_europe_oslo_time(self, tmp_path):
-        plan = _dict_to_plan(_make_plan_dict()["plan"])
+        plan = season_plan_from_dict(_make_plan_dict()["plan"])
         export_path = tmp_path / "export" / "season_plan.html"
 
         HtmlExporter().export(

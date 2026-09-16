@@ -61,8 +61,8 @@ from .stage3_helpers import (
     _build_round_length,
     _build_rounds_per_tournament,
     _make_planner,
-    _plan_to_dict,
 )
+from ..serialization.season_plan import season_plan_to_dict
 
 # ---------------------------------------------------------------------------
 # Candidate reproducibility and ranking
@@ -296,7 +296,7 @@ def run(
                 "message": NOT_STARTED_MESSAGE,
             },
         )
-        plan_dict = _plan_to_dict(plan)
+        plan_dict = season_plan_to_dict(plan)
         plan_dict["placeholder"] = "not_started"
         plan_dict["message"] = NOT_STARTED_MESSAGE
         checkpoint: dict[str, Any] = {
@@ -538,7 +538,7 @@ def run(
         best_plan.manual_adjustments = dict(existing_manual_adjustments)
     if shared_host_decision_records:
         best_plan.shared_host_decisions = list(shared_host_decision_records)
-    plan_dict = _plan_to_dict(best_plan)
+    plan_dict = season_plan_to_dict(best_plan)
     rules_report = best_planner.rules_report()
     # issue #300: wall-clock evidence per build_plan phase for the winning
     # attempt, so canonical baseline performance is judged from a production

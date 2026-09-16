@@ -16,8 +16,8 @@ internals:
 ``candidate`` (see :func:`candidate_from_plan_dict` / :func:`extract_candidate`)
     A proposed season plan: a list of tournaments with their teams and
     games. This is the same shape Stage 3 already writes to the pipeline
-    checkpoint under the ``"plan"`` key (see ``_plan_to_dict`` in
-    ``pipeline/stage3_helpers.py``) plus a small schema/source envelope,
+    checkpoint under the ``"plan"`` key (see ``SeasonPlanCodec.to_dict`` in
+    ``serialization/season_plan.py``) plus a small schema/source envelope,
     so existing checkpoints can be verified/scored without conversion.
 
 ``verify_candidate`` and ``score_candidate`` are pure functions over these
@@ -190,7 +190,7 @@ def candidate_from_plan_dict(
     source: str = "SeasonPlanner",
     planner_version: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Wrap a Stage 3 ``_plan_to_dict`` payload in the stable candidate envelope."""
+    """Wrap a canonical ``SeasonPlanCodec.to_dict`` payload in the stable candidate envelope."""
     candidate = dict(plan_dict)
     candidate["schema_version"] = CANDIDATE_SCHEMA_VERSION
     candidate["source"] = {"planner": source, "version": planner_version}
@@ -642,13 +642,13 @@ def verify_candidate(
     # (`arena_conflicts.py`) instead of a naive same-arena/same-date check,
     # which would flag normal same-day scheduling as a false positive.
     from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
-    from tournament_scheduler.pipeline.stage3_helpers import _tournament_from_dict
+    from tournament_scheduler.serialization.season_plan import tournament_from_dict
 
     ice_time_minutes = problem.get("ice_time_minutes") or problem.get("round_length_minutes") or {}
     club_calendar_status_for_conflicts = problem.get("club_calendar_status") or {}
     club_busy_intervals = problem.get("club_busy_intervals") or {}
     try:
-        tournament_objs = [_tournament_from_dict(t) for t in candidate.get("tournaments", []) if not t.get("cancelled")]
+        tournament_objs = [tournament_from_dict(t) for t in candidate.get("tournaments", []) if not t.get("cancelled")]
         for collision in find_arena_interval_collisions(tournament_objs, ice_time_minutes):
             _violate(
                 "arena_interval_conflict",

@@ -35,10 +35,10 @@ def _collision_facts(candidate: "dict[str, Any]", ice_time_for_age_group: "dict[
     manual placement -- their start_time is cleared, so they're already
     outside ``tournament_interval``'s collision detection)."""
     from ...arena_conflicts import arena_interval_collision_pairs, tournament_intervals
-    from ...pipeline.stage3_helpers import _tournament_from_dict
+    from ...serialization.season_plan import tournament_from_dict
 
     tournaments = [t for t in candidate.get("tournaments", []) if isinstance(t, dict) and not t.get("cancelled")]
-    tournament_objs = [_tournament_from_dict(t) for t in tournaments]
+    tournament_objs = [tournament_from_dict(t) for t in tournaments]
     intervals = tournament_intervals(tournament_objs, ice_time_for_age_group)
     team_counts = {t.get("id", ""): len(t.get("teams") or []) for t in tournaments}
 

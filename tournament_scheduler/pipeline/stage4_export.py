@@ -42,7 +42,8 @@ from ..csv.csv_exporter import CsvExporter
 from ..html.html_exporter import HtmlExporter
 from .stage1_config import load_effective_config
 from .state import PipelineState, StageName, StageStatus
-from .stage4_helpers import _dict_to_plan, build_tournament_placement_entries
+from ..serialization.season_plan import season_plan_from_dict
+from .stage4_helpers import build_tournament_placement_entries
 from .calendar_viewer import generate_html as _generate_calendars_html
 from .input_viewer import generate_html as _generate_input_html
 from .activity_viewer import generate_activity_artifacts as _generate_activity_artifacts
@@ -173,7 +174,7 @@ def run(
         _progress("Eksport avbrutt: kandidaten feiler hard verifisering")
         raise Stage4Error(reason)
 
-    plan = _dict_to_plan(plan_dict)
+    plan = season_plan_from_dict(plan_dict)
     export_path = Path(export_dir)
     export_path.mkdir(parents=True, exist_ok=True)
     canonical_build_timestamp = _resolve_build_timestamp(build_timestamp)

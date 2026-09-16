@@ -1,7 +1,7 @@
 from datetime import date
 
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
-from tournament_scheduler.pipeline.stage3_helpers import _plan_to_dict
+from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 from tournament_scheduler.pipeline.state import PipelineState
 from tournament_scheduler.pipeline.tournament_updater import TournamentUpdater
 from tournament_scheduler.planning_contract import verify_candidate
@@ -95,7 +95,7 @@ def test_lineage_round_trips_and_is_validated_against_identity_registry() -> Non
         ]
     )
 
-    candidate = _plan_to_dict(plan)
+    candidate = season_plan_to_dict(plan)
 
     assert candidate["tournaments"][0]["derived_from"] == ["rvv-0001"]
     assert "rvv-0001" in candidate["identity_registry"]["known_tournament_ids"]

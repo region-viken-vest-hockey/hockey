@@ -162,13 +162,13 @@ def _compute_verdict_tone(plan: "dict[str, Any] | Any") -> str:
     ``judgment._score_tone`` using the plan's stored metric scores.
     """
     from ...html.renderers import judgment as _judgment
-    from ...pipeline.stage4_helpers import _dict_to_plan
+    from ...serialization.season_plan import season_plan_from_dict
 
     plan_obj = _extract_plan_obj(plan)
 
     if isinstance(plan_obj, dict):
         try:
-            plan_obj = _dict_to_plan(plan_obj)
+            plan_obj = season_plan_from_dict(plan_obj)
         except Exception:
             pass
 

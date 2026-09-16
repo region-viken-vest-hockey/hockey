@@ -7,115 +7,22 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from ..club_registry import CLUB_REGISTRY, canonicalize_club_name
-from ..models import CalendarEvent, Game, Roster, SeasonPlan, Team, Tournament
+from ..models import CalendarEvent, Roster, Team
 from ..season_planner import SeasonPlanner
+from ..serialization.season_plan import resolve_plan_dict
 
 logger = logging.getLogger(__name__)
-
-
-def _plan_to_dict(plan: SeasonPlan) -> dict[str, Any]:
-    """Convert :class:`SeasonPlan` to a JSON-serialisable dict."""
-
-    def _game_to_dict(g: Game) -> dict[str, Any]:
-        return {
-            "home": g.home.label,
-            "away": g.away.label,
-            "parallel_slot": g.parallel_slot,
-            "round_number": g.round_number,
-        }
-
-    def _team_to_dict(t: Team) -> dict[str, Any]:
-        d: dict[str, Any] = {"club": t.club, "label": t.label, "age_group": t.age_group}
-        if t.target_tournament_count is not None:
-            d["target_tournament_count"] = t.target_tournament_count
-        return d
-
-    def _tournament_to_dict(t: Tournament) -> dict[str, Any]:
-        d: dict[str, Any] = {
-            "id": t.id,
-            "date": t.date.isoformat(),
-            "arena": t.arena,
-            "age_group": t.age_group,
-            "host_club": t.host_club,
-            "teams": [_team_to_dict(team) for team in t.teams],
-            "games": [_game_to_dict(g) for g in t.games],
-            "start_time": t.start_time,
-        }
-        if t.derived_from:
-            d["derived_from"] = list(t.derived_from)
-        if t.cancelled:
-            d["cancelled"] = True
-            d["cancellation_reason"] = t.cancellation_reason
-        if t.preferanse_vekt != 0.0:
-            d["preferanse_vekt"] = t.preferanse_vekt
-        if t.scoring_weight_term != 0.0:
-            d["scoring_weight_term"] = t.scoring_weight_term
-        if t.manual_booking_reason:
-            d["manual_booking_reason"] = t.manual_booking_reason
-        return d
-
-    # Compute per-team tournament participation counts from the tournament list
-    participations: dict[str, int] = {}
-    known_tournament_ids = {t.id for t in plan.tournaments if t.id}
-    for t in plan.tournaments:
-        known_tournament_ids.update(t.derived_from or [])
-    for t in plan.tournaments:
-        for team in t.teams:
-            participations[team.label] = participations.get(team.label, 0) + 1
-
-    checkpoint = {
-        "start_date": plan.start_date.isoformat() if plan.start_date else None,
-        "end_date": plan.end_date.isoformat() if plan.end_date else None,
-        "diversity_score": plan.diversity_score,
-        "pairwise_matchup_score": plan.pairwise_matchup_score,
-        "month_balance_score": plan.month_balance_score,
-        "arena_counts": plan.arena_counts,
-        "team_game_counts": dict(plan.team_game_counts),
-        "team_tournament_participations": participations,
-        "game_count_spread": plan.game_count_spread,
-        "game_count_spread_by_age_group": plan.game_count_spread_by_age_group,
-        "fairness_gate": plan.fairness_gate,
-        "team_last_game_dates": {
-            k: v.isoformat() for k, v in plan.team_last_game_dates.items()
-        },
-        "skipped_age_groups": list(plan.skipped_age_groups),
-        "same_date_capacity_evidence": list(plan.same_date_capacity_evidence),
-        "arena_day_collisions": list(plan.arena_day_collisions),
-        "unresolved_hosting_obligations": list(plan.unresolved_hosting_obligations),
-        "targeted_roster_repairs": list(plan.targeted_roster_repairs),
-        "same_age_hosting_repairs": list(plan.same_age_hosting_repairs),
-        "cross_age_hosting_repairs": list(plan.cross_age_hosting_repairs),
-        "unresolved_external_conflicts": list(plan.unresolved_external_conflicts),
-        "unresolved_participation_shortfalls": list(plan.unresolved_participation_shortfalls),
-        "unresolved_tournament_placements": list(plan.unresolved_tournament_placements),
-        "club_participation_fairness": list(plan.club_participation_fairness),
-        "participation_targets_by_age_group": dict(plan.participation_targets_by_age_group),
-        "shared_host_decisions": list(plan.shared_host_decisions),
-        "operator_waivers": list(plan.operator_waivers),
-        "operator_waived_violations": list(plan.operator_waived_violations),
-        "tournaments": [_tournament_to_dict(t) for t in plan.tournaments],
-        "identity_registry": {"known_tournament_ids": sorted(known_tournament_ids)},
-    }
-    if plan.manual_adjustments:
-        checkpoint["manual_adjustments"] = plan.manual_adjustments
-    if plan.date_preference_weights:
-        checkpoint["date_preference_weights"] = list(plan.date_preference_weights)
-    return checkpoint
 
 
 def _resolve_plan_dict(plan_raw: Any) -> dict[str, Any]:
     """Return a JSON-serialisable dict from *plan_raw*.
 
-    Accepts either a :class:`SeasonPlan` object (converted via
-    :func:`_plan_to_dict`) or a plain :class:`dict` (returned as-is).
+    Accepts either a :class:`SeasonPlan` object (converted via the public
+    codec) or a plain :class:`dict` (returned as-is).
     Returns an empty dict for any other input so callers never receive
     ``None``.
     """
-    if hasattr(plan_raw, "__dict__"):
-        return _plan_to_dict(plan_raw)
-    if isinstance(plan_raw, dict):
-        return plan_raw
-    return {}
+    return resolve_plan_dict(plan_raw)
 
 
 # ---------------------------------------------------------------------------
@@ -360,52 +267,6 @@ def _make_planner(
         cheap_baseline=cheap_baseline,
         shared_host_decisions=shared_host_decisions,
     )
-
-
-def _tournament_from_dict(data: dict[str, Any]) -> Tournament:
-    """Reconstruct a :class:`Tournament` from a serialised dict."""
-    teams = [
-        Team(
-            club=canonicalize_club_name(t["club"]),
-            label=t["label"],
-            age_group=t["age_group"],
-            target_tournament_count=t.get("target_tournament_count"),
-        )
-        for t in data.get("teams", [])
-    ]
-    games = [
-        Game(
-            home=_find_team(teams, g["home"]),
-            away=_find_team(teams, g["away"]),
-            parallel_slot=g.get("parallel_slot", 0),
-            round_number=g.get("round_number", 0),
-        )
-        for g in data.get("games", [])
-    ]
-    return Tournament(
-        id=data.get("id", ""),
-        derived_from=list(data.get("derived_from", []) or []),
-        date=date.fromisoformat(data["date"]),
-        arena=data["arena"],
-        age_group=data["age_group"],
-        host_club=data.get("host_club"),
-        teams=teams,
-        games=games,
-        cancelled=bool(data.get("cancelled", False)),
-        cancellation_reason=data.get("cancellation_reason"),
-        start_time=data.get("start_time"),
-        preferanse_vekt=float(data.get("preferanse_vekt", 0.0)),
-        scoring_weight_term=float(data.get("scoring_weight_term", 0.0)),
-        manual_booking_reason=data.get("manual_booking_reason"),
-    )
-
-
-def _find_team(teams: list[Team], label: str) -> Team:
-    """Find a Team by label; return a placeholder if missing."""
-    for t in teams:
-        if t.label == label:
-            return t
-    return Team(club="", label=label, age_group="")
 
 
 # ---------------------------------------------------------------------------

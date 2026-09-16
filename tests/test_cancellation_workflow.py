@@ -21,8 +21,8 @@ from tournament_scheduler.pipeline.state import PipelineState, StageName, StageS
 from tournament_scheduler.pipeline.cancellation_workflow import (
     CancellationWorkflow,
 )
-from tournament_scheduler.pipeline.stage3_planning import _plan_to_dict
-from tournament_scheduler.pipeline.stage3_helpers import _tournament_from_dict
+from tournament_scheduler.serialization.season_plan import season_plan_to_dict
+from tournament_scheduler.serialization.season_plan import tournament_from_dict
 from tournament_scheduler.season_planner import SeasonPlanner
 
 
@@ -128,7 +128,7 @@ def make_state_with_plan(plan: SeasonPlan, tmp_path: Any) -> PipelineState:
     """Write a SeasonPlan to a temp pipeline checkpoint and return the state."""
     state = PipelineState(str(tmp_path / "pipeline"))
     plan_dict = {
-        "plan": _plan_to_dict(plan),
+        "plan": season_plan_to_dict(plan),
         "llm_confidence": 0.0,
         "llm_reasoning": "",
         "attempts": 1,
@@ -476,7 +476,7 @@ class TestCancelledSerialization:
 
         # Serialize via _plan_to_dict
         plan = SeasonPlan(tournaments=[t])
-        plan_dict = _plan_to_dict(plan)
+        plan_dict = season_plan_to_dict(plan)
 
         # Deserialize via _tournament_from_dict
         tournament_dicts = plan_dict["tournaments"]
@@ -484,7 +484,7 @@ class TestCancelledSerialization:
         assert tournament_dicts[0]["cancelled"] is True
         assert tournament_dicts[0]["cancellation_reason"] == "Ishall stengt"
 
-        restored = _tournament_from_dict(tournament_dicts[0])
+        restored = tournament_from_dict(tournament_dicts[0])
         assert restored.cancelled is True
         assert restored.cancellation_reason == "Ishall stengt"
 
@@ -496,7 +496,7 @@ class TestCancelledSerialization:
         assert t.cancelled is False
 
         plan = SeasonPlan(tournaments=[t])
-        plan_dict = _plan_to_dict(plan)
+        plan_dict = season_plan_to_dict(plan)
 
         tournament_dicts = plan_dict["tournaments"]
         assert len(tournament_dicts) == 1
@@ -507,14 +507,14 @@ class TestCancelledSerialization:
         """Tournament dict without cancelled fields deserializes with defaults."""
         # Simulate a pre-cancellation dict (no cancelled fields)
         plan = SeasonPlan(tournaments=[four_team_tournament])
-        plan_dict = _plan_to_dict(plan)
+        plan_dict = season_plan_to_dict(plan)
 
         tournament_dict = plan_dict["tournaments"][0]
         # Remove any cancelled fields if present (they shouldn't be for a fresh tournament)
         tournament_dict.pop("cancelled", None)
         tournament_dict.pop("cancellation_reason", None)
 
-        restored = _tournament_from_dict(tournament_dict)
+        restored = tournament_from_dict(tournament_dict)
         assert restored.cancelled is False
         assert restored.cancellation_reason is None
 

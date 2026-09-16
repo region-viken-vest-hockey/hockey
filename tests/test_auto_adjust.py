@@ -9,7 +9,7 @@ import pytest
 
 from tournament_scheduler.cli.plan_critic import suggest_moves
 from tournament_scheduler.models import SeasonPlan, Tournament
-from tournament_scheduler.pipeline.stage3_planning import _plan_to_dict
+from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +261,7 @@ class TestSuggestMovesUnrecognised:
 def _make_checkpoint(plan: SeasonPlan) -> dict:
     # load_plan() in TournamentUpdater expects data["plan"] to be a serialised
     # dict (via _plan_to_dict), not a SeasonPlan object directly.
-    return {"plan": _plan_to_dict(plan)}
+    return {"plan": season_plan_to_dict(plan)}
 
 
 class TestCmdAutoAdjustLoopBehavior:
