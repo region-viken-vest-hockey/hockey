@@ -5,7 +5,7 @@ import { runPipeline } from "./pipeline-runner";
 import { formatProcessFailure, runRepoCli } from "./repo-cli";
 
 async function showRepoResult(ctx: ExtensionCommandContext, args: string[]): Promise<void> {
-  const result = await runRepoCli(ctx, args, { timeoutMs: 10 * 60 * 1000 });
+  const result = await runRepoCli(ctx, args, { timeoutMs: 30 * 60 * 1000 });
   if (result.code !== 0) {
     ctx.ui.notify(formatProcessFailure(result), result.cancelled ? "warning" : "error");
     return;
@@ -17,7 +17,7 @@ function sharedGuideText(cwd: string): string {
   try {
     return readFileSync(resolve(cwd, ".agents", "commands", "rvv-miniputt", "guide.md"), "utf-8");
   } catch {
-    return "Use /rvv-miniputt run, status, logs, calendars, scrape, scrape-llm or publish. Shared policy lives in AGENTS.md and .agents/skills/rvv/SKILL.md.";
+    return "Use /rvv-miniputt run for initial planning, /rvv-miniputt season for promoted-season maintenance, and status/logs/calendars/scrape/scrape-llm/publish as needed. Shared policy lives in AGENTS.md and .agents/skills/rvv/SKILL.md.";
   }
 }
 
@@ -26,6 +26,7 @@ export async function interactiveGuide(ctx: ExtensionCommandContext): Promise<vo
     "Hva vil du gjøre med RVV Miniputt?",
     [
       "Kjør sesongplan-pipeline",
+      "Vedlikehold promotert sesong",
       "Vis pipeline-status",
       "Vis logger",
       "Generer kalenderoversikt",
@@ -34,6 +35,11 @@ export async function interactiveGuide(ctx: ExtensionCommandContext): Promise<vo
     ],
   );
   if (!mainChoice || mainChoice === "Avbryt") return;
+
+  if (mainChoice === "Vedlikehold promotert sesong") {
+    await interactiveCanonicalSeason(ctx);
+    return;
+  }
 
   if (mainChoice === "Vis pipeline-status") {
     const workDir = await ctx.ui.input("Arbeidskatalog:", ".pipeline");
@@ -61,6 +67,79 @@ export async function interactiveGuide(ctx: ExtensionCommandContext): Promise<vo
   }
 
   await interactiveRunPipeline(ctx);
+}
+
+async function interactiveCanonicalSeason(ctx: ExtensionCommandContext): Promise<void> {
+  const season = (await ctx.ui.input("Sesong:", "2026-2027")) || "2026-2027";
+  const action = await ctx.ui.select(
+    "Canonical sesong",
+    [
+      "Status",
+      "Vis godkjenninger",
+      "Godkjenn turnering",
+      "Opphev godkjenning",
+      "Flytt turnering",
+      "Replanlegg rundt baseline",
+      "Vis kandidat-diff",
+      "Bruk verifisert kandidat",
+      "Eksporter canonical sesong",
+      "Avbryt",
+    ],
+  );
+  if (!action || action === "Avbryt") return;
+
+  if (action === "Status") {
+    await showRepoResult(ctx, ["season", "status", "--season", season]);
+    return;
+  }
+  if (action === "Vis godkjenninger") {
+    await showRepoResult(ctx, ["season", "approvals", "--season", season]);
+    return;
+  }
+  if (action === "Eksporter canonical sesong") {
+    await showRepoResult(ctx, ["season", "export", "--season", season]);
+    return;
+  }
+
+  if (action === "Godkjenn turnering" || action === "Opphev godkjenning") {
+    const tournamentId = await ctx.ui.input("Turnerings-ID:");
+    if (!tournamentId) return;
+    const note = await ctx.ui.input("Kort notat (valgfritt):", "");
+    const command = action === "Godkjenn turnering" ? "approve" : "unapprove";
+    const args = ["season", command, "--season", season, "--tournament-id", tournamentId];
+    if (note) args.push("--note", note);
+    await showRepoResult(ctx, args);
+    return;
+  }
+
+  if (action === "Flytt turnering") {
+    const tournamentId = await ctx.ui.input("Turnerings-ID:");
+    if (!tournamentId) return;
+    const date = await ctx.ui.input("Ny dato YYYY-MM-DD (tom = uendret):", "");
+    const arena = await ctx.ui.input("Ny arena (tom = uendret):", "");
+    const host = await ctx.ui.input("Ny fysisk vertsklubb (tom = uendret):", "");
+    const startTime = await ctx.ui.input("Ny starttid HH:MM (tom = uendret):", "");
+    const args = ["season", "move", "--season", season, "--tournament-id", tournamentId];
+    if (date) args.push("--date", date);
+    if (arena) args.push("--arena", arena);
+    if (host) args.push("--host-club", host);
+    if (startTime) args.push("--start-time", startTime);
+    await showRepoResult(ctx, args);
+    return;
+  }
+
+  if (action === "Replanlegg rundt baseline") {
+    const iterations = (await ctx.ui.input("Iterasjoner:", "4000")) || "4000";
+    await showRepoResult(ctx, ["season", "replan", "--season", season, "--iterations", iterations]);
+    return;
+  }
+
+  if (action === "Vis kandidat-diff" || action === "Bruk verifisert kandidat") {
+    const candidate = await ctx.ui.input("Kandidatfil:");
+    if (!candidate) return;
+    const command = action === "Vis kandidat-diff" ? "diff" : "apply";
+    await showRepoResult(ctx, ["season", command, "--season", season, "--candidate", candidate]);
+  }
 }
 
 async function interactiveRunPipeline(ctx: ExtensionCommandContext): Promise<void> {
