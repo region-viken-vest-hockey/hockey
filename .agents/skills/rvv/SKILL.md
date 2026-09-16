@@ -151,7 +151,7 @@ Once a season has been promoted to canonical state (`season/<season>/`), plannin
 - approved/placement-locked tournaments are hard-preserve constraints — a candidate that moves or drops one fails verification with `canonical_placement_locked`/`canonical_participants_locked`/`canonical_locked_tournament_missing`, and the search will not even propose moving one;
 - unapproved tournaments stay optimizable, but weighted change cost is folded into the search objective, so prefer the smallest change that resolves the problem;
 - use `season replan` to search around the canonical baseline, `season diff` to see the weighted change cost before committing, and `season apply` to persist a verified candidate atomically. A rejected candidate must leave `schedule.json`/`decisions.json` unchanged;
-- approval/lock state lives in `decisions.json`, separate from schedule facts, and an approval whose facts changed loses its approval instead of silently staying "approved".
+- approval/lock state lives in `decisions.json`, separate from schedule facts. `season approve` re-verifies the current placement (approval is never a waiver of hard rules), `season unapprove` restores editability, and `season approvals` lists status. An approval whose protected-fields fingerprint changed is a deterministic `stale_approval` (its lock is dropped and it must be explicitly reapproved) — never silently still "approved".
 
 ### Stage 4 — export/review
 

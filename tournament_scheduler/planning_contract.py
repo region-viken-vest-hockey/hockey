@@ -459,6 +459,19 @@ def verify_candidate(
     tournaments = [t for t in candidate.get("tournaments", []) if not t.get("cancelled")]
     violations.extend(validate_tournament_identity(candidate))
 
+    # Deterministic approval diagnostics: an approval whose
+    # protected-fields fingerprint no longer matches the tournament is a
+    # stale approval -- non-blocking for correctness (the plan can still be
+    # hard-valid) but surfaced so it can never masquerade as an approved
+    # placement, and publication readiness reports re-review.
+    _canonical_baseline = (problem or {}).get("canonical_baseline") or {}
+    stale_approvals: List[Dict[str, Any]] = [
+        dict(entry) for entry in (_canonical_baseline.get("stale_approvals") or [])
+    ]
+    orphaned_approvals: List[Dict[str, Any]] = [
+        dict(entry) for entry in (_canonical_baseline.get("orphaned_approvals") or [])
+    ]
+
     def _violate(code: str, message: str, tournament_id: Optional[str] = None) -> None:
         entry: Dict[str, Any] = {"code": code, "message": message}
         if tournament_id is not None:
@@ -603,6 +616,8 @@ def verify_candidate(
             "manual_external_conflict_placements": [],
             "manual_participation_placements": [],
             "input_constrained_shapes": [],
+            "stale_approvals": stale_approvals,
+            "orphaned_approvals": orphaned_approvals,
         }
 
     # --- problem-dependent checks -------------------------------------------
@@ -1018,6 +1033,8 @@ def verify_candidate(
         "manual_external_conflict_placements": manual_external_conflict_placements,
         "manual_participation_placements": manual_participation_placements,
         "input_constrained_shapes": input_constrained_shapes,
+        "stale_approvals": stale_approvals,
+        "orphaned_approvals": orphaned_approvals,
     }
 
 

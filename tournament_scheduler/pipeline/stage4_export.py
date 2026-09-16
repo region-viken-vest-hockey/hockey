@@ -203,6 +203,26 @@ def run(
     except Exception:
         source_run_id = None
 
+    # Operator approval/lock status for this canonical season.
+    # Exported plans are projections of canonical schedule + decision state,
+    # so the export surfaces which placements the operator already approved
+    # (and which approvals have gone stale) instead of making clubs re-review
+    # them.  Best-effort: a missing/unreadable canonical season just means no
+    # approval overlay, never an export failure.
+    approval_status: dict[str, Any] | None = None
+    try:
+        from ..canonical_baseline import resolve_canonical_state
+        from ..season_state import approval_report
+
+        plan_start = getattr(plan, "start_date", None)
+        plan_end = getattr(plan, "end_date", None)
+        if plan_start is not None and plan_end is not None:
+            resolved = resolve_canonical_state(effective_config, plan_start, plan_end)
+            if resolved:
+                approval_status = approval_report(resolved["season"], root=resolved["root"])
+    except Exception:
+        approval_status = None
+
     if plan_dict.get("placeholder") == "not_started" or (plan_checkpoint.get("not_started") and not plan.tournaments):
         message = str(plan_dict.get("message") or NOT_STARTED_MESSAGE)
         _progress("Genererer tomme ikke-begynt-filer")
@@ -444,6 +464,7 @@ def run(
         "input_file": Path(input_path).name,
         "canonical_season": canonical_season,
         "canonical_revision": canonical_revision,
+        "approval_status": approval_status,
     }
     meta: dict[str, Any] | None = None
     _scrape_cache_data: dict[str, Any] = {}
@@ -693,6 +714,7 @@ def run(
         "export_fingerprint": export_fingerprint,
         "canonical_season": canonical_season,
         "canonical_revision": canonical_revision,
+        "approval_status": approval_status,
         "export_lifecycle": lifecycle_manifest,
     }
     if errors and strict:

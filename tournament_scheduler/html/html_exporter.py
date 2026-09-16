@@ -105,7 +105,35 @@ class HtmlExporter:
         manual_schedule_path: Absolute path to the generated manual_schedule.html file. When
             provided and the file exists, a navbar link to the manual scheduling view is included.
         """
-        tournaments_json = self._plan_to_json(plan, ice_time_for_age_group)
+        pipeline = pipeline_meta or {}
+        approval_status = pipeline.get("approval_status") if isinstance(pipeline.get("approval_status"), dict) else {}
+        approval_entries = approval_status.get("tournaments") if isinstance(approval_status, dict) else None
+        approval_by_tournament = {
+            str(entry.get("tournament_id")): entry
+            for entry in (approval_entries or [])
+            if isinstance(entry, dict) and entry.get("tournament_id")
+        }
+        approval_counts = approval_status.get("counts") if isinstance(approval_status, dict) else None
+        approval_count_html = ""
+        approval_filter_html = ""
+        if approval_counts:
+            approved = int(approval_counts.get("approved") or 0)
+            stale = int(approval_counts.get("stale") or 0)
+            locked = int(approval_counts.get("locked") or 0)
+            approval_count_html = (
+                f"<span>{approved} godkjent, {stale} utdatert, {locked} låst</span>"
+            )
+            approval_filter_html = (
+                '<select id="filterApproval" class="filter-select">'
+                '<option value="">Alle godkjenninger</option>'
+                '<option value="approved">Kun godkjente</option>'
+                '<option value="stale">Kun utdaterte</option>'
+                '<option value="not_approved">Ikke godkjente</option>'
+                '</select>'
+            )
+        tournaments_json = self._plan_to_json(
+            plan, ice_time_for_age_group, approval_by_tournament=approval_by_tournament
+        )
 
         # Count unique teams
         all_teams: set[str] = set()
@@ -305,6 +333,8 @@ class HtmlExporter:
                 "$FAIRNESS_GATE_STATUS_LABEL$": str({"pass": "PASS", "warn": "VARSEL", "fail": "FEIL"}.get(plan.fairness_gate.get("status", "pass") if isinstance(plan.fairness_gate, dict) else "pass", "PASS")),
                 "$AGE_GROUP_OPTIONS$": age_group_options,
                 "$TOURNAMENTS_JSON$": tournaments_json,
+                "$APPROVAL_COUNT$": approval_count_html,
+                "$APPROVAL_FILTER$": approval_filter_html,
             }
 
             html = PAGE_TEMPLATE
@@ -362,9 +392,14 @@ class HtmlExporter:
         return html
 
     @staticmethod
-    def _plan_to_json(plan: SeasonPlan, ice_time_for_age_group: dict[str, int] | None = None) -> str:
+    def _plan_to_json(
+        plan: SeasonPlan,
+        ice_time_for_age_group: dict[str, int] | None = None,
+        approval_by_tournament: dict[str, Any] | None = None,
+    ) -> str:
         """Serialize the plan's tournaments to the compact JSON format used by the HTML."""
         ice_time_for_age_group = ice_time_for_age_group or {}
+        approval_by_tournament = approval_by_tournament or {}
         data = []
         for t in plan.tournaments:
             games = [
@@ -396,6 +431,11 @@ class HtmlExporter:
                 entry["cr"] = t.cancellation_reason or ""
             if t.manual_booking_reason:
                 entry["mb"] = t.manual_booking_reason
+            approval = approval_by_tournament.get(str(t.id))
+            if approval:
+                entry["ap"] = str(approval.get("status") or "")
+                if approval.get("placement_locked") or approval.get("participants_locked"):
+                    entry["apl"] = True
             data.append(entry)
         return json.dumps(data, ensure_ascii=False)
 

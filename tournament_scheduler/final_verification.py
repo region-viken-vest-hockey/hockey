@@ -234,6 +234,8 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
         ("manual_calendar_placements", "manual_calendar_placements"),
         ("manual_external_conflict_placements", "external_calendar_conflicts"),
         ("manual_participation_placements", "participation_shortfalls"),
+        ("stale_approvals", "stale_approvals"),
+        ("orphaned_approvals", "orphaned_approvals"),
     ):
         count = len(result.get(field) or [])
         if count:

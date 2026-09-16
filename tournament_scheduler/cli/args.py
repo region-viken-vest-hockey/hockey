@@ -1013,7 +1013,25 @@ def build_parser() -> argparse.ArgumentParser:
     season_approve.add_argument("--no-placement-lock", dest="placement_locked", action="store_false", help="Approve without locking placement")
     season_approve.set_defaults(placement_locked=True)
     season_approve.add_argument("--participants-lock", action="store_true", help="Also lock participants")
+    season_approve.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_approve.add_argument("--json", action="store_true", help="Print updated decisions.json as JSON")
+
+    season_unapprove = season_sub.add_parser(
+        "unapprove", help="Revoke approval and locks for one canonical tournament, restoring editability"
+    )
+    season_unapprove.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_unapprove.add_argument("--tournament-id", required=True, help="Durable tournament id to unapprove")
+    season_unapprove.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_unapprove.add_argument("--actor", default=None, help="Operator identity")
+    season_unapprove.add_argument("--note", default="", help="Reason for revoking the approval")
+    season_unapprove.add_argument("--json", action="store_true", help="Print updated decisions.json as JSON")
+
+    season_approvals = season_sub.add_parser(
+        "approvals", help="List per-tournament approval/lock status, including stale approvals"
+    )
+    season_approvals.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_approvals.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_approvals.add_argument("--json", action="store_true", help="Print the approval report as JSON")
 
     season_move = season_sub.add_parser("move", help="Apply a verified placement mutation to canonical schedule state")
     season_move.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
@@ -1023,6 +1041,7 @@ def build_parser() -> argparse.ArgumentParser:
     season_move.add_argument("--arena", default=None, help="New arena")
     season_move.add_argument("--host-club", default=None, help="New physical host club")
     season_move.add_argument("--start-time", default=None, help="New start time/placement value")
+    season_move.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_move.add_argument("--json", action="store_true", help="Print updated schedule.json as JSON")
 
     season_apply = season_sub.add_parser(

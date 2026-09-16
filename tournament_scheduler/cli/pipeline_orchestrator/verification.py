@@ -268,6 +268,11 @@ def _write_run_evidence_bundle(
             final_candidate_fingerprint=final_candidate_fingerprint,
             export_fingerprint=export_checkpoint.get("export_fingerprint"),
             final_verify_result=verify_result,
+            approval_status=(
+                export_checkpoint.get("approval_status")
+                if isinstance(export_checkpoint.get("approval_status"), dict)
+                else None
+            ),
         )
 
         bundle = build_run_evidence_bundle(

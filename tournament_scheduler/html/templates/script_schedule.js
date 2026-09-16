@@ -85,6 +85,7 @@ function render() {
   var arenaSel = document.getElementById('filterArena');
   var clubSel = document.getElementById('filterClub');
   var searchSel = document.getElementById('filterSearch');
+  var approvalSel = document.getElementById('filterApproval');
   var timeline = document.getElementById('timeline');
   var totalTournaments = document.getElementById('totalTournaments');
   var visibleCount = document.getElementById('visibleCount');
@@ -95,6 +96,7 @@ function render() {
   var arena = arenaSel ? arenaSel.value : '';
   var club = clubSel ? clubSel.value : '';
   var search = searchSel ? searchSel.value.toLowerCase().trim() : '';
+  var approval = approvalSel ? approvalSel.value : '';
 
   var html = '';
   var visible = 0;
@@ -111,6 +113,9 @@ function render() {
       var haystack = (t.a + ' ' + t.h + ' ' + t.g + ' ' + t.m.map(function(m) { return m[0] + ' ' + m[1]; }).join(' ')).toLowerCase();
       if (haystack.indexOf(search) === -1) continue;
     }
+    if (approval === 'approved' && t.ap !== 'approved') continue;
+    if (approval === 'stale' && t.ap !== 'stale_approval') continue;
+    if (approval === 'not_approved' && t.ap === 'approved') continue;
 
     visible++;
     if (!timeline) continue;
@@ -128,7 +133,14 @@ function render() {
     var manualBadge = t.mb
       ? '<div class="manual-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>MÅ BOOKES MANUELT</div>'
       : '';
+    var approvalBadge = '';
+    if (t.ap === 'approved') {
+      approvalBadge = '<div class="approval-badge' + (t.apl ? ' approval-badge--locked' : '') + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>GODKJENT' + (t.apl ? ' · LÅST' : '') + '</div>';
+    } else if (t.ap === 'stale_approval') {
+      approvalBadge = '<div class="approval-badge approval-badge--stale"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>GODKJENNING UTGÅR</div>';
+    }
     html += '<div class="tournament-card' + cancelledClass + '" onclick="this.classList.toggle(\'expanded\')">' +
+      approvalBadge +
       manualBadge +
       cancelledBadge +
       '<div class="tournament-card-header">' +
@@ -172,6 +184,8 @@ var clubDashboard = document.getElementById('clubDashboard');
 
 if (ageFilter) ageFilter.addEventListener('change', render);
 if (arenaFilter) arenaFilter.addEventListener('change', render);
+var approvalFilter = document.getElementById('filterApproval');
+if (approvalFilter) approvalFilter.addEventListener('change', render);
 if (clubFilter) clubFilter.addEventListener('change', function() {
   var club = this.value;
   var dashboard = clubDashboard;
@@ -193,6 +207,7 @@ if (clearFilter) clearFilter.addEventListener('click', function() {
   if (ageFilter) ageFilter.value = '';
   if (arenaFilter) arenaFilter.value = '';
   if (clubFilter) clubFilter.value = '';
+  if (approvalFilter) approvalFilter.value = '';
   if (searchFilter) searchFilter.value = '';
   if (clubDashboard) clubDashboard.style.display = 'none';
   render();

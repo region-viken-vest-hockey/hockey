@@ -22,6 +22,8 @@ scripts/rvv-miniputt season promote --work-dir .pipeline --season 2026-2027
 scripts/rvv-miniputt season status --season 2026-2027
 scripts/rvv-miniputt season export --season 2026-2027
 scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
+scripts/rvv-miniputt season unapprove --season 2026-2027 --tournament-id <id> --note "arena rebooked"
+scripts/rvv-miniputt season approvals --season 2026-2027
 scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
 scripts/rvv-miniputt season replan --season 2026-2027 --iterations 4000
 scripts/rvv-miniputt season diff --season 2026-2027 --candidate <candidate.json>
@@ -37,6 +39,14 @@ After promotion, planning is **baseline-aware** rather than from-scratch. Reposi
 - every other published tournament stays mutable, but `season diff` reports a weighted change cost (`none` < participant-only `participants` < `placement` < `replacement`) so search and the operator prefer the smallest change that resolves the problem; the local-search objective folds in that same weighted cost (scaled by `canonical_change_cost_scale`, default `5.0`), so minimising change is an active search term and not only a reported metric. The A/B report exposes the same cost when the problem carries a baseline;
 - `season replan` runs the normal Stage 3 engine boundary starting from the canonical schedule (not a regenerated season), rejects any candidate that breaks a lock or hard verification, and writes the result to the transient Stage 3 checkpoint; `--apply` then persists it through the atomic canonical apply boundary;
 - `season apply` re-checks locks and hard verification itself, preserves durable IDs and approval records for surviving tournaments, invalidates a stale approval whose facts changed, and atomically replaces both canonical files or changes nothing.
+
+Approval is a per-tournament lifecycle in `decisions.json`, independent of schedule facts:
+
+- `season approve` first re-verifies the current canonical plan against hard verification and refuses a tournament with a tournament-attributable hard violation or a known external calendar conflict. Approval is an operator judgment on a hard-valid placement, never a waiver of hard rules;
+- the stored `approved_fingerprint` covers the normalized protected scheduling state (id, age group, date, arena, physical host, start time/occupied interval, participant roster and deterministic game/round structure). Team/game listing order is ignored; any real change to a protected field invalidates the approval;
+- a tournament whose fingerprint no longer matches is reported as a deterministic `stale_approval` rather than silently reverting to `pending_review`: `season approvals`/`season status` show the counts, the export/evidence bundle reports it as a `stale_approvals` publication-readiness reason, and the stale lock is dropped so a legacy/out-of-band change is never silently kept frozen. Reapproving after a deliberate change records a new fingerprint;
+- `season unapprove` is the only way back to editability for a locked tournament: it clears the fingerprint and both lock scopes and records the revocation. `season move` rejects a placement-locked tournament and tells the operator to unapprove first; `--force` does not bypass approval protection;
+- operator HTML/evidence surfaces approval/lock status (a `Godkjent` badge, approval counts, and the export `approval_status` section) so already-reviewed placements are visible and not needlessly re-reviewed.
 
 Promotion is deliberately exclusive: while a canonical season exists for the planning window, a normal Stage 3 run adopts it rather than regenerating a season (`season promote` refuses to overwrite without `--force`). To intentionally start a season over, deliberately promote a replacement candidate with `--force` or move/delete the canonical season directory -- do not expect an ordinary run to churn the baseline away.
 

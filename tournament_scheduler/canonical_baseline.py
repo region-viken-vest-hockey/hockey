@@ -92,6 +92,101 @@ def _tournament_snapshot(tournament: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _normalized_approval_payload(tournament: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the exact protected scheduling state an approval covers.
+
+    Normalized so semantically irrelevant ordering (the sequence teams happen
+    to appear in, or the order games are listed) does not invalidate an
+    approval, while any change to a protected field -- id, age group, date,
+    arena, physical host, start time/occupied interval, participant roster or
+    deterministic game/round structure -- does.
+    """
+    teams = sorted(
+        (
+            str(team.get("club") or ""),
+            str(team.get("label") or ""),
+            str(team.get("age_group") or ""),
+        )
+        for team in tournament.get("teams", []) or []
+        if isinstance(team, dict) and team.get("label")
+    )
+    games = sorted(
+        (
+            int(game.get("round_number") or 0),
+            str(game.get("home") or ""),
+            str(game.get("away") or ""),
+            int(game.get("parallel_slot") or 0),
+        )
+        for game in tournament.get("games", []) or []
+        if isinstance(game, dict)
+    )
+    return {
+        "id": str(tournament.get("id") or ""),
+        "age_group": tournament.get("age_group"),
+        "date": tournament.get("date"),
+        "arena": tournament.get("arena"),
+        "host_club": tournament.get("host_club"),
+        "start_time": tournament.get("start_time"),
+        "teams": [list(identity) for identity in teams],
+        "games": [list(game) for game in games],
+    }
+
+
+def approval_fingerprint(tournament: Dict[str, Any]) -> str:
+    """Return the protected-fields fingerprint an approval records.
+
+    The fingerprint covers the normalized protected scheduling state (see
+    :func:`_normalized_approval_payload`), so any real change to a protected
+    field invalidates a stored approval instead of silently keeping it
+    "approved".
+    """
+    # Imported lazily: ``tournament_scheduler.pipeline`` eagerly imports the
+    # planning contract, which imports this module, so a top-level import
+    # here would be a circular import.
+    from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+
+    return stable_payload_sha256(_normalized_approval_payload(tournament))
+
+
+def resolve_approval(
+    record: Optional[Dict[str, Any]],
+    tournament: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Resolve a decision record plus the current tournament into effective state.
+
+    A stored approval only counts while its ``approved_fingerprint`` still
+    matches the current tournament.  A mismatch is a deterministic
+    ``stale_approval``: the tournament is reported as no longer approved and
+    its locks are dropped, so a legacy/buggy mutation path can never keep an
+    approval (or its protection) alive unnoticed.  Locks without any stored
+    approval fingerprint keep the legacy explicit-lock behavior.
+    """
+    record = record or {}
+    current_fingerprint = approval_fingerprint(tournament)
+    approved_fingerprint = record.get("approved_fingerprint")
+    stale = bool(approved_fingerprint) and approved_fingerprint != current_fingerprint
+    if str(record.get("status") or "") == "stale_approval":
+        # An approval invalidated by a mutation stays invalid until the
+        # operator explicitly reapproves, even if the tournament later
+        # reverts to identical bytes.
+        stale = True
+    raw_status = str(record.get("status") or "pending_review")
+    status = "stale_approval" if stale else raw_status
+    return {
+        "status": status,
+        "stale": stale,
+        "approved": status == "approved",
+        "placement_locked": bool(record.get("placement_locked")) and not stale,
+        "participants_locked": bool(record.get("participants_locked")) and not stale,
+        "approved_fingerprint": approved_fingerprint,
+        "current_fingerprint": current_fingerprint,
+        "approved_at": record.get("approved_at"),
+        "approved_by": record.get("approved_by"),
+        "note": record.get("note") or "",
+        "stale_reason": record.get("stale_reason"),
+    }
+
+
 def build_canonical_baseline(
     schedule: Dict[str, Any],
     decisions: Optional[Dict[str, Any]] = None,
@@ -108,26 +203,99 @@ def build_canonical_baseline(
     records = (decisions or {}).get("decisions") or {}
     locks: Dict[str, Dict[str, bool]] = {}
     snapshots: List[Dict[str, Any]] = []
+    approvals: Dict[str, Dict[str, Any]] = {}
+    stale_approvals: List[Dict[str, Any]] = []
+    seen_ids: set[str] = set()
     for tournament in plan.get("tournaments", []) or []:
         snapshot = _tournament_snapshot(tournament)
         tournament_id = snapshot["id"]
         if not tournament_id:
             continue
+        seen_ids.add(tournament_id)
         snapshots.append(snapshot)
         record = records.get(tournament_id) or {}
-        placement_locked = bool(record.get("placement_locked"))
-        participants_locked = bool(record.get("participants_locked"))
-        if placement_locked or participants_locked:
+        resolved = resolve_approval(record, tournament)
+        approval_entry = {
+            "status": resolved["status"],
+            "stale": resolved["stale"],
+            "placement_locked": resolved["placement_locked"],
+            "participants_locked": resolved["participants_locked"],
+            "approved_fingerprint": resolved["approved_fingerprint"],
+            "current_fingerprint": resolved["current_fingerprint"],
+            "approved_at": resolved["approved_at"],
+            "approved_by": resolved["approved_by"],
+            "note": resolved["note"],
+        }
+        approvals[tournament_id] = approval_entry
+        if resolved["placement_locked"] or resolved["participants_locked"]:
             locks[tournament_id] = {
-                "placement": placement_locked,
-                "participants": participants_locked,
+                "placement": resolved["placement_locked"],
+                "participants": resolved["participants_locked"],
             }
+        if resolved["stale"]:
+            stale_approvals.append(
+                {
+                    "code": "stale_approval",
+                    "tournament_id": tournament_id,
+                    "message": (
+                        f"Tournament {tournament_id} changed after it was approved; "
+                        "the stored approval no longer matches and must be reapproved"
+                    ),
+                    "approved_fingerprint": resolved["approved_fingerprint"],
+                    "current_fingerprint": resolved["current_fingerprint"],
+                    "approved_at": resolved["approved_at"],
+                    "approved_by": resolved["approved_by"],
+                    "note": resolved["note"],
+                    "stale_reason": resolved.get("stale_reason"),
+                }
+            )
+    # A decision record that still claims an approval for a tournament the
+    # canonical schedule no longer has is an orphaned approval, not a valid
+    # one.  Surface it instead of silently ignoring the leftover state.
+    orphaned_approvals: List[Dict[str, Any]] = []
+    for tournament_id, record in records.items():
+        if tournament_id in seen_ids:
+            continue
+        if not (record or {}).get("approved_fingerprint"):
+            continue
+        orphaned_approvals.append(
+            {
+                "code": "orphaned_approval",
+                "tournament_id": tournament_id,
+                "message": (
+                    f"Approval for tournament {tournament_id} has no matching tournament "
+                    "in the canonical schedule"
+                ),
+                "approved_fingerprint": record.get("approved_fingerprint"),
+                "approved_at": record.get("approved_at"),
+                "approved_by": record.get("approved_by"),
+            }
+        )
+    locked_count = sum(
+        1 for lock in locks.values() if lock.get("placement") or lock.get("participants")
+    )
+    approval_summary = {
+        "total": len(seen_ids),
+        "approved_count": sum(
+            1 for entry in approvals.values() if entry["status"] == "approved"
+        ),
+        "stale_count": len(stale_approvals),
+        "orphaned_count": len(orphaned_approvals),
+        "locked_count": locked_count,
+        "pending_count": sum(
+            1 for entry in approvals.values() if entry["status"] == "pending_review"
+        ),
+    }
     return {
         "schema_version": CANONICAL_BASELINE_SCHEMA_VERSION,
         "season": schedule.get("season"),
         "revision": schedule.get("revision") or schedule.get("fingerprint"),
         "locks": locks,
         "tournaments": snapshots,
+        "approvals": approvals,
+        "stale_approvals": stale_approvals,
+        "orphaned_approvals": orphaned_approvals,
+        "approval_summary": approval_summary,
     }
 
 

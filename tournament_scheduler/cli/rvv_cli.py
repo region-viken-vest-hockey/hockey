@@ -1152,6 +1152,53 @@ def _print_escalation_table(
     _console.print(panel)
 
 
+def _canonical_verification_problem(
+    work_dir: str, season: str | None = None, root: str | None = None
+) -> dict | None:
+    """Best-effort full ``planning_problem`` for canonical approval/move gates.
+
+    Reconstructs the same problem contract Stage 3 was given (including any
+    canonical baseline locks and active operator waivers) so approving or
+    moving a canonical tournament is checked against the real hard
+    invariants, not only self-consistency.  Returns ``None`` when the inputs
+    cannot be reconstructed, degrading to self-consistency verification.  When
+    *season*/*root* are given, an unrelated ``--work-dir`` pipeline (a
+    different season's config) is ignored rather than applied to this season.
+    """
+    from datetime import date as _date
+
+    from ..pipeline.stage1_config import load_effective_config
+    from ..pipeline.stage4_export_verification import _build_export_verification_problem
+    from ..pipeline.state import PipelineState
+
+    state = PipelineState(work_dir)
+    try:
+        effective_config = load_effective_config(state)
+    except Exception:
+        effective_config = {}
+    if not effective_config:
+        return None
+    if season:
+        start_raw = effective_config.get("start_date")
+        end_raw = effective_config.get("end_date")
+        if not start_raw or not end_raw:
+            return None
+        try:
+            from ..canonical_baseline import resolve_canonical_season
+
+            resolved = resolve_canonical_season(
+                effective_config,
+                _date.fromisoformat(str(start_raw)),
+                _date.fromisoformat(str(end_raw)),
+                root=root,
+            )
+        except Exception:
+            return None
+        if resolved != season:
+            return None
+    return _build_export_verification_problem(effective_config, state)
+
+
 def _cmd_season(args: argparse.Namespace) -> int:
     """Handle canonical Git-backed season-state commands."""
     import json as _json
@@ -1160,6 +1207,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
     from ..pipeline.state import PipelineState
     from ..season_state import (
         SeasonStateError,
+        approval_report,
         approve_tournament,
         decisions_path,
         move_tournament,
@@ -1168,6 +1216,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         planning_checkpoint_from_schedule,
         promote_from_stage3,
         schedule_path,
+        unapprove_tournament,
     )
 
     try:
@@ -1228,9 +1277,9 @@ def _cmd_season(args: argparse.Namespace) -> int:
         if args.season_command == "status":
             schedule = load_schedule(args.season, root=args.root)
             decisions = load_decisions(args.season, root=args.root)
+            report = approval_report(args.season, root=args.root)
+            counts = report["counts"]
             records = decisions.get("decisions", {})
-            approved = sum(1 for record in records.values() if record.get("status") == "approved")
-            locked = sum(1 for record in records.values() if record.get("placement_locked") or record.get("participants_locked"))
             summary = {
                 "season": args.season,
                 "schedule_path": str(schedule_path(args.season, root=args.root)),
@@ -1239,8 +1288,11 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 "fingerprint": schedule.get("fingerprint"),
                 "tournament_count": len(schedule.get("plan", {}).get("tournaments", [])),
                 "decision_count": len(records),
-                "approved_count": approved,
-                "locked_count": locked,
+                "approved_count": counts["approved"],
+                "locked_count": counts["locked"],
+                "stale_approval_count": counts["stale"],
+                "orphaned_approval_count": counts["orphaned"],
+                "stale_approvals": report["stale_approvals"],
             }
             if args.json:
                 print(_json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
@@ -1248,7 +1300,43 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(f"[bold]Canonical season {args.season}[/bold]")
                 _console.print(f"  revision: {summary['revision']}")
                 _console.print(f"  tournaments: {summary['tournament_count']}")
-                _console.print(f"  decisions: {summary['decision_count']} ({approved} approved, {locked} locked)")
+                _console.print(
+                    f"  decisions: {summary['decision_count']} "
+                    f"({counts['approved']} approved, {counts['locked']} locked, "
+                    f"{counts['stale']} stale)"
+                )
+                if counts["stale"]:
+                    _console.print(
+                        "  [yellow]⚠[/yellow] stale approvals (reapprove or unapprove): "
+                        + ", ".join(entry["tournament_id"] for entry in report["stale_approvals"])
+                    )
+            return 0
+
+        if args.season_command == "approvals":
+            report = approval_report(args.season, root=args.root)
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                counts = report["counts"]
+                _console.print(f"[bold]Godkjenninger {args.season}[/bold]")
+                _console.print(
+                    f"  {counts['approved']} godkjent, {counts['stale']} utdatert, "
+                    f"{counts['pending_review']} til gjennomgang, "
+                    f"{counts['locked']} låst"
+                )
+                for entry in report["tournaments"]:
+                    marker = {
+                        "approved": "[green]✓[/green]",
+                        "stale_approval": "[yellow]⚠[/yellow]",
+                    }.get(entry["status"], "[dim]·[/dim]")
+                    locks = ""
+                    if entry["placement_locked"]:
+                        locks += " placement"
+                    if entry["participants_locked"]:
+                        locks += " participants"
+                    _console.print(
+                        f"  {marker} {entry['tournament_id']}: {entry['status']}{locks or ''}"
+                    )
             return 0
 
         if args.season_command == "approve":
@@ -1260,6 +1348,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 note=args.note,
                 placement_locked=args.placement_locked,
                 participants_locked=args.participants_lock,
+                problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
             )
             if args.json:
                 print(_json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True))
@@ -1267,16 +1356,24 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(f"[green]✓[/green] Approved {args.tournament_id} in {args.season}")
             return 0
 
-        if args.season_command == "move":
-            from ..pipeline.stage1_config import load_effective_config
-            from ..pipeline.stage4_export_verification import _build_export_verification_problem
+        if args.season_command == "unapprove":
+            decisions = unapprove_tournament(
+                season=args.season,
+                tournament_id=args.tournament_id,
+                root=args.root,
+                actor=args.actor,
+                note=args.note,
+            )
+            if args.json:
+                print(_json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] Unapproved {args.tournament_id} in {args.season}; "
+                    "placement is editable again"
+                )
+            return 0
 
-            state = PipelineState(args.work_dir)
-            try:
-                effective_config = load_effective_config(state)
-            except Exception:
-                effective_config = {}
-            problem = _build_export_verification_problem(effective_config, state) if effective_config else None
+        if args.season_command == "move":
             schedule = move_tournament(
                 season=args.season,
                 tournament_id=args.tournament_id,
@@ -1285,7 +1382,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 arena=args.arena,
                 host_club=args.host_club,
                 start_time=args.start_time,
-                problem=problem,
+                problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
             )
             if args.json:
                 print(_json.dumps(schedule, ensure_ascii=False, indent=2, sort_keys=True))

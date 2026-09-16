@@ -147,6 +147,7 @@ def _plan_dict_with_final_operator_evidence(
         "unresolved_tournament_placements",
         "operator_waivers",
         "operator_waived_violations",
+        "approval_status",
     ):
         if key in final_operator_evidence:
             merged[key] = final_operator_evidence.get(key)
@@ -600,6 +601,7 @@ def _build_checklist_evidence_guide(
     publication_readiness: dict[str, Any] | None,
     operator_waivers: list[dict[str, Any]] | None = None,
     operator_waived_violations: list[dict[str, Any]] | None = None,
+    approval_status: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Point the semantic judge at the strongest persisted evidence per checklist item."""
     question_by_id = {int(item["item_id"]): item["question"] for item in AUDIT_CHECKLIST}
@@ -738,6 +740,7 @@ def _build_checklist_evidence_guide(
                 "deterministic_verify_result",
                 "operator_waivers",
                 "operator_waived_violations",
+                "approval_status",
                 "plan_audit_summary",
                 "plan_audit_summary.tournament_utilisation_summary",
                 "calendar_evidence_summary",
@@ -746,6 +749,7 @@ def _build_checklist_evidence_guide(
                 "publication_readiness": publication_readiness,
                 "operator_waivers": operator_waivers,
                 "operator_waived_violations": operator_waived_violations,
+                "approval_status": approval_status,
                 "tournament_utilisation_summary": plan_audit_summary.get("tournament_utilisation_summary"),
             },
         },
@@ -805,6 +809,14 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
 
         publication_readiness = _compute_readiness(deterministic_verify_result)
 
+    approval_status: dict[str, Any] | None = None
+    if isinstance(final_operator_evidence, dict) and isinstance(final_operator_evidence.get("approval_status"), dict):
+        approval_status = final_operator_evidence.get("approval_status")
+    elif isinstance(plan_dict, dict) and isinstance(plan_dict.get("approval_status"), dict):
+        approval_status = plan_dict.get("approval_status")
+    elif isinstance(deterministic_verify_result.get("stale_approvals"), list) and deterministic_verify_result.get("stale_approvals"):
+        approval_status = {"stale_approvals": deterministic_verify_result.get("stale_approvals")}
+
     calendar_evidence_summary = (evidence_bundle or {}).get("source_summary") or {}
     if not calendar_evidence_summary:
         calendar_evidence_summary = _summarize_scraping_checkpoint(scraping_checkpoint)
@@ -825,6 +837,7 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
         publication_readiness=publication_readiness,
         operator_waivers=operator_waivers,
         operator_waived_violations=operator_waived_violations,
+        approval_status=approval_status,
     )
 
     return {
@@ -844,6 +857,7 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
         "deterministic_verify_result": deterministic_verify_result,
         "operator_waivers": operator_waivers,
         "operator_waived_violations": operator_waived_violations,
+        "approval_status": approval_status,
         "publication_readiness": publication_readiness,
         "evidence_bundle": evidence_bundle,
         "calendar_evidence_summary": calendar_evidence_summary,

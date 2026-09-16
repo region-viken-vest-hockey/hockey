@@ -110,6 +110,7 @@ def build_final_operator_evidence(
     final_candidate_fingerprint: str | None,
     export_fingerprint: str | None,
     final_verify_result: dict[str, Any] | None,
+    approval_status: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Return the reconciled final operator/readiness state for one export.
 
@@ -134,6 +135,9 @@ def build_final_operator_evidence(
         "unresolved_tournament_placements": list(plan_dict.get("unresolved_tournament_placements") or []),
         "operator_waivers": list(plan_dict.get("operator_waivers") or []),
         "operator_waived_violations": list(plan_dict.get("operator_waived_violations") or []),
+        # How many tournaments are approved, which ones, and whether every
+        # approval fingerprint still matches canonical state.
+        "approval_status": approval_status,
     }
 
 
