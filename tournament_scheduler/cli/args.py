@@ -969,6 +969,62 @@ def build_parser() -> argparse.ArgumentParser:
         help="Pipeline work directory (default: .pipeline)",
     )
 
+    # season — canonical Git-backed promoted season state
+    season = sub.add_parser(
+        "season",
+        help="Promote, inspect and export canonical Git-backed season state",
+    )
+    season_sub = season.add_subparsers(dest="season_command")
+
+    season_promote = season_sub.add_parser(
+        "promote",
+        help="Deliberately promote the current verified Stage 3 candidate into season/<season>/ state",
+    )
+    season_promote.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
+    season_promote.add_argument("--season", default=None, help="Season id, e.g. 2026-2027 (default: infer from plan)")
+    season_promote.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_promote.add_argument("--actor", default=None, help="Operator identity for the promotion record")
+    season_promote.add_argument("--force", action="store_true", help="Deliberately replace existing canonical state")
+    season_promote.add_argument("--json", action="store_true", help="Print written state metadata as JSON")
+
+    season_export = season_sub.add_parser(
+        "export",
+        help="Regenerate Stage 4 exports from canonical season state, without relying on Stage 3 checkpoints",
+    )
+    season_export.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_export.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_export.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for export checkpoint/logs")
+    season_export.add_argument("--export-dir", default="export", help="Export directory (default: export)")
+    season_export.add_argument("--flat", dest="timestamped_export", action="store_false", help="Write directly into --export-dir")
+    season_export.set_defaults(timestamped_export=True)
+    season_export.add_argument("--json", action="store_true", help="Print Stage 4 export checkpoint as JSON")
+
+    season_status = season_sub.add_parser("status", help="Show canonical season state metadata")
+    season_status.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_status.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_status.add_argument("--json", action="store_true", help="Print canonical state metadata as JSON")
+
+    season_approve = season_sub.add_parser("approve", help="Approve/lock one canonical tournament in decisions.json")
+    season_approve.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_approve.add_argument("--tournament-id", required=True, help="Durable tournament id to approve")
+    season_approve.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_approve.add_argument("--actor", default=None, help="Operator identity")
+    season_approve.add_argument("--note", default="", help="Approval note")
+    season_approve.add_argument("--no-placement-lock", dest="placement_locked", action="store_false", help="Approve without locking placement")
+    season_approve.set_defaults(placement_locked=True)
+    season_approve.add_argument("--participants-lock", action="store_true", help="Also lock participants")
+    season_approve.add_argument("--json", action="store_true", help="Print updated decisions.json as JSON")
+
+    season_move = season_sub.add_parser("move", help="Apply a verified placement mutation to canonical schedule state")
+    season_move.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_move.add_argument("--tournament-id", required=True, help="Durable tournament id to mutate")
+    season_move.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_move.add_argument("--date", default=None, help="New date (YYYY-MM-DD)")
+    season_move.add_argument("--arena", default=None, help="New arena")
+    season_move.add_argument("--host-club", default=None, help="New physical host club")
+    season_move.add_argument("--start-time", default=None, help="New start time/placement value")
+    season_move.add_argument("--json", action="store_true", help="Print updated schedule.json as JSON")
+
     # cancel
     cancel = sub.add_parser("cancel", help="Cancel a tournament and suggest/reschedule makeup dates")
     cancel.add_argument(

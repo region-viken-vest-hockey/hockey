@@ -1152,6 +1152,147 @@ def _print_escalation_table(
     _console.print(panel)
 
 
+def _cmd_season(args: argparse.Namespace) -> int:
+    """Handle canonical Git-backed season-state commands."""
+    import json as _json
+
+    from ..pipeline.stage4_export import run as run_export
+    from ..pipeline.state import PipelineState
+    from ..season_state import (
+        SeasonStateError,
+        approve_tournament,
+        decisions_path,
+        move_tournament,
+        load_decisions,
+        load_schedule,
+        planning_checkpoint_from_schedule,
+        promote_from_stage3,
+        schedule_path,
+    )
+
+    try:
+        if args.season_command == "promote":
+            schedule, decisions = promote_from_stage3(
+                work_dir=args.work_dir,
+                season=args.season,
+                root=args.root,
+                actor=args.actor,
+                force=args.force,
+            )
+            summary = {
+                "season": schedule["season"],
+                "schedule_path": str(schedule_path(schedule["season"], root=args.root)),
+                "decisions_path": str(decisions_path(schedule["season"], root=args.root)),
+                "fingerprint": schedule["fingerprint"],
+                "tournament_count": len(schedule["plan"].get("tournaments", [])),
+                "decision_count": len(decisions.get("decisions", {})),
+            }
+            if args.json:
+                print(_json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] Promoted canonical season {summary['season']} "
+                    f"({summary['tournament_count']} tournaments)"
+                )
+                _console.print(f"  schedule: {summary['schedule_path']}")
+                _console.print(f"  decisions: {summary['decisions_path']}")
+                _console.print(f"  revision: {summary['fingerprint']}")
+            return 0
+
+        if args.season_command == "export":
+            schedule = load_schedule(args.season, root=args.root)
+            checkpoint = planning_checkpoint_from_schedule(schedule)
+            state = PipelineState(args.work_dir)
+            result = run_export(
+                checkpoint,
+                state=state,
+                export_dir=args.export_dir,
+                strict=True,
+                timestamped_export=args.timestamped_export,
+            )
+            result["canonical_season"] = args.season
+            result["canonical_revision"] = schedule.get("revision")
+            from ..pipeline.state import StageName, StageStatus
+            state.write_stage(StageName.EXPORT, result, status=StageStatus.DONE)
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] Exported canonical season {args.season} "
+                    f"revision {schedule.get('revision')}"
+                )
+                for label, path in result.get("output_files", {}).items():
+                    _console.print(f"  {label}: {path}")
+            return 0
+
+        if args.season_command == "status":
+            schedule = load_schedule(args.season, root=args.root)
+            decisions = load_decisions(args.season, root=args.root)
+            records = decisions.get("decisions", {})
+            approved = sum(1 for record in records.values() if record.get("status") == "approved")
+            locked = sum(1 for record in records.values() if record.get("placement_locked") or record.get("participants_locked"))
+            summary = {
+                "season": args.season,
+                "schedule_path": str(schedule_path(args.season, root=args.root)),
+                "decisions_path": str(decisions_path(args.season, root=args.root)),
+                "revision": schedule.get("revision"),
+                "fingerprint": schedule.get("fingerprint"),
+                "tournament_count": len(schedule.get("plan", {}).get("tournaments", [])),
+                "decision_count": len(records),
+                "approved_count": approved,
+                "locked_count": locked,
+            }
+            if args.json:
+                print(_json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(f"[bold]Canonical season {args.season}[/bold]")
+                _console.print(f"  revision: {summary['revision']}")
+                _console.print(f"  tournaments: {summary['tournament_count']}")
+                _console.print(f"  decisions: {summary['decision_count']} ({approved} approved, {locked} locked)")
+            return 0
+
+        if args.season_command == "approve":
+            decisions = approve_tournament(
+                season=args.season,
+                tournament_id=args.tournament_id,
+                root=args.root,
+                actor=args.actor,
+                note=args.note,
+                placement_locked=args.placement_locked,
+                participants_locked=args.participants_lock,
+            )
+            if args.json:
+                print(_json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(f"[green]✓[/green] Approved {args.tournament_id} in {args.season}")
+            return 0
+
+        if args.season_command == "move":
+            schedule = move_tournament(
+                season=args.season,
+                tournament_id=args.tournament_id,
+                root=args.root,
+                date=args.date,
+                arena=args.arena,
+                host_club=args.host_club,
+                start_time=args.start_time,
+            )
+            if args.json:
+                print(_json.dumps(schedule, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] Updated {args.tournament_id} in {args.season}; "
+                    f"revision {schedule.get('revision')}"
+                )
+            return 0
+
+        _console.print("[red]✗[/red] Missing season subcommand")
+        return 1
+    except SeasonStateError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
@@ -1210,6 +1351,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_candidates(args)
     elif args.command == "plan":
         return _cmd_plan(args)
+    elif args.command == "season":
+        return _cmd_season(args)
     elif args.command == "waiver":
         return _cmd_waiver(args)
     else:

@@ -51,10 +51,11 @@ external hall/club calendars -> Stage 2: evidence collection
 - **`Årshjul for aktiviteter.xlsx`** is the activity-calendar source workbook.
 - **External calendar sources** are authoritative for their own availability evidence, subject to source-health/provenance checks.
 - **Repository code and tests** define deterministic parsing, hard constraints, verification, metrics, persistence, export and publication safety.
+- **`season/<season>/schedule.json` and `season/<season>/decisions.json`** are the Git-backed canonical current season state after a verified candidate is deliberately promoted for club review/booking. The schedule file owns schedule facts; the decisions file owns approval/lock workflow state.
 - **`.agents/skills/rvv/SKILL.md`** is the shared agent runbook for contextual/soft decisions.
 - **GitHub issues** are the implementation backlog. ADRs preserve durable rationale.
 
-Generated HTML, CSV, Excel, iCal, caches, checkpoints and Pages bundles are derived data, not new sources of truth.
+Generated HTML, CSV, Excel, iCal, caches, checkpoints and Pages bundles are derived data, not new sources of truth. After baseline promotion, GitHub Pages remains the official published view, but the machine-readable operational truth is the canonical season state in Git.
 
 ## Runtime state and storage
 
@@ -65,8 +66,9 @@ controlled files in repo
         ↓
 Python CLI / Make / harness adapter
         ↓
-.pipeline/        local checkpoints, cache, manifest, logs, decisions
-export/<time>/    review/export bundle
+.pipeline/        local checkpoints, cache, manifest, logs, transient decisions
+season/<season>/  canonical promoted schedule + approval/lock state
+export/<time>/    review/export bundle regenerated from checkpoints or canonical state
         ↓
 public-bundle preparation + privacy gate
         ↓

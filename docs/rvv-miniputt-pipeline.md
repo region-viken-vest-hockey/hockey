@@ -15,7 +15,17 @@ Normal human operation should use `make operator-run`. Agent/harness checkpoint 
 | 3 — Planning | normalized config + trusted source evidence | Build/search/solve candidate plans; run hard verification and reproducible quality measurement. | selected plan/candidate checkpoint |
 | 4 — Export | selected Stage 3 plan | Re-verify at serialization boundary and create the review/export bundle. | output file map + export fingerprint |
 
-Checkpoints, logs, cache and run/decision state live under `.pipeline/` and are generated runtime state.
+Checkpoints, logs, cache and run/decision state live under `.pipeline/` and are generated runtime state. Once a schedule is ready to become the operational baseline for club review/booking, promote it explicitly into Git-backed season state:
+
+```bash
+scripts/rvv-miniputt season promote --work-dir .pipeline --season 2026-2027
+scripts/rvv-miniputt season status --season 2026-2027
+scripts/rvv-miniputt season export --season 2026-2027
+scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
+scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
+```
+
+Promotion writes `season/<season>/schedule.json` (canonical schedule facts) and `season/<season>/decisions.json` (approval/lock workflow state). Stage 4 exports and publication bundles are derived projections; `.pipeline` may be deleted and the export can be regenerated from canonical season state. Canonical mutations load the current state, apply the bounded change to a clone, enforce approval/placement locks, run hard verification, and replace the state files only when accepted.
 
 ## Canonical input
 
@@ -175,9 +185,9 @@ A normal timestamped `export/<timestamp>/` may contain:
 - `review_packets/` — per-club review material;
 - activity artifacts when the configured activity data is available.
 
-The Stage 4 checkpoint's `output_files` map is the authoritative record of what that run actually produced.
+The Stage 4 checkpoint's `output_files` map is the authoritative record of what that run actually produced. Exports regenerated with `season export` also record the canonical season revision/fingerprint in the checkpoint so operators can tell which Git-backed state was projected.
 
-Generated artifacts are derived data. Do not permanently patch them by hand; correct the source/config/code and regenerate.
+Generated artifacts are derived data. Do not permanently patch them by hand; correct the source/config/code/canonical season state and regenerate.
 
 ## Review before publication
 
