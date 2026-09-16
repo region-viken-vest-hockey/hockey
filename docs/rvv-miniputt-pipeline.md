@@ -106,7 +106,7 @@ Approval lives in `decisions.json`, separate from schedule facts.
 
 ### Targeted changes
 
-Use `season move` for one known placement change. It preserves durable ID and rejects locked tournaments until explicitly unapproved.
+Use `season move` for one known placement change. It preserves durable ID and rejects locked tournaments until explicitly unapproved. The move clones canonical state, applies only the requested date/arena/host/start-time fields, rejects default cross-half moves, verifies the complete candidate before writing, and records old/new placement plus before/after fingerprints in decisions history. Add `--dry-run` to perform the same validation without mutating `schedule.json` or `decisions.json`.
 
 For broader quality/placement repair, use `season replan`, inspect `season diff`, then `season apply`. Search starts from canonical state, honors locks and includes weighted change cost so published-but-unapproved tournaments are not churned gratuitously.
 

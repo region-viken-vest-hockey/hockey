@@ -1375,6 +1375,12 @@ def _cmd_season(args: argparse.Namespace) -> int:
             return 0
 
         if args.season_command == "move":
+            try:
+                from ..pipeline.run_manifest import RunManifest
+
+                move_run_id = RunManifest(args.work_dir).read().get("run_id")
+            except Exception:
+                move_run_id = None
             schedule = move_tournament(
                 season=args.season,
                 tournament_id=args.tournament_id,
@@ -1384,12 +1390,18 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 host_club=args.host_club,
                 start_time=args.start_time,
                 problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+                allow_cross_half=args.allow_cross_half,
+                run_id=move_run_id,
             )
             if args.json:
                 print(_json.dumps(schedule, ensure_ascii=False, indent=2, sort_keys=True))
             else:
+                action = "Validated move preview for" if schedule.get("dry_run") else "Updated"
                 _console.print(
-                    f"[green]✓[/green] Updated {args.tournament_id} in {args.season}; "
+                    f"[green]✓[/green] {action} {args.tournament_id} in {args.season}; "
                     f"revision {schedule.get('revision')}"
                 )
             return 0

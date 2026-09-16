@@ -12,7 +12,7 @@ import json
 import os
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import date as _date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -204,6 +204,7 @@ def _append_decision_history(
     tournament_fingerprint: str | None = None,
     previous_fingerprint: str | None = None,
     note: str = "",
+    details: dict[str, Any] | None = None,
 ) -> None:
     """Append a durable approval-lifecycle audit entry to decisions.json.
 
@@ -212,18 +213,19 @@ def _append_decision_history(
     involved, never private reasoning.
     """
     history = decisions.setdefault("history", [])
-    history.append(
-        {
-            "event": event,
-            "tournament_id": tournament_id,
-            "actor": actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator",
-            "at": now,
-            "tournament_fingerprint": tournament_fingerprint,
-            "previous_fingerprint": previous_fingerprint,
-            "schedule_fingerprint": decisions.get("schedule_fingerprint"),
-            "note": note or "",
-        }
-    )
+    entry = {
+        "event": event,
+        "tournament_id": tournament_id,
+        "actor": actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator",
+        "at": now,
+        "tournament_fingerprint": tournament_fingerprint,
+        "previous_fingerprint": previous_fingerprint,
+        "schedule_fingerprint": decisions.get("schedule_fingerprint"),
+        "note": note or "",
+    }
+    if details:
+        entry["details"] = details
+    history.append(entry)
 
 
 def promote_from_stage3(
@@ -318,6 +320,35 @@ def promote_from_stage3(
     return schedule_payload, decisions_payload
 
 
+def _parse_iso_date_for_move(value: str, field: str) -> _date:
+    try:
+        return _date.fromisoformat(str(value))
+    except (TypeError, ValueError) as exc:
+        raise SeasonStateError(f"Invalid {field}: {value!r}; expected YYYY-MM-DD") from exc
+
+
+def _validate_start_time_for_move(value: str | None) -> None:
+    if value is None:
+        return
+    try:
+        hour_s, minute_s = str(value).split(":", 1)
+        hour = int(hour_s)
+        minute = int(minute_s)
+    except (TypeError, ValueError) as exc:
+        raise SeasonStateError(f"Invalid start_time: {value!r}; expected HH:MM") from exc
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        raise SeasonStateError(f"Invalid start_time: {value!r}; expected HH:MM")
+
+
+def _placement_snapshot(tournament: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "date": tournament.get("date"),
+        "arena": tournament.get("arena"),
+        "host_club": tournament.get("host_club"),
+        "start_time": tournament.get("start_time"),
+    }
+
+
 def move_tournament(
     *,
     season: str,
@@ -328,18 +359,29 @@ def move_tournament(
     host_club: str | None = None,
     start_time: str | None = None,
     problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+    allow_cross_half: bool = False,
+    run_id: str | None = None,
 ) -> dict[str, Any]:
-    """Apply a bounded placement mutation to canonical schedule state.
+    """Apply or preview a bounded placement mutation to canonical state.
 
-    Approval/lock decisions are enforced before mutation.  The full serialized
-    candidate is re-verified before either canonical file is replaced, using
-    *problem* when the caller can reconstruct the planning contract (so
-    problem-dependent hard invariants are checked too).  A rejected mutation
-    leaves both canonical files byte-unchanged.
+    Approval/lock decisions are enforced before mutation.  The selected plan is
+    cloned, exactly the requested placement fields are changed (deriving a
+    physical host only from a known arena-owner mapping), and the complete
+    resulting candidate is re-verified before any write.  A rejected mutation
+    and every ``dry_run`` leave both canonical files byte-unchanged.
     """
+
+    if not any(value is not None for value in (date, arena, host_club, start_time)):
+        raise SeasonStateError("Refusing canonical move: specify at least one target placement field")
+    target_date = _parse_iso_date_for_move(date, "date") if date is not None else None
+    _validate_start_time_for_move(start_time)
 
     schedule = load_schedule(season, root=root)
     decisions = load_decisions(season, root=root)
+    before_revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
     plan = dict(schedule["plan"])
     tournaments = [dict(t) for t in plan.get("tournaments", [])]
     target = next(
@@ -348,6 +390,8 @@ def move_tournament(
     )
     if target is None:
         raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+    if target.get("cancelled"):
+        raise SeasonStateError(f"Tournament {tournament_id} is cancelled and cannot be moved")
     record = decisions.get("decisions", {}).get(tournament_id, {})
     resolved = resolve_approval(record, target)
     if resolved["placement_locked"]:
@@ -356,19 +400,56 @@ def move_tournament(
             "unapprove it explicitly first"
         )
 
+    original_placement = _placement_snapshot(target)
+    original_tournament_fingerprint = approval_fingerprint(target)
+    if target_date is not None:
+        start_raw = plan.get("start_date") or (problem or {}).get("start_date")
+        end_raw = plan.get("end_date") or (problem or {}).get("end_date")
+        if start_raw and end_raw:
+            window_start = _parse_iso_date_for_move(str(start_raw), "season start_date")
+            window_end = _parse_iso_date_for_move(str(end_raw), "season end_date")
+            if not (window_start <= target_date <= window_end):
+                raise SeasonStateError(
+                    f"Cannot move {tournament_id}: target date {target_date.isoformat()} is outside "
+                    f"the planning window {window_start.isoformat()}–{window_end.isoformat()}"
+                )
+            if not allow_cross_half and original_placement.get("date"):
+                from tournament_scheduler import planning_half
+
+                split = planning_half.christmas_split_date(window_start, window_end)
+                old_half = planning_half.tournament_half(
+                    _parse_iso_date_for_move(str(original_placement["date"]), "current date"), split
+                )
+                new_half = planning_half.tournament_half(target_date, split)
+                if old_half != new_half:
+                    raise SeasonStateError(
+                        f"Cannot move {tournament_id}: target date crosses planning half "
+                        f"({old_half} -> {new_half}); pass allow_cross_half only for an explicit policy exception"
+                    )
+
+    effective_host_club = host_club
+    if arena is not None and host_club is None:
+        from tournament_scheduler.club_distances import arena_to_club
+
+        owner = arena_to_club(arena)
+        if owner and owner != target.get("host_club"):
+            effective_host_club = owner
+
     changed = False
+    moved_tournament: dict[str, Any] | None = None
     for tournament in tournaments:
         if str(tournament.get("id")) != tournament_id:
             continue
         for field, value in {
             "date": date,
             "arena": arena,
-            "host_club": host_club,
+            "host_club": effective_host_club,
             "start_time": start_time,
         }.items():
             if value is not None and tournament.get(field) != value:
                 tournament[field] = value
                 changed = True
+        moved_tournament = tournament
         break
     if not changed:
         return schedule
@@ -390,6 +471,19 @@ def move_tournament(
             "plan": plan,
         }
     )
+    if dry_run:
+        updated_schedule["dry_run"] = True
+        updated_schedule["move_preview"] = {
+            "tournament_id": tournament_id,
+            "old_placement": original_placement,
+            "new_placement": _placement_snapshot(moved_tournament or target),
+            "before_fingerprint": before_revision,
+            "after_fingerprint": fingerprint,
+            "verification_result": result,
+            "run_id": run_id,
+        }
+        return updated_schedule
+
     decisions = dict(decisions)
     decisions["schedule_fingerprint"] = fingerprint
     decisions["updated_at"] = now
@@ -398,6 +492,24 @@ def move_tournament(
     # approved without a placement lock) -- surface it as stale_approval
     # instead of leaving a record that still claims to be approved.
     decisions["decisions"] = _reconcile_decisions(decisions.get("decisions", {}), plan, now=now)
+    _append_decision_history(
+        decisions,
+        event="move",
+        tournament_id=tournament_id,
+        actor=actor,
+        now=now,
+        tournament_fingerprint=approval_fingerprint(moved_tournament or target),
+        previous_fingerprint=original_tournament_fingerprint,
+        note=note,
+        details={
+            "old_placement": original_placement,
+            "new_placement": _placement_snapshot(moved_tournament or target),
+            "before_fingerprint": before_revision,
+            "after_fingerprint": fingerprint,
+            "verification_result": result,
+            "run_id": run_id,
+        },
+    )
     _write_season_state_atomic(
         season_dir(season, root=root), updated_schedule, decisions, require_absent=False
     )

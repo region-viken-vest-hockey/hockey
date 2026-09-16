@@ -1041,6 +1041,14 @@ def build_parser() -> argparse.ArgumentParser:
     season_move.add_argument("--arena", default=None, help="New arena")
     season_move.add_argument("--host-club", default=None, help="New physical host club")
     season_move.add_argument("--start-time", default=None, help="New start time/placement value")
+    season_move.add_argument("--actor", default=None, help="Operator identity")
+    season_move.add_argument("--note", default="", help="Move note/reason for decisions history")
+    season_move.add_argument("--dry-run", action="store_true", help="Validate and preview the move without writing canonical state")
+    season_move.add_argument(
+        "--allow-cross-half",
+        action="store_true",
+        help="Allow a date move across the before/after-Christmas planning boundary",
+    )
     season_move.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_move.add_argument("--json", action="store_true", help="Print updated schedule.json as JSON")
 
