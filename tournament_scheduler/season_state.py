@@ -18,8 +18,11 @@ from typing import Any
 
 from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
-from tournament_scheduler.pipeline.stage4_export_verification import _build_export_verification_problem
 from tournament_scheduler.pipeline.state import PipelineState, StageName
+from tournament_scheduler.pipeline.verification_context import (
+    VerificationContextError,
+    resolve_promotion_verification_context,
+)
 from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
@@ -231,15 +234,31 @@ def promote_from_stage3(
     actor: str | None = None,
     force: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Promote the current verified Stage 3 candidate into canonical season state."""
+    """Promote the reviewed Stage 4 candidate into canonical season state.
+
+    Promotion verifies the exact candidate against the provenance-bound
+    verification context that accepted the reviewed Stage 4 export -- never
+    against a problem rebuilt from whatever Stage 1/2 state happens to be in
+    ``.pipeline`` now, and never against a context-free fallback.
+    ``--force`` only replaces existing canonical state; it is not a verification
+    bypass.
+    """
 
     state = PipelineState(work_dir)
     checkpoint = state.read_stage(StageName.PLANNING)
     if not checkpoint:
         raise SeasonStateError("No Stage 3 planning checkpoint found to promote")
     candidate = extract_candidate(checkpoint)
-    problem = _build_export_verification_problem({}, state)
-    result = verify_candidate(candidate, problem)
+    try:
+        bound_context = resolve_promotion_verification_context(
+            work_dir=str(work_dir), candidate=candidate
+        )
+    except VerificationContextError as exc:
+        raise SeasonStateError(f"Refusing promotion: {exc}") from exc
+    # Re-verify the exact candidate against the exact bound context.  This is
+    # the same deterministic verifier Stage 4 ran; promotion cannot accept a
+    # candidate that context rejects, and cannot substitute a different ruleset.
+    result = verify_candidate(candidate, bound_context["problem"])
     if not result.get("ok", True):
         messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
         raise SeasonStateError(f"Refusing promotion: selected candidate fails hard verification: {messages}")
@@ -257,7 +276,6 @@ def promote_from_stage3(
 
     now = datetime.now(tz=timezone.utc).isoformat()
     fingerprint = schedule_fingerprint(plan_dict)
-    source_export = state.read_stage(StageName.EXPORT)
     schedule_payload = {
         "schema_version": SEASON_STATE_SCHEMA_VERSION,
         "season": resolved_season,
@@ -267,11 +285,19 @@ def promote_from_stage3(
         "fingerprint": fingerprint,
         "plan_schema_version": SEASON_PLAN_SCHEMA_VERSION,
         "plan": plan_dict,
+        # Immutable provenance for the transition into canonical state:
+        # which run produced the baseline, which reviewed export
+        # was promoted, and which verification context accepted it.
         "promoted_from": {
             "work_dir": str(work_dir),
+            "run_id": bound_context["run_id"],
             "stage3_fingerprint": fingerprint,
-            "stage4_export_fingerprint": source_export.get("export_fingerprint"),
-            "stage4_export_dir": source_export.get("export_dir"),
+            "stage4_export_fingerprint": bound_context["export_fingerprint"],
+            "stage4_export_dir": bound_context.get("export_dir"),
+            "verification_context_schema_version": bound_context["context"].get("schema_version"),
+            "verification_context_problem_fingerprint": bound_context.get("problem_fingerprint"),
+            "verification_context_candidate_fingerprint": bound_context["candidate_fingerprint"],
+            "verification_context_verified_ok": True,
         },
     }
     decisions_payload = {

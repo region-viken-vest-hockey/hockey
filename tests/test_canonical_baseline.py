@@ -15,6 +15,7 @@ from tournament_scheduler.canonical_baseline import (
     verify_canonical_locks,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_state import (
     SeasonStateError,
@@ -183,6 +184,7 @@ def _promote(tmp_path, tournaments):
     root = tmp_path / "season"
     state = PipelineState(work_dir)
     state.write_stage(StageName.PLANNING, {"plan": _plan(tournaments)}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state)
     promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
     return root
 

@@ -58,7 +58,7 @@ If the operator named a specific export directory/run, it must match the Stage 4
 
 When both the export manifest and current run manifest expose a run id, require the provenance to agree. A mismatch means a later run has changed `.pipeline`; do not promote until the intended review run is restored or explicitly identified.
 
-The current `season promote` command promotes the verified Stage 3 candidate from the selected work directory and records Stage 4 provenance. Therefore Stage 3 and Stage 4 in that work directory must represent the same review handoff. If evidence suggests Stage 3 was rerun after the review export, stop rather than guessing.
+The current `season promote` command verifies the Stage 3 candidate against the verification context bound to the reviewed Stage 4 export and records that provenance. Therefore Stage 3 and Stage 4 in that work directory must represent the same review handoff, and the Stage 4 export must be the completed, non-stale one whose source run still matches the workspace. If evidence suggests Stage 3 or Stage 1/2 state was rerun after the review export, stop rather than guessing -- promotion refuses a stale/missing provenance or candidate mismatch rather than silently rebuilding a different verification context.
 
 ## 2. Check whether canonical season state already exists
 

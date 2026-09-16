@@ -61,6 +61,17 @@ season/2026-2027/schedule.json
 season/2026-2027/decisions.json
 ```
 
+Promotion verifies the exact reviewed candidate against the verification context that
+accepted the Stage 4 export, not against whatever Stage 1/2 state happens to be in
+`.pipeline` at promotion time. The Stage 4 checkpoint carries a versioned
+`verification_context` (source run id, candidate/export fingerprint, the normalized
+planning problem and its fingerprint). Promotion refuses with an explicit
+stale/missing-provenance error if the Stage 4 export is incomplete/stale, the selected
+candidate no longer matches the reviewed export, the source run differs, or the
+verification context is missing -- it never silently falls back to context-free
+verification. `promoted_from` in `schedule.json` records the source run, reviewed
+export/candidate fingerprint and verification-context fingerprint.
+
 Promotion is deliberate and exclusive. An ordinary later Stage 3 run whose window matches the promoted season adopts that canonical schedule as its baseline rather than silently regenerating it.
 
 ## Phase 2 — promoted-season maintenance

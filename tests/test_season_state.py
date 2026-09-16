@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 import pytest
 
 from tournament_scheduler.season_state import (
@@ -50,11 +51,16 @@ def _candidate() -> dict:
     }
 
 
+def _stage_plan(state) -> None:
+    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state)
+
+
 def test_promote_writes_separate_deterministic_schedule_and_decisions(tmp_path: Path) -> None:
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
     state = PipelineState(work_dir)
-    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    _stage_plan(state)
 
     schedule, decisions = promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
 
@@ -79,7 +85,7 @@ def test_approval_updates_only_decisions_file(tmp_path: Path) -> None:
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
     state = PipelineState(work_dir)
-    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    _stage_plan(state)
     promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
     schedule_file = root / "2026-2027" / "schedule.json"
     before_schedule = schedule_file.read_bytes()
@@ -108,7 +114,7 @@ def test_move_mutates_schedule_when_unlocked_and_rejects_locked_moves(tmp_path: 
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
     state = PipelineState(work_dir)
-    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    _stage_plan(state)
     promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
 
     moved = move_tournament(
@@ -138,7 +144,7 @@ def test_move_changes_only_intended_fields(tmp_path: Path) -> None:
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
     state = PipelineState(work_dir)
-    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    _stage_plan(state)
     promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
     original = load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]
 
@@ -158,7 +164,7 @@ def test_unknown_or_invalid_move_leaves_canonical_files_unchanged(tmp_path: Path
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
     state = PipelineState(work_dir)
-    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    _stage_plan(state)
     promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
     before = (root / "2026-2027" / "schedule.json").read_bytes()
     before_decisions = (root / "2026-2027" / "decisions.json").read_bytes()
@@ -174,7 +180,7 @@ def test_canonical_state_survives_pipeline_deletion_and_reloads(tmp_path: Path) 
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
     state = PipelineState(work_dir)
-    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    _stage_plan(state)
     promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
 
     import shutil
@@ -194,7 +200,7 @@ def test_repeated_noop_promotion_keeps_ids_and_order(tmp_path: Path) -> None:
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
     state = PipelineState(work_dir)
-    state.write_stage(StageName.PLANNING, {"plan": _candidate()}, status=StageStatus.DONE)
+    _stage_plan(state)
 
     first, _ = promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
     second, _ = promote_from_stage3(work_dir=work_dir, root=root, actor="tester", force=True)

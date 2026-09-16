@@ -67,6 +67,7 @@ from .stage4_export_manual_schedule import (
     _manual_schedule_html,
 )
 from .stage4_export_verification import _build_export_verification_problem
+from .verification_context import build_verification_context
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +126,13 @@ def run(
     except Exception:
         effective_config = {}
 
+    try:
+        from .run_manifest import RunManifest
+
+        source_run_id = RunManifest(state.work_dir).read().get("run_id")
+    except Exception:
+        source_run_id = None
+
     # Hard verification boundary (issue #309): whatever candidate is about to
     # be materialized into every export format must independently re-verify
     # clean *here*, at the one chokepoint every caller of this function goes
@@ -152,6 +160,17 @@ def run(
         export_candidate = dict(plan_dict)
     export_verify_result = verify_candidate(export_candidate, export_problem)
     export_fingerprint = stable_payload_sha256(export_candidate.get("tournaments", []))
+    # Provenance-bound verification context: persist the exact
+    # problem this candidate was verified against, plus its fingerprint and
+    # the source run id, so `season promote` can prove it is re-verifying the
+    # same reviewed handoff instead of rebuilding a problem from whatever
+    # Stage 1/2 files happen to be present later.
+    verification_context = build_verification_context(
+        run_id=source_run_id,
+        candidate=export_candidate,
+        problem=export_problem,
+        verify_result=export_verify_result,
+    )
     if not export_verify_result.get("ok", True):
         violations = export_verify_result.get("violations", [])
         violation_summary = "; ".join(
@@ -169,6 +188,7 @@ def run(
                 "errors": [reason],
                 "verify_result": export_verify_result,
                 "export_fingerprint": export_fingerprint,
+                "verification_context": verification_context,
             },
             status=StageStatus.FAILED,
         )
@@ -196,12 +216,6 @@ def run(
     canonical_state = raw_canonical_state if isinstance(raw_canonical_state, dict) else {}
     canonical_season = canonical_state.get("season")
     canonical_revision = canonical_state.get("revision") or canonical_state.get("fingerprint")
-    try:
-        from .run_manifest import RunManifest
-
-        source_run_id = RunManifest(state.work_dir).read().get("run_id")
-    except Exception:
-        source_run_id = None
 
     # Operator approval/lock status for this canonical season.
     # Exported plans are projections of canonical schedule + decision state,
@@ -251,6 +265,7 @@ def run(
             "not_started": True,
             "message": message,
             "export_fingerprint": export_fingerprint,
+            "verification_context": verification_context,
             "canonical_season": canonical_season,
             "canonical_revision": canonical_revision,
             "export_lifecycle": lifecycle_manifest,
@@ -712,6 +727,7 @@ def run(
         "pruned_exports": pruned_exports,
         "verify_result": export_verify_result,
         "export_fingerprint": export_fingerprint,
+        "verification_context": verification_context,
         "canonical_season": canonical_season,
         "canonical_revision": canonical_revision,
         "approval_status": approval_status,
