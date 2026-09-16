@@ -208,6 +208,46 @@ class TestHostingBalanceMatrix:
         assert imbalances[("Skien", "JU12")] == -1
         assert imbalances[("Jutul/Jar Kittens", "JU12")] == -1
 
+    def test_missing_slot_remains_intended_hosts_manual_responsibility(self):
+        teams = [_team("Alpha", "U9"), _team("Beta", "U9")]
+        tournaments = [
+            {"host_club": "Beta", "age_group": "U9", "date": "2026-10-10", "arena": "Beta Arena"},
+            {"host_club": "Beta", "age_group": "U9", "date": "2026-10-17", "arena": "Beta Arena"},
+        ]
+
+        rows = {row["club"]: row for row in hosting_balance_matrix(teams, tournaments)}
+
+        assert rows["Alpha"]["target"] == 1
+        assert rows["Alpha"]["actual_physical_hosting"] == 0
+        assert rows["Alpha"]["assigned_responsibility"] == 1
+        assert rows["Alpha"]["manual_unplaced"] == 1
+        assert rows["Alpha"]["manual_placement_required"] == 1
+        assert rows["Alpha"]["responsibility_deficit"] == 0
+        assert rows["Beta"]["target"] == 1
+        assert rows["Beta"]["actual_physical_hosting"] == 2
+        assert rows["Beta"]["excess"] == 1
+
+    def test_manual_physical_slot_counts_as_responsibility_but_not_automatic_placement(self):
+        teams = [_team("Shared One/Shared Two", "U10")]
+        tournaments = [
+            {
+                "host_club": "Shared Two",
+                "age_group": "U10",
+                "date": "2026-11-01",
+                "arena": "Shared Arena",
+                "manual_booking_reason": "calendar source unavailable",
+            }
+        ]
+
+        row = hosting_balance_matrix(teams, tournaments)[0]
+
+        assert row["assigned_responsibility"] == 1
+        assert row["actual_physical_hosting"] == 1
+        assert row["placed_automatically"] == 0
+        assert row["manual_unplaced"] == 0
+        assert row["manual_placement_required"] == 1
+        assert row["responsibility_delta"] == 0
+
 
 class TestHostingTargetsWithCoverageFloor:
     def test_bumps_zero_target_club_to_one_when_arithmetically_possible(self):

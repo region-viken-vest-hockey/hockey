@@ -120,6 +120,22 @@ def hosting_balance_matrix(
     teams = list(teams)
     tournaments = [t for t in tournaments if isinstance(t, dict) and not t.get("cancelled")]
 
+    def _is_automatic_placement(tournament: Dict[str, Any]) -> bool:
+        return bool(tournament.get("date") and tournament.get("arena") and not tournament.get("manual_booking_reason"))
+
+    auto_counts: Dict[Tuple[str, str], int] = defaultdict(int)
+    manual_physical_counts: Dict[Tuple[str, str], int] = defaultdict(int)
+    for tournament in tournaments:
+        host = tournament.get("host_club")
+        age_group = tournament.get("age_group")
+        if not host or not age_group:
+            continue
+        key = (host, age_group)
+        if _is_automatic_placement(tournament):
+            auto_counts[key] += 1
+        else:
+            manual_physical_counts[key] += 1
+
     team_counts_by_age: Dict[str, Dict[str, int]] = defaultdict(dict)
     for row in hosting_coverage_matrix(teams, tournaments):
         team_counts_by_age[row["age_group"]][row["club"]] = int(row.get("teams", 0))
@@ -147,16 +163,35 @@ def hosting_balance_matrix(
         actual = int(row.get("hosted", 0))
         target = int(targets_by_age.get(age_group, {}).get(club, 0))
         delta = actual - target
+        constituents = _constituent_clubs(club)
+        placed_automatically = sum(auto_counts.get((constituent, age_group), 0) for constituent in constituents)
+        manual_physical = sum(manual_physical_counts.get((constituent, age_group), 0) for constituent in constituents)
+        manual_unplaced = max(0, target - actual)
+        assigned_responsibility = actual + manual_unplaced
+        responsibility_delta = assigned_responsibility - target
         rows.append(
             {
                 "club": club,
                 "age_group": age_group,
                 "teams": int(row.get("teams", 0)),
                 "target": target,
+                # Backward-compatible physical-hosting fields used by existing
+                # reports and thresholds.
                 "actual": actual,
                 "delta": delta,
                 "deficit": max(0, -delta),
                 "excess": max(0, delta),
+                # Issue #361 responsibility ledger: calendar feasibility may
+                # change placement state, but missing automatic ice is retained
+                # as this same club/shared-registration's responsibility.
+                "assigned_responsibility": assigned_responsibility,
+                "placed_automatically": placed_automatically,
+                "manual_unplaced": manual_unplaced,
+                "manual_placement_required": manual_unplaced + manual_physical,
+                "actual_physical_hosting": actual,
+                "responsibility_delta": responsibility_delta,
+                "responsibility_deficit": max(0, -responsibility_delta),
+                "responsibility_excess": max(0, responsibility_delta),
                 "coverage_unresolved": bool(row.get("unresolved")),
                 "target_unmet_structural": club in unmet_by_age.get(age_group, set()),
             }

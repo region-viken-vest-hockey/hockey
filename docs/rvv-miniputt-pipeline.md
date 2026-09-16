@@ -110,6 +110,8 @@ Use `season move` for one known placement change. It preserves durable ID and re
 
 For broader quality/placement repair, use `season replan`, inspect `season diff`, then `season apply`. Search starts from canonical state, honors locks and includes weighted change cost so published-but-unapproved tournaments are not churned gratuitously.
 
+Hosting responsibility is recomputed after candidate-changing operations as a club/shared-registration × age-group ledger: proportional target, assigned responsibility, automatic placements, manual/unplaced responsibility and actual physical hosting. Missing trustworthy ice keeps the obligation with the intended club as manual placement; another club's convenient slot is reported as physical excess rather than silently absorbing the responsibility.
+
 Canonical writes are transactional: rejected verification or write failure must not leave mixed `schedule.json` / `decisions.json` state.
 
 ## Export lifecycle
