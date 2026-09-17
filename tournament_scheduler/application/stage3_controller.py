@@ -29,6 +29,7 @@ from typing import Any, Mapping, Protocol
 from .decisions import DecisionAction
 from .stage3_session import (
     SCOPE_CANDIDATE,
+    SCOPE_RUN,
     TRANSITION_FOR_ACTION,
     Stage3Session,
     candidate_content_fingerprint,
@@ -232,7 +233,13 @@ class Stage3Controller:
         if result.arena_decisions is not None:
             session.arena_decisions = list(result.arena_decisions)
         if result.unresolved is not None:
-            session.unresolved = list(result.unresolved)
+            # Run-scoped shared-host asks and candidate-scoped arena asks are
+            # kept in separate buckets so neither view can leak into the
+            # other's unresolved list.
+            if session.pending_scope() == SCOPE_RUN:
+                session.shared_host_unresolved = list(result.unresolved)
+            else:
+                session.arena_unresolved = list(result.unresolved)
 
 
 def _fingerprint(candidate: Mapping[str, Any] | None) -> str:

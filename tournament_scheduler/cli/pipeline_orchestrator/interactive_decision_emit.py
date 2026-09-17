@@ -9,7 +9,6 @@ from .interactive_state_io import (
     _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
     _current_run_id,
     _read_stage3_interactive_state,
-    _write_stage3_interactive_state,
 )
 from .judgment import _compute_verdict_tone
 from .stage3_optimize_core import _maybe_run_stage3_cp_sat_shadow
@@ -587,13 +586,12 @@ def _emit_stage3_interactive_decision(
         interactive_state["pending_attempt"] = attempts_used
 
     interactive_state["last_context"] = context.to_dict()
-    _write_stage3_interactive_state(state, interactive_state)
 
-    # Mirror the freshly emitted pending decision into the canonical
-    # interactive Stage 3 session. The session -- not this side file -- owns
+    # Persist the freshly emitted pending decision into the canonical
+    # interactive Stage 3 session. The session -- not a side file -- owns
     # candidate revision/fingerprint, pending-decision scope and transition
-    # provenance; the legacy file above stays as the compatibility
-    # projection during the migration.
+    # provenance; the legacy ``stage3_interactive_state.json`` is written by
+    # the store only as a non-authoritative compatibility mirror.
     try:
         from ...application.stage3_session_store import Stage3SessionStore
 

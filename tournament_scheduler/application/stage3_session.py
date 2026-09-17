@@ -39,7 +39,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-STAGE3_SESSION_SCHEMA_VERSION = 1
+STAGE3_SESSION_SCHEMA_VERSION = 2
 
 # ---------------------------------------------------------------------------
 # Status / scope / transition vocabulary
@@ -138,7 +138,11 @@ class Stage3Session:
     candidate_source: str = ""
     shared_host_decisions: list[dict[str, Any]] = field(default_factory=list)
     arena_decisions: list[dict[str, Any]] = field(default_factory=list)
-    unresolved: list[dict[str, Any]] = field(default_factory=list)
+    # Unresolved sub-decisions are kept per scope so a shared-host ask never
+    # leaks into the arena view and vice versa. The run-scoped versus
+    # candidate-scoped split mirrors the decision scopes below.
+    shared_host_unresolved: list[dict[str, Any]] = field(default_factory=list)
+    arena_unresolved: list[dict[str, Any]] = field(default_factory=list)
     pending_decision: dict[str, Any] | None = None
     decision_history: list[dict[str, Any]] = field(default_factory=list)
     attempts: dict[str, Any] = field(default_factory=dict)
@@ -162,6 +166,19 @@ class Stage3Session:
         if not self.pending_decision:
             return ""
         return str(self.pending_decision.get("candidate_fingerprint") or "")
+
+    def pending_marker(self) -> dict[str, Any]:
+        """Domain-specific identity of the pending sub-decision, if any.
+
+        The session stores it opaquely so a caller-scoped view (for example
+        the legacy shared-host/arena projections) can recover the exact
+        ``{"registration", "age_group"}`` / ``{"key"}`` marker without the
+        lifecycle layer owning any of those domain shapes.
+        """
+        if not self.pending_decision:
+            return {}
+        marker = self.pending_decision.get("marker")
+        return dict(marker) if isinstance(marker, dict) else {}
 
     def is_finalized(self) -> bool:
         return self.status == STATUS_FINALIZED
@@ -240,7 +257,7 @@ class Stage3Session:
         self.candidate_fingerprint = fingerprint
         self.candidate = candidate
         self.candidate_source = source
-        self.pending_decision = None
+        self.clear_pending()
         self.status = STATUS_AWAITING_ADOPTION
         # A candidate change invalidates any pending placement/repair scope
         # that referred to the previous revision.
@@ -263,6 +280,7 @@ class Stage3Session:
         candidates: list[dict[str, Any]] | None = None,
         attempt: int | None = None,
         search_exhausted: bool = False,
+        marker: Mapping[str, Any] | None = None,
     ) -> None:
         resolved_scope = scope or (
             SCOPE_RUN if capability in _RUN_SCOPED_CAPABILITIES else SCOPE_CANDIDATE
@@ -276,8 +294,22 @@ class Stage3Session:
             "candidates": list(candidates or []),
             "attempt": attempt,
             "search_exhausted": search_exhausted,
+            "marker": dict(marker or {}),
         }
         self.status = _CAPABILITY_STATUS.get(capability, STATUS_AWAITING_ADOPTION)
+
+    def clear_pending(self) -> None:
+        """Drop the pending decision and recompute the non-pending status.
+
+        A session without a pending interaction is either brand new (no
+        candidate) or waiting for adoption of an already-built candidate; it
+        must never stay stuck reporting the cleared sub-decision's status.
+        """
+        self.pending_decision = None
+        if self.candidate is None:
+            self.status = STATUS_NEW
+        else:
+            self.status = STATUS_AWAITING_ADOPTION
 
     def finalize(self, *, transition: str, action_id: str, rationale: str, at: str) -> None:
         self.finalized_revision = self.candidate_revision
@@ -306,7 +338,8 @@ class Stage3Session:
             "candidate_source": self.candidate_source,
             "shared_host_decisions": list(self.shared_host_decisions),
             "arena_decisions": list(self.arena_decisions),
-            "unresolved": list(self.unresolved),
+            "shared_host_unresolved": list(self.shared_host_unresolved),
+            "arena_unresolved": list(self.arena_unresolved),
             "pending_decision": self.pending_decision,
             "decision_history": list(self.decision_history),
             "attempts": dict(self.attempts),
@@ -322,6 +355,17 @@ class Stage3Session:
                 f"unsupported Stage 3 session schema_version {version} "
                 f"(this build understands <= {STAGE3_SESSION_SCHEMA_VERSION})"
             )
+        shared_unresolved = [dict(item) for item in (data.get("shared_host_unresolved") or [])]
+        arena_unresolved = [dict(item) for item in (data.get("arena_unresolved") or [])]
+        legacy_unresolved = [dict(item) for item in (data.get("unresolved") or [])]
+        if legacy_unresolved and not (shared_unresolved or arena_unresolved):
+            # Schema v1 stored one combined list. Split it back by the shape
+            # of each entry so an old session keeps its unresolved asks.
+            for item in legacy_unresolved:
+                if "registration" in item:
+                    shared_unresolved.append(item)
+                else:
+                    arena_unresolved.append(item)
         return cls(
             run_id=str(data.get("run_id") or ""),
             schema_version=STAGE3_SESSION_SCHEMA_VERSION,
@@ -332,7 +376,8 @@ class Stage3Session:
             candidate_source=str(data.get("candidate_source") or ""),
             shared_host_decisions=[dict(item) for item in (data.get("shared_host_decisions") or [])],
             arena_decisions=[dict(item) for item in (data.get("arena_decisions") or [])],
-            unresolved=[dict(item) for item in (data.get("unresolved") or [])],
+            shared_host_unresolved=shared_unresolved,
+            arena_unresolved=arena_unresolved,
             pending_decision=dict(data["pending_decision"]) if isinstance(data.get("pending_decision"), dict) else None,
             decision_history=[dict(item) for item in (data.get("decision_history") or [])],
             attempts=dict(data.get("attempts") or {}),

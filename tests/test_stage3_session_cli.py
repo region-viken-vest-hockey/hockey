@@ -61,6 +61,11 @@ def test_session_view_migrates_legacy_state_into_one_facade(tmp_path, capsys):
     assert view["pending_decision"]["capability"] == "stage3_interactive"
     assert view["pending_decision"]["scope"] == "candidate"
     assert "run_search" in view["legal_transitions"]
+    # Run-scoped and candidate-scoped sub-decisions are one facade, not three
+    # side files an agent has to reconcile.
+    assert view["shared_host_decisions"] == 0
+    assert view["arena_decisions"] == 0
+    assert view["unresolved"] == {"shared_host": 0, "arena": 0}
 
 
 def test_session_human_output_lists_status_and_transitions(tmp_path, capsys):

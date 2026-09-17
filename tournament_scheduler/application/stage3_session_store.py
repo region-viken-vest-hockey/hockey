@@ -26,6 +26,7 @@ from typing import Any, Mapping
 
 from .stage3_session import (
     SCOPE_CANDIDATE,
+    STATUS_AWAITING_ADOPTION,
     STATUS_FINALIZED,
     STATUS_NEW,
     Stage3Session,
@@ -62,6 +63,22 @@ def _write_json(path: Path, data: Mapping[str, Any]) -> None:
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     os.replace(tmp, path)
+
+
+# The interactive-attempt projection is only meaningful when it carries one of
+# these keys; a bare run_id projection is not a pending Stage 3 interaction.
+_INTERACTIVE_PROJECTION_KEYS = (
+    "attempts_used",
+    "best_attempt",
+    "best_plan",
+    "pending_candidate",
+    "pending_candidates",
+    "last_context",
+)
+
+
+def _has_interactive_state(projection: Mapping[str, Any]) -> bool:
+    return any(key in projection for key in _INTERACTIVE_PROJECTION_KEYS)
 
 
 def extract_candidate_body(plan: Any) -> dict[str, Any] | None:
@@ -129,12 +146,126 @@ class Stage3SessionStore:
     def save(self, session: Stage3Session) -> None:
         _write_json(self.session_path, session.to_dict())
         if session.is_finalized():
-            # The legacy per-attempt side file is transient decision state;
+            # The legacy per-attempt side files are transient decision state;
             # the finalized revision/fingerprint survive in the canonical
             # session file for the Stage 4 handoff.
+            for path in (self.interactive_path, self.shared_host_path, self.arena_path):
+                path.unlink(missing_ok=True)
+            return
+        self._write_interactive_mirror(session)
+        self._write_shared_host_mirror(session)
+        self._write_arena_mirror(session)
+
+    def _write_interactive_mirror(self, session: Stage3Session) -> None:
+        projection = self._projection(session)
+        if not _has_interactive_state(projection):
             self.interactive_path.unlink(missing_ok=True)
             return
-        _write_json(self.interactive_path, self._projection(session))
+        _write_json(self.interactive_path, projection)
+
+    # -- canonical interactive views over the session ---------------------
+
+    def interactive_view(self, run_id: str | None = None) -> dict[str, Any]:
+        """Return the interactive-attempt projection, or ``{}`` when none.
+
+        This is the one read path for callers that used to parse
+        ``stage3_interactive_state.json``: a finalized or never-populated
+        session reports no interactive state, exactly like a missing side
+        file did.
+        """
+        session = self.load(expected_run_id=run_id)
+        if session.is_finalized():
+            return {}
+        projection = self._projection(session)
+        if not _has_interactive_state(projection):
+            return {}
+        return projection
+
+    def record_shared_host(self, data: Mapping[str, Any], run_id: str | None = None) -> Stage3Session:
+        """Fold a shared-host sub-decision state dict into the session."""
+        session = self.load(expected_run_id=run_id)
+        if run_id:
+            session.run_id = run_id
+        elif data.get("run_id"):
+            session.run_id = str(data["run_id"])
+        session.shared_host_decisions = [dict(item) for item in (data.get("decisions") or [])]
+        session.shared_host_unresolved = [dict(item) for item in (data.get("unresolved") or [])]
+        pending = data.get("pending")
+        if pending:
+            session.set_pending(
+                capability="shared_host_assignment",
+                context=data.get("last_context") or {},
+                marker=pending,
+            )
+        elif (session.pending_decision or {}).get("capability") == "shared_host_assignment":
+            session.clear_pending()
+        self.save(session)
+        return session
+
+    def shared_host_view(self, run_id: str | None = None) -> dict[str, Any]:
+        session = self.load(expected_run_id=run_id)
+        projection = self._shared_host_projection(session)
+        if not projection["decisions"] and not projection["unresolved"] and not projection["pending"]:
+            return {}
+        return projection
+
+    def clear_shared_host(self, run_id: str | None = None) -> Stage3Session:
+        session = self.load(expected_run_id=run_id)
+        if not (
+            session.shared_host_decisions
+            or session.shared_host_unresolved
+            or (session.pending_decision or {}).get("capability") == "shared_host_assignment"
+        ):
+            return session
+        session.shared_host_decisions = []
+        session.shared_host_unresolved = []
+        if (session.pending_decision or {}).get("capability") == "shared_host_assignment":
+            session.clear_pending()
+        self.save(session)
+        return session
+
+    def record_arena(self, data: Mapping[str, Any], run_id: str | None = None) -> Stage3Session:
+        """Fold an arena-conflict sub-decision state dict into the session."""
+        session = self.load(expected_run_id=run_id)
+        if run_id:
+            session.run_id = run_id
+        elif data.get("run_id"):
+            session.run_id = str(data["run_id"])
+        session.arena_decisions = [dict(item) for item in (data.get("decisions") or [])]
+        session.arena_unresolved = [dict(item) for item in (data.get("unresolved") or [])]
+        pending = data.get("pending")
+        if pending:
+            session.set_pending(
+                capability="arena_conflict_resolution",
+                context=data.get("last_context") or {},
+                marker=pending,
+            )
+        elif (session.pending_decision or {}).get("capability") == "arena_conflict_resolution":
+            session.clear_pending()
+        self.save(session)
+        return session
+
+    def arena_view(self, run_id: str | None = None) -> dict[str, Any]:
+        session = self.load(expected_run_id=run_id)
+        projection = self._arena_projection(session)
+        if not projection["decisions"] and not projection["unresolved"] and not projection["pending"]:
+            return {}
+        return projection
+
+    def clear_arena(self, run_id: str | None = None) -> Stage3Session:
+        session = self.load(expected_run_id=run_id)
+        if not (
+            session.arena_decisions
+            or session.arena_unresolved
+            or (session.pending_decision or {}).get("capability") == "arena_conflict_resolution"
+        ):
+            return session
+        session.arena_decisions = []
+        session.arena_unresolved = []
+        if (session.pending_decision or {}).get("capability") == "arena_conflict_resolution":
+            session.clear_pending()
+        self.save(session)
+        return session
 
     def clear(self) -> None:
         for path in (self.session_path, self.interactive_path, self.shared_host_path, self.arena_path):
@@ -173,6 +304,11 @@ class Stage3SessionStore:
             if existing is not None and existing.run_id == migrated.run_id:
                 migrated.decision_history = existing.decision_history
                 migrated.shared_host_decisions = migrated.shared_host_decisions or existing.shared_host_decisions
+                migrated.arena_decisions = migrated.arena_decisions or existing.arena_decisions
+                migrated.shared_host_unresolved = (
+                    migrated.shared_host_unresolved or existing.shared_host_unresolved
+                )
+                migrated.arena_unresolved = migrated.arena_unresolved or existing.arena_unresolved
         prior_revision = existing.candidate_revision if existing is not None and existing.run_id == migrated.run_id else 0
         if candidate_revision is not None and migrated.pending_decision:
             revision = max(int(candidate_revision), migrated.candidate_revision)
@@ -243,15 +379,14 @@ class Stage3SessionStore:
         session.candidate_revision = int(interactive.get("attempts_used", 0) or 0)
         session.shared_host_decisions = [dict(item) for item in (shared.get("decisions") or [])]
         session.arena_decisions = [dict(item) for item in (arena.get("decisions") or [])]
-        session.unresolved = [dict(item) for item in (shared.get("unresolved") or [])] + [
-            dict(item) for item in (arena.get("unresolved") or [])
-        ]
+        session.shared_host_unresolved = [dict(item) for item in (shared.get("unresolved") or [])]
+        session.arena_unresolved = [dict(item) for item in (arena.get("unresolved") or [])]
         if session.candidate is not None:
             session.candidate_fingerprint = fingerprint_plan(session.candidate)
             source = session.candidate.get("source")
             session.candidate_source = str(source) if isinstance(source, str) else ""
 
-        pending_capability, context = self._pending_context(interactive, shared, arena)
+        pending_capability, context, marker = self._pending_context(interactive, shared, arena)
         candidates = self._pending_candidates(interactive, context)
         if pending_capability:
             pending_reference = candidates[0]["candidate"] if candidates else session.candidate
@@ -264,12 +399,13 @@ class Stage3SessionStore:
                 search_exhausted=int(session.attempts.get("attempts_used", 0)) >= 3
                 and pending_capability
                 in {"stage3_interactive", "stage3_optimize", "stage3_pareto"},
+                marker=marker,
             )
             if session.pending_scope() == SCOPE_CANDIDATE:
                 session.pending_decision["candidate_fingerprint"] = fingerprint_plan(pending_reference)
                 session.pending_decision["candidate_revision"] = session.candidate_revision
         else:
-            session.status = STATUS_NEW if session.candidate is None else STATUS_FINALIZED
+            session.status = STATUS_NEW if session.candidate is None else STATUS_AWAITING_ADOPTION
         return session
 
     def _pending_context(
@@ -277,19 +413,19 @@ class Stage3SessionStore:
         interactive: dict[str, Any],
         shared: dict[str, Any],
         arena: dict[str, Any],
-    ) -> tuple[str, dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any], dict[str, Any]]:
         if shared.get("pending"):
             context = shared.get("last_context")
             if isinstance(context, dict):
-                return "shared_host_assignment", dict(context)
+                return "shared_host_assignment", dict(context), dict(shared.get("pending") or {})
         if arena.get("pending"):
             context = arena.get("last_context")
             if isinstance(context, dict):
-                return "arena_conflict_resolution", dict(context)
+                return "arena_conflict_resolution", dict(context), dict(arena.get("pending") or {})
         context = interactive.get("last_context")
         if isinstance(context, dict) and context.get("capability"):
-            return str(context["capability"]), dict(context)
-        return "", {}
+            return str(context["capability"]), dict(context), {}
+        return "", {}, {}
 
     def _pending_candidates(
         self, interactive: dict[str, Any], context: Mapping[str, Any] | None = None
@@ -321,17 +457,58 @@ class Stage3SessionStore:
         if session.candidate is not None:
             state["best_plan"] = session.candidate
         pending = session.pending_decision or {}
-        candidates = pending.get("candidates") or []
-        if len(candidates) == 1:
-            state["pending_candidate"] = candidates[0].get("candidate")
-        elif len(candidates) > 1:
-            state["pending_candidates"] = list(candidates)
-        attempt = pending.get("attempt")
-        if attempt:
-            state["pending_attempt"] = attempt
-        if isinstance(pending.get("context"), dict):
-            state["last_context"] = pending["context"]
+        # Only a candidate-scoped pending decision projects onto the
+        # interactive-attempt file; run-scoped shared-host/arena asks belong
+        # to their own views.
+        if pending.get("scope") == SCOPE_CANDIDATE:
+            candidates = pending.get("candidates") or []
+            if len(candidates) == 1:
+                state["pending_candidate"] = candidates[0].get("candidate")
+            elif len(candidates) > 1:
+                state["pending_candidates"] = list(candidates)
+            attempt = pending.get("attempt")
+            if attempt:
+                state["pending_attempt"] = attempt
+            if isinstance(pending.get("context"), dict):
+                state["last_context"] = pending["context"]
         return state
+
+    def _shared_host_projection(self, session: Stage3Session) -> dict[str, Any]:
+        pending = session.pending_decision or {}
+        is_pending = pending.get("capability") == "shared_host_assignment"
+        state: dict[str, Any] = {
+            "run_id": session.run_id,
+            "decisions": list(session.shared_host_decisions),
+            "unresolved": list(session.shared_host_unresolved),
+            "pending": session.pending_marker() if is_pending else None,
+            "last_context": dict(pending.get("context") or {}) if is_pending else None,
+        }
+        return state
+
+    def _arena_projection(self, session: Stage3Session) -> dict[str, Any]:
+        pending = session.pending_decision or {}
+        is_pending = pending.get("capability") == "arena_conflict_resolution"
+        return {
+            "run_id": session.run_id,
+            "decisions": list(session.arena_decisions),
+            "unresolved": list(session.arena_unresolved),
+            "pending": session.pending_marker() if is_pending else None,
+            "last_context": dict(pending.get("context") or {}) if is_pending else None,
+        }
+
+    def _write_shared_host_mirror(self, session: Stage3Session) -> None:
+        projection = self._shared_host_projection(session)
+        if not projection["decisions"] and not projection["unresolved"] and not projection["pending"]:
+            self.shared_host_path.unlink(missing_ok=True)
+            return
+        _write_json(self.shared_host_path, projection)
+
+    def _write_arena_mirror(self, session: Stage3Session) -> None:
+        projection = self._arena_projection(session)
+        if not projection["decisions"] and not projection["unresolved"] and not projection["pending"]:
+            self.arena_path.unlink(missing_ok=True)
+            return
+        _write_json(self.arena_path, projection)
 
 
 def load_stage3_session(work_dir: "str | Path", expected_run_id: str | None = None) -> Stage3Session:
@@ -403,6 +580,11 @@ def status_for_session(session: Stage3Session) -> dict[str, Any]:
             else None
         ),
         "shared_host_decisions": len(session.shared_host_decisions),
+        "arena_decisions": len(session.arena_decisions),
+        "unresolved": {
+            "shared_host": len(session.shared_host_unresolved),
+            "arena": len(session.arena_unresolved),
+        },
         "attempts": dict(session.attempts),
         "finalized_revision": session.finalized_revision,
         "finalized_fingerprint": session.finalized_fingerprint,

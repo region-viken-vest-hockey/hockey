@@ -43,6 +43,15 @@ KNOWN_STAGE3_STATE_FILES = {
     "arena_conflict_decision_state.json",
 }
 
+# Only the canonical store may own those files (migration + compatibility
+# projection), plus the thin CLI facade that used to own them and now exposes
+# legacy path accessors. Any other production module referencing them is
+# reintroducing side-state ownership outside the session.
+STAGE3_STATE_FILE_OWNERS = {
+    SOURCE_ROOT / "application" / "stage3_session_store.py",
+    SOURCE_ROOT / "cli" / "pipeline_orchestrator" / "interactive_state_io.py",
+}
+
 
 def _imports(path: Path) -> set[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -82,4 +91,34 @@ def test_no_new_authoritative_stage3_side_state_file() -> None:
     assert unexpected == set(), (
         "new authoritative Stage 3 side-state files must go through the "
         f"Stage3Session repository/facade, not a new file: {sorted(unexpected)}"
+    )
+
+
+def test_legacy_side_state_files_are_owned_only_by_the_session_facade() -> None:
+    """Only the store (and the CLI facade that delegates to it) may name them.
+
+    This is the architecture guard that keeps a new Stage 3 capability from
+    reintroducing ``<feature>_state.json`` ownership outside the one
+    session/facade boundary.
+    """
+    offenders: set[str] = set()
+    for path in SOURCE_ROOT.rglob("*.py"):
+        if "__pycache__" in path.parts or path in STAGE3_STATE_FILE_OWNERS:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and node.value in KNOWN_STAGE3_STATE_FILES:
+                offenders.add(str(path.relative_to(ROOT)))
+    assert offenders == set(), (
+        "these modules reference legacy Stage 3 side-state files directly instead "
+        f"of going through Stage3SessionStore: {sorted(offenders)}"
+    )
+
+
+def test_cli_stage3_state_helpers_delegate_to_the_session_store() -> None:
+    facade = SOURCE_ROOT / "cli" / "pipeline_orchestrator" / "interactive_state_io.py"
+    imported = _imports(facade)
+    assert any(name.endswith("application.stage3_session_store") for name in imported), (
+        "interactive_state_io must be a facade over the canonical Stage3SessionStore, "
+        "not a second state authority"
     )

@@ -123,7 +123,6 @@ def _emit_stage3_pareto_decision(
     interactive_state.pop("pending_candidate", None)
     interactive_state["pending_attempt"] = attempts_used
     interactive_state["last_context"] = context.to_dict()
-    _write_stage3_interactive_state(state, interactive_state)
 
     try:
         from ...application.stage3_session_store import Stage3SessionStore

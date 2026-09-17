@@ -194,3 +194,60 @@ def test_stale_revision_action_across_processes_is_rejected(tmp_path: Path):
     assert outcome.accepted is False
     assert outcome.reason == "stale_candidate_fingerprint"
     assert reloaded.candidate_revision == 2
+
+
+def test_run_scoped_shared_host_survives_repairs_through_the_store(tmp_path: Path):
+    """A resolved shared-host choice is run-scoped session data: later local
+    repairs across separate processes never re-ask it, and it is not dropped
+    when the session advances a candidate revision."""
+    store = Stage3SessionStore(tmp_path)
+    store.record_shared_host(
+        {
+            "run_id": "run-1",
+            "decisions": [{"registration": "A/B", "age_group": "U10", "chosen_club": "A"}],
+            "unresolved": [],
+        },
+        run_id="run-1",
+    )
+    _start_session_without_shared(store)
+
+    # The shared-host choice is still visible and no shared-host ask is pending.
+    assert store.shared_host_view("run-1")["decisions"][0]["chosen_club"] == "A"
+    assert store.shared_host_view("run-1")["pending"] is None
+
+    # Two repairs in two separate load/save invocations keep the choice.
+    for seed in (2, 3):
+        session = store.load("run-1")
+        action = DecisionAction(
+            action_id="apply_repair_option",
+            arguments={"option_id": f"opt-{seed}", "candidate_fingerprint": session.pending_fingerprint()},
+            rationale=f"repair {seed}",
+        )
+        assert Stage3Controller(clock=lambda: "T").handle(session, action, _RepairCapability(seed)).accepted
+        store.save(session)
+
+    final = store.load("run-1")
+    assert final.candidate_revision == 3
+    assert store.shared_host_view("run-1")["decisions"][0]["chosen_club"] == "A"
+
+
+def _start_session_without_shared(store: Stage3SessionStore) -> None:
+    """Seed a first candidate revision without touching the shared-host state."""
+    session = store.load("run-1")
+    body = _candidate(1)
+    session.advance_candidate(
+        _plan(1),
+        fingerprint=candidate_content_fingerprint(body),
+        source="baseline",
+        transition="create_baseline",
+        action_id="create_baseline",
+        rationale="initial baseline",
+        at="T0",
+    )
+    session.set_pending(
+        capability="stage3_interactive",
+        context=_context("stage3_interactive", candidate_content_fingerprint(body)),
+        candidates=[{"candidate": _plan(1), "candidate_ref": "stage3_interactive:attempt_1"}],
+        attempt=1,
+    )
+    store.save(session)

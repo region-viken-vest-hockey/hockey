@@ -103,7 +103,7 @@ Each transition validates the submitted action against the session's exact pendi
 
 `rvv-miniputt stage3 session` exposes one compact, machine-readable view (run/session id, status, revision/fingerprint, pending decision, resolved decisions, finalized revision, legal next transitions) so a resume problem does not require reconciling several JSON files.
 
-During the migration away from the older side files, the store migrates and projects them behind this facade. New Stage 3 capabilities must not add a feature-specific `*_state.json` authority; an architecture test blocks a new authoritative side-state file.
+During the migration away from the older side files, the store migrates them on first load and keeps writing them only as non-authoritative compatibility mirrors. The session -- not the mirrors -- is the read/write authority: the CLI's interactive-state helpers are a thin facade over `Stage3SessionStore`, run-scoped shared-host/fixes and candidate-scoped arena/fixes are held in separate session buckets, and the store removes every mirror on finalization. New Stage 3 capabilities must not add a feature-specific `*_state.json` authority; architecture tests block a new authoritative side-state file and block any module outside the store/facade from naming the legacy files.
 
 ## Scheduling-rule implementation map
 

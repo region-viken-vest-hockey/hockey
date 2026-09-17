@@ -218,3 +218,103 @@ class TestStatusFacade:
         assert view["pending_decision"]["capability"] == "stage3_interactive"
         assert "run_search" in view["legal_transitions"]
         assert view["finalized_revision"] is None
+
+
+class TestCanonicalSubDecisionState:
+    """The session, not the legacy side files, owns shared-host/arena state.
+
+    These prove the explicit session is the single read path: deleting the
+    compatibility mirror does not lose the sub-decision, and the two scopes
+    never leak into each other's unresolved lists.
+    """
+
+    def test_shared_host_view_survives_mirror_deletion(self, tmp_path: Path):
+        store = Stage3SessionStore(tmp_path)
+        store.record_shared_host(
+            {
+                "run_id": "run-1",
+                "decisions": [{"registration": "A/B", "age_group": "U10", "chosen_club": "A"}],
+                "unresolved": [{"registration": "C/D", "age_group": "U11"}],
+                "pending": {"registration": "E/F", "age_group": "U12"},
+                "last_context": _context("shared_host_assignment"),
+            },
+            run_id="run-1",
+        )
+        assert store.shared_host_path.exists()
+
+        store.shared_host_path.unlink()
+
+        view = store.shared_host_view("run-1")
+        assert view["decisions"][0]["chosen_club"] == "A"
+        assert view["unresolved"] == [{"registration": "C/D", "age_group": "U11"}]
+        assert view["pending"] == {"registration": "E/F", "age_group": "U12"}
+
+    def test_arena_and_shared_host_unresolved_do_not_leak(self, tmp_path: Path):
+        store = Stage3SessionStore(tmp_path)
+        store.record_shared_host(
+            {
+                "run_id": "run-1",
+                "decisions": [],
+                "unresolved": [{"registration": "A/B", "age_group": "U10"}],
+            },
+            run_id="run-1",
+        )
+        store.record_arena(
+            {"run_id": "run-1", "decisions": [], "unresolved": [{"key": "arena|date|sides"}]},
+            run_id="run-1",
+        )
+
+        assert store.shared_host_view("run-1")["unresolved"] == [{"registration": "A/B", "age_group": "U10"}]
+        assert store.arena_view("run-1")["unresolved"] == [{"key": "arena|date|sides"}]
+
+    def test_clearing_one_scope_keeps_the_other(self, tmp_path: Path):
+        store = Stage3SessionStore(tmp_path)
+        store.record_shared_host(
+            {"run_id": "run-1", "decisions": [{"registration": "A/B", "age_group": "U10"}], "unresolved": []},
+            run_id="run-1",
+        )
+        store.record_arena(
+            {"run_id": "run-1", "decisions": [{"key": "k"}], "unresolved": []},
+            run_id="run-1",
+        )
+
+        store.clear_arena("run-1")
+
+        assert store.arena_view("run-1") == {}
+        assert store.shared_host_view("run-1")["decisions"]
+
+    def test_finalize_removes_every_compatibility_mirror(self, tmp_path: Path):
+        store = Stage3SessionStore(tmp_path)
+        store.record_shared_host(
+            {"run_id": "run-1", "decisions": [{"registration": "A/B", "age_group": "U10"}], "unresolved": []},
+            run_id="run-1",
+        )
+        store.record_arena(
+            {"run_id": "run-1", "decisions": [{"key": "k"}], "unresolved": []},
+            run_id="run-1",
+        )
+        session = store.load("run-1")
+        session.finalize(transition="keep_baseline", action_id="keep_baseline", rationale="keep", at="now")
+        store.save(session)
+
+        assert not store.interactive_path.exists()
+        assert not store.shared_host_path.exists()
+        assert not store.arena_path.exists()
+        assert store.shared_host_view("run-1")["decisions"]
+
+    def test_schema_v1_combined_unresolved_is_split_by_shape(self, tmp_path: Path):
+        store = Stage3SessionStore(tmp_path)
+        payload = Stage3Session(run_id="run-1").to_dict()
+        payload["schema_version"] = 1
+        del payload["shared_host_unresolved"]
+        del payload["arena_unresolved"]
+        payload["unresolved"] = [
+            {"registration": "A/B", "age_group": "U10"},
+            {"key": "arena|date|sides"},
+        ]
+        store.session_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        session = store.load("run-1")
+
+        assert session.shared_host_unresolved == [{"registration": "A/B", "age_group": "U10"}]
+        assert session.arena_unresolved == [{"key": "arena|date|sides"}]
