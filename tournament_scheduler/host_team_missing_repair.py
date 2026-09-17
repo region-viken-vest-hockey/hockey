@@ -363,7 +363,12 @@ def _rehost_options(candidate, problem, tournament, finding_id: str, fingerprint
     current_host = tournament.get("host_club")
     t_date = _parse_date(tournament.get("date"))
     represented = sorted({part for team in tournament.get("teams", []) for part in constituent_clubs(team.get("club", ""))})
-    club_arenas = dict(problem.get("club_arenas") or {})
+    # The canonical planning problem exposes club -> arena as ``clubs``
+    # (see planning_contract.build_planning_problem and stage3_optimizer);
+    # ``club_arenas`` is the same map under the name older/hand-built test
+    # problems used. Accept either so a rehost is never rejected as
+    # ``arena_not_configured`` just because the problem used the other key.
+    club_arenas = dict(problem.get("club_arenas") or problem.get("clubs") or {})
     statuses = dict(problem.get("club_calendar_status") or {})
     busy = problem.get("club_busy_intervals") or {}
     duration = _duration_minutes(tournament, problem)

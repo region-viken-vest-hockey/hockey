@@ -89,7 +89,7 @@ Scheduling rules must have one authoritative implementation and remain valid acr
 | Domain facts and reusable rule math | small planner-independent deterministic modules | hosting targets, coverage, participant eligibility, availability facts |
 | Hard/required verification | canonical verifier | host representation, target caps, collisions, required obligations |
 | Soft deterministic measurements | scorecard/fairness measurement | hosting deviation, participation spread, temporal spacing |
-| Feasible repair/action enumeration | canonical application/decision capability | common `local_repair_options` boundary over small planner-neutral providers: `rehost_tournament`/`remove_tournament`/participant repair for `host_team_missing`, `fill_participant`/`swap_participant` for an underfilled roster, manual-placement fallback |
+| Feasible repair/action enumeration | canonical application/decision capability | common `local_repair_options` boundary over small planner-neutral providers: `rehost_tournament`/`remove_tournament`/participant repair for `host_team_missing`, `fill_participant`/`swap_participant` for an underfilled roster, `move_same_host_date`/`move_same_host_start_time` for a manual placement, manual-placement fallback |
 | State mutation and persistence | canonical application/season operation | atomically apply validated changes while respecting locks/approvals |
 | Baseline generation/search | planner/optimizer implementations | propose candidates using the shared domain facts; never redefine the rule |
 | Rules/report/export | rules model and renderers | display serialized/recomputed facts; never become the business-policy engine |

@@ -17,6 +17,10 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, Mapping, Tuple
 
+from .host_placement_repair import (
+    apply_host_placement_repair_option,
+    enumerate_host_placement_repairs,
+)
 from .host_team_missing_repair import (
     apply_host_team_missing_repair_option,
     candidate_fingerprint,
@@ -36,6 +40,7 @@ ApplyFn = Callable[..., Dict[str, Any]]
 REPAIR_PROVIDERS: Tuple[Tuple[str, EnumerateFn, ApplyFn], ...] = (
     ("underfilled_roster", enumerate_underfilled_roster_repairs, apply_underfilled_roster_repair_option),
     ("host_team_missing", enumerate_host_team_missing_repairs, apply_host_team_missing_repair_option),
+    ("host_placement", enumerate_host_placement_repairs, apply_host_placement_repair_option),
 )
 
 

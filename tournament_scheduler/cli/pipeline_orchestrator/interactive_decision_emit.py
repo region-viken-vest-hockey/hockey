@@ -196,7 +196,11 @@ def _local_repair_context(
             candidate_ref=candidate_ref,
             require_options=False,
         )
-        for builder in (_underfilled_roster_repair_context, _host_team_missing_repair_context)
+        for builder in (
+            _underfilled_roster_repair_context,
+            _host_team_missing_repair_context,
+            _host_placement_repair_context,
+        )
     ]
     contexts = [context for context in contexts if context is not None]
     for context in contexts:
@@ -205,6 +209,46 @@ def _local_repair_context(
     if require_options:
         return None
     return contexts[0] if contexts else None
+
+
+def _host_placement_repair_context(
+    plan: "dict[str, Any]",
+    problem: "dict[str, Any] | None",
+    *,
+    run_id: str,
+    candidate_ref: str,
+    require_options: bool = False,
+) -> "Any | None":
+    """Repair context for a tournament left as MANUAL PLACEMENT REQUIRED, or
+    ``None`` when no responsibility-preserving placement is available.
+
+    Manual placement is soft/unresolved evidence, not a hard violation, so
+    this context is only offered when it actually has a legal move. A plan the
+    optimizer cannot improve must still fall through to the ordinary
+    comparison context and stay finalizable via ``keep_baseline``.
+    """
+    from ...host_placement_repair import (
+        build_host_placement_decision_context,
+        candidate_has_manual_slot_failure,
+    )
+    from ...planning_contract import extract_candidate
+
+    if problem is None:
+        return None
+    candidate = extract_candidate(plan)
+    if not candidate_has_manual_slot_failure(candidate):
+        return None
+    context = build_host_placement_decision_context(
+        candidate,
+        problem,
+        run_id=run_id,
+        candidate_ref=candidate_ref,
+    )
+    if require_options and not context.facts.get("repair_options"):
+        return None
+    if not context.facts.get("repair_options"):
+        return None
+    return context
 
 
 def _emit_stage3_interactive_decision(

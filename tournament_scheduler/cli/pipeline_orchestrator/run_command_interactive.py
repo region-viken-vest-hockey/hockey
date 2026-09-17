@@ -482,6 +482,11 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                     checkpoint["underfilled_roster_repair_result"] = {
                         key: value for key, value in outcome.items() if key != "candidate"
                     }
+                elif family == "host_placement":
+                    checkpoint["source"] = "host_placement_repair_applied"
+                    checkpoint["host_placement_repair_result"] = {
+                        key: value for key, value in outcome.items() if key != "candidate"
+                    }
                 else:
                     checkpoint["source"] = "host_team_missing_repair_applied"
                     checkpoint["host_team_missing_repair_result"] = {

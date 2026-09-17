@@ -597,3 +597,54 @@ def test_remove_tournament_rejected_when_it_creates_new_hosting_obligation():
 
     assert [o for o in repair_set["options"] if o["action"] == "remove_tournament"] == []
     assert any(r["reason"] == "hosting_obligation_would_be_unresolved" for r in repair_set["rejected_candidates"])
+
+
+def test_rehost_options_use_the_canonical_clubs_key_from_build_planning_problem():
+    """The canonical planning problem exposes club -> arena as ``clubs``
+    (``build_planning_problem`` / ``stage3_optimizer``), not ``club_arenas``.
+    A real problem must therefore expose represented rehosts instead of
+    rejecting every host as ``arena_not_configured``."""
+    from datetime import date
+
+    from tournament_scheduler.planning_contract import build_planning_problem
+
+    registered = [
+        _team(club, f"{club} {index}", age="U11")
+        for club in ("Frisk Asker", "Jar", "Kongsberg", "Holmen", "Ringerike")
+        for index in (1, 2)
+    ]
+    problem = build_planning_problem(
+        {
+            "teams": registered,
+            "parallel_games": {"U11": 2},
+            "rounds_per_tournament": {"U11": 3},
+            "ice_time_minutes": {"U11": 90},
+        },
+        {"club_calendar_status": {team["club"]: "known" for team in registered}, "events_by_club": {}},
+        date(2026, 9, 1),
+        date(2027, 4, 30),
+    )
+    assert "clubs" in problem and "club_arenas" not in problem
+
+    candidate = {
+        "schema_version": 1,
+        "tournaments": [
+            _u11_round_robin(
+                "t1",
+                "2026-10-10",
+                "Frisk Asker",
+                [
+                    _team("Jar", "Jar 1", age="U11"),
+                    _team("Kongsberg", "Kongsberg 1", age="U11"),
+                    _team("Holmen", "Holmen 1", age="U11"),
+                    _team("Ringerike", "Ringerike 1", age="U11"),
+                ],
+            )
+        ],
+    }
+
+    repair_set = enumerate_host_team_missing_repairs(candidate, problem, run_id="run-1")
+
+    rehost_hosts = {o["arguments"]["host_club"] for o in repair_set["options"] if o["action"] == "rehost"}
+    assert {"Jar", "Kongsberg", "Holmen", "Ringerike"} <= rehost_hosts
+    assert not any(r.get("reason") == "arena_not_configured" for r in repair_set["rejected_candidates"])

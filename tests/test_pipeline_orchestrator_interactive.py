@@ -2312,3 +2312,182 @@ class TestStage3UnderfilledRosterRepairContext:
         assert checkpoint["underfilled_roster_repair_result"]["ok"] is True
         assert len(checkpoint["plan"]["tournaments"][0]["teams"]) == 4
         assert not _stage3_interactive_state_path(state).exists()
+
+
+def _manual_placement_plan(*, manual_reason="Ingen verifisert ledig istid for H 2026-01-10 — turneringen må plasseres manuelt."):
+    manual = _tournament(
+        "t1",
+        "2026-01-10",
+        "H Arena",
+        "U10",
+        [_team("H", "H1", "U10"), _team("B", "B1", "U10"), _team("C", "C1", "U10"), _team("D", "D1", "U10")],
+    )
+    if manual_reason is not None:
+        manual["manual_booking_reason"] = manual_reason
+    other = _tournament(
+        "t2",
+        "2026-01-17",
+        "A Arena",
+        "U10",
+        [_team("A", "A1", "U10"), _team("B", "B2", "U10"), _team("C", "C2", "U10"), _team("D", "D2", "U10")],
+    )
+    return {"plan": {"schema_version": 1, "tournaments": [manual, other]}, "warnings": []}
+
+
+def _manual_placement_problem():
+    return {
+        "teams": [
+            _team("H", "H1", "U10"),
+            _team("A", "A1", "U10"),
+            _team("B", "B1", "U10"),
+            _team("B", "B2", "U10"),
+            _team("C", "C1", "U10"),
+            _team("C", "C2", "U10"),
+            _team("D", "D1", "U10"),
+            _team("D", "D2", "U10"),
+        ],
+        "parallel_games": {"U10": 2},
+        "clubs": {"H": "H Arena", "A": "A Arena", "B": "B Arena", "C": "C Arena", "D": "D Arena"},
+        "club_calendar_status": {club: "known" for club in "HABCD"},
+        "club_busy_intervals": {},
+        "start_date": "2026-01-01",
+        "end_date": "2026-06-30",
+        "christmas_split_date": "2026-03-01",
+        "allow_cross_half_moves": False,
+    }
+
+
+class TestStage3HostPlacementRepairContext:
+    """#369/#348: a tournament left manual must expose same-host placement
+    options before the plan is escalated, and must not block finalization when
+    no responsibility-preserving move exists."""
+
+    _CFG = {"start_date": "2026-01-01", "end_date": "2026-06-30"}
+
+    def _emit(self, state, tmp_path, plan, problem):
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import (
+            _emit_stage3_interactive_decision,
+        )
+
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit._mid_planning_decision_problem",
+            return_value=problem,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit._maybe_run_stage3_cp_sat_shadow",
+            return_value=None,
+        ):
+            return _emit_stage3_interactive_decision(
+                state, str(tmp_path), self._CFG, {}, None, None, plan, lambda msg: None,
+            )
+
+    def test_manual_tournament_with_a_free_slot_exposes_placement_options(self, state, tmp_path, capsys):
+        plan = _manual_placement_plan()
+        # Block all same-date start times so only a date move can repair it.
+        problem = _manual_placement_problem()
+        problem["club_busy_intervals"] = {
+            "H": [{"date": "2026-01-10", "start": "09:00", "end": "20:00", "kind": "external"}]
+        }
+
+        exit_code = self._emit(state, tmp_path, plan, problem)
+        payload = json.loads(capsys.readouterr().out)
+
+        assert exit_code == 2
+        assert payload["capability"] == "host_placement_repair"
+        assert payload["facts"]["repair_options"]
+        assert "apply_repair_option" in payload["available_actions"]
+        assert "keep_baseline" in payload["available_actions"]
+
+    def test_manual_tournament_without_a_verified_move_keeps_finalization_available(
+        self, state, tmp_path, capsys
+    ):
+        plan = _manual_placement_plan()
+        problem = _manual_placement_problem()
+        # Only one season date exists besides the blocked one, and it is also
+        # externally blocked, so no responsibility-preserving move verifies.
+        problem["club_busy_intervals"] = {
+            "H": [
+                {"date": "2026-01-10", "start": "09:00", "end": "20:00", "kind": "external"},
+                {"date": "2026-01-17", "start": "09:00", "end": "20:00", "kind": "external"},
+            ]
+        }
+
+        exit_code = self._emit(state, tmp_path, plan, problem)
+        payload = json.loads(capsys.readouterr().out)
+
+        assert exit_code == 2
+        assert payload["capability"] != "host_placement_repair"
+        assert "keep_baseline" in payload["available_actions"]
+
+    def test_apply_repair_option_commits_verified_placement(self, state, tmp_path):
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import (
+            _stage3_interactive_state_path,
+            _write_stage3_interactive_state,
+        )
+        from tournament_scheduler.host_placement_repair import (
+            build_host_placement_decision_context,
+        )
+
+        plan = _manual_placement_plan()
+        problem = _manual_placement_problem()
+        problem["club_busy_intervals"] = {
+            "H": [{"date": "2026-01-10", "start": "09:00", "end": "20:00", "kind": "external"}]
+        }
+        context = build_host_placement_decision_context(plan["plan"], problem, run_id="legacy")
+        option = context.facts["repair_options"][0]
+
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan,
+                "pending_attempt": 1,
+                "last_context": context.to_dict(),
+            },
+        )
+        state.write_stage(
+            StageName.CONFIG, {"start_date": "2026-01-01", "end_date": "2026-06-30"}, status=StageStatus.DONE
+        )
+        state.write_stage(
+            StageName.SCRAPING, {"sources": [], "blocked": []}, status=StageStatus.DONE
+        )
+        state.write_stage(StageName.PLANNING, plan, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {
+                    "action_id": "apply_repair_option",
+                    "rationale": "select the same-host date move",
+                    "arguments": {
+                        "option_id": option["option_id"],
+                        "candidate_fingerprint": context.facts["candidate_fingerprint"],
+                    },
+                }
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
+            return_value=({"start_date": "2026-01-01", "end_date": "2026-06-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._mid_planning_decision_problem",
+            return_value=problem,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        checkpoint = state.read_stage(StageName.PLANNING)
+        assert checkpoint["source"] == "host_placement_repair_applied"
+        assert checkpoint["host_placement_repair_result"]["ok"] is True
+        repaired = checkpoint["plan"]["tournaments"][0]
+        assert repaired["host_club"] == "H"
+        assert repaired["manual_booking_reason"] is None
+        assert not _stage3_interactive_state_path(state).exists()
