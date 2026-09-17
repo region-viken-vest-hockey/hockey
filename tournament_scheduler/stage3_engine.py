@@ -71,6 +71,7 @@ def run_planner(
             move_hosts=bool(request.get("move_hosts", False)),
             move_slots=bool(request.get("move_slots", False)),
             plateau_iterations=request.get("plateau_iterations"),
+            frozen_tournament_ids=request.get("frozen_tournament_ids"),
         )
 
     if engine == "cp_sat":

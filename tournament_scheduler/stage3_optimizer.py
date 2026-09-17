@@ -47,7 +47,7 @@ from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import date, timedelta
 from itertools import combinations
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from .game_generation import generate_tournament_games
 from .canonical_baseline import (
@@ -1162,6 +1162,7 @@ def optimize_candidate(
     move_hosts: bool = False,
     move_slots: bool = False,
     plateau_iterations: Optional[int] = None,
+    frozen_tournament_ids: Optional[Iterable[str]] = None,
 ) -> Dict[str, Any]:
     """Locally optimize *candidate* by reassigning teams to its existing tournament slots.
 
@@ -1213,6 +1214,12 @@ def optimize_candidate(
     "try a special move instead of a team swap" probability
     (*date_swap_probability*); when more than one is enabled, the move kind
     attempted each such step is chosen uniformly at random among them.
+
+    *frozen_tournament_ids* restricts the search to a bounded neighborhood:
+    every listed tournament is added to both the placement and participant
+    locks, so no move kind can touch it. The local repair providers use this to
+    run the same search over one affected age group while proving that every
+    tournament outside it stays byte-for-byte unchanged.
 
     The search stops early once it plateaus -- no improvement to the
     best-ever score for *plateau_iterations* consecutive proposals (default
@@ -1288,6 +1295,21 @@ def optimize_candidate(
         change_scale=float(canonical_change_scale) if canonical_change_scale is not None else None,
     )
     placement_locked_indices, participant_locked_indices = _locked_slot_indices(slots, problem)
+    # Bounded-neighborhood search: a caller (e.g. the local repair-option
+    # providers) can freeze every tournament outside the neighborhood it is
+    # allowed to change. Frozen slots are added to *both* lock sets so no move
+    # kind -- team swap, date, host or start time -- can touch them; the
+    # search then stays a candidate provider over an explicit subset instead
+    # of a season-wide policy owner.
+    if frozen_tournament_ids:
+        frozen = {str(item) for item in frozen_tournament_ids}
+        frozen_indices = {
+            index
+            for index, slot in enumerate(slots)
+            if str(slot.tournament.get("id")) in frozen
+        }
+        placement_locked_indices |= frozen_indices
+        participant_locked_indices |= frozen_indices
     # issue #265 P0: slot-to-age-group membership is static across the
     # search (only *which teams* occupy a slot changes), so build it once
     # instead of rescanning every slot on every proposal.
@@ -1502,6 +1524,7 @@ def optimize_candidate(
         "seed": seed,
         "objective_before": initial_score,
         "objective_after": best_score,
+        "frozen_tournament_count": len(set(str(item) for item in frozen_tournament_ids)) if frozen_tournament_ids else 0,
         "per_age_group_weights": per_age_group_weights or None,
         "move_dates": move_dates,
         "move_hosts": move_hosts,

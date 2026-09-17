@@ -725,3 +725,41 @@ class TestOptimizeCandidatePareto:
         for entry in result["candidates"]:
             after_participation = score_candidate(entry["candidate"])["participation"]["counts_by_team"]
             assert after_participation == before_participation
+
+
+class TestFrozenTournamentIds:
+    """Bounded-neighborhood search (#348 Phase 4): a caller can freeze every
+    tournament outside the neighborhood it is allowed to change."""
+
+    def test_frozen_tournaments_are_never_changed(self):
+        candidate = _clustered_candidate()
+
+        optimized = optimize_candidate(
+            candidate,
+            iterations=1500,
+            seed=1,
+            frozen_tournament_ids=["t2", "t3", "t4"],
+        )
+
+        frozen_before = {t["id"]: t for t in candidate["tournaments"]}
+        frozen_after = {t["id"]: t for t in optimized["tournaments"]}
+        for tournament_id in ("t2", "t3", "t4"):
+            assert frozen_after[tournament_id] == frozen_before[tournament_id]
+        assert optimized["source"]["frozen_tournament_count"] == 3
+
+    def test_frozen_tournament_date_host_and_time_are_preserved(self):
+        candidate = _clustered_candidate()
+        candidate["tournaments"][0]["start_time"] = "10:00"
+
+        optimized = optimize_candidate(
+            candidate,
+            iterations=1500,
+            seed=3,
+            move_dates=True,
+            move_hosts=True,
+            move_slots=True,
+            frozen_tournament_ids=["t1"],
+        )
+
+        frozen = next(t for t in optimized["tournaments"] if t["id"] == "t1")
+        assert frozen == candidate["tournaments"][0]

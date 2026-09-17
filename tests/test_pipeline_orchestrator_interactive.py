@@ -2069,7 +2069,7 @@ class TestStage3HostTeamMissingRepairContext:
         # attempt 2 proves the later-attempt branch, not the first-attempt one.
         assert _read_stage3_interactive_state(state)["attempts_used"] == 2
 
-    def test_later_attempt_without_local_options_falls_back_to_comparison(self, state, tmp_path, capsys):
+    def test_later_attempt_without_a_direct_local_option_offers_bounded_search(self, state, tmp_path, capsys):
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import (
             _write_stage3_interactive_state,
         )
@@ -2085,10 +2085,24 @@ class TestStage3HostTeamMissingRepairContext:
         payload = json.loads(capsys.readouterr().out)
 
         assert exit_code == 2
-        # No local repair exists, so the ordinary comparison context (which can
-        # still keep the previous best) is offered instead of a dead end.
-        assert payload["capability"] != "host_team_missing_repair"
+        # No direct local option exists, so the bounded neighborhood search is
+        # offered rather than a dead end or an opaque optimizer retry.
+        assert payload["capability"] == "search_neighborhood_repair"
+        assert payload["facts"]["repair_options"]
+        assert "apply_repair_option" in payload["available_actions"]
         assert _read_stage3_interactive_state(state)["attempts_used"] == 2
+
+    def test_first_attempt_offers_bounded_search_before_optimizer_retries(self, state, tmp_path, capsys):
+        plan, problem = _no_local_option_plan_and_problem()
+
+        exit_code = self._emit(state, tmp_path, plan, problem)
+        payload = json.loads(capsys.readouterr().out)
+
+        assert exit_code == 2
+        assert payload["capability"] == "search_neighborhood_repair"
+        assert payload["facts"]["search_summary"]["engine"] == "local_search"
+        option_ids = payload["action_parameters"]["apply_repair_option"]["option_id"]["enum"]
+        assert option_ids == [option["option_id"] for option in payload["facts"]["repair_options"]]
 
     def test_apply_repair_option_commits_verified_plan_and_skips_stage3_rerun(self, state, tmp_path):
         """issue #349 production shape: the harness selects one repository
@@ -2163,6 +2177,77 @@ class TestStage3HostTeamMissingRepairContext:
         checkpoint = state.read_stage(StageName.PLANNING)
         assert checkpoint["source"] == "host_team_missing_repair_applied"
         assert checkpoint["host_team_missing_repair_result"]["ok"] is True
+        assert any(team["club"] == "Host" for team in checkpoint["plan"]["tournaments"][0]["teams"])
+        assert not _stage3_interactive_state_path(state).exists()
+
+    def test_apply_bounded_search_option_commits_verified_plan(self, state, tmp_path):
+        """A selected bounded-search result is committed through the same
+        action boundary as the discrete local families, with its own
+        checkpoint source, and the interactive state is cleared."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import (
+            _stage3_interactive_state_path,
+            _write_stage3_interactive_state,
+        )
+        from tournament_scheduler.search_neighborhood_repair import (
+            build_search_neighborhood_decision_context,
+        )
+
+        plan, problem = _no_local_option_plan_and_problem()
+        context = build_search_neighborhood_decision_context(plan["plan"], problem, run_id="legacy")
+        option = context.facts["repair_options"][0]
+
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan,
+                "pending_attempt": 1,
+                "last_context": context.to_dict(),
+            },
+        )
+        state.write_stage(
+            StageName.CONFIG, {"start_date": "2026-09-01", "end_date": "2027-04-30"}, status=StageStatus.DONE
+        )
+        state.write_stage(
+            StageName.SCRAPING, {"sources": [], "blocked": []}, status=StageStatus.DONE
+        )
+        state.write_stage(StageName.PLANNING, plan, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {
+                    "action_id": "apply_repair_option",
+                    "rationale": "select the bounded neighborhood search result",
+                    "arguments": {
+                        "option_id": option["option_id"],
+                        "candidate_fingerprint": context.facts["candidate_fingerprint"],
+                    },
+                }
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._mid_planning_decision_problem",
+            return_value=problem,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        checkpoint = state.read_stage(StageName.PLANNING)
+        assert checkpoint["source"] == "search_neighborhood_repair_applied"
+        assert checkpoint["search_neighborhood_repair_result"]["ok"] is True
         assert any(team["club"] == "Host" for team in checkpoint["plan"]["tournaments"][0]["teams"])
         assert not _stage3_interactive_state_path(state).exists()
 

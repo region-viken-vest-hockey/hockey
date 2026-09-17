@@ -26,6 +26,10 @@ from .host_team_missing_repair import (
     candidate_fingerprint,
     enumerate_host_team_missing_repairs,
 )
+from .search_neighborhood_repair import (
+    apply_search_neighborhood_repair_option,
+    enumerate_search_neighborhood_repairs,
+)
 from .underfilled_roster_repair import (
     apply_underfilled_roster_repair_option,
     enumerate_underfilled_roster_repairs,
@@ -41,7 +45,14 @@ REPAIR_PROVIDERS: Tuple[Tuple[str, EnumerateFn, ApplyFn], ...] = (
     ("underfilled_roster", enumerate_underfilled_roster_repairs, apply_underfilled_roster_repair_option),
     ("host_team_missing", enumerate_host_team_missing_repairs, apply_host_team_missing_repair_option),
     ("host_placement", enumerate_host_placement_repairs, apply_host_placement_repair_option),
+    ("search_neighborhood", enumerate_search_neighborhood_repairs, apply_search_neighborhood_repair_option),
 )
+
+# Broad families run a bounded search rather than enumerating cheap discrete
+# mutations, so the dispatcher only invokes them when no cheaper family has a
+# legal option. This keeps a localized defect from paying for a solver pass
+# when a direct fill/swap/rehost already verifies.
+BROAD_REPAIR_FAMILIES = frozenset({"search_neighborhood"})
 
 
 def enumerate_local_repair_options(
@@ -53,8 +64,17 @@ def enumerate_local_repair_options(
     """Enumerate every provider's options, tagged with their owning family."""
     options = []
     rejected = []
-    families: Dict[str, Dict[str, int]] = {}
+    families: Dict[str, Dict[str, Any]] = {}
     for family, enumerate_fn, _apply_fn in REPAIR_PROVIDERS:
+        if family in BROAD_REPAIR_FAMILIES and options:
+            # A cheaper family already exposed a legal option; do not burn a
+            # bounded search just to add redundant alternatives.
+            families[family] = {
+                "option_count": 0,
+                "rejected_count": 0,
+                "skipped": "cheaper_family_has_options",
+            }
+            continue
         repair_set = enumerate_fn(candidate, problem, run_id=run_id)
         family_options = [{**option, "family": family} for option in repair_set["options"]]
         family_rejected = [

@@ -180,15 +180,22 @@ def _local_repair_context(
     candidate_ref: str,
     require_options: bool = False,
 ) -> "Any | None":
-    """First repository-generated local repair context for *plan* with legal
-    options, or the first context carrying rejection evidence.
+    """Repository-generated repair context for *plan*, cheapest family first.
 
-    Underfilled roster is the smallest local defect, so it is preferred when
-    it actually has a legal option; a provider that only has rejection
-    evidence must not shadow a different provider that does have one. Each
-    provider still returns its own capability string and option evidence.
+    The small local families (underfilled roster, host-team-missing, manual
+    placement) are tried first: underfilled roster is the smallest local
+    defect, so it is preferred when it actually has a legal option. Only when
+    none of them exposes a legal option does the bounded neighborhood search
+    run, so a localized defect that a direct fill/swap/rehost already repairs
+    never pays for a solver pass. A family that only has rejection evidence
+    must not shadow a different family that does have an option.
+
+    When nothing has a legal option, *require_options* suppresses the context
+    so a caller can fall back to the ordinary comparison context (which can
+    still offer ``keep_baseline``); otherwise the most informative available
+    context is returned so its rejection/exhaustion evidence is surfaced.
     """
-    contexts = [
+    cheap = [
         builder(
             plan,
             problem,
@@ -202,13 +209,71 @@ def _local_repair_context(
             _host_placement_repair_context,
         )
     ]
-    contexts = [context for context in contexts if context is not None]
-    for context in contexts:
+    cheap = [context for context in cheap if context is not None]
+    for context in cheap:
         if context.facts.get("repair_options"):
             return context
+
+    search = _search_neighborhood_repair_context(
+        plan,
+        problem,
+        run_id=run_id,
+        candidate_ref=candidate_ref,
+        require_options=require_options,
+    )
+    if search is not None and search.facts.get("repair_options"):
+        return search
     if require_options:
         return None
-    return contexts[0] if contexts else None
+    if cheap:
+        return cheap[0]
+    return search
+
+
+def _search_neighborhood_repair_context(
+    plan: "dict[str, Any]",
+    problem: "dict[str, Any] | None",
+    *,
+    run_id: str,
+    candidate_ref: str,
+    require_options: bool = False,
+) -> "Any | None":
+    """Bounded local-search fallback for a hard finding, or ``None``.
+
+    Only built when independent verification still reports a hard violation
+    and no cheaper local family had a legal option. It exposes repository
+    verified neighborhood-search results, or the per-seed exhaustion evidence
+    when the bounded search found none, so an escalation can distinguish
+    "proven infeasible" from "search budget exhausted".
+    """
+    from ...planning_contract import extract_candidate
+    from ...search_neighborhood_repair import (
+        build_search_neighborhood_decision_context,
+        findings_are_locally_searchable,
+    )
+
+    if problem is None:
+        return None
+    hard_violations = _baseline_hard_violations_for_plan(plan, problem)
+    if not hard_violations:
+        # Manual placement is soft/unresolved evidence, not a hard violation;
+        # the bounded search must not replace the finalizable comparison
+        # context for it.
+        return None
+    codes = [str(violation).split(":", 1)[0] for violation in hard_violations]
+    if not findings_are_locally_searchable(codes):
+        # Only a bounded participant/host search; a plan whose remaining hard
+        # findings are not locally searchable keeps the ordinary context.
+        return None
+    context = build_search_neighborhood_decision_context(
+        extract_candidate(plan),
+        problem,
+        run_id=run_id,
+        candidate_ref=candidate_ref,
+    )
+    if require_options and not context.facts.get("repair_options"):
+        return None
+    return context
 
 
 def _host_placement_repair_context(
