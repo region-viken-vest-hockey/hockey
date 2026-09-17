@@ -49,18 +49,6 @@ def register_audit_actions(registry: "ActionRegistry") -> None:
         execute_submit_audit_result,
     )
 
-# A distinct token set from `operator_action._PUBLICATION_APPROVAL_ANSWERS`:
-# a stale "--confirm-public"/"godkjenn" answer to the publication question
-# must never also satisfy the separate audit-review escalation — an operator
-# reviewing a REVIEW_REQUIRED semantic-audit finding must answer that
-# specific question, not have an unrelated older publish approval reused
-# for it.
-_AUDIT_REVIEW_APPROVAL_ANSWERS = {"godkjenn revisjon", "godkjent revisjon", "audit approved", "approve audit"}
-
-
-def is_audit_review_approved_answer(answer: str) -> bool:
-    return answer.strip().lower() in _AUDIT_REVIEW_APPROVAL_ANSWERS
-
 
 def execute_get_audit_context(*, work_dir: str) -> "CapabilityResult":
     """Assemble the read-only evidence inventory for the semantic safety-net
@@ -142,8 +130,6 @@ def execute_submit_audit_result(*, work_dir: str, result: dict[str, Any]) -> "Ca
             suggested_actions=["Hent ny kontekst med 'operator audit-context' og send inn på nytt."],
         )
 
-    # A harness submission may omit audit_id; derive it so a later
-    # REVIEW_REQUIRED approval stays scoped to this exact export.
     result = with_resolved_audit_id(result)
     errors = write_audit_result(work_dir, result)
     if errors:
@@ -178,11 +164,6 @@ def current_hard_violations(work_dir: str) -> list[str]:
         candidate = extract_candidate(plan)
     except (ValueError, KeyError):
         return []
-    # Honor this run's explicit operator waivers here too, so the publish gate
-    # blocks only *unwaived* hard violations -- a valid operator exception must
-    # not make publication impossible. Best-effort: fall back to the
-    # problem-free self-consistency verification when the problem can't be
-    # reconstructed.
     problem = None
     try:
         from .stage1_config import load_effective_config
@@ -208,19 +189,9 @@ def apply_publish_audit_gate(
     bundle_result: "CapabilityResult",
     with_collision_warning: "Callable[[CapabilityResult], CapabilityResult]",
 ) -> "CapabilityResult | None":
-    """Return a blocked :class:`CapabilityResult` if publication must stop
-    here, or ``None`` if the audit gate passes and publish should proceed.
-
-    Order matters: deterministic hard verification is checked first and
-    always wins regardless of any audit result (a harness ``PASS`` can never
-    override an actual hard violation), then audit freshness/status, then
-    (for ``REVIEW_REQUIRED``) an operator-review escalation distinct from
-    the publish-approval escalation.
-    """
+    """Apply deterministic verification, audit freshness and review gates."""
     from .audit_result import audit_is_fresh, is_blocking_status
     from .capability_result import CapabilityResult
-    from .escalation import EscalationType, Question, raise_question
-    from .run_manifest import RunManifest
 
     hard_violations = current_hard_violations(work_dir)
     if hard_violations:
@@ -256,60 +227,11 @@ def apply_publish_audit_gate(
     if audit_status != "REVIEW_REQUIRED":
         return None
 
-    audit_id = (audit_result_payload or {}).get("audit_id")
-    export_fingerprint = (audit_result_payload or {}).get("export_fingerprint")
-    audit_question = Question(
-        type=EscalationType.AUDIT_REVIEW.value,
-        capability="pages_publish",
-        # The export fingerprint is part of the question identity too, so an
-        # approval never spans two different exports even if audit_id is absent.
-        summary=(
-            f"Godkjenn publisering til tross for REVIEW_REQUIRED fra semantisk revisjon "
-            f"{audit_id} for eksport {export_fingerprint}?"
-        ),
-    )
-    existing_audit_answer = next(
-        (q for q in RunManifest(work_dir).all_questions() if q.get("id") == audit_question.id), None
-    )
-    if existing_audit_answer is not None and existing_audit_answer.get("answered"):
-        if is_audit_review_approved_answer(existing_audit_answer.get("answer") or ""):
-            try:
-                from .audit_export_artifact import materialize_review_approval
+    from .audit_review_gate import apply_review_required_gate
 
-                materialize_review_approval(
-                    work_dir,
-                    audit_payload=audit_result_payload or {},
-                    question=existing_audit_answer,
-                )
-            except (OSError, ValueError) as exc:
-                return with_collision_warning(CapabilityResult.blocked(
-                    "Revisjonen er godkjent, men godkjenningen kunne ikke bindes til eksporten.",
-                    capability="pages_publish",
-                    problems=[str(exc)],
-                    artifacts=list(bundle_result.artifacts),
-                ))
-            return None
-        return with_collision_warning(CapabilityResult.blocked(
-            f"Revisjonsgjennomgang ble avvist tidligere (svar: {existing_audit_answer.get('answer')!r}).",
-            capability="pages_publish",
-            problems=["Revisjonsgjennomgang avvist for dette revisjonsresultatet."],
-            evidence=[f"audit_id={audit_id}"],
-            artifacts=list(bundle_result.artifacts),
-        ))
-
-    audit_question.context = (
-        f"Semantisk revisjon returnerte REVIEW_REQUIRED for eksport-fingeravtrykk "
-        f"{(audit_result_payload or {}).get('export_fingerprint')}."
+    return apply_review_required_gate(
+        work_dir=work_dir,
+        audit_result_payload=audit_result_payload or {},
+        bundle_result=bundle_result,
+        with_collision_warning=with_collision_warning,
     )
-    audit_question.alternatives = [
-        f"Svar 'godkjenn revisjon' på spørsmål {audit_question.id} for å publisere likevel",
-    ]
-    audit_question.recommendation = "Se over revisjonsfunnene før godkjenning."
-    raise_question(work_dir, audit_question)
-    return with_collision_warning(CapabilityResult.blocked(
-        f"Semantisk revisjon krever operatørgjennomgang før publisering (revisjon {audit_id}).",
-        capability="pages_publish",
-        suggested_actions=list(audit_question.alternatives),
-        evidence=[f"audit_id={audit_id}", f"question_id={audit_question.id}"],
-        artifacts=list(bundle_result.artifacts),
-    ))
