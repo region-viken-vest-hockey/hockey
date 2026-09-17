@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "audit_id": "ca16419b6b17e3bf",
+  "generated_at": "2026-09-17T20:55:00+00:00",
+  "run_id": "20260917T201124Z-ca144159",
+  "export_fingerprint": "72b602af35645ca7d859626c7aeb72d008baae63dc65ba1682f9db3e17617693",
+  "status": "REVIEW_REQUIRED",
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Unaffected by this session's Kongsberg JU12/U11 relocation. Unchanged from prior audit.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category participation_target_deviations"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "Unaffected by this session's changes (host clubs unchanged for rvv-0016/rvv-0017, only date/roster/time changed). unresolved_hosting_obligations remains empty; hosting_balance_imbalances remains 0.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category unresolved_hosting_obligations"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "Unaffected; all 191 tournaments still have valid computed durations, 0 invalid byes.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category tournament_duration"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "Moved Kongsberg JU12 (rvv-0016) from 2026-10-18 (Kongsberghallen fully booked with bandy/junior events that day) to 2026-11-22, and Kongsberg U11 (rvv-0017) from 2026-10-18 to 2026-11-21 (with a roster substitution: Jar Oransje -> Jar Blå, since Jar Oransje was already committed to another tournament on both 2026-11-21 and 2026-11-22, and Kongsberghallen couldn't host both tournaments on the same day at their required durations). Both dry-run-verified clean before applying; both previously had `manual_booking_reason` set (no verified free ice), now cleared to null. manual_calendar_placements dropped from 1 to 0. manual_external_conflict_placements rose from 38 to 40 (the new dates sit near other Kongsberg calendar events that now need operator confirmation of the calendar interpretation, replacing what was previously an outright manual-booking requirement) -- net improvement in placement confidence, not a regression.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category manual_calendar_placements",
+        "operator audit-evidence --category manual_external_conflict_placements"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "0 tournaments where host is not a participant; unaffected by this session.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category host_participation"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "0 duplicate team-day entries, confirmed again after this session's date/roster changes (which were specifically checked and applied to avoid creating any).",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category duplicate_team_days"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "0 tournaments exceed the hard max of 3; unaffected by this session.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category same_club_participants"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "All export-consistency checks match the plan exactly with 0 mismatches.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category export_consistency"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt on?",
+      "finding": "Deterministic verification remains clean (ok=true, 0 violations) after this session's Kongsberg JU12/U11 relocation. Both moves were split across different days at the operator's target weekend (Nov 21 for U11, Nov 22 for JU12) because Kongsberghallen could not host both on the same day without an arena-time conflict at their required durations.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-context"
+      ],
+      "could_not_establish": false
+    }
+  ],
+  "potential_missing_rule": [],
+  "could_not_independently_establish": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "72b602af35645ca7d859626c7aeb72d008baae63dc65ba1682f9db3e17617693",
+  "publication_gate_status": "operator_review_required"
+}

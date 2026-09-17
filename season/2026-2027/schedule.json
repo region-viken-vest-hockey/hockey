@@ -1,10 +1,10 @@
 {
   "applied_from": {
     "actor": "claude-code",
-    "previous_revision": "96c29c5a91155146e1b3a1fd64156b2426b0f3321ee7bf58f80d84d5f9f7f129"
+    "previous_revision": "db285c0144a10fad738111c42402d4fdbb548a3bee2f2710e7b9d17c107a96b4"
   },
   "created_at": "2026-09-17T14:55:37.414824+00:00",
-  "fingerprint": "af4d7428757d67536d153c54e0951223a01f1854069cb266d58b0a9a2d992d86",
+  "fingerprint": "16e00148a13eb65b4a938fe29d995c43592868f2a4ab57a75e61208a2e190883",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -6776,7 +6776,7 @@
         "date": "2026-10-10",
         "games": [
           {
-            "away": "Ringerike 1",
+            "away": "Jar Oransje",
             "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 1
@@ -6806,7 +6806,7 @@
             "round_number": 2
           },
           {
-            "away": "Ringerike 1",
+            "away": "Jar Oransje",
             "home": "Jutul Grønn",
             "parallel_slot": 2,
             "round_number": 2
@@ -6818,7 +6818,7 @@
             "round_number": 3
           },
           {
-            "away": "Ringerike 1",
+            "away": "Jar Oransje",
             "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 3
@@ -6842,13 +6842,13 @@
             "round_number": 4
           },
           {
-            "away": "Ringerike 1",
+            "away": "Jar Oransje",
             "home": "Jar Blå",
             "parallel_slot": 2,
             "round_number": 4
           },
           {
-            "away": "Ringerike 1",
+            "away": "Jar Oransje",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 5
@@ -6898,8 +6898,8 @@
           },
           {
             "age_group": "U11",
-            "club": "Ringerike",
-            "label": "Ringerike 1"
+            "club": "Jar",
+            "label": "Jar Oransje"
           }
         ]
       },
@@ -7320,7 +7320,7 @@
             "round_number": 1
           },
           {
-            "away": "Jar Grønn",
+            "away": "Frisk Asker 3",
             "home": "Sandefjord",
             "parallel_slot": 1,
             "round_number": 1
@@ -7333,7 +7333,7 @@
           },
           {
             "away": "Tønsberg Grå",
-            "home": "Jar Grønn",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -7351,7 +7351,7 @@
           },
           {
             "away": "Kongsberg",
-            "home": "Jar Grønn",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 3
           },
@@ -7369,7 +7369,7 @@
           },
           {
             "away": "Jar Hvit",
-            "home": "Jar Grønn",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 4
           },
@@ -7387,7 +7387,7 @@
           },
           {
             "away": "Tønsberg Hvit",
-            "home": "Jar Grønn",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 5
           },
@@ -7415,8 +7415,8 @@
           },
           {
             "age_group": "U11",
-            "club": "Jar",
-            "label": "Jar Grønn"
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 3"
           },
           {
             "age_group": "U11",
@@ -7595,7 +7595,7 @@
             "round_number": 1
           },
           {
-            "away": "Jutul Grønn",
+            "away": "Jutul Rød",
             "home": "Holmen Hockey Hvit",
             "parallel_slot": 2,
             "round_number": 1
@@ -7607,7 +7607,7 @@
             "round_number": 1
           },
           {
-            "away": "Jutul Grønn",
+            "away": "Jutul Rød",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 2
@@ -7650,7 +7650,7 @@
           },
           {
             "away": "Frisk Asker 4",
-            "home": "Jutul Grønn",
+            "home": "Jutul Rød",
             "parallel_slot": 3,
             "round_number": 3
           },
@@ -7674,7 +7674,7 @@
           },
           {
             "away": "Ringerike 1",
-            "home": "Jutul Grønn",
+            "home": "Jutul Rød",
             "parallel_slot": 3,
             "round_number": 4
           },
@@ -7698,7 +7698,7 @@
           },
           {
             "away": "Skien",
-            "home": "Jutul Grønn",
+            "home": "Jutul Rød",
             "parallel_slot": 3,
             "round_number": 5
           }
@@ -7725,7 +7725,7 @@
           {
             "age_group": "U9",
             "club": "Jutul",
-            "label": "Jutul Grønn"
+            "label": "Jutul Rød"
           },
           {
             "age_group": "U9",
@@ -7894,7 +7894,7 @@
           },
           {
             "away": "Ringerike 2",
-            "home": "Jutul Rød",
+            "home": "Jar Hvit",
             "parallel_slot": 1,
             "round_number": 1
           },
@@ -7917,7 +7917,7 @@
             "round_number": 2
           },
           {
-            "away": "Jutul Rød",
+            "away": "Jar Hvit",
             "home": "Tønsberg Rød",
             "parallel_slot": 2,
             "round_number": 2
@@ -7930,7 +7930,7 @@
           },
           {
             "away": "Jar Svart",
-            "home": "Jutul Rød",
+            "home": "Jar Hvit",
             "parallel_slot": 1,
             "round_number": 3
           },
@@ -7947,7 +7947,7 @@
             "round_number": 4
           },
           {
-            "away": "Jutul Rød",
+            "away": "Jar Hvit",
             "home": "Jar Gul",
             "parallel_slot": 1,
             "round_number": 4
@@ -7959,7 +7959,7 @@
             "round_number": 4
           },
           {
-            "away": "Jutul Rød",
+            "away": "Jar Hvit",
             "home": "Holmen Hockey Rød",
             "parallel_slot": 0,
             "round_number": 5
@@ -7998,8 +7998,8 @@
           },
           {
             "age_group": "U11",
-            "club": "Jutul",
-            "label": "Jutul Rød"
+            "club": "Jar",
+            "label": "Jar Hvit"
           },
           {
             "age_group": "U11",
@@ -8088,7 +8088,7 @@
         "date": "2026-10-17",
         "games": [
           {
-            "away": "Holmen Hockey Blå",
+            "away": "Holmen Hockey Hvit",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 1
@@ -8101,7 +8101,7 @@
           },
           {
             "away": "Sandefjord",
-            "home": "Kongsberg",
+            "home": "Jutul Grønn",
             "parallel_slot": 2,
             "round_number": 1
           },
@@ -8119,7 +8119,7 @@
           },
           {
             "away": "Ringerike 1",
-            "home": "Holmen Hockey Blå",
+            "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 2
           },
@@ -8130,20 +8130,20 @@
             "round_number": 2
           },
           {
-            "away": "Kongsberg",
+            "away": "Jutul Grønn",
             "home": "Tønsberg",
             "parallel_slot": 3,
             "round_number": 2
           },
           {
-            "away": "Kongsberg",
+            "away": "Jutul Grønn",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
             "away": "Sandefjord",
-            "home": "Holmen Hockey Blå",
+            "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 3
           },
@@ -8167,12 +8167,12 @@
           },
           {
             "away": "Jar Blå",
-            "home": "Holmen Hockey Blå",
+            "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 4
           },
           {
-            "away": "Kongsberg",
+            "away": "Jutul Grønn",
             "home": "Jutul Gul",
             "parallel_slot": 2,
             "round_number": 4
@@ -8190,8 +8190,8 @@
             "round_number": 5
           },
           {
-            "away": "Kongsberg",
-            "home": "Holmen Hockey Blå",
+            "away": "Jutul Grønn",
+            "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 5
           },
@@ -8225,7 +8225,7 @@
           {
             "age_group": "U8",
             "club": "Holmen",
-            "label": "Holmen Hockey Blå"
+            "label": "Holmen Hockey Hvit"
           },
           {
             "age_group": "U8",
@@ -8239,8 +8239,8 @@
           },
           {
             "age_group": "U8",
-            "club": "Kongsberg",
-            "label": "Kongsberg"
+            "club": "Jutul",
+            "label": "Jutul Grønn"
           },
           {
             "age_group": "U8",
@@ -8257,7 +8257,7 @@
       {
         "age_group": "JU12",
         "arena": "Kongsberghallen",
-        "date": "2026-10-18",
+        "date": "2026-11-22",
         "games": [
           {
             "away": "Ringerike 1",
@@ -8266,39 +8266,39 @@
             "round_number": 1
           },
           {
-            "away": "Jutul/Jar Kittens",
-            "home": "Skien",
+            "away": "Frisk Asker Orange",
+            "home": "Frisk Asker Svart",
             "parallel_slot": 1,
             "round_number": 1
           },
           {
-            "away": "Skien",
+            "away": "Frisk Asker Svart",
             "home": "Kongsberg/Tønsberg",
             "parallel_slot": 0,
             "round_number": 2
           },
           {
-            "away": "Jutul/Jar Kittens",
+            "away": "Frisk Asker Orange",
             "home": "Ringerike 1",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jutul/Jar Kittens",
+            "away": "Frisk Asker Orange",
             "home": "Kongsberg/Tønsberg",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
             "away": "Ringerike 1",
-            "home": "Skien",
+            "home": "Frisk Asker Svart",
             "parallel_slot": 1,
             "round_number": 3
           }
         ],
         "host_club": "Kongsberg",
         "id": "rvv-0016",
-        "start_time": "15:30",
+        "start_time": "10:00",
         "teams": [
           {
             "age_group": "JU12",
@@ -8307,8 +8307,8 @@
           },
           {
             "age_group": "JU12",
-            "club": "Skien",
-            "label": "Skien"
+            "club": "Frisk Asker",
+            "label": "Frisk Asker Svart"
           },
           {
             "age_group": "JU12",
@@ -8317,18 +8317,18 @@
           },
           {
             "age_group": "JU12",
-            "club": "Jutul",
-            "label": "Jutul/Jar Kittens"
+            "club": "Frisk Asker",
+            "label": "Frisk Asker Orange"
           }
         ]
       },
       {
         "age_group": "U11",
         "arena": "Kongsberghallen",
-        "date": "2026-10-18",
+        "date": "2026-11-21",
         "games": [
           {
-            "away": "Jar Oransje",
+            "away": "Jar Blå",
             "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 1
@@ -8340,14 +8340,14 @@
             "round_number": 1
           },
           {
-            "away": "Jar Grønn",
+            "away": "Jar Hvit",
             "home": "Kongsberg",
             "parallel_slot": 2,
             "round_number": 1
           },
           {
             "away": "Frisk Asker 4",
-            "home": "Jar Grønn",
+            "home": "Jar Hvit",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -8358,19 +8358,19 @@
             "round_number": 2
           },
           {
-            "away": "Jar Oransje",
+            "away": "Jar Blå",
             "home": "Tønsberg Grå",
             "parallel_slot": 2,
             "round_number": 2
           },
           {
             "away": "Tønsberg Grå",
-            "home": "Jar Grønn",
+            "home": "Jar Hvit",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
-            "away": "Jar Oransje",
+            "away": "Jar Blå",
             "home": "Jutul Rød",
             "parallel_slot": 1,
             "round_number": 3
@@ -8389,12 +8389,12 @@
           },
           {
             "away": "Jutul Rød",
-            "home": "Jar Grønn",
+            "home": "Jar Hvit",
             "parallel_slot": 1,
             "round_number": 4
           },
           {
-            "away": "Jar Oransje",
+            "away": "Jar Blå",
             "home": "Kongsberg",
             "parallel_slot": 2,
             "round_number": 4
@@ -8406,8 +8406,8 @@
             "round_number": 5
           },
           {
-            "away": "Jar Oransje",
-            "home": "Jar Grønn",
+            "away": "Jar Blå",
+            "home": "Jar Hvit",
             "parallel_slot": 1,
             "round_number": 5
           },
@@ -8420,7 +8420,7 @@
         ],
         "host_club": "Kongsberg",
         "id": "rvv-0017",
-        "manual_booking_reason": "Ingen verifisert ledig istid for Kongsberg 2026-10-18 — turneringen må plasseres manuelt.",
+        "manual_booking_reason": null,
         "start_time": "10:00",
         "teams": [
           {
@@ -8431,7 +8431,7 @@
           {
             "age_group": "U11",
             "club": "Jar",
-            "label": "Jar Grønn"
+            "label": "Jar Hvit"
           },
           {
             "age_group": "U11",
@@ -8451,7 +8451,7 @@
           {
             "age_group": "U11",
             "club": "Jar",
-            "label": "Jar Oransje"
+            "label": "Jar Blå"
           }
         ]
       },
@@ -8462,7 +8462,7 @@
         "games": [
           {
             "away": "Jutul Rød",
-            "home": "Jutul Grønn",
+            "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 1
           },
@@ -8479,14 +8479,14 @@
             "round_number": 2
           },
           {
-            "away": "Jutul Grønn",
+            "away": "Frisk Asker 1",
             "home": "Tønsberg Rød",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
             "away": "Holmen Hockey Hvit",
-            "home": "Jutul Grønn",
+            "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 3
           },
@@ -8509,8 +8509,8 @@
           },
           {
             "age_group": "U12",
-            "club": "Jutul",
-            "label": "Jutul Grønn"
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 1"
           },
           {
             "age_group": "U12",
@@ -8537,7 +8537,7 @@
           },
           {
             "away": "Holmen Hockey Rød",
-            "home": "Frisk Asker 4",
+            "home": "Jutul Rød",
             "parallel_slot": 1,
             "round_number": 1
           },
@@ -8561,7 +8561,7 @@
           },
           {
             "away": "Sandefjord",
-            "home": "Frisk Asker 4",
+            "home": "Jutul Rød",
             "parallel_slot": 1,
             "round_number": 2
           },
@@ -8585,7 +8585,7 @@
           },
           {
             "away": "Tønsberg",
-            "home": "Frisk Asker 4",
+            "home": "Jutul Rød",
             "parallel_slot": 1,
             "round_number": 3
           },
@@ -8609,7 +8609,7 @@
           },
           {
             "away": "Holmen Hockey Hvit",
-            "home": "Frisk Asker 4",
+            "home": "Jutul Rød",
             "parallel_slot": 1,
             "round_number": 4
           },
@@ -8633,7 +8633,7 @@
           },
           {
             "away": "Jutul Hvit",
-            "home": "Frisk Asker 4",
+            "home": "Jutul Rød",
             "parallel_slot": 1,
             "round_number": 5
           },
@@ -8661,8 +8661,8 @@
           },
           {
             "age_group": "U9",
-            "club": "Frisk Asker",
-            "label": "Frisk Asker 4"
+            "club": "Jutul",
+            "label": "Jutul Rød"
           },
           {
             "age_group": "U9",
@@ -8944,7 +8944,7 @@
           },
           {
             "away": "Tønsberg Rød",
-            "home": "Skien",
+            "home": "Tønsberg Grå",
             "parallel_slot": 2,
             "round_number": 1
           },
@@ -8955,7 +8955,7 @@
             "round_number": 2
           },
           {
-            "away": "Skien",
+            "away": "Tønsberg Grå",
             "home": "Jutul Grønn",
             "parallel_slot": 1,
             "round_number": 2
@@ -8980,12 +8980,12 @@
           },
           {
             "away": "Holmen Hockey Hvit",
-            "home": "Skien",
+            "home": "Tønsberg Grå",
             "parallel_slot": 2,
             "round_number": 3
           },
           {
-            "away": "Skien",
+            "away": "Tønsberg Grå",
             "home": "Jar Rød",
             "parallel_slot": 0,
             "round_number": 4
@@ -9009,7 +9009,7 @@
             "round_number": 5
           },
           {
-            "away": "Skien",
+            "away": "Tønsberg Grå",
             "home": "Jar Svart",
             "parallel_slot": 1,
             "round_number": 5
@@ -9042,8 +9042,8 @@
           },
           {
             "age_group": "U11",
-            "club": "Skien",
-            "label": "Skien"
+            "club": "Tønsberg",
+            "label": "Tønsberg Grå"
           },
           {
             "age_group": "U11",
@@ -9131,7 +9131,7 @@
         "date": "2026-10-24",
         "games": [
           {
-            "away": "Jar Blå",
+            "away": "Skien",
             "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 1
@@ -9155,7 +9155,7 @@
             "round_number": 1
           },
           {
-            "away": "Jar Blå",
+            "away": "Skien",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 2
@@ -9192,7 +9192,7 @@
           },
           {
             "away": "Tønsberg",
-            "home": "Jar Blå",
+            "home": "Skien",
             "parallel_slot": 2,
             "round_number": 3
           },
@@ -9216,7 +9216,7 @@
           },
           {
             "away": "Kongsberg",
-            "home": "Jar Blå",
+            "home": "Skien",
             "parallel_slot": 2,
             "round_number": 4
           },
@@ -9240,7 +9240,7 @@
           },
           {
             "away": "Holmen Hockey Sort",
-            "home": "Jar Blå",
+            "home": "Skien",
             "parallel_slot": 2,
             "round_number": 5
           },
@@ -9272,8 +9272,8 @@
           },
           {
             "age_group": "U9",
-            "club": "Jar",
-            "label": "Jar Blå"
+            "club": "Skien",
+            "label": "Skien"
           },
           {
             "age_group": "U9",
@@ -9505,7 +9505,7 @@
         "games": [
           {
             "away": "Jar Grønn",
-            "home": "Frisk Asker 1",
+            "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 1
           },
@@ -9523,7 +9523,7 @@
           },
           {
             "away": "Ringerike 2",
-            "home": "Frisk Asker 1",
+            "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -9541,7 +9541,7 @@
           },
           {
             "away": "Jar Blå",
-            "home": "Frisk Asker 1",
+            "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 3
           },
@@ -9559,7 +9559,7 @@
           },
           {
             "away": "Skien",
-            "home": "Frisk Asker 1",
+            "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 4
           },
@@ -9577,7 +9577,7 @@
           },
           {
             "away": "Sandefjord",
-            "home": "Frisk Asker 1",
+            "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 5
           },
@@ -9601,7 +9601,7 @@
           {
             "age_group": "U11",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 1"
+            "label": "Frisk Asker 2"
           },
           {
             "age_group": "U11",
@@ -9716,8 +9716,8 @@
             "round_number": 1
           },
           {
-            "away": "Skien",
-            "home": "Jutul Gul",
+            "away": "Tønsberg",
+            "home": "Jar Svart",
             "parallel_slot": 2,
             "round_number": 1
           },
@@ -9741,24 +9741,24 @@
           },
           {
             "away": "Frisk Asker 5",
-            "home": "Jutul Gul",
+            "home": "Jar Svart",
             "parallel_slot": 2,
             "round_number": 2
           },
           {
-            "away": "Skien",
+            "away": "Tønsberg",
             "home": "Kongsberg",
             "parallel_slot": 3,
             "round_number": 2
           },
           {
-            "away": "Jutul Gul",
+            "away": "Jar Svart",
             "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
-            "away": "Skien",
+            "away": "Tønsberg",
             "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 3
@@ -9776,13 +9776,13 @@
             "round_number": 3
           },
           {
-            "away": "Skien",
+            "away": "Tønsberg",
             "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 4
           },
           {
-            "away": "Jutul Gul",
+            "away": "Jar Svart",
             "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 4
@@ -9812,13 +9812,13 @@
             "round_number": 5
           },
           {
-            "away": "Skien",
+            "away": "Tønsberg",
             "home": "Jar Hvit",
             "parallel_slot": 2,
             "round_number": 5
           },
           {
-            "away": "Jutul Gul",
+            "away": "Jar Svart",
             "home": "Kongsberg",
             "parallel_slot": 3,
             "round_number": 5
@@ -9850,8 +9850,8 @@
           },
           {
             "age_group": "U8",
-            "club": "Jutul",
-            "label": "Jutul Gul"
+            "club": "Jar",
+            "label": "Jar Svart"
           },
           {
             "age_group": "U8",
@@ -9865,8 +9865,8 @@
           },
           {
             "age_group": "U8",
-            "club": "Skien",
-            "label": "Skien"
+            "club": "Tønsberg",
+            "label": "Tønsberg"
           }
         ]
       },
@@ -10650,12 +10650,12 @@
         "games": [
           {
             "away": "Holmen Hockey Rød",
-            "home": "Frisk Asker 3",
+            "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
-            "away": "Frisk Asker 5",
+            "away": "Holmen Hockey Hvit",
             "home": "Jutul Gul",
             "parallel_slot": 1,
             "round_number": 1
@@ -10674,7 +10674,7 @@
           },
           {
             "away": "Jar Rød",
-            "home": "Frisk Asker 3",
+            "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -10685,7 +10685,7 @@
             "round_number": 2
           },
           {
-            "away": "Frisk Asker 5",
+            "away": "Holmen Hockey Hvit",
             "home": "Jutul Hvit",
             "parallel_slot": 2,
             "round_number": 2
@@ -10698,12 +10698,12 @@
           },
           {
             "away": "Ringerike 2",
-            "home": "Frisk Asker 3",
+            "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
-            "away": "Frisk Asker 5",
+            "away": "Holmen Hockey Hvit",
             "home": "Holmen Hockey Rød",
             "parallel_slot": 1,
             "round_number": 3
@@ -10722,7 +10722,7 @@
           },
           {
             "away": "Jutul Hvit",
-            "home": "Frisk Asker 3",
+            "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 4
           },
@@ -10739,14 +10739,14 @@
             "round_number": 4
           },
           {
-            "away": "Frisk Asker 5",
+            "away": "Holmen Hockey Hvit",
             "home": "Sandefjord",
             "parallel_slot": 3,
             "round_number": 4
           },
           {
             "away": "Jutul Gul",
-            "home": "Frisk Asker 3",
+            "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 5
           },
@@ -10757,7 +10757,7 @@
             "round_number": 5
           },
           {
-            "away": "Frisk Asker 5",
+            "away": "Holmen Hockey Hvit",
             "home": "Jar Rød",
             "parallel_slot": 2,
             "round_number": 5
@@ -10781,7 +10781,7 @@
           {
             "age_group": "U8",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 3"
+            "label": "Frisk Asker 4"
           },
           {
             "age_group": "U8",
@@ -10810,8 +10810,8 @@
           },
           {
             "age_group": "U8",
-            "club": "Frisk Asker",
-            "label": "Frisk Asker 5"
+            "club": "Holmen",
+            "label": "Holmen Hockey Hvit"
           }
         ]
       },
@@ -10959,7 +10959,7 @@
             "round_number": 1
           },
           {
-            "away": "Frisk Asker 1",
+            "away": "Frisk Asker 2",
             "home": "Jar Svart",
             "parallel_slot": 1,
             "round_number": 1
@@ -10972,7 +10972,7 @@
           },
           {
             "away": "Jutul Rød",
-            "home": "Frisk Asker 1",
+            "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -10989,7 +10989,7 @@
             "round_number": 2
           },
           {
-            "away": "Frisk Asker 1",
+            "away": "Frisk Asker 2",
             "home": "Holmen Hockey Rød",
             "parallel_slot": 0,
             "round_number": 3
@@ -11013,7 +11013,7 @@
             "round_number": 4
           },
           {
-            "away": "Frisk Asker 1",
+            "away": "Frisk Asker 2",
             "home": "Ringerike 1",
             "parallel_slot": 1,
             "round_number": 4
@@ -11037,7 +11037,7 @@
             "round_number": 5
           },
           {
-            "away": "Frisk Asker 1",
+            "away": "Frisk Asker 2",
             "home": "Tønsberg Hvit",
             "parallel_slot": 2,
             "round_number": 5
@@ -11070,7 +11070,7 @@
           {
             "age_group": "U11",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 1"
+            "label": "Frisk Asker 2"
           },
           {
             "age_group": "U11",
@@ -13645,7 +13645,7 @@
             "round_number": 1
           },
           {
-            "away": "Frisk Asker 3",
+            "away": "Frisk Asker 4",
             "home": "Jutul Grønn",
             "parallel_slot": 2,
             "round_number": 1
@@ -13658,7 +13658,7 @@
           },
           {
             "away": "Holmen Hockey Sort",
-            "home": "Frisk Asker 3",
+            "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -13682,7 +13682,7 @@
           },
           {
             "away": "Sandefjord",
-            "home": "Frisk Asker 3",
+            "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 3
           },
@@ -13706,7 +13706,7 @@
           },
           {
             "away": "Jar Blå",
-            "home": "Frisk Asker 3",
+            "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 4
           },
@@ -13730,7 +13730,7 @@
           },
           {
             "away": "Jar Hvit",
-            "home": "Frisk Asker 3",
+            "home": "Frisk Asker 4",
             "parallel_slot": 0,
             "round_number": 5
           },
@@ -13770,7 +13770,7 @@
           {
             "age_group": "U8",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 3"
+            "label": "Frisk Asker 4"
           },
           {
             "age_group": "U8",
@@ -15197,13 +15197,13 @@
             "round_number": 1
           },
           {
-            "away": "Holmen Hockey Blå",
+            "away": "Holmen Hockey Rød",
             "home": "Tønsberg",
             "parallel_slot": 3,
             "round_number": 1
           },
           {
-            "away": "Holmen Hockey Blå",
+            "away": "Holmen Hockey Rød",
             "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 2
@@ -15234,7 +15234,7 @@
           },
           {
             "away": "Jutul Gul",
-            "home": "Holmen Hockey Blå",
+            "home": "Holmen Hockey Rød",
             "parallel_slot": 1,
             "round_number": 3
           },
@@ -15258,7 +15258,7 @@
           },
           {
             "away": "Frisk Asker 5",
-            "home": "Holmen Hockey Blå",
+            "home": "Holmen Hockey Rød",
             "parallel_slot": 1,
             "round_number": 4
           },
@@ -15282,7 +15282,7 @@
           },
           {
             "away": "Kongsberg",
-            "home": "Holmen Hockey Blå",
+            "home": "Holmen Hockey Rød",
             "parallel_slot": 1,
             "round_number": 5
           },
@@ -15316,7 +15316,7 @@
           {
             "age_group": "U8",
             "club": "Holmen",
-            "label": "Holmen Hockey Blå"
+            "label": "Holmen Hockey Rød"
           },
           {
             "age_group": "U8",
@@ -17335,7 +17335,7 @@
         "date": "2027-01-09",
         "games": [
           {
-            "away": "Frisk Asker 5",
+            "away": "Frisk Asker 3",
             "home": "Holmen Hockey Blå",
             "parallel_slot": 0,
             "round_number": 1
@@ -17347,14 +17347,14 @@
             "round_number": 1
           },
           {
-            "away": "Kongsberg",
+            "away": "Frisk Asker 4",
             "home": "Ringerike 1",
             "parallel_slot": 2,
             "round_number": 1
           },
           {
             "away": "Jar Grønn",
-            "home": "Frisk Asker 5",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -17365,14 +17365,14 @@
             "round_number": 2
           },
           {
-            "away": "Kongsberg",
+            "away": "Frisk Asker 4",
             "home": "Jutul Rød",
             "parallel_slot": 2,
             "round_number": 2
           },
           {
-            "away": "Kongsberg",
-            "home": "Frisk Asker 5",
+            "away": "Frisk Asker 4",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 3
           },
@@ -17390,7 +17390,7 @@
           },
           {
             "away": "Ringerike 1",
-            "home": "Frisk Asker 5",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 4
           },
@@ -17401,19 +17401,19 @@
             "round_number": 4
           },
           {
-            "away": "Kongsberg",
+            "away": "Frisk Asker 4",
             "home": "Jar Grønn",
             "parallel_slot": 2,
             "round_number": 4
           },
           {
             "away": "Jutul Rød",
-            "home": "Frisk Asker 5",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 5
           },
           {
-            "away": "Kongsberg",
+            "away": "Frisk Asker 4",
             "home": "Holmen Hockey Blå",
             "parallel_slot": 1,
             "round_number": 5
@@ -17437,7 +17437,7 @@
           {
             "age_group": "U10",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 5"
+            "label": "Frisk Asker 3"
           },
           {
             "age_group": "U10",
@@ -17456,8 +17456,8 @@
           },
           {
             "age_group": "U10",
-            "club": "Kongsberg",
-            "label": "Kongsberg"
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 4"
           }
         ]
       },
@@ -17479,14 +17479,14 @@
             "round_number": 1
           },
           {
-            "away": "Jar Hvit",
+            "away": "Jar Grønn",
             "home": "Tønsberg Rød",
             "parallel_slot": 2,
             "round_number": 1
           },
           {
             "away": "Holmen Hockey Rød",
-            "home": "Jar Hvit",
+            "home": "Jar Grønn",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -17504,7 +17504,7 @@
           },
           {
             "away": "Ringerike 1",
-            "home": "Jar Hvit",
+            "home": "Jar Grønn",
             "parallel_slot": 0,
             "round_number": 3
           },
@@ -17528,7 +17528,7 @@
           },
           {
             "away": "Kongsberg",
-            "home": "Jar Hvit",
+            "home": "Jar Grønn",
             "parallel_slot": 1,
             "round_number": 4
           },
@@ -17546,7 +17546,7 @@
           },
           {
             "away": "Jar Lilla",
-            "home": "Jar Hvit",
+            "home": "Jar Grønn",
             "parallel_slot": 1,
             "round_number": 5
           },
@@ -17570,7 +17570,7 @@
           {
             "age_group": "U11",
             "club": "Jar",
-            "label": "Jar Hvit"
+            "label": "Jar Grønn"
           },
           {
             "age_group": "U11",
@@ -17669,7 +17669,7 @@
         "games": [
           {
             "away": "Tønsberg",
-            "home": "Frisk Asker 4",
+            "home": "Holmen Hockey Blå",
             "parallel_slot": 0,
             "round_number": 1
           },
@@ -17710,7 +17710,7 @@
             "round_number": 2
           },
           {
-            "away": "Frisk Asker 4",
+            "away": "Holmen Hockey Blå",
             "home": "Ringerike 2",
             "parallel_slot": 3,
             "round_number": 2
@@ -17722,7 +17722,7 @@
             "round_number": 3
           },
           {
-            "away": "Frisk Asker 4",
+            "away": "Holmen Hockey Blå",
             "home": "Holmen Hockey Rød",
             "parallel_slot": 1,
             "round_number": 3
@@ -17758,7 +17758,7 @@
             "round_number": 4
           },
           {
-            "away": "Frisk Asker 4",
+            "away": "Holmen Hockey Blå",
             "home": "Jutul Rød",
             "parallel_slot": 3,
             "round_number": 4
@@ -17776,7 +17776,7 @@
             "round_number": 5
           },
           {
-            "away": "Frisk Asker 4",
+            "away": "Holmen Hockey Blå",
             "home": "Jar Blå",
             "parallel_slot": 2,
             "round_number": 5
@@ -17824,8 +17824,8 @@
           },
           {
             "age_group": "U8",
-            "club": "Frisk Asker",
-            "label": "Frisk Asker 4"
+            "club": "Holmen",
+            "label": "Holmen Hockey Blå"
           },
           {
             "age_group": "U8",
@@ -17840,7 +17840,7 @@
         "date": "2027-01-10",
         "games": [
           {
-            "away": "Jutul Rød",
+            "away": "Frisk Asker 4",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 1
@@ -17883,7 +17883,7 @@
           },
           {
             "away": "Ringerike 1",
-            "home": "Jutul Rød",
+            "home": "Frisk Asker 4",
             "parallel_slot": 3,
             "round_number": 2
           },
@@ -17907,7 +17907,7 @@
           },
           {
             "away": "Holmen Hockey Hvit",
-            "home": "Jutul Rød",
+            "home": "Frisk Asker 4",
             "parallel_slot": 3,
             "round_number": 3
           },
@@ -17931,7 +17931,7 @@
           },
           {
             "away": "Tønsberg",
-            "home": "Jutul Rød",
+            "home": "Frisk Asker 4",
             "parallel_slot": 3,
             "round_number": 4
           },
@@ -17955,7 +17955,7 @@
           },
           {
             "away": "Sandefjord",
-            "home": "Jutul Rød",
+            "home": "Frisk Asker 4",
             "parallel_slot": 3,
             "round_number": 5
           }
@@ -17976,8 +17976,8 @@
           },
           {
             "age_group": "U9",
-            "club": "Jutul",
-            "label": "Jutul Rød"
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 4"
           },
           {
             "age_group": "U9",
@@ -18764,7 +18764,7 @@
           },
           {
             "away": "Skien",
-            "home": "Tønsberg Grå",
+            "home": "Tønsberg Rød",
             "parallel_slot": 2,
             "round_number": 1
           },
@@ -18775,7 +18775,7 @@
             "round_number": 2
           },
           {
-            "away": "Tønsberg Grå",
+            "away": "Tønsberg Rød",
             "home": "Jar Grønn",
             "parallel_slot": 1,
             "round_number": 2
@@ -18793,7 +18793,7 @@
             "round_number": 3
           },
           {
-            "away": "Tønsberg Grå",
+            "away": "Tønsberg Rød",
             "home": "Jar Rød",
             "parallel_slot": 1,
             "round_number": 3
@@ -18818,7 +18818,7 @@
           },
           {
             "away": "Frisk Asker 3",
-            "home": "Tønsberg Grå",
+            "home": "Tønsberg Rød",
             "parallel_slot": 2,
             "round_number": 4
           },
@@ -18836,7 +18836,7 @@
           },
           {
             "away": "Jutul Grønn",
-            "home": "Tønsberg Grå",
+            "home": "Tønsberg Rød",
             "parallel_slot": 2,
             "round_number": 5
           }
@@ -18859,7 +18859,7 @@
           {
             "age_group": "U11",
             "club": "Tønsberg",
-            "label": "Tønsberg Grå"
+            "label": "Tønsberg Rød"
           },
           {
             "age_group": "U11",
@@ -18885,7 +18885,7 @@
         "games": [
           {
             "away": "Tønsberg Rød",
-            "home": "Jar Svart",
+            "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 1
           },
@@ -18896,7 +18896,7 @@
             "round_number": 1
           },
           {
-            "away": "Jar Svart",
+            "away": "Frisk Asker 2",
             "home": "Jutul Rød",
             "parallel_slot": 0,
             "round_number": 2
@@ -18909,7 +18909,7 @@
           },
           {
             "away": "Ringerike 1",
-            "home": "Jar Svart",
+            "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 3
           },
@@ -18931,8 +18931,8 @@
           },
           {
             "age_group": "U12",
-            "club": "Jar",
-            "label": "Jar Svart"
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 2"
           },
           {
             "age_group": "U12",
@@ -18971,7 +18971,7 @@
           },
           {
             "away": "Ringerike 1",
-            "home": "Skien",
+            "home": "Jar Blå",
             "parallel_slot": 3,
             "round_number": 1
           },
@@ -18988,7 +18988,7 @@
             "round_number": 2
           },
           {
-            "away": "Skien",
+            "away": "Jar Blå",
             "home": "Holmen Hockey Rød",
             "parallel_slot": 2,
             "round_number": 2
@@ -19018,7 +19018,7 @@
             "round_number": 3
           },
           {
-            "away": "Skien",
+            "away": "Jar Blå",
             "home": "Jar Rød",
             "parallel_slot": 3,
             "round_number": 3
@@ -19030,7 +19030,7 @@
             "round_number": 4
           },
           {
-            "away": "Skien",
+            "away": "Jar Blå",
             "home": "Frisk Asker 4",
             "parallel_slot": 1,
             "round_number": 4
@@ -19048,7 +19048,7 @@
             "round_number": 4
           },
           {
-            "away": "Skien",
+            "away": "Jar Blå",
             "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 5
@@ -19098,8 +19098,8 @@
           },
           {
             "age_group": "U9",
-            "club": "Skien",
-            "label": "Skien"
+            "club": "Jar",
+            "label": "Jar Blå"
           },
           {
             "age_group": "U9",
@@ -19331,7 +19331,7 @@
           },
           {
             "away": "Jutul Grønn",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 3",
             "parallel_slot": 1,
             "round_number": 1
           },
@@ -19355,7 +19355,7 @@
           },
           {
             "away": "Kongsberg",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 3",
             "parallel_slot": 1,
             "round_number": 2
           },
@@ -19379,7 +19379,7 @@
           },
           {
             "away": "Ringerike 1",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 3",
             "parallel_slot": 1,
             "round_number": 3
           },
@@ -19403,7 +19403,7 @@
           },
           {
             "away": "Jutul Rød",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 3",
             "parallel_slot": 1,
             "round_number": 4
           },
@@ -19427,7 +19427,7 @@
           },
           {
             "away": "Sandefjord",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 3",
             "parallel_slot": 1,
             "round_number": 5
           },
@@ -19456,7 +19456,7 @@
           {
             "age_group": "U8",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 2"
+            "label": "Frisk Asker 3"
           },
           {
             "age_group": "U8",
@@ -19496,7 +19496,7 @@
         "date": "2027-01-23",
         "games": [
           {
-            "away": "Frisk Asker 5",
+            "away": "Frisk Asker 3",
             "home": "Jar Blå",
             "parallel_slot": 0,
             "round_number": 1
@@ -19515,7 +19515,7 @@
           },
           {
             "away": "Jutul Grønn",
-            "home": "Frisk Asker 5",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -19533,7 +19533,7 @@
           },
           {
             "away": "Ringerike 3",
-            "home": "Frisk Asker 5",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 3
           },
@@ -19551,7 +19551,7 @@
           },
           {
             "away": "Tønsberg",
-            "home": "Frisk Asker 5",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 4
           },
@@ -19569,7 +19569,7 @@
           },
           {
             "away": "Ringerike 2",
-            "home": "Frisk Asker 5",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 5
           },
@@ -19598,7 +19598,7 @@
           {
             "age_group": "U10",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 5"
+            "label": "Frisk Asker 3"
           },
           {
             "age_group": "U10",
@@ -20317,7 +20317,7 @@
           },
           {
             "away": "Frisk Asker 4",
-            "home": "Tønsberg Grå",
+            "home": "Ringerike 1",
             "parallel_slot": 2,
             "round_number": 1
           },
@@ -20334,7 +20334,7 @@
             "round_number": 2
           },
           {
-            "away": "Tønsberg Grå",
+            "away": "Ringerike 1",
             "home": "Sandefjord",
             "parallel_slot": 2,
             "round_number": 2
@@ -20353,12 +20353,12 @@
           },
           {
             "away": "Jar Lilla",
-            "home": "Tønsberg Grå",
+            "home": "Ringerike 1",
             "parallel_slot": 2,
             "round_number": 3
           },
           {
-            "away": "Tønsberg Grå",
+            "away": "Ringerike 1",
             "home": "Jar Gul",
             "parallel_slot": 0,
             "round_number": 4
@@ -20382,7 +20382,7 @@
             "round_number": 5
           },
           {
-            "away": "Tønsberg Grå",
+            "away": "Ringerike 1",
             "home": "Jutul Grønn",
             "parallel_slot": 1,
             "round_number": 5
@@ -20415,8 +20415,8 @@
           },
           {
             "age_group": "U11",
-            "club": "Tønsberg",
-            "label": "Tønsberg Grå"
+            "club": "Ringerike",
+            "label": "Ringerike 1"
           },
           {
             "age_group": "U11",
@@ -20522,7 +20522,7 @@
             "round_number": 1
           },
           {
-            "away": "Tønsberg",
+            "away": "Jar Blå",
             "home": "Jutul Rød",
             "parallel_slot": 3,
             "round_number": 1
@@ -20547,7 +20547,7 @@
           },
           {
             "away": "Frisk Asker 3",
-            "home": "Tønsberg",
+            "home": "Jar Blå",
             "parallel_slot": 3,
             "round_number": 2
           },
@@ -20571,7 +20571,7 @@
           },
           {
             "away": "Skien",
-            "home": "Tønsberg",
+            "home": "Jar Blå",
             "parallel_slot": 3,
             "round_number": 3
           },
@@ -20595,7 +20595,7 @@
           },
           {
             "away": "Jar Svart",
-            "home": "Tønsberg",
+            "home": "Jar Blå",
             "parallel_slot": 3,
             "round_number": 4
           },
@@ -20619,7 +20619,7 @@
           },
           {
             "away": "Frisk Asker 2",
-            "home": "Tønsberg",
+            "home": "Jar Blå",
             "parallel_slot": 3,
             "round_number": 5
           }
@@ -20640,8 +20640,8 @@
           },
           {
             "age_group": "U8",
-            "club": "Tønsberg",
-            "label": "Tønsberg"
+            "club": "Jar",
+            "label": "Jar Blå"
           },
           {
             "age_group": "U8",
@@ -20882,7 +20882,7 @@
             "round_number": 1
           },
           {
-            "away": "Frisk Asker 2",
+            "away": "Frisk Asker 1",
             "home": "Jutul Rød",
             "parallel_slot": 1,
             "round_number": 1
@@ -20900,7 +20900,7 @@
             "round_number": 2
           },
           {
-            "away": "Frisk Asker 2",
+            "away": "Frisk Asker 1",
             "home": "Jar Rød",
             "parallel_slot": 1,
             "round_number": 2
@@ -20913,7 +20913,7 @@
           },
           {
             "away": "Ringerike 2",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 3
           },
@@ -20930,7 +20930,7 @@
             "round_number": 3
           },
           {
-            "away": "Frisk Asker 2",
+            "away": "Frisk Asker 1",
             "home": "Jar Grønn",
             "parallel_slot": 0,
             "round_number": 4
@@ -20960,7 +20960,7 @@
             "round_number": 5
           },
           {
-            "away": "Frisk Asker 2",
+            "away": "Frisk Asker 1",
             "home": "Tønsberg Hvit",
             "parallel_slot": 2,
             "round_number": 5
@@ -20993,7 +20993,7 @@
           {
             "age_group": "U11",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 2"
+            "label": "Frisk Asker 1"
           },
           {
             "age_group": "U11",
@@ -21340,8 +21340,8 @@
         "date": "2027-01-31",
         "games": [
           {
-            "away": "Frisk Asker 3",
-            "home": "Frisk Asker 2",
+            "away": "Jar Grønn",
+            "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 1
           },
@@ -21352,56 +21352,56 @@
             "round_number": 1
           },
           {
-            "away": "Jar Hvit",
+            "away": "Jutul Rød",
             "home": "Tønsberg Rød",
             "parallel_slot": 2,
             "round_number": 1
           },
           {
             "away": "Tønsberg Rød",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 2
           },
           {
             "away": "Sandefjord",
-            "home": "Frisk Asker 3",
+            "home": "Jar Grønn",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jar Hvit",
+            "away": "Jutul Rød",
             "home": "Holmen Hockey Rød",
             "parallel_slot": 2,
             "round_number": 2
           },
           {
             "away": "Holmen Hockey Rød",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
             "away": "Tønsberg Rød",
-            "home": "Frisk Asker 3",
+            "home": "Jar Grønn",
             "parallel_slot": 1,
             "round_number": 3
           },
           {
-            "away": "Jar Hvit",
+            "away": "Jutul Rød",
             "home": "Sandefjord",
             "parallel_slot": 2,
             "round_number": 3
           },
           {
             "away": "Sandefjord",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 4
           },
           {
-            "away": "Jar Hvit",
-            "home": "Frisk Asker 3",
+            "away": "Jutul Rød",
+            "home": "Jar Grønn",
             "parallel_slot": 1,
             "round_number": 4
           },
@@ -21412,14 +21412,14 @@
             "round_number": 4
           },
           {
-            "away": "Jar Hvit",
-            "home": "Frisk Asker 2",
+            "away": "Jutul Rød",
+            "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 5
           },
           {
             "away": "Holmen Hockey Rød",
-            "home": "Frisk Asker 3",
+            "home": "Jar Grønn",
             "parallel_slot": 1,
             "round_number": 5
           },
@@ -21438,12 +21438,12 @@
           {
             "age_group": "U11",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 2"
+            "label": "Frisk Asker 1"
           },
           {
             "age_group": "U11",
-            "club": "Frisk Asker",
-            "label": "Frisk Asker 3"
+            "club": "Jar",
+            "label": "Jar Grønn"
           },
           {
             "age_group": "U11",
@@ -21462,8 +21462,8 @@
           },
           {
             "age_group": "U11",
-            "club": "Jar",
-            "label": "Jar Hvit"
+            "club": "Jutul",
+            "label": "Jutul Rød"
           }
         ]
       },
@@ -26750,7 +26750,7 @@
         "games": [
           {
             "away": "Jutul Hvit",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 1
           },
@@ -26774,7 +26774,7 @@
           },
           {
             "away": "Jar Svart",
-            "home": "Frisk Asker 2",
+            "home": "Frisk Asker 3",
             "parallel_slot": 0,
             "round_number": 2
           },
@@ -26797,7 +26797,7 @@
             "round_number": 2
           },
           {
-            "away": "Frisk Asker 2",
+            "away": "Frisk Asker 3",
             "home": "Holmen Hockey Hvit",
             "parallel_slot": 0,
             "round_number": 3
@@ -26833,7 +26833,7 @@
             "round_number": 4
           },
           {
-            "away": "Frisk Asker 2",
+            "away": "Frisk Asker 3",
             "home": "Jar Rød",
             "parallel_slot": 2,
             "round_number": 4
@@ -26863,7 +26863,7 @@
             "round_number": 5
           },
           {
-            "away": "Frisk Asker 2",
+            "away": "Frisk Asker 3",
             "home": "Kongsberg",
             "parallel_slot": 3,
             "round_number": 5
@@ -26896,7 +26896,7 @@
           {
             "age_group": "U8",
             "club": "Frisk Asker",
-            "label": "Frisk Asker 2"
+            "label": "Frisk Asker 3"
           },
           {
             "age_group": "U8",
@@ -31917,10 +31917,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "af4d7428757d67536d153c54e0951223a01f1854069cb266d58b0a9a2d992d86",
+  "revision": "16e00148a13eb65b4a938fe29d995c43592868f2a4ab57a75e61208a2e190883",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-17T20:38:30.617604+00:00",
+  "updated_at": "2026-09-17T20:59:06.688990+00:00",
   "verification_context": {
     "candidate_fingerprint": "8d5c287caf7db61edd57241a8c00dad3a3fc1970d871fa91d2ce4748ce2b9e2b",
     "problem": {
