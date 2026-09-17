@@ -16,9 +16,6 @@ from .interactive_decision_emit import (
     _emit_stage3_interactive_decision,
 )
 from .interactive_state_io import (
-    _clear_arena_conflict_state,
-    _clear_shared_host_state,
-    _clear_stage3_interactive_state,
     _current_run_id,
     _read_arena_conflict_state,
     _read_shared_host_state,
@@ -35,6 +32,32 @@ from .stage3_optimize_variants import _run_stage3_pareto_optimize, _run_stage3_v
 from .stage3_pareto_decision import _emit_stage3_pareto_decision
 from .stage3_run import _run_stage3
 from .verification import _assert_hard_verification_before_export, _mid_planning_decision_problem, _reconcile_verified_manual_state, _write_run_evidence_bundle
+
+
+def _validate_stage3_session_action(state: "Any", action: "Any") -> "str":
+    """Reject a Stage 3 action that no longer targets the session's exact scope.
+
+    Thin adapter over :class:`Stage3Controller.validate`: the session/controller
+    own lifecycle, the CLI only renders/transports the rejection.
+    """
+    from ...application.stage3_controller import Stage3Controller
+    from ...application.stage3_session_store import Stage3SessionStore
+
+    session = Stage3SessionStore(state.work_dir).load(expected_run_id=_current_run_id(state))
+    return Stage3Controller().validate(session, action)
+
+
+def _finalize_stage3_session(state: "Any", plan: "Any", *, action_id: str, rationale: str) -> None:
+    """Persist the exact finalized candidate revision/fingerprint for Stage 4."""
+    from ...application.stage3_session_store import finalize_stage3_plan
+
+    finalize_stage3_plan(
+        state.work_dir,
+        plan,
+        action_id=action_id,
+        rationale=rationale,
+        run_id=_current_run_id(state),
+    )
 
 
 def _emit_pending_stage3_subdecision_context(state: "Any", work_dir: str, resume_from: int) -> int | None:
@@ -115,6 +138,17 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     :data:`_MAX_INTERACTIVE_STAGE3_ATTEMPTS` attempts — ``optimize_plan`` is
     no longer offered past the cap. There is no longer a need to fall back to
     the non-interactive ``run --resume-from 3`` for multi-attempt refinement.
+
+    Lifecycle for this loop lives in the application-layer Stage 3 session
+    (:mod:`tournament_scheduler.application.stage3_session`) and its explicit
+    transition engine
+    (:mod:`tournament_scheduler.application.stage3_controller`). This module
+    only validates the submitted action against the session (stale
+    revision/fingerprint rejection), invokes the deterministic domain work,
+    and records the finalized candidate revision/fingerprint Stage 4 must
+    consume. It does not decide whether an answer reruns the planner or which
+    side file to clear. Inspect the session with ``rvv-miniputt stage3
+    session``.
     """
     import json as _json
 
@@ -159,9 +193,12 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         # happens to reset resume_from back to 1 always carries a
         # decision_payload, so it never re-triggers this branch.
         _manifest_start_run(args.work_dir, args.input, getattr(args, "objective", None))
-        _clear_stage3_interactive_state(state)
-        _clear_shared_host_state(state)
-        _clear_arena_conflict_state(state)
+        from ...application.stage3_session_store import Stage3SessionStore
+
+        # One canonical clear for the whole interactive Stage 3 state: a
+        # genuinely new run must not inherit candidate revisions, pending
+        # decisions or run-scoped choices from a superseded run.
+        Stage3SessionStore(state.work_dir).clear()
         from ...pipeline.evidence_bundle import clear_stage3_attempt_log
         from .stage3_cpsat_cache import clear_cp_sat_cache
 
@@ -208,6 +245,10 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
 
         shared_host_state = _read_shared_host_state(state, expected_run_id=_current_run_id(state))
         shared_host_context = DecisionContext.from_dict(shared_host_state.get("last_context") or {})
+        session_reason = _validate_stage3_session_action(state, shared_host_action)
+        if session_reason:
+            _console.print(f"[red]✗[/red] Delt vertskap-avgjørelse avvist: {session_reason}.")
+            return 1
         shared_host_result = decide(shared_host_context, shared_host_action)
         try:
             record_llm_decision(str(state.work_dir), shared_host_context, shared_host_action, shared_host_result)
@@ -274,6 +315,10 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
 
         arena_state = _read_arena_conflict_state(state, expected_run_id=_current_run_id(state))
         arena_context = DecisionContext.from_dict(arena_state.get("last_context") or {})
+        session_reason = _validate_stage3_session_action(state, arena_action)
+        if session_reason:
+            _console.print(f"[red]✗[/red] Arena-avgjørelse avvist: {session_reason}.")
+            return 1
         arena_result = decide(arena_context, arena_action)
         try:
             record_llm_decision(str(state.work_dir), arena_context, arena_action, arena_result)
@@ -411,6 +456,12 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 _console.print("[red]✗[/red] Fant ingen Stage 3-avgjørelseskontekst å avgjøre.")
                 return 1
             prev_context = DecisionContext.from_dict(last_context_payload)
+            session_reason = _validate_stage3_session_action(state, decision_action)
+            if session_reason:
+                _console.print(
+                    f"[red]✗[/red] Stage 3-avgjørelse avvist: {session_reason}."
+                )
+                return 1
         else:
             prev_checkpoint = state.read_stage(prev_stage_name)
             prev_effective_config = None
@@ -498,7 +549,12 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                         key: value for key, value in outcome.items() if key != "candidate"
                     }
                 state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
-                _clear_stage3_interactive_state(state)
+                _finalize_stage3_session(
+                    state,
+                    checkpoint,
+                    action_id="apply_repair_option",
+                    rationale=str(decision_action.rationale or ""),
+                )
             elif decision_action.action_id == "apply_candidate":
                 candidate_ref = (decision_action.arguments or {}).get("candidate_ref")
                 pending_candidates = stage3_interactive_state.get("pending_candidates")
@@ -540,7 +596,12 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 # candidate that was just rerun (the v2-optimizer path's
                 # single pending attempt), so no checkpoint rewrite is
                 # needed here.
-                _clear_stage3_interactive_state(state)
+                _finalize_stage3_session(
+                    state,
+                    state.read_stage(StageName.PLANNING),
+                    action_id="apply_candidate",
+                    rationale=str(decision_action.rationale or ""),
+                )
             else:
                 # keep_baseline (or any other accepted action): the on-disk
                 # checkpoint currently holds the just-rejected rerun attempt,
@@ -549,7 +610,12 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 best_plan = stage3_interactive_state.get("best_plan")
                 if best_plan is not None:
                     state.write_stage(StageName.PLANNING, best_plan, status=StageStatus.DONE)
-                _clear_stage3_interactive_state(state)
+                _finalize_stage3_session(
+                    state,
+                    best_plan if best_plan is not None else state.read_stage(StageName.PLANNING),
+                    action_id=str(decision_action.action_id),
+                    rationale=str(decision_action.rationale or ""),
+                )
         elif decision_action.action_id == "retry_stage":
             resume_from = prev_stage_num
 
@@ -592,6 +658,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             state, args.work_dir, cfg, scraping, start, end, plan, _log,
             skip_auto_cp_sat_shadow=(engine_used == "cp_sat"),
             stage3_elapsed_seconds=perf_counter() - _stage3_started,
+            candidate_transition="run_search",
         )
 
     shared_host_decisions: list[dict[str, Any]] = []
@@ -634,6 +701,21 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         )
 
     if resume_from <= 4:
+        # Stage 3 finalization records the exact candidate revision/fingerprint
+        # Stage 4 must consume. Refuse to export a checkpoint that no longer
+        # matches it, so no other side-state can silently replace the
+        # reviewed result between finalization and export.
+        from ...application.stage3_session_store import Stage3SessionStore
+        from ...pipeline.state import StageName
+
+        if not Stage3SessionStore(state.work_dir).finalized_candidate_matches(
+            state.read_stage(StageName.PLANNING)
+        ):
+            _console.print(
+                "[red]✗[/red] Stage 4 nektet: Stage 3-checkpointet stemmer ikke med "
+                "den ferdigstilte kandidatrevisjonen."
+            )
+            return 1
         _verify_started = perf_counter()
         verification_ok = _assert_hard_verification_before_export(
             plan, _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir), strict, _console, _log

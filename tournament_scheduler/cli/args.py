@@ -1096,6 +1096,25 @@ def build_parser() -> argparse.ArgumentParser:
     season_replan.add_argument("--apply", action="store_true", help="Apply the verified result to canonical state")
     season_replan.add_argument("--json", action="store_true", help="Print the replan result as JSON")
 
+    # stage3
+    stage3 = sub.add_parser(
+        "stage3",
+        help="Inspect the explicit interactive Stage 3 session/state machine",
+    )
+    stage3_sub = stage3.add_subparsers(dest="stage3_command", title="stage3 commands")
+    stage3_session = stage3_sub.add_parser(
+        "session",
+        help="Show one compact view of the interactive Stage 3 session for the active run",
+    )
+    stage3_session.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
+    stage3_session.add_argument("--json", action="store_true", help="Print the session/status view as JSON")
+    stage3_status = stage3_sub.add_parser(
+        "status",
+        help="Alias for 'stage3 session' (compact interactive Stage 3 status)",
+    )
+    stage3_status.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
+    stage3_status.add_argument("--json", action="store_true", help="Print the session/status view as JSON")
+
     # cancel
     cancel = sub.add_parser("cancel", help="Cancel a tournament and suggest/reschedule makeup dates")
     cancel.add_argument(

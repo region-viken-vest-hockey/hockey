@@ -29,7 +29,7 @@ Architecture tests enforce the important forbidden-import boundaries. Extend tho
 
 ## Current application surface
 
-The application layer includes typed decision/operator capabilities used by the CLI and harnesses, including durable operator-state operations and the `DecisionContext` / `DecisionAction` boundary. The exact set of functions will evolve; this document defines the dependency rule rather than maintaining a duplicate function inventory.
+The application layer includes typed decision/operator capabilities used by the CLI and harnesses, including durable operator-state operations and the `DecisionContext` / `DecisionAction` boundary. Interactive Stage 3 has its own typed, versioned state machine in `application/stage3_session.py` (the `Stage3Session` object), `application/stage3_session_store.py` (the single read/write repository) and `application/stage3_controller.py` (explicit revision-bound transitions over deterministic domain capabilities). The exact set of functions will evolve; this document defines the dependency rule rather than maintaining a duplicate function inventory.
 
 The repository CLI remains a supported adapter and command surface. It may render human-readable Norwegian text or JSON, but policy shared with other harnesses should live in the application/domain layer or shared RVV runbook as appropriate.
 

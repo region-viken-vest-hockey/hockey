@@ -1,0 +1,360 @@
+"""Hermetic lifecycle tests for the explicit Stage 3 transition controller.
+
+These use synthetic domain capabilities only: no planner, optimizer or
+verifier internals are loaded, which is the point of the session/controller
+boundary (domain capability decides legality; the controller decides
+lifecycle/revision/persistence).
+"""
+
+from __future__ import annotations
+
+
+from tournament_scheduler.application.decisions import DecisionAction
+from tournament_scheduler.application.stage3_controller import (
+    Stage3CapabilityResult,
+    Stage3Controller,
+)
+from tournament_scheduler.application.stage3_session import (
+    SCOPE_CANDIDATE,
+    SCOPE_RUN,
+    STATUS_FINALIZED,
+    Stage3Session,
+    candidate_content_fingerprint,
+)
+
+
+def _candidate(seed: int) -> dict:
+    return {"tournaments": [{"id": f"t{seed}", "date": "2026-10-05"}]}
+
+
+def _plan(seed: int) -> dict:
+    return {"plan": _candidate(seed)}
+
+
+def _context(capability: str, *, fingerprint: str) -> dict:
+    return {
+        "capability": capability,
+        "facts": {"candidate_fingerprint": fingerprint},
+        "available_actions": ["keep_baseline", "optimize_plan", "apply_repair_option", "apply_candidate"],
+    }
+
+
+class _FakeCapabilities:
+    """Returns a pre-programmed result per transition and records calls."""
+
+    def __init__(self, results: dict[str, Stage3CapabilityResult]) -> None:
+        self.results = results
+        self.calls: list[tuple[str, DecisionAction]] = []
+
+    def apply(self, transition: str, session: Stage3Session, action: DecisionAction) -> Stage3CapabilityResult:
+        self.calls.append((transition, action))
+        return self.results[transition]
+
+
+def _session_with_candidate(seed: int = 1) -> Stage3Session:
+    session = Stage3Session(run_id="run-1")
+    session.candidate = _plan(seed)
+    session.candidate_fingerprint = candidate_content_fingerprint(_candidate(seed))
+    session.candidate_revision = 1
+    session.set_pending(
+        capability="stage3_interactive",
+        context=_context("stage3_interactive", fingerprint=session.candidate_fingerprint),
+        candidates=[{"candidate": _plan(seed), "candidate_ref": "stage3_interactive:attempt_1"}],
+        attempt=1,
+    )
+    return session
+
+
+class TestCandidateChangingTransitions:
+    def test_search_produces_new_revision_and_records_history(self):
+        session = _session_with_candidate(1)
+        new_body = _candidate(2)
+        new_fp = candidate_content_fingerprint(new_body)
+        capabilities = _FakeCapabilities(
+            {
+                "run_search": Stage3CapabilityResult(
+                    ok=True,
+                    candidate=_plan(2),
+                    candidate_fingerprint=new_fp,
+                    candidate_source="stage3_optimizer",
+                    candidate_changed=True,
+                    next_context=_context("stage3_optimize", fingerprint=new_fp),
+                    next_capability="stage3_optimize",
+                    next_candidates=[{"candidate": _plan(2), "candidate_ref": "stage3_interactive:attempt_2"}],
+                    next_attempt=2,
+                )
+            }
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(action_id="optimize_plan", rationale="try again"),
+            capabilities,
+        )
+
+        assert outcome.accepted is True
+        assert session.candidate_revision == 2
+        assert session.candidate_fingerprint == new_fp
+        assert session.pending_scope() == SCOPE_CANDIDATE
+        assert session.pending_revision() == 2
+        history = session.decision_history[-1]
+        assert history["transition"] == "run_search"
+        assert history["from_revision"] == 1
+        assert history["to_revision"] == 2
+
+    def test_repair_is_local_and_finalizes_on_the_new_revision(self):
+        session = _session_with_candidate(1)
+        repaired_body = _candidate(3)
+        repaired_fp = candidate_content_fingerprint(repaired_body)
+        capabilities = _FakeCapabilities(
+            {
+                "apply_repair": Stage3CapabilityResult(
+                    ok=True,
+                    candidate=_plan(3),
+                    candidate_fingerprint=repaired_fp,
+                    candidate_source="host_team_missing_repair_applied",
+                    candidate_changed=True,
+                    final=True,
+                )
+            }
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(
+                action_id="apply_repair_option",
+                arguments={"option_id": "opt-1", "candidate_fingerprint": session.candidate_fingerprint},
+                rationale="apply verified repair",
+            ),
+            capabilities,
+        )
+
+        assert outcome.accepted is True
+        assert session.candidate_revision == 2
+        assert session.status == STATUS_FINALIZED
+        assert session.finalized_revision == 2
+        assert session.finalized_fingerprint == repaired_fp
+        assert session.legal_transitions() == []
+
+    def test_keep_baseline_finalizes_at_the_authoritative_plan(self):
+        session = _session_with_candidate(1)
+        session.attempts = {"best_plan": _plan(1), "best_attempt": 1}
+        baseline_fp = candidate_content_fingerprint(_candidate(1))
+        capabilities = _FakeCapabilities(
+            {
+                "keep_baseline": Stage3CapabilityResult(
+                    ok=True,
+                    candidate=_plan(1),
+                    candidate_fingerprint=baseline_fp,
+                    candidate_source="baseline",
+                    candidate_changed=False,
+                    final=True,
+                )
+            }
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session, DecisionAction(action_id="keep_baseline", rationale="not better"), capabilities
+        )
+
+        assert outcome.accepted is True
+        assert session.is_finalized()
+        assert session.finalized_fingerprint == baseline_fp
+
+
+class TestStaleRejection:
+    def test_stale_fingerprint_rejected_before_provenance_recorded(self):
+        session = _session_with_candidate(1)
+        capabilities = _FakeCapabilities(
+            {"apply_repair": Stage3CapabilityResult(ok=True, candidate=_plan(9), candidate_changed=True)}
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(
+                action_id="apply_repair_option",
+                arguments={"option_id": "opt-1", "candidate_fingerprint": "stale-fingerprint"},
+            ),
+            capabilities,
+        )
+
+        assert outcome.accepted is False
+        assert outcome.reason == "stale_candidate_fingerprint"
+        assert capabilities.calls == []
+        assert session.decision_history == []
+        assert session.candidate_revision == 1
+
+    def test_stale_revision_rejected(self):
+        session = _session_with_candidate(1)
+        capabilities = _FakeCapabilities(
+            {"keep_baseline": Stage3CapabilityResult(ok=True, candidate=_plan(1), final=True)}
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(action_id="keep_baseline", arguments={"candidate_revision": 99}),
+            capabilities,
+        )
+
+        assert outcome.accepted is False
+        assert outcome.reason == "stale_candidate_revision"
+        assert capabilities.calls == []
+
+    def test_unknown_candidate_ref_rejected(self):
+        session = _session_with_candidate(1)
+        capabilities = _FakeCapabilities(
+            {"select_candidate": Stage3CapabilityResult(ok=True, candidate=_plan(2), final=True)}
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(action_id="apply_candidate", arguments={"candidate_ref": "pareto:9:9"}),
+            capabilities,
+        )
+
+        assert outcome.accepted is False
+        assert outcome.reason == "unknown_or_stale_candidate_ref"
+        assert capabilities.calls == []
+
+    def test_capability_rejection_records_nothing(self):
+        session = _session_with_candidate(1)
+        capabilities = _FakeCapabilities(
+            {"apply_repair": Stage3CapabilityResult(ok=False, reason="unknown_or_stale_option")}
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(
+                action_id="apply_repair_option",
+                arguments={"option_id": "opt-1", "candidate_fingerprint": session.candidate_fingerprint},
+            ),
+            capabilities,
+        )
+
+        assert outcome.accepted is False
+        assert outcome.reason == "unknown_or_stale_option"
+        assert session.candidate_revision == 1
+        assert session.decision_history == []
+
+
+class TestRunScopedDecisions:
+    def test_shared_host_decision_is_not_invalidated_by_later_revision(self):
+        # A run-scoped shared-host decision stays valid across later candidate
+        # revisions; a candidate-scoped action is what carries revision scope.
+        session = _session_with_candidate(1)
+        session.shared_host_decisions = [
+            {"registration": "A/B", "age_group": "U10", "chosen_club": "A"}
+        ]
+        new_body = _candidate(2)
+        capabilities = _FakeCapabilities(
+            {
+                "run_search": Stage3CapabilityResult(
+                    ok=True,
+                    candidate=_plan(2),
+                    candidate_fingerprint=candidate_content_fingerprint(new_body),
+                    candidate_changed=True,
+                    next_context=_context(
+                        "stage3_optimize", fingerprint=candidate_content_fingerprint(new_body)
+                    ),
+                    next_capability="stage3_optimize",
+                )
+            }
+        )
+
+        Stage3Controller(clock=lambda: "T").handle(
+            session, DecisionAction(action_id="optimize_plan"), capabilities
+        )
+
+        assert session.shared_host_decisions[0]["chosen_club"] == "A"
+
+    def test_run_scoped_pending_ignores_candidate_fingerprint(self):
+        session = Stage3Session(run_id="run-1")
+        session.candidate = _plan(1)
+        session.candidate_fingerprint = candidate_content_fingerprint(_candidate(1))
+        session.set_pending(
+            capability="shared_host_assignment",
+            context=_context("shared_host_assignment", fingerprint="old"),
+            scope=SCOPE_RUN,
+        )
+        capabilities = _FakeCapabilities(
+            {
+                "assign_shared_host": Stage3CapabilityResult(
+                    ok=True,
+                    shared_host_decisions=[{"registration": "A/B", "age_group": "U10", "chosen_club": "A"}],
+                    next_context=None,
+                )
+            }
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(
+                action_id="assign_shared_host",
+                arguments={"chosen_club": "A", "candidate_fingerprint": "old"},
+            ),
+            capabilities,
+        )
+
+        assert outcome.accepted is True
+        assert session.pending_decision is None
+        assert session.shared_host_decisions[0]["chosen_club"] == "A"
+
+
+class TestSearchExhaustion:
+    def test_optimize_plan_not_legal_when_search_exhausted(self):
+        session = _session_with_candidate(1)
+        session.pending_decision["search_exhausted"] = True
+        capabilities = _FakeCapabilities(
+            {"run_search": Stage3CapabilityResult(ok=True, candidate=_plan(2), candidate_changed=True)}
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session, DecisionAction(action_id="optimize_plan"), capabilities
+        )
+
+        assert outcome.accepted is False
+        assert outcome.reason == "transition_not_legal:run_search"
+        assert "run_search" not in session.legal_transitions()
+
+
+class TestNonLifecycleActions:
+    def test_abort_is_deferred_to_the_caller(self):
+        session = _session_with_candidate(1)
+        capabilities = _FakeCapabilities({})
+
+        # A terminal action such as abort carries no candidate revision scope;
+        # validate() must defer it rather than rejecting it as unsupported.
+        assert Stage3Controller().validate(session, DecisionAction(action_id="abort")) == ""
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session, DecisionAction(action_id="abort"), capabilities
+        )
+        assert outcome.accepted is False
+        assert outcome.reason == "unsupported_action:abort"
+
+
+class TestOperatorRequest:
+    def test_request_operator_moves_pending_scope(self):
+        session = _session_with_candidate(1)
+        capabilities = _FakeCapabilities(
+            {
+                "request_operator": Stage3CapabilityResult(
+                    ok=True,
+                    next_context={
+                        "capability": "stage3_operator",
+                        "available_actions": ["proceed", "abort"],
+                    },
+                    next_capability="stage3_operator",
+                )
+            }
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(action_id="request_operator", arguments={"question": "which one?"}),
+            capabilities,
+        )
+
+        assert outcome.accepted is True
+        assert session.pending_decision is not None
+        assert session.pending_decision["capability"] == "stage3_operator"

@@ -50,4 +50,14 @@ Never switch a Stage 3 `optimize_plan` decision to `--resume-from 3` just becaus
 
 When uncertain, identify which `DecisionContext` is pending and follow this table rather than reasoning from checkpoint files or guessed state transitions.
 
+## Inspecting pending Stage 3 state
+
+Do not reconcile Stage 3 side files by hand. The active run's explicit session is the authoritative view:
+
+```bash
+scripts/rvv-miniputt stage3 session --work-dir .pipeline --json
+```
+
+Use it to confirm the current candidate revision/fingerprint, which decision is pending and whether it is run-scoped or candidate-scoped, and which transition types are legal next before you answer a pause.
+
 Do not invoke internal `stageN_*` modules directly and do not recreate stage gates, scheduling policy, source-validity rules, or publication policy in a harness adapter.

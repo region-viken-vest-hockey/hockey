@@ -329,6 +329,7 @@ def _emit_stage3_interactive_decision(
     skip_auto_cp_sat_shadow: bool = False,
     suppress_auto_cp_sat_shadow: bool = False,
     stage3_elapsed_seconds: float = 0.0,
+    candidate_transition: str = "create_baseline",
 ) -> int:
     """Build, persist and print the Stage 3 :class:`DecisionContext` for the
     attempt that just ran (issue #260 P0).
@@ -587,6 +588,24 @@ def _emit_stage3_interactive_decision(
 
     interactive_state["last_context"] = context.to_dict()
     _write_stage3_interactive_state(state, interactive_state)
+
+    # Mirror the freshly emitted pending decision into the canonical
+    # interactive Stage 3 session. The session -- not this side file -- owns
+    # candidate revision/fingerprint, pending-decision scope and transition
+    # provenance; the legacy file above stays as the compatibility
+    # projection during the migration.
+    try:
+        from ...application.stage3_session_store import Stage3SessionStore
+
+        Stage3SessionStore(state.work_dir).record_emission(
+            interactive_state,
+            candidate_revision=attempts_used,
+            run_id=run_id,
+            transition=candidate_transition,
+            action_id="optimize_plan" if candidate_transition == "run_search" else candidate_transition,
+        )
+    except Exception as exc:
+        log_fn(f"stage3_interactive attempt {attempts_used}: could not persist Stage 3 session: {exc}")
 
     # issue #264 P0: append this attempt's independently-computed
     # verify/score evidence to the durable, run-scoped attempt log --

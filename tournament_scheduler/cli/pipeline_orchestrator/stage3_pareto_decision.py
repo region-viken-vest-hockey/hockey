@@ -126,6 +126,19 @@ def _emit_stage3_pareto_decision(
     _write_stage3_interactive_state(state, interactive_state)
 
     try:
+        from ...application.stage3_session_store import Stage3SessionStore
+
+        Stage3SessionStore(state.work_dir).record_emission(
+            interactive_state,
+            candidate_revision=attempts_used,
+            run_id=run_id,
+            transition="run_search",
+            action_id="optimize_plan",
+        )
+    except Exception as exc:
+        log_fn(f"stage3_pareto attempt {attempts_used}: could not persist Stage 3 session: {exc}")
+
+    try:
         from ...pipeline.evidence_bundle import append_stage3_attempt_log_entry
 
         for entry in entries:

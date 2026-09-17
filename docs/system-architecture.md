@@ -79,6 +79,32 @@ The agent acts through validated repository capabilities/decision contracts. It 
 - public publication/rollback approval;
 - questions deliberately escalated by the system.
 
+### Interactive Stage 3 is one persisted session
+
+Interactive Stage 3 is a resumable workflow -- build a candidate, pause for a decision, persist, resume in a new process, repair/search/adopt, finalize, continue to Stage 4 -- not a one-shot batch stage. It is represented by one typed, versioned application object, `Stage3Session`, persisted through `Stage3SessionStore`, instead of being inferred by reconciling several ad-hoc side files.
+
+```text
+Stage3Session (one authoritative object per run_id)
+  status, candidate_revision, candidate_fingerprint, candidate_source
+  run-scoped decisions + candidate-scoped pending decision
+  transition history + search/attempt metadata
+  finalized revision/fingerprint
+```
+
+Every candidate-changing action is an explicit transition applied by `Stage3Controller`:
+
+```text
+create_baseline / assign_shared_host / resolve_placement_conflict
+apply_repair / run_search / select_candidate / keep_baseline
+request_operator / finalize_stage3
+```
+
+Each transition validates the submitted action against the session's exact pending scope (run-scoped decisions stay valid across later revisions where their facts remain valid; candidate-scoped decisions are revision/fingerprint-bound), invokes a deterministic domain capability, records `revision N -> N+1` (or rejects a stale action before recording provenance), and returns the next decision context or terminal result. The CLI/harness adapter parses actions and renders contexts; it does not own fall-through lifecycle semantics.
+
+`rvv-miniputt stage3 session` exposes one compact, machine-readable view (run/session id, status, revision/fingerprint, pending decision, resolved decisions, finalized revision, legal next transitions) so a resume problem does not require reconciling several JSON files.
+
+During the migration away from the older side files, the store migrates and projects them behind this facade. New Stage 3 capabilities must not add a feature-specific `*_state.json` authority; an architecture test blocks a new authoritative side-state file.
+
 ## Scheduling-rule implementation map
 
 Scheduling rules must have one authoritative implementation and remain valid across initial generation, optimization, repair, promoted-season maintenance and export. Do not fix a persistent invariant only in whichever planner path first exposed the bug.

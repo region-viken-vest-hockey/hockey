@@ -8,7 +8,6 @@ from typing import Any
 
 from ._shared import _console
 from .export_command import _regenerate_calendar, _run_stage4_export
-from .interactive_state_io import _clear_shared_host_state, _clear_stage3_interactive_state
 from .judgment import _compute_verdict_tone, _format_plan_attempt_quality, _plan_attempt_quality, _plan_attempt_quality_adopts
 from .manifest import _manifest_finalize, _manifest_record, _manifest_set_active, _manifest_start_run
 from .plan_adoption import _decide_plan_adoption, _run_mid_planning_critic_loop
@@ -49,10 +48,10 @@ def _cmd_run(args: argparse.Namespace) -> int:
         _console.print(f"[dim]Gjenopptar fra Stage {resume_from}[/dim]")
 
     _manifest_start_run(args.work_dir, args.input, getattr(args, "objective", None))
-    _clear_stage3_interactive_state(state)
-    _clear_shared_host_state(state)
+    from ...application.stage3_session_store import Stage3SessionStore
     from ...pipeline.evidence_bundle import clear_stage3_attempt_log
 
+    Stage3SessionStore(state.work_dir).clear()
     clear_stage3_attempt_log(state.work_dir)
 
     plan: dict[str, Any] | None = None

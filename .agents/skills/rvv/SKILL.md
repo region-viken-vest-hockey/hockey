@@ -122,6 +122,14 @@ Once a season has been promoted, Stage 3 is baseline-aware by default. A normal 
 - use `season replan` around the canonical baseline, inspect `season diff`, and persist only through verified `season apply`;
 - a rejected candidate must leave `schedule.json` and `decisions.json` unchanged.
 
+Interactive Stage 3 is one explicit persisted session with candidate revisions. Inspect it with:
+
+```bash
+scripts/rvv-miniputt stage3 session --work-dir .pipeline --json
+```
+
+The view is authoritative for the active run's status, current candidate revision/fingerprint, pending decision, resolved run-scoped decisions, finalized revision/fingerprint and legal next transitions. Use it to debug a resume problem instead of reconciling several JSON files.
+
 Approval/lock state lives in `decisions.json`, separate from schedule facts. `season approve` re-verifies the current placement; approval is never a waiver of hard rules. `season unapprove` restores editability. `season approvals` lists status. If protected scheduling facts change, the stored fingerprint becomes a deterministic `stale_approval`, its lock is dropped, and explicit reapproval is required.
 
 ### Stage 4 — export/review

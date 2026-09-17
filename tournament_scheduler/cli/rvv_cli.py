@@ -1647,6 +1647,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_plan(args)
     elif args.command == "season":
         return _cmd_season(args)
+    elif args.command == "stage3":
+        from .pipeline_orchestrator.stage3_session_command import _cmd_stage3_session
+
+        return _cmd_stage3_session(args)
     elif args.command == "waiver":
         return _cmd_waiver(args)
     else:
