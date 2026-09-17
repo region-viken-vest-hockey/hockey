@@ -43,6 +43,19 @@ def _publication_gate_status(status: str | None) -> str:
     return "blocked"
 
 
+def _checkpoint_export_dir(checkpoint: dict[str, Any]) -> str | None:
+    explicit = checkpoint.get("export_dir")
+    if explicit:
+        return str(explicit)
+    output_files = checkpoint.get("output_files")
+    if not isinstance(output_files, dict):
+        return None
+    for value in output_files.values():
+        if value:
+            return str(Path(str(value)).parent)
+    return None
+
+
 def _resolve_export_context(
     work_dir: str | Path,
     *,
@@ -55,7 +68,10 @@ def _resolve_export_context(
     copy: an audit artifact must never be attached to the wrong schedule.
     """
     checkpoint = PipelineState(work_dir).read_stage(StageName.EXPORT)
-    if not isinstance(checkpoint, dict) or not checkpoint.get("export_dir"):
+    if not isinstance(checkpoint, dict):
+        return None
+    raw_export_dir = _checkpoint_export_dir(checkpoint)
+    if not raw_export_dir:
         return None
 
     current_fp = str(checkpoint.get("export_fingerprint") or "")
@@ -76,7 +92,7 @@ def _resolve_export_context(
         )
     candidate_fp = candidate_fp or current_fp
 
-    export_dir = Path(str(checkpoint["export_dir"]))
+    export_dir = Path(raw_export_dir)
     if not export_dir.is_absolute():
         export_dir = Path(work_dir).parent / export_dir
     return export_dir, candidate_fp
