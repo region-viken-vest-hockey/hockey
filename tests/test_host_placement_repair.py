@@ -309,3 +309,96 @@ def test_healthy_candidate_has_no_placement_findings():
     assert repair_set["options"] == []
     assert repair_set["rejected_candidates"] == []
     assert verify_candidate(deepcopy(candidate), problem)["ok"]
+
+
+def _swap_problem():
+    problem = _problem()
+    # A shared physical hall: both hosts use "H Arena", but each has its own
+    # calendar. `ice_time_minutes` is required for the verifier's arena
+    # interval collision check.
+    problem["clubs"] = {"H": "H Arena", "A": "H Arena", "B": "B Arena", "C": "C Arena", "D": "D Arena"}
+    problem["ice_time_minutes"] = {"U10": 90}
+    problem["club_busy_intervals"] = {
+        "H": [{"date": "2026-01-10", "start": "09:00", "end": "20:00", "kind": "external"}]
+    }
+    return problem
+
+
+def _swap_candidate():
+    manual = _tournament(
+        "t1",
+        "H",
+        [_team("H", "H1"), _team("B", "B1"), _team("C", "C1"), _team("D", "D1")],
+        date="2026-01-10",
+        arena="H Arena",
+    )
+    manual["manual_booking_reason"] = MANUAL_REASON
+    donor = _tournament(
+        "t2",
+        "A",
+        [_team("A", "A1"), _team("B", "B2"), _team("C", "C2"), _team("D", "D2")],
+        date="2026-01-17",
+        arena="H Arena",
+    )
+    return {
+        "schema_version": 1,
+        "unresolved_tournament_placements": [
+            {"age_group": "U10", "date": "2026-01-10", "category": "manual_tournament_placement"}
+        ],
+        "tournaments": [manual, donor],
+    }
+
+
+def test_compatible_placement_swap_is_offered_when_no_same_host_slot_exists():
+    candidate = _swap_candidate()
+    problem = _swap_problem()
+
+    repair_set = enumerate_host_placement_repairs(candidate, problem, run_id="r1")
+
+    assert [o for o in repair_set["options"] if o["action"] == "move_same_host_start_time"] == []
+    assert [o for o in repair_set["options"] if o["action"] == "move_same_host_date"] == []
+    swap = next(o for o in repair_set["options"] if o["action"] == "swap_compatible_tournament_placement")
+    assert swap["arguments"]["date"] == "2026-01-17"
+    assert swap["arguments"]["swap_tournament_id"] == "t2"
+    assert swap["arguments"]["swap_tournament_date"] == "2026-01-10"
+    reasons = {r["reason"] for r in repair_set["rejected_candidates"]}
+    assert "arena_interval_conflict" in reasons
+
+
+def test_selected_swap_exchanges_dates_without_transferring_responsibility():
+    candidate = _swap_candidate()
+    original = deepcopy(candidate)
+    problem = _swap_problem()
+    repair_set = enumerate_host_placement_repairs(candidate, problem)
+    swap = next(o for o in repair_set["options"] if o["action"] == "swap_compatible_tournament_placement")
+
+    applied = apply_host_placement_repair_option(
+        candidate,
+        problem,
+        option_id=swap["option_id"],
+        expected_fingerprint=repair_set["candidate_fingerprint"],
+    )
+
+    assert applied["ok"] and applied["verification"]["ok"]
+    assert candidate == original
+    by_id = {t["id"]: t for t in applied["candidate"]["tournaments"]}
+    assert by_id["t1"]["host_club"] == "H"
+    assert by_id["t1"]["date"] == "2026-01-17"
+    assert by_id["t1"]["manual_booking_reason"] is None
+    assert by_id["t2"]["host_club"] == "A"
+    assert by_id["t2"]["date"] == "2026-01-10"
+    assert applied["candidate"]["unresolved_tournament_placements"] == []
+
+
+def test_swap_does_not_use_an_untrusted_or_manual_donor():
+    candidate = _swap_candidate()
+    problem = _swap_problem()
+    problem["club_calendar_status"]["A"] = "unknown"
+
+    repair_set = enumerate_host_placement_repairs(candidate, problem)
+
+    assert [o for o in repair_set["options"] if o["action"] == "swap_compatible_tournament_placement"] == []
+    assert any(
+        r["reason"] == "donor_calendar_evidence_not_trusted"
+        for r in repair_set["rejected_candidates"]
+    )

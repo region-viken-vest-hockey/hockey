@@ -12,7 +12,11 @@ automatic placement for the same host:
 - ``move_same_host_start_time`` -- another legal start time on the same date;
 - ``move_same_host_date`` -- another already-scheduled season date (same
   planning half unless cross-half moves are explicitly enabled) with a legal
-  slot for the same host.
+  slot for the same host;
+- ``swap_compatible_tournament_placement`` -- only when neither same-host move
+  verifies: trade date/start time with a compatible same-age tournament so
+  both responsible hosts get a legal slot, each keeping its own host and
+  arena.
 
 It never transfers hosting responsibility to another club, never invents a new
 season date, and never weakens a hard rule. Applying a selected option mutates
@@ -56,6 +60,7 @@ MANUAL_SLOT_FAILURE_MARKER = "må plasseres manuelt"
 # without turning one unplaced tournament into a season-wide search.
 _MAX_START_TIME_OPTIONS = 6
 _MAX_DATE_CANDIDATES = 8
+_MAX_SWAP_OPTIONS = 4
 _MAX_OPTIONS = 12
 
 
@@ -125,6 +130,17 @@ def enumerate_host_placement_repairs(
         rejected.extend(time_rejected)
         rejected.extend(date_rejected)
         if not time_options and not date_options:
+            # Coupled nearby neighborhood, only after the small same-host
+            # neighborhood found nothing: trade placements with a compatible
+            # same-age tournament so both responsible hosts get a legal slot.
+            swap_options, swap_rejected = _swap_options(
+                candidate, problem, tournament, finding, fingerprint, pinned_ids
+            )
+            options.extend(swap_options)
+            rejected.extend(swap_rejected)
+        if not any(
+            option.finding_id == finding.finding_id for option in options
+        ):
             rejected.append(
                 {
                     **_base(finding),
@@ -230,6 +246,12 @@ def apply_host_placement_repair_option(
     tournament["start_time"] = str(arguments["start_time"])
     tournament["manual_booking_reason"] = None
     _clear_unresolved_placement(mutated, tournament, original_date)
+    if option["action"] == "swap_compatible_tournament_placement":
+        donor = _find_tournament(mutated, str(arguments["swap_tournament_id"]))
+        if donor is None:
+            return {"ok": False, "reason": "swap_tournament_not_found", "before_fingerprint": before}
+        donor["date"] = str(arguments["swap_tournament_date"])
+        donor["start_time"] = str(arguments["swap_tournament_start_time"])
 
     verification = verify_candidate(mutated, dict(problem))
     if not verification.get("ok"):
@@ -401,6 +423,123 @@ def _date_options(
             )
         )
         if len(out) >= _MAX_OPTIONS:
+            break
+    return out, rejected
+
+
+def _swap_options(
+    candidate: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    tournament: Mapping[str, Any],
+    finding: _Finding,
+    fingerprint: str,
+    pinned_ids: set,
+) -> Tuple[List[RepairOption], List[Dict[str, Any]]]:
+    """Compatible same-age placement swaps that keep both hosts responsible.
+
+    The manual tournament and a compatible scheduled same-age tournament
+    exchange date/start time, but each keeps its own responsible host and
+    arena. The swap is offered only when both hosts get an externally free
+    slot on the other's date and the resulting candidate verifies; anything
+    else is recorded as explicit rejection evidence.
+    """
+    out: List[RepairOption] = []
+    rejected: List[Dict[str, Any]] = []
+    if not finding.age_group:
+        return out, rejected
+    current_start = str(tournament.get("start_time") or "10:00")
+    current_duration = _duration_minutes(tournament, problem)
+    busy = _busy_intervals(problem)
+    for donor in candidate.get("tournaments", []):
+        donor_id = str(donor.get("id"))
+        base = {
+            **_base(finding),
+            "donor_tournament_id": donor_id,
+            "donor_host_club": donor.get("host_club"),
+        }
+        if donor_id == finding.tournament_id or donor.get("cancelled"):
+            continue
+        if donor.get("age_group") != finding.age_group:
+            continue
+        donor_host = str(donor.get("host_club") or "")
+        if not donor_host:
+            rejected.append({**base, "reason": "donor_missing_host_club"})
+            continue
+        if donor_id in pinned_ids:
+            rejected.append({**base, "reason": "donor_manual_restriction_forbids_mutation"})
+            continue
+        if _is_manual_slot_failure(donor):
+            # Only trade with an already-placed tournament: a swap that moves
+            # one manual item onto another manual item has not repaired
+            # anything, and would need its own manual-state bookkeeping.
+            rejected.append({**base, "reason": "donor_itself_manual"})
+            continue
+        if not _calendar_trusted(problem, donor_host):
+            rejected.append({**base, "reason": "donor_calendar_evidence_not_trusted"})
+            continue
+        donor_date = str(donor.get("date") or "")
+        donor_start = str(donor.get("start_time") or "")
+        donor_duration = _duration_minutes(donor, problem)
+        if not donor_date or not donor_start:
+            # A placement swap trades concrete placements; a donor with no
+            # parseable slot cannot give the finding host one.
+            rejected.append({**base, "reason": "donor_missing_start_time"})
+            continue
+        if external_calendar_conflict(
+            busy, finding.host_club, _parse_date(donor_date), donor_start, current_duration
+        ):
+            rejected.append({**base, "reason": "external_calendar_conflict_for_finding_host"})
+            continue
+        if external_calendar_conflict(
+            busy, donor_host, _parse_date(finding.original_date), current_start, donor_duration
+        ):
+            rejected.append({**base, "reason": "external_calendar_conflict_for_donor_host"})
+            continue
+        trial = copy.deepcopy(candidate)
+        finding_tournament = _find_tournament(trial, finding.tournament_id)
+        donor_tournament = _find_tournament(trial, donor_id)
+        if finding_tournament is None or donor_tournament is None:
+            continue
+        finding_tournament["date"] = donor_date
+        finding_tournament["start_time"] = donor_start
+        finding_tournament["manual_booking_reason"] = None
+        donor_tournament["date"] = finding.original_date
+        donor_tournament["start_time"] = current_start
+        _clear_unresolved_placement(trial, finding_tournament, finding.original_date)
+        result = verify_candidate(trial, dict(problem))
+        if not result.get("ok"):
+            rejected.append({**base, "reason": _primary_reason(result), "violations": _codes(result)})
+            continue
+        out.append(
+            RepairOption(
+                option_id=(
+                    f"{fingerprint[:12]}:{finding.finding_id}:swap_compatible_tournament_placement:"
+                    f"{_slug(donor_id)}"
+                ),
+                finding_id=finding.finding_id,
+                action="swap_compatible_tournament_placement",
+                tournament_id=finding.tournament_id,
+                arguments={
+                    "original_date": finding.original_date,
+                    "date": donor_date,
+                    "start_time": donor_start,
+                    "swap_tournament_id": donor_id,
+                    "swap_tournament_date": finding.original_date,
+                    "swap_tournament_start_time": current_start,
+                },
+                hard_feasible=True,
+                effects={"manual_placement_required": -1, "placement_swap": 1},
+                evidence={
+                    "verification_ok": True,
+                    "responsible_host": finding.host_club,
+                    "swap_host": donor_host,
+                    "date": donor_date,
+                    "start_time": donor_start,
+                    "swap_tournament_id": donor_id,
+                },
+            )
+        )
+        if len(out) >= _MAX_SWAP_OPTIONS:
             break
     return out, rejected
 
