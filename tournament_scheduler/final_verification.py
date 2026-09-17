@@ -247,6 +247,17 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
         if count:
             reasons.append({"code": code, "count": count})
 
+    # Over-target participation is never a hard failure (a target is a strong
+    # goal, not a ceiling), but a candidate that exceeds its configured targets
+    # still needs explicit review instead of publishing as if it matched them.
+    over_target = [
+        deviation
+        for deviation in (result.get("participation_deviations") or [])
+        if deviation.get("direction") == "over_target"
+    ]
+    if over_target:
+        reasons.append({"code": "participation_target_deviation", "count": len(over_target)})
+
     status = "REVIEW_REQUIRED" if reasons else "PUBLISHABLE"
     return {
         "status": status,

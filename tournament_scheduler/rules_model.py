@@ -19,7 +19,7 @@ A rule entry has the shape::
     {
         "id": str,
         "title": str,
-        "type": "hard" | "required_obligation" | "soft" | "advisory" | "decision" | "default",
+        "type": "hard" | "strong_goal" | "required_obligation" | "soft" | "advisory" | "decision" | "default",
         "scope": str,
         "owner": str,
         "description": str,
@@ -62,7 +62,7 @@ _METRIC_SCOPES: dict[str, str] = {
     "arena_day_collisions": "arena/tid",
 }
 
-RULE_TYPES = ("hard", "required_obligation", "soft", "decision", "advisory", "default")
+RULE_TYPES = ("hard", "strong_goal", "required_obligation", "soft", "decision", "advisory", "default")
 
 
 def _active_tournaments(plan: SeasonPlan) -> list[Any]:
@@ -180,32 +180,60 @@ def _participation_shortfall_rule(plan: SeasonPlan) -> dict[str, Any]:
     }
 
 
-def _participation_target_exceeded_rule(plan: SeasonPlan) -> dict[str, Any]:
-    """Hard rule: a team scheduled above its participation target.
+def _participation_target_deviation_rule(plan: SeasonPlan) -> dict[str, Any]:
+    """Strong-goal evidence: teams above/below their participation target.
 
-    Mirrors ``planning_contract.verify_candidate``'s ``participation_target_exceeded``
-    violation code: an explicit per-team ``target_tournament_count``
-    always wins (season-wide); otherwise ``plan.participation_targets_by_age_group``'s
-    before/after-Christmas value for the team's age group is the authoritative
-    per-half target, checked independently per half using the same Christmas
-    boundary as :mod:`planning_half`. A planner-inferred (capacity-only) target
-    is still deliberately never reproduced here.
+    A participation target is a strong operational goal, not a hard legality
+    boundary (see :mod:`tournament_scheduler.participation_targets`). This rule
+    therefore reports bounded deviation rather than a hard verifier failure:
+    exact target satisfaction is preferred, but a genuine over/under deviation
+    is allowed as a bounded relaxation with avoidability evidence.
+
+    Mirrors ``planning_contract.verify_candidate``'s participation evaluation:
+    an explicit per-team ``target_tournament_count`` always wins (season-wide);
+    otherwise ``plan.participation_targets_by_age_group``'s before/after value
+    for the team's age group is the authoritative per-half target, checked
+    independently per half using the same Christmas boundary as
+    :mod:`planning_half`.
     """
     from . import planning_half
+    from .participation_targets import (
+        BOUNDED_SEARCH_EXHAUSTED,
+        PROVEN_INFEASIBLE,
+    )
 
     counts: dict[tuple[str, str, str], int] = {}
     explicit_targets: dict[tuple[str, str, str], int] = {}
+    tournaments_per_age_group: dict[str, int] = {}
     for tournament in _active_tournaments(plan):
+        tournaments_per_age_group[tournament.age_group] = (
+            tournaments_per_age_group.get(tournament.age_group, 0) + 1
+        )
         for team in tournament.teams:
             identity = (team.club, team.label, team.age_group)
             counts[identity] = counts.get(identity, 0) + 1
             if team.target_tournament_count is not None:
                 explicit_targets[identity] = team.target_tournament_count
 
-    exceeded = [
-        f"{identity[1]} ({counts[identity]}/{target})"
+    def _direction(actual: int, target: int) -> str:
+        return "over" if actual > target else "under"
+
+    deviations: list[dict[str, Any]] = [
+        {
+            "team": identity[1],
+            "scope": "season",
+            "direction": _direction(counts[identity], target),
+            "actual": counts[identity],
+            "target": target,
+            "avoidability": (
+                PROVEN_INFEASIBLE
+                if counts[identity] < target
+                and tournaments_per_age_group.get(identity[2], 0) <= target
+                else BOUNDED_SEARCH_EXHAUSTED
+            ),
+        }
         for identity, target in explicit_targets.items()
-        if counts.get(identity, 0) > target
+        if counts.get(identity, 0) != target
     ]
 
     age_group_targets = plan.participation_targets_by_age_group or {}
@@ -214,39 +242,69 @@ def _participation_target_exceeded_rule(plan: SeasonPlan) -> dict[str, Any]:
         if plan.start_date and plan.end_date:
             split_date = planning_half.christmas_split_date(plan.start_date, plan.end_date)
         half_counts: dict[str, dict[tuple[str, str, str], int]] = {"before_christmas": {}, "after_christmas": {}}
+        half_tournaments: dict[tuple[str, str], int] = {}
         for tournament in _active_tournaments(plan):
             half = planning_half.tournament_half(tournament.date, split_date)
             if half not in half_counts:
                 continue
+            half_tournaments[(tournament.age_group, half)] = (
+                half_tournaments.get((tournament.age_group, half), 0) + 1
+            )
             for team in tournament.teams:
                 identity = (team.club, team.label, team.age_group)
                 half_counts[half][identity] = half_counts[half].get(identity, 0) + 1
         for half, counts_for_half in half_counts.items():
             for identity, count in counts_for_half.items():
                 if identity in explicit_targets:
-                    continue  # season-wide override already checked above.
-                targets = age_group_targets.get(identity[2]) or {}
-                target = targets.get(half)
-                if isinstance(target, int) and count > target:
-                    exceeded.append(f"{identity[1]} ({count}/{target}, {half})")
+                    continue  # season-wide override checked above.
+                target = (age_group_targets.get(identity[2]) or {}).get(half)
+                if not isinstance(target, int) or count == target:
+                    continue
+                available = half_tournaments.get((identity[2], half), 0)
+                unavoidable = count < target and available <= target
+                deviations.append(
+                    {
+                        "team": identity[1],
+                        "scope": half,
+                        "direction": _direction(count, target),
+                        "actual": count,
+                        "target": target,
+                        "avoidability": PROVEN_INFEASIBLE if unavoidable else BOUNDED_SEARCH_EXHAUSTED,
+                    }
+                )
 
-    status = "Oppfylt" if not exceeded else f"{len(exceeded)} avvik: {', '.join(sorted(exceeded))}"
+    deviations.sort(key=lambda item: (item["scope"], item["team"]))
+    if deviations:
+        rendered = ", ".join(
+            f"{item['team']} ({item['actual']}/{item['target']}, {item['scope']}, {item['avoidability']})"
+            for item in deviations
+        )
+        status = f"{len(deviations)} avvik: {rendered}"
+    else:
+        status = "Oppfylt"
     return {
-        "id": "participation_target_exceeded",
-        "title": "Deltakelsesmål må ikke overskrides",
-        "type": "hard",
+        "id": "participation_target_deviation",
+        "title": "Deltakelsesmål (sterkt mål, ikke absolutt tak)",
+        "type": "strong_goal",
         "scope": "lag",
         "owner": "deterministic_verifier",
         "description": (
-            "Et lag skal aldri planlegges i flere turneringer enn sitt deltakelsesmål — enten et "
-            "eksplisitt turneringsmål satt per lag (sesongtotal), eller aldersgruppens autoritative "
-            "mål før/etter jul (sjekket uavhengig per halvdel). Dette avvises som et hardt "
-            "verifikatoravvik (`participation_target_exceeded`), ulikt et lag som havner *under* "
-            "målet, som er en ikke-blokkerende mangel (se «Lag under sitt mål» blant forpliktelsene)."
+            "Deltakelsesmålet er et sterkt driftsmål, ikke en hard lovlighetsgrense. "
+            "Planleggeren skal treffe målet når det er rimelig gjennomførbart, men et "
+            "begrenset avvik over eller under målet er tillatt når hardere "
+            "kapasitets-/planleggingshensyn gjør målet uoppnåelig. Hvert avvik bærer en "
+            "unngåelighetsstatus (avoidable / proven_infeasible / bounded_search_exhausted / "
+            "operator_accepted) slik at et unngåelig avvik ikke kan velges bort for en "
+            "lavere prioritert kvalitetsgevinst."
         ),
-        "configured_value": "Faktisk ≤ mål",
+        "configured_value": "Faktisk ≈ mål (sterkt mål)",
         "status": status,
-        "ok": not exceeded,
+        "ok": not deviations,
+        "detail_rows": (
+            {"label": "Vis avvik per lag", "kind": "participation_target_deviation", "rows": deviations}
+            if deviations
+            else None
+        ),
     }
 
 
@@ -256,7 +314,7 @@ def _participation_targets_by_age_group_rule(plan: SeasonPlan) -> dict[str, Any]
     Shows the authoritative before/after-Christmas target for
     every active age group this plan was built against, so the Rules report
     surfaces the configured policy alongside the actual/shortfall figures in
-    ``_participation_shortfall_rule`` / ``_participation_target_exceeded_rule``.
+    ``_participation_shortfall_rule`` / ``_participation_target_deviation_rule``.
     Returns ``None`` when the plan carries no configured targets (e.g. an
     older cached plan, or a non-canonical fixture).
     """
@@ -664,7 +722,6 @@ def build_rules_model(plan: SeasonPlan) -> list[dict[str, Any]]:
     # Hard constraints directly re-derivable from the exported plan.
     rules.append(_age_group_exact_match_rule(plan))
     rules.append(_no_double_participation_rule(plan))
-    rules.append(_participation_target_exceeded_rule(plan))
     rules.append(_date_window_rule(plan))
     rules.append(_arena_collision_rule(plan))
     rules.extend(_manual_adjustment_rules(plan))
@@ -675,6 +732,9 @@ def build_rules_model(plan: SeasonPlan) -> list[dict[str, Any]]:
     rules.append(_hosting_obligation_rule(plan))
     rules.append(_external_conflict_rule(plan))
     rules.append(_participation_shortfall_rule(plan))
+    # A participation target is a strong goal, not a hard rule, so its
+    # bounded-deviation evidence is a soft/quality row alongside shortfalls.
+    rules.append(_participation_target_deviation_rule(plan))
     rules.append(_tournament_placement_rule(plan))
 
     # Decisions/exceptions for this run.
@@ -692,6 +752,7 @@ def group_rules_by_type(rules: list[dict[str, Any]]) -> dict[str, list[dict[str,
     """Split a flat rules list into the four Regler-page sections."""
     groups: dict[str, list[dict[str, Any]]] = {
         "hard": [],
+        "strong_goal": [],
         "required_obligation": [],
         "soft": [],
         "decision": [],
@@ -704,11 +765,13 @@ def group_rules_by_type(rules: list[dict[str, Any]]) -> dict[str, list[dict[str,
 def rules_summary_counts(rules: list[dict[str, Any]]) -> dict[str, int]:
     """Return the compact top-summary counts shown on the Regler page."""
     hard = [r for r in rules if r.get("type") == "hard"]
+    strong_goals = [r for r in rules if r.get("type") == "strong_goal"]
     obligations = [r for r in rules if r.get("type") == "required_obligation"]
     soft = [r for r in rules if r.get("type") == "soft"]
     return {
         "hard_total": len(hard),
         "hard_ok": sum(1 for r in hard if r.get("ok")),
+        "strong_goal_deviations": sum(1 for r in strong_goals if not r.get("ok")),
         "obligations_unresolved": sum(1 for r in obligations if not r.get("ok")),
         "soft_warnings": sum(1 for r in soft if not r.get("ok")),
     }

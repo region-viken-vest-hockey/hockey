@@ -83,7 +83,7 @@ def _problem(teams: list[dict], *, targets: dict | None = None) -> dict:
 
 
 def _three_team_candidate() -> tuple[dict, dict]:
-    """A1 ends at 4/3 after Christmas and is the only over-target team."""
+    """A1 ends at 4 after Christmas, above an explicit hard maximum of 3."""
     a1, b1, c1, d1 = (_team("A", "A 1"), _team("B", "B 1"), _team("C", "C 1"), _team("D", "D 1"))
     e1, f1, g1, h1 = (_team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1"), _team("H", "H 1"))
     candidate = {
@@ -96,12 +96,15 @@ def _three_team_candidate() -> tuple[dict, dict]:
         ],
     }
     problem = _problem([a1, b1, c1, d1, e1, f1, g1, h1], targets={"before_christmas": 3, "after_christmas": 3})
+    # Explicit hard maximum -- the genuinely hard, operator-waivable ceiling.
+    # The target itself remains a strong goal and is not a hard violation.
+    problem["participation_hard_max"] = 3
     return candidate, problem
 
 
-def _matching_waiver(candidate: dict, problem: dict, *, tournament_id: str = "t4", half: str = "after_christmas") -> dict:
+def _matching_waiver(candidate: dict, problem: dict, *, tournament_id: str = "t4", half: str | None = None) -> dict:
     fingerprint = scope_fingerprint(
-        rule="participation_target_exceeded",
+        rule="participation_hard_max_exceeded",
         team={"club": "A", "label": "A 1", "age_group": U11},
         tournament_id=tournament_id,
         half=half,
@@ -110,7 +113,7 @@ def _matching_waiver(candidate: dict, problem: dict, *, tournament_id: str = "t4
     )
     return {
         "id": "waiver-test",
-        "rule": "participation_target_exceeded",
+        "rule": "participation_hard_max_exceeded",
         "scope": {"team": {"club": "A", "label": "A 1", "age_group": U11}, "tournament_id": tournament_id, "half": half},
         "configured_value": 3,
         "allowed_value": 4,
@@ -127,11 +130,11 @@ def _matching_waiver(candidate: dict, problem: dict, *, tournament_id: str = "t4
 # ---------------------------------------------------------------------------
 
 
-def test_without_waiver_participation_overage_is_blocking():
+def test_without_waiver_hard_max_overage_is_blocking():
     candidate, problem = _three_team_candidate()
     result = verify_candidate(candidate, problem)
     codes = [v["code"] for v in result["violations"]]
-    assert "participation_target_exceeded" in codes
+    assert "participation_hard_max_exceeded" in codes
     assert result["ok"] is False
     assert result["waived_violations"] == []
 
@@ -142,7 +145,7 @@ def test_matching_waiver_downgrades_only_that_violation():
     result = verify_candidate(candidate, problem)
     assert result["ok"] is True
     assert result["violations"] == []
-    assert [w["code"] for w in result["waived_violations"]] == ["participation_target_exceeded"]
+    assert [w["code"] for w in result["waived_violations"]] == ["participation_hard_max_exceeded"]
     assert result["waived_violations"][0]["waived_by_operator"] is True
     assert result["waived_violations"][0]["waiver_id"] == "waiver-test"
 
@@ -153,25 +156,30 @@ def test_another_team_overage_is_still_rejected():
     unrelated = _matching_waiver(candidate, problem)
     unrelated["scope"]["team"] = {"club": "B", "label": "B 1", "age_group": U11}
     unrelated["scope_fingerprint"] = scope_fingerprint(
-        rule="participation_target_exceeded",
+        rule="participation_hard_max_exceeded",
         team=unrelated["scope"]["team"],
         tournament_id="t4",
-        half="after_christmas",
+        half=None,
         configured_value=3,
         allowed_value=4,
     )
     problem["operator_waivers"] = [unrelated]
     result = verify_candidate(candidate, problem)
     assert result["ok"] is False
-    assert "participation_target_exceeded" in [v["code"] for v in result["violations"]]
+    assert "participation_hard_max_exceeded" in [v["code"] for v in result["violations"]]
 
 
-def test_same_team_overage_in_another_half_is_rejected():
+def test_target_overage_alone_is_not_a_hard_violation():
+    """issue #376: without an explicit hard maximum, an over-target team is
+    bounded strong-goal evidence -- it does not require a waiver and does not
+    block verification."""
     candidate, problem = _three_team_candidate()
-    problem["operator_waivers"] = [_matching_waiver(candidate, problem, half="before_christmas")]
+    problem.pop("participation_hard_max")
     result = verify_candidate(candidate, problem)
-    assert result["ok"] is False
-    assert "participation_target_exceeded" in [v["code"] for v in result["violations"]]
+    assert result["ok"] is True
+    assert result["violations"] == []
+    assert result["waived_violations"] == []
+    assert any(d["direction"] == "over_target" for d in result["participation_deviations"])
 
 
 def test_waiver_scoped_to_absent_tournament_does_not_suppress():
@@ -179,18 +187,18 @@ def test_waiver_scoped_to_absent_tournament_does_not_suppress():
     problem["operator_waivers"] = [_matching_waiver(candidate, problem, tournament_id="t-not-present")]
     result = verify_candidate(candidate, problem)
     assert result["ok"] is False
-    assert "participation_target_exceeded" in [v["code"] for v in result["violations"]]
+    assert "participation_hard_max_exceeded" in [v["code"] for v in result["violations"]]
 
 
 def test_stale_waiver_wrong_allowed_value_does_not_suppress():
     candidate, problem = _three_team_candidate()
-    # Team reaches 5/3, but the waiver only authorizes 4.
+    # Team reaches 5, but the waiver only authorizes 4.
     extra = _tournament("t5", "2026-05-10", [_team("A", "A 1"), _team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1")])
     candidate["tournaments"].append(extra)
     problem["operator_waivers"] = [_matching_waiver(candidate, problem)]
     result = verify_candidate(candidate, problem)
     assert result["ok"] is False
-    assert "participation_target_exceeded" in [v["code"] for v in result["violations"]]
+    assert "participation_hard_max_exceeded" in [v["code"] for v in result["violations"]]
 
 
 def test_moving_the_extra_participation_makes_the_waiver_stale():
@@ -198,15 +206,15 @@ def test_moving_the_extra_participation_makes_the_waiver_stale():
     longer matches even though the count is unchanged."""
     candidate, problem = _three_team_candidate()
     problem["operator_waivers"] = [_matching_waiver(candidate, problem, tournament_id="t4")]
-    # Keep A 1 at 4 after-Christmas tournaments, but move the authorized
-    # participation out of t4 into a new t5.
+    # Keep A 1 at 4 tournaments, but move the authorized participation out of
+    # t4 into a new t5.
     candidate["tournaments"][3] = _tournament("t4", "2026-04-10", [_team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1"), _team("H", "H 1")])
     candidate["tournaments"].append(
         _tournament("t5", "2026-05-10", [_team("A", "A 1"), _team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1")])
     )
     result = verify_candidate(candidate, problem)
     assert result["ok"] is False
-    assert "participation_target_exceeded" in [v["code"] for v in result["violations"]]
+    assert "participation_hard_max_exceeded" in [v["code"] for v in result["violations"]]
 
 
 def test_structural_invariant_failures_cannot_be_waived():
@@ -302,10 +310,10 @@ def test_store_rejects_allowed_value_at_or_below_target(tmp_path):
 def test_revocation_restores_hard_failure(tmp_path):
     create_waiver(
         tmp_path,
-        rule="participation_target_exceeded",
+        rule="participation_hard_max_exceeded",
         team={"club": "A", "label": "A 1", "age_group": U11},
         tournament_id="t4",
-        half="after_christmas",
+        half=None,
         configured_value=3,
         allowed_value=4,
         reason="operator chose A 1",
@@ -329,7 +337,7 @@ def test_matching_requires_consistent_fingerprint(tmp_path):
     assert find_participation_waiver(
         {"operator_waivers": [waiver]},
         identity=("A", "A 1", U11),
-        half="after_christmas",
+        half=None,
         actual=4,
         configured=3,
         tournament_ids=["t4"],
@@ -338,7 +346,7 @@ def test_matching_requires_consistent_fingerprint(tmp_path):
     assert not find_participation_waiver(
         {"operator_waivers": [tampered]},
         identity=("A", "A 1", U11),
-        half="after_christmas",
+        half=None,
         actual=4,
         configured=3,
         tournament_ids=["t4"],
@@ -401,6 +409,7 @@ def _write_run(tmp_path) -> None:
             "start_date": problem["start_date"],
             "end_date": problem["end_date"],
             "participation_targets_by_age_group": problem["participation_targets_by_age_group"],
+            "participation_hard_max": problem["participation_hard_max"],
             "parallel_games": problem["parallel_games"],
             "sources": [],
             "age_groups": [U11],
@@ -458,11 +467,12 @@ def test_cli_create_list_and_revoke_roundtrip(tmp_path):
     assert records[0]["allowed_value"] == 4
     assert records[0]["configured_value"] == 3
 
-    # The CLI-created waiver is now honored by the verifier via the same
-    # canonical problem contract.
-    candidate, problem = _three_team_candidate()
-    problem["operator_waivers"] = records
-    assert verify_candidate(candidate, problem)["ok"] is True
+    # The CLI-created record is a real, scoped exception in the store. (A
+    # target-based waiver no longer suppresses a hard verifier failure after
+    # the participation-target reclassification -- only an explicit hard
+    # maximum does -- so this test asserts the store roundtrip, not that it
+    # downgrades a target deviation.)
+    assert records[0]["rule"] == "participation_target_exceeded"
 
     assert main(["waiver", "revoke", records[0]["id"], "--work-dir", str(tmp_path), "--reason", "withdrawn"]) == 0
     assert load_active_waivers(tmp_path) == []
@@ -502,6 +512,51 @@ def test_cli_rejects_mismatched_scope(tmp_path):
     assert load_active_waivers(tmp_path) == []
 
 
+def test_cli_create_hard_max_waiver_roundtrip(tmp_path):
+    """The canonical operator path for a genuinely hard participation ceiling."""
+    from tournament_scheduler.cli.rvv_cli import main
+
+    _write_run(tmp_path)
+    assert (
+        main(
+            [
+                "waiver",
+                "create",
+                "--work-dir",
+                str(tmp_path),
+                "--rule",
+                "participation_hard_max_exceeded",
+                "--club",
+                "A",
+                "--team",
+                "A 1",
+                "--age-group",
+                U11,
+                "--tournament",
+                "t4",
+                "--allowed-value",
+                "4",
+                "--reason",
+                "operator-approved hard-max exception",
+                "--actor",
+                "operator",
+            ]
+        )
+        == 0
+    )
+    records = load_active_waivers(tmp_path)
+    assert len(records) == 1
+    assert records[0]["rule"] == "participation_hard_max_exceeded"
+    assert records[0]["configured_value"] == 3
+    assert records[0]["allowed_value"] == 4
+
+    candidate, problem = _three_team_candidate()
+    problem["operator_waivers"] = records
+    result = verify_candidate(candidate, problem)
+    assert result["ok"] is True
+    assert [v["code"] for v in result["waived_violations"]] == ["participation_hard_max_exceeded"]
+
+
 def test_agent_boundary_host_repair_options_do_not_include_a_waiver_action():
     candidate, problem = _three_team_candidate()
     problem["operator_waivers"] = [_matching_waiver(candidate, problem)]
@@ -523,6 +578,9 @@ def _host_repair_scenario() -> tuple[dict, dict]:
         ],
     }
     problem = _problem([host1, host2, b, c, d, e, f, g, h], targets={"before_christmas": 1, "after_christmas": 1})
+    # Explicit hard maximum: the motivating "host team is at its cap" flow is
+    # now a genuinely hard ceiling, not the strong target goal.
+    problem["participation_hard_max"] = 1
     problem["club_arenas"] = {club: f"{club} Arena" for club in ("Host", "B", "C", "D", "E", "F", "G", "H")}
     problem["club_calendar_status"] = {
         club: "known" for club in ("Host", "B", "C", "D", "E", "F", "G", "H")
@@ -531,8 +589,8 @@ def _host_repair_scenario() -> tuple[dict, dict]:
 
 
 def test_waiver_exposes_an_otherwise_rejected_host_repair_option():
-    """The motivating production flow: the operator's chosen host team is at
-    its participation cap, so only an explicit waiver makes that specific
+    """When the operator's chosen host team would exceed an explicit
+    participation hard maximum, only an explicit waiver makes that specific
     repair option legal."""
     candidate, problem = _host_repair_scenario()
 
@@ -541,19 +599,20 @@ def test_waiver_exposes_an_otherwise_rejected_host_repair_option():
         o["arguments"].get("add_team", {}).get("label") == "Host 1" for o in without["options"]
     )
     assert any(
-        r.get("reason") == "incompatible_half_target" and r.get("team", {}).get("label") == "Host 1"
+        r.get("reason") == "at_participation_max" and r.get("team", {}).get("label") == "Host 1"
         for r in without["rejected_candidates"]
     )
 
     waiver = _matching_waiver(candidate, problem, tournament_id="t1")
     waiver["scope"]["team"] = {"club": "Host", "label": "Host 1", "age_group": U11}
+    waiver["scope"]["half"] = None
     waiver["configured_value"] = 1
     waiver["allowed_value"] = 2
     waiver["scope_fingerprint"] = scope_fingerprint(
-        rule="participation_target_exceeded",
+        rule="participation_hard_max_exceeded",
         team=waiver["scope"]["team"],
         tournament_id="t1",
-        half="after_christmas",
+        half=None,
         configured_value=1,
         allowed_value=2,
     )

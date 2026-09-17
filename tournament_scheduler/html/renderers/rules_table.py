@@ -16,6 +16,7 @@ from ...rules_model import group_rules_by_type, rules_summary_counts
 
 _TYPE_LABELS: dict[str, str] = {
     "hard": "Hard krav",
+    "strong_goal": "Sterkt driftsmål",
     "required_obligation": "Påkrevd forpliktelse",
     "soft": "Myk preferanse",
     "decision": "Beslutning/unntak",
@@ -33,6 +34,11 @@ _OWNER_LABELS: dict[str, str] = {
 
 _SECTION_DEFS: list[tuple[str, str, str]] = [
     ("hard", "Hard krav", "Må være sant for at planen skal være gyldig."),
+    (
+        "strong_goal",
+        "Sterke driftsmål",
+        "Skal oppfylles når det er rimelig gjennomførbart; begrenset avvik tillates med synlig unngåelighetsstatus.",
+    ),
     ("required_obligation", "Påkrevde forpliktelser", "Kan stå uløst, men krever manuell oppfølging."),
     ("soft", "Myke kvalitetsmål", "Optimeres, men avgjør ikke om planen er gyldig."),
     ("decision", "Beslutninger / unntak for denne kjøringen", "Kontekstuelle avgjørelser, ikke generelle regler."),
@@ -100,6 +106,28 @@ def _render_detail_rows(detail_rows: dict[str, Any] | None) -> str:
             table += f'<p class="rules-detail-note">Viser {len(shown)} av {len(rows)} lag.</p>'
         return f"<details class=\"rules-detail\"><summary>{label}</summary>{table}</details>"
 
+    if kind == "participation_target_deviation":
+        shown = rows[:30]
+        body = "".join(
+            "<tr>"
+            f"<td>{_html.escape(str(row.get('team', '')))}</td>"
+            f"<td>{_html.escape(str(row.get('scope', '')))}</td>"
+            f"<td>{_html.escape(str(row.get('direction', '')))}</td>"
+            f"<td class=\"numeric-cell\">{row.get('actual', 0)}</td>"
+            f"<td class=\"numeric-cell\">{row.get('target', 0)}</td>"
+            f"<td>{_html.escape(str(row.get('avoidability', '')))}</td>"
+            "</tr>"
+            for row in shown
+        )
+        table = (
+            '<div class="table-wrap"><table class="report-table"><thead><tr>'
+            "<th>Lag</th><th>Område</th><th>Retning</th><th>Faktisk</th><th>Mål</th><th>Unngåelighet</th>"
+            f"</tr></thead><tbody>{body}</tbody></table></div>"
+        )
+        if len(rows) > len(shown):
+            table += f'<p class="rules-detail-note">Viser {len(shown)} av {len(rows)} rader.</p>'
+        return f"<details class=\"rules-detail\"><summary>{label}</summary>{table}</details>"
+
     return ""
 
 
@@ -162,6 +190,11 @@ def render_rules_summary_html(rules: list[dict[str, Any]]) -> str:
             "✓" if not counts["obligations_unresolved"] else "⚠",
             f"Uløste forpliktelser: {counts['obligations_unresolved']}"
             + ("" if not counts["obligations_unresolved"] else " → Må planlegges manuelt"),
+        ),
+        (
+            "ok" if not counts["strong_goal_deviations"] else "warn",
+            "✓" if not counts["strong_goal_deviations"] else "⚠",
+            f"Sterke driftsmål-avvik: {counts['strong_goal_deviations']}",
         ),
         (
             "ok" if not counts["soft_warnings"] else "warn",

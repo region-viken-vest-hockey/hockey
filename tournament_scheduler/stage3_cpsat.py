@@ -205,12 +205,16 @@ def _solve_slot_group(
 
     # The configured participation target (per-team override, or
     # the age group's authoritative before/after-Christmas value for this
-    # half) is now what CP-SAT optimizes against -- never exceeded (hard
-    # cap below), preferably met (deficit objective term further down) --
-    # instead of preserving the baseline's own count as authoritative. The
-    # baseline remains only a search hint (`AddHint` below). Identities with
-    # no configured target (non-canonical age groups) keep the original
-    # exact baseline-lock behavior as a defensive fallback.
+    # half) is a *strong goal* (see
+    # ``tournament_scheduler.participation_targets``): CP-SAT both caps the
+    # assignment at the target and minimizes the remaining deficit, so it
+    # never trades target compliance away for a lower-priority pairing
+    # quality gain. An explicit ``participation_hard_max`` is a separate,
+    # genuinely hard season-wide ceiling enforced by the independent
+    # verifier after the solve. The baseline remains only a search hint
+    # (`AddHint` below). Identities with no configured target (non-canonical
+    # age groups) keep the original exact baseline-lock behavior as a
+    # defensive fallback.
     participation_deficit_terms: "list[Any]" = []
     for identity in eligible_identities:
         baseline_count = baseline_participations.get(identity, 0)

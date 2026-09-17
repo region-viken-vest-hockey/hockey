@@ -26,7 +26,7 @@ def test_build_rules_model_is_empty_for_bare_plan():
         "tournament_placement_shortfall",
         "age_group_exact_match",
         "no_same_date_double_participation",
-        "participation_target_exceeded",
+        "participation_target_deviation",
         "arena_day_collisions",
         "date_within_planning_window",
         "banned_dates_not_used",
@@ -178,7 +178,7 @@ def test_age_group_mismatch_is_a_hard_violation():
     assert "Jar JU10" in rule["status"]
 
 
-def test_participation_target_exceeded_is_hard_and_shortfall_is_obligation():
+def test_participation_target_deviation_is_soft_and_shortfall_is_obligation():
     team = Team(club="Jar", label="Jar A", age_group="U10", target_tournament_count=1)
     tournaments = [
         Tournament(id="t1", date=date(2026, 9, 5), arena="A", age_group="U10", teams=[team]),
@@ -188,21 +188,22 @@ def test_participation_target_exceeded_is_hard_and_shortfall_is_obligation():
     rules = build_rules_model(plan)
     by_id = {rule["id"]: rule for rule in rules}
 
-    exceeded_rule = by_id["participation_target_exceeded"]
-    assert exceeded_rule["type"] == "hard"
-    assert exceeded_rule["ok"] is False
-    assert "Jar A" in exceeded_rule["status"]
+    # A participation target is a strong goal, not a hard rule: the deviation
+    # is quality evidence, while under-target remains a separate obligation.
+    deviation_rule = by_id["participation_target_deviation"]
+    assert deviation_rule["type"] == "strong_goal"
+    assert deviation_rule["ok"] is False
+    assert "Jar A" in deviation_rule["status"]
+    assert "bounded_search_exhausted" in deviation_rule["status"]
 
-    # Under-target stays a non-blocking obligation, driven by a separate
-    # plan field -- not derived from the same over-target check.
     shortfall_rule = by_id["participation_shortfalls"]
     assert shortfall_rule["type"] == "required_obligation"
 
 
-def test_participation_target_exceeded_checks_age_group_half_target():
-    """With no explicit per-team override, a team scheduled
-    above its age group's before/after-Christmas target for that half is
-    still a hard violation."""
+def test_participation_target_deviation_checks_age_group_half_target():
+    """With no explicit per-team override, a team scheduled above its age
+    group's before/after-Christmas target for that half is bounded strong-goal
+    evidence, not a hard failure."""
     team = Team(club="Jar", label="Jar A", age_group="U11")
     tournaments = [
         Tournament(id="t1", date=date(2026, 1, 10), arena="A", age_group="U11", teams=[team]),
@@ -217,10 +218,11 @@ def test_participation_target_exceeded_checks_age_group_half_target():
     rules = build_rules_model(plan)
     by_id = {rule["id"]: rule for rule in rules}
 
-    exceeded_rule = by_id["participation_target_exceeded"]
-    assert exceeded_rule["ok"] is False
-    assert "Jar A" in exceeded_rule["status"]
-    assert "after_christmas" in exceeded_rule["status"]
+    deviation_rule = by_id["participation_target_deviation"]
+    assert deviation_rule["type"] == "strong_goal"
+    assert deviation_rule["ok"] is False
+    assert "Jar A" in deviation_rule["status"]
+    assert "after_christmas" in deviation_rule["status"]
 
     targets_rule = by_id["participation_targets_by_age_group"]
     assert targets_rule["type"] == "decision"

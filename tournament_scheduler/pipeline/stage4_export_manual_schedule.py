@@ -137,6 +137,7 @@ def _waiver_section_html(entries: list[dict[str, object]]) -> str:
         return ""
 
     rule_labels = {
+        "participation_hard_max_exceeded": "Deltakelsestak (hard maks) overskredet",
         "participation_target_exceeded": "Deltakelsestak overskredet",
     }
     half_labels = {

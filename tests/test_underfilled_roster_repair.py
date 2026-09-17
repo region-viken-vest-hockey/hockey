@@ -12,10 +12,12 @@ from tournament_scheduler.underfilled_roster_repair import (
 )
 
 
-def _team(club, label=None, age="U10", target=None):
+def _team(club, label=None, age="U10", target=None, hard_max=None):
     row = {"club": club, "label": label or club, "age_group": age}
     if target is not None:
         row["target_tournament_count"] = target
+    if hard_max is not None:
+        row["participation_hard_max"] = hard_max
     return row
 
 
@@ -181,7 +183,7 @@ def test_team_at_participation_max_is_rejected_with_explicit_reason():
             date="2026-01-17",
         )
     )
-    problem = _underfilled_problem(extra_teams=[_team("B", "B2")], target_tournament_count=1)
+    problem = _underfilled_problem(extra_teams=[_team("B", "B2")], participation_hard_max=1)
 
     repair_set = enumerate_underfilled_roster_repairs(candidate, problem)
 
@@ -257,28 +259,28 @@ def test_bounded_same_age_swap_repairs_when_direct_fill_is_blocked():
     candidate = {
         "schema_version": 1,
         "tournaments": [
-            _tournament("t1", "B", [_team("B", "B1", target=1)], date="2026-01-10"),
+            _tournament("t1", "B", [_team("B", "B1", hard_max=1)], date="2026-01-10"),
             _tournament(
                 "t2",
                 "X",
-                [_team("X", "X1", target=1), _team("S", "S1", target=1)],
+                [_team("X", "X1", hard_max=1), _team("S", "S1", hard_max=1)],
                 date="2026-01-17",
             ),
             _tournament(
                 "t3",
                 "A",
-                [_team("A", "A2", target=1), _team("U", "U1", target=2)],
+                [_team("A", "A2", hard_max=1), _team("U", "U1", hard_max=2)],
                 date="2026-01-10",
             ),
         ],
     }
     problem = {
         "teams": [
-            _team("A", "A2", target=1),
-            _team("B", "B1", target=1),
-            _team("S", "S1", target=1),
-            _team("U", "U1", target=2),
-            _team("X", "X1", target=1),
+            _team("A", "A2", hard_max=1),
+            _team("B", "B1", hard_max=1),
+            _team("S", "S1", hard_max=1),
+            _team("U", "U1", hard_max=2),
+            _team("X", "X1", hard_max=1),
         ],
         "parallel_games": {"U10": 1},
         "club_arenas": _clubs("A", "B", "S", "U", "X"),
@@ -355,7 +357,7 @@ def test_no_legal_option_returns_rejection_evidence_and_escalation_actions():
             date="2026-01-17",
         )
     )
-    problem = _underfilled_problem(extra_teams=[_team("B", "B2")], target_tournament_count=1)
+    problem = _underfilled_problem(extra_teams=[_team("B", "B2")], participation_hard_max=1)
 
     context = build_underfilled_roster_decision_context(candidate, problem, run_id="run-1")
 

@@ -56,9 +56,12 @@ def repair_host_representation(
     already committed to another same-date tournament of this age group
     (repair would violate the hard same-date-uniqueness rule), or when
     every eligible home team is already at its participation target
-    (issue #323: swapping one in would create `participation_target_exceeded`,
-    which this function must never do). The independent verifier's
-    `host_team_missing` check is the safety net for any case left unrepaired.
+    (issue #323: swapping one in would over-shoot the team's strong
+    participation goal, which this deterministic repair primitive
+    deliberately avoids; the target is a strong goal, not a hard rule, so a
+    controller may still choose a bounded over-target repair elsewhere). The
+    independent verifier's `host_team_missing` check is the safety net for
+    any case left unrepaired.
     """
     if host_represented_in(participants, home_club):
         return participants

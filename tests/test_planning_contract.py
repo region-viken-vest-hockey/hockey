@@ -419,11 +419,10 @@ class TestVerifyCandidateWithProblem:
         assert clubs == {"Jar", "Kongsberg"}
         assert all(p["actual"] == "1" and p["target"] == "3" for p in placements)
 
-    def test_participation_target_exceeded_is_hard_violation(self):
-        """issue #301: over-participation against an explicit target is not
-        a genuine slot-scarcity shortfall an operator can patch by hand --
-        unlike under-participation, it must hard-fail verification instead
-        of only being surfaced as a manual placement item."""
+    def test_over_participation_is_bounded_evidence_not_hard_violation(self):
+        """issue #376: over-participation against a strong target is bounded
+        deviation evidence, not a hard verifier failure. The planner should
+        avoid it, but it is not an absolute legality boundary."""
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {
             "tournaments": [
@@ -433,8 +432,15 @@ class TestVerifyCandidateWithProblem:
         problem = self._problem(target_tournament_count=3)
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
-        assert "participation_target_exceeded" in codes
-        assert result["ok"] is False
+        assert "participation_target_exceeded" not in codes
+        assert "participation_hard_max_exceeded" not in codes
+        assert result["ok"] is True
+        over = [d for d in result["participation_deviations"] if d["direction"] == "over_target"]
+        assert over
+        assert over[0]["actual"] == 4 and over[0]["target"] == 3
+        # No operator waiver is required for an ordinary bounded target
+        # deviation; over-target is not a manual slot-scarcity placement item.
+        assert result["waived_violations"] == []
         assert result["manual_participation_placements"] == []
 
     def test_under_participation_still_surfaced_non_blocking(self):
@@ -493,10 +499,10 @@ class TestVerifyCandidateWithProblem:
         # Before Christmas met its target exactly, so no shortfall for it.
         assert ("Jar 1", "before_christmas") not in shortfalls
 
-    def test_over_target_after_christmas_is_hard_violation(self):
-        """Exceeding the authoritative per-half target is a hard
-        violation just like exceeding an explicit override, even though the
-        team never exceeds a season-wide total."""
+    def test_over_target_after_christmas_is_bounded_evidence(self):
+        """issue #376: exceeding an authoritative per-half target is bounded
+        strong-goal deviation evidence, not a hard failure -- the target is a
+        goal, not a ceiling."""
         teams = [_team("Jar", "Jar 1", "U11"), _team("Kongsberg", "Kongsberg 1", "U11")]
         candidate = {
             "tournaments": [
@@ -517,8 +523,14 @@ class TestVerifyCandidateWithProblem:
         )
         result = verify_candidate(candidate, problem)
         codes = {v["code"] for v in result["violations"]}
-        assert "participation_target_exceeded" in codes
-        assert result["ok"] is False
+        assert "participation_target_exceeded" not in codes
+        assert result["ok"] is True
+        after = [
+            d
+            for d in result["participation_deviations"]
+            if d["scope"] == "after_christmas" and d["direction"] == "over_target"
+        ]
+        assert after and after[0]["actual"] == 4 and after[0]["target"] == 3
 
     def test_external_calendar_conflict_surfaced_for_manual_placement(self):
         """issue #264 P0: a 'known' host calendar status is not itself proof

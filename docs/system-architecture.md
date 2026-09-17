@@ -119,9 +119,9 @@ Scheduling rules must have one authoritative implementation and remain valid acr
 | Concern | Owning layer | Examples |
 |---|---|---|
 | Input/configured policy | controlled workbook/config parsing | participation targets, season window, source configuration |
-| Domain facts and reusable rule math | small planner-independent deterministic modules | hosting targets, coverage and responsibility facts (`hosting_coverage`, `hosting_responsibility`), participant eligibility, availability facts |
-| Hard/required verification | canonical verifier | host representation, target caps, collisions, required obligations, unexplained responsibility transfer |
-| Soft deterministic measurements | scorecard/fairness measurement | hosting deviation, participation spread, temporal spacing |
+| Domain facts and reusable rule math | small planner-independent deterministic modules | hosting targets, coverage and responsibility facts (`hosting_coverage`, `hosting_responsibility`), participation target/hard-max resolution, deviation metrics and avoidability classification (`participation_targets`), participant eligibility, availability facts |
+| Hard/required verification | canonical verifier | host representation, explicit participation hard maxima, collisions, required obligations, unexplained responsibility transfer |
+| Soft deterministic measurements | scorecard/fairness measurement | hosting deviation, bounded participation target deviation/avoidability, temporal spacing |
 | Feasible repair/action enumeration | canonical application/decision capability | common `local_repair_options` boundary over small planner-neutral providers: `rehost_tournament`/`remove_tournament`/participant repair for `host_team_missing`, `fill_participant`/`swap_participant` for an underfilled roster, `move_same_host_date`/`move_same_host_start_time`/`swap_compatible_tournament_placement`/`interpret_calendar_event_as_movable` for a manual placement, `move_to_movable_capacity`/`move_to_movable_capacity_reselect_participants` for verified host-controlled ice, ranked conflict-aware manual candidate weekends (`candidate_weekends`) as read-only evidence, bounded neighborhood search (`search_neighborhood_repair`) for a locally searchable hard finding no direct option repairs, manual-placement fallback |
 | State mutation and persistence | canonical application/season operation | atomically apply validated changes while respecting locks/approvals |
 | Baseline generation/search | planner/optimizer implementations | propose candidates using the shared domain facts; never redefine the rule |
@@ -146,6 +146,10 @@ rules/report/export rendering
 ```
 
 Generators and optimizers may consume these rules to construct candidates, but they do not own them. A rule that must remain true after later mutations must be independently measurable/verifiable outside the generator that produced the original candidate.
+
+### Participation targets are strong goals, not hard caps
+
+Participation targets (`deltakelser_per_lag_før_jul` / `_etter_jul`) are owned by the planner-independent `participation_targets` module. The module resolves the configured per-half/season target and any optional explicit `participation_hard_max`, computes bounded deviation metrics and classifies every remaining deviation as `avoidable`, `proven_infeasible`, `bounded_search_exhausted` or `operator_accepted`. `verify_candidate` reclassifies ordinary target deviation as non-blocking strong-goal evidence; only an explicit hard maximum is a hard (and operator-waivable) rule. Candidate comparison (`stage3_ab`), the Pareto archive and the Stage 3 `DecisionContext` consume the same evidence so a worse-but-avoidable participation regression cannot be promoted over a lower-priority quality gain, and `bounded_search_exhausted` is never presented as proof of unavoidability.
 
 Likewise, renderers and generated HTML must consume authoritative serialized/recomputed state; they must not infer or repair scheduling policy themselves.
 

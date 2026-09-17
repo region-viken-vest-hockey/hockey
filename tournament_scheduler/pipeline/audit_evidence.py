@@ -71,6 +71,16 @@ EVIDENCE_CATEGORIES: dict[str, dict[str, Any]] = {
         "unresolved": True,
         "severity": "major",
     },
+    "participation_target_deviations": {
+        "description": (
+            "Bounded participation-target deviations (over or under) with the deterministic "
+            "avoidability classification (avoidable / proven_infeasible / bounded_search_exhausted / "
+            "operator_accepted) the controller uses to judge the residual trade-off."
+        ),
+        "checklist_item": 1,
+        "unresolved": True,
+        "severity": "major",
+    },
     "unresolved_hosting_obligations": {
         "description": "Club x age-group hosting obligations with no placed tournament, including untried reallocation candidates.",
         "checklist_item": 2,
@@ -336,6 +346,25 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
                 summary=f"manual participation placement: {row.get('club') or row.get('label') or row.get('team') or '?'}",
                 detail=row,
                 tournament_id=row.get("tournament_id") or row.get("tournament"),
+                club=row.get("club"),
+                clubs=_record_clubs(row),
+                age_group=row.get("age_group"),
+            )
+        )
+
+    for row in _as_list(verify.get("participation_deviations")):
+        if not isinstance(row, dict):
+            continue
+        records.append(
+            _record(
+                category="participation_target_deviations",
+                finding_type=str(row.get("avoidability") or "bounded_search_exhausted"),
+                summary=(
+                    f"{row.get('team') or row.get('label') or '?'} ({row.get('age_group') or '?'}, "
+                    f"{row.get('scope') or 'season'}): {row.get('actual')}/{row.get('target')} "
+                    f"{row.get('direction') or ''} — {row.get('avoidability') or 'bounded_search_exhausted'}"
+                ),
+                detail=row,
                 club=row.get("club"),
                 clubs=_record_clubs(row),
                 age_group=row.get("age_group"),

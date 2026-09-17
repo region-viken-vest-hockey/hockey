@@ -115,6 +115,14 @@ Agent policy:
 
 Typical soft dimensions include participation balance, hosting distribution, temporal spacing, opponent diversity/repetition, travel and source uncertainty.
 
+Participation targets are a **strong operational goal with bounded, evidenced relaxation**, not an ordinary low-priority soft preference and not a hard legality boundary:
+
+- Python resolves the configured per-half/season targets, minimizes deviation, and classifies every material deviation as `avoidable`, `proven_infeasible`, `bounded_search_exhausted` or `operator_accepted` (see `participation_targets.py`);
+- a known-avoidable participation regression must not be selected merely to improve a lower-priority quality metric (travel, opponent diversity, start time, ...);
+- `bounded_search_exhausted` is **not** proof of unavoidability: request another bounded search or escalate before accepting it, and never call it `proven_infeasible`;
+- cross-half compensation (`2 + 4` for a `3 + 3` target) is legal and is recognized as season-total-complete with an explicit half-distribution deviation;
+- an explicit `participation_hard_max` is a separate, genuinely hard rule and is never inferred from the target. Ordinary bounded target deviation never requires an operator waiver.
+
 Once a season has been promoted, Stage 3 is baseline-aware by default. A normal planning run whose window matches canonical state adopts that schedule as its baseline instead of regenerating it:
 
 - approved/placement-locked tournaments are hard-preserve constraints;
@@ -232,14 +240,14 @@ The planner/optimizer/agent may suggest a waiver, but may never create, broaden 
 
 ```bash
 scripts/rvv-miniputt waiver list [--all]
-scripts/rvv-miniputt waiver create --rule participation_target_exceeded \
+scripts/rvv-miniputt waiver create --rule participation_hard_max_exceeded \
   --club "Frisk Asker" --team "Frisk Asker 4" --age-group U11 \
-  --tournament <id> --half before_christmas \
-  --allowed-value 6 --reason "operator-approved exception"
+  --tournament <id> \
+  --allowed-value 8 --reason "operator-approved exception"
 scripts/rvv-miniputt waiver revoke <waiver-id> --reason "withdrawn"
 ```
 
-A matching waiver is narrowly scoped and becomes invalid when relevant tournament/team/date/value facts leave that scope. Waived violations remain visible and downgrade publication readiness; do not use `--non-strict` or global cap changes as substitutes.
+A waiver is only relevant to a genuinely hard, explicit ceiling such as `participation_hard_max`. An ordinary bounded participation-target deviation is strong-goal evidence, not a hard rule, and does **not** require a waiver. A matching waiver is narrowly scoped and becomes invalid when relevant tournament/team/date/value facts leave that scope. Waived violations remain visible and downgrade publication readiness; do not use `--non-strict` or global cap changes as substitutes.
 
 ## Human escalation
 

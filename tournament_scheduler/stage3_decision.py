@@ -240,6 +240,26 @@ def build_stage3_decision_context(
         "production_ready": bool(report.get("production_ready", False)),
     }
 
+    # Participation is a strong goal with bounded relaxation: expose the
+    # candidate's bounded deviation and avoidability evidence so the
+    # controller can tell an avoidable regression from proven capacity
+    # scarcity / a search that merely ran out of budget.
+    new_score = (report.get("new") or {}).get("score") or {}
+    participation_metrics = new_score.get("participation") or {}
+    participation_deviations = list(new_verification.get("participation_deviations") or [])
+    if participation_metrics.get("avoidable_deviation_count"):
+        warnings.append(
+            "candidate carries "
+            f"{participation_metrics['avoidable_deviation_count']} avoidable participation "
+            "target deviation(s); prefer a hard-valid candidate with smaller deviation before "
+            "trading against a lower-priority quality objective"
+        )
+    elif participation_metrics.get("search_exhausted_deviation_count") and not hard_violations:
+        warnings.append(
+            "candidate participation deviation is only bounded_search_exhausted, not proven "
+            "unavoidable; request another bounded search or escalate before accepting it as final"
+        )
+
     return DecisionContext(
         run_id=run_id,
         capability="stage3_optimize",
@@ -255,6 +275,8 @@ def build_stage3_decision_context(
             "old_verification_ok": old_verification.get("ok"),
             "new_verification_ok": new_verification.get("ok"),
             "hard_constraint_regressed": bool(report.get("hard_constraint_regressed", False)),
+            "participation_metrics": participation_metrics,
+            "participation_deviations": participation_deviations,
         },
         hard_violations=tuple(hard_violations),
         baseline_hard_violations=tuple(baseline_hard_violations),

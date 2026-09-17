@@ -50,6 +50,7 @@ from tournament_scheduler.effective_tournament_shape import (
     shape_violation,
 )
 from tournament_scheduler.operator_waivers import find_participation_waiver
+from tournament_scheduler.participation_targets import SEASON_SCOPE, evaluate_participation
 from tournament_scheduler.tournament_identity import validate_tournament_identity
 from tournament_scheduler.planning_contract_distribution import (
     hosting_fairness as _hosting_fairness,
@@ -189,6 +190,20 @@ def build_planning_problem(
             else {}
         ),
         "participation_targets_by_age_group": config.get("participation_targets_by_age_group") or {},
+        # Optional explicit participation hard maximum -- a genuinely hard rule,
+        # never inferred from the target (see participation_targets.py). Omitted
+        # unless a caller/config explicitly configures one, so the canonical
+        # workbook keeps target-only semantics by default.
+        **(
+            {"participation_hard_max": config["participation_hard_max"]}
+            if isinstance(config.get("participation_hard_max"), int)
+            else {}
+        ),
+        **(
+            {"participation_hard_max_by_age_group": config["participation_hard_max_by_age_group"]}
+            if isinstance(config.get("participation_hard_max_by_age_group"), dict)
+            else {}
+        ),
         "manual_adjustments": manual_adjustments,
         "date_preferences": date_preferences,
         "club_busy_dates": club_busy_dates,
@@ -772,6 +787,8 @@ def verify_candidate(
             "manual_calendar_placements": [],
             "manual_external_conflict_placements": [],
             "manual_participation_placements": [],
+            "participation_deviations": [],
+            "participation_metrics": {},
             "input_constrained_shapes": [],
             "stale_approvals": stale_approvals,
             "orphaned_approvals": orphaned_approvals,
@@ -781,10 +798,6 @@ def verify_candidate(
 
     valid_teams = {
         (t["club"], t["label"], t["age_group"]) for t in problem.get("teams", [])
-    }
-    target_by_identity = {
-        (t["club"], t["label"], t["age_group"]): t.get("target_tournament_count")
-        for t in problem.get("teams", [])
     }
 
     # Effective-shape rule: the complete canonical registered pool per age group --
@@ -799,8 +812,6 @@ def verify_candidate(
     rounds_per_tournament = problem.get("rounds_per_tournament") or {}
     parallel_games_capacity = problem.get("parallel_games") or {}
     input_constrained_shapes: List[Dict[str, Any]] = []
-    default_target = problem.get("target_tournament_count")
-    participation_targets_by_age_group = problem.get("participation_targets_by_age_group") or {}
 
     window_start = _parse_date(problem.get("start_date"))
     window_end = _parse_date(problem.get("end_date"))
@@ -817,10 +828,6 @@ def verify_candidate(
         dated = [d for d in (_parse_date(t.get("date")) for t in tournaments) if d is not None]
         if dated:
             split_date = planning_half.christmas_split_date(min(dated), max(dated))
-    participations_by_half: Dict[str, Dict[TeamIdentity, int]] = {"before_christmas": {}, "after_christmas": {}}
-    # Which tournaments in each half a team participates in -- the scope a
-    # waiver is tied to, so a waiver cannot silently cover another (later)
-    # tournament the operator never authorized.
     participation_ids_by_half: Dict[str, Dict[TeamIdentity, List[str]]] = {
         "before_christmas": {},
         "after_christmas": {},
@@ -830,12 +837,11 @@ def verify_candidate(
         if t_date is None:
             continue
         half = planning_half.tournament_half(t_date, split_date)
-        if half not in participations_by_half:
+        if half not in participation_ids_by_half:
             continue
         t_id = str(t.get("id", "?"))
         for team in t.get("teams", []):
             identity = _team_identity(team)
-            participations_by_half[half][identity] = participations_by_half[half].get(identity, 0) + 1
             participation_ids_by_half[half].setdefault(identity, []).append(t_id)
 
     # Arena occupancy is a full datetime interval (start_time + computed
@@ -1078,94 +1084,106 @@ def verify_candidate(
             lock_violation.get("tournament_id"),
         )
 
-    for identity in valid_teams | set(participations.keys()):
-        count = participations.get(identity, 0)
-        # Resolution order mirrors SeasonPlanner's own precedence (see
-        # `season_planner.SeasonPlanner._team_target_tournament_count`): an
-        # explicit per-team override, then the global default, both of which
-        # are season-wide by definition (no half to check independently).
-        # When neither is set, `participation_targets_by_age_group`'s
-        # before/after-Christmas values are the authoritative per-team,
-        # per-half participation target -- checked
-        # independently per half below instead of against a season total.
-        explicit_target = target_by_identity.get(identity)
-        if explicit_target is None:
-            explicit_target = default_target
-        if isinstance(explicit_target, int):
-            if count > explicit_target:
-                _violate(
-                    "participation_target_exceeded",
-                    f"Team {_display_label(identity, duplicate_labels)!r} is scheduled in {count} tournaments, "
-                    f"exceeding its explicit participation target of {explicit_target}",
-                )
-            elif count < explicit_target:
-                # Non-blocking: a genuine slot-scarcity shortfall the optimizer
-                # couldn't fully resolve. Surfaced for manual placement (e.g. an
-                # operator arranging an extra game by hand) instead of
-                # hard-blocking the candidate.
-                manual_participation_placements.append(
-                    {
-                        "club": identity[0],
-                        "label": _display_label(identity, duplicate_labels),
-                        "age_group": identity[2],
-                        "actual": str(count),
-                        "target": str(explicit_target),
-                    }
-                )
-            continue
-
-        age_group = identity[2]
-        age_group_targets = participation_targets_by_age_group.get(age_group) or {}
-        for half in ("before_christmas", "after_christmas"):
-            half_target = age_group_targets.get(half)
-            if not isinstance(half_target, int):
+    # Participation targets are *strong operational goals*, not hard legality
+    # boundaries, and an explicit ``participation_hard_max`` is a separate,
+    # genuinely hard (and operator-waivable) rule. Ordinary over/under target
+    # deviation is reported as bounded, evidenced quality evidence instead of
+    # blocking verification; see ``participation_targets.py`` for the canonical
+    # target/hard-max precedence and avoidability classification.
+    participation_evaluation = evaluate_participation(candidate, problem)
+    participation_deviations = participation_evaluation.deviations
+    participation_metrics = participation_evaluation.metrics
+    # A team with configured before/after age-group half targets reports its
+    # shortfall per half (more precise); only teams without half targets fall
+    # back to a season-scope manual placement, so the same miss is never listed
+    # twice. An explicit season-wide override is NOT a half target even though
+    # its deterministic split is reported on the team entry.
+    _age_group_targets = problem.get("participation_targets_by_age_group") or {}
+    _explicit_overrides = {
+        (str(t.get("club") or ""), str(t.get("label") or ""), str(t.get("age_group") or ""))
+        for t in (problem.get("teams") or [])
+        if isinstance(t, dict) and isinstance(t.get("target_tournament_count"), int)
+    }
+    _has_global_default = isinstance(problem.get("target_tournament_count"), int)
+    teams_with_half_targets = set()
+    if not _has_global_default:
+        for entry in participation_evaluation.teams:
+            identity = (
+                str(entry.get("club") or ""),
+                str(entry.get("label") or ""),
+                str(entry.get("age_group") or ""),
+            )
+            if identity in _explicit_overrides:
                 continue
-            half_count = participations_by_half.get(half, {}).get(identity, 0)
-            if half_count > half_target:
-                message = (
-                    f"Team {_display_label(identity, duplicate_labels)!r} is scheduled in {half_count} "
-                    f"tournaments {half}, exceeding its configured participation target of {half_target}"
-                )
-                waiver = find_participation_waiver(
-                    problem,
-                    identity=identity,
-                    half=half,
-                    actual=half_count,
-                    configured=half_target,
-                    tournament_ids=participation_ids_by_half.get(half, {}).get(identity, []),
-                )
-                if waiver is not None:
-                    waived_violations.append(
-                        {
-                            "code": "participation_target_exceeded",
-                            "message": message,
-                            "waived_by_operator": True,
-                            "waiver_id": waiver.get("id"),
-                            "waiver": {
-                                "team": identity,
-                                "half": half,
-                                "configured_value": half_target,
-                                "allowed_value": half_count,
-                                "tournament_id": (waiver.get("scope") or {}).get("tournament_id"),
-                                "reason": waiver.get("reason"),
-                                "created_at": waiver.get("created_at"),
-                                "created_by": waiver.get("created_by"),
-                            },
-                        }
-                    )
-                else:
-                    _violate("participation_target_exceeded", message)
-            elif half_count < half_target:
-                manual_participation_placements.append(
-                    {
-                        "club": identity[0],
-                        "label": _display_label(identity, duplicate_labels),
-                        "age_group": age_group,
-                        "half": half,
-                        "actual": str(half_count),
-                        "target": str(half_target),
-                    }
-                )
+            targets = _age_group_targets.get(identity[2]) or {}
+            if isinstance(targets.get("before_christmas"), int) and isinstance(
+                targets.get("after_christmas"), int
+            ):
+                teams_with_half_targets.add(identity)
+
+    for hard_max_violation in participation_evaluation.hard_max_violations:
+        identity = (
+            str(hard_max_violation.get("club") or ""),
+            str(hard_max_violation.get("label") or ""),
+            str(hard_max_violation.get("age_group") or ""),
+        )
+        message = str(hard_max_violation.get("message") or "participation hard maximum exceeded")
+        waiver = find_participation_waiver(
+            problem,
+            identity=identity,
+            half=None,
+            actual=int(hard_max_violation.get("actual") or 0),
+            configured=int(hard_max_violation.get("participation_hard_max") or 0),
+            tournament_ids=list(participation_ids_by_half.get("before_christmas", {}).get(identity, []))
+            + list(participation_ids_by_half.get("after_christmas", {}).get(identity, [])),
+        )
+        if waiver is not None:
+            waived_violations.append(
+                {
+                    "code": "participation_hard_max_exceeded",
+                    "message": message,
+                    "waived_by_operator": True,
+                    "waiver_id": waiver.get("id"),
+                    "waiver": {
+                        "team": identity,
+                        "configured_value": hard_max_violation.get("participation_hard_max"),
+                        "allowed_value": hard_max_violation.get("actual"),
+                        "tournament_id": (waiver.get("scope") or {}).get("tournament_id"),
+                        "reason": waiver.get("reason"),
+                        "created_at": waiver.get("created_at"),
+                        "created_by": waiver.get("created_by"),
+                    },
+                }
+            )
+        else:
+            _violate("participation_hard_max_exceeded", message)
+
+    for deviation in participation_deviations:
+        if deviation.get("direction") != "under_target":
+            # Over-target deviation is still surfaced (in
+            # ``participation_deviations``/metrics), but it is not a
+            # slot-scarcity shortfall an operator patches by arranging an
+            # extra game.
+            continue
+        identity = (
+            str(deviation.get("club") or ""),
+            str(deviation.get("team") or ""),
+            str(deviation.get("age_group") or ""),
+        )
+        if deviation.get("scope") == SEASON_SCOPE and identity in teams_with_half_targets:
+            continue
+        display = _display_label(identity, duplicate_labels)
+        entry: Dict[str, Any] = {
+            "club": deviation.get("club"),
+            "label": display,
+            "age_group": deviation.get("age_group"),
+            "actual": str(deviation.get("actual")),
+            "target": str(deviation.get("target")),
+            "avoidability": deviation.get("avoidability"),
+        }
+        if deviation.get("scope") in ("before_christmas", "after_christmas"):
+            entry["half"] = deviation.get("scope")
+        manual_participation_placements.append(entry)
 
     # issue #266 P0: club x age-group hosting coverage is a required
     # planning obligation, not a hard `violation` -- a candidate with an
@@ -1226,6 +1244,8 @@ def verify_candidate(
         "manual_calendar_placements": manual_calendar_placements,
         "manual_external_conflict_placements": manual_external_conflict_placements,
         "manual_participation_placements": manual_participation_placements,
+        "participation_deviations": participation_deviations,
+        "participation_metrics": participation_metrics,
         "input_constrained_shapes": input_constrained_shapes,
         "stale_approvals": stale_approvals,
         "orphaned_approvals": orphaned_approvals,
@@ -1273,6 +1293,13 @@ def score_candidate(
                 participations[identity] = participations.get(identity, 0) + 1
     counts = list(participations.values())
     participation_spread = (max(counts) - min(counts)) if counts else 0
+    # When the planning problem carries configured targets, also expose the
+    # canonical bounded-relaxation evidence (season/half deviation, avoidability)
+    # so participation is a first-class comparison dimension rather than a
+    # single spread scalar a lower-priority objective can outvote.
+    participation_metrics: Dict[str, Any] = {"spread": participation_spread}
+    if problem is not None:
+        participation_metrics.update(evaluate_participation(candidate, problem).metrics)
 
     # --- opponent diversity ---------------------------------------------
     pair_counts: Dict[Tuple[TeamIdentity, TeamIdentity], int] = {}
@@ -1439,7 +1466,7 @@ def score_candidate(
                 _display_label(identity, duplicate_labels): count
                 for identity, count in participations.items()
             },
-            "spread": participation_spread,
+            **participation_metrics,
         },
         "opponent_diversity": {
             "unique_pairs": unique_pairs,

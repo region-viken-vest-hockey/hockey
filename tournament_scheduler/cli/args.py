@@ -1881,7 +1881,7 @@ def build_parser() -> argparse.ArgumentParser:
     waiver_create.add_argument(
         "--tournament",
         default=None,
-        help="Tournament id the authorized participation lands in (required for participation_target_exceeded)",
+        help="Tournament id the authorized participation lands in (required for participation waivers)",
     )
     waiver_create.add_argument(
         "--half",

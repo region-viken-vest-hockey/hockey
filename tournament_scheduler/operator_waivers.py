@@ -41,8 +41,18 @@ STORE_FILENAME = "operator_waivers.json"
 
 # Rules the verifier may downgrade to an explicit operator-waived finding.
 # Add a rule here only after classifying it as an operator-waivable planning
-# rule (not a structural invariant).
-WAIVABLE_RULE_IDS: frozenset[str] = frozenset({"participation_target_exceeded"})
+# rule (not a structural invariant). ``participation_target_exceeded`` is kept
+# for backwards compatibility with waivers created while a target was still
+# treated as a hard cap; after the participation-target reclassification the
+# canonical hard rule is ``participation_hard_max_exceeded``.
+WAIVABLE_RULE_IDS: frozenset[str] = frozenset(
+    {"participation_hard_max_exceeded", "participation_target_exceeded"}
+)
+
+# Rules whose only permitted direction is going *over* the configured value.
+_OVERAGE_RULE_IDS: frozenset[str] = frozenset(
+    {"participation_hard_max_exceeded", "participation_target_exceeded"}
+)
 
 # Named explicitly (and asserted by tests) so the classification is visible:
 # these mean the plan/data is malformed or internally inconsistent and must
@@ -200,9 +210,9 @@ def create_waiver(
         allowed = int(allowed_value)
     except (TypeError, ValueError) as exc:
         raise WaiverError("configured_value and allowed_value must be integers") from exc
-    if rule == "participation_target_exceeded" and allowed <= configured:
+    if rule in _OVERAGE_RULE_IDS and allowed <= configured:
         raise WaiverError(
-            "for participation_target_exceeded, allowed_value must exceed configured_value "
+            f"for {rule}, allowed_value must exceed configured_value "
             "(this rule authorizes going over the target, not under it)"
         )
 
@@ -304,7 +314,7 @@ def waiver_matches_participation(
     """Whether *waiver* authorizes exactly this (team, half, actual) overage."""
     if not waiver.get("active", True):
         return False
-    if waiver.get("rule") != "participation_target_exceeded":
+    if waiver.get("rule") not in _OVERAGE_RULE_IDS:
         return False
     if not _fingerprint_consistent(waiver):
         return False

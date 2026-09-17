@@ -1582,6 +1582,10 @@ def optimize_candidate(
 # inter_club_diversity is a "higher is better" fraction, so it is stored
 # inverted -- see _objective_vector).
 _PARETO_DIMENSIONS: Tuple[str, ...] = (
+    # Participation target compliance is a guardrail dimension placed first so
+    # a lower-priority quality gain cannot justify a worse bounded deviation.
+    "participation_season_deviation",
+    "participation_avoidable",
     "max_pair_repeat",
     "same_club_pairing_count",
     "gaps_under_7",
@@ -1599,7 +1603,12 @@ def _objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
     opponent = score.get("opponent_diversity") or {}
     hosting = score.get("hosting") or {}
     temporal = score.get("temporal") or {}
+    participation = score.get("participation") or {}
     return {
+        "participation_season_deviation": float(
+            participation.get("season_total_absolute_deviation", 0)
+        ),
+        "participation_avoidable": float(participation.get("avoidable_deviation_count", 0)),
         "max_pair_repeat": float(opponent.get("max_pair_repeat", 0)),
         "same_club_pairing_count": float(opponent.get("same_club_pairing_count", 0)),
         "gaps_under_7": float(gaps.get(7, 0)),

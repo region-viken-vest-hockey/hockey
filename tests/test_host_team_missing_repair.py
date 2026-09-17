@@ -97,7 +97,7 @@ def test_team_at_participation_max_is_rejected_with_explicit_reason():
     candidate = _invalid_candidate()
     candidate["tournaments"].append(_tournament("t2", "B", [_team("Host", "Host 1"), _team("B"), _team("C"), _team("D")], arena="B Arena"))
     candidate["tournaments"][1]["date"] = "2026-01-17"
-    problem = _problem(target_tournament_count=1)
+    problem = _problem(participation_hard_max=1)
 
     repair_set = enumerate_host_team_missing_repairs(candidate, problem)
 
@@ -236,7 +236,10 @@ def test_host_club_team_in_wrong_age_group_is_rejected_with_explicit_reason():
     assert mismatched and mismatched[0]["registered_age_group"] == "U16"
 
 
-def test_incompatible_half_target_is_rejected_with_explicit_reason():
+def test_target_overage_is_exposed_as_bounded_repair_not_blocked():
+    """issue #376: a participation target is a strong goal, not a hard
+    repair-blocking ceiling, so a host repair that pushes a team one over its
+    target is exposed as bounded deviation evidence instead of rejected."""
     arenas, statuses = _arenas("Host", "B", "C", "D", "E")
     candidate = {
         "schema_version": 1,
@@ -258,10 +261,16 @@ def test_incompatible_half_target_is_rejected_with_explicit_reason():
 
     repair_set = enumerate_host_team_missing_repairs(candidate, problem)
 
-    assert any(
+    assert not any(
         r["reason"] == "incompatible_half_target" and r["team"]["label"] == "Host 1"
         for r in repair_set["rejected_candidates"]
     )
+    option = next(
+        o
+        for o in repair_set["options"]
+        if o["arguments"].get("add_team", {}).get("label") == "Host 1"
+    )
+    assert option["hard_feasible"] is True
 
 
 def test_hard_per_club_cap_violation_is_rejected_with_explicit_reason():

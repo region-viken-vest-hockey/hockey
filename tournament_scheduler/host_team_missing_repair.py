@@ -644,37 +644,30 @@ def _participation_limit_reason(
 ) -> Optional[str]:
     """Why *identity* may not take one more participation, or ``None``.
 
-    Covers both an explicit season-wide target (``at_participation_max``) and
-    the authoritative per-half participation target the verifier enforces when
-    no explicit target is configured (``incompatible_half_target``). A valid,
-    matching operator waiver for this exact tournament/half/resulting count
-    turns the half-target rejection into an allowed addition -- the verifier
-    then reports the resulting overage as operator-waived rather than
-    blocking, and the repair option is exposed for the operator to apply.
+    A participation *target* is a strong operational goal, not a hard ceiling
+    (see ``participation_targets.py``), so target overage no longer blocks a
+    repair option -- it is reported as bounded deviation evidence by the
+    verifier. Only an explicit ``participation_hard_max`` is a genuinely hard
+    ceiling, and a matching operator waiver for the exact resulting count
+    turns that rejection into an allowed addition.
     """
+    from tournament_scheduler.participation_targets import resolve_hard_max
+
     team = next((t for t in problem.get("teams", []) if _identity(t) == identity), {})
-    target = team.get("target_tournament_count", problem.get("target_tournament_count"))
-    if isinstance(target, int) and not isinstance(target, bool):
-        if existing_counts.get(identity, 0) >= target:
-            return "at_participation_max"
-    half_targets = (problem.get("participation_targets_by_age_group") or {}).get(identity[2]) or {}
-    if not half_targets or t_date is None:
-        return None
-    half = planning_half.tournament_half(t_date, _split_date(problem))
-    half_target = half_targets.get(half)
-    if isinstance(half_target, int) and not isinstance(half_target, bool):
-        if half_counts.get(half, {}).get(identity, 0) >= half_target:
-            resulting = half_counts.get(half, {}).get(identity, 0) + 1
+    hard_max = resolve_hard_max(identity, problem, team=team)
+    if isinstance(hard_max, int) and not isinstance(hard_max, bool):
+        if existing_counts.get(identity, 0) >= hard_max:
+            resulting = existing_counts.get(identity, 0) + 1
             waiver = find_participation_waiver(
                 problem,
                 identity=identity,
-                half=half,
+                half=None,
                 actual=resulting,
-                configured=half_target,
+                configured=hard_max,
                 tournament_ids=[str(tournament_id or "")],
             )
             if waiver is None:
-                return "incompatible_half_target"
+                return "at_participation_max"
     return None
 
 

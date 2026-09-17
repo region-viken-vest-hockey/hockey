@@ -133,25 +133,17 @@ def _resolve_participation_target(
 ) -> Optional[int]:
     """Resolve the authoritative participation target for *identity* in this half.
 
-    An explicit per-team ``target_tournament_count`` override
-    (season-wide by definition) always wins, mirroring
-    ``SeasonPlanner._team_target_tournament_count``'s precedence. Otherwise
-    the age group's ``participation_targets_by_age_group`` before/after
-    value for *half_label* is the authoritative per-team, per-half target.
-    Returns ``None`` when neither is configured (non-canonical age group),
-    signalling the caller should fall back to the legacy baseline-lock
-    behavior for that identity.
+    Thin delegate to the canonical
+    :func:`tournament_scheduler.participation_targets.resolve_half_target`, so
+    CP-SAT, the verifier and the rules report share one target/hard-max
+    precedence instead of each re-deriving it. Returns ``None`` when neither a
+    season-wide override nor an age-group half value is configured
+    (non-canonical age group), signalling the caller should fall back to the
+    legacy baseline-lock behavior for that identity.
     """
-    team = team_map.get(identity) or {}
-    explicit = team.get("target_tournament_count")
-    if isinstance(explicit, int):
-        return explicit
-    if half_label not in ("before_christmas", "after_christmas"):
-        return None
-    age_group = identity[2]
-    targets = ((problem or {}).get("participation_targets_by_age_group") or {}).get(age_group) or {}
-    half_target = targets.get(half_label)
-    return half_target if isinstance(half_target, int) else None
+    from tournament_scheduler.participation_targets import resolve_half_target
+
+    return resolve_half_target(identity, problem, half_label, team=team_map.get(identity))
 
 
 def _resolve_split_date(

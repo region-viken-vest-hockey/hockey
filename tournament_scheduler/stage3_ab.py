@@ -24,6 +24,15 @@ from .planning_contract import score_candidate, verify_candidate
 # spacing, same-club clustering, hosting fairness).
 _METRIC_PATHS: List[Tuple[str, str]] = [
     ("participation.spread", "lower"),
+    # Participation target compliance is a guardrail dimension, not one more
+    # equal-weighted term: a candidate with strictly worse bounded target
+    # deviation must not dominate/be promoted merely because it improves a
+    # lower-priority quality metric (issue #376).
+    ("participation.season_total_absolute_deviation", "lower"),
+    ("participation.max_team_season_deviation", "lower"),
+    ("participation.half_total_absolute_deviation", "lower"),
+    ("participation.max_team_half_deviation", "lower"),
+    ("participation.avoidable_deviation_count", "lower"),
     ("opponent_diversity.unique_pairs", "higher"),
     ("opponent_diversity.pairwise_novelty", "higher"),
     ("opponent_diversity.pairs_meeting_3_plus", "lower"),

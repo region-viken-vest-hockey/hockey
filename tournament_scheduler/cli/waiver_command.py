@@ -125,10 +125,141 @@ def _cmd_waiver_create(args: argparse.Namespace) -> int:
             f"Kan innvilges: {', '.join(sorted(WAIVABLE_RULE_IDS))}"
         )
         return 1
+    if args.rule == "participation_hard_max_exceeded":
+        return _create_hard_max_waiver(args)
     if args.rule == "participation_target_exceeded":
         return _create_participation_waiver(args)
     _console.print(f"[red]✗[/red] Ingen operatørflyt implementert for {args.rule!r} ennå.")
     return 1
+
+
+def _create_hard_max_waiver(args: argparse.Namespace) -> int:
+    """Create a waiver for an explicit participation *hard maximum* overage.
+
+    A participation target is a strong goal, not a hard ceiling, so it never
+    needs a waiver. Only an explicitly configured ``participation_hard_max``
+    (or per-age-group variant) is waivable here.
+    """
+    from ..participation_targets import resolve_hard_max
+
+    state = PipelineState(args.work_dir)
+    config = state.read_stage(StageName.CONFIG)
+    if not config:
+        _console.print("[red]✗[/red] Fant ingen Stage 1-konfigurasjon i arbeidsmappen. Kjør Stage 1 først.")
+        return 1
+    planning_checkpoint = state.read_stage(StageName.PLANNING)
+    if not planning_checkpoint:
+        _console.print("[red]✗[/red] Fant ingen Stage 3-plan i arbeidsmappen. Kjør Stage 3 først.")
+        return 1
+    try:
+        candidate = extract_candidate(planning_checkpoint)
+    except ValueError as exc:
+        _console.print(f"[red]✗[/red] Kunne ikke lese Stage 3-planen: {exc}")
+        return 1
+
+    problem = _build_problem(state, config, planning_checkpoint)
+    if problem is None:
+        _console.print("[red]✗[/red] Kunne ikke bestemme planleggingsvinduet.")
+        return 1
+
+    team_label = str(args.team or "").strip()
+    registered = [
+        t
+        for t in problem.get("teams", [])
+        if str(t.get("label")) == team_label
+        and (not args.age_group or str(t.get("age_group")) == str(args.age_group))
+        and (not args.club or str(t.get("club")) == str(args.club))
+    ]
+    if len(registered) != 1:
+        _console.print("[red]✗[/red] Fant ikke et entydig registrert lag; oppgi --club og --age-group.")
+        return 1
+    team = registered[0]
+    identity = (str(team.get("club", "")), str(team.get("label", "")), str(team.get("age_group", "")))
+    hard_max = resolve_hard_max(identity, problem, team=team)
+    if not isinstance(hard_max, int):
+        _console.print(
+            "[red]✗[/red] Aldersgruppen/laget har ingen konfigurert `participation_hard_max`. "
+            "Et vanlig deltakelsesmål krever ikke unntak."
+        )
+        return 1
+
+    tournament_id = str(args.tournament or "").strip()
+    if not tournament_id:
+        _console.print("[red]✗[/red] --tournament er påkrevd for participation_hard_max_exceeded.")
+        return 1
+    if not any(str(t.get("id")) == tournament_id for t in candidate.get("tournaments", []) or []):
+        _console.print(f"[red]✗[/red] Fant ingen turnering {tournament_id!r} i Stage 3-planen.")
+        return 1
+
+    participates_here = any(
+        str(t.get("id")) == tournament_id
+        and any(
+            (str(tm.get("club", "")), str(tm.get("label", "")), str(tm.get("age_group", ""))) == identity
+            for tm in t.get("teams", []) or []
+        )
+        for t in candidate.get("tournaments", []) or []
+    )
+    current = sum(
+        1
+        for t in candidate.get("tournaments", []) or []
+        if any(
+            (str(tm.get("club", "")), str(tm.get("label", "")), str(tm.get("age_group", ""))) == identity
+            for tm in t.get("teams", []) or []
+        )
+    )
+    if args.allowed_value is None:
+        _console.print("[red]✗[/red] --allowed-value er påkrevd (faktisk antall unntaket godkjenner).")
+        return 1
+    allowed = int(args.allowed_value)
+    if allowed != current and allowed != current + 1:
+        _console.print(
+            f"[red]✗[/red] Laget deltar i {current} turneringer nå — unntaket kan bare godkjenne "
+            f"{current} eller {current + 1}."
+        )
+        return 1
+    if participates_here and allowed != current:
+        _console.print(
+            f"[red]✗[/red] Laget deltar allerede i {tournament_id!r} — bruk --allowed-value {current}."
+        )
+        return 1
+    if not participates_here and allowed != current + 1:
+        _console.print(
+            f"[red]✗[/red] Laget deltar ikke i {tournament_id!r} ennå — bruk --allowed-value {current + 1}."
+        )
+        return 1
+    if allowed <= hard_max:
+        _console.print(
+            f"[red]✗[/red] Unntaket må godkjenne et faktisk antall over hard maks ({hard_max}); fikk {allowed}."
+        )
+        return 1
+
+    try:
+        record, created = create_waiver(
+            args.work_dir,
+            rule="participation_hard_max_exceeded",
+            team={"club": identity[0], "label": identity[1], "age_group": identity[2]},
+            tournament_id=tournament_id,
+            half=None,
+            configured_value=hard_max,
+            allowed_value=allowed,
+            reason=args.reason,
+            actor=args.actor,
+            evidence={"current_season_count": current, "team_participates_in_tournament": participates_here},
+        )
+    except WaiverError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
+    if args.json:
+        print(json.dumps({"created": created, "waiver": record}, indent=2, ensure_ascii=False))
+        return 0
+    verb = "Opprettet" if created else "Fant allerede aktivt"
+    _console.print(
+        f"[green]✓[/green] {verb} operatør-unntak [cyan]{record['id']}[/cyan]: "
+        f"{identity[1]} {allowed}/{hard_max} (hard maks) i turnering {tournament_id}."
+    )
+    _console.print(f"  Begrunnelse: {record['reason']}")
+    return 0
 
 
 def _create_participation_waiver(args: argparse.Namespace) -> int:
