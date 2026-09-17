@@ -55,6 +55,7 @@ class Stage3CapabilityResult:
     next_capability: str = ""
     next_candidates: list[dict[str, Any]] = field(default_factory=list)
     next_attempt: int | None = None
+    next_marker: dict[str, Any] = field(default_factory=dict)
     search_exhausted: bool = False
     final: bool = False
     shared_host_decisions: list[dict[str, Any]] | None = None
@@ -166,6 +167,7 @@ class Stage3Controller:
                 candidates=result.next_candidates,
                 attempt=result.next_attempt,
                 search_exhausted=result.search_exhausted,
+                marker=result.next_marker,
             )
         else:
             session.pending_decision = None

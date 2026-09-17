@@ -122,3 +122,72 @@ def test_cli_stage3_state_helpers_delegate_to_the_session_store() -> None:
         "interactive_state_io must be a facade over the canonical Stage3SessionStore, "
         "not a second state authority"
     )
+
+
+# The domain operations a Stage 3 transition invokes live in one CLI-side
+# adapter; the CLI transport/orchestration layer must not grow its own copies
+# of those bodies (that is exactly the fall-through lifecycle logic this
+# architecture removes).
+CLI_TRANSPORT_MODULE = SOURCE_ROOT / "cli" / "pipeline_orchestrator" / "run_command_interactive.py"
+STAGE3_CAPABILITIES_MODULE = SOURCE_ROOT / "cli" / "pipeline_orchestrator" / "stage3_capabilities.py"
+
+CLI_FORBIDDEN_DOMAIN_IMPORTS = (
+    "tournament_scheduler.local_repair_options",
+    "tournament_scheduler.arena_conflict_decision",
+    "tournament_scheduler.shared_host_decision",
+    "tournament_scheduler.stage3_decision",
+    "tournament_scheduler.planner",
+)
+
+LIFECYCLE_MUTATIONS = ("advance_candidate", "record_history", "finalize")
+
+
+def _called_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name):
+                names.add(func.id)
+            elif isinstance(func, ast.Attribute):
+                names.add(func.attr)
+    return names
+
+
+def test_cli_transport_does_not_own_domain_transition_bodies() -> None:
+    imported = _imports(CLI_TRANSPORT_MODULE)
+    offenders = [
+        name
+        for name in imported
+        for forbidden in CLI_FORBIDDEN_DOMAIN_IMPORTS
+        if name == forbidden or name.startswith(f"{forbidden}.")
+    ]
+    assert offenders == [], (
+        "Stage 3 repair/arena/shared-host transition bodies belong in the "
+        f"capabilities adapter, not the CLI transport layer: {offenders}"
+    )
+
+
+def test_cli_transport_does_not_mutate_session_lifecycle() -> None:
+    called = _called_names(CLI_TRANSPORT_MODULE)
+    offenders = sorted(name for name in LIFECYCLE_MUTATIONS if name in called)
+    assert offenders == [], (
+        f"candidate-revision lifecycle must be owned by Stage3Controller, not the CLI transport layer: {offenders}"
+    )
+
+
+def test_capabilities_adapter_is_domain_only_not_a_second_controller() -> None:
+    text = STAGE3_CAPABILITIES_MODULE.read_text(encoding="utf-8")
+    tree = ast.parse(text, filename=str(STAGE3_CAPABILITIES_MODULE))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module and node.module.endswith("stage3_controller"):
+            names = {alias.name for alias in node.names}
+            assert "Stage3Controller" not in names, (
+                "the capabilities adapter must not construct the lifecycle controller"
+            )
+    assert "Stage3CapabilityResult" in text, (
+        "the capabilities adapter must report typed results through Stage3CapabilityResult"
+    )
+    for state_file in KNOWN_STAGE3_STATE_FILES:
+        assert state_file not in text, "the capabilities adapter must use the session/facade, not legacy side files"

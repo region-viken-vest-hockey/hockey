@@ -311,7 +311,10 @@ class Stage3SessionStore:
                 migrated.arena_unresolved = migrated.arena_unresolved or existing.arena_unresolved
         prior_revision = existing.candidate_revision if existing is not None and existing.run_id == migrated.run_id else 0
         if candidate_revision is not None and migrated.pending_decision:
-            revision = max(int(candidate_revision), migrated.candidate_revision)
+            # Revisions are monotonic: an explicit transition (for example an
+            # arena repair) may already have advanced this session past the
+            # interactive attempt count, so never lower the revision here.
+            revision = max(int(candidate_revision), migrated.candidate_revision, prior_revision)
             migrated.candidate_revision = revision
             if migrated.pending_scope() == SCOPE_CANDIDATE:
                 migrated.pending_decision["candidate_revision"] = revision

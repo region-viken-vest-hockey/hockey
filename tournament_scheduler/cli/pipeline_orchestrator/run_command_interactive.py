@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime
 from time import perf_counter
 from typing import Any
 
 from ._shared import _console
 from .export_command import _run_stage4_export
+from .stage3_capabilities import InteractiveStage3Capabilities
 from .interactive_decision_emit import (
     _INTERACTIVE_STAGE_KEYS,
     _decision_summary_for_checkpoint,
@@ -19,9 +20,6 @@ from .interactive_state_io import (
     _current_run_id,
     _read_arena_conflict_state,
     _read_shared_host_state,
-    _read_stage3_interactive_state,
-    _write_arena_conflict_state,
-    _write_shared_host_state,
 )
 from .manifest import _manifest_start_run
 from .run_log import _resolve_resume_stage
@@ -31,33 +29,33 @@ from .stage2 import _run_stage2
 from .stage3_optimize_variants import _run_stage3_pareto_optimize, _run_stage3_v2_optimize
 from .stage3_pareto_decision import _emit_stage3_pareto_decision
 from .stage3_run import _run_stage3
-from .verification import _assert_hard_verification_before_export, _mid_planning_decision_problem, _reconcile_verified_manual_state, _write_run_evidence_bundle
+from .verification import (
+    _assert_hard_verification_before_export,
+    _mid_planning_decision_problem,
+    _reconcile_verified_manual_state,
+    _write_run_evidence_bundle,
+)
 
 
-def _validate_stage3_session_action(state: "Any", action: "Any") -> "str":
-    """Reject a Stage 3 action that no longer targets the session's exact scope.
+def _render_decision_payload(payload: dict[str, Any], work_dir: str) -> int:
+    """Best-effort audit copy + stdout render of a pending DecisionContext.
 
-    Thin adapter over :class:`Stage3Controller.validate`: the session/controller
-    own lifecycle, the CLI only renders/transports the rejection.
+    Returns the canonical "paused for decision" exit code (2). The stdout
+    render is authoritative; the run-log copy is a convenience for debugging.
     """
-    from ...application.stage3_controller import Stage3Controller
-    from ...application.stage3_session_store import Stage3SessionStore
+    import json as _json
 
-    session = Stage3SessionStore(state.work_dir).load(expected_run_id=_current_run_id(state))
-    return Stage3Controller().validate(session, action)
+    try:
+        from ...pipeline.run_log_paths import resolve_active_run_log_dir
 
-
-def _finalize_stage3_session(state: "Any", plan: "Any", *, action_id: str, rationale: str) -> None:
-    """Persist the exact finalized candidate revision/fingerprint for Stage 4."""
-    from ...application.stage3_session_store import finalize_stage3_plan
-
-    finalize_stage3_plan(
-        state.work_dir,
-        plan,
-        action_id=action_id,
-        rationale=rationale,
-        run_id=_current_run_id(state),
-    )
+        log_dir = resolve_active_run_log_dir(work_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
+        with open(log_dir / "decision_context.json", "w", encoding="utf-8") as fh:
+            _json.dump(payload, fh, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+    print(_json.dumps(payload, indent=2, ensure_ascii=False))
+    return 2
 
 
 def _emit_pending_stage3_subdecision_context(state: "Any", work_dir: str, resume_from: int) -> int | None:
@@ -71,10 +69,6 @@ def _emit_pending_stage3_subdecision_context(state: "Any", work_dir: str, resume
     if resume_from != 3:
         return None
 
-    import json as _json
-
-    from ...pipeline.run_log_paths import resolve_active_run_log_dir
-
     run_id = _current_run_id(state)
     for reader in (_read_shared_host_state, _read_arena_conflict_state):
         saved = reader(state, expected_run_id=run_id)
@@ -83,16 +77,9 @@ def _emit_pending_stage3_subdecision_context(state: "Any", work_dir: str, resume
         payload = saved.get("last_context")
         if not isinstance(payload, dict) or not payload:
             continue
-        try:
-            log_dir = resolve_active_run_log_dir(work_dir)
-            log_dir.mkdir(parents=True, exist_ok=True)
-            with open(log_dir / "decision_context.json", "w", encoding="utf-8") as fh:
-                _json.dump(payload, fh, indent=2, ensure_ascii=False)
-        except Exception:
-            pass
-        print(_json.dumps(payload, indent=2, ensure_ascii=False))
-        return 2
+        return _render_decision_payload(payload, work_dir)
     return None
+
 
 def _cmd_run_interactive(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt run --interactive`` (issue #260 Phase 5).
@@ -154,7 +141,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
 
     from ...application.decisions import DecisionAction, DecisionContext, decide, record_llm_decision
     from ...llm_judge.prompts import build_decision_context
-    from ...pipeline.state import PipelineState, StageName, StageStatus
+    from ...pipeline.state import PipelineState, StageName
 
     strict = not args.non_strict
     resume_from = _resolve_resume_stage(getattr(args, "resume_from", None))
@@ -210,6 +197,26 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         if pending_subdecision_code is not None:
             return pending_subdecision_code
 
+    # One persisted session is the authority for the whole interactive Stage 3
+    # lifecycle. The CLI only loads it, submits the typed action to the
+    # controller with deterministic domain capabilities, and renders the
+    # result; it no longer coordinates side files or decides whether an answer
+    # replans, repairs or advances.
+    from ...application.stage3_controller import Stage3Controller
+    from ...application.stage3_session_store import Stage3SessionStore
+
+    session_store = Stage3SessionStore(state.work_dir)
+    session = session_store.load(expected_run_id=_current_run_id(state))
+    pending_capability = str((session.pending_decision or {}).get("capability") or "")
+    capabilities = InteractiveStage3Capabilities(
+        state,
+        args,
+        _log,
+        run_id=_current_run_id(state),
+        problem_fn=_mid_planning_decision_problem,
+    )
+    controller = Stage3Controller()
+
     stage3_search_iterations: int | None = None
     # issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
     # optimizer (stage3_optimizer.optimize_candidate) rather than rerunning
@@ -221,31 +228,20 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     use_pareto_for_stage3 = False
     optimize_plan_arguments: dict[str, Any] | None = None
 
-    # issue #274: a pending shared/joint-club hosting decision
-    # (_resolve_shared_host_decisions) is a distinct in-Stage-3 sub-decision
-    # that happens *before* Stage 3 has produced a candidate at all, so it
-    # cannot reuse the prev_stage_num = resume_from - 1 contract below (that
-    # contract assumes the decision belongs to a just-completed stage/Stage-3
-    # attempt). The harness answers it with the same --resume-from it used
-    # to reach here (still 3 — we have not logically advanced past Stage 3
-    # yet) plus --decision-action; detected here by checking for
-    # shared_host_decision_state.json's "pending" entry rather than by
-    # resume_from's value.
-    pending_shared_host = (
-        _read_shared_host_state(state, expected_run_id=_current_run_id(state)).get("pending")
-        if decision_payload is not None
-        else None
-    )
-    if decision_payload is not None and pending_shared_host is not None:
+    # A shared/joint-club hosting sub-decision is run-scoped pre-plan session
+    # data: the harness answers it with the same --resume-from 3 it reached the
+    # pause with, and it is validated/applied through the session transition
+    # engine. Resolved choices stay in the session so a later Stage 3 re-entry
+    # reuses the same pre-plan decision instead of asking it again.
+    if decision_payload is not None and pending_capability == "shared_host_assignment":
         try:
             shared_host_action = DecisionAction.from_dict(decision_payload)
         except Exception as exc:
             _console.print(f"[red]✗[/red] Ugyldig DecisionAction: {exc}")
             return 1
 
-        shared_host_state = _read_shared_host_state(state, expected_run_id=_current_run_id(state))
-        shared_host_context = DecisionContext.from_dict(shared_host_state.get("last_context") or {})
-        session_reason = _validate_stage3_session_action(state, shared_host_action)
+        shared_host_context = DecisionContext.from_dict((session.pending_decision or {}).get("context") or {})
+        session_reason = controller.validate(session, shared_host_action)
         if session_reason:
             _console.print(f"[red]✗[/red] Delt vertskap-avgjørelse avvist: {session_reason}.")
             return 1
@@ -258,64 +254,32 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             _console.print(f"[red]✗[/red] Avgjørelse avvist: {shared_host_result.rejection_reason}")
             return 1
 
-        decisions_list = list(shared_host_state.get("decisions") or [])
-        unresolved_list = list(shared_host_state.get("unresolved") or [])
-        if shared_host_action.action_id == "assign_shared_host":
-            from ...shared_host_decision import shared_host_decision_record
-
-            decisions_list.append(
-                shared_host_decision_record(
-                    pending_shared_host["registration"],
-                    pending_shared_host["age_group"],
-                    str(shared_host_action.arguments.get("chosen_club", "")),
-                    str(shared_host_action.rationale or ""),
-                    decided_by="harness",
-                    decided_at=datetime.now(timezone.utc).isoformat(),
-                )
-            )
-        else:
-            unresolved_list.append(dict(pending_shared_host))
-        _write_shared_host_state(
-            state,
-            {
-                "run_id": _current_run_id(state),
-                "decisions": decisions_list,
-                "unresolved": unresolved_list,
-                "pending": None,
-                "last_context": None,
-            },
-        )
-        # Answered — fall through as if this invocation carried no decision
-        # payload at all, so execution below re-checks for another pending
-        # shared-host decision (pauses again if one remains) or proceeds
-        # straight into Stage 3 once none remain, without an extra harness
-        # round trip once everything is resolved.
+        outcome = controller.handle(session, shared_host_action, capabilities)
+        if not outcome.accepted:
+            _console.print(f"[red]✗[/red] Delt vertskap-avgjørelse avvist: {outcome.reason}.")
+            return 1
+        session_store.save(session)
+        # Answered — continue as if this invocation carried no decision payload
+        # at all, so execution below re-checks for another pending shared-host
+        # decision (pauses again if one remains) or proceeds straight into
+        # Stage 3 once none remain, without an extra harness round trip.
         decision_payload = None
+        pending_capability = ""
 
-    # Internal arena/time double-booking resolution (see
-    # ``arena_conflict_decisions``) is, like the shared-host decision above,
-    # a distinct in-Stage-3 sub-decision -- it only becomes pending *after*
-    # Stage 3 has produced a candidate (collisions are a property of a built
-    # plan, not the pre-plan config), but it still can't reuse the
-    # prev_stage_num = resume_from - 1 contract below, and the harness
-    # answers it the same way: same --resume-from (still 3) plus
-    # --decision-action, detected via arena_conflict_decision_state.json's
-    # "pending" entry.
-    pending_arena_conflict = (
-        _read_arena_conflict_state(state, expected_run_id=_current_run_id(state)).get("pending")
-        if decision_payload is not None
-        else None
-    )
-    if decision_payload is not None and pending_arena_conflict is not None:
+    # An internal arena/time double-booking is a candidate-scoped post-plan
+    # sub-decision: the harness answers it with the same --resume-from 3, and
+    # the transition engine applies it to the exact persisted candidate and
+    # either binds the next collision or clears the pending decision so the
+    # existing candidate can be adopted. It never rebuilds the season.
+    if decision_payload is not None and pending_capability == "arena_conflict_resolution":
         try:
             arena_action = DecisionAction.from_dict(decision_payload)
         except Exception as exc:
             _console.print(f"[red]✗[/red] Ugyldig DecisionAction: {exc}")
             return 1
 
-        arena_state = _read_arena_conflict_state(state, expected_run_id=_current_run_id(state))
-        arena_context = DecisionContext.from_dict(arena_state.get("last_context") or {})
-        session_reason = _validate_stage3_session_action(state, arena_action)
+        arena_context = DecisionContext.from_dict((session.pending_decision or {}).get("context") or {})
+        session_reason = controller.validate(session, arena_action)
         if session_reason:
             _console.print(f"[red]✗[/red] Arena-avgjørelse avvist: {session_reason}.")
             return 1
@@ -328,95 +292,25 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             _console.print(f"[red]✗[/red] Avgjørelse avvist: {arena_result.rejection_reason}")
             return 1
 
-        decisions_list = list(arena_state.get("decisions") or [])
-        unresolved_list = list(arena_state.get("unresolved") or [])
-
-        from ...pipeline.state import StageName, StageStatus
-
-        checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
-        plan = checkpoint if "plan" in checkpoint else {"plan": checkpoint}
-        from .arena_conflict_decisions import (
-            _apply_arena_conflict_decision,
-            _candidate_dict,
-            _candidate_fingerprint,
-            _resolve_arena_conflict_decisions,
-        )
-
-        candidate = _candidate_dict(plan)
-        if candidate is None:
-            _console.print("[red]✗[/red] Fant ingen Stage 3-kandidat å reparere.")
+        outcome = controller.handle(session, arena_action, capabilities)
+        if not outcome.accepted:
+            _console.print(f"[red]✗[/red] Arena-avgjørelse avvist: {outcome.reason}.")
             return 1
-        expected_fingerprint = str(arena_context.facts.get("candidate_fingerprint") or "")
-        actual_fingerprint = _candidate_fingerprint(candidate)
-        if expected_fingerprint and actual_fingerprint != expected_fingerprint:
-            _console.print(
-                "[red]✗[/red] Arena-avgjørelse avvist: stale_candidate_fingerprint "
-                f"(expected {expected_fingerprint[:12]}, got {actual_fingerprint[:12]})."
-            )
-            return 1
+        session_store.save(session)
+        if outcome.context is not None:
+            return _render_decision_payload(outcome.context, args.work_dir)
 
-        if arena_action.action_id == "resolve_arena_conflict":
-            from ...arena_conflict_decision import arena_conflict_decision_record
+        # No collision remains: offer the Stage 3 adoption decision on the
+        # exact persisted candidate. Do not rebuild the season merely because
+        # one local conflict was answered.
+        from ...pipeline.state import StageName
 
-            facts = dict(arena_context.facts)
-            side_ids = {str(s.get("tournament_id", "")) for s in facts.get("sides", [])}
-            keep = str(arena_action.arguments.get("keep_tournament_id", ""))
-            manual_id = next(iter(side_ids - {keep}), "")
-            decisions_list.append(
-                arena_conflict_decision_record(
-                    facts,
-                    keep,
-                    manual_id,
-                    str(arena_action.rationale or ""),
-                    decided_by="harness",
-                    decided_at=datetime.now(timezone.utc).isoformat(),
-                )
-            )
-            _apply_arena_conflict_decision(candidate, keep, manual_id, str(arena_action.rationale or ""))
-        else:
-            unresolved_list.append({"key": pending_arena_conflict.get("key")})
-        _write_arena_conflict_state(
-            state,
-            {
-                "run_id": _current_run_id(state),
-                "decisions": decisions_list,
-                "unresolved": unresolved_list,
-                "pending": None,
-                "last_context": None,
-            },
-        )
         try:
-            from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
-
-            invalidate_stale_candidate_checkpoint_keys(checkpoint)
-        except Exception:
-            pass
-        if "plan" not in checkpoint:
-            checkpoint = {"plan": candidate}
-        state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
-
-        # Arena conflicts are post-plan repairs. Continue on the exact
-        # persisted candidate: emit the next remaining collision or, when the
-        # candidate is clean, emit the Stage 3 adoption context. Do not rebuild
-        # the whole season merely because one local conflict was answered.
-        from ...pipeline.stage1_config import load_effective_config
-
-        cfg = load_effective_config(state, input_path=args.input) or state.read_stage(StageName.CONFIG) or {}
-        scraping = state.read_stage(StageName.SCRAPING) or {}
-        try:
-            start = datetime.strptime(cfg["start_date"], "%Y-%m-%d")
-            end = datetime.strptime(cfg["end_date"], "%Y-%m-%d")
+            cfg, scraping, start, end = capabilities.resolved_problem()
         except Exception as exc:
             _console.print(f"[red]✗[/red] Kunne ikke lese Stage 1-datoer for lokal arena-reparasjon: {exc}")
             return 1
-        problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
-        ice_time_for_age_group = (problem or {}).get("ice_time_minutes") or (problem or {}).get(
-            "round_length_minutes"
-        ) or {}
-        next_pause = _resolve_arena_conflict_decisions(state, checkpoint, ice_time_for_age_group, _log, interactive=True)
-        if next_pause is not None:
-            state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
-            return next_pause
+        checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
         return _emit_stage3_interactive_decision(
             state,
             args.work_dir,
@@ -432,10 +326,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     if decision_payload is not None:
         prev_stage_num = resume_from - 1
         if prev_stage_num < 1:
-            _console.print(
-                "[red]✗[/red] --decision-action krever --resume-from > 1 "
-                "(ingen forrige stage å avgjøre)."
-            )
+            _console.print("[red]✗[/red] --decision-action krever --resume-from > 1 (ingen forrige stage å avgjøre).")
             return 1
         prev_stage_name = list(StageName)[prev_stage_num - 1]
         if not state.checkpoint_path(prev_stage_name).exists():
@@ -448,19 +339,15 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             _console.print(f"[red]✗[/red] Ugyldig DecisionAction: {exc}")
             return 1
 
-        stage3_interactive_state: dict[str, Any] | None = None
         if prev_stage_num == 3:
-            stage3_interactive_state = _read_stage3_interactive_state(state, expected_run_id=_current_run_id(state))
-            last_context_payload = stage3_interactive_state.get("last_context")
+            last_context_payload = (session.pending_decision or {}).get("context")
             if not last_context_payload:
                 _console.print("[red]✗[/red] Fant ingen Stage 3-avgjørelseskontekst å avgjøre.")
                 return 1
             prev_context = DecisionContext.from_dict(last_context_payload)
-            session_reason = _validate_stage3_session_action(state, decision_action)
+            session_reason = controller.validate(session, decision_action)
             if session_reason:
-                _console.print(
-                    f"[red]✗[/red] Stage 3-avgjørelse avvist: {session_reason}."
-                )
+                _console.print(f"[red]✗[/red] Stage 3-avgjørelse avvist: {session_reason}.")
                 return 1
         else:
             prev_checkpoint = state.read_stage(prev_stage_name)
@@ -480,142 +367,33 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         except Exception as exc:
             _log(f"record_llm_decision failed: {exc}")
         if not decision_result.accepted:
-            _console.print(
-                f"[red]✗[/red] Avgjørelse avvist: {decision_result.rejection_reason}"
-            )
+            _console.print(f"[red]✗[/red] Avgjørelse avvist: {decision_result.rejection_reason}")
             return 1
         if decision_action.action_id == "abort":
             _console.print("[yellow]Avbrutt etter operatørens avgjørelse.[/yellow]")
             return 1
 
-        if prev_stage_num == 3 and stage3_interactive_state is not None:
+        if prev_stage_num == 3:
             if decision_action.action_id == "optimize_plan":
+                # ``run_search`` is an explicit transition, but executing the
+                # optimizer is itself a Stage 3 entry point: record the
+                # requested search and let the stage orchestration below run
+                # it, then the emission binds the resulting revision.
                 resume_from = 3
                 optimize_plan_arguments = dict(decision_action.arguments or {})
                 if optimize_plan_arguments.get("mode") == "pareto":
                     use_pareto_for_stage3 = True
                 else:
                     use_v2_optimizer_for_stage3 = True
-            elif decision_action.action_id == "apply_repair_option":
-                from ...local_repair_options import apply_local_repair_option
-                from ...planning_contract import extract_candidate
-                from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
-
-                from ...pipeline.stage1_config import load_effective_config
-
-                best_plan = stage3_interactive_state.get("best_plan")
-                # issue #260-family bug: the raw Stage 1 checkpoint (state.read_stage)
-                # does not carry start_date/end_date -- those are only present in the
-                # merged effective config every other call site in this file uses
-                # (see cfg = _run_stage1(...) above). Match that pattern here instead
-                # of KeyError-ing on repair_cfg["start_date"].
-                repair_cfg = load_effective_config(state, input_path=args.input) or {}
-                repair_scraping = state.read_stage(StageName.SCRAPING) or {}
-                repair_start = datetime.strptime(repair_cfg["start_date"], "%Y-%m-%d")
-                repair_end = datetime.strptime(repair_cfg["end_date"], "%Y-%m-%d")
-                problem = _mid_planning_decision_problem(repair_cfg, repair_scraping, repair_start, repair_end, state.work_dir)
-                outcome = apply_local_repair_option(
-                    extract_candidate(best_plan),
-                    problem,
-                    option_id=str((decision_action.arguments or {}).get("option_id") or ""),
-                    expected_fingerprint=str((decision_action.arguments or {}).get("candidate_fingerprint") or ""),
-                    run_id=_current_run_id(state),
-                )
-                if not outcome.get("ok"):
-                    _console.print(f"[red]✗[/red] Reparasjon avvist: {outcome.get('reason')}")
-                    return 1
-                checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
-                invalidate_stale_candidate_checkpoint_keys(checkpoint)
-                checkpoint["plan"] = outcome["candidate"]
-                family = outcome.get("family")
-                if family == "underfilled_roster":
-                    checkpoint["source"] = "underfilled_roster_repair_applied"
-                    checkpoint["underfilled_roster_repair_result"] = {
-                        key: value for key, value in outcome.items() if key != "candidate"
-                    }
-                elif family == "host_placement":
-                    checkpoint["source"] = "host_placement_repair_applied"
-                    checkpoint["host_placement_repair_result"] = {
-                        key: value for key, value in outcome.items() if key != "candidate"
-                    }
-                elif family == "search_neighborhood":
-                    checkpoint["source"] = "search_neighborhood_repair_applied"
-                    checkpoint["search_neighborhood_repair_result"] = {
-                        key: value for key, value in outcome.items() if key != "candidate"
-                    }
-                else:
-                    checkpoint["source"] = "host_team_missing_repair_applied"
-                    checkpoint["host_team_missing_repair_result"] = {
-                        key: value for key, value in outcome.items() if key != "candidate"
-                    }
-                state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
-                _finalize_stage3_session(
-                    state,
-                    checkpoint,
-                    action_id="apply_repair_option",
-                    rationale=str(decision_action.rationale or ""),
-                )
-            elif decision_action.action_id == "apply_candidate":
-                candidate_ref = (decision_action.arguments or {}).get("candidate_ref")
-                pending_candidates = stage3_interactive_state.get("pending_candidates")
-                cp_sat_cache_entry = None
-                if candidate_ref and str(candidate_ref).startswith("stage3_cp_sat:"):
-                    # issue #310: a verified automatic CP-SAT candidate is
-                    # addressable via candidate_ref without re-solving --
-                    # resolved against the run-scoped cache, not
-                    # pending_candidates (which only ever holds Pareto/v2
-                    # optimizer attempts).
-                    from .stage3_cpsat_cache import resolve_candidate_ref
-
-                    cp_sat_cache_entry = resolve_candidate_ref(state, _current_run_id(state), str(candidate_ref))
-                if cp_sat_cache_entry is not None:
-                    from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
-
-                    checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
-                    invalidate_stale_candidate_checkpoint_keys(checkpoint)
-                    checkpoint["plan"] = cp_sat_cache_entry["candidate"]
-                    checkpoint["source"] = "stage3_cp_sat_shadow_applied"
-                    state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
-                elif pending_candidates:
-                    # issue #264 P1: a Pareto attempt left several
-                    # candidates pending, not one -- the on-disk checkpoint
-                    # still holds the pre-search baseline, so the chosen
-                    # candidate_ref has to be written explicitly here.
-                    chosen = next(
-                        (entry for entry in pending_candidates if entry.get("candidate_ref") == candidate_ref),
-                        None,
-                    )
-                    if chosen is not None:
-                        from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
-
-                        checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
-                        invalidate_stale_candidate_checkpoint_keys(checkpoint)
-                        checkpoint["plan"] = chosen["candidate"]
-                        state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
-                # else: the on-disk Stage 3 checkpoint already holds the
-                # candidate that was just rerun (the v2-optimizer path's
-                # single pending attempt), so no checkpoint rewrite is
-                # needed here.
-                _finalize_stage3_session(
-                    state,
-                    state.read_stage(StageName.PLANNING),
-                    action_id="apply_candidate",
-                    rationale=str(decision_action.rationale or ""),
-                )
             else:
-                # keep_baseline (or any other accepted action): the on-disk
-                # checkpoint currently holds the just-rejected rerun attempt,
-                # so restore the persisted best plan before advancing —
-                # mirrors the headless loop's re-persist-selected-attempt step.
-                best_plan = stage3_interactive_state.get("best_plan")
-                if best_plan is not None:
-                    state.write_stage(StageName.PLANNING, best_plan, status=StageStatus.DONE)
-                _finalize_stage3_session(
-                    state,
-                    best_plan if best_plan is not None else state.read_stage(StageName.PLANNING),
-                    action_id=str(decision_action.action_id),
-                    rationale=str(decision_action.rationale or ""),
-                )
+                # apply_repair_option / apply_candidate / keep_baseline /
+                # request_operator: one explicit candidate transition, applied
+                # by the session controller with the domain capabilities.
+                outcome = controller.handle(session, decision_action, capabilities)
+                if not outcome.accepted:
+                    _console.print(f"[red]✗[/red] Stage 3-avgjørelse avvist: {outcome.reason}.")
+                    return 1
+                session_store.save(session)
         elif decision_action.action_id == "retry_stage":
             resume_from = prev_stage_num
 
@@ -635,18 +413,14 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         return _emit_interactive_decision_context(2, state, args.work_dir)
 
     if resume_from == 3 and use_pareto_for_stage3:
-        portfolio, abort = _run_stage3_pareto_optimize(
-            state, cfg, scraping, start, end, optimize_plan_arguments, _log
-        )
+        portfolio, abort = _run_stage3_pareto_optimize(state, cfg, scraping, start, end, optimize_plan_arguments, _log)
         if abort:
             return 1
         return _emit_stage3_pareto_decision(state, args.work_dir, cfg, scraping, start, end, portfolio, _log)
 
     if resume_from == 3 and use_v2_optimizer_for_stage3:
         _stage3_started = perf_counter()
-        plan, abort = _run_stage3_v2_optimize(
-            state, cfg, scraping, start, end, optimize_plan_arguments, _log
-        )
+        plan, abort = _run_stage3_v2_optimize(state, cfg, scraping, start, end, optimize_plan_arguments, _log)
         if abort:
             return 1
         # issue #310: an explicit optimize_plan(engine="cp_sat") pass must

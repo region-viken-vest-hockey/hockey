@@ -29,7 +29,7 @@ Transitions use a stable vocabulary: `create_baseline`, `assign_shared_host`, `r
 
 A transition validates the submitted action against the session's exact pending scope and the expected candidate revision/fingerprint **before** any accepted-action provenance is recorded, invokes a deterministic domain/application capability, advances the revision only when the candidate actually changed, and returns the next decision context or terminal result. A stale action targeting an old revision/fingerprint is rejected, not replayed.
 
-The CLI/harness adapter parses `DecisionAction`, renders `DecisionContext`/diagnostics, maps typed results to exit codes, and chooses the stage entry point. It does not encode whether an arena answer reruns the planner, how a repair mutates session state, or which side file to clear.
+The CLI/harness adapter parses `DecisionAction`, renders `DecisionContext`/diagnostics, maps typed results to exit codes, and chooses the stage entry point. It does not encode whether an arena answer reruns the planner, how a repair mutates session state, or which side file to clear. The deterministic domain operations a transition invokes live in one adapter (`cli/pipeline_orchestrator/stage3_capabilities.InteractiveStage3Capabilities`: shared-host recording, arena-conflict application and next-collision enumeration, local repair application, candidate selection, baseline retention), so `run_command_interactive.py` is transport/orchestration only.
 
 `rvv-miniputt stage3 session` exposes one compact machine-readable view of the session for debugging resume problems.
 
