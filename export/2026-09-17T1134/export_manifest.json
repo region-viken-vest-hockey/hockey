@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "export_id": "2026-09-17T1134",
+  "generated_at": "2026-09-17T11:34:49+00:00",
+  "export_fingerprint": "428141f916fb2955afa920a4dffb4e9df4f771b5cc9c5df61a876e60b8cc75e4",
+  "canonical_season": null,
+  "canonical_revision": null,
+  "lifecycle_status": "published",
+  "published_at": "2026-09-17T11:38:24+00:00",
+  "pages_commit": "c862f2f18dce714537e053cfa4dc165d75a09028",
+  "pages_branch": "gh-pages",
+  "pages_run_id": "20260917T112930Z-6643e21e",
+  "pages_bundle_fingerprint": "d4a010f68eee2e132df04bb8281e149445e2a8efc1b281393d1fc210405c0f4b",
+  "source_run_id": "20260917T112930Z-6643e21e"
+}
