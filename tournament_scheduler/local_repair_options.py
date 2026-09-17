@@ -26,6 +26,10 @@ from .host_team_missing_repair import (
     candidate_fingerprint,
     enumerate_host_team_missing_repairs,
 )
+from .movable_capacity_repair import (
+    apply_movable_capacity_repair_option,
+    enumerate_movable_capacity_repairs,
+)
 from .search_neighborhood_repair import (
     apply_search_neighborhood_repair_option,
     enumerate_search_neighborhood_repairs,
@@ -45,6 +49,7 @@ REPAIR_PROVIDERS: Tuple[Tuple[str, EnumerateFn, ApplyFn], ...] = (
     ("underfilled_roster", enumerate_underfilled_roster_repairs, apply_underfilled_roster_repair_option),
     ("host_team_missing", enumerate_host_team_missing_repairs, apply_host_team_missing_repair_option),
     ("host_placement", enumerate_host_placement_repairs, apply_host_placement_repair_option),
+    ("movable_capacity", enumerate_movable_capacity_repairs, apply_movable_capacity_repair_option),
     ("search_neighborhood", enumerate_search_neighborhood_repairs, apply_search_neighborhood_repair_option),
 )
 
