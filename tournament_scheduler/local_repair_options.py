@@ -64,6 +64,7 @@ def enumerate_local_repair_options(
     """Enumerate every provider's options, tagged with their owning family."""
     options = []
     rejected = []
+    candidate_weekends: list = []
     families: Dict[str, Dict[str, Any]] = {}
     for family, enumerate_fn, _apply_fn in REPAIR_PROVIDERS:
         if family in BROAD_REPAIR_FAMILIES and options:
@@ -82,6 +83,10 @@ def enumerate_local_repair_options(
         ]
         options.extend(family_options)
         rejected.extend(family_rejected)
+        candidate_weekends.extend(
+            {**bundle, "family": family}
+            for bundle in repair_set.get("candidate_weekends", ())
+        )
         families[family] = {
             "option_count": len(family_options),
             "rejected_count": len(family_rejected),
@@ -91,6 +96,10 @@ def enumerate_local_repair_options(
         "candidate_fingerprint": candidate_fingerprint(candidate),
         "options": options,
         "rejected_candidates": rejected,
+        # Read-only, conflict-aware manual-placement weekend evidence from the
+        # family that owns it (currently host_placement); never a committed
+        # placement and never an applyable option id.
+        "candidate_weekends": candidate_weekends,
         "families": families,
     }
 

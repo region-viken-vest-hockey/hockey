@@ -8,7 +8,10 @@ from tournament_scheduler.host_placement_repair import (
     build_host_placement_decision_context,
     enumerate_host_placement_repairs,
 )
-from tournament_scheduler.local_repair_options import apply_local_repair_option
+from tournament_scheduler.local_repair_options import (
+    apply_local_repair_option,
+    enumerate_local_repair_options,
+)
 from tournament_scheduler.planning_contract import verify_candidate
 
 MANUAL_REASON = "Ingen verifisert ledig istid for H 2026-01-10 — turneringen må plasseres manuelt."
@@ -588,3 +591,80 @@ def test_local_repair_dispatcher_applies_inferred_interpretation():
     assert applied["family"] == "host_placement"
     assert applied["candidate"]["calendar_interpretations"]
     assert applied["candidate"]["tournaments"][0]["manual_booking_reason"] is None
+
+
+def test_candidate_weekends_are_exposed_for_manual_obligation():
+    """The manual-placement evidence carries a ranked, conflict-aware
+    shortlist of same-host weekends for the operator (issue #369)."""
+    repair_set = enumerate_host_placement_repairs(_manual_candidate(), _problem(), run_id="r1")
+
+    bundle = repair_set["candidate_weekends"]
+    assert len(bundle) == 1
+    entry = bundle[0]
+    assert entry["tournament_id"] == "t1"
+    assert entry["host_club"] == "H"
+    assert entry["status"] == "suggestions"
+    assert entry["candidate_weekends"]
+
+    best = entry["candidate_weekends"][0]
+    assert best["availability"] == "free"
+    assert best["requires_host_confirmation"] is False
+    assert best["roster_source"] == "current"
+    assert best["rank"] == 0
+
+
+def test_candidate_weekend_rejects_team_already_playing_that_date():
+    collision = _tournament(
+        "t9",
+        "B",
+        [_team("B", "B1"), _team("C", "C9"), _team("D", "D9")],
+        date="2026-01-17",
+        arena="B Arena",
+    )
+    repair_set = enumerate_host_placement_repairs(
+        _manual_candidate(extra_tournaments=(collision,)), _problem(), run_id="r1"
+    )
+
+    bundle = repair_set["candidate_weekends"][0]
+    rejected = {entry["date"]: entry for entry in bundle["rejected_candidate_dates"]}
+    assert rejected["2026-01-17"]["reason"] == "team_already_plays"
+    assert "B1" in rejected["2026-01-17"]["team_conflicts"]
+    assert all(c["date"] != "2026-01-17" for c in bundle["candidate_weekends"])
+
+
+def test_host_placement_context_exposes_candidate_weekends():
+    context = build_host_placement_decision_context(_manual_candidate(), _problem(), run_id="r1")
+
+    assert context.facts["candidate_weekends"]
+    assert context.facts["candidate_weekends"][0]["candidate_weekends"]
+
+
+def test_untrusted_calendar_still_exposes_unknown_candidate_weekends():
+    """An untrusted calendar blocks automatic repair, but the operator should
+    still see the bounded weekends as explicit (confirmation-gated) unknown
+    capacity rather than only a rejection."""
+    problem = _problem(club_calendar_status={club: "unknown" for club in "HABCD"})
+
+    repair_set = enumerate_host_placement_repairs(_manual_candidate(), problem)
+
+    bundle = repair_set["candidate_weekends"][0]
+    assert bundle["candidate_weekends"]
+    assert bundle["candidate_weekends"][0]["availability"] == "unknown"
+    assert bundle["candidate_weekends"][0]["requires_host_confirmation"] is True
+    assert any(
+        rejection["reason"] == "calendar_evidence_not_trusted"
+        for rejection in repair_set["rejected_candidates"]
+    )
+
+
+def test_local_repair_dispatcher_carries_candidate_weekends_evidence():
+    """The common repair-option boundary propagates the read-only candidate
+    weekend evidence without turning it into an applyable option id."""
+    repair_set = enumerate_local_repair_options(_manual_candidate(), _problem(), run_id="r1")
+
+    assert repair_set["candidate_weekends"]
+    assert repair_set["candidate_weekends"][0]["family"] == "host_placement"
+    assert repair_set["candidate_weekends"][0]["candidate_weekends"]
+    assert all(
+        option["option_id"] != "candidate_weekends" for option in repair_set["options"]
+    )

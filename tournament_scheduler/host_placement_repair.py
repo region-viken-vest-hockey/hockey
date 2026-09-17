@@ -23,6 +23,13 @@ season date, and never weakens a hard rule. Applying a selected option mutates
 a copy, regenerates the tournament's placement and reruns the full independent
 verifier; the candidate is committed only when verification passes.
 
+It also produces read-only, conflict-aware candidate-weekend evidence for each
+unresolved obligation (owned by ``candidate_weekends``): the bounded same-host
+weekend set with its availability classification, current-roster team/date
+collisions and deterministic rejection reasons. That evidence never commits a
+placement -- it only tells the operator which weekends could work and why the
+near misses did not.
+
 Calendar-untrusted hosts are reported with an explicit rejection reason rather
 than guessed at: an unknown/untrusted calendar means automatic placement cannot
 be proven, so the manual item is the honest outcome.
@@ -37,6 +44,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from . import planning_half
 from .application.decisions import DecisionContext
+from .candidate_weekends import enumerate_candidate_weekends, season_weekend_dates
 from .host_representation import constituent_clubs
 from .host_team_missing_repair import (
     RepairOption,
@@ -50,6 +58,7 @@ from .host_team_missing_repair import (
 )
 from .planning_contract import (
     _parse_date,
+    _team_identity,
     apply_calendar_interpretations,
     external_calendar_conflict,
     verify_candidate,
@@ -67,6 +76,11 @@ _MAX_START_TIME_OPTIONS = 6
 _MAX_DATE_CANDIDATES = 8
 _MAX_SWAP_OPTIONS = 4
 _MAX_OPTIONS = 12
+# Manual candidate-weekend suggestions are evidence for the operator, not
+# repair actions: keep the shortlist and the bounded date set small so one
+# unresolved obligation cannot turn into a season-wide scan.
+_MAX_CANDIDATE_WEEKENDS = 5
+_MAX_CANDIDATE_WEEKEND_DATES = 24
 
 
 @dataclass(frozen=True)
@@ -100,6 +114,22 @@ def enumerate_host_placement_repairs(
     }
     options: List[RepairOption] = []
     rejected: List[Dict[str, Any]] = []
+    candidate_weekend_suggestions: List[Dict[str, Any]] = []
+    # Team/date occupancy and display labels are shared by every finding's
+    # candidate-weekend evidence, so derive them once from the candidate.
+    occupancy: Dict[str, set] = {}
+    team_labels: Dict[Any, str] = {}
+    for other in candidate.get("tournaments", []):
+        if other.get("cancelled"):
+            continue
+        date_iso = str(other.get("date") or "")
+        if not date_iso:
+            continue
+        bucket = occupancy.setdefault(date_iso, set())
+        for team in other.get("teams", []):
+            identity = _team_identity(team)
+            bucket.add(identity)
+            team_labels[identity] = str(team.get("label") or team.get("club") or "")
     for tournament in candidate.get("tournaments", []):
         if tournament.get("cancelled") or not _is_manual_slot_failure(tournament):
             continue
@@ -111,6 +141,11 @@ def enumerate_host_placement_repairs(
             host_club=host_club,
             age_group=str(tournament.get("age_group") or ""),
             original_date=str(tournament.get("date") or ""),
+        )
+        candidate_weekend_suggestions.append(
+            _candidate_weekend_bundle(
+                problem, tournament, finding, occupancy=occupancy, team_labels=team_labels
+            )
         )
         if not host_club:
             rejected.append({**_base(finding), "reason": "missing_host_club"})
@@ -175,6 +210,11 @@ def enumerate_host_placement_repairs(
         "verification": verification,
         "options": [option.to_dict() for option in options],
         "rejected_candidates": rejected,
+        # Conflict-aware manual-placement candidates for each unresolved
+        # obligation. Evidence only: the operator/controller may use them to
+        # book a placement, but committing a placement still goes through the
+        # validated repair options above.
+        "candidate_weekends": candidate_weekend_suggestions,
     }
 
 
@@ -205,6 +245,11 @@ def build_host_placement_decision_context(
             # candidates the controller may investigate through an
             # ``interpret_calendar_event_as_movable`` repair option.
             "unclassified_calendar_events": _unclassified_calendar_events(problem),
+            # Ranked, conflict-aware weekends the responsible host could use
+            # for each unresolved obligation, with the deterministic rejection
+            # reason for near-miss dates. Never a committed placement: the
+            # controller still has to select a verified repair option.
+            "candidate_weekends": repair_set["candidate_weekends"],
         },
         # Keeping the candidate as-is is legitimate here: manual placement is
         # soft/unresolved evidence, not a hard violation, so a plan the
@@ -322,6 +367,85 @@ def _base(finding: _Finding) -> Dict[str, Any]:
 
 def _is_manual_slot_failure(tournament: Mapping[str, Any]) -> bool:
     return MANUAL_SLOT_FAILURE_MARKER in str(tournament.get("manual_booking_reason") or "")
+
+
+def _candidate_weekend_bundle(
+    problem: Mapping[str, Any],
+    tournament: Mapping[str, Any],
+    finding: _Finding,
+    *,
+    occupancy: Mapping[str, set],
+    team_labels: Mapping[Any, str],
+) -> Dict[str, Any]:
+    """Rank conflict-aware candidate weekends for one manual obligation.
+
+    Reuses the already-normalized availability facts (``fixed_busy`` vs
+    ``movable_busy``) and the current candidate's team/date occupancy. It is
+    deliberately evidence-only: no replacement roster is fabricated here, so
+    a date whose current roster already plays elsewhere is *rejected* with
+    ``team_already_plays`` rather than suggested as usable.
+    """
+    duration = _duration_minutes(tournament, problem)
+    if not finding.host_club:
+        return {**_base(finding), "candidate_weekends": [], "rejected_candidate_dates": [], "status": "missing_host_club"}
+    if duration <= 0:
+        return {
+            **_base(finding),
+            "candidate_weekends": [],
+            "rejected_candidate_dates": [],
+            "status": "no_required_duration",
+        }
+    current_keys = {_team_identity(team) for team in tournament.get("teams", [])}
+    result = enumerate_candidate_weekends(
+        problem,
+        host_club=finding.host_club,
+        team_keys=current_keys,
+        candidate_dates=_candidate_weekend_dates(problem, _parse_date(finding.original_date)),
+        duration_minutes=duration,
+        preferred_start_time=str(tournament.get("start_time") or "10:00"),
+        candidate_start_times=_candidate_start_times(tournament),
+        occupancy=occupancy,
+        team_labels=team_labels,
+        current_roster=[
+            {
+                "club": team.get("club", ""),
+                "label": team.get("label", ""),
+                "age_group": team.get("age_group", ""),
+            }
+            for team in tournament.get("teams", [])
+        ],
+        max_suggestions=_MAX_CANDIDATE_WEEKENDS,
+        max_dates=_MAX_CANDIDATE_WEEKEND_DATES,
+    )
+    return {**_base(finding), **result}
+
+
+def _candidate_weekend_dates(
+    problem: Mapping[str, Any],
+    on_date: Optional[date],
+) -> List[date]:
+    """Season weekend dates for the responsible host, nearest-first.
+
+    Respects the planning-half boundary exactly like the repair search:
+    dates on the other side of the split are excluded unless cross-half
+    movement is explicitly enabled. This never invents a date outside the
+    planning window.
+    """
+    split = _parse_date(problem.get("christmas_split_date"))
+    allow_cross_half = bool(problem.get("allow_cross_half_moves"))
+    current_half = planning_half.tournament_half(on_date, split) if on_date else None
+    dates = [
+        candidate_date
+        for candidate_date in season_weekend_dates(problem)
+        if candidate_date != on_date
+        and (
+            allow_cross_half
+            or current_half is None
+            or planning_half.tournament_half(candidate_date, split) == current_half
+        )
+    ]
+    dates.sort(key=lambda value: (abs((value - on_date).days) if on_date else 0, value))
+    return dates
 
 
 def _movable_option_facts(
