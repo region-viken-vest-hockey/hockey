@@ -629,6 +629,51 @@ class TestVerifyCandidateWithProblem:
         assert used[0]["tournament_id"] == "t1"
         assert used[0]["host_club"] == "Jar"
 
+    def test_movable_busy_interval_is_candidate_with_host_confirmation(self):
+        """issue #373: a host-controlled movable_busy interval (Kongsberg open
+        ice) is a legitimate placement candidate for that host, not a fixed
+        external conflict. The verifier must record it with the normalized
+        availability, event title/reason and an explicit
+        requires_host_confirmation flag."""
+        teams = [_team("Kongsberg", "Kongsberg 1", "U10"), _team("Jar", "Jar 1", "U10")]
+        candidate = {
+            "tournaments": [
+                _tournament(
+                    "t1", "2026-11-21", "Kongsberghallen", "U10", teams, start_time="10:00"
+                )
+            ]
+        }
+        problem = self._problem(
+            round_length_minutes={"U10": 60},
+            club_calendar_status={"Kongsberg": "known", "Jar": "known"},
+            club_busy_intervals={
+                "Kongsberg": [
+                    {
+                        "date": "2026-11-21",
+                        "start": "10:00",
+                        "end": "14:00",
+                        "kind": "club_controlled",
+                        "availability": "movable_busy",
+                        "calendar_event": "Åpen ishall",
+                        "reason": "host-controlled open ice; may be moved",
+                    }
+                ]
+            },
+        )
+        result = verify_candidate(candidate, problem)
+        # Never a hard violation and never a fixed external conflict.
+        assert result["ok"] is True
+        assert "external_calendar_conflict" not in {v["code"] for v in result["violations"]}
+        assert result["manual_external_conflict_placements"] == []
+        used = result["movable_allocations_used"]
+        assert len(used) == 1
+        assert used[0]["availability"] == "movable_busy"
+        assert used[0]["calendar_event"] == "Åpen ishall"
+        assert used[0]["requires_host_confirmation"] is True
+        assert used[0]["host_club"] == "Kongsberg"
+        # Backward-compatible evidence key carries the same record.
+        assert result["club_controlled_allocations_used"] == used
+
     def test_pinned_tournament_missing_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}

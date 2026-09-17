@@ -107,6 +107,15 @@ EVIDENCE_CATEGORIES: dict[str, dict[str, Any]] = {
         "unresolved": True,
         "severity": "major",
     },
+    "movable_allocations_used": {
+        "description": (
+            "Tournaments placed in a host-controlled movable_busy interval (e.g. Kongsberg open ice): "
+            "feasible subject to the host moving/replacing the listed event."
+        ),
+        "checklist_item": 4,
+        "unresolved": True,
+        "severity": "major",
+    },
     "tournament_duration": {
         "description": "Per-tournament required duration/end time derived from configured ice time and rounds.",
         "checklist_item": 3,
@@ -407,6 +416,26 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
             _record(
                 category="manual_external_conflict_placements",
                 summary=f"manual external conflict: {row.get('host_club') or row.get('club') or '?'}",
+                detail=row,
+                tournament_id=row.get("tournament_id"),
+                club=row.get("host_club") or row.get("club"),
+                clubs=_record_clubs(row),
+                age_group=row.get("age_group"),
+            )
+        )
+
+    for row in _as_list(verify.get("movable_allocations_used")):
+        if not isinstance(row, dict):
+            continue
+        event_label = row.get("calendar_event") or "host-controlled interval"
+        records.append(
+            _record(
+                category="movable_allocations_used",
+                summary=(
+                    f"movable_busy placement: {row.get('host_club') or row.get('club') or '?'} "
+                    f"on {row.get('date') or '?'} displaces '{event_label}' "
+                    "(host confirmation required)"
+                ),
                 detail=row,
                 tournament_id=row.get("tournament_id"),
                 club=row.get("host_club") or row.get("club"),

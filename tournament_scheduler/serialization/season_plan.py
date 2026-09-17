@@ -152,6 +152,10 @@ class SeasonPlanCodec:
             payload["scoring_weight_term"] = tournament.scoring_weight_term
         if tournament.manual_booking_reason:
             payload["manual_booking_reason"] = tournament.manual_booking_reason
+        if tournament.requires_host_confirmation:
+            payload["requires_host_confirmation"] = True
+        if tournament.host_confirmation_reason:
+            payload["host_confirmation_reason"] = tournament.host_confirmation_reason
         return payload
 
     @staticmethod
@@ -209,6 +213,8 @@ class SeasonPlanCodec:
             "preferanse_vekt": float(data.get("preferanse_vekt", 0.0)),
             "scoring_weight_term": float(data.get("scoring_weight_term", 0.0)),
             "manual_booking_reason": data.get("manual_booking_reason"),
+            "requires_host_confirmation": bool(data.get("requires_host_confirmation", False)),
+            "host_confirmation_reason": data.get("host_confirmation_reason"),
         }
         return Tournament(**kwargs)
 

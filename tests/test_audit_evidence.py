@@ -323,3 +323,39 @@ def test_broad_query_truncates_deterministically_with_an_explicit_flag(tmp_path)
     assert limited["returned_record_count"] == 5
     assert limited["truncated"] is True
     assert limited["matched_record_count"] == 180
+
+
+def test_movable_allocations_surface_as_normalized_evidence():
+    """issue #373: the harness/audit must see the normalized movable_busy fact
+    (host, event, reason, host confirmation) rather than a raw event title it
+    would have to interpret itself."""
+    from tournament_scheduler.pipeline.audit_evidence import _extract_records
+
+    raw = {
+        "deterministic_verify_result": {
+            "movable_allocations_used": [
+                {
+                    "tournament_id": "t1",
+                    "host_club": "Kongsberg",
+                    "age_group": "U11",
+                    "date": "2026-11-21",
+                    "interval": "10:00-14:00",
+                    "availability": "movable_busy",
+                    "calendar_event": "Åpen ishall",
+                    "reason": "host-controlled open ice",
+                    "requires_host_confirmation": True,
+                }
+            ]
+        }
+    }
+    records = [
+        record for record in _extract_records(raw) if record["category"] == "movable_allocations_used"
+    ]
+    assert len(records) == 1
+    record = records[0]
+    assert record["club"] == "Kongsberg"
+    assert record["tournament_id"] == "t1"
+    assert record["checklist_item"] == 4
+    assert record["unresolved"] is True
+    assert "Åpen ishall" in record["summary"]
+    assert record["detail"]["requires_host_confirmation"] is True

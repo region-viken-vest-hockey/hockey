@@ -133,6 +133,37 @@ def test_same_host_start_time_option_is_exposed_when_another_time_is_free():
     assert time_options[0]["evidence"]["responsible_host"] == "H"
 
 
+def test_movable_busy_slot_option_reports_host_confirmation():
+    """issue #373: a repair into the host's own movable_busy interval is valid
+    but must be surfaced as requiring host confirmation, not as free ice."""
+    candidate = _manual_candidate()
+    problem = _problem(
+        club_busy_intervals={
+            "H": [
+                {
+                    "date": "2026-01-10",
+                    "start": "09:00",
+                    "end": "20:00",
+                    "kind": "club_controlled",
+                    "availability": "movable_busy",
+                    "calendar_event": "Åpen ishall",
+                    "reason": "host-controlled open ice",
+                }
+            ]
+        }
+    )
+
+    repair_set = enumerate_host_placement_repairs(candidate, problem, run_id="r1")
+
+    time_options = [o for o in repair_set["options"] if o["action"] == "move_same_host_start_time"]
+    assert time_options
+    evidence = time_options[0]["evidence"]
+    assert evidence["availability"] == "movable_busy"
+    assert evidence["requires_host_confirmation"] is True
+    assert evidence["calendar_event"] == "Åpen ishall"
+    assert evidence["host_action_required"] == "host-controlled open ice"
+
+
 def test_same_host_date_option_is_exposed_when_current_date_is_blocked():
     candidate = _manual_candidate()
     problem = _problem(

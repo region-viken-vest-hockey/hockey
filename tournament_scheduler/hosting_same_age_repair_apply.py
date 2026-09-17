@@ -118,12 +118,14 @@ def _try_repair(planner, plan, donor: Tournament, club: str, age_group: str) -> 
         if reservation is not None:
             reserved_events_by_club.setdefault(t.host_club, []).append(reservation)
 
+    slot_evidence: Dict[str, Any] = {}
     slot = planner._find_slot_for_tournament(
         donor.date,
         club,
         age_group,
         donor.games,
         reserved_events_by_club=reserved_events_by_club,
+        placement_evidence=slot_evidence,
     )
     if slot is None:
         return {
@@ -133,7 +135,8 @@ def _try_repair(planner, plan, donor: Tournament, club: str, age_group: str) -> 
     final_host_club, start_time, _end = slot
 
     new_tournament = build_tournament(
-        planner, donor.date, final_host_club, age_group, donor.teams, donor.games, start_time
+        planner, donor.date, final_host_club, age_group, donor.teams, donor.games, start_time,
+        placement_evidence=slot_evidence,
     )
     new_tournament.id = donor.id
     new_tournament.derived_from = list(donor.derived_from)

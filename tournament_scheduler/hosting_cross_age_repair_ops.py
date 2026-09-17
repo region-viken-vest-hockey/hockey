@@ -7,8 +7,9 @@ of that module's `_try_repair`, not a standalone public API.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Dict, Optional
 
+from tournament_scheduler.calendar_availability import host_confirmation_from_evidence
 from tournament_scheduler.host_representation import host_eligible_teams, host_represented_in
 from tournament_scheduler.models import Tournament
 from tournament_scheduler.participant_selection import deficit_score
@@ -57,7 +58,16 @@ def participants_with_host_represented(planner, participants, age_group, period,
     return [t for t in participants if t is not team_to_remove] + [home_team]
 
 
-def build_tournament(planner, tournament_date, host_club, age_group, participants, games, start_time) -> Tournament:
+def build_tournament(
+    planner,
+    tournament_date,
+    host_club,
+    age_group,
+    participants,
+    games,
+    start_time,
+    placement_evidence: Optional[Dict[str, Any]] = None,
+) -> Tournament:
     arena = planner.club_arenas.get(host_club, host_club)
     if planner.club_calendar_status:
         constituents = [part.strip() for part in host_club.split("/") if part.strip()] or [host_club]
@@ -71,6 +81,9 @@ def build_tournament(planner, tournament_date, host_club, age_group, participant
     )
     ag_weight = planner.preferanse_vekt_by_age_group.get(age_group, 0.0)
     date_pref_total = sum(p.vekt for p in planner.date_preferences if p.fra <= tournament_date <= p.til)
+    requires_host_confirmation, host_confirmation_reason = host_confirmation_from_evidence(
+        placement_evidence
+    )
     return Tournament(
         id=planner.allocate_tournament_id() if hasattr(planner, "allocate_tournament_id") else "",
         date=tournament_date,
@@ -83,6 +96,8 @@ def build_tournament(planner, tournament_date, host_club, age_group, participant
         preferanse_vekt=ag_weight,
         scoring_weight_term=ag_weight + date_pref_total,
         manual_booking_reason=manual_booking_reason,
+        requires_host_confirmation=requires_host_confirmation,
+        host_confirmation_reason=host_confirmation_reason,
     )
 
 

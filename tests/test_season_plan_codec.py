@@ -35,6 +35,8 @@ def _representative_plan() -> SeasonPlan:
                 preferanse_vekt=1.25,
                 scoring_weight_term=0.5,
                 manual_booking_reason="calendar source blocked",
+                requires_host_confirmation=True,
+                host_confirmation_reason="Åpen ishall — host-controlled open ice",
             ),
             Tournament(
                 id="t-u11-cancelled",

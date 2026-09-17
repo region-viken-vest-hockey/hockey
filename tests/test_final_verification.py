@@ -116,6 +116,36 @@ def test_unknown_calendar_is_valid_but_review_required():
     assert result["publication_readiness"]["status"] == "REVIEW_REQUIRED"
 
 
+def test_movable_busy_placement_is_valid_but_requires_host_confirmation():
+    """issue #373: a placement inside a host-controlled movable interval is not a
+    hard conflict, but it is not unconditionally free either -- it must surface as
+    REVIEW_REQUIRED with an explicit host-confirmation requirement."""
+    problem = _problem()
+    problem["club_busy_intervals"] = {
+        "Jar": [
+            {
+                "date": "2026-02-01",
+                "start": "10:00",
+                "end": "11:00",
+                "kind": "club_controlled",
+                "availability": "movable_busy",
+                "calendar_event": "Åpen ishall",
+                "reason": "host-controlled open ice",
+            }
+        ]
+    }
+    result = verify_final_candidate(_candidate(), problem)
+    assert result["ok"] is True
+    assert result["publishable"] is False
+    assert result["publication_readiness"]["status"] == "REVIEW_REQUIRED"
+    reasons = {reason["code"] for reason in result["publication_readiness"]["reasons"]}
+    assert "movable_host_confirmation_required" in reasons
+    assert result["manual_external_conflict_placements"] == []
+    used = result["movable_allocations_used"]
+    assert used and used[0]["requires_host_confirmation"] is True
+    assert used[0]["calendar_event"] == "Åpen ishall"
+
+
 def test_configured_round_mismatch_uses_effective_input_constrained_rounds():
     teams = [
         {"club": f"Club {idx}", "label": f"Team {idx}", "age_group": "U10"}

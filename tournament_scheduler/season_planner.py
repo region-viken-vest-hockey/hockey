@@ -65,6 +65,7 @@ from tournament_scheduler.hosting_same_age_repair import (
     same_age_reallocation_candidates as _same_age_reallocation_candidates,
 )
 from tournament_scheduler.hosting_same_age_repair_apply import attempt_same_age_repairs as _attempt_same_age_repairs
+from tournament_scheduler.calendar_availability import host_confirmation_from_evidence
 from tournament_scheduler.planning_contract import external_calendar_conflict
 from tournament_scheduler.tournament_identity import allocate_tournament_id
 from tournament_scheduler.participant_roster_sizing import (
@@ -843,6 +844,12 @@ class SeasonPlanner:
             )
             allow_participant_host_fallback = not (original_represented and original_target_remaining)
             slot_candidate_hosts = candidate_hosts if allow_participant_host_fallback else None
+            # Filled by the slot search when the slot it returns is
+            # a host-controlled movable interval rather than unconditionally
+            # free ice. Shared across the main search, same-host date repair
+            # and the alternate-roster retry so whichever attempt succeeds
+            # records its evidence.
+            slot_evidence: Dict[str, Any] = {}
             slot = self._find_slot_for_tournament(
                 tournament_date,
                 search_host,
@@ -850,6 +857,7 @@ class SeasonPlanner:
                 provisional_games,
                 candidate_hosts=slot_candidate_hosts,
                 reserved_events_by_club=reserved_events_by_club,
+                placement_evidence=slot_evidence,
             )
 
             forced_manual_booking_reason: Optional[str] = None
@@ -915,6 +923,7 @@ class SeasonPlanner:
                         repair_games,
                         candidate_hosts=None,
                         reserved_events_by_club=reserved_events_by_club,
+                        placement_evidence=slot_evidence,
                     )
 
                 search = _find_same_host_date_placement(
@@ -1050,6 +1059,7 @@ class SeasonPlanner:
                         retry_games,
                         candidate_hosts=retry_slot_candidate_hosts,
                         reserved_events_by_club=reserved_events_by_club,
+                        placement_evidence=slot_evidence,
                     )
                     if retry_slot is None:
                         repaired = _try_same_host_date_repair(retry_participants, retry_games)
@@ -1180,6 +1190,12 @@ class SeasonPlanner:
             date_pref_total = sum(
                 p.vekt for p in self.date_preferences if p.fra <= tournament_date <= p.til
             )
+            # A slot found by displacing a host-controlled
+            # movable event (e.g. open ice) is a legitimate candidate, but it
+            # is not unconditionally free ice -- carry the explicit
+            # host-confirmation requirement (and what must move) on the
+            # tournament so review/audit can see it without re-deriving it.
+            requires_host_confirmation, host_confirmation_reason = host_confirmation_from_evidence(slot_evidence)
             tournament = Tournament(
                 id=self.allocate_tournament_id(),
                 date=tournament_date,
@@ -1192,6 +1208,8 @@ class SeasonPlanner:
                 preferanse_vekt=ag_weight,
                 scoring_weight_term=ag_weight + date_pref_total,
                 manual_booking_reason=manual_booking_reason,
+                requires_host_confirmation=requires_host_confirmation,
+                host_confirmation_reason=host_confirmation_reason,
             )
             plan.tournaments.append(tournament)
             reservation = self._reservation_event_for_tournament(tournament)

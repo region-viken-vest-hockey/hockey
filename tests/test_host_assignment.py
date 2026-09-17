@@ -114,6 +114,75 @@ class TestFallbackHostSlotSearch:
         assert slot is not None
         assert slot[0] == "Holmen"
 
+    def test_kongsberg_open_ice_is_used_as_movable_candidate(self):
+        """issue #373: when the only thing occupying Kongsberg's hall is the
+        host-controlled 'Åpen ishall' event, the slot search must offer it as a
+        candidate (with requires_host_confirmation evidence) instead of
+        returning None and falling to manual placement."""
+        event_date = datetime(2026, 11, 21).date()
+        planner = SimpleNamespace(
+            events_by_club={
+                "Kongsberg": [
+                    CalendarEvent(
+                        date=event_date.strftime("%d.%m.%Y"),
+                        name="Åpen ishall",
+                        datetime=datetime(event_date.year, event_date.month, event_date.day, 0, 0),
+                        duration_hours=24.0,
+                    )
+                ],
+            },
+            round_length_for_age_group={"U10": 30},
+            club_arenas={"Kongsberg": "Kongsberghallen"},
+            scheduler=TournamentScheduler([], [], DateParser()),
+        )
+        kongsberg = Team(club="Kongsberg", label="Kongsberg U10", age_group="U10")
+        jar = Team(club="Jar", label="Jar U10", age_group="U10")
+        holmen = Team(club="Holmen", label="Holmen U10", age_group="U10")
+        games = SeasonPlanner.generate_round_robin_games([kongsberg, jar, holmen], parallel_games=2)
+
+        evidence: dict = {}
+        slot = find_slot_for_tournament(
+            planner, event_date, "Kongsberg", "U10", games, placement_evidence=evidence
+        )
+
+        assert slot is not None
+        assert slot[0] == "Kongsberg"
+        assert evidence["requires_host_confirmation"] is True
+        assert evidence["availability"] == "movable_busy"
+        assert evidence["calendar_event"] == "Åpen ishall"
+
+    def test_fixed_booking_is_never_displaced_as_movable(self):
+        """A genuine external booking must stay a hard conflict -- the
+        movable retry must not silently invent capacity from it."""
+        event_date = datetime(2026, 11, 21).date()
+        planner = SimpleNamespace(
+            events_by_club={
+                "Kongsberg": [
+                    CalendarEvent(
+                        date=event_date.strftime("%d.%m.%Y"),
+                        name="Stevne hele dagen",
+                        datetime=datetime(event_date.year, event_date.month, event_date.day, 0, 0),
+                        duration_hours=24.0,
+                    )
+                ],
+            },
+            round_length_for_age_group={"U10": 30},
+            club_arenas={"Kongsberg": "Kongsberghallen"},
+            scheduler=TournamentScheduler([], [], DateParser()),
+        )
+        kongsberg = Team(club="Kongsberg", label="Kongsberg U10", age_group="U10")
+        jar = Team(club="Jar", label="Jar U10", age_group="U10")
+        holmen = Team(club="Holmen", label="Holmen U10", age_group="U10")
+        games = SeasonPlanner.generate_round_robin_games([kongsberg, jar, holmen], parallel_games=2)
+
+        evidence: dict = {}
+        slot = find_slot_for_tournament(
+            planner, event_date, "Kongsberg", "U10", games, placement_evidence=evidence
+        )
+
+        assert slot is None
+        assert evidence == {}
+
 
 class TestJointClubHostNames:
     """A joint-club team (e.g. 'Jar/Jutul') has no single physical arena —

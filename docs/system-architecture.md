@@ -200,6 +200,21 @@ The rule has one planner-independent semantic owner, `hosting_responsibility`: i
 
 Registration or tournament-volume changes are a canonical fairness recompute, not an unexplained placement transfer: the target math changed, so the guard skips that age group rather than mislabeling the legal redistribution.
 
+### Calendar availability is a classification, not a boolean
+
+Calendar evidence is normalized into explicit availability classes before planning, so occupied time is not automatically unavailable time:
+
+```text
+fixed_busy        cannot be displaced automatically (a genuine external booking)
+movable_busy      host-controlled ice the club may move/replace (e.g. open ice)
+free              verified free interval
+unknown/untrusted cannot be assumed free
+```
+
+The planner-independent owner is `calendar_availability`: it defines the classes, applies per-club/source event-title rules and resolves legacy interval tags. Event titles are classified only through explicit `ClubCalendarSource.event_classification_rules` (for example Kongsberg's `Åpen ishall` is `movable_busy` for Kongsberg only) -- there is deliberately no global phrase table, because the same words can mean different things at another hall.
+
+`pipeline.stage3_helpers._build_club_busy_intervals` carries the classification into the planner-neutral `planning_problem` contract, and `planning_contract` reads it: `external_calendar_conflict` only rejects `fixed_busy`; `movable_calendar_opportunity` exposes a `movable_busy` interval as a non-blocking candidate for its own host. The slot search may use that candidate for the responsible host, but the resulting placement is never reported as unconditionally free: `verify_candidate` records it in `movable_allocations_used` with `requires_host_confirmation` and the event that must move, `publication_readiness` returns `REVIEW_REQUIRED`, and the audit evidence/context surface the normalized fact (host, date, interval, `availability: movable_busy`, calendar event, host action).
+
 ### Change checklist for agents
 
 When implementing or modifying a scheduling rule:

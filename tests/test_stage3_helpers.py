@@ -193,7 +193,16 @@ class TestBuildClubBusyIntervals:
         }
         result = _build_club_busy_intervals(scraping_result)
         assert result == {
-            "Jar": [{"date": "2025-11-01", "start": "10:00", "end": "12:00", "kind": "external"}]
+            "Jar": [
+                {
+                    "date": "2025-11-01",
+                    "start": "10:00",
+                    "end": "12:00",
+                    "kind": "external",
+                    "availability": "fixed_busy",
+                    "calendar_event": "Trening",
+                }
+            ]
         }
 
     def test_partial_day_leaves_rest_of_day_implicitly_free(self) -> None:
@@ -214,7 +223,14 @@ class TestBuildClubBusyIntervals:
         }
         result = _build_club_busy_intervals(scraping_result)
         assert result["Jar"] == [
-            {"date": "2025-11-01", "start": "08:00", "end": "12:00", "kind": "external"}
+            {
+                "date": "2025-11-01",
+                "start": "08:00",
+                "end": "12:00",
+                "kind": "external",
+                "availability": "fixed_busy",
+                "calendar_event": "Trening",
+            }
         ]
 
     def test_overnight_event_splits_across_two_dates(self) -> None:
@@ -232,8 +248,22 @@ class TestBuildClubBusyIntervals:
         }
         result = _build_club_busy_intervals(scraping_result)
         assert result["Jar"] == [
-            {"date": "2025-11-01", "start": "23:00", "end": "24:00", "kind": "external"},
-            {"date": "2025-11-02", "start": "00:00", "end": "02:00", "kind": "external"},
+            {
+                "date": "2025-11-01",
+                "start": "23:00",
+                "end": "24:00",
+                "kind": "external",
+                "availability": "fixed_busy",
+                "calendar_event": "Sen trening",
+            },
+            {
+                "date": "2025-11-02",
+                "start": "00:00",
+                "end": "02:00",
+                "kind": "external",
+                "availability": "fixed_busy",
+                "calendar_event": "Sen trening",
+            },
         ]
 
     def test_zero_duration_event_produces_no_interval(self) -> None:
@@ -281,11 +311,61 @@ class TestBuildClubBusyIntervals:
         result = _build_club_busy_intervals(scraping_result)
         intervals = result[SANDEFJORD_CLUB_NAME]
         # Busy 00:00-15:00 and 18:00-24:00, free 15:00-18:00 (the fixed window).
+        # Sandefjord's fixed allocation is genuinely unavailable ice, so it
+        # stays fixed_busy -- never movable host-controlled capacity.
         assert intervals == [
-            {"date": "2026-10-03", "start": "00:00", "end": "15:00", "kind": "external"},
-            {"date": "2026-10-03", "start": "18:00", "end": "24:00", "kind": "external"},
+            {
+                "date": "2026-10-03",
+                "start": "00:00",
+                "end": "15:00",
+                "kind": "external",
+                "availability": "fixed_busy",
+                "calendar_event": events[0].name,
+            },
+            {
+                "date": "2026-10-03",
+                "start": "18:00",
+                "end": "24:00",
+                "kind": "external",
+                "availability": "fixed_busy",
+                "calendar_event": events[1].name,
+            },
         ]
 
+    def test_kongsberg_open_ice_is_movable_busy(self) -> None:
+        """issue #373: Kongsberg's 'Åpen ishall' is host-controlled open ice,
+        not an external booking -- it must normalize to availability
+        'movable_busy' (with the event title and host-action reason preserved),
+        while the same phrase at a club without the configured rule stays a
+        fixed external booking."""
+        scraping_result = {
+            "events_by_club": {
+                "Kongsberg": [
+                    {
+                        "date": "21.11.2026",
+                        "name": "Åpen ishall",
+                        "datetime": "2026-11-21T10:00:00",
+                        "duration_hours": 4.0,
+                    }
+                ],
+                "Jar": [
+                    {
+                        "date": "21.11.2026",
+                        "name": "Åpen ishall",
+                        "datetime": "2026-11-21T10:00:00",
+                        "duration_hours": 4.0,
+                    }
+                ],
+            }
+        }
+        result = _build_club_busy_intervals(scraping_result)
+        kongsberg_interval = result["Kongsberg"][0]
+        assert kongsberg_interval["availability"] == "movable_busy"
+        assert kongsberg_interval["kind"] == "club_controlled"
+        assert kongsberg_interval["calendar_event"] == "Åpen ishall"
+        assert "open ice" in kongsberg_interval["reason"]
+        # The classification is source/club-scoped, not a global phrase table.
+        assert result["Jar"][0]["availability"] == "fixed_busy"
 
 # ---------------------------------------------------------------------------
 # _resolve_plan_dict

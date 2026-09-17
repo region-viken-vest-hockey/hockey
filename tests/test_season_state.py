@@ -165,6 +165,30 @@ def test_move_mutates_schedule_when_unlocked_and_rejects_locked_moves(tmp_path: 
     assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions
 
 
+def test_move_clears_stale_movable_host_confirmation(tmp_path: Path) -> None:
+    """issue #373: a placement that required the host to move a movable event
+    must not keep claiming that confirmation after it is moved elsewhere."""
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    candidate = _candidate()
+    candidate["tournaments"][0]["requires_host_confirmation"] = True
+    candidate["tournaments"][0]["host_confirmation_reason"] = "Åpen ishall — open ice"
+    _stage_plan(state, candidate)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    assert load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]["requires_host_confirmation"] is True
+
+    moved = move_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        start_time="11:00",
+    )["plan"]["tournaments"][0]
+
+    assert "requires_host_confirmation" not in moved
+    assert "host_confirmation_reason" not in moved
+
+
 def test_move_changes_only_intended_fields(tmp_path: Path) -> None:
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"

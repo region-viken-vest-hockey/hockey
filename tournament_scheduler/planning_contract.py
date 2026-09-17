@@ -32,6 +32,10 @@ from itertools import combinations
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from tournament_scheduler import planning_half
+from tournament_scheduler.calendar_availability import (
+    CalendarAvailability,
+    interval_availability,
+)
 from tournament_scheduler.canonical_baseline import (
     locked_dates as _canonical_locked_dates,
     pinned_tournament_ids as _canonical_pinned_tournament_ids,
@@ -281,30 +285,21 @@ def _time_to_minutes(value: str) -> int:
     return hour * 60 + minute
 
 
-def external_busy_windows(
+def _busy_windows_for_availability(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
     club: Optional[str],
     on_date: date,
     *,
-    kind: Optional[str] = "external",
+    availability: Optional[CalendarAvailability] = None,
 ) -> List[Tuple[int, int]]:
-    """Return ``(start_minutes, end_minutes)`` busy windows for *club* on *on_date*.
+    """Return ``(start_minutes, end_minutes)`` windows of one availability class.
 
-    Reads the ``club_busy_intervals`` evidence a ``planning_problem`` carries
-    (issue #264 P0) -- real scraped/fixed-allocation calendar bookings, not
-    just the coarse ``club_busy_dates`` date list. An empty result does NOT
-    mean "free all day": callers must additionally confirm the club's
+    The canonical, planner-neutral reader over the ``club_busy_intervals``
+    evidence a ``planning_problem`` carries. ``availability=None`` returns
+    every interval regardless of class. An empty result does NOT mean "free
+    all day": callers must additionally confirm the club's
     ``club_calendar_status`` is ``"known"`` before treating the absence of
-    entries here as evidence of availability.
-
-    *kind* filters by each interval's ``"kind"`` tag (issue #264: hard
-    external bookings vs. a club-controlled allocation the club itself may
-    still use -- see ``ClubCalendarSource.club_controlled_calendar``).
-    Defaults to ``"external"`` -- only genuine external bookings -- since
-    that is what every hard-conflict caller wants; entries with no ``"kind"``
-    key (older checkpoints) are treated as ``"external"`` too, the safe
-    default. Pass ``kind=None`` to return every interval regardless of kind,
-    or ``kind="club_controlled"`` to inspect only club-controlled ones.
+    entries as evidence of availability.
     """
     if not club_busy_intervals or not club:
         return []
@@ -313,13 +308,89 @@ def external_busy_windows(
     for entry in club_busy_intervals.get(club, []):
         if entry.get("date") != date_str:
             continue
-        if kind is not None and entry.get("kind", "external") != kind:
+        if availability is not None and interval_availability(entry) != availability:
             continue
         try:
             windows.append((_time_to_minutes(entry["start"]), _time_to_minutes(entry["end"])))
         except (KeyError, ValueError):
             continue
     return windows
+
+
+def fixed_busy_windows(
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
+    club: Optional[str],
+    on_date: date,
+) -> List[Tuple[int, int]]:
+    """Return *club*'s ``fixed_busy`` (cannot displace) windows on *on_date*."""
+    return _busy_windows_for_availability(
+        club_busy_intervals, club, on_date, availability=CalendarAvailability.FIXED_BUSY
+    )
+
+
+def movable_busy_windows(
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
+    club: Optional[str],
+    on_date: date,
+) -> List[Tuple[int, int]]:
+    """Return *club*'s ``movable_busy`` (host-controlled) windows on *on_date*."""
+    return _busy_windows_for_availability(
+        club_busy_intervals, club, on_date, availability=CalendarAvailability.MOVABLE_BUSY
+    )
+
+
+def _overlaps_any(windows: List[Tuple[int, int]], start_time: Optional[str], duration_minutes: int) -> bool:
+    if not start_time or duration_minutes <= 0:
+        return False
+    try:
+        new_start = _time_to_minutes(start_time)
+    except ValueError:
+        return False
+    new_end = new_start + duration_minutes
+    for busy_start, busy_end in windows:
+        if new_start < busy_end and busy_start < new_end:
+            return True
+    return False
+
+
+def external_busy_windows(
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
+    club: Optional[str],
+    on_date: date,
+    *,
+    kind: Optional[str] = "external",
+) -> List[Tuple[int, int]]:
+    """Backward-compatible busy-window reader keyed on the legacy ``kind`` tag.
+
+    Prefer :func:`fixed_busy_windows`/:func:`movable_busy_windows`, which read
+    the authoritative ``availability`` field directly. ``kind="external"``
+    maps to ``fixed_busy``, ``kind="club_controlled"`` to ``movable_busy`` and
+    ``kind=None`` to every interval -- the previous behavior, preserved for
+    callers that predate the explicit availability model.
+    """
+    availability: Optional[CalendarAvailability]
+    if kind == "external":
+        availability = CalendarAvailability.FIXED_BUSY
+    elif kind == "club_controlled":
+        availability = CalendarAvailability.MOVABLE_BUSY
+    elif kind is None:
+        availability = None
+    else:
+        # An unknown legacy kind: fall back to a raw kind filter so a caller
+        # passing something else still gets exactly the old semantics.
+        if not club_busy_intervals or not club:
+            return []
+        date_str = on_date.isoformat()
+        windows: List[Tuple[int, int]] = []
+        for entry in club_busy_intervals.get(club, []):
+            if entry.get("date") != date_str or entry.get("kind", "external") != kind:
+                continue
+            try:
+                windows.append((_time_to_minutes(entry["start"]), _time_to_minutes(entry["end"])))
+            except (KeyError, ValueError):
+                continue
+        return windows
+    return _busy_windows_for_availability(club_busy_intervals, club, on_date, availability=availability)
 
 
 def external_calendar_conflict(
@@ -330,29 +401,54 @@ def external_calendar_conflict(
     duration_minutes: int,
 ) -> bool:
     """True if ``[start_time, start_time + duration_minutes)`` on *on_date*
-    overlaps any of *club*'s external busy windows (issue #264 P0).
+    overlaps any of *club*'s ``fixed_busy`` windows.
 
-    Shared by :func:`verify_candidate` (rejecting an already-built candidate)
-    and the Stage 3 v2 optimizer's ``move_dates``/``move_hosts``/``move_slots``
-    (rejecting an infeasible move before it's ever proposed as a candidate)
-    so both enforce exactly the same external-calendar evidence. Only
-    ``"external"``-kind intervals count -- a club-controlled allocation
-    (issue #264, ``ClubCalendarSource.club_controlled_calendar``) is not a
-    hard conflict for that same club's own hosted tournaments; see
-    :func:`club_controlled_allocation_conflict` to detect (non-blocking) use
-    of one for the evidence bundle.
+    Only genuine external commitments count. A ``movable_busy`` interval
+    (host-controlled ice the club itself may displace) is never a
+    hard conflict -- see :func:`movable_calendar_opportunity` for the
+    non-blocking counterpart.
+    """
+    if not club:
+        return False
+    return _overlaps_any(fixed_busy_windows(club_busy_intervals, club, on_date), start_time, duration_minutes)
+
+
+def movable_calendar_opportunity(
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
+    club: Optional[str],
+    on_date: date,
+    start_time: Optional[str],
+    duration_minutes: int,
+) -> Optional[Dict[str, str]]:
+    """Return the ``movable_busy`` interval the tournament interval overlaps.
+
+    Non-blocking counterpart to :func:`external_calendar_conflict`. A club
+    placed inside its own host-controlled interval is feasible, but the
+    placement displaces an existing (movable) event and therefore carries an
+    explicit host-confirmation requirement. Returning the raw interval lets
+    the caller/evidence explain *which* event must be moved instead of only
+    reporting an opaque flag.
     """
     if not club or not start_time or duration_minutes <= 0:
-        return False
+        return None
     try:
         new_start = _time_to_minutes(start_time)
     except ValueError:
-        return False
+        return None
     new_end = new_start + duration_minutes
-    for busy_start, busy_end in external_busy_windows(club_busy_intervals, club, on_date):
+    for entry in club_busy_intervals.get(club, []) if club_busy_intervals else []:
+        if entry.get("date") != on_date.isoformat():
+            continue
+        if interval_availability(entry) != CalendarAvailability.MOVABLE_BUSY:
+            continue
+        try:
+            busy_start = _time_to_minutes(entry["start"])
+            busy_end = _time_to_minutes(entry["end"])
+        except (KeyError, ValueError):
+            continue
         if new_start < busy_end and busy_start < new_end:
-            return True
-    return False
+            return dict(entry)
+    return None
 
 
 def club_controlled_allocation_conflict(
@@ -362,27 +458,13 @@ def club_controlled_allocation_conflict(
     start_time: Optional[str],
     duration_minutes: int,
 ) -> bool:
-    """True if the tournament interval overlaps a *club-controlled* busy
-    window rather than (or in addition to) a genuine external one
-    (issue #264).
-
-    Non-blocking counterpart to :func:`external_calendar_conflict` -- a club
-    placed inside its own controlled allocation is feasible, but
-    :func:`verify_candidate` still records it so the evidence bundle shows
-    when a selected tournament relied on club-controlled allocation rather
-    than an unconditionally free interval.
-    """
-    if not club or not start_time or duration_minutes <= 0:
-        return False
-    try:
-        new_start = _time_to_minutes(start_time)
-    except ValueError:
-        return False
-    new_end = new_start + duration_minutes
-    for busy_start, busy_end in external_busy_windows(club_busy_intervals, club, on_date, kind="club_controlled"):
-        if new_start < busy_end and busy_start < new_end:
-            return True
-    return False
+    """Backward-compatible boolean form of :func:`movable_calendar_opportunity`."""
+    return (
+        movable_calendar_opportunity(
+            club_busy_intervals, club, on_date, start_time, duration_minutes
+        )
+        is not None
+    )
 
 
 def _team_identity(team: Dict[str, Any]) -> TeamIdentity:
@@ -436,10 +518,11 @@ def verify_candidate(
     waived_violations: List[Dict[str, Any]] = []
     skipped: List[str] = []
     # issue #264: non-blocking record of tournaments placed inside a
-    # club-controlled allocation window rather than an unconditionally free
-    # interval -- not a violation, but the evidence bundle should show when
-    # a selected candidate relied on one.
-    club_controlled_allocations_used: List[Dict[str, Any]] = []
+    # host-controlled ``movable_busy`` interval rather than an
+    # unconditionally free one -- feasible, but it displaces an existing
+    # event and therefore carries an explicit host-confirmation requirement
+    # the evidence bundle/audit must show.
+    movable_allocations_used: List[Dict[str, Any]] = []
     # Non-blocking record of tournaments hosted by a club with no
     # trustworthy calendar evidence this run -- surfaced for manual
     # placement (see hosting_coverage.py's unresolved_hosting_obligations
@@ -610,7 +693,8 @@ def verify_candidate(
             "ok": not violations,
             "violations": violations,
             "skipped": skipped,
-            "club_controlled_allocations_used": club_controlled_allocations_used,
+            "club_controlled_allocations_used": movable_allocations_used,
+            "movable_allocations_used": movable_allocations_used,
             "unresolved_hosting_obligations": [],
             "manual_calendar_placements": [],
             "manual_external_conflict_placements": [],
@@ -739,19 +823,31 @@ def verify_candidate(
                         "date": interval.date,
                     }
                 )
-            elif club_controlled_allocation_conflict(
+            elif (opportunity := movable_calendar_opportunity(
                 club_busy_intervals,
                 interval.host_club,
                 interval.start.date(),
                 interval.start.strftime("%H:%M"),
                 duration_minutes,
-            ):
-                club_controlled_allocations_used.append(
+            )) is not None:
+                # A movable interval is a candidate placement for
+                # the responsible host, never a fixed external conflict. It
+                # is feasible but displaces an existing host-controlled event
+                # (e.g. open ice), so it carries an explicit
+                # host-confirmation requirement instead of silently becoming
+                # "unconditionally free".
+                movable_allocations_used.append(
                     {
                         "tournament_id": interval.tournament_id,
                         "host_club": interval.host_club,
+                        "age_group": interval.age_group,
                         "date": interval.date,
                         "interval": interval.interval_label,
+                        "availability": CalendarAvailability.MOVABLE_BUSY.value,
+                        "calendar_event": opportunity.get("calendar_event", ""),
+                        "reason": opportunity.get("reason")
+                        or "host-controlled interval may be moved or replaced for an RVV tournament",
+                        "requires_host_confirmation": True,
                     }
                 )
     except (KeyError, ValueError) as exc:
@@ -1033,7 +1129,8 @@ def verify_candidate(
         "violations": violations,
         "waived_violations": waived_violations,
         "skipped": skipped,
-        "club_controlled_allocations_used": club_controlled_allocations_used,
+        "club_controlled_allocations_used": movable_allocations_used,
+        "movable_allocations_used": movable_allocations_used,
         "unresolved_hosting_obligations": unresolved_hosting_obligations,
         "hosting_balance": hosting_balance_rows,
         "hosting_balance_imbalances": hosting_balance_imbalances,

@@ -234,6 +234,11 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
         ("hosting_balance_imbalances", "hosting_balance_imbalances"),
         ("manual_calendar_placements", "manual_calendar_placements"),
         ("manual_external_conflict_placements", "external_calendar_conflicts"),
+        # A tournament placed in a host-controlled movable
+        # interval is a valid candidate, but it displaces an existing event
+        # (e.g. open ice) and therefore requires explicit host confirmation
+        # before the placement can be treated as locked/booked.
+        ("movable_allocations_used", "movable_host_confirmation_required"),
         ("manual_participation_placements", "participation_shortfalls"),
         ("stale_approvals", "stale_approvals"),
         ("orphaned_approvals", "orphaned_approvals"),

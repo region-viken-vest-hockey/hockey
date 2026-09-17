@@ -291,6 +291,45 @@ def _is_manual_slot_failure(tournament: Mapping[str, Any]) -> bool:
     return MANUAL_SLOT_FAILURE_MARKER in str(tournament.get("manual_booking_reason") or "")
 
 
+def _movable_option_facts(
+    problem: Mapping[str, Any],
+    host_club: str,
+    date_str: str,
+    start_time: str,
+    duration_minutes: int,
+) -> Dict[str, Any]:
+    """Normalized availability facts for one repaired placement.
+
+    A repair offered into a host-controlled ``movable_busy`` interval is a
+    valid option, but the controller/audit must see that it displaces an
+    existing event and needs host confirmation rather than looking like
+    unconditionally free ice. Read directly from the same interval evidence
+    the repair enumeration already uses, so it does not depend on the
+    verifier's own ice-time config being present.
+    """
+    from tournament_scheduler.planning_contract import movable_calendar_opportunity
+
+    on_date = _parse_date(date_str)
+    if on_date is None:
+        return {"availability": "free", "requires_host_confirmation": False}
+    opportunity = movable_calendar_opportunity(
+        _busy_intervals(problem),
+        host_club,
+        on_date,
+        start_time,
+        duration_minutes,
+    )
+    if opportunity is None:
+        return {"availability": "free", "requires_host_confirmation": False}
+    return {
+        "availability": "movable_busy",
+        "requires_host_confirmation": True,
+        "calendar_event": opportunity.get("calendar_event", ""),
+        "host_action_required": opportunity.get("reason")
+        or "host-controlled interval may be moved or replaced for an RVV tournament",
+    }
+
+
 def _calendar_trusted(problem: Mapping[str, Any], host_club: str) -> bool:
     statuses = problem.get("club_calendar_status") or {}
     if not statuses:
@@ -357,6 +396,9 @@ def _start_time_options(
                     "start_time": start,
                     "end_time": _end_time(start, duration),
                     "start_times_checked": list(checked),
+                    **_movable_option_facts(
+                        problem, finding.host_club, finding.original_date, start, duration
+                    ),
                 },
             )
         )
@@ -419,6 +461,9 @@ def _date_options(
                     "date": candidate_date.isoformat(),
                     "start_time": start,
                     "end_time": _end_time(start, duration),
+                    **_movable_option_facts(
+                        problem, finding.host_club, candidate_date.isoformat(), start, duration
+                    ),
                 },
             )
         )
@@ -536,6 +581,9 @@ def _swap_options(
                     "date": donor_date,
                     "start_time": donor_start,
                     "swap_tournament_id": donor_id,
+                    **_movable_option_facts(
+                        problem, finding.host_club, donor_date, donor_start, current_duration
+                    ),
                 },
             )
         )

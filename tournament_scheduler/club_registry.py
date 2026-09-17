@@ -41,6 +41,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
+from .calendar_availability import (
+    CalendarAvailability,
+    CalendarEventClassificationRule,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,6 +97,18 @@ class ClubCalendarSource:
     # windows represent ice genuinely unavailable to it and must stay a hard
     # conflict, not club-controlled.
     club_controlled_calendar: bool = False
+    # Explicit, source/club-configured event-title classification
+    # rules. Each rule matches a normalized substring of an event title and
+    # classifies the interval as ``movable_busy`` (host-controlled ice the
+    # club may displace for an RVV tournament) or ``fixed_busy`` (a genuine
+    # external commitment). Rules are per-club on purpose: the same words can
+    # mean different things at another hall, so there is deliberately no
+    # global phrase table. An unconfigured club keeps every event
+    # ``fixed_busy`` (or ``movable_busy`` when `club_controlled_calendar` is
+    # set, preserving the earlier behavior).
+    event_classification_rules: Tuple[CalendarEventClassificationRule, ...] = field(
+        default_factory=tuple
+    )
     # issue #274: whether a successful scrape of `source` is trustworthy
     # enough evidence for *automatic* tournament placement. Separate from
     # `is_known` on purpose -- a source can return real rows (so the scraper
@@ -227,6 +244,24 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         kind=CalendarSourceKind.OUTLOOK,
         source="https://kongsberghallen.no/webkalender/ishall/",
         note="Outlook/Playwright-based webkalender (existing integration). Also has a ball hall calendar.",
+        # Kongsberg's "Åpen ishall" (open ice) entries are not
+        # external bookings -- the club controls the slot and may move or
+        # replace the open-ice session to free the hall for an RVV
+        # tournament. Classifying them as movable rather than fixed keeps
+        # Kongsberg's own weekends usable instead of falling to manual
+        # placement while valid host-controlled intervals exist. Explicitly
+        # scoped to Kongsberg/source: another hall could use the same phrase
+        # differently, so this is not a global keyword table.
+        event_classification_rules=(
+            CalendarEventClassificationRule(
+                pattern="åpen ishall",
+                classification=CalendarAvailability.MOVABLE_BUSY,
+                reason=(
+                    "host-controlled open ice; may be moved or replaced for an "
+                    "RVV tournament, subject to Kongsberg confirmation"
+                ),
+            ),
+        ),
     ),
 }
 

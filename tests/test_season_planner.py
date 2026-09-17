@@ -784,6 +784,69 @@ class TestSeasonPlanner:
             "Jar U10-1", "Jar U10-2", "Holmen U10-1", "Kongsberg U10-1",
         }
 
+    def test_kongsberg_open_ice_placement_carries_host_confirmation(self, season_window):
+        """issue #373 end-to-end: when every other candidate host is booked and
+        Kongsberg's hall only has the host-controlled 'Åpen ishall' event, the
+        planner must still produce an automatic Kongsberg placement and mark it
+        with an explicit host-confirmation requirement instead of falling to
+        manual placement."""
+        start, end = season_window
+        free_date = start.date()
+        jar1 = Team(club="Jar", label="Jar U10-1", age_group="U10", target_tournament_count=1)
+        jar2 = Team(club="Jar", label="Jar U10-2", age_group="U10", target_tournament_count=1)
+        holmen1 = Team(club="Holmen", label="Holmen U10-1", age_group="U10", target_tournament_count=1)
+        kongsberg1 = Team(club="Kongsberg", label="Kongsberg U10-1", age_group="U10", target_tournament_count=1)
+        roster = Roster(teams=[jar1, jar2, holmen1, kongsberg1])
+        fixed_busy = CalendarEvent(
+            date=free_date.strftime("%d.%m.%Y"),
+            name="Stevne hele dagen",
+            datetime=datetime.combine(free_date, datetime.min.time()),
+            duration_hours=24.0,
+        )
+        open_ice = CalendarEvent(
+            date=free_date.strftime("%d.%m.%Y"),
+            name="Åpen ishall",
+            datetime=datetime.combine(free_date, datetime.min.time()),
+            duration_hours=24.0,
+        )
+        planner = SeasonPlanner(
+            scheduler=OfflineScheduler([free_date]),
+            roster=roster,
+            club_arenas={"Jar": "Jarhallen", "Holmen": "Holmenhallen", "Kongsberg": "Kongsberghallen"},
+            parallel_games_for_age_group={"U10": 2},
+            round_length_for_age_group={"U10": 60},
+            # Jar/Holmen are genuinely externally booked; Kongsberg's only
+            # occupancy is host-controlled open ice it may displace.
+            events_by_club={"Jar": [fixed_busy], "Holmen": [fixed_busy], "Kongsberg": [open_ice]},
+        )
+        with patch(
+            "tournament_scheduler.season_planner._hosting_targets_for_age_group",
+            return_value={"Jar": 0, "Holmen": 0, "Kongsberg": 1},
+        ):
+            forced = {"done": False}
+            real_select = participant_selection.select_participants
+
+            def selective(age_group, period=None, *, exclude_team_keys=None,
+                          planned_roster_size=None, hosting_priority_clubs=None):
+                if not forced["done"] and hosting_priority_clubs is not None and len(hosting_priority_clubs) == 1:
+                    forced["done"] = True
+                    return [jar1, jar2, holmen1]
+                return real_select(
+                    planner, age_group, period,
+                    exclude_team_keys=exclude_team_keys,
+                    planned_roster_size=planned_roster_size,
+                    hosting_priority_clubs=hosting_priority_clubs,
+                )
+
+            planner._select_participants = selective
+            plan = planner.build_plan(start, end)
+
+        assert len(plan.tournaments) == 1
+        tournament = plan.tournaments[0]
+        assert tournament.host_club == "Kongsberg"
+        assert tournament.requires_host_confirmation is True
+        assert "Åpen ishall" in (tournament.host_confirmation_reason or "")
+
     def test_alternate_roster_retry_records_attempt_when_still_unresolved(self, season_window):
         """issue #329/#330: when the hosting-deficit-biased retry also fails
         to find a legal slot, the tournament still goes to manual placement,

@@ -6,6 +6,11 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
+from ..calendar_availability import (
+    CalendarAvailability,
+    classify_event_name,
+    legacy_kind,
+)
 from ..club_registry import CLUB_REGISTRY, canonicalize_club_name
 from ..models import CalendarEvent, Roster, Team
 from ..season_planner import SeasonPlanner
@@ -171,20 +176,28 @@ def _build_club_busy_intervals(
 
     result: dict[str, list[dict[str, str]]] = {}
     for club_name, events in events_by_club.items():
-        # issue #264: a club whose registry entry declares its scraped
-        # calendar as a generic allocation *it controls* (busy to outside
-        # bookers, usable by the club itself) gets its busy intervals tagged
-        # accordingly, so `planning_contract.external_calendar_conflict` can
-        # tell a genuine external booking apart from the club's own
-        # allocation instead of treating every occupied interval as an
-        # unconditional hard conflict.
+        # issue #264: classify every interval's availability so a
+        # genuine external booking (fixed_busy) can be told apart from a
+        # host-controlled interval the club itself may displace
+        # (movable_busy -- either a per-club event rule such as Kongsberg's
+        # "Åpen ishall", or a club whose whole scraped calendar is declared
+        # club-controlled in the registry). See
+        # `calendar_availability.classify_club_event` and
+        # `planning_contract.external_calendar_conflict` /
+        # `movable_calendar_opportunity`.
         registry_entry = CLUB_REGISTRY.get(club_name)
-        kind = "club_controlled" if registry_entry and registry_entry.club_controlled_calendar else "external"
+        club_default = (
+            CalendarAvailability.MOVABLE_BUSY
+            if registry_entry and registry_entry.club_controlled_calendar
+            else CalendarAvailability.FIXED_BUSY
+        )
+        rules = tuple(registry_entry.event_classification_rules) if registry_entry else ()
         intervals: list[dict[str, str]] = []
         for event in events:
             parsed = DateParser.parse(event.date)
             if not parsed:
                 continue
+            availability, reason = classify_event_name(event.name, rules, default=club_default)
             event_date = parsed.date()
             # A booking can only ever spill into the day right after the one
             # it's recorded on (see `_event_busy_range_on_date`'s midnight
@@ -195,14 +208,17 @@ def _build_club_busy_intervals(
                 if busy_range is None:
                     continue
                 start_minutes, end_minutes = busy_range
-                intervals.append(
-                    {
-                        "date": check_date.isoformat(),
-                        "start": minutes_to_time(start_minutes),
-                        "end": minutes_to_time(end_minutes),
-                        "kind": kind,
-                    }
-                )
+                entry: dict[str, str] = {
+                    "date": check_date.isoformat(),
+                    "start": minutes_to_time(start_minutes),
+                    "end": minutes_to_time(end_minutes),
+                    "kind": legacy_kind(availability),
+                    "availability": availability.value,
+                    "calendar_event": event.name,
+                }
+                if reason:
+                    entry["reason"] = reason
+                intervals.append(entry)
         if intervals:
             intervals.sort(key=lambda entry: (entry["date"], entry["start"]))
             result[club_name] = intervals

@@ -484,6 +484,12 @@ def move_tournament(
             if value is not None and tournament.get(field) != value:
                 tournament[field] = value
                 changed = True
+        if changed:
+            # A changed placement invalidates any prior host
+            # confirmation of a movable/open-ice interval -- the operator must
+            # re-confirm the new placement rather than inherit a stale flag.
+            tournament.pop("requires_host_confirmation", None)
+            tournament.pop("host_confirmation_reason", None)
         moved_tournament = tournament
         break
     if not changed:

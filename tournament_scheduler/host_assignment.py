@@ -16,6 +16,10 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from tournament_scheduler.calendar_availability import (
+    CalendarAvailability,
+    classify_club_event,
+)
 from tournament_scheduler.club_distances import furthest_traveling_team
 from tournament_scheduler.hosting_coverage import (
     hosting_targets_with_coverage_floor as _hosting_targets_with_coverage_floor,
@@ -262,6 +266,51 @@ def slot_search_host_order(
     return search_hosts
 
 
+def _is_movable_event(club: str, event: Any) -> bool:
+    """True when *event* is a host-controlled ``movable_busy`` interval."""
+    availability, _ = classify_club_event(club, getattr(event, "name", ""))
+    return availability == CalendarAvailability.MOVABLE_BUSY
+
+
+def _movable_slot_evidence(
+    club: str,
+    check_date: date,
+    start_time: str,
+    required_minutes: int,
+    events: List[Any],
+) -> Dict[str, Any]:
+    """Describe the movable event a candidate slot would displace.
+
+    Returns an empty dict when no movable event overlaps the slot -- callers
+    must not mark a placement as requiring confirmation without concrete
+    evidence of which host-controlled interval it uses.
+    """
+    from tournament_scheduler.utils.slot_finder import _event_busy_range_on_date
+
+    try:
+        start_hour, start_minute = (int(part) for part in str(start_time).split(":", 1))
+    except (AttributeError, ValueError):
+        return {}
+    start_minutes = start_hour * 60 + start_minute
+    end_minutes = start_minutes + required_minutes
+    for event in events:
+        if not _is_movable_event(club, event):
+            continue
+        busy_range = _event_busy_range_on_date(event, check_date)
+        if busy_range is None:
+            continue
+        if start_minutes < busy_range[1] and busy_range[0] < end_minutes:
+            availability, reason = classify_club_event(club, getattr(event, "name", ""))
+            return {
+                "availability": availability.value,
+                "calendar_event": getattr(event, "name", ""),
+                "reason": reason
+                or "host-controlled interval may be moved or replaced for an RVV tournament",
+                "requires_host_confirmation": True,
+            }
+    return {}
+
+
 def find_slot_for_tournament(
     planner,
     tournament_date: date,
@@ -271,12 +320,22 @@ def find_slot_for_tournament(
     preferred_start: Optional[str] = None,
     candidate_hosts: Optional[Sequence[str]] = None,
     reserved_events_by_club: Optional[Dict[str, List]] = None,
+    placement_evidence: Optional[Dict[str, Any]] = None,
 ) -> Optional[Tuple[str, str, str]]:
     """Find a time-of-day slot for the tournament, preferring the assigned host.
 
     The *games* list may be generated from any participant order; this helper
     only uses it to infer the hall occupancy duration and the participant set
     for travel-aware preferred-start heuristics.
+
+    When no unconditionally free slot exists for a searched host,
+    this retries once with that host's host-controlled ``movable_busy`` events
+    (e.g. Kongsberg open ice) removed from the busy set -- moving/replacing
+    such an event is the host's decision and is a legitimate placement
+    candidate for its own tournament. A slot found that way is recorded in
+    *placement_evidence* with ``requires_host_confirmation: True`` so the
+    caller/audit can tell it apart from verified free ice; it is never
+    silently treated as unconditionally free.
     """
     if not planner.events_by_club and not reserved_events_by_club:
         return None
@@ -345,5 +404,41 @@ def find_slot_for_tournament(
         )
         if slot is not None:
             return slot
+
+        # No unconditionally free slot for this host. If the host
+        # controls a movable interval it may displace (open ice), retry with
+        # those events removed. Only the scraped movable events are dropped --
+        # in-plan reservations for already-placed tournaments stay busy.
+        scraped_events = list(planner.events_by_club.get(candidate_host, []))
+        movable_scraped = [event for event in scraped_events if _is_movable_event(candidate_host, event)]
+        if movable_scraped:
+            movable_ids = {id(event) for event in movable_scraped}
+            movable_events_by_club = {
+                club: list(events) for club, events in events_by_club.items()
+            }
+            movable_events_by_club[candidate_host] = [
+                event
+                for event in movable_events_by_club.get(candidate_host, [])
+                if id(event) not in movable_ids
+            ]
+            movable_slot = planner.scheduler.find_arena_slot_for_date(
+                tournament_date,
+                candidate_host,
+                required_minutes,
+                movable_events_by_club,
+                **slot_kwargs,
+            )
+            if movable_slot is not None:
+                if placement_evidence is not None:
+                    placement_evidence.update(
+                        _movable_slot_evidence(
+                            candidate_host,
+                            tournament_date,
+                            movable_slot[1],
+                            required_minutes,
+                            scraped_events,
+                        )
+                    )
+                return movable_slot
 
     return None

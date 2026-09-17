@@ -170,6 +170,15 @@ class Tournament:
     # provisional placeholder: hall time must be booked/verified by hand. The
     # tournament still counts towards the club's normal share of tournaments.
     manual_booking_reason: Optional[str] = None
+    # True when the slot is a host-controlled ``movable_busy``
+    # interval the host must move/replace before the placement is real (e.g.
+    # Kongsberg "Åpen ishall"). The placement is a legitimate candidate but
+    # is not unconditionally free ice, so it is surfaced for explicit host
+    # confirmation instead of being treated as verified availability.
+    requires_host_confirmation: bool = False
+    # Human-readable explanation of what must be moved (the movable event
+    # title and the configured reason), for review/audit output.
+    host_confirmation_reason: Optional[str] = None
 
     def duration_minutes(self, round_length: int) -> int:
         """Return the total tournament play time in minutes.
