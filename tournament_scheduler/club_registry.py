@@ -194,6 +194,23 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
             "kept only so legacy, non-pipeline CLI commands still see this "
             "club as 'known'."
         ),
+        # Sandefjord's generated allocation events are deterministic repo
+        # knowledge, not ambiguous scraped titles: encoding them as an
+        # explicit ``fixed_busy`` rule keeps them out of the unclassified
+        # set that a controller may otherwise investigate for an inferred
+        # movable interpretation. This ice is genuinely unavailable to the
+        # club and must never be traded away as host-controlled capacity.
+        event_classification_rules=(
+            CalendarEventClassificationRule(
+                pattern="fast istid",
+                classification=CalendarAvailability.FIXED_BUSY,
+                # No reason text: this rule only pins the deterministic
+                # classification so the interval can never be reinterpreted.
+                # The busy-interval contract is unchanged, so no ``reason``
+                # key is added to the serialized evidence.
+                reason="",
+            ),
+        ),
     ),
     "Jar": ClubCalendarSource(
         club="Jar",

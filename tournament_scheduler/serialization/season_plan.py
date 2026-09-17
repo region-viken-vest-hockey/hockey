@@ -68,6 +68,7 @@ class SeasonPlanCodec:
             "shared_host_decisions": list(plan.shared_host_decisions),
             "operator_waivers": list(plan.operator_waivers),
             "operator_waived_violations": list(plan.operator_waived_violations),
+            "calendar_interpretations": list(plan.calendar_interpretations),
             "tournaments": [cls.tournament_to_dict(t) for t in plan.tournaments],
             "identity_registry": {"known_tournament_ids": sorted(known_tournament_ids)},
         }
@@ -120,6 +121,7 @@ class SeasonPlanCodec:
             shared_host_decisions=list(data.get("shared_host_decisions", [])),
             operator_waivers=list(data.get("operator_waivers", [])),
             operator_waived_violations=list(data.get("operator_waived_violations", [])),
+            calendar_interpretations=list(data.get("calendar_interpretations", [])),
         )
 
     @staticmethod

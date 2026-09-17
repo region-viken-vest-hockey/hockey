@@ -86,6 +86,16 @@ def _representative_plan() -> SeasonPlan:
             }
         ],
         club_participation_fairness=[{"age_group": "U10", "club": "Jar", "sibling_spread": 1}],
+        calendar_interpretations=[
+            {
+                "club": "Kongsberg",
+                "date": "2026-02-07",
+                "start": "10:00",
+                "end": "12:00",
+                "calendar_event": "Ukjent arrangement",
+                "reason": "controller-inferred host-controlled interval",
+            }
+        ],
     )
 
 

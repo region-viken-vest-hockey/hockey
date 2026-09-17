@@ -404,6 +404,13 @@ class SeasonPlan:
     # "actual_share", "expected_slots", "actual_slots", "delta",
     # "sibling_spread"}.
     club_participation_fairness: List[Dict[str, object]] = field(default_factory=list)
+    # Controller-requested inferred calendar interpretations recorded on this
+    # candidate (issue #373): an ambiguous scraped event the controller judged
+    # to be host-controlled movable capacity. This never mutates the Stage 2
+    # source calendar; the verifier re-applies it, and the resulting
+    # placement is host-confirmation-gated. Each entry: {"club", "date",
+    # "start", "end", "calendar_event", "reason"}.
+    calendar_interpretations: List[Dict[str, str]] = field(default_factory=list)
 
 
 # Mapping of age groups whose player pools are known to overlap (e.g. a player

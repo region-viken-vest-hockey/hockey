@@ -1,13 +1,17 @@
 """Tests for planner-neutral calendar availability semantics (issue #373)."""
 
 from tournament_scheduler.calendar_availability import (
+    CLASSIFICATION_SOURCE_CONFIGURED,
+    CLASSIFICATION_SOURCE_UNCLASSIFIED,
     CalendarAvailability,
     CalendarEventClassificationRule,
     classify_club_event,
+    classify_club_event_detailed,
     classify_event_name,
     host_confirmation_from_evidence,
     interval_availability,
     legacy_kind,
+    unclassified_intervals,
 )
 
 
@@ -82,3 +86,79 @@ def test_host_confirmation_from_evidence_formats_event_and_reason():
     assert reason == "Åpen ishall — host-controlled open ice"
     assert host_confirmation_from_evidence(None) == (False, None)
     assert host_confirmation_from_evidence({"availability": "movable_busy"}) == (False, None)
+
+
+def test_classification_provenance_distinguishes_configured_from_ambiguous():
+    """Only an explicit per-club rule (or a declared club-controlled calendar)
+    is a configured fact; an unconfigured title stays 'unclassified' so it is
+    never silently flattened into an indistinguishable hard booking."""
+    availability, reason, source = classify_club_event_detailed("Kongsberg", "Åpen ishall")
+    assert (availability, source) == (CalendarAvailability.MOVABLE_BUSY, CLASSIFICATION_SOURCE_CONFIGURED)
+    assert reason
+
+    availability, _, source = classify_club_event_detailed("Jar", "Åpen ishall")
+    assert (availability, source) == (CalendarAvailability.FIXED_BUSY, CLASSIFICATION_SOURCE_UNCLASSIFIED)
+
+    availability, _, source = classify_club_event_detailed("Sandefjord Penguins", "fast istid")
+    assert (availability, source) == (CalendarAvailability.FIXED_BUSY, CLASSIFICATION_SOURCE_CONFIGURED)
+
+
+def test_unclassified_intervals_expose_only_ambiguous_events():
+    intervals = {
+        "Kongsberg": [
+            {
+                "date": "2026-11-21",
+                "start": "10:00",
+                "end": "14:00",
+                "calendar_event": "Åpen ishall",
+                "availability": "movable_busy",
+            },
+            {
+                "date": "2026-11-21",
+                "start": "16:00",
+                "end": "18:00",
+                "calendar_event": "Ukjent arrangement",
+                "availability": "fixed_busy",
+            },
+        ],
+        "Jar": [
+            {
+                "date": "2026-11-22",
+                "start": "09:00",
+                "end": "10:00",
+                "calendar_event": "Trening",
+                "availability": "fixed_busy",
+            }
+        ],
+        "Sandefjord Penguins": [
+            {
+                "date": "2026-11-22",
+                "start": "12:00",
+                "end": "18:00",
+                "calendar_event": "Sandefjord Penguins fast istid (opptatt utenom tildelt helgevindu)",
+                "availability": "fixed_busy",
+            }
+        ],
+    }
+    # Kongsberg's configured "Åpen ishall" and Sandefjord's configured fixed
+    # allocation are deterministic facts, not ambiguous ones; only the
+    # genuinely unconfigured titles are exposed.
+    assert unclassified_intervals(intervals) == [
+        {
+            "club": "Jar",
+            "date": "2026-11-22",
+            "start": "09:00",
+            "end": "10:00",
+            "calendar_event": "Trening",
+            "availability": "fixed_busy",
+        },
+        {
+            "club": "Kongsberg",
+            "date": "2026-11-21",
+            "start": "16:00",
+            "end": "18:00",
+            "calendar_event": "Ukjent arrangement",
+            "availability": "fixed_busy",
+        },
+    ]
+    assert unclassified_intervals(None) == []

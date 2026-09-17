@@ -29,12 +29,14 @@ from __future__ import annotations
 
 from datetime import date
 from itertools import combinations
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.calendar_availability import (
+    CLASSIFICATION_SOURCE_INFERRED,
     CalendarAvailability,
     interval_availability,
+    unclassified_intervals,
 )
 from tournament_scheduler.canonical_baseline import (
     locked_dates as _canonical_locked_dates,
@@ -157,6 +159,8 @@ def build_planning_problem(
 
     split_date = planning_half.christmas_split_date(start_date, end_date)
 
+    club_busy_intervals = _build_club_busy_intervals(scraping_result)
+
     return {
         "schema_version": PLANNING_PROBLEM_SCHEMA_VERSION,
         "start_date": start_date.isoformat(),
@@ -189,7 +193,11 @@ def build_planning_problem(
         "date_preferences": date_preferences,
         "club_busy_dates": club_busy_dates,
         "club_calendar_status": club_calendar_status,
-        "club_busy_intervals": _build_club_busy_intervals(scraping_result),
+        "club_busy_intervals": club_busy_intervals,
+        # Read-only exposure of scraped events nothing configured has
+        # classified yet: an ambiguous calendar fact the controller may
+        # investigate, never an automatic movable/free verdict.
+        "unclassified_calendar_events": unclassified_intervals(club_busy_intervals),
         # Canonical Git-backed baseline snapshot (see
         # canonical_baseline.py), when this plan is a baseline-aware replan
         # of a promoted season. Carries the approved/placement-locked
@@ -467,6 +475,70 @@ def club_controlled_allocation_conflict(
     )
 
 
+def apply_calendar_interpretations(
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
+    interpretations: Optional[Iterable[Mapping[str, Any]]],
+) -> Dict[str, List[Dict[str, str]]]:
+    """Overlay controller-requested *inferred* availability interpretations.
+
+    A candidate may carry ``calendar_interpretations`` recording that a
+    specific *unclassified* scraped event is, in the controller's judgment,
+    host-controlled movable capacity. This does **not** mutate the Stage 2
+    source calendar: it re-applies the interpretation here, for verification
+    only, so the raw scraped fact stays whatever the source said. The
+    resulting interval becomes ``movable_busy`` with
+    ``classification_source: "inferred"`` and an explicit host-confirmation
+    requirement, which is exactly how the verifier already treats a
+    configured movable interval -- an inferred fact can never look like
+    confirmed free ice.
+
+    Only an interval whose current class is still ambiguous can be
+    reinterpreted: eligibility is re-derived from the event title through the
+    same per-club rules used during normalization, so a configured
+    ``fixed_busy`` or ``movable_busy`` interval is never overwritten and an
+    imported booking cannot be turned into movable capacity by candidate data
+    alone. A ``fixed_busy`` interval with no configured rule stays
+    ``fixed_busy`` (never assumed free) but is eligible for investigation.
+    """
+    entries = interpretations or ()
+    if not entries or not club_busy_intervals:
+        return club_busy_intervals or {}
+    from .calendar_availability import is_unclassified_event
+
+    merged: Dict[str, List[Dict[str, str]]] = {
+        club: [dict(entry) for entry in club_entries]
+        for club, club_entries in club_busy_intervals.items()
+    }
+    for interpretation in entries:
+        if not isinstance(interpretation, Mapping):
+            continue
+        club = str(interpretation.get("club") or "")
+        if not club or club not in merged:
+            continue
+        for entry in merged[club]:
+            title = str(entry.get("calendar_event") or "")
+            if not title or not is_unclassified_event(club, title):
+                continue
+            if interpretation.get("date") and entry.get("date") != interpretation.get("date"):
+                continue
+            if interpretation.get("calendar_event") and entry.get("calendar_event") != interpretation.get("calendar_event"):
+                continue
+            if interpretation.get("start") and entry.get("start") != interpretation.get("start"):
+                continue
+            entry["availability"] = CalendarAvailability.MOVABLE_BUSY.value
+            entry["kind"] = "club_controlled"
+            entry["classification_source"] = CLASSIFICATION_SOURCE_INFERRED
+            entry["requires_host_confirmation"] = "true"
+            reason = str(interpretation.get("reason") or "").strip()
+            if reason:
+                entry["reason"] = reason
+            elif not entry.get("reason"):
+                entry["reason"] = (
+                    "controller-inferred host-controlled interval; host confirmation required"
+                )
+    return merged
+
+
 def _team_identity(team: Dict[str, Any]) -> TeamIdentity:
     """Return a (club, label, age_group) identity for *team*.
 
@@ -695,6 +767,7 @@ def verify_candidate(
             "skipped": skipped,
             "club_controlled_allocations_used": movable_allocations_used,
             "movable_allocations_used": movable_allocations_used,
+            "calendar_interpretations_used": [],
             "unresolved_hosting_obligations": [],
             "manual_calendar_placements": [],
             "manual_external_conflict_placements": [],
@@ -776,7 +849,10 @@ def verify_candidate(
 
     ice_time_minutes = problem.get("ice_time_minutes") or problem.get("round_length_minutes") or {}
     club_calendar_status_for_conflicts = problem.get("club_calendar_status") or {}
-    club_busy_intervals = problem.get("club_busy_intervals") or {}
+    club_busy_intervals = apply_calendar_interpretations(
+        problem.get("club_busy_intervals") or {},
+        candidate.get("calendar_interpretations"),
+    )
     try:
         tournament_objs = [tournament_from_dict(t) for t in candidate.get("tournaments", []) if not t.get("cancelled")]
         for collision in find_arena_interval_collisions(tournament_objs, ice_time_minutes):
@@ -844,6 +920,8 @@ def verify_candidate(
                         "date": interval.date,
                         "interval": interval.interval_label,
                         "availability": CalendarAvailability.MOVABLE_BUSY.value,
+                        "classification_source": opportunity.get("classification_source")
+                        or "configured",
                         "calendar_event": opportunity.get("calendar_event", ""),
                         "reason": opportunity.get("reason")
                         or "host-controlled interval may be moved or replaced for an RVV tournament",
@@ -1131,6 +1209,17 @@ def verify_candidate(
         "skipped": skipped,
         "club_controlled_allocations_used": movable_allocations_used,
         "movable_allocations_used": movable_allocations_used,
+        # A candidate-borne ``calendar_interpretations`` overlay is reported
+        # separately so the audit can tell a controller-inferred movable
+        # interval apart from a configured or confirmed-free fact. The full
+        # ambiguous-event list is deliberately NOT rebuilt here: this runs on
+        # every candidate verification, and normalization already exposes it
+        # once via ``planning_problem.unclassified_calendar_events``.
+        "calendar_interpretations_used": [
+            dict(entry)
+            for entry in (candidate.get("calendar_interpretations") or [])
+            if isinstance(entry, Mapping)
+        ],
         "unresolved_hosting_obligations": unresolved_hosting_obligations,
         "hosting_balance": hosting_balance_rows,
         "hosting_balance_imbalances": hosting_balance_imbalances,

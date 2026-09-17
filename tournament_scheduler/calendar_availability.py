@@ -43,6 +43,17 @@ class CalendarAvailability(str, Enum):
     UNKNOWN = "unknown"
 
 
+#: Provenance of one interval's classification, carried alongside the
+#: availability value so a controller/audit can tell a *configured* fact apart
+#: from an *unclassified* scraped event. ``unclassified`` is a fact, not a
+#: verdict: the interval must still never be assumed free, but the controller
+#: may investigate whether the host controls it (see the ``movable_busy``
+#: interpretation overlay applied by the host-placement repair provider).
+CLASSIFICATION_SOURCE_CONFIGURED = "configured"
+CLASSIFICATION_SOURCE_CLUB_DEFAULT = "club_default"
+CLASSIFICATION_SOURCE_UNCLASSIFIED = "unclassified"
+CLASSIFICATION_SOURCE_INFERRED = "inferred"
+
 #: Maps the semantic classification back onto the legacy ``kind`` tag the
 #: interval contract already carried (``"external"``/``"club_controlled"``), so
 #: existing consumers keep working while the explicit ``availability`` field
@@ -185,3 +196,65 @@ def classify_club_event(
         classification_rules_for_club(club),
         default=club_default_availability(club),
     )
+
+
+def classify_club_event_detailed(
+    club: str,
+    event_name: str,
+) -> Tuple[CalendarAvailability, str, str]:
+    """Classify one event title and report *how* it was classified.
+
+    Returns ``(availability, reason, classification_source)`` where
+    ``classification_source`` is one of :data:`CLASSIFICATION_SOURCE_CONFIGURED`
+    (an explicit per-club event rule matched),
+    :data:`CLASSIFICATION_SOURCE_CLUB_DEFAULT` (the club declared its whole
+    calendar club-controlled) or :data:`CLASSIFICATION_SOURCE_UNCLASSIFIED`
+    (nothing is known about this title). Only the last case is ambiguous and
+    eligible for a controller-requested inferred interpretation; a configured
+    fact is always the preferred deterministic fast path.
+    """
+    for rule in classification_rules_for_club(club):
+        if rule.matches(event_name):
+            return rule.classification, rule.reason, CLASSIFICATION_SOURCE_CONFIGURED
+    availability = club_default_availability(club)
+    if availability == CalendarAvailability.MOVABLE_BUSY:
+        return availability, "", CLASSIFICATION_SOURCE_CLUB_DEFAULT
+    return availability, "", CLASSIFICATION_SOURCE_UNCLASSIFIED
+
+
+def is_unclassified_event(
+    club: str,
+    event_name: str,
+) -> bool:
+    """True when nothing configured classifies *event_name* for *club*."""
+    _, _, source = classify_club_event_detailed(club, event_name)
+    return source == CLASSIFICATION_SOURCE_UNCLASSIFIED
+
+
+def unclassified_intervals(
+    club_busy_intervals: Optional[Mapping[str, Iterable[Mapping[str, Any]]]],
+) -> list[dict[str, Any]]:
+    """Flatten the intervals nothing configured has classified.
+
+    Read-only exposure so the controller can see a raw scraped event as an
+    *ambiguous* fact (club, date, interval, title) instead of only the
+    conservative ``fixed_busy`` verdict. Classification is re-derived from the
+    event title via the same per-club rules the normalizer uses -- the
+    serialized interval contract itself is unchanged. It deliberately does not
+    decide that any of them is movable; an explicit per-club rule remains the
+    fast path and this list only marks what could be investigated.
+    """
+    out: list[dict[str, Any]] = []
+    for club, entries in (club_busy_intervals or {}).items():
+        for entry in entries or ():
+            title = str(entry.get("calendar_event") or "")
+            if not title or not is_unclassified_event(str(club), title):
+                continue
+            row = {"club": str(club)}
+            for key in ("date", "start", "end", "calendar_event", "availability"):
+                value = entry.get(key)
+                if value:
+                    row[key] = value
+            out.append(row)
+    out.sort(key=lambda row: (row["club"], row.get("date", ""), row.get("start", "")))
+    return out

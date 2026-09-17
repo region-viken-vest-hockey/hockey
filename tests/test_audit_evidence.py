@@ -359,3 +359,43 @@ def test_movable_allocations_surface_as_normalized_evidence():
     assert record["unresolved"] is True
     assert "Åpen ishall" in record["summary"]
     assert record["detail"]["requires_host_confirmation"] is True
+
+
+def test_inferred_calendar_interpretation_surfaces_as_evidence():
+    """issue #373 clarification: a controller-inferred movable interpretation
+    keeps its raw event evidence and concise rationale visible to the audit
+    (never private chain-of-thought)."""
+    from tournament_scheduler.pipeline.audit_evidence import _extract_records
+
+    raw = {
+        "deterministic_verify_result": {
+            "calendar_interpretations_used": [
+                {
+                    "club": "Kongsberg",
+                    "date": "2026-11-21",
+                    "calendar_event": "Ukjent arrangement",
+                    "reason": "controller-inferred host-controlled interval",
+                }
+            ],
+            "movable_allocations_used": [
+                {
+                    "tournament_id": "t1",
+                    "host_club": "Kongsberg",
+                    "date": "2026-11-21",
+                    "availability": "movable_busy",
+                    "classification_source": "inferred",
+                    "calendar_event": "Ukjent arrangement",
+                    "requires_host_confirmation": True,
+                }
+            ],
+        }
+    }
+    records = _extract_records(raw)
+    interpreted = [r for r in records if r["category"] == "calendar_interpretations_used"]
+    assert len(interpreted) == 1
+    assert interpreted[0]["club"] == "Kongsberg"
+    assert "Ukjent arrangement" in interpreted[0]["summary"]
+    assert interpreted[0]["unresolved"] is True
+    movable = [r for r in records if r["category"] == "movable_allocations_used"]
+    assert movable[0]["detail"]["classification_source"] == "inferred"
+

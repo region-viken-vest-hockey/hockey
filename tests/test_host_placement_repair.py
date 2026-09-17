@@ -433,3 +433,158 @@ def test_swap_does_not_use_an_untrusted_or_manual_donor():
         r["reason"] == "donor_calendar_evidence_not_trusted"
         for r in repair_set["rejected_candidates"]
     )
+
+
+def _unclassified_interval(**overrides):
+    entry = {
+        "date": "2026-01-10",
+        "start": "00:00",
+        "end": "24:00",
+        "kind": "external",
+        "availability": "fixed_busy",
+        "calendar_event": "Ukjent arrangement",
+    }
+    entry.update(overrides)
+    return entry
+
+
+def test_unclassified_event_is_offered_as_inferred_movable_interpretation():
+    """issue #373 clarification: an ambiguous scraped event is exposed as a
+    controller-explorable candidate. Applying it records an inferred
+    interpretation on the *candidate* (source calendar untouched) and the
+    verifier marks the placement as host-confirmation-gated."""
+    candidate = _manual_candidate()
+    problem = _problem(
+        round_length_minutes={"U10": 60},
+        club_busy_intervals={"H": [_unclassified_interval()]},
+    )
+
+    repair_set = enumerate_host_placement_repairs(candidate, problem, run_id="r1")
+
+    assert [o for o in repair_set["options"] if o["action"] == "move_same_host_start_time"] == []
+    options = [
+        o
+        for o in repair_set["options"]
+        if o["action"] == "interpret_calendar_event_as_movable"
+    ]
+    assert options
+    evidence = options[0]["evidence"]
+    assert evidence["availability"] == "movable_busy"
+    assert evidence["classification_source"] == "inferred"
+    assert evidence["requires_host_confirmation"] is True
+    assert evidence["calendar_event"] == "Ukjent arrangement"
+
+    context = build_host_placement_decision_context(candidate, problem, run_id="run-1")
+    assert context.facts["unclassified_calendar_events"] == [
+        {
+            "club": "H",
+            "date": "2026-01-10",
+            "start": "00:00",
+            "end": "24:00",
+            "calendar_event": "Ukjent arrangement",
+            "availability": "fixed_busy",
+        }
+    ]
+
+    applied = apply_host_placement_repair_option(
+        candidate,
+        problem,
+        option_id=options[0]["option_id"],
+        expected_fingerprint=repair_set["candidate_fingerprint"],
+        run_id="run-1",
+    )
+    assert applied["ok"] and applied["verification"]["ok"]
+    # Calendar truth is unchanged.
+    assert problem["club_busy_intervals"]["H"][0]["availability"] == "fixed_busy"
+    # The interpretation lives on the candidate and the placement requires
+    # host confirmation.
+    interpretations = applied["candidate"]["calendar_interpretations"]
+    assert interpretations and interpretations[0]["calendar_event"] == "Ukjent arrangement"
+    used = applied["verification"]["movable_allocations_used"]
+    assert used and used[0]["classification_source"] == "inferred"
+    assert used[0]["requires_host_confirmation"] is True
+    assert applied["candidate"]["tournaments"][0]["manual_booking_reason"] is None
+
+
+def test_configured_movable_interval_uses_the_fast_path_not_an_interpretation():
+    """A configured movable interval is already deterministic knowledge, so the
+    provider uses the ordinary same-host slot option and never offers an
+    inferred interpretation for it."""
+    candidate = _manual_candidate()
+    problem = _problem(
+        round_length_minutes={"U10": 60},
+        club_busy_intervals={
+            "H": [
+                {
+                    "date": "2026-01-10",
+                    "start": "00:00",
+                    "end": "24:00",
+                    "kind": "club_controlled",
+                    "availability": "movable_busy",
+                    "calendar_event": "Åpen ishall",
+                    "reason": "host-controlled open ice",
+                }
+            ]
+        },
+    )
+
+    repair_set = enumerate_host_placement_repairs(candidate, problem, run_id="r1")
+
+    assert [
+        o for o in repair_set["options"] if o["action"] == "interpret_calendar_event_as_movable"
+    ] == []
+    time_options = [o for o in repair_set["options"] if o["action"] == "move_same_host_start_time"]
+    assert time_options
+    assert time_options[0]["evidence"]["classification_source"] == "configured"
+
+
+def test_inferred_interpretation_does_not_paper_over_a_fixed_booking():
+    """The overlay only clears the ambiguous event it names; a second genuine
+    fixed booking still blocks the slot, so no interpretation option is
+    offered."""
+    candidate = _manual_candidate()
+    problem = _problem(
+        round_length_minutes={"U10": 60},
+        club_busy_intervals={
+            "H": [
+                _unclassified_interval(calendar_event="Blokk A"),
+                _unclassified_interval(calendar_event="Blokk B"),
+            ]
+        },
+    )
+
+    repair_set = enumerate_host_placement_repairs(candidate, problem, run_id="r1")
+
+    assert [
+        o for o in repair_set["options"] if o["action"] == "interpret_calendar_event_as_movable"
+    ] == []
+
+
+def test_local_repair_dispatcher_applies_inferred_interpretation():
+    """The inferred movable interpretation travels through the same common
+    `apply_repair_option` boundary (and family reporting) as every other
+    deterministic repair, so the controller action surface stays unchanged."""
+    candidate = _manual_candidate()
+    problem = _problem(
+        round_length_minutes={"U10": 60},
+        club_busy_intervals={"H": [_unclassified_interval()]},
+    )
+    context = build_host_placement_decision_context(candidate, problem, run_id="run-1")
+    option = next(
+        o
+        for o in context.facts["repair_options"]
+        if o["action"] == "interpret_calendar_event_as_movable"
+    )
+
+    applied = apply_local_repair_option(
+        candidate,
+        problem,
+        option_id=option["option_id"],
+        expected_fingerprint=context.facts["candidate_fingerprint"],
+        run_id="run-1",
+    )
+
+    assert applied["ok"] and applied["verification"]["ok"]
+    assert applied["family"] == "host_placement"
+    assert applied["candidate"]["calendar_interpretations"]
+    assert applied["candidate"]["tournaments"][0]["manual_booking_reason"] is None

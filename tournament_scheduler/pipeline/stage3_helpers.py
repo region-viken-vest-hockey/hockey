@@ -7,8 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from ..calendar_availability import (
-    CalendarAvailability,
-    classify_event_name,
+    classify_club_event,
     legacy_kind,
 )
 from ..club_registry import CLUB_REGISTRY, canonicalize_club_name
@@ -185,19 +184,12 @@ def _build_club_busy_intervals(
         # `calendar_availability.classify_club_event` and
         # `planning_contract.external_calendar_conflict` /
         # `movable_calendar_opportunity`.
-        registry_entry = CLUB_REGISTRY.get(club_name)
-        club_default = (
-            CalendarAvailability.MOVABLE_BUSY
-            if registry_entry and registry_entry.club_controlled_calendar
-            else CalendarAvailability.FIXED_BUSY
-        )
-        rules = tuple(registry_entry.event_classification_rules) if registry_entry else ()
         intervals: list[dict[str, str]] = []
         for event in events:
             parsed = DateParser.parse(event.date)
             if not parsed:
                 continue
-            availability, reason = classify_event_name(event.name, rules, default=club_default)
+            availability, reason = classify_club_event(club_name, event.name)
             event_date = parsed.date()
             # A booking can only ever spill into the day right after the one
             # it's recorded on (see `_event_busy_range_on_date`'s midnight

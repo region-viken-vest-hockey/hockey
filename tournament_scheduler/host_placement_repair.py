@@ -48,7 +48,12 @@ from .host_team_missing_repair import (
     _slug,
     candidate_fingerprint,
 )
-from .planning_contract import _parse_date, external_calendar_conflict, verify_candidate
+from .planning_contract import (
+    _parse_date,
+    apply_calendar_interpretations,
+    external_calendar_conflict,
+    verify_candidate,
+)
 
 # The canonical marker SeasonPlanner writes when no verified slot was found for
 # the responsible host (see season_planner.py and the manual-schedule export).
@@ -122,14 +127,28 @@ def enumerate_host_placement_repairs(
         time_options, time_rejected = _start_time_options(
             candidate, problem, tournament, finding, fingerprint
         )
+        interpret_options: List[RepairOption] = []
+        interpret_rejected: List[Dict[str, Any]] = []
+        if not time_options:
+            # No unconditionally free same-date slot. Before moving the
+            # tournament to another date, expose an ambiguous scraped event
+            # that *could* be host-controlled capacity as an explicit,
+            # confirmation-gated interpretation option. This is a fact-based
+            # candidate, not a guess: only an event nothing has classified is
+            # eligible, and applying it never mutates the source calendar.
+            interpret_options, interpret_rejected = _interpretation_options(
+                candidate, problem, tournament, finding, fingerprint
+            )
         date_options, date_rejected = _date_options(
             candidate, problem, tournament, finding, fingerprint
         )
         options.extend(time_options)
+        options.extend(interpret_options)
         options.extend(date_options)
         rejected.extend(time_rejected)
+        rejected.extend(interpret_rejected)
         rejected.extend(date_rejected)
-        if not time_options and not date_options:
+        if not time_options and not interpret_options and not date_options:
             # Coupled nearby neighborhood, only after the small same-host
             # neighborhood found nothing: trade placements with a compatible
             # same-age tournament so both responsible hosts get a legal slot.
@@ -181,6 +200,11 @@ def build_host_placement_decision_context(
             "candidate_fingerprint": repair_set["candidate_fingerprint"],
             "repair_options": repair_set["options"],
             "rejected_candidates": repair_set["rejected_candidates"],
+            # Read-only ambiguous calendar facts: events nothing has
+            # classified yet. They are not free and not movable -- they are
+            # candidates the controller may investigate through an
+            # ``interpret_calendar_event_as_movable`` repair option.
+            "unclassified_calendar_events": _unclassified_calendar_events(problem),
         },
         # Keeping the candidate as-is is legitimate here: manual placement is
         # soft/unresolved evidence, not a hard violation, so a plan the
@@ -242,6 +266,15 @@ def apply_host_placement_repair_option(
         return {"ok": False, "reason": "tournament_not_found", "before_fingerprint": before}
     arguments = option["arguments"]
     original_date = str(arguments["original_date"])
+    if option["action"] == "interpret_calendar_event_as_movable":
+        # Record the inferred interpretation on the *candidate*. The Stage 2
+        # source calendar is untouched; verification re-applies the overlay,
+        # so the placement surfaces as movable_busy with an explicit
+        # host-confirmation requirement instead of confirmed free ice.
+        interpretation = dict(arguments.get("interpretation") or {})
+        interpretations = list(mutated.get("calendar_interpretations") or [])
+        interpretations.append(interpretation)
+        mutated["calendar_interpretations"] = interpretations
     tournament["date"] = str(arguments["date"])
     tournament["start_time"] = str(arguments["start_time"])
     tournament["manual_booking_reason"] = None
@@ -297,6 +330,7 @@ def _movable_option_facts(
     date_str: str,
     start_time: str,
     duration_minutes: int,
+    candidate: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """Normalized availability facts for one repaired placement.
 
@@ -306,14 +340,24 @@ def _movable_option_facts(
     unconditionally free ice. Read directly from the same interval evidence
     the repair enumeration already uses, so it does not depend on the
     verifier's own ice-time config being present.
+
+    When *candidate* carries ``calendar_interpretations``, the same effective
+    view the verifier uses is applied, so a controller-inferred movable
+    interval is reported with ``classification_source: inferred`` instead of
+    masquerading as free ice.
     """
     from tournament_scheduler.planning_contract import movable_calendar_opportunity
 
     on_date = _parse_date(date_str)
     if on_date is None:
         return {"availability": "free", "requires_host_confirmation": False}
+    busy = (
+        _effective_busy_intervals(problem, candidate)
+        if candidate is not None
+        else _busy_intervals(problem)
+    )
     opportunity = movable_calendar_opportunity(
-        _busy_intervals(problem),
+        busy,
         host_club,
         on_date,
         start_time,
@@ -324,6 +368,7 @@ def _movable_option_facts(
     return {
         "availability": "movable_busy",
         "requires_host_confirmation": True,
+        "classification_source": opportunity.get("classification_source") or "configured",
         "calendar_event": opportunity.get("calendar_event", ""),
         "host_action_required": opportunity.get("reason")
         or "host-controlled interval may be moved or replaced for an RVV tournament",
@@ -342,6 +387,38 @@ def _busy_intervals(problem: Mapping[str, Any]) -> Mapping[str, Any]:
     return problem.get("club_busy_intervals") or {}
 
 
+def _effective_busy_intervals(
+    problem: Mapping[str, Any], candidate: Mapping[str, Any]
+) -> Mapping[str, Any]:
+    """Busy intervals with any candidate ``calendar_interpretations`` applied.
+
+    Enumeration must see the same effective availability the verifier will:
+    once the controller has recorded an inferred movable interpretation on the
+    candidate, a later enumeration pass must not keep rejecting that interval
+    as a fixed external conflict.
+    """
+    return apply_calendar_interpretations(
+        problem.get("club_busy_intervals") or {},
+        candidate.get("calendar_interpretations"),
+    )
+
+
+def _unclassified_calendar_events(problem: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Ambiguous scraped events for the decision context.
+
+    Prefer the planning problem's explicit list (built during normalization)
+    and fall back to deriving it from ``club_busy_intervals`` so a problem
+    assembled without that convenience field still exposes the same facts
+    rather than silently hiding them.
+    """
+    explicit = problem.get("unclassified_calendar_events")
+    if explicit is not None:
+        return [dict(entry) for entry in explicit if isinstance(entry, Mapping)]
+    from .calendar_availability import unclassified_intervals
+
+    return unclassified_intervals(problem.get("club_busy_intervals"))
+
+
 def _start_time_options(
     candidate: Mapping[str, Any],
     problem: Mapping[str, Any],
@@ -354,7 +431,7 @@ def _start_time_options(
     on_date = _parse_date(finding.original_date)
     current_start = tournament.get("start_time")
     duration = _duration_minutes(tournament, problem)
-    busy = _busy_intervals(problem)
+    busy = _effective_busy_intervals(problem, candidate)
     checked: List[str] = []
     for start in _candidate_start_times(tournament):
         if start == current_start:
@@ -397,11 +474,133 @@ def _start_time_options(
                     "end_time": _end_time(start, duration),
                     "start_times_checked": list(checked),
                     **_movable_option_facts(
-                        problem, finding.host_club, finding.original_date, start, duration
+                        problem,
+                        finding.host_club,
+                        finding.original_date,
+                        start,
+                        duration,
+                        candidate,
                     ),
                 },
             )
         )
+        if len(out) >= _MAX_START_TIME_OPTIONS:
+            break
+    return out, rejected
+
+
+def _interpretation_options(
+    candidate: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    tournament: Mapping[str, Any],
+    finding: _Finding,
+    fingerprint: str,
+) -> Tuple[List[RepairOption], List[Dict[str, Any]]]:
+    """Options that treat an *ambiguous* scraped event as host-controlled.
+
+    Only an interval whose title nothing configured has classified is
+    eligible (re-derived through the same per-club rules the normalizer
+    uses). The offered option records a controller-requested,
+    host-confirmation-gated interpretation on the *candidate* -- it never
+    edits the Stage 2 source calendar and never turns a configured fixed
+    booking into capacity. If no interpretation is needed (a free same-date
+    slot exists) the caller does not offer these at all.
+    """
+    out: List[RepairOption] = []
+    rejected: List[Dict[str, Any]] = []
+    if not finding.host_club:
+        return out, rejected
+    effective = _effective_busy_intervals(problem, candidate)
+    from .calendar_availability import is_unclassified_event
+
+    entries = [
+        entry
+        for entry in (effective.get(finding.host_club) or [])
+        if is_unclassified_event(
+            finding.host_club, str(entry.get("calendar_event") or "")
+        )
+        and entry.get("calendar_event")
+        and entry.get("date") == finding.original_date
+    ]
+    if not entries:
+        return out, rejected
+    duration = _duration_minutes(tournament, problem)
+    current_start = tournament.get("start_time")
+    for entry in entries:
+        interpretation = {
+            "club": finding.host_club,
+            "date": finding.original_date,
+            "start": entry.get("start", ""),
+            "end": entry.get("end", ""),
+            "calendar_event": entry.get("calendar_event", ""),
+            "reason": (
+                "controller-inferred host-controlled interval; "
+                "host confirmation required before the placement is booked"
+            ),
+        }
+        interpreted_busy = apply_calendar_interpretations(effective, [interpretation])
+        for start in _candidate_start_times(tournament):
+            if start == current_start:
+                continue
+            base = {**_base(finding), "start_time": start}
+            if external_calendar_conflict(
+                interpreted_busy, finding.host_club, _parse_date(finding.original_date), start, duration
+            ):
+                # Another genuine fixed booking still blocks this start -- an
+                # inferred movable interpretation must not paper over it.
+                rejected.append({**base, "reason": "external_calendar_conflict"})
+                continue
+            trial = copy.deepcopy(candidate)
+            trial["calendar_interpretations"] = [
+                *(trial.get("calendar_interpretations") or []),
+                interpretation,
+            ]
+            trial_tournament = _find_tournament(trial, finding.tournament_id)
+            trial_tournament["start_time"] = start
+            trial_tournament["manual_booking_reason"] = None
+            _clear_unresolved_placement(trial, trial_tournament, finding.original_date)
+            result = verify_candidate(trial, dict(problem))
+            if not result.get("ok"):
+                rejected.append(
+                    {**base, "reason": _primary_reason(result), "violations": _codes(result)}
+                )
+                continue
+            out.append(
+                RepairOption(
+                    option_id=(
+                        f"{fingerprint[:12]}:{finding.finding_id}:"
+                        f"interpret_calendar_event_as_movable:"
+                        f"{_slug((finding.original_date, start, entry.get('calendar_event', '')))}"
+                    ),
+                    finding_id=finding.finding_id,
+                    action="interpret_calendar_event_as_movable",
+                    tournament_id=finding.tournament_id,
+                    arguments={
+                        "original_date": finding.original_date,
+                        "date": finding.original_date,
+                        "start_time": start,
+                        "interpretation": interpretation,
+                    },
+                    hard_feasible=True,
+                    effects={
+                        "manual_placement_required": -1,
+                        "date_changed": 0,
+                        "calendar_interpretations_added": 1,
+                    },
+                    evidence={
+                        "verification_ok": True,
+                        "responsible_host": finding.host_club,
+                        "date": finding.original_date,
+                        "start_time": start,
+                        "end_time": _end_time(start, duration),
+                        "availability": "movable_busy",
+                        "requires_host_confirmation": True,
+                        "classification_source": "inferred",
+                        "calendar_event": entry.get("calendar_event", ""),
+                        "host_action_required": interpretation["reason"],
+                    },
+                )
+            )
         if len(out) >= _MAX_START_TIME_OPTIONS:
             break
     return out, rejected
@@ -418,7 +617,7 @@ def _date_options(
     rejected: List[Dict[str, Any]] = []
     current_date = _parse_date(finding.original_date)
     duration = _duration_minutes(tournament, problem)
-    busy = _busy_intervals(problem)
+    busy = _effective_busy_intervals(problem, candidate)
     current_start = str(tournament.get("start_time") or "11:00")
     candidate_dates = _candidate_dates(candidate, problem, current_date)
     for candidate_date in candidate_dates:
@@ -462,7 +661,12 @@ def _date_options(
                     "start_time": start,
                     "end_time": _end_time(start, duration),
                     **_movable_option_facts(
-                        problem, finding.host_club, candidate_date.isoformat(), start, duration
+                        problem,
+                        finding.host_club,
+                        candidate_date.isoformat(),
+                        start,
+                        duration,
+                        candidate,
                     ),
                 },
             )
@@ -494,7 +698,7 @@ def _swap_options(
         return out, rejected
     current_start = str(tournament.get("start_time") or "10:00")
     current_duration = _duration_minutes(tournament, problem)
-    busy = _busy_intervals(problem)
+    busy = _effective_busy_intervals(problem, candidate)
     for donor in candidate.get("tournaments", []):
         donor_id = str(donor.get("id"))
         base = {
@@ -582,7 +786,12 @@ def _swap_options(
                     "start_time": donor_start,
                     "swap_tournament_id": donor_id,
                     **_movable_option_facts(
-                        problem, finding.host_club, donor_date, donor_start, current_duration
+                        problem,
+                        finding.host_club,
+                        donor_date,
+                        donor_start,
+                        current_duration,
+                        candidate,
                     ),
                 },
             )

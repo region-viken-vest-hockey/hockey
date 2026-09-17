@@ -674,6 +674,157 @@ class TestVerifyCandidateWithProblem:
         # Backward-compatible evidence key carries the same record.
         assert result["club_controlled_allocations_used"] == used
 
+    def test_unclassified_interval_is_exposed_but_still_blocking(self):
+        """An event nothing configured has classified is an ambiguous fact.
+        The planning problem exposes it separately from a configured booking,
+        while hard verification still treats it as occupied rather than
+        assuming it is free."""
+        from tournament_scheduler.calendar_availability import unclassified_intervals
+
+        teams = [_team("Kongsberg", "Kongsberg 1", "U10"), _team("Jar", "Jar 1", "U10")]
+        candidate = {
+            "tournaments": [
+                _tournament(
+                    "t1", "2026-11-21", "Kongsberghallen", "U10", teams, start_time="10:00"
+                )
+            ]
+        }
+        busy_intervals = {
+            "Kongsberg": [
+                {
+                    "date": "2026-11-21",
+                    "start": "10:00",
+                    "end": "14:00",
+                    "kind": "external",
+                    "availability": "fixed_busy",
+                    "classification_source": "unclassified",
+                    "calendar_event": "Ukjent arrangement",
+                }
+            ]
+        }
+        problem = self._problem(
+            round_length_minutes={"U10": 60},
+            club_calendar_status={"Kongsberg": "known", "Jar": "known"},
+            club_busy_intervals=busy_intervals,
+        )
+        result = verify_candidate(candidate, problem)
+        assert result["movable_allocations_used"] == []
+        assert result["manual_external_conflict_placements"]
+        assert unclassified_intervals(busy_intervals) == [
+            {
+                "club": "Kongsberg",
+                "date": "2026-11-21",
+                "start": "10:00",
+                "end": "14:00",
+                "calendar_event": "Ukjent arrangement",
+                "availability": "fixed_busy",
+            }
+        ]
+
+    def test_inferred_interpretation_makes_unclassified_interval_a_candidate(self):
+        """A controller-requested inferred interpretation turns an ambiguous
+        event into a movable_busy candidate *without* mutating the source
+        calendar, and marks the placement as requiring host confirmation."""
+        teams = [_team("Kongsberg", "Kongsberg 1", "U10"), _team("Jar", "Jar 1", "U10")]
+        candidate = {
+            "calendar_interpretations": [
+                {
+                    "club": "Kongsberg",
+                    "date": "2026-11-21",
+                    "start": "10:00",
+                    "calendar_event": "Ukjent arrangement",
+                    "reason": "controller-inferred host-controlled interval",
+                }
+            ],
+            "tournaments": [
+                _tournament(
+                    "t1", "2026-11-21", "Kongsberghallen", "U10", teams, start_time="10:00"
+                )
+            ],
+        }
+        problem = self._problem(
+            round_length_minutes={"U10": 60},
+            club_calendar_status={"Kongsberg": "known", "Jar": "known"},
+            club_busy_intervals={
+                "Kongsberg": [
+                    {
+                        "date": "2026-11-21",
+                        "start": "10:00",
+                        "end": "14:00",
+                        "kind": "external",
+                        "availability": "fixed_busy",
+                        "classification_source": "unclassified",
+                        "calendar_event": "Ukjent arrangement",
+                    }
+                ]
+            },
+        )
+        result = verify_candidate(candidate, problem)
+        assert result["ok"] is True
+        assert result["manual_external_conflict_placements"] == []
+        used = result["movable_allocations_used"]
+        assert len(used) == 1
+        assert used[0]["classification_source"] == "inferred"
+        assert used[0]["requires_host_confirmation"] is True
+        assert used[0]["calendar_event"] == "Ukjent arrangement"
+        assert result["calendar_interpretations_used"] == candidate["calendar_interpretations"]
+        # The problem's own calendar fact is untouched -- only the candidate
+        # carries the inferred interpretation.
+        assert problem["club_busy_intervals"]["Kongsberg"][0]["availability"] == "fixed_busy"
+
+    def test_configured_fixed_booking_cannot_be_reinterpreted(self):
+        """A configured fixed booking is deterministic knowledge, never an
+        ambiguous fact: a candidate-borne interpretation must not be able to
+        turn it into movable capacity."""
+        from tournament_scheduler.planning_contract import apply_calendar_interpretations
+
+        event = "Sandefjord Penguins fast istid (opptatt utenom tildelt helgevindu)"
+        busy = {
+            "Sandefjord Penguins": [
+                {
+                    "date": "2026-11-21",
+                    "start": "10:00",
+                    "end": "14:00",
+                    "kind": "external",
+                    "availability": "fixed_busy",
+                    "calendar_event": event,
+                }
+            ]
+        }
+        interpretation = {
+            "club": "Sandefjord Penguins",
+            "date": "2026-11-21",
+            "start": "10:00",
+            "calendar_event": event,
+        }
+        merged = apply_calendar_interpretations(busy, [interpretation])
+        entry = merged["Sandefjord Penguins"][0]
+        assert entry["availability"] == "fixed_busy"
+        assert "classification_source" not in entry
+
+    def test_inferred_interpretation_needs_an_unclassified_title(self):
+        """Only a title no configured rule classifies is eligible, so the same
+        overlay is a no-op for a configured movable interval."""
+        from tournament_scheduler.planning_contract import apply_calendar_interpretations
+
+        busy = {
+            "Kongsberg": [
+                {
+                    "date": "2026-11-21",
+                    "start": "10:00",
+                    "end": "14:00",
+                    "kind": "club_controlled",
+                    "availability": "movable_busy",
+                    "calendar_event": "Åpen ishall",
+                }
+            ]
+        }
+        merged = apply_calendar_interpretations(
+            busy,
+            [{"club": "Kongsberg", "date": "2026-11-21", "calendar_event": "Åpen ishall"}],
+        )
+        assert "classification_source" not in merged["Kongsberg"][0]
+
     def test_pinned_tournament_missing_flagged(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {"tournaments": [_tournament("t1", "2026-06-01", "Jar Isforum", "U10", teams)]}

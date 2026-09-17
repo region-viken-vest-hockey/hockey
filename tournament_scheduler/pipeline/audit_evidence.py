@@ -116,6 +116,15 @@ EVIDENCE_CATEGORIES: dict[str, dict[str, Any]] = {
         "unresolved": True,
         "severity": "major",
     },
+    "calendar_interpretations_used": {
+        "description": (
+            "Controller-requested inferred movable_busy interpretations recorded on the "
+            "candidate (host confirmation required); the source calendar is unchanged."
+        ),
+        "checklist_item": 4,
+        "unresolved": True,
+        "severity": "major",
+    },
     "tournament_duration": {
         "description": "Per-tournament required duration/end time derived from configured ice time and rounds.",
         "checklist_item": 3,
@@ -441,6 +450,23 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
                 club=row.get("host_club") or row.get("club"),
                 clubs=_record_clubs(row),
                 age_group=row.get("age_group"),
+            )
+        )
+
+    for row in _as_list(verify.get("calendar_interpretations_used")):
+        if not isinstance(row, dict):
+            continue
+        records.append(
+            _record(
+                category="calendar_interpretations_used",
+                summary=(
+                    f"inferred movable_busy interpretation: {row.get('club') or '?'} "
+                    f"{row.get('date') or '?'} '{row.get('calendar_event') or '?'}' "
+                    "(host confirmation required)"
+                ),
+                detail=row,
+                club=row.get("club"),
+                clubs=_record_clubs(row),
             )
         )
 
