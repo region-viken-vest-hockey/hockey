@@ -22,33 +22,39 @@ At each pause:
 
 ## Interactive resume contract
 
-Do not infer `--resume-from` from whether an action sounds like it stays in or advances beyond a stage. Use the pipeline's explicit decision ownership model below.
+Do not infer `--resume-from` from whether an action sounds like it stays in or advances beyond a stage. Use the **DecisionContext capability** and the pipeline's explicit decision ownership model below.
 
 For ordinary stage decisions, the decision belongs to the stage that just completed, so answer it by resuming at the **next** stage:
 
-| Decision being answered | Resume with |
+| Decision / capability being answered | Resume with |
 |---|---|
 | Stage 1 decision | `--resume-from 2` |
 | Stage 2 decision | `--resume-from 3` |
-| Stage 3 attempt decision (`optimize_plan`, `apply_candidate`, `keep_baseline`, `request_operator`) | `--resume-from 4` |
+| `stage3_interactive`, `stage3_optimize`, `stage3_pareto` | `--resume-from 4` |
+| `host_team_missing_repair` | `--resume-from 4` |
+| `underfilled_roster_repair` | `--resume-from 4` |
+| `host_placement_repair` | `--resume-from 4` |
+| `search_neighborhood_repair` | `--resume-from 4` |
+
+A Stage 3 repair context is a **post-plan candidate decision**, even though applying the chosen action mutates/continues Stage 3 internally. Therefore answer it with `--resume-from 4`, exactly like `optimize_plan`/`apply_candidate`/`keep_baseline`. The resume number identifies which completed stage owns the pending decision; it does not mean the implementation must skip straight to export.
 
 The Stage 3 attempt loop is special internally: submitting `optimize_plan` with `--resume-from 4` does **not** mean "skip optimization and export". The orchestrator records the Stage 3 decision and loops back into Stage 3 optimization itself, then emits a new Stage 3 decision context. `apply_candidate` / `keep_baseline` resolve that loop and allow Stage 4 to run.
 
-Stage 3 also has in-stage sub-decisions that are answered with the **same** stage number because Stage 3 has not logically completed yet:
+Stage 3 also has true in-stage sub-decisions that are answered with the **same** stage number because Stage 3 has not produced the candidate decision boundary yet:
 
-| In-Stage-3 sub-decision | Resume with |
+| In-Stage-3 capability | Resume with |
 |---|---|
-| shared/joint-host assignment | `--resume-from 3` |
-| internal arena/time conflict resolution | `--resume-from 3` |
+| `shared_host_assignment` | `--resume-from 3` |
+| `arena_conflict_resolution` | `--resume-from 3` |
 
-So the canonical distinction is:
+So the canonical distinction is based on the returned `capability`, not on an agent's interpretation of the wording:
 
-- **Stage 3 sub-decision** → `--resume-from 3`;
-- **Stage 3 attempt/adoption decision** → `--resume-from 4`.
+- `shared_host_assignment` / `arena_conflict_resolution` → `--resume-from 3`;
+- Stage 3 candidate/adoption/repair capabilities → `--resume-from 4`.
 
-Never switch a Stage 3 `optimize_plan` decision to `--resume-from 3` just because optimization will run Stage 3 again; the orchestrator owns that loop. Likewise, never answer a pending shared-host or arena-conflict sub-decision with `--resume-from 4`.
+Never switch a Stage 3 `optimize_plan` or repair decision to `--resume-from 3` just because the chosen action will perform more Stage 3 work; the orchestrator owns that loop. Likewise, never answer a pending shared-host or arena-conflict context with `--resume-from 4`.
 
-When uncertain, identify which `DecisionContext` is pending and follow this table rather than reasoning from checkpoint files or guessed state transitions.
+When uncertain, inspect the exact persisted `DecisionContext.capability` and follow this table rather than reasoning from checkpoint files, action names, or guessed state transitions.
 
 ## Inspecting pending Stage 3 state
 
@@ -60,7 +66,9 @@ scripts/rvv-miniputt stage3 session --work-dir .pipeline --json
 
 Use it to confirm the current candidate revision/fingerprint, which decision is pending and whether it is run-scoped or candidate-scoped, and which transition types are legal next before you answer a pause.
 
-Running `run --interactive --resume-from 3` with no `--decision-action` is a safe inspection/resume step: it re-renders the exact persisted pending Stage 3 decision and exits paused without rebuilding the candidate or starting a new attempt. Repeating it is idempotent.
+Running `run --interactive --resume-from 3` with no `--decision-action` is a safe inspection/resume step: it re-renders the exact persisted pending Stage 3 decision and exits paused without rebuilding the candidate or starting a new attempt. Repeating it is idempotent. **Inspection with `--resume-from 3` does not imply that the eventual answer should also use 3**; use the capability table above for the action invocation.
+
+If the rendered DecisionContext's candidate fingerprint differs from the authoritative Stage3Session current candidate fingerprint, stop and treat that as an engineering/session-identity defect. Do not retry with a different fingerprint, hand-edit an option, reset repeatedly, or patch an individual repair provider.
 
 ## Resetting an untrustworthy Stage 3 lineage
 
