@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-09-17T04:15:47.027589+00:00",
+  "generated_at": "2026-09-17T07:03:37.792965+00:00",
   "start_date": "2026-10-09",
   "end_date": "2027-03-28",
   "blocked": [],
   "club_calendar_status": {
     "Frisk Asker": "known",
     "Ringerike": "known",
-    "Jutul": "known",
     "Kongsberg": "known",
+    "Jutul": "known",
     "Holmen": "known",
     "Sandefjord Penguins": "known",
     "Skien": "known",
@@ -30,16 +30,16 @@
       "from_cache": false
     },
     {
-      "name": "Jutul",
+      "name": "Kongsberg",
       "type": "outlook",
-      "event_count": 1289,
+      "event_count": 601,
       "blocked": false,
       "from_cache": false
     },
     {
-      "name": "Kongsberg",
+      "name": "Jutul",
       "type": "outlook",
-      "event_count": 601,
+      "event_count": 1289,
       "blocked": false,
       "from_cache": false
     },
@@ -74,7 +74,7 @@
     {
       "name": "Tønsberg",
       "type": "outlook",
-      "event_count": 669,
+      "event_count": 662,
       "blocked": false,
       "from_cache": false
     }

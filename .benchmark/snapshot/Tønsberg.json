@@ -1,47 +1,5 @@
 [
   {
-    "date": "09.10.2026",
-    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
-    "datetime": "2026-10-09T10:00:00",
-    "duration_hours": 1.0
-  },
-  {
-    "date": "09.10.2026",
-    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
-    "datetime": "2026-10-09T15:00:00",
-    "duration_hours": 4.5
-  },
-  {
-    "date": "10.10.2026",
-    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
-    "datetime": "2026-10-10T07:00:00",
-    "duration_hours": 7.0
-  },
-  {
-    "date": "11.10.2026",
-    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
-    "datetime": "2026-10-11T17:00:00",
-    "duration_hours": 2.0
-  },
-  {
-    "date": "11.10.2026",
-    "name": "TORØD VIKINGS (Ishockey)",
-    "datetime": "2026-10-11T19:00:00",
-    "duration_hours": 1.0
-  },
-  {
-    "date": "11.10.2026",
-    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
-    "datetime": "2026-10-11T20:00:00",
-    "duration_hours": 1.0
-  },
-  {
-    "date": "11.10.2026",
-    "name": "SOLLI FLYERS (Ishockey)",
-    "datetime": "2026-10-11T21:00:00",
-    "duration_hours": 1.0
-  },
-  {
     "date": "12.10.2026",
     "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
     "datetime": "2026-10-12T10:00:00",
