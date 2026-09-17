@@ -54,6 +54,42 @@ When changing scheduling behavior, input semantics, source validity, export cont
 
 Shared behavior needed by more than one harness belongs in repository/application code or the shared RVV runbook first. Harness adapters should only expose transport/UI that is genuinely unavailable through the shared command surface.
 
+### Behavioral defect ownership
+
+Before changing code for any behavioral defect, classify the violated contract and name its authoritative owner. This applies to lifecycle/control-plane bugs as well as scheduling-rule bugs.
+
+Use this ownership map by default:
+
+| Defect type | Canonical owner |
+|---|---|
+| wrong, missing, or ambiguous input/source fact | input normalization / planning-problem construction |
+| wrong legality or invariant | planner-independent domain rule / canonical verifier |
+| rule is correct but no useful legal mutation is exposed | validated action / repair / bounded search provider |
+| candidate identity, revision, fingerprint, run identity, pending-decision scope, persistence, or replay | application/session/store/controller layer |
+| resume, transition, finalization, or stage handoff behavior | application/session/controller lifecycle layer |
+| CLI argument parsing, rendering, stdout/stderr, or exit-code behavior | CLI transport layer |
+| correct state but wrong explanation, audit evidence, report, or export projection | evidence/report/export layer |
+| contextual choice among already-valid alternatives | active agent through declared repository actions |
+
+Fix defects at the **lowest canonical layer that owns the violated contract**. Never add compensating behavior in callers, adapters, repair providers, renderers, or harness instructions merely to make an upstream ownership defect appear resolved.
+
+If the same semantic identity is used across layers -- for example candidate normalization/fingerprint, candidate revision, run id, tournament identity, rule id, or objective id -- it must have one canonical implementation/facade. Consumers call that contract; they must not independently reconstruct an equivalent value.
+
+For a behavioral bug, use this sequence:
+
+```text
+reproduce exact failure
+-> classify the violated contract and owner
+-> add the smallest regression at the owner boundary
+-> fix the canonical owner only
+-> add/retain an integration regression for the originally failing path
+-> run the relevant broader verification
+```
+
+A fix that requires parallel semantic changes in several unrelated layers is a warning that ownership has not been identified correctly. Stop and re-evaluate the boundary before spreading compensating fixes.
+
+Do not change a domain rule to fix lifecycle state, do not change lifecycle/session state to fix a domain rule, and do not encode either one in CLI/harness prose when repository code can own it deterministically.
+
 ### Scheduling-rule changes
 
 Before implementing or modifying a scheduling rule, read the **Scheduling-rule implementation map** in [`docs/system-architecture.md`](docs/system-architecture.md) and identify the rule's authoritative owner.
