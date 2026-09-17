@@ -10,6 +10,11 @@ That fingerprint is recomputed fresh from the current Stage 4 checkpoint on
 every read, never trusted from a cached value, so a stale or mismatched
 audit is always detectable rather than silently reused (issue #325
 requirement: "stale audit fingerprints are invalid").
+
+The mutable workflow copy remains in the pipeline work directory. When Stage 4
+has a materialized export directory, a sanitized immutable projection is also
+written there by :mod:`.audit_export_artifact` so committed exports remain
+self-describing without making the export copy a second resume authority.
 """
 
 from __future__ import annotations
@@ -136,11 +141,24 @@ def write_audit_result(work_dir: "str | Path", payload: dict[str, Any]) -> list[
     server-computed one (see :func:`with_resolved_audit_id`) so every stored
     result carries the identity that scopes any later review approval to
     this exact export.
+
+    When the Stage 4 checkpoint names a materialized export directory, the
+    sanitized immutable export projection is written first. A provenance or
+    I/O failure there rejects the submission instead of leaving the committed
+    export without the audit result that gates its publication.
     """
     payload = with_resolved_audit_id(payload)
     errors = validate_audit_result(payload)
     if errors:
         return errors
+
+    try:
+        from .audit_export_artifact import materialize_audit_result
+
+        materialize_audit_result(work_dir, payload)
+    except (OSError, ValueError) as exc:
+        return [f"failed to materialize semantic audit in Stage 4 export: {exc}"]
+
     path = audit_result_path(work_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
