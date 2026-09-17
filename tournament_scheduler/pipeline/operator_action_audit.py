@@ -273,6 +273,21 @@ def apply_publish_audit_gate(
     )
     if existing_audit_answer is not None and existing_audit_answer.get("answered"):
         if is_audit_review_approved_answer(existing_audit_answer.get("answer") or ""):
+            try:
+                from .audit_export_artifact import materialize_review_approval
+
+                materialize_review_approval(
+                    work_dir,
+                    audit_payload=audit_result_payload or {},
+                    question=existing_audit_answer,
+                )
+            except (OSError, ValueError) as exc:
+                return with_collision_warning(CapabilityResult.blocked(
+                    "Revisjonen er godkjent, men godkjenningen kunne ikke bindes til eksporten.",
+                    capability="pages_publish",
+                    problems=[str(exc)],
+                    artifacts=list(bundle_result.artifacts),
+                ))
             return None
         return with_collision_warning(CapabilityResult.blocked(
             f"Revisjonsgjennomgang ble avvist tidligere (svar: {existing_audit_answer.get('answer')!r}).",
