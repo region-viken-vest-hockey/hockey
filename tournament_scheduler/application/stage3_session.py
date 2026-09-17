@@ -116,12 +116,25 @@ class Stage3SessionVersionError(ValueError):
 
 
 def candidate_content_fingerprint(candidate: Mapping[str, Any]) -> str:
-    """Deterministic content fingerprint for a Stage 3 candidate body.
+    """Deterministic fingerprint for the canonical Stage 3 candidate shape.
 
-    Mirrors the domain-side fingerprint used by the repair providers so a
-    session revision and a provider-validated option fingerprint agree.
+    Candidate identity is a lifecycle contract, so the session must hash the
+    same normalized payload that the public planning/repair boundary uses.
+    Older/raw Stage 3 checkpoints can omit ``schema_version`` while
+    ``planning_contract.extract_candidate`` adds the current default. Hashing
+    those two shapes directly gave the same schedule two fingerprints and
+    made every otherwise-valid repair action look stale.
+
+    Keep the normalization here deliberately narrow: candidate schema shape,
+    not hockey legality or repair semantics. ``planning_contract`` remains the
+    owner of the candidate schema version; the session only mirrors its public
+    default before hashing.
     """
-    payload = json.dumps(candidate, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    from ..planning_contract import CANDIDATE_SCHEMA_VERSION
+
+    normalized = dict(candidate)
+    normalized.setdefault("schema_version", CANDIDATE_SCHEMA_VERSION)
+    payload = json.dumps(normalized, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
