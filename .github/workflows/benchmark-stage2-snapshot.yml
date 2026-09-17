@@ -1,0 +1,106 @@
+name: Benchmark Stage 2 snapshot
+
+on:
+  push:
+    branches:
+      - benchmark-independent-season-20260917
+    paths-ignore:
+      - '.benchmark/snapshot/**'
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e '.[test]'
+          python -m playwright install --with-deps chromium
+      - name: Build independent Stage 1/2 snapshot
+        run: |
+          rm -rf .benchmark/state .benchmark/snapshot
+          mkdir -p .benchmark/snapshot
+          python - <<'PY'
+          import json
+          from datetime import datetime
+          from pathlib import Path
+
+          from tournament_scheduler.pipeline.state import PipelineState
+          from tournament_scheduler.pipeline.stage1_config import run as run_stage1, load_effective_config
+          from tournament_scheduler.pipeline.stage2_scraping import run as run_stage2
+
+          state = PipelineState('.benchmark/state')
+          run_stage1('input.xlsx', state, strict=True)
+          config = load_effective_config(state, input_path='input.xlsx')
+          start = datetime.fromisoformat(str(config['start_date']))
+          end = datetime.fromisoformat(str(config['end_date']))
+          stage2 = run_stage2(
+              config,
+              state,
+              start,
+              end,
+              strict=True,
+              allow_missing_sources=False,
+              max_workers=4,
+              force_refresh=True,
+          )
+
+          out = Path('.benchmark/snapshot')
+          (out / 'config.json').write_text(
+              json.dumps(config, ensure_ascii=False, indent=2, default=str) + '\n',
+              encoding='utf-8',
+          )
+          summary = {
+              'generated_at': datetime.now().astimezone().isoformat(),
+              'start_date': stage2.get('start_date'),
+              'end_date': stage2.get('end_date'),
+              'blocked': stage2.get('blocked', []),
+              'club_calendar_status': stage2.get('club_calendar_status', {}),
+              'sources': [
+                  {
+                      'name': source.get('name'),
+                      'type': source.get('type'),
+                      'event_count': source.get('event_count', 0),
+                      'blocked': source.get('blocked', False),
+                      'from_cache': source.get('from_cache', False),
+                  }
+                  for source in stage2.get('sources', [])
+              ],
+          }
+          (out / 'summary.json').write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2, default=str) + '\n',
+              encoding='utf-8',
+          )
+          for club, events in sorted((stage2.get('events_by_club') or {}).items()):
+              safe = ''.join(c if c.isalnum() or c in '-_' else '_' for c in club)
+              (out / f'{safe}.json').write_text(
+                  json.dumps(events, ensure_ascii=False, indent=2, default=str) + '\n',
+                  encoding='utf-8',
+              )
+          PY
+      - name: Commit snapshot to benchmark branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .benchmark/snapshot
+          if git diff --cached --quiet; then
+            echo 'No snapshot changes'
+          else
+            git commit -m 'Capture independent Stage 2 benchmark snapshot'
+            git push origin HEAD:benchmark-independent-season-20260917
+          fi
