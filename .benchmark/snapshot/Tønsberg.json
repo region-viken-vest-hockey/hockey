@@ -1,0 +1,4016 @@
+[
+  {
+    "date": "09.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-10-09T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-09T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "10.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-10T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "11.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-11T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "11.10.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-10-11T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.10.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-10-11T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.10.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-10-11T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-10-12T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "12.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-10-12T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-12T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "12.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-10-12T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-10-12T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "12.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-10-12T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-13T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-10-13T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.10.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-10-13T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-10-13T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-10-13T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-10-14T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-10-14T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-14T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "14.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-10-14T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-15T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.10.2026",
+    "name": "TØNSBERGS TURNFORENING HURTIGLØP (Treningstid for de yngste løperne inne i ishallen, fram til isen ute på Maier Arena er klar.)",
+    "datetime": "2026-10-15T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-10-15T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-10-15T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-10-16T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-16T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "17.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-17T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "18.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Kråkene Moss)",
+    "datetime": "2026-10-18T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "18.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U18, Tønsberg - Gjøvik)",
+    "datetime": "2026-10-18T14:45:00",
+    "duration_hours": 2.25
+  },
+  {
+    "date": "18.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-18T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "18.10.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-10-18T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.10.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-10-18T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.10.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-10-18T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-10-19T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-10-19T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-19T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "19.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-10-19T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-10-19T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-10-19T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-20T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-10-20T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-10-20T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-10-20T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-10-20T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-10-21T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-10-21T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-21T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "21.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-10-21T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-22T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.10.2026",
+    "name": "TØNSBERGS TURNFORENING HURTIGLØP (Treningstid for de yngste løperne inne i ishallen, fram til isen ute på Maier Arena er klar.)",
+    "datetime": "2026-10-22T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-10-22T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-10-22T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-10-23T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-23T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "24.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-24T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "24.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14B, Tønsberg - Ullensaker)",
+    "datetime": "2026-10-24T15:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "24.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 2. div, Tønsberg - Rosenborg)",
+    "datetime": "2026-10-24T18:15:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "25.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 2. div, Tønsberg - Rosenborg)",
+    "datetime": "2026-10-25T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "25.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14B, Tønsberg - Comet)",
+    "datetime": "2026-10-25T15:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "25.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-25T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "25.10.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-10-25T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.10.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-10-25T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.10.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-10-25T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-10-26T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "26.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-10-26T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-26T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "26.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-10-26T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-10-26T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "26.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-10-26T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-27T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-10-27T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-10-27T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14C, Tønsberg 2 - Skien/Sandefjord)",
+    "datetime": "2026-10-27T19:15:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "27.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-10-27T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-10-27T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-10-28T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-10-28T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-28T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "28.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-10-28T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-29T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.10.2026",
+    "name": "TØNSBERGS TURNFORENING HURTIGLØP (Treningstid for de yngste løperne inne i ishallen, fram til isen ute på Maier Arena er klar.)",
+    "datetime": "2026-10-29T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-10-29T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-10-29T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "30.10.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-10-30T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "30.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-30T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "31.10.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-10-31T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "01.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U13, Tønsberg - Comet)",
+    "datetime": "2026-11-01T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "01.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-01T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "01.11.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-11-01T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.11.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-11-01T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.11.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-11-01T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-11-02T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "02.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-11-02T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-02T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "02.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-02T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-11-02T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "02.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-11-02T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-03T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-11-03T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "KONGSEIK UNGDOMSSKOLE (Kongseik ungdomsskole)",
+    "datetime": "2026-11-03T12:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "03.11.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-11-03T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-03T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-11-03T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.11.2026",
+    "name": "KONGSEIK UNGDOMSSKOLE (Kongseik ungdomsskole)",
+    "datetime": "2026-11-04T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "04.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-11-04T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-04T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "04.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-11-04T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-05T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.11.2026",
+    "name": "TØNSBERGS TURNFORENING HURTIGLØP (Treningstid for de yngste løperne inne i ishallen, fram til isen ute på Maier Arena er klar.)",
+    "datetime": "2026-11-05T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-05T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-11-05T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-11-06T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.11.2026",
+    "name": "KONGSEIK UNGDOMSSKOLE (Kongseik ungdomsskole)",
+    "datetime": "2026-11-06T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "06.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-06T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "07.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-07T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "08.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14B, Tønsberg - Ski)",
+    "datetime": "2026-11-08T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "08.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 5. div, Tønsberg - Jutul)",
+    "datetime": "2026-11-08T11:15:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "08.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14C, Tønsberg 2 - Comet 2)",
+    "datetime": "2026-11-08T14:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "08.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-08T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "08.11.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-11-08T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.11.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-11-08T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.11.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-11-08T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-11-09T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-11-09T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-09T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "09.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-09T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-11-09T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-11-09T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-10T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-11-10T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "KONGSEIK UNGDOMSSKOLE (Kongseik ungdomsskole)",
+    "datetime": "2026-11-10T12:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "10.11.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-11-10T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-10T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-11-10T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.11.2026",
+    "name": "KONGSEIK UNGDOMSSKOLE (Kongseik ungdomsskole)",
+    "datetime": "2026-11-11T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "11.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-11-11T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-11T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "11.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-11-11T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-12T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-12T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-11-12T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-11-13T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.11.2026",
+    "name": "KONGSEIK UNGDOMSSKOLE (Kongseik ungdomsskole)",
+    "datetime": "2026-11-13T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "13.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-13T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "14.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-14T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "14.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U18, Tønsberg - Narvik)",
+    "datetime": "2026-11-14T14:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "15.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U13, Tønsberg - Storhamar Blå)",
+    "datetime": "2026-11-15T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "15.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-15T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "15.11.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-11-15T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.11.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-11-15T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.11.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-11-15T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-11-16T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "16.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-11-16T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-16T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "16.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-16T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-11-16T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "16.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-11-16T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-17T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-11-17T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "KONGSEIK UNGDOMSSKOLE (Kongseik ungdomsskole)",
+    "datetime": "2026-11-17T12:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.11.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-11-17T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-17T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-11-17T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.11.2026",
+    "name": "KONGSEIK UNGDOMSSKOLE (Kongseik ungdomsskole)",
+    "datetime": "2026-11-18T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "18.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-11-18T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-18T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "18.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-11-18T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-19T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-19T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-11-19T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-11-20T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.11.2026",
+    "name": "KONGSEIK UNGDOMSSKOLE (Kongseik ungdomsskole)",
+    "datetime": "2026-11-20T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-20T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "21.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-21T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "22.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U18, Tønsberg - Kongsberg)",
+    "datetime": "2026-11-22T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "22.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14C, Tønsberg 2 - Storhamar 2)",
+    "datetime": "2026-11-22T14:15:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "22.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 2. div, Tønsberg - Furuset)",
+    "datetime": "2026-11-22T16:15:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "22.11.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-11-22T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.11.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-11-22T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.11.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-11-22T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-11-23T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "23.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-11-23T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-23T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "23.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-23T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-11-23T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "23.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-11-23T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-24T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-11-24T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-11-24T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-24T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-11-24T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-11-25T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-25T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "25.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-11-25T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-26T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-26T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-11-26T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-11-27T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-27T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "27.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U18, Tønsberg - Jar/Jutul 2)",
+    "datetime": "2026-11-27T19:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "28.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-28T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "28.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14B, Tønsberg - Ringerike)",
+    "datetime": "2026-11-28T14:15:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "29.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U13, Tønsberg - Lørenskog Hvit)",
+    "datetime": "2026-11-29T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "29.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 5. div, Tønsberg - Gamle Oslo)",
+    "datetime": "2026-11-29T13:30:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "29.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Stjernen 2)",
+    "datetime": "2026-11-29T15:15:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "29.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-29T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "29.11.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-11-29T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.11.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-11-29T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.11.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-11-29T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "30.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-11-30T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "30.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-11-30T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "30.11.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-11-30T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "30.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-11-30T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "30.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-11-30T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "30.11.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-11-30T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-01T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-12-01T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-12-01T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-01T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-01T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-12-02T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-02T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "02.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-12-02T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-03T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-03T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-03T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-12-04T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-04T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "05.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-05T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "05.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14B, Tønsberg - Stjernen 2)",
+    "datetime": "2026-12-05T16:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "06.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-06T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "06.12.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-12-06T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.12.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-12-06T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.12.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-12-06T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-12-07T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-12-07T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-07T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "07.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-07T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-12-07T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-12-07T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-08T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-12-08T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-12-08T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-08T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-08T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-12-09T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-09T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "09.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U13, Tønsberg - Frisk Asker Hvit)",
+    "datetime": "2026-12-09T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-12-09T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-10T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-10T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-10T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-12-11T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-11T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "12.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-12T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "13.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-13T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "13.12.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-12-13T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.12.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-12-13T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.12.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-12-13T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-12-14T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-12-14T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-14T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "14.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-14T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-12-14T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-12-14T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-15T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-12-15T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-12-15T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-15T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-15T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-12-16T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-16T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "16.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-12-16T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-17T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-17T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-17T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-12-18T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-18T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "19.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-19T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "19.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14B, Tønsberg - Kongsvinger)",
+    "datetime": "2026-12-19T14:15:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14C, Tønsberg 2 - Skedsmo)",
+    "datetime": "2026-12-19T15:45:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14C, Tønsberg 2 - Gjøvik)",
+    "datetime": "2026-12-20T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-20T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "20.12.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-12-20T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.12.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-12-20T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.12.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-12-20T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-12-21T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-12-21T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-21T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "21.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-21T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-12-21T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-12-21T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-22T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-12-22T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-12-22T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-22T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-22T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-12-23T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-23T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "23.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-12-23T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-24T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-24T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-24T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-12-25T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-25T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "26.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-26T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "27.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-27T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "27.12.2026",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2026-12-27T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.12.2026",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2026-12-27T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.12.2026",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2026-12-27T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2026-12-28T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-12-28T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-28T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "28.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-28T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2026-12-28T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-12-28T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-29T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2026-12-29T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.12.2026",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2026-12-29T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-29T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-29T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "30.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2026-12-30T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "30.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-30T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "30.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2026-12-30T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "31.12.2026",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2026-12-31T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "31.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2026-12-31T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "31.12.2026",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2026-12-31T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-01-01T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-01T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "02.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-02T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "03.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 5. div, Tønsberg - Aker)",
+    "datetime": "2027-01-03T15:15:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "03.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-03T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "03.01.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-01-03T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.01.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-01-03T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.01.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-01-03T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-01-04T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "04.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-01-04T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-04T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "04.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-04T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-01-04T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "04.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-01-04T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-05T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-01-05T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.01.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-01-05T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-05T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-01-05T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.01.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek på tvers av barnehagen for å bli kjent før skolestart)",
+    "datetime": "2027-01-06T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "06.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-01-06T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-06T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "06.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-01-06T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-07T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-07T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-01-07T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-01-08T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-08T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "08.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Vålerenga 2)",
+    "datetime": "2027-01-08T19:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "09.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-09T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "09.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 2. div, Tønsberg - Åsane)",
+    "datetime": "2027-01-09T14:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "10.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 2. div, Tønsberg - Åsane)",
+    "datetime": "2027-01-10T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "10.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Lillehammer)",
+    "datetime": "2027-01-10T15:15:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "10.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-10T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "10.01.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-01-10T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.01.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-01-10T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.01.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-01-10T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-01-11T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "11.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-01-11T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-11T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "11.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-11T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-01-11T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "11.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-01-11T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-12T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-01-12T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.01.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-01-12T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-12T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-01-12T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.01.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek på tvers av barnehagen for å bli kjent før skolestart)",
+    "datetime": "2027-01-13T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "13.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-01-13T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-13T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "13.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-01-13T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-14T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-14T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-01-14T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-01-15T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-15T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "15.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U18, Tønsberg - Jar/Jutul 3)",
+    "datetime": "2027-01-15T19:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "16.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-16T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "17.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U13, Tønsberg - Frisk Asker Oransje)",
+    "datetime": "2027-01-17T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-17T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "17.01.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-01-17T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.01.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-01-17T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.01.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-01-17T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-01-18T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "18.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-01-18T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-18T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "18.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-18T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-01-18T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "18.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-01-18T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-19T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-01-19T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.01.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-01-19T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-19T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-01-19T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.01.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek på tvers av barnehagen for å bli kjent før skolestart)",
+    "datetime": "2027-01-20T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "20.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-01-20T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-20T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "20.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-01-20T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-21T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-21T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-01-21T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-01-22T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-22T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "23.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-23T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "24.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Jar 2)",
+    "datetime": "2027-01-24T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "24.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14C, Tønsberg 2 - Jar 2)",
+    "datetime": "2027-01-24T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "24.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14B, Tønsberg - Hasle Løren)",
+    "datetime": "2027-01-24T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U18, Tønsberg - Skedsmo)",
+    "datetime": "2027-01-24T14:45:00",
+    "duration_hours": 2.25
+  },
+  {
+    "date": "24.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-24T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "24.01.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-01-24T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.01.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-01-24T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.01.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-01-24T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-01-25T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "25.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-01-25T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-25T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "25.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-25T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-01-25T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "25.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-01-25T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-26T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-01-26T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.01.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-01-26T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-26T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-01-26T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.01.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek på tvers av barnehagen for å bli kjent før skolestart)",
+    "datetime": "2027-01-27T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "27.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-01-27T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-27T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "27.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-01-27T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-28T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-01-28T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-01-28T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-01-29T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-29T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "29.01.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U18, Tønsberg - Jar/Jutul 2)",
+    "datetime": "2027-01-29T19:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "30.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-30T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "31.01.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-01-31T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "31.01.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-01-31T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "31.01.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-01-31T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "31.01.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-01-31T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-02-01T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-02-01T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-01T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "01.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-01T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-02-01T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-02-01T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-02T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-02-02T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.02.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-02-02T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-02T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-02-02T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-02-03T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-03T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "03.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-02-03T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-04T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-04T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-02-04T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-02-05T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.02.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek og skøyteinnlæring)",
+    "datetime": "2027-02-05T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "05.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-05T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "05.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U18, Tønsberg - Kongsberg)",
+    "datetime": "2027-02-05T19:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "06.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-06T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "06.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Astor)",
+    "datetime": "2027-02-06T14:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "07.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14B, Tønsberg - Storhamar)",
+    "datetime": "2027-02-07T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "07.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Astor)",
+    "datetime": "2027-02-07T10:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "07.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 2. div, Tønsberg - Hasle-Løren)",
+    "datetime": "2027-02-07T13:30:00",
+    "duration_hours": 2.75
+  },
+  {
+    "date": "07.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-07T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "07.02.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-02-07T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.02.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-02-07T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.02.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-02-07T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-02-08T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "08.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-02-08T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-08T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "08.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-08T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-02-08T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "08.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-02-08T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-09T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-02-09T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.02.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-02-09T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-09T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-02-09T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.02.2027",
+    "name": "GLITNE KANVAS BARNEHAGE (Skolestartere)",
+    "datetime": "2027-02-10T10:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "10.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-02-10T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-10T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "10.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-02-10T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-11T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-11T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-02-11T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-02-12T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.02.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek og skøyteinnlæring)",
+    "datetime": "2027-02-12T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "12.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-12T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "13.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-13T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "14.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14C, Tønsberg 2 - Kråkene Moss 2)",
+    "datetime": "2027-02-14T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "14.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U13, Tønsberg - Lørenskog Rød)",
+    "datetime": "2027-02-14T11:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 5. div, Tønsberg - Jordal)",
+    "datetime": "2027-02-14T15:15:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "14.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-14T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "14.02.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-02-14T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.02.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-02-14T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.02.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-02-14T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-02-15T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "15.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-02-15T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-15T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "15.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-15T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-02-15T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "15.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-02-15T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-16T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-02-16T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-02-16T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-16T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-02-16T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-02-17T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-17T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "17.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-02-17T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-18T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-18T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-02-18T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-02-19T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.02.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek og skøyteinnlæring)",
+    "datetime": "2027-02-19T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "19.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-19T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "19.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Storhamar)",
+    "datetime": "2027-02-19T19:45:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-20T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "20.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 2. div, Tønsberg - Furuset)",
+    "datetime": "2027-02-20T15:15:00",
+    "duration_hours": 2.75
+  },
+  {
+    "date": "21.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Ringerike)",
+    "datetime": "2027-02-21T14:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "21.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-21T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "21.02.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-02-21T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.02.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-02-21T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.02.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-02-21T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-02-22T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "22.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-02-22T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-22T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "22.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-22T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-02-22T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "22.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-02-22T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-23T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-02-23T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-02-23T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-23T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-02-23T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-02-24T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-24T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "24.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-02-24T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-25T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-02-25T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-02-25T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-02-26T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.02.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek og skøyteinnlæring)",
+    "datetime": "2027-02-26T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "26.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-26T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "27.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-27T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "28.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U13, Tønsberg - Storhamar Gul)",
+    "datetime": "2027-02-28T09:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "28.02.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 5. div, Tønsberg - Kråkene Moss)",
+    "datetime": "2027-02-28T15:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "28.02.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-02-28T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "28.02.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-02-28T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.02.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-02-28T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.02.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-02-28T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-03-01T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-03-01T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-01T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "01.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-01T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-03-01T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-03-01T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-02T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-03-02T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-03-02T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-02T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-03-02T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-03-03T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-03T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "03.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-03-03T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-04T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-04T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-03-04T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-03-05T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.03.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek og skøyteinnlæring)",
+    "datetime": "2027-03-05T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "05.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-05T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "06.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-06T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "06.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 2. div, Tønsberg - TIF Viking/Bergen)",
+    "datetime": "2027-03-06T14:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "06.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14B, Tønsberg - Furuset/Lørenskog 2)",
+    "datetime": "2027-03-06T14:15:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 5. div, Tønsberg - Grüner 3)",
+    "datetime": "2027-03-07T11:50:00",
+    "duration_hours": 1.1666666666666667
+  },
+  {
+    "date": "07.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: 2. div, Tønsberg - TIF Viking/Bergen)",
+    "datetime": "2027-03-07T13:15:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "07.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-07T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "07.03.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-03-07T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.03.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-03-07T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.03.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-03-07T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-03-08T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "08.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-03-08T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-08T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "08.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-08T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-03-08T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "08.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-03-08T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-09T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-03-09T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.03.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-03-09T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-09T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-03-09T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.03.2027",
+    "name": "GLITNE KANVAS BARNEHAGE (Skolestartere)",
+    "datetime": "2027-03-10T10:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "10.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-03-10T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-10T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "10.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-03-10T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-11T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-11T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-03-11T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-03-12T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.03.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek og skøyteinnlæring)",
+    "datetime": "2027-03-12T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "12.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-12T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "12.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U15, Tønsberg - Lørenskog/Furuset 2)",
+    "datetime": "2027-03-12T19:45:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "13.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-13T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "13.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U14C, Tønsberg 2 - Grüner/Vålerenga 2)",
+    "datetime": "2027-03-13T14:15:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "13.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U13, Tønsberg - Kråkene Moss)",
+    "datetime": "2027-03-13T15:45:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK: U18, Tønsberg - Gjøvik)",
+    "datetime": "2027-03-14T14:45:00",
+    "duration_hours": 2.25
+  },
+  {
+    "date": "14.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-14T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "14.03.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-03-14T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.03.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-03-14T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.03.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-03-14T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-03-15T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "15.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-03-15T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-15T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "15.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-15T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-03-15T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "15.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-03-15T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-16T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-03-16T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.03.2027",
+    "name": "TØNSBERG POLITI IDRETTSLAG (TPIL) (Trening.)",
+    "datetime": "2027-03-16T14:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-16T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-03-16T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-03-17T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-17T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "17.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-03-17T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-18T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-18T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-03-18T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-03-19T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.03.2027",
+    "name": "TRUDVANGLIA BARNEHAGE (Skøytelek og skøyteinnlæring)",
+    "datetime": "2027-03-19T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "19.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-19T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "20.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-20T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "21.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-21T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "21.03.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-03-21T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.03.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-03-21T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.03.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-03-21T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Parahockey)",
+    "datetime": "2027-03-22T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "22.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-03-22T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-22T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "22.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-22T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (B-lag)",
+    "datetime": "2027-03-22T20:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "22.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-03-22T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-23T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-03-23T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-23T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-03-23T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Idrettshoder)",
+    "datetime": "2027-03-24T13:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-24T14:30:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "24.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Oldboys)",
+    "datetime": "2027-03-24T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-25T07:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (A-lag)",
+    "datetime": "2027-03-25T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (Leftovers)",
+    "datetime": "2027-03-25T22:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.03.2027",
+    "name": "TØNSBERG & OMEGN ISHOCKEYKLUBB (TOIK Veteran)",
+    "datetime": "2027-03-26T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-26T15:00:00",
+    "duration_hours": 4.5
+  },
+  {
+    "date": "27.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-27T07:00:00",
+    "duration_hours": 7.0
+  },
+  {
+    "date": "28.03.2027",
+    "name": "TØNSBERGS TURNFORENING KUNSTLØP (Kunstløptrening)",
+    "datetime": "2027-03-28T17:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "28.03.2027",
+    "name": "TORØD VIKINGS (Ishockey)",
+    "datetime": "2027-03-28T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.03.2027",
+    "name": "RINKEN HOCKEYKLUBB (Hockey trening)",
+    "datetime": "2027-03-28T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.03.2027",
+    "name": "SOLLI FLYERS (Ishockey)",
+    "datetime": "2027-03-28T21:00:00",
+    "duration_hours": 1.0
+  }
+]

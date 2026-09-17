@@ -1,0 +1,7117 @@
+[
+  {
+    "date": "09.10.2026",
+    "name": "U15C - Hasle-Løren",
+    "datetime": "2026-10-09T20:00:00+02:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "10.10.2026",
+    "name": "U16 - Ullensaker",
+    "datetime": "2026-10-10T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "10.10.2026",
+    "name": "JU16 - Sparta",
+    "datetime": "2026-10-10T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "11.10.2026",
+    "name": "U14A - VIF",
+    "datetime": "2026-10-11T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "11.10.2026",
+    "name": "U15A - Lørenskog/Furuset",
+    "datetime": "2026-10-11T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "11.10.2026",
+    "name": "JU14 - VIF",
+    "datetime": "2026-10-11T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "13.10.2026",
+    "name": "U16 - Ullensaker",
+    "datetime": "2026-10-13T20:00:00+02:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "16.10.2026",
+    "name": "U15C - Sparta",
+    "datetime": "2026-10-16T18:00:00+02:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "16.10.2026",
+    "name": "U15A - VIF",
+    "datetime": "2026-10-16T20:00:00+02:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "17.10.2026",
+    "name": "U13 Oransje - Tønsberg",
+    "datetime": "2026-10-17T13:30:00+02:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "17.10.2026",
+    "name": "U16 - Jar",
+    "datetime": "2026-10-17T16:30:00+02:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "17.10.2026",
+    "name": "JU16 - Nidaros",
+    "datetime": "2026-10-17T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "18.10.2026",
+    "name": "U18B - Nidaros",
+    "datetime": "2026-10-18T12:30:00+02:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "18.10.2026",
+    "name": "JU16 - Nidaros",
+    "datetime": "2026-10-18T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "18.10.2026",
+    "name": "U15A - Jar",
+    "datetime": "2026-10-18T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "18.10.2026",
+    "name": "U15C - Skien",
+    "datetime": "2026-10-18T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "23.10.2026",
+    "name": "U15A - Jar",
+    "datetime": "2026-10-23T20:00:00+02:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "24.10.2026",
+    "name": "U15C - Nes",
+    "datetime": "2026-10-24T12:00:00+02:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "24.10.2026",
+    "name": "U14A - Stjernen",
+    "datetime": "2026-10-24T17:30:00+02:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "25.10.2026",
+    "name": "U18B - Stavanger",
+    "datetime": "2026-10-25T12:30:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "25.10.2026",
+    "name": "JU14 - Storhamar/Ullensaker",
+    "datetime": "2026-10-25T17:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "25.10.2026",
+    "name": "U13 Oransje - Storhamar",
+    "datetime": "2026-10-25T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "25.10.2026",
+    "name": "U13 Hvit - Storhamar",
+    "datetime": "2026-10-25T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "27.10.2026",
+    "name": "Ju16 - Ullensaker",
+    "datetime": "2026-10-27T20:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "28.10.2026",
+    "name": "U15A - MS",
+    "datetime": "2026-10-28T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "30.10.2026",
+    "name": "U15C - Skien",
+    "datetime": "2026-10-30T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "31.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-31T12:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "31.10.2026",
+    "name": "U13 Oransje - Storhamar",
+    "datetime": "2026-10-31T13:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "31.10.2026",
+    "name": "U13 Hvit - Lørenskog",
+    "datetime": "2026-10-31T14:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "31.10.2026",
+    "name": "JU16 - Kongsberg",
+    "datetime": "2026-10-31T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "01.11.2026",
+    "name": "U13 Hvit - Storhamar",
+    "datetime": "2026-11-01T12:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "04.11.2026",
+    "name": "JU14 - Ski",
+    "datetime": "2026-11-04T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "07.11.2026",
+    "name": "U14A - Sparta",
+    "datetime": "2026-11-07T17:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "08.11.2026",
+    "name": "U14A - MS",
+    "datetime": "2026-11-08T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "10.11.2026",
+    "name": "U16 - MS",
+    "datetime": "2026-11-10T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "13.11.2026",
+    "name": "U15A - Lørenskog",
+    "datetime": "2026-11-13T20:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "14.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-14T12:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "14.11.2026",
+    "name": "JU16 - Viking/Bergen",
+    "datetime": "2026-11-14T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "14.11.2026",
+    "name": "U15C - Kristiansand",
+    "datetime": "2026-11-14T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "14.11.2026",
+    "name": "U13 Oransje - Lørenskog",
+    "datetime": "2026-11-14T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "14.11.2026",
+    "name": "U13 Hvit - Lørenskog",
+    "datetime": "2026-11-14T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "15.11.2026",
+    "name": "U13 Oransje - Lørenskog",
+    "datetime": "2026-11-15T12:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "15.11.2026",
+    "name": "U13 Hvit - Kråkene Moss",
+    "datetime": "2026-11-15T14:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "15.11.2026",
+    "name": "JU14 - Lillehammer",
+    "datetime": "2026-11-15T17:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "15.11.2026",
+    "name": "JU16 - Viking/Bergen",
+    "datetime": "2026-11-15T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "15.11.2026",
+    "name": "U15A - Kongsvinger",
+    "datetime": "2026-11-15T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "15.11.2026",
+    "name": "U15C - Kristiansand",
+    "datetime": "2026-11-15T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "17.11.2026",
+    "name": "U16 - Storhamar",
+    "datetime": "2026-11-17T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "18.11.2026",
+    "name": "JU14 - Jutul",
+    "datetime": "2026-11-18T19:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "19.11.2026",
+    "name": "U15A - Stjernen",
+    "datetime": "2026-11-19T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "20.11.2026",
+    "name": "U15C - Kongsberg",
+    "datetime": "2026-11-20T20:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "21.11.2026",
+    "name": "U14A - Lørenskog/Furuset",
+    "datetime": "2026-11-21T17:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "21.11.2026",
+    "name": "JU14 - Kongsberg",
+    "datetime": "2026-11-21T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "21.11.2026",
+    "name": "U15C - Kristiansand",
+    "datetime": "2026-11-21T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "22.11.2026",
+    "name": "U14A - Lillehammer",
+    "datetime": "2026-11-22T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "22.11.2026",
+    "name": "U15C - Kristiansand",
+    "datetime": "2026-11-22T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "24.11.2026",
+    "name": "U16 - Ullensaker",
+    "datetime": "2026-11-24T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "24.11.2026",
+    "name": "JU16 - Furuset",
+    "datetime": "2026-11-24T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "27.11.2026",
+    "name": "U15A - Stjernen",
+    "datetime": "2026-11-27T20:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "28.11.2026",
+    "name": "JU16 - VIF",
+    "datetime": "2026-11-28T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "29.11.2026",
+    "name": "U13 Oransje - Frisk Asker Hvit",
+    "datetime": "2026-11-29T12:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "29.11.2026",
+    "name": "U15A - Sparta",
+    "datetime": "2026-11-29T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "29.11.2026",
+    "name": "U15C - Sparta",
+    "datetime": "2026-11-29T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "01.12.2026",
+    "name": "JU16 - Sparta",
+    "datetime": "2026-12-01T20:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "01.12.2026",
+    "name": "U15C - Hasle/Løren",
+    "datetime": "2026-12-01T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "01.12.2026",
+    "name": "U13 Oransje - Kråkene Moss",
+    "datetime": "2026-12-01T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "02.12.2026",
+    "name": "U14A - Kråkene Moss",
+    "datetime": "2026-12-02T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "03.12.2026",
+    "name": "NM Kunstløp",
+    "datetime": "2026-12-03T14:00:00+01:00",
+    "duration_hours": 8.5
+  },
+  {
+    "date": "04.12.2026",
+    "name": "NM Kunstløp",
+    "datetime": "2026-12-04T08:00:00+01:00",
+    "duration_hours": 14.5
+  },
+  {
+    "date": "04.12.2026",
+    "name": "U15C - Skien",
+    "datetime": "2026-12-04T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "05.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-05T12:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "05.12.2026",
+    "name": "NM Kunstløp",
+    "datetime": "2026-12-05T08:00:00+01:00",
+    "duration_hours": 11.0
+  },
+  {
+    "date": "05.12.2026",
+    "name": "JU16 - Ullensaker",
+    "datetime": "2026-12-05T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "05.12.2026",
+    "name": "U15A - Stavanger",
+    "datetime": "2026-12-05T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "06.12.2026",
+    "name": "NM Kunstløp",
+    "datetime": "2026-12-06T08:00:00+01:00",
+    "duration_hours": 11.0
+  },
+  {
+    "date": "06.12.2026",
+    "name": "U15A - Stavanger",
+    "datetime": "2026-12-06T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "06.12.2026",
+    "name": "JU14 - Hasle-Løren",
+    "datetime": "2026-12-06T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "09.12.2026",
+    "name": "U14A - Holmen",
+    "datetime": "2026-12-09T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "09.12.2026",
+    "name": "U13 Hvit - Tønsberg",
+    "datetime": "2026-12-09T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "11.12.2026",
+    "name": "Julehsow",
+    "datetime": "2026-12-11T14:00:00+01:00",
+    "duration_hours": 8.5
+  },
+  {
+    "date": "12.12.2026",
+    "name": "Juleshow",
+    "datetime": "2026-12-12T08:00:00+01:00",
+    "duration_hours": 11.0
+  },
+  {
+    "date": "12.12.2026",
+    "name": "U14A - Jar",
+    "datetime": "2026-12-12T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "13.12.2026",
+    "name": "Juleshow",
+    "datetime": "2026-12-13T08:00:00+01:00",
+    "duration_hours": 11.0
+  },
+  {
+    "date": "13.12.2026",
+    "name": "U13 Oransje - Comet",
+    "datetime": "2026-12-13T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "15.12.2026",
+    "name": "U16 - Stjernen",
+    "datetime": "2026-12-15T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "15.12.2026",
+    "name": "JU16 - Ski",
+    "datetime": "2026-12-15T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "18.12.2026",
+    "name": "U15C - Nes",
+    "datetime": "2026-12-18T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "20.12.2026",
+    "name": "U13 Oransje - Comet",
+    "datetime": "2026-12-20T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "03.01.2027",
+    "name": "U18B - Stange",
+    "datetime": "2027-01-03T16:30:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "05.01.2027",
+    "name": "U16 - Sparta",
+    "datetime": "2027-01-05T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "05.01.2027",
+    "name": "JU16 - Kongsberg",
+    "datetime": "2027-01-05T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "08.01.2027",
+    "name": "U15C - Skien",
+    "datetime": "2027-01-08T19:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "09.01.2027",
+    "name": "U14A - VIF",
+    "datetime": "2027-01-09T13:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "09.01.2027",
+    "name": "JU16 - Furuset",
+    "datetime": "2027-01-09T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "10.01.2027",
+    "name": "U15A - Sparta",
+    "datetime": "2027-01-10T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "10.01.2027",
+    "name": "U14A - Stjernen",
+    "datetime": "2027-01-10T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "15.01.2027",
+    "name": "U18B - Ringerike",
+    "datetime": "2027-01-15T20:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "15.01.2027",
+    "name": "U15C - Kongsberg",
+    "datetime": "2027-01-15T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "16.01.2027",
+    "name": "U13 Oransje - Storhamar",
+    "datetime": "2027-01-16T13:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "16.01.2027",
+    "name": "U13 Hvit - Storhamar",
+    "datetime": "2027-01-16T14:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "16.01.2027",
+    "name": "JU16 - Viking/Bergen",
+    "datetime": "2027-01-16T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "16.01.2027",
+    "name": "U16 - Nidaros",
+    "datetime": "2027-01-16T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "17.01.2027",
+    "name": "U16 - Nidaros",
+    "datetime": "2027-01-17T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "17.01.2027",
+    "name": "U13 Oransje - Tønsberg",
+    "datetime": "2027-01-17T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "17.01.2027",
+    "name": "U13 Hvit - Storhamar",
+    "datetime": "2027-01-17T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "19.01.2027",
+    "name": "U16 - MS",
+    "datetime": "2027-01-19T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "22.01.2027",
+    "name": "U15A - Sparta",
+    "datetime": "2027-01-22T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "23.01.2027",
+    "name": "JU16 - Stavanger",
+    "datetime": "2027-01-23T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "23.01.2027",
+    "name": "U14A - Stavanger",
+    "datetime": "2027-01-23T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "23.01.2027",
+    "name": "JU14 - Storhamar/Ullensaker",
+    "datetime": "2027-01-23T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "24.01.2027",
+    "name": "U15A - Stjernen",
+    "datetime": "2027-01-24T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "24.01.2027",
+    "name": "JU16 - Stavanger",
+    "datetime": "2027-01-24T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "24.01.2027",
+    "name": "U14A - Stavanger",
+    "datetime": "2027-01-24T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "29.01.2027",
+    "name": "U15A - Kongsvinger",
+    "datetime": "2027-01-29T20:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "30.01.2027",
+    "name": "U14A - Sparta",
+    "datetime": "2027-01-30T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "30.01.2027",
+    "name": "U13 Oransje - Storhamar",
+    "datetime": "2027-01-30T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "30.01.2027",
+    "name": "U13 Hvit - Lørenskog",
+    "datetime": "2027-01-30T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "31.01.2027",
+    "name": "U15A - Stavanger",
+    "datetime": "2027-01-31T12:30:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "31.01.2027",
+    "name": "JU14 - Ski",
+    "datetime": "2027-01-31T17:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "04.02.2027",
+    "name": "U15A - Kongsvinger",
+    "datetime": "2027-02-04T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "06.02.2027",
+    "name": "U14A - MS",
+    "datetime": "2027-02-06T17:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "06.02.2027",
+    "name": "U16 - Jar",
+    "datetime": "2027-02-06T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "06.02.2027",
+    "name": "JU16 - VIF",
+    "datetime": "2027-02-06T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "06.02.2027",
+    "name": "JU14 - Lillehammer",
+    "datetime": "2027-02-06T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "07.02.2027",
+    "name": "JU16 - Nidaros",
+    "datetime": "2027-02-07T12:30:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "07.02.2027",
+    "name": "U15C - Sparta",
+    "datetime": "2027-02-07T15:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "07.02.2027",
+    "name": "U15A - Lørenskog",
+    "datetime": "2027-02-07T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "07.02.2027",
+    "name": "U14A - Lørenskog/Furuset",
+    "datetime": "2027-02-07T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "12.02.2027",
+    "name": "Supercup",
+    "datetime": "2027-02-12T17:30:00+01:00",
+    "duration_hours": 5.0
+  },
+  {
+    "date": "13.02.2027",
+    "name": "Supercup",
+    "datetime": "2027-02-13T08:00:00+01:00",
+    "duration_hours": 11.0
+  },
+  {
+    "date": "13.02.2027",
+    "name": "U13 Oransje - Lørenskog",
+    "datetime": "2027-02-13T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "13.02.2027",
+    "name": "U13 Hvit - Kråkene Moss",
+    "datetime": "2027-02-13T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "14.02.2027",
+    "name": "Supercup",
+    "datetime": "2027-02-14T08:00:00+01:00",
+    "duration_hours": 11.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "U16 - Furuset",
+    "datetime": "2027-02-16T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "17.02.2027",
+    "name": "U14A - Kråkene Moss",
+    "datetime": "2027-02-17T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "19.02.2027",
+    "name": "U15A - MS",
+    "datetime": "2027-02-19T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "20.02.2027",
+    "name": "U14A - Lillehammer",
+    "datetime": "2027-02-20T13:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "20.02.2027",
+    "name": "JU16 - Ski",
+    "datetime": "2027-02-20T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "21.02.2027",
+    "name": "U15C - Nes",
+    "datetime": "2027-02-21T12:30:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "21.02.2027",
+    "name": "U15A - MS",
+    "datetime": "2027-02-21T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "21.02.2027",
+    "name": "JU14 - Jutul",
+    "datetime": "2027-02-21T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "23.02.2027",
+    "name": "JU16 - Ullensaker",
+    "datetime": "2027-02-23T20:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "26.02.2027",
+    "name": "U15A - Jar",
+    "datetime": "2027-02-26T20:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "27.02.2027",
+    "name": "U16 - Stavanger",
+    "datetime": "2027-02-27T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "28.02.2027",
+    "name": "U16 - Stavanger",
+    "datetime": "2027-02-28T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "03.03.2027",
+    "name": "U14 - Jar",
+    "datetime": "2027-03-03T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "05.03.2027",
+    "name": "U15A - VIF",
+    "datetime": "2027-03-05T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "06.03.2027",
+    "name": "JU14 - Hasle-Løren",
+    "datetime": "2027-03-06T15:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "06.03.2027",
+    "name": "U14A - Jar",
+    "datetime": "2027-03-06T17:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "06.03.2027",
+    "name": "JU16 - Furuset",
+    "datetime": "2027-03-06T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "06.03.2027",
+    "name": "U15C - Tromsø",
+    "datetime": "2027-03-06T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "07.03.2027",
+    "name": "U14A - Holmen",
+    "datetime": "2027-03-07T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "07.03.2027",
+    "name": "U15C - Tromsø",
+    "datetime": "2027-03-07T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "07.03.2027",
+    "name": "JU14 - Furuset",
+    "datetime": "2027-03-07T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "09.03.2027",
+    "name": "U16 - Storhamar",
+    "datetime": "2027-03-09T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "12.03.2027",
+    "name": "U15A - Ski",
+    "datetime": "2027-03-12T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "13.03.2027",
+    "name": "U15C - Kristiansand",
+    "datetime": "2027-03-13T17:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "13.03.2027",
+    "name": "JU16 - Sparta",
+    "datetime": "2027-03-13T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "13.03.2027",
+    "name": "U13 Hvit - Comet",
+    "datetime": "2027-03-13T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "14.03.2027",
+    "name": "JU14 - Kongsberg",
+    "datetime": "2027-03-14T12:30:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "14.03.2027",
+    "name": "JU16 - Kongsberg",
+    "datetime": "2027-03-14T15:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "14.10.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-10-14T17:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "21.10.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-10-21T17:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "28.10.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-10-28T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "04.11.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-11-04T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "11.11.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-11-11T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "18.11.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-11-18T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "25.11.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-11-25T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "02.12.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-12-02T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "09.12.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-12-09T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "16.12.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-12-16T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "23.12.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-12-23T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "30.12.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-12-30T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "06.01.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-01-06T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "13.01.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-01-13T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "20.01.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-01-20T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "27.01.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-01-27T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "03.02.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-02-03T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "10.02.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-02-10T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "17.02.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-02-17T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "24.02.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-02-24T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "03.03.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-03-03T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "10.03.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-03-10T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "17.03.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-03-17T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "10.10.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-10-10T11:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "17.10.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-10-17T11:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "24.10.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-10-24T11:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "31.10.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-10-31T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "07.11.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-11-07T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "14.11.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-11-14T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "21.11.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-11-21T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "28.11.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-11-28T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "05.12.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-12-05T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "12.12.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-12-12T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "19.12.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-12-19T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "26.12.2026",
+    "name": "Hockeyskolen",
+    "datetime": "2026-12-26T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "02.01.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-01-02T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "09.01.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-01-09T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "16.01.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-01-16T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "23.01.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-01-23T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "30.01.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-01-30T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "06.02.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-02-06T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "13.02.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-02-13T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "20.02.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-02-20T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "27.02.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-02-27T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "06.03.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-03-06T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "13.03.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-03-13T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "20.03.2027",
+    "name": "Hockeyskolen",
+    "datetime": "2027-03-20T11:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "10.10.2026",
+    "name": "Stengt",
+    "datetime": "2026-10-10T19:00:00+02:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "11.10.2026",
+    "name": "Stengt",
+    "datetime": "2026-10-11T19:00:00+02:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "17.10.2026",
+    "name": "Stengt",
+    "datetime": "2026-10-17T19:00:00+02:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "18.10.2026",
+    "name": "Stengt",
+    "datetime": "2026-10-18T19:00:00+02:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "24.10.2026",
+    "name": "Stengt",
+    "datetime": "2026-10-24T19:00:00+02:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "25.10.2026",
+    "name": "Stengt",
+    "datetime": "2026-10-25T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "31.10.2026",
+    "name": "Stengt",
+    "datetime": "2026-10-31T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "01.11.2026",
+    "name": "Stengt",
+    "datetime": "2026-11-01T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "07.11.2026",
+    "name": "Stengt",
+    "datetime": "2026-11-07T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "08.11.2026",
+    "name": "Stengt",
+    "datetime": "2026-11-08T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "14.11.2026",
+    "name": "Stengt",
+    "datetime": "2026-11-14T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "15.11.2026",
+    "name": "Stengt",
+    "datetime": "2026-11-15T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "21.11.2026",
+    "name": "Stengt",
+    "datetime": "2026-11-21T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "22.11.2026",
+    "name": "Stengt",
+    "datetime": "2026-11-22T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "28.11.2026",
+    "name": "Stengt",
+    "datetime": "2026-11-28T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "29.11.2026",
+    "name": "Stengt",
+    "datetime": "2026-11-29T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "05.12.2026",
+    "name": "Stengt",
+    "datetime": "2026-12-05T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "06.12.2026",
+    "name": "Stengt",
+    "datetime": "2026-12-06T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "12.12.2026",
+    "name": "Stengt",
+    "datetime": "2026-12-12T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "13.12.2026",
+    "name": "Stengt",
+    "datetime": "2026-12-13T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "19.12.2026",
+    "name": "Stengt",
+    "datetime": "2026-12-19T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "20.12.2026",
+    "name": "Stengt",
+    "datetime": "2026-12-20T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "26.12.2026",
+    "name": "Stengt",
+    "datetime": "2026-12-26T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "27.12.2026",
+    "name": "Stengt",
+    "datetime": "2026-12-27T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "02.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-02T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "03.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-03T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "09.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-09T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "10.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-10T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "16.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-16T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "17.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-17T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "23.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-23T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "24.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-24T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "30.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-30T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "31.01.2027",
+    "name": "Stengt",
+    "datetime": "2027-01-31T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "06.02.2027",
+    "name": "Stengt",
+    "datetime": "2027-02-06T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "07.02.2027",
+    "name": "Stengt",
+    "datetime": "2027-02-07T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "13.02.2027",
+    "name": "Stengt",
+    "datetime": "2027-02-13T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "14.02.2027",
+    "name": "Stengt",
+    "datetime": "2027-02-14T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "20.02.2027",
+    "name": "Stengt",
+    "datetime": "2027-02-20T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "21.02.2027",
+    "name": "Stengt",
+    "datetime": "2027-02-21T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "27.02.2027",
+    "name": "Stengt",
+    "datetime": "2027-02-27T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "28.02.2027",
+    "name": "Stengt",
+    "datetime": "2027-02-28T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "06.03.2027",
+    "name": "Stengt",
+    "datetime": "2027-03-06T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "07.03.2027",
+    "name": "Stengt",
+    "datetime": "2027-03-07T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "13.03.2027",
+    "name": "Stengt",
+    "datetime": "2027-03-13T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "14.03.2027",
+    "name": "Stengt",
+    "datetime": "2027-03-14T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "20.03.2027",
+    "name": "Stengt",
+    "datetime": "2027-03-20T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "21.03.2027",
+    "name": "Stengt",
+    "datetime": "2027-03-21T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "27.03.2027",
+    "name": "Stengt",
+    "datetime": "2027-03-27T19:00:00+01:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "28.03.2027",
+    "name": "Stengt",
+    "datetime": "2027-03-28T19:00:00+02:00",
+    "duration_hours": 4.833333333333333
+  },
+  {
+    "date": "09.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-09T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "12.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-12T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "13.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-13T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "14.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-14T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "15.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-15T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "16.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-16T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "19.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-19T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "20.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-20T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "21.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-21T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "22.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-22T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "23.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-23T10:00:00+02:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "26.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-26T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "27.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-27T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "28.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-28T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "29.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-29T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "30.10.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-10-30T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "02.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-02T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "03.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-03T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "04.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-04T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "05.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-05T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "06.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-06T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "09.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-09T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "10.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-10T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "11.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-11T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "12.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-12T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "13.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-13T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "16.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-16T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "17.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-17T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "18.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-18T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "19.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-19T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "20.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-20T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "23.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-23T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "24.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-24T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "25.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-25T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "26.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-26T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "27.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-27T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "30.11.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-11-30T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "01.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-01T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "02.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-02T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "03.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-03T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "04.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-04T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "07.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-07T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "08.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-08T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "09.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-09T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "10.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-10T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "11.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-11T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "14.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-14T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "15.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-15T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "16.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-16T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "17.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-17T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "18.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-18T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "21.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-21T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "22.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-22T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "23.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-23T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "24.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-24T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "25.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-25T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "28.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-28T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "29.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-29T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "30.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-30T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "31.12.2026",
+    "name": "Kommunens tid",
+    "datetime": "2026-12-31T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "01.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-01T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "04.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-04T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "05.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-05T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "06.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-06T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "07.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-07T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "08.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-08T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "11.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-11T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "12.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-12T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "13.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-13T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "14.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-14T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "15.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-15T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "18.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-18T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "19.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-19T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "20.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-20T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "21.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-21T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "22.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-22T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "25.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-25T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "26.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-26T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "27.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-27T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "28.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-28T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "29.01.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-01-29T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "01.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-01T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "02.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-02T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "03.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-03T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "04.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-04T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "05.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-05T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "08.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-08T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "09.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-09T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "10.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-10T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "11.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-11T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "12.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-12T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "15.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-15T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "16.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-16T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "17.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-17T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "18.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-18T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "19.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-19T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "22.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-22T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "23.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-23T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "24.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-24T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "25.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-25T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "26.02.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-02-26T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "01.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-01T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "02.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-02T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "03.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-03T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "04.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-04T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "05.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-05T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "08.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-08T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "09.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-09T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "10.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-10T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "11.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-11T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "12.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-12T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "15.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-15T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "16.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-16T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "17.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-17T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "18.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-18T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "19.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-19T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "22.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-22T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "23.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-23T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "24.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-24T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "25.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-25T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "26.03.2027",
+    "name": "Kommunens tid",
+    "datetime": "2027-03-26T10:00:00+01:00",
+    "duration_hours": 3.5
+  },
+  {
+    "date": "12.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-12T19:00:00+02:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "19.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-19T19:00:00+02:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "26.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-26T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "02.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-02T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "09.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-09T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "16.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-16T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "23.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-23T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "30.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-30T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "07.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-07T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "14.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-14T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "21.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-21T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "28.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-28T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "04.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-04T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "11.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-11T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "18.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-18T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "25.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-25T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "01.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-01T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "08.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-08T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "15.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-15T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "22.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-22T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "01.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-01T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "08.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-08T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "15.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-15T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "22.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-22T19:00:00+01:00",
+    "duration_hours": 3.3333333333333335
+  },
+  {
+    "date": "14.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-14T08:15:00+02:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "21.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-21T08:15:00+02:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "28.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-28T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "04.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-04T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "11.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-11T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "18.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-18T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "25.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-25T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "02.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-02T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "09.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-09T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "16.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-16T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "23.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-23T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "30.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-30T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "06.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-06T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "13.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-13T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "20.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-20T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "27.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-27T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "03.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-03T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "10.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-10T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "17.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-17T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "24.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-24T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "03.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-03T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "10.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-10T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "17.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-17T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "24.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-24T08:15:00+01:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "10.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-10T08:00:00+02:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "17.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-17T08:00:00+02:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "24.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-24T08:00:00+02:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "31.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-31T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "07.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-07T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "14.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-14T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "21.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-21T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "28.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-28T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "05.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-05T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "12.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-12T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "19.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-19T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "26.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-26T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "02.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-02T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "09.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-09T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "16.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-16T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "23.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-23T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "30.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-30T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "06.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-06T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "13.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-13T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "20.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-20T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "27.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-27T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "06.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-06T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "13.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-13T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "20.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-20T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "27.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-27T08:00:00+01:00",
+    "duration_hours": 2.8333333333333335
+  },
+  {
+    "date": "12.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-12T14:00:00+02:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "19.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-19T14:00:00+02:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "26.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-26T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "02.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-02T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "09.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-09T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "16.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-16T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "23.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-23T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "30.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-30T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "07.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-07T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "14.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-14T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "21.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-21T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "28.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-28T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "04.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-04T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "11.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-11T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "18.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-18T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "25.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-25T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "01.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-01T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "08.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-08T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "15.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-15T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "22.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-22T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "01.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-01T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "08.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-08T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "15.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-15T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "22.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-22T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "13.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-13T14:00:00+02:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "20.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-20T14:00:00+02:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "27.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-27T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "03.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-03T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "10.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-10T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "17.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-17T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "24.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-24T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "01.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-01T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "08.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-08T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "15.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-15T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "22.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-22T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "29.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-29T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "05.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-05T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "12.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-12T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "19.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-19T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "26.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-26T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "02.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-02T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "09.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-09T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "16.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-16T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "23.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-23T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "02.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-02T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "09.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-09T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "16.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-16T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "23.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-23T14:00:00+01:00",
+    "duration_hours": 5.833333333333333
+  },
+  {
+    "date": "09.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-09T14:00:00+02:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "15.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-15T14:00:00+02:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "16.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-16T14:00:00+02:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "22.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-22T14:00:00+02:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "23.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-23T14:00:00+02:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "29.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-29T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "30.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-30T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "05.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-05T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "06.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-06T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "12.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-12T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "13.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-13T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "19.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-19T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "20.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-20T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "26.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-26T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "27.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-27T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "03.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-03T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "04.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-04T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "10.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-10T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "11.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-11T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "17.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-17T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "18.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-18T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "24.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-24T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "25.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-25T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "31.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-31T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "01.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-01T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "07.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-07T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "08.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-08T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "14.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-14T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "15.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-15T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "21.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-21T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "22.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-22T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "28.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-28T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "29.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-29T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "04.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-04T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "05.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-05T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "11.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-11T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "12.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-12T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "18.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-18T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "19.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-19T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "25.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-25T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "26.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-26T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "04.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-04T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "05.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-05T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "11.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-11T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "12.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-12T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "18.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-18T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "19.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-19T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "25.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-25T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "26.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-26T14:00:00+01:00",
+    "duration_hours": 3.8333333333333335
+  },
+  {
+    "date": "12.10.2026",
+    "name": "U8",
+    "datetime": "2026-10-12T16:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "19.10.2026",
+    "name": "U8",
+    "datetime": "2026-10-19T16:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "26.10.2026",
+    "name": "U8",
+    "datetime": "2026-10-26T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "02.11.2026",
+    "name": "U8",
+    "datetime": "2026-11-02T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "09.11.2026",
+    "name": "U8",
+    "datetime": "2026-11-09T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "16.11.2026",
+    "name": "U8",
+    "datetime": "2026-11-16T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "23.11.2026",
+    "name": "U8",
+    "datetime": "2026-11-23T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "30.11.2026",
+    "name": "U8",
+    "datetime": "2026-11-30T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "07.12.2026",
+    "name": "U8",
+    "datetime": "2026-12-07T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "14.12.2026",
+    "name": "U8",
+    "datetime": "2026-12-14T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "21.12.2026",
+    "name": "U8",
+    "datetime": "2026-12-21T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "28.12.2026",
+    "name": "U8",
+    "datetime": "2026-12-28T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "04.01.2027",
+    "name": "U8",
+    "datetime": "2027-01-04T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "11.01.2027",
+    "name": "U8",
+    "datetime": "2027-01-11T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "18.01.2027",
+    "name": "U8",
+    "datetime": "2027-01-18T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "25.01.2027",
+    "name": "U8",
+    "datetime": "2027-01-25T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "01.02.2027",
+    "name": "U8",
+    "datetime": "2027-02-01T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "08.02.2027",
+    "name": "U8",
+    "datetime": "2027-02-08T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "15.02.2027",
+    "name": "U8",
+    "datetime": "2027-02-15T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "22.02.2027",
+    "name": "U8",
+    "datetime": "2027-02-22T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "01.03.2027",
+    "name": "U8",
+    "datetime": "2027-03-01T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "08.03.2027",
+    "name": "U8",
+    "datetime": "2027-03-08T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "15.03.2027",
+    "name": "U8",
+    "datetime": "2027-03-15T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "22.03.2027",
+    "name": "U8",
+    "datetime": "2027-03-22T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "12.10.2026",
+    "name": "U7",
+    "datetime": "2026-10-12T17:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "19.10.2026",
+    "name": "U7",
+    "datetime": "2026-10-19T17:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "26.10.2026",
+    "name": "U7",
+    "datetime": "2026-10-26T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "02.11.2026",
+    "name": "U7",
+    "datetime": "2026-11-02T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "09.11.2026",
+    "name": "U7",
+    "datetime": "2026-11-09T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "16.11.2026",
+    "name": "U7",
+    "datetime": "2026-11-16T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "23.11.2026",
+    "name": "U7",
+    "datetime": "2026-11-23T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "30.11.2026",
+    "name": "U7",
+    "datetime": "2026-11-30T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "07.12.2026",
+    "name": "U7",
+    "datetime": "2026-12-07T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "14.12.2026",
+    "name": "U7",
+    "datetime": "2026-12-14T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "21.12.2026",
+    "name": "U7",
+    "datetime": "2026-12-21T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "28.12.2026",
+    "name": "U7",
+    "datetime": "2026-12-28T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "04.01.2027",
+    "name": "U7",
+    "datetime": "2027-01-04T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "11.01.2027",
+    "name": "U7",
+    "datetime": "2027-01-11T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "18.01.2027",
+    "name": "U7",
+    "datetime": "2027-01-18T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "25.01.2027",
+    "name": "U7",
+    "datetime": "2027-01-25T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "01.02.2027",
+    "name": "U7",
+    "datetime": "2027-02-01T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "08.02.2027",
+    "name": "U7",
+    "datetime": "2027-02-08T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "15.02.2027",
+    "name": "U7",
+    "datetime": "2027-02-15T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "22.02.2027",
+    "name": "U7",
+    "datetime": "2027-02-22T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "01.03.2027",
+    "name": "U7",
+    "datetime": "2027-03-01T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "08.03.2027",
+    "name": "U7",
+    "datetime": "2027-03-08T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "15.03.2027",
+    "name": "U7",
+    "datetime": "2027-03-15T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "22.03.2027",
+    "name": "U7",
+    "datetime": "2027-03-22T17:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "14.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-14T14:00:00+02:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "21.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-21T14:00:00+02:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "28.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-28T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "04.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-04T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "11.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-11T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "18.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-18T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "25.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-25T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "02.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-02T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "09.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-09T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "16.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-16T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "23.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-23T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "30.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-30T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "06.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-06T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "13.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-13T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "20.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-20T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "27.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-27T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "03.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-03T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "10.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-10T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "17.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-17T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "24.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-24T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "03.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-03T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "10.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-10T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "17.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-17T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "24.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-24T14:00:00+01:00",
+    "duration_hours": 1.8333333333333333
+  },
+  {
+    "date": "14.10.2026",
+    "name": "U14",
+    "datetime": "2026-10-14T20:00:00+02:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "21.10.2026",
+    "name": "U14",
+    "datetime": "2026-10-21T20:00:00+02:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "28.10.2026",
+    "name": "U14",
+    "datetime": "2026-10-28T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "04.11.2026",
+    "name": "U14",
+    "datetime": "2026-11-04T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "11.11.2026",
+    "name": "U14",
+    "datetime": "2026-11-11T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "18.11.2026",
+    "name": "U14",
+    "datetime": "2026-11-18T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "25.11.2026",
+    "name": "U14",
+    "datetime": "2026-11-25T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "16.12.2026",
+    "name": "U14",
+    "datetime": "2026-12-16T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "23.12.2026",
+    "name": "U14",
+    "datetime": "2026-12-23T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "30.12.2026",
+    "name": "U14",
+    "datetime": "2026-12-30T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "06.01.2027",
+    "name": "U14",
+    "datetime": "2027-01-06T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "13.01.2027",
+    "name": "U14",
+    "datetime": "2027-01-13T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "20.01.2027",
+    "name": "U14",
+    "datetime": "2027-01-20T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "27.01.2027",
+    "name": "U14",
+    "datetime": "2027-01-27T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "03.02.2027",
+    "name": "U14",
+    "datetime": "2027-02-03T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "10.02.2027",
+    "name": "U14",
+    "datetime": "2027-02-10T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "17.02.2027",
+    "name": "U14",
+    "datetime": "2027-02-17T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "24.02.2027",
+    "name": "U14",
+    "datetime": "2027-02-24T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "10.03.2027",
+    "name": "U14",
+    "datetime": "2027-03-10T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "17.03.2027",
+    "name": "U14",
+    "datetime": "2027-03-17T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "24.03.2027",
+    "name": "U14",
+    "datetime": "2027-03-24T20:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "4+5"
+  },
+  {
+    "date": "14.10.2026",
+    "name": "Old Boys",
+    "datetime": "2026-10-14T21:30:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "21.10.2026",
+    "name": "Old Boys",
+    "datetime": "2026-10-21T21:30:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "28.10.2026",
+    "name": "Old Boys",
+    "datetime": "2026-10-28T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "04.11.2026",
+    "name": "Old Boys",
+    "datetime": "2026-11-04T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "11.11.2026",
+    "name": "Old Boys",
+    "datetime": "2026-11-11T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "18.11.2026",
+    "name": "Old Boys",
+    "datetime": "2026-11-18T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "25.11.2026",
+    "name": "Old Boys",
+    "datetime": "2026-11-25T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "02.12.2026",
+    "name": "Old Boys",
+    "datetime": "2026-12-02T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "09.12.2026",
+    "name": "Old Boys",
+    "datetime": "2026-12-09T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "16.12.2026",
+    "name": "Old Boys",
+    "datetime": "2026-12-16T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "23.12.2026",
+    "name": "Old Boys",
+    "datetime": "2026-12-23T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "30.12.2026",
+    "name": "Old Boys",
+    "datetime": "2026-12-30T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "06.01.2027",
+    "name": "Old Boys",
+    "datetime": "2027-01-06T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "13.01.2027",
+    "name": "Old Boys",
+    "datetime": "2027-01-13T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "20.01.2027",
+    "name": "Old Boys",
+    "datetime": "2027-01-20T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "27.01.2027",
+    "name": "Old Boys",
+    "datetime": "2027-01-27T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "03.02.2027",
+    "name": "Old Boys",
+    "datetime": "2027-02-03T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "10.02.2027",
+    "name": "Old Boys",
+    "datetime": "2027-02-10T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "17.02.2027",
+    "name": "Old Boys",
+    "datetime": "2027-02-17T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "24.02.2027",
+    "name": "Old Boys",
+    "datetime": "2027-02-24T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "03.03.2027",
+    "name": "Old Boys",
+    "datetime": "2027-03-03T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "10.03.2027",
+    "name": "Old Boys",
+    "datetime": "2027-03-10T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "17.03.2027",
+    "name": "Old Boys",
+    "datetime": "2027-03-17T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "24.03.2027",
+    "name": "Old Boys",
+    "datetime": "2027-03-24T21:30:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "15.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-15T20:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "22.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-22T20:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "29.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-29T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "05.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-05T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "12.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-12T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "19.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-19T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "26.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-26T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "03.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-03T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "10.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-10T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "17.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-17T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "24.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-24T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "31.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-31T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "07.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-07T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "14.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-14T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "21.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-21T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "28.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-28T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "04.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-04T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "11.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-11T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "18.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-18T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "25.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-25T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "04.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-04T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "11.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-11T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "18.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-18T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "25.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-25T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "15.10.2026",
+    "name": "U18B",
+    "datetime": "2026-10-15T21:00:00+02:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "22.10.2026",
+    "name": "U18B",
+    "datetime": "2026-10-22T21:00:00+02:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "29.10.2026",
+    "name": "U18B",
+    "datetime": "2026-10-29T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "05.11.2026",
+    "name": "U18B",
+    "datetime": "2026-11-05T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "12.11.2026",
+    "name": "U18B",
+    "datetime": "2026-11-12T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "19.11.2026",
+    "name": "U18B",
+    "datetime": "2026-11-19T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "26.11.2026",
+    "name": "U18B",
+    "datetime": "2026-11-26T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "03.12.2026",
+    "name": "U18B",
+    "datetime": "2026-12-03T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "10.12.2026",
+    "name": "U18B",
+    "datetime": "2026-12-10T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "17.12.2026",
+    "name": "U18B",
+    "datetime": "2026-12-17T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "24.12.2026",
+    "name": "U18B",
+    "datetime": "2026-12-24T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "31.12.2026",
+    "name": "U18B",
+    "datetime": "2026-12-31T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "07.01.2027",
+    "name": "U18B",
+    "datetime": "2027-01-07T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "14.01.2027",
+    "name": "U18B",
+    "datetime": "2027-01-14T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "21.01.2027",
+    "name": "U18B",
+    "datetime": "2027-01-21T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "28.01.2027",
+    "name": "U18B",
+    "datetime": "2027-01-28T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "04.02.2027",
+    "name": "U18B",
+    "datetime": "2027-02-04T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "11.02.2027",
+    "name": "U18B",
+    "datetime": "2027-02-11T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "18.02.2027",
+    "name": "U18B",
+    "datetime": "2027-02-18T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "25.02.2027",
+    "name": "U18B",
+    "datetime": "2027-02-25T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "04.03.2027",
+    "name": "U18B",
+    "datetime": "2027-03-04T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "11.03.2027",
+    "name": "U18B",
+    "datetime": "2027-03-11T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "18.03.2027",
+    "name": "U18B",
+    "datetime": "2027-03-18T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "25.03.2027",
+    "name": "U18B",
+    "datetime": "2027-03-25T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "1",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "09.10.2026",
+    "name": "JU14",
+    "datetime": "2026-10-09T18:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "16.10.2026",
+    "name": "JU14",
+    "datetime": "2026-10-16T18:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "23.10.2026",
+    "name": "JU14",
+    "datetime": "2026-10-23T18:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "30.10.2026",
+    "name": "JU14",
+    "datetime": "2026-10-30T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "06.11.2026",
+    "name": "JU14",
+    "datetime": "2026-11-06T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "13.11.2026",
+    "name": "JU14",
+    "datetime": "2026-11-13T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "20.11.2026",
+    "name": "JU14",
+    "datetime": "2026-11-20T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "27.11.2026",
+    "name": "JU14",
+    "datetime": "2026-11-27T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "04.12.2026",
+    "name": "JU14",
+    "datetime": "2026-12-04T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "11.12.2026",
+    "name": "JU14",
+    "datetime": "2026-12-11T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "18.12.2026",
+    "name": "JU14",
+    "datetime": "2026-12-18T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "25.12.2026",
+    "name": "JU14",
+    "datetime": "2026-12-25T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "01.01.2027",
+    "name": "JU14",
+    "datetime": "2027-01-01T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "08.01.2027",
+    "name": "JU14",
+    "datetime": "2027-01-08T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "15.01.2027",
+    "name": "JU14",
+    "datetime": "2027-01-15T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "22.01.2027",
+    "name": "JU14",
+    "datetime": "2027-01-22T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "29.01.2027",
+    "name": "JU14",
+    "datetime": "2027-01-29T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "05.02.2027",
+    "name": "JU14",
+    "datetime": "2027-02-05T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "12.02.2027",
+    "name": "JU14",
+    "datetime": "2027-02-12T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "19.02.2027",
+    "name": "JU14",
+    "datetime": "2027-02-19T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "26.02.2027",
+    "name": "JU14",
+    "datetime": "2027-02-26T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "05.03.2027",
+    "name": "JU14",
+    "datetime": "2027-03-05T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "12.03.2027",
+    "name": "JU14",
+    "datetime": "2027-03-12T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "19.03.2027",
+    "name": "JU14",
+    "datetime": "2027-03-19T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "26.03.2027",
+    "name": "JU14",
+    "datetime": "2027-03-26T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "16.10.2026",
+    "name": "U15",
+    "datetime": "2026-10-16T20:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "30.10.2026",
+    "name": "U15",
+    "datetime": "2026-10-30T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "13.11.2026",
+    "name": "U15",
+    "datetime": "2026-11-13T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "27.11.2026",
+    "name": "U15",
+    "datetime": "2026-11-27T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "11.12.2026",
+    "name": "U15",
+    "datetime": "2026-12-11T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "25.12.2026",
+    "name": "U15",
+    "datetime": "2026-12-25T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "08.01.2027",
+    "name": "U15",
+    "datetime": "2027-01-08T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "22.01.2027",
+    "name": "U15",
+    "datetime": "2027-01-22T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "05.02.2027",
+    "name": "U15",
+    "datetime": "2027-02-05T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "19.02.2027",
+    "name": "U15",
+    "datetime": "2027-02-19T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "05.03.2027",
+    "name": "U15",
+    "datetime": "2027-03-05T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "19.03.2027",
+    "name": "U15",
+    "datetime": "2027-03-19T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "11.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-11T10:00:00+02:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "18.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-18T10:00:00+02:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "25.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-25T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "01.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-01T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "08.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-08T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "15.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-15T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "22.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-22T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "29.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-29T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "06.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-06T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "13.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-13T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "20.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-20T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "27.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-27T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "03.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-03T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "10.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-10T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "17.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-17T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "24.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-24T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "31.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-31T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "07.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-07T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "14.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-14T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "21.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-21T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "28.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-28T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "07.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-07T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "14.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-14T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "21.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-21T10:00:00+01:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "28.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-28T10:00:00+02:00",
+    "duration_hours": 2.3333333333333335
+  },
+  {
+    "date": "15.10.2026",
+    "name": "U18",
+    "datetime": "2026-10-15T09:00:00+02:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.10.2026",
+    "name": "U18",
+    "datetime": "2026-10-22T09:00:00+02:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.10.2026",
+    "name": "U18",
+    "datetime": "2026-10-29T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.11.2026",
+    "name": "U18",
+    "datetime": "2026-11-05T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.11.2026",
+    "name": "U18",
+    "datetime": "2026-11-12T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.11.2026",
+    "name": "U18",
+    "datetime": "2026-11-19T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.11.2026",
+    "name": "U18",
+    "datetime": "2026-11-26T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.12.2026",
+    "name": "U18",
+    "datetime": "2026-12-03T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.12.2026",
+    "name": "U18",
+    "datetime": "2026-12-10T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.12.2026",
+    "name": "U18",
+    "datetime": "2026-12-17T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.12.2026",
+    "name": "U18",
+    "datetime": "2026-12-24T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "31.12.2026",
+    "name": "U18",
+    "datetime": "2026-12-31T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.01.2027",
+    "name": "U18",
+    "datetime": "2027-01-07T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.01.2027",
+    "name": "U18",
+    "datetime": "2027-01-14T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.01.2027",
+    "name": "U18",
+    "datetime": "2027-01-21T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.01.2027",
+    "name": "U18",
+    "datetime": "2027-01-28T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.02.2027",
+    "name": "U18",
+    "datetime": "2027-02-04T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.02.2027",
+    "name": "U18",
+    "datetime": "2027-02-11T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.02.2027",
+    "name": "U18",
+    "datetime": "2027-02-18T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.02.2027",
+    "name": "U18",
+    "datetime": "2027-02-25T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.03.2027",
+    "name": "U18",
+    "datetime": "2027-03-04T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.03.2027",
+    "name": "U18",
+    "datetime": "2027-03-11T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.03.2027",
+    "name": "U18",
+    "datetime": "2027-03-18T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.03.2027",
+    "name": "U18",
+    "datetime": "2027-03-25T09:00:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-09T20:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "23.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-23T20:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "06.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-06T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "20.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-20T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "04.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-04T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "18.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-18T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "01.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-01T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "15.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-15T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "29.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-29T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "12.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-12T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "26.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-26T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "12.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-12T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "26.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-26T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "09.10.2026",
+    "name": "U15",
+    "datetime": "2026-10-09T21:00:00+02:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "23.10.2026",
+    "name": "U15",
+    "datetime": "2026-10-23T21:00:00+02:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "06.11.2026",
+    "name": "U15",
+    "datetime": "2026-11-06T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "20.11.2026",
+    "name": "U15",
+    "datetime": "2026-11-20T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "04.12.2026",
+    "name": "U15",
+    "datetime": "2026-12-04T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "18.12.2026",
+    "name": "U15",
+    "datetime": "2026-12-18T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "01.01.2027",
+    "name": "U15",
+    "datetime": "2027-01-01T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "15.01.2027",
+    "name": "U15",
+    "datetime": "2027-01-15T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "29.01.2027",
+    "name": "U15",
+    "datetime": "2027-01-29T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "12.02.2027",
+    "name": "U15",
+    "datetime": "2027-02-12T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "26.02.2027",
+    "name": "U15",
+    "datetime": "2027-02-26T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "12.03.2027",
+    "name": "U15",
+    "datetime": "2027-03-12T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "26.03.2027",
+    "name": "U15",
+    "datetime": "2027-03-26T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "16.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-16T21:00:00+02:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "30.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-30T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "13.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-13T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "27.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-27T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "11.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-11T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "25.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-25T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "08.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-08T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "22.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-22T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "05.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-05T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "19.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-19T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "05.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-05T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "19.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-19T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333
+  },
+  {
+    "date": "13.10.2026",
+    "name": "NTG-U",
+    "datetime": "2026-10-13T08:30:00+02:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "NTG-U",
+    "datetime": "2026-10-20T08:30:00+02:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "NTG-U",
+    "datetime": "2026-10-27T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "NTG-U",
+    "datetime": "2026-11-03T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "NTG-U",
+    "datetime": "2026-11-10T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "NTG-U",
+    "datetime": "2026-11-17T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "NTG-U",
+    "datetime": "2026-11-24T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "NTG-U",
+    "datetime": "2026-12-01T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "NTG-U",
+    "datetime": "2026-12-08T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "NTG-U",
+    "datetime": "2026-12-15T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "NTG-U",
+    "datetime": "2026-12-22T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.12.2026",
+    "name": "NTG-U",
+    "datetime": "2026-12-29T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.01.2027",
+    "name": "NTG-U",
+    "datetime": "2027-01-05T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.01.2027",
+    "name": "NTG-U",
+    "datetime": "2027-01-12T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.01.2027",
+    "name": "NTG-U",
+    "datetime": "2027-01-19T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.01.2027",
+    "name": "NTG-U",
+    "datetime": "2027-01-26T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.02.2027",
+    "name": "NTG-U",
+    "datetime": "2027-02-02T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.02.2027",
+    "name": "NTG-U",
+    "datetime": "2027-02-09T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "NTG-U",
+    "datetime": "2027-02-16T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "NTG-U",
+    "datetime": "2027-02-23T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "NTG-U",
+    "datetime": "2027-03-02T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.03.2027",
+    "name": "NTG-U",
+    "datetime": "2027-03-09T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.03.2027",
+    "name": "NTG-U",
+    "datetime": "2027-03-16T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.03.2027",
+    "name": "NTG-U",
+    "datetime": "2027-03-23T08:30:00+01:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-15T08:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "22.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-22T08:00:00+02:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "29.10.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-10-29T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "05.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-05T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "12.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-12T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "19.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-19T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "26.11.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-11-26T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "03.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-03T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "10.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-10T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "17.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-17T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "24.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-24T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "31.12.2026",
+    "name": "Kunstløp",
+    "datetime": "2026-12-31T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "07.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-07T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "14.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-14T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "21.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-21T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "28.01.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-01-28T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "04.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-04T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "11.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-11T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "18.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-18T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "25.02.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-02-25T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "04.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-04T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "11.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-11T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "18.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-18T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "25.03.2027",
+    "name": "Kunstløp",
+    "datetime": "2027-03-25T08:00:00+01:00",
+    "duration_hours": 0.8333333333333334
+  },
+  {
+    "date": "13.10.2026",
+    "name": "JU14",
+    "datetime": "2026-10-13T20:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "20.10.2026",
+    "name": "JU14",
+    "datetime": "2026-10-20T20:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "27.10.2026",
+    "name": "JU14",
+    "datetime": "2026-10-27T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "03.11.2026",
+    "name": "JU14",
+    "datetime": "2026-11-03T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "10.11.2026",
+    "name": "JU14",
+    "datetime": "2026-11-10T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "17.11.2026",
+    "name": "JU14",
+    "datetime": "2026-11-17T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "24.11.2026",
+    "name": "JU14",
+    "datetime": "2026-11-24T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "01.12.2026",
+    "name": "JU14",
+    "datetime": "2026-12-01T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "08.12.2026",
+    "name": "JU14",
+    "datetime": "2026-12-08T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "15.12.2026",
+    "name": "JU14",
+    "datetime": "2026-12-15T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "22.12.2026",
+    "name": "JU14",
+    "datetime": "2026-12-22T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "29.12.2026",
+    "name": "JU14",
+    "datetime": "2026-12-29T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "05.01.2027",
+    "name": "JU14",
+    "datetime": "2027-01-05T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "12.01.2027",
+    "name": "JU14",
+    "datetime": "2027-01-12T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "19.01.2027",
+    "name": "JU14",
+    "datetime": "2027-01-19T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "26.01.2027",
+    "name": "JU14",
+    "datetime": "2027-01-26T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "02.02.2027",
+    "name": "JU14",
+    "datetime": "2027-02-02T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "09.02.2027",
+    "name": "JU14",
+    "datetime": "2027-02-09T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "16.02.2027",
+    "name": "JU14",
+    "datetime": "2027-02-16T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "23.02.2027",
+    "name": "JU14",
+    "datetime": "2027-02-23T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "02.03.2027",
+    "name": "JU14",
+    "datetime": "2027-03-02T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "09.03.2027",
+    "name": "JU14",
+    "datetime": "2027-03-09T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "16.03.2027",
+    "name": "JU14",
+    "datetime": "2027-03-16T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "23.03.2027",
+    "name": "JU14",
+    "datetime": "2027-03-23T20:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "13.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-13T21:00:00+02:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "20.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-20T21:00:00+02:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "27.10.2026",
+    "name": "JU16",
+    "datetime": "2026-10-27T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "03.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-03T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "10.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-10T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "17.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-17T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "24.11.2026",
+    "name": "JU16",
+    "datetime": "2026-11-24T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "01.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-01T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "08.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-08T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "15.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-15T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "22.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-22T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "29.12.2026",
+    "name": "JU16",
+    "datetime": "2026-12-29T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "05.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-05T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "12.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-12T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "19.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-19T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "26.01.2027",
+    "name": "JU16",
+    "datetime": "2027-01-26T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "02.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-02T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "09.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-09T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "16.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-16T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "23.02.2027",
+    "name": "JU16",
+    "datetime": "2027-02-23T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "02.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-02T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "09.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-09T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "16.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-16T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "23.03.2027",
+    "name": "JU16",
+    "datetime": "2027-03-23T21:00:00+01:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Jentegarderoben"
+  },
+  {
+    "date": "15.10.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-10-15T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "22.10.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-10-22T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "29.10.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-10-29T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "05.11.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-11-05T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "12.11.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-11-12T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "19.11.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-11-19T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "26.11.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-11-26T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "03.12.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-12-03T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "10.12.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-12-10T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "17.12.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-12-17T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "24.12.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-12-24T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "31.12.2026",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2026-12-31T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "07.01.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-01-07T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "14.01.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-01-14T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "21.01.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-01-21T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "28.01.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-01-28T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "04.02.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-02-04T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "11.02.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-02-11T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "18.02.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-02-18T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "25.02.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-02-25T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "04.03.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-03-04T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "11.03.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-03-11T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "18.03.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-03-18T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "25.03.2027",
+    "name": "U15 - Holmen ishall",
+    "datetime": "2027-03-25T00:00:00",
+    "duration_hours": 0,
+    "all_day": true
+  },
+  {
+    "date": "14.10.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-10-14T19:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "21.10.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-10-21T19:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "28.10.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-10-28T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "04.11.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-11-04T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "11.11.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-11-11T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "18.11.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-11-18T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "25.11.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-11-25T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "02.12.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-12-02T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "09.12.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-12-09T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "16.12.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-12-16T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "23.12.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-12-23T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "30.12.2026",
+    "name": "JU12/Keepertrening",
+    "datetime": "2026-12-30T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "06.01.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-01-06T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "13.01.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-01-13T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "20.01.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-01-20T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "27.01.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-01-27T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "03.02.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-02-03T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "10.02.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-02-10T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "17.02.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-02-17T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "24.02.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-02-24T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "03.03.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-03-03T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "10.03.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-03-10T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "17.03.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-03-17T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "24.03.2027",
+    "name": "JU12/Keepertrening",
+    "datetime": "2027-03-24T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Jentegarderoben + 2"
+  },
+  {
+    "date": "14.10.2026",
+    "name": "U11",
+    "datetime": "2026-10-14T16:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "21.10.2026",
+    "name": "U11",
+    "datetime": "2026-10-21T16:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "28.10.2026",
+    "name": "U11",
+    "datetime": "2026-10-28T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "04.11.2026",
+    "name": "U11",
+    "datetime": "2026-11-04T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "11.11.2026",
+    "name": "U11",
+    "datetime": "2026-11-11T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "18.11.2026",
+    "name": "U11",
+    "datetime": "2026-11-18T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "25.11.2026",
+    "name": "U11",
+    "datetime": "2026-11-25T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "02.12.2026",
+    "name": "U11",
+    "datetime": "2026-12-02T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "09.12.2026",
+    "name": "U11",
+    "datetime": "2026-12-09T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "16.12.2026",
+    "name": "U11",
+    "datetime": "2026-12-16T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "23.12.2026",
+    "name": "U11",
+    "datetime": "2026-12-23T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "30.12.2026",
+    "name": "U11",
+    "datetime": "2026-12-30T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "06.01.2027",
+    "name": "U11",
+    "datetime": "2027-01-06T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "13.01.2027",
+    "name": "U11",
+    "datetime": "2027-01-13T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "20.01.2027",
+    "name": "U11",
+    "datetime": "2027-01-20T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "27.01.2027",
+    "name": "U11",
+    "datetime": "2027-01-27T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "03.02.2027",
+    "name": "U11",
+    "datetime": "2027-02-03T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "10.02.2027",
+    "name": "U11",
+    "datetime": "2027-02-10T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "17.02.2027",
+    "name": "U11",
+    "datetime": "2027-02-17T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "24.02.2027",
+    "name": "U11",
+    "datetime": "2027-02-24T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "03.03.2027",
+    "name": "U11",
+    "datetime": "2027-03-03T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "10.03.2027",
+    "name": "U11",
+    "datetime": "2027-03-10T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "17.03.2027",
+    "name": "U11",
+    "datetime": "2027-03-17T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "24.03.2027",
+    "name": "U11",
+    "datetime": "2027-03-24T16:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "14.10.2026",
+    "name": "U10",
+    "datetime": "2026-10-14T18:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "21.10.2026",
+    "name": "U10",
+    "datetime": "2026-10-21T18:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "28.10.2026",
+    "name": "U10",
+    "datetime": "2026-10-28T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "04.11.2026",
+    "name": "U10",
+    "datetime": "2026-11-04T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "11.11.2026",
+    "name": "U10",
+    "datetime": "2026-11-11T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "18.11.2026",
+    "name": "U10",
+    "datetime": "2026-11-18T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "25.11.2026",
+    "name": "U10",
+    "datetime": "2026-11-25T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "02.12.2026",
+    "name": "U10",
+    "datetime": "2026-12-02T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "09.12.2026",
+    "name": "U10",
+    "datetime": "2026-12-09T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "16.12.2026",
+    "name": "U10",
+    "datetime": "2026-12-16T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "23.12.2026",
+    "name": "U10",
+    "datetime": "2026-12-23T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "30.12.2026",
+    "name": "U10",
+    "datetime": "2026-12-30T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "06.01.2027",
+    "name": "U10",
+    "datetime": "2027-01-06T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "13.01.2027",
+    "name": "U10",
+    "datetime": "2027-01-13T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "20.01.2027",
+    "name": "U10",
+    "datetime": "2027-01-20T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "27.01.2027",
+    "name": "U10",
+    "datetime": "2027-01-27T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "03.02.2027",
+    "name": "U10",
+    "datetime": "2027-02-03T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "10.02.2027",
+    "name": "U10",
+    "datetime": "2027-02-10T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "17.02.2027",
+    "name": "U10",
+    "datetime": "2027-02-17T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "24.02.2027",
+    "name": "U10",
+    "datetime": "2027-02-24T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "03.03.2027",
+    "name": "U10",
+    "datetime": "2027-03-03T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "10.03.2027",
+    "name": "U10",
+    "datetime": "2027-03-10T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "17.03.2027",
+    "name": "U10",
+    "datetime": "2027-03-17T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "24.03.2027",
+    "name": "U10",
+    "datetime": "2027-03-24T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "15.10.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-10-15T18:00:00+02:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "22.10.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-10-22T18:00:00+02:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "29.10.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-10-29T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "05.11.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-11-05T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "12.11.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-11-12T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "19.11.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-11-19T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "26.11.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-11-26T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "03.12.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-12-03T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "10.12.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-12-10T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "17.12.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-12-17T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "24.12.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-12-24T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "31.12.2026",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2026-12-31T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "07.01.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-01-07T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "14.01.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-01-14T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "21.01.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-01-21T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "28.01.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-01-28T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "04.02.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-02-04T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "11.02.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-02-11T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "18.02.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-02-18T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "25.02.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-02-25T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "04.03.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-03-04T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "11.03.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-03-11T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "18.03.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-03-18T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "25.03.2027",
+    "name": "Asker skøyteklubb - kortbane",
+    "datetime": "2027-03-25T18:00:00+01:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "4",
+    "arena": "Varner Arena"
+  },
+  {
+    "date": "09.10.2026",
+    "name": "U13",
+    "datetime": "2026-10-09T19:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "16.10.2026",
+    "name": "U13",
+    "datetime": "2026-10-16T19:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "23.10.2026",
+    "name": "U13",
+    "datetime": "2026-10-23T19:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "30.10.2026",
+    "name": "U13",
+    "datetime": "2026-10-30T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "06.11.2026",
+    "name": "U13",
+    "datetime": "2026-11-06T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "13.11.2026",
+    "name": "U13",
+    "datetime": "2026-11-13T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "20.11.2026",
+    "name": "U13",
+    "datetime": "2026-11-20T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "27.11.2026",
+    "name": "U13",
+    "datetime": "2026-11-27T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "04.12.2026",
+    "name": "U13",
+    "datetime": "2026-12-04T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "11.12.2026",
+    "name": "U13",
+    "datetime": "2026-12-11T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "18.12.2026",
+    "name": "U13",
+    "datetime": "2026-12-18T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "25.12.2026",
+    "name": "U13",
+    "datetime": "2026-12-25T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "01.01.2027",
+    "name": "U13",
+    "datetime": "2027-01-01T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "08.01.2027",
+    "name": "U13",
+    "datetime": "2027-01-08T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "15.01.2027",
+    "name": "U13",
+    "datetime": "2027-01-15T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "22.01.2027",
+    "name": "U13",
+    "datetime": "2027-01-22T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "29.01.2027",
+    "name": "U13",
+    "datetime": "2027-01-29T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "05.02.2027",
+    "name": "U13",
+    "datetime": "2027-02-05T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "12.02.2027",
+    "name": "U13",
+    "datetime": "2027-02-12T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "19.02.2027",
+    "name": "U13",
+    "datetime": "2027-02-19T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "26.02.2027",
+    "name": "U13",
+    "datetime": "2027-02-26T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "05.03.2027",
+    "name": "U13",
+    "datetime": "2027-03-05T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "12.03.2027",
+    "name": "U13",
+    "datetime": "2027-03-12T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "19.03.2027",
+    "name": "U13",
+    "datetime": "2027-03-19T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "26.03.2027",
+    "name": "U13",
+    "datetime": "2027-03-26T19:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "1+2"
+  },
+  {
+    "date": "12.10.2026",
+    "name": "U9",
+    "datetime": "2026-10-12T18:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "19.10.2026",
+    "name": "U9",
+    "datetime": "2026-10-19T18:00:00+02:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "26.10.2026",
+    "name": "U9",
+    "datetime": "2026-10-26T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "02.11.2026",
+    "name": "U9",
+    "datetime": "2026-11-02T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "09.11.2026",
+    "name": "U9",
+    "datetime": "2026-11-09T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "16.11.2026",
+    "name": "U9",
+    "datetime": "2026-11-16T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "23.11.2026",
+    "name": "U9",
+    "datetime": "2026-11-23T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "30.11.2026",
+    "name": "U9",
+    "datetime": "2026-11-30T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "07.12.2026",
+    "name": "U9",
+    "datetime": "2026-12-07T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "14.12.2026",
+    "name": "U9",
+    "datetime": "2026-12-14T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "21.12.2026",
+    "name": "U9",
+    "datetime": "2026-12-21T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "28.12.2026",
+    "name": "U9",
+    "datetime": "2026-12-28T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "04.01.2027",
+    "name": "U9",
+    "datetime": "2027-01-04T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "11.01.2027",
+    "name": "U9",
+    "datetime": "2027-01-11T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "18.01.2027",
+    "name": "U9",
+    "datetime": "2027-01-18T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "25.01.2027",
+    "name": "U9",
+    "datetime": "2027-01-25T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "01.02.2027",
+    "name": "U9",
+    "datetime": "2027-02-01T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "08.02.2027",
+    "name": "U9",
+    "datetime": "2027-02-08T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "15.02.2027",
+    "name": "U9",
+    "datetime": "2027-02-15T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "22.02.2027",
+    "name": "U9",
+    "datetime": "2027-02-22T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "01.03.2027",
+    "name": "U9",
+    "datetime": "2027-03-01T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "08.03.2027",
+    "name": "U9",
+    "datetime": "2027-03-08T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "15.03.2027",
+    "name": "U9",
+    "datetime": "2027-03-15T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  },
+  {
+    "date": "22.03.2027",
+    "name": "U9",
+    "datetime": "2027-03-22T18:00:00+01:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "4+5"
+  }
+]

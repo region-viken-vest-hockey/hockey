@@ -1,0 +1,82 @@
+{
+  "generated_at": "2026-09-17T04:15:47.027589+00:00",
+  "start_date": "2026-10-09",
+  "end_date": "2027-03-28",
+  "blocked": [],
+  "club_calendar_status": {
+    "Frisk Asker": "known",
+    "Ringerike": "known",
+    "Jutul": "known",
+    "Kongsberg": "known",
+    "Holmen": "known",
+    "Sandefjord Penguins": "known",
+    "Skien": "known",
+    "Jar": "known",
+    "Tønsberg": "known"
+  },
+  "sources": [
+    {
+      "name": "Frisk Asker",
+      "type": "ical",
+      "event_count": 1103,
+      "blocked": false,
+      "from_cache": false
+    },
+    {
+      "name": "Ringerike",
+      "type": "ical",
+      "event_count": 1318,
+      "blocked": false,
+      "from_cache": false
+    },
+    {
+      "name": "Jutul",
+      "type": "outlook",
+      "event_count": 1289,
+      "blocked": false,
+      "from_cache": false
+    },
+    {
+      "name": "Kongsberg",
+      "type": "outlook",
+      "event_count": 601,
+      "blocked": false,
+      "from_cache": false
+    },
+    {
+      "name": "Holmen",
+      "type": "outlook",
+      "event_count": 204,
+      "blocked": false,
+      "from_cache": false
+    },
+    {
+      "name": "Sandefjord Penguins",
+      "type": "fixed_allocation",
+      "event_count": 221,
+      "blocked": false,
+      "from_cache": false
+    },
+    {
+      "name": "Skien",
+      "type": "outlook",
+      "event_count": 1383,
+      "blocked": false,
+      "from_cache": false
+    },
+    {
+      "name": "Jar",
+      "type": "outlook",
+      "event_count": 1257,
+      "blocked": false,
+      "from_cache": false
+    },
+    {
+      "name": "Tønsberg",
+      "type": "outlook",
+      "event_count": 669,
+      "blocked": false,
+      "from_cache": false
+    }
+  ]
+}

@@ -1,0 +1,3608 @@
+[
+  {
+    "date": "24.08.2026",
+    "name": "Kongsberg gruppen",
+    "datetime": "2026-08-24T00:00:00",
+    "duration_hours": 0.0
+  },
+  {
+    "date": "01.09.2026",
+    "name": "Islegging",
+    "datetime": "2026-09-01T00:00:00",
+    "duration_hours": 0.0
+  },
+  {
+    "date": "12.09.2026",
+    "name": "Buskerud Skøytekrets - Samling",
+    "datetime": "2026-09-12T09:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "12.09.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-09-12T11:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "12.09.2026",
+    "name": "Skiold Bandy G2015",
+    "datetime": "2026-09-12T13:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "12.09.2026",
+    "name": "Drammen Bandy",
+    "datetime": "2026-09-12T16:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "13.09.2026",
+    "name": "Solberg SK: Elite bandy",
+    "datetime": "2026-09-13T10:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "14.09.2026",
+    "name": "KVGS",
+    "datetime": "2026-09-14T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-15T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "16.09.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-09-16T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-17T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "18.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-18T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.09.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-09-19T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.09.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-09-13T12:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-14T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.09.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-09-15T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-16T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.09.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-09-17T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.09.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-09-18T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.09.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-09-19T10:00:00",
+    "duration_hours": 1.833333333333334
+  },
+  {
+    "date": "13.09.2026",
+    "name": "Konnerud IL",
+    "datetime": "2026-09-13T13:30:00",
+    "duration_hours": 4.0
+  },
+  {
+    "date": "14.09.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-09-14T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.09.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-09-15T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.09.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-09-16T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.09.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-09-17T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.09.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-09-18T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.09.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-09-19T12:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.09.2026",
+    "name": "MIF - A-lag",
+    "datetime": "2026-09-13T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.09.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-09-14T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.09.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-09-15T20:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "16.09.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-09-16T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.09.2026",
+    "name": "Solberg SK - Elite",
+    "datetime": "2026-09-17T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "18.09.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-09-18T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.09.2026",
+    "name": "Skiold Bandy G2015",
+    "datetime": "2026-09-19T13:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.09.2026",
+    "name": "Solberg SK: Elite bandy",
+    "datetime": "2026-09-20T09:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "21.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-21T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-22T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "23.09.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-09-23T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-24T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "25.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-25T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "26.09.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-09-26T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.09.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-09-20T11:30:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "21.09.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-09-21T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.09.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-09-22T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-23T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "24.09.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-09-24T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.09.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-09-25T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "26.09.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-09-26T10:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.09.2026",
+    "name": "Konnerud IL",
+    "datetime": "2026-09-20T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.09.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-09-21T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.09.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-09-22T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.09.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-09-23T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "24.09.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-09-24T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.09.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-09-25T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "26.09.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-09-26T11:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.09.2026",
+    "name": "Solberg SK: Smågutt",
+    "datetime": "2026-09-20T16:00:00",
+    "duration_hours": 1.8333333333333321
+  },
+  {
+    "date": "21.09.2026",
+    "name": "KIF hockey U12",
+    "datetime": "2026-09-21T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.09.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-09-22T20:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "23.09.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-09-23T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.09.2026",
+    "name": "Solberg SK - Elitelag",
+    "datetime": "2026-09-24T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "25.09.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-09-25T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.09.2026",
+    "name": "Skiold: Bandy G2015",
+    "datetime": "2026-09-26T13:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "27.09.2026",
+    "name": "Solberg SK: Elite bandy",
+    "datetime": "2026-09-27T10:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "28.09.2026",
+    "name": "Solberg Bandy - Høstbandy Skole",
+    "datetime": "2026-09-28T08:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "29.09.2026",
+    "name": "Solberg Bandy - Høstbandy Skole",
+    "datetime": "2026-09-29T08:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "30.09.2026",
+    "name": "Solberg Bandy - Høstbandy Skole",
+    "datetime": "2026-09-30T08:00:00",
+    "duration_hours": 8.0
+  },
+  {
+    "date": "01.10.2026",
+    "name": "KIF Aktivitetsuke",
+    "datetime": "2026-10-01T09:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "02.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-02T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "03.10.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-10-03T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.09.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-09-27T12:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-28T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-29T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "30.09.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-09-30T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-01T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "02.10.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-10-02T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "03.10.2026",
+    "name": "Solberg SK - Elite",
+    "datetime": "2026-10-03T10:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "27.09.2026",
+    "name": "Konnerud IL",
+    "datetime": "2026-09-27T13:30:00",
+    "duration_hours": 4.0
+  },
+  {
+    "date": "28.09.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-09-28T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.09.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-09-29T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "30.09.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-09-30T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.10.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-10-01T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.10.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-10-02T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "03.10.2026",
+    "name": "Drammen Bandy",
+    "datetime": "2026-10-03T12:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "27.09.2026",
+    "name": "Solberg Damelag",
+    "datetime": "2026-09-27T18:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.09.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-09-28T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.09.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-09-29T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "30.09.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-09-30T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.10.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-10-01T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.10.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-10-02T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.10.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-10-03T14:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "27.09.2026",
+    "name": "MIF A-lag",
+    "datetime": "2026-09-27T19:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "29.09.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-09-29T20:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "03.10.2026",
+    "name": "Åpen Ishall - Ingen garderobe",
+    "datetime": "2026-10-03T14:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "17.09.2026",
+    "name": "KIF hockey - Hockeytrim",
+    "datetime": "2026-09-17T20:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.09.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-09-17T21:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "04.10.2026",
+    "name": "Junior (Runar Andreassen) - Bandy junior",
+    "datetime": "2026-10-04T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-05T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-06T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.10.2026",
+    "name": "KVGS",
+    "datetime": "2026-10-07T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-08T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-09T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "10.10.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-10-10T08:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.10.2026",
+    "name": "Nordre Sande IL",
+    "datetime": "2026-10-04T10:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "05.10.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-10-05T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.10.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-10-06T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.10.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-10-07T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.10.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-10-08T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.10.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-10-09T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "10.10.2026",
+    "name": "Solberg SK - Elite",
+    "datetime": "2026-10-10T09:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "04.10.2026",
+    "name": "Konnerud IL",
+    "datetime": "2026-10-04T13:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "05.10.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-10-05T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.10.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-10-06T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-07T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "08.10.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-10-08T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.10.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-10-09T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "10.10.2026",
+    "name": "Drammen Bandy",
+    "datetime": "2026-10-10T11:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "04.10.2026",
+    "name": "KIF hockey - Kamp U15. Kongsberg vs. Frisk Asker 2",
+    "datetime": "2026-10-04T16:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "05.10.2026",
+    "name": "KIF hockey U12",
+    "datetime": "2026-10-05T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.10.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-10-06T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.10.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-10-07T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "08.10.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-10-08T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "09.10.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-10-09T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.10.2026",
+    "name": "Nordre Sande IL",
+    "datetime": "2026-10-11T09:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "12.10.2026",
+    "name": "KVGS",
+    "datetime": "2026-10-12T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-13T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.10.2026",
+    "name": "KVGS",
+    "datetime": "2026-10-14T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-15T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "16.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-16T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.10.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-10-17T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.10.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-10-11T10:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "12.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-12T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.10.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-10-13T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.10.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-10-14T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.10.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-10-15T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.10.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-10-16T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.10.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-10-17T10:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "11.10.2026",
+    "name": "Drammen Ballklubb",
+    "datetime": "2026-10-11T12:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "12.10.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-10-12T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.10.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-10-13T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-14T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "15.10.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-10-15T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.10.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-10-16T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.10.2026",
+    "name": "Drammen bandy",
+    "datetime": "2026-10-17T11:45:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "11.10.2026",
+    "name": "Konnerud IL",
+    "datetime": "2026-10-11T14:00:00",
+    "duration_hours": 4.0
+  },
+  {
+    "date": "12.10.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-10-12T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.10.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-10-13T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.10.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-10-14T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "15.10.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-10-15T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "16.10.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-10-16T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.10.2026",
+    "name": "Drammen Bandy",
+    "datetime": "2026-10-17T13:45:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "17.10.2026",
+    "name": "Skiold Drammen",
+    "datetime": "2026-10-17T16:00:00",
+    "duration_hours": 4.0
+  },
+  {
+    "date": "18.10.2026",
+    "name": "Junior (Runar Andreassen) - Bandy Junior",
+    "datetime": "2026-10-18T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-19T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-20T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.10.2026",
+    "name": "KVGS",
+    "datetime": "2026-10-21T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-22T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "23.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-23T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "24.10.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-10-24T08:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.10.2026",
+    "name": "Solberg SK: Elite bandy",
+    "datetime": "2026-10-18T10:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "19.10.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-10-19T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-10-20T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.10.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-10-21T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.10.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-10-22T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.10.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-10-23T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "24.10.2026",
+    "name": "Solberg SK - Elite",
+    "datetime": "2026-10-24T09:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "18.10.2026",
+    "name": "Nordre Sande IL",
+    "datetime": "2026-10-18T12:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "19.10.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-10-19T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-10-20T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-21T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "22.10.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-10-22T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.10.2026",
+    "name": "KIF hockey - U18 kamp. Kongsberg vs. Tønsberg",
+    "datetime": "2026-10-23T18:45:00",
+    "duration_hours": 2.25
+  },
+  {
+    "date": "24.10.2026",
+    "name": "Drammen Bandy",
+    "datetime": "2026-10-24T11:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "18.10.2026",
+    "name": "KIF ishockey - kamp JU14. Kongsberg vs. Lillehammer",
+    "datetime": "2026-10-18T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.10.2026",
+    "name": "KIF hockey U12",
+    "datetime": "2026-10-19T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.10.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-10-20T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.10.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-10-21T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "22.10.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-10-22T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "23.10.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-10-23T21:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.10.2026",
+    "name": "Drammen Bandy - Ekstra",
+    "datetime": "2026-10-24T13:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "25.10.2026",
+    "name": "Junior (Rune Andreassen) - Bandy Junior",
+    "datetime": "2026-10-25T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.10.2026",
+    "name": "KVGS",
+    "datetime": "2026-10-26T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-27T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.10.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-10-28T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-29T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "30.10.2026",
+    "name": "HalloVenn",
+    "datetime": "2026-10-30T08:00:00",
+    "duration_hours": 14.0
+  },
+  {
+    "date": "31.10.2026",
+    "name": "HalloVenn",
+    "datetime": "2026-10-31T08:00:00",
+    "duration_hours": 14.0
+  },
+  {
+    "date": "25.10.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-10-25T10:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "26.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-26T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-10-27T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.10.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-10-28T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "29.10.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-10-29T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.10.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-10-25T12:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.10.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-10-26T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-10-27T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.10.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-10-28T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "29.10.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-10-29T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.10.2026",
+    "name": "Konnerud IL",
+    "datetime": "2026-10-25T13:30:00",
+    "duration_hours": 4.0
+  },
+  {
+    "date": "26.10.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-10-26T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.10.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-10-27T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.10.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-10-28T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.10.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-10-29T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "01.10.2026",
+    "name": "Solberg SK - Elite",
+    "datetime": "2026-10-01T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "01.10.2026",
+    "name": "KIF hockey - Hockeytrim",
+    "datetime": "2026-10-01T20:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.10.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-10-01T21:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.11.2026",
+    "name": "Drammen Ballklubb",
+    "datetime": "2026-11-01T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-02T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-03T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "04.11.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-11-04T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-05T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "06.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-06T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.11.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-11-07T08:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.11.2026",
+    "name": "Eiker Falcon",
+    "datetime": "2026-11-01T10:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "02.11.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-11-02T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-11-03T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-04T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "05.11.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-11-05T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.11.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-11-06T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.11.2026",
+    "name": "Nordre Sande IL",
+    "datetime": "2026-11-07T09:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "01.11.2026",
+    "name": "Drammen Bandy - Ekstra økt",
+    "datetime": "2026-11-01T13:00:00",
+    "duration_hours": 4.0
+  },
+  {
+    "date": "02.11.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-11-02T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-11-03T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.11.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-11-04T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "05.11.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-11-05T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.11.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-11-06T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.11.2026",
+    "name": "Drammen Bandy - Ekstra økt",
+    "datetime": "2026-11-07T11:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "02.11.2026",
+    "name": "KIF hockey U12",
+    "datetime": "2026-11-02T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.11.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-11-03T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.11.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-11-04T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.11.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-11-05T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "06.11.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-11-06T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.11.2026",
+    "name": "KIF ishockey - kamp JU14. Kongsberg vs. Hasle-Løren",
+    "datetime": "2026-11-07T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.11.2026",
+    "name": "Solberg Damelag",
+    "datetime": "2026-11-01T18:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.11.2026",
+    "name": "KIF ishockey - Kamp Menn Senior. Kongsberg vs. Nes.",
+    "datetime": "2026-11-07T16:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "08.11.2026",
+    "name": "Drammen Ballklubb",
+    "datetime": "2026-11-08T09:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-09T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-10T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "11.11.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-11-11T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-12T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "13.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-13T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.11.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-11-14T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.11.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-11-08T10:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "09.11.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-11-09T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-11-10T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-11T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "12.11.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-11-12T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.11.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-11-13T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.11.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-11-14T10:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.11.2026",
+    "name": "Drammen Bandy - Ekstra økt",
+    "datetime": "2026-11-08T13:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "09.11.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-11-09T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-11-10T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.11.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-11-11T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "12.11.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-11-12T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.11.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-11-13T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.11.2026",
+    "name": "Drammen Bandy - Ekstra økt",
+    "datetime": "2026-11-14T11:30:00",
+    "duration_hours": 4.0
+  },
+  {
+    "date": "08.11.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-11-08T15:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.11.2026",
+    "name": "KIF hockey U12",
+    "datetime": "2026-11-09T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.11.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-11-10T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.11.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-11-11T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.11.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-11-12T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "13.11.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-11-13T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.11.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-11-15T09:30:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "16.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-16T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-17T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "18.11.2026",
+    "name": "KVGS",
+    "datetime": "2026-11-18T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.11.2026",
+    "name": "KVGS",
+    "datetime": "2026-11-19T14:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-20T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.11.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-11-21T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.11.2026",
+    "name": "KIF Ishockey - Kamp. Kongsberg vs. Narvik",
+    "datetime": "2026-11-15T12:15:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "16.11.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-11-16T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-11-17T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.11.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-11-18T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-19T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.11.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-11-20T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.11.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-11-21T12:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "15.11.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-11-15T15:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "16.11.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-11-16T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-11-17T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-18T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.11.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-11-19T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.11.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-11-20T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.11.2026",
+    "name": "KIF ishockey - kamp JU14. Kongsberg vs. Frisk Asker",
+    "datetime": "2026-11-21T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "16.11.2026",
+    "name": "KIF hockey U12",
+    "datetime": "2026-11-16T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.11.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-11-17T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.11.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-11-18T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.11.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-11-19T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.11.2026",
+    "name": "KIF hockey - Kamp u18. Kongsberg vs. Skedsmo",
+    "datetime": "2026-11-20T19:45:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "22.11.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-11-22T10:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "23.11.2026",
+    "name": "KVGS",
+    "datetime": "2026-11-23T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-24T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "25.11.2026",
+    "name": "KVGS",
+    "datetime": "2026-11-25T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-26T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "27.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-27T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.11.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-11-28T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.11.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-11-22T12:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "23.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-23T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-11-24T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.11.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-11-25T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.11.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-11-26T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.11.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-11-27T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.11.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-11-28T13:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "23.11.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-11-23T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-11-24T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-25T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "26.11.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-11-26T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.11.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-11-27T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.11.2026",
+    "name": "KIF ishockey - Kamp Menn Senior. Kongsberg vs. Lørenskog 2",
+    "datetime": "2026-11-28T16:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "23.11.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-11-23T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.11.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-11-24T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.11.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-11-25T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "26.11.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-11-26T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "27.11.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-11-27T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.11.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-11-29T10:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "30.11.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-11-30T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-01T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "02.12.2026",
+    "name": "KVGS",
+    "datetime": "2026-12-02T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-03T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "04.12.2026",
+    "name": "KVGS",
+    "datetime": "2026-12-04T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.12.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-12-05T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.11.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-11-29T13:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "30.11.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-11-30T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-12-01T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.12.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-12-02T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.12.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-12-03T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-04T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "05.12.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-12-05T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "29.11.2026",
+    "name": "KIF hockey - Kamp U18. Kongsberg vs. Nes",
+    "datetime": "2026-11-29T17:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "30.11.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-11-30T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-12-01T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-02T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "03.12.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-12-03T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.12.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-12-04T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "05.12.2026",
+    "name": "KIF ishockey - Kamp Menn Senior. Kongsberg vs. Furuset 2",
+    "datetime": "2026-12-05T16:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "30.11.2026",
+    "name": "KIF hockey U12",
+    "datetime": "2026-11-30T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-12-01T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.12.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-12-02T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "03.12.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-12-03T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "04.12.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-12-04T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "04.12.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-12-04T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.12.2026",
+    "name": "KVGS",
+    "datetime": "2026-12-07T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-08T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.12.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-12-09T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-10T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "11.12.2026",
+    "name": "KVGS",
+    "datetime": "2026-12-11T08:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.12.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-12-12T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-07T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-12-08T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-09T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "10.12.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-12-10T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-11T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.12.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-12-07T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-12-08T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.12.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-12-09T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "10.12.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-12-10T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.12.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-12-11T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.12.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-12-07T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.12.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-12-08T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.12.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-12-09T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.12.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-12-10T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "11.12.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-12-11T18:30:00",
+    "duration_hours": 1.25
+  },
+  {
+    "date": "11.12.2026",
+    "name": "KIF hockey - Kamp U18. Kongsberg vs. Gjøvik",
+    "datetime": "2026-12-11T19:45:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "13.12.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-12-13T09:30:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "14.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-14T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-15T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "16.12.2026",
+    "name": "KVGS",
+    "datetime": "2026-12-16T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-17T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "18.12.2026",
+    "name": "KIF hockey - U15",
+    "datetime": "2026-12-18T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "19.12.2026",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2026-12-19T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.12.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-12-13T12:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.12.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-12-14T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-12-15T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.12.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-12-16T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.12.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-12-17T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.12.2026",
+    "name": "KIF hockey - U18",
+    "datetime": "2026-12-18T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "13.12.2026",
+    "name": "KIF ishockey - kamp JU14. Kongsberg vs. Storhamar/Ullensaker",
+    "datetime": "2026-12-13T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.12.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-12-14T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-12-15T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-16T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.12.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-12-17T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.12.2026",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2026-12-18T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.12.2026",
+    "name": "KIF hockey - Kamp U18. Kongsberg vs. Hasle-Løren",
+    "datetime": "2026-12-13T17:15:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "14.12.2026",
+    "name": "KIF hockey U12",
+    "datetime": "2026-12-14T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.12.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-12-15T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.12.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-12-16T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "17.12.2026",
+    "name": "KIF skøyter",
+    "datetime": "2026-12-17T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "20.12.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-12-20T10:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "21.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-21T15:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-22T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "23.12.2026",
+    "name": "Pensjonisthockey",
+    "datetime": "2026-12-23T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.12.2026",
+    "name": "Julaften",
+    "datetime": "2026-12-24T00:00:00",
+    "duration_hours": 0.0
+  },
+  {
+    "date": "25.12.2026",
+    "name": "Første juledag",
+    "datetime": "2026-12-25T00:00:00",
+    "duration_hours": 0.0
+  },
+  {
+    "date": "26.12.2026",
+    "name": "Andre juledag",
+    "datetime": "2026-12-26T00:00:00",
+    "duration_hours": 0.0
+  },
+  {
+    "date": "20.12.2026",
+    "name": "Åpen Ishall",
+    "datetime": "2026-12-20T13:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "21.12.2026",
+    "name": "KIF Hockeytrim",
+    "datetime": "2026-12-21T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2026-12-22T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-23T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.12.2026",
+    "name": "KIF hockey - Kamp U15. Kongsberg vs. Sparta Sarp 2",
+    "datetime": "2026-12-20T16:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "21.12.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-12-21T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2026-12-22T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.12.2026",
+    "name": "KIF hockey - JU16",
+    "datetime": "2026-12-23T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.12.2026",
+    "name": "KIF hockey U12",
+    "datetime": "2026-12-21T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.12.2026",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2026-12-22T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.12.2026",
+    "name": "KIF hockey - JU14",
+    "datetime": "2026-12-23T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-28T11:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "29.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-29T11:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "30.12.2026",
+    "name": "Åpen ishall",
+    "datetime": "2026-12-30T11:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "31.12.2026",
+    "name": "Nyttårsaften",
+    "datetime": "2026-12-31T00:00:00",
+    "duration_hours": 0.0
+  },
+  {
+    "date": "01.01.2027",
+    "name": "1. nyttårsdag",
+    "datetime": "2027-01-01T00:00:00",
+    "duration_hours": 0.0
+  },
+  {
+    "date": "02.01.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-01-02T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2026-12-01T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.12.2026",
+    "name": "Eiker Falcons",
+    "datetime": "2026-12-01T20:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "04.01.2027",
+    "name": "KIS (MYPA)",
+    "datetime": "2027-01-04T13:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "05.01.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-01-05T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.01.2027",
+    "name": "KVGS",
+    "datetime": "2027-01-06T10:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.01.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-01-07T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.01.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-01-08T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.01.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-01-09T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.01.2027",
+    "name": "KIF Hockeytrim",
+    "datetime": "2027-01-04T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.01.2027",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2027-01-05T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.01.2027",
+    "name": "Pensjonisthockey",
+    "datetime": "2027-01-06T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.01.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-01-07T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.01.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-01-08T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.01.2027",
+    "name": "KIF hockey - Kamp U15. Kongsberg vs. Nes",
+    "datetime": "2027-01-09T11:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "04.01.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-01-04T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.01.2027",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2027-01-05T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "06.01.2027",
+    "name": "KIF hockey - JU16",
+    "datetime": "2027-01-06T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.01.2027",
+    "name": "KIF skøyter",
+    "datetime": "2027-01-07T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "08.01.2027",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2027-01-08T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.01.2027",
+    "name": "Åpen Ishall",
+    "datetime": "2027-01-09T13:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.01.2027",
+    "name": "KIF ishockey - Kamp Menn Senior. Kongsberg vs. Kråkene Moss",
+    "datetime": "2027-01-09T16:00:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "10.01.2027",
+    "name": "KIF ishockey - kamp JU14. Kongsberg vs. Jutul",
+    "datetime": "2027-01-10T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "11.01.2027",
+    "name": "KIS (MYPA)",
+    "datetime": "2027-01-11T13:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "12.01.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-01-12T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.01.2027",
+    "name": "Pensjonisthockey",
+    "datetime": "2027-01-13T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.01.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-01-14T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.01.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-01-15T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "16.01.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-01-16T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.01.2027",
+    "name": "KIF Hockeytrim",
+    "datetime": "2027-01-11T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.01.2027",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2027-01-12T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.01.2027",
+    "name": "KIF hockey - JU16",
+    "datetime": "2027-01-13T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.01.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-01-14T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.01.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-01-15T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.01.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-01-11T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.01.2027",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2027-01-12T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "13.01.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-01-13T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "14.01.2027",
+    "name": "KIF skøyter",
+    "datetime": "2027-01-14T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "15.01.2027",
+    "name": "KIF hockey - Kamp U15. Kongsberg vs. Frisk Asker 2",
+    "datetime": "2027-01-15T19:30:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "18.01.2027",
+    "name": "KIS (MYPA)",
+    "datetime": "2027-01-18T13:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "19.01.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-01-19T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.01.2027",
+    "name": "Pensjonisthockey",
+    "datetime": "2027-01-20T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.01.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-01-21T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.01.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-01-22T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "23.01.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-01-23T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.01.2027",
+    "name": "KIF Hockeytrim",
+    "datetime": "2027-01-18T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.01.2027",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2027-01-19T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.01.2027",
+    "name": "KIF hockey - JU16",
+    "datetime": "2027-01-20T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.01.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-01-21T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.01.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-01-22T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "18.01.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-01-18T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.01.2027",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2027-01-19T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "20.01.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-01-20T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "21.01.2027",
+    "name": "KIF skøyter",
+    "datetime": "2027-01-21T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "22.01.2027",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2027-01-22T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.01.2027",
+    "name": "KIF ishockey - Kamp Menn Senior. Kongsberg vs. Rosenhoff",
+    "datetime": "2027-01-24T13:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "25.01.2027",
+    "name": "KIS (MYPA)",
+    "datetime": "2027-01-25T13:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "26.01.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-01-26T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.01.2027",
+    "name": "Pensjonisthockey",
+    "datetime": "2027-01-27T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.01.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-01-28T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.01.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-01-29T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "30.01.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-01-30T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.01.2027",
+    "name": "KIF hockey - Kamp U15. Kongsberg vs. Ullensaker",
+    "datetime": "2027-01-24T15:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "25.01.2027",
+    "name": "KIF Hockeytrim",
+    "datetime": "2027-01-25T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.01.2027",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2027-01-26T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.01.2027",
+    "name": "KIF hockey - JU16",
+    "datetime": "2027-01-27T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "28.01.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-01-28T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "29.01.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-01-29T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "24.01.2027",
+    "name": "KIF hockey - U18 kamp. Kongsberg vs. Gjøvik",
+    "datetime": "2027-01-24T17:15:00",
+    "duration_hours": 2.25
+  },
+  {
+    "date": "25.01.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-01-25T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.01.2027",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2027-01-26T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "27.01.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-01-27T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "28.01.2027",
+    "name": "KIF skøyter",
+    "datetime": "2027-01-28T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "29.01.2027",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2027-01-29T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "31.01.2027",
+    "name": "KIF hockey - U18 kamp. Kongsberg vs. Jar/Jutul 3",
+    "datetime": "2027-01-31T17:15:00",
+    "duration_hours": 2.25
+  },
+  {
+    "date": "01.02.2027",
+    "name": "KIS (MYPA)",
+    "datetime": "2027-02-01T13:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "02.02.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-02-02T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.02.2027",
+    "name": "Pensjonisthockey",
+    "datetime": "2027-02-03T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.02.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-02-04T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.02.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-02-05T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "06.02.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-02-06T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.02.2027",
+    "name": "KIF Hockeytrim",
+    "datetime": "2027-02-01T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.02.2027",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2027-02-02T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.02.2027",
+    "name": "KIF hockey - JU16",
+    "datetime": "2027-02-03T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "04.02.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-02-04T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.02.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-02-05T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "06.02.2027",
+    "name": "KIF ishockey - kamp JU14. Kongsberg vs. Furuset",
+    "datetime": "2027-02-06T15:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.02.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-02-01T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.02.2027",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2027-02-02T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.02.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-02-03T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.02.2027",
+    "name": "KIF skøyter",
+    "datetime": "2027-02-04T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "05.02.2027",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2027-02-05T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.02.2027",
+    "name": "KIF hockey U12",
+    "datetime": "2027-02-01T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.02.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-02-02T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.02.2027",
+    "name": "KIF hockey - U12/JU12",
+    "datetime": "2027-02-03T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.02.2027",
+    "name": "KIF hockey - Hockeytrim",
+    "datetime": "2027-02-04T20:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "02.02.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-02-02T20:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "04.02.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-02-04T21:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "07.02.2027",
+    "name": "KIF hockey - Kamp U15. Kongsberg vs. Tromsø",
+    "datetime": "2027-02-07T10:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "08.02.2027",
+    "name": "KIS (MYPA)",
+    "datetime": "2027-02-08T13:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "09.02.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-02-09T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.02.2027",
+    "name": "Pensjonisthockey",
+    "datetime": "2027-02-10T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.02.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-02-11T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.02.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-02-12T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "13.02.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-02-13T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "07.02.2027",
+    "name": "KIF ishockey - Kamp Menn Senior. Kongsberg vs. Skien",
+    "datetime": "2027-02-07T19:15:00",
+    "duration_hours": 2.5
+  },
+  {
+    "date": "08.02.2027",
+    "name": "KIF Hockeytrim",
+    "datetime": "2027-02-08T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.02.2027",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2027-02-09T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.02.2027",
+    "name": "KIF hockey - JU16",
+    "datetime": "2027-02-10T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "11.02.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-02-11T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "12.02.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-02-12T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "08.02.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-02-08T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.02.2027",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2027-02-09T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.02.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-02-10T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.02.2027",
+    "name": "KIF skøyter",
+    "datetime": "2027-02-11T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "12.02.2027",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2027-02-12T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "08.02.2027",
+    "name": "KIF hockey U12",
+    "datetime": "2027-02-08T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "09.02.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-02-09T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "10.02.2027",
+    "name": "KIF hockey - U12/JU12",
+    "datetime": "2027-02-10T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "11.02.2027",
+    "name": "KIF hockey - Hockeytrim",
+    "datetime": "2027-02-11T20:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "09.02.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-02-09T20:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "11.02.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-02-11T21:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "14.02.2027",
+    "name": "KIF hockey - U18 kamp. Kongsberg vs. Jar/Jutul 2",
+    "datetime": "2027-02-14T17:15:00",
+    "duration_hours": 2.25
+  },
+  {
+    "date": "15.02.2027",
+    "name": "KIS (MYPA)",
+    "datetime": "2027-02-15T13:00:00",
+    "duration_hours": 1.75
+  },
+  {
+    "date": "16.02.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-02-16T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.02.2027",
+    "name": "Pensjonisthockey",
+    "datetime": "2027-02-17T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.02.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-02-18T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.02.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-02-19T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "20.02.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-02-20T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.02.2027",
+    "name": "KIF Hockeytrim",
+    "datetime": "2027-02-15T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2027-02-16T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.02.2027",
+    "name": "KIF hockey - JU16",
+    "datetime": "2027-02-17T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "18.02.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-02-18T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "19.02.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-02-19T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "15.02.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-02-15T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2027-02-16T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.02.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-02-17T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.02.2027",
+    "name": "KIF skøyter",
+    "datetime": "2027-02-18T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "19.02.2027",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2027-02-19T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "15.02.2027",
+    "name": "KIF hockey U12",
+    "datetime": "2027-02-15T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "16.02.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-02-16T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "17.02.2027",
+    "name": "KIF hockey - U12/JU12",
+    "datetime": "2027-02-17T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "18.02.2027",
+    "name": "KIF hockey - Hockeytrim",
+    "datetime": "2027-02-18T20:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "16.02.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-02-16T20:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "18.02.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-02-18T21:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "21.02.2027",
+    "name": "KIF ishockey - kamp JU14. Kongsberg vs. Vålerenga",
+    "datetime": "2027-02-21T14:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "22.02.2027",
+    "name": "KIF Hockeytrim",
+    "datetime": "2027-02-22T16:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-02-23T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.02.2027",
+    "name": "Pensjonisthockey",
+    "datetime": "2027-02-24T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.02.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-02-25T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.02.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-02-26T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "27.02.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-02-27T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.02.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-02-22T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2027-02-23T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.02.2027",
+    "name": "KIF hockey - JU16",
+    "datetime": "2027-02-24T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "25.02.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-02-25T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "26.02.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-02-26T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "22.02.2027",
+    "name": "KIF hockey U12",
+    "datetime": "2027-02-22T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2027-02-23T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.02.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-02-24T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.02.2027",
+    "name": "KIF skøyter",
+    "datetime": "2027-02-25T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "26.02.2027",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2027-02-26T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "22.02.2027",
+    "name": "KIF hochey - JU16",
+    "datetime": "2027-02-22T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "23.02.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-02-23T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "24.02.2027",
+    "name": "KIF hockey - U12/JU12",
+    "datetime": "2027-02-24T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "25.02.2027",
+    "name": "KIF hockey - Hockeytrim",
+    "datetime": "2027-02-25T20:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "23.02.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-02-23T20:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "25.02.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-02-25T21:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.03.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-03-01T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-03-02T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.03.2027",
+    "name": "Pensjonisthockey",
+    "datetime": "2027-03-03T11:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.03.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-03-04T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.03.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-03-05T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "06.03.2027",
+    "name": "KIF ishockey - Rekreasjonslaget",
+    "datetime": "2027-03-06T09:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.03.2027",
+    "name": "KIF hockey U12",
+    "datetime": "2027-03-01T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "KIF hockey - Hockeyskole",
+    "datetime": "2027-03-02T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.03.2027",
+    "name": "KIF hockey - JU16",
+    "datetime": "2027-03-03T17:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "04.03.2027",
+    "name": "KIF hockey - U8/U9",
+    "datetime": "2027-03-04T17:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "05.03.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-03-05T18:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.03.2027",
+    "name": "KIF hochey - JU16",
+    "datetime": "2027-03-01T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "KIF hockey - U6/U7",
+    "datetime": "2027-03-02T18:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.03.2027",
+    "name": "KIF hockey - JU14",
+    "datetime": "2027-03-03T17:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.03.2027",
+    "name": "KIF skøyter",
+    "datetime": "2027-03-04T18:00:00",
+    "duration_hours": 2.0
+  },
+  {
+    "date": "05.03.2027",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2027-03-05T20:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.03.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-03-01T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "02.03.2027",
+    "name": "KIF hockey - U10/U11",
+    "datetime": "2027-03-02T19:00:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "03.03.2027",
+    "name": "KIF hockey - U12/JU12",
+    "datetime": "2027-03-03T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "04.03.2027",
+    "name": "KIF hockey - Hockeytrim",
+    "datetime": "2027-03-04T20:00:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "02.03.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-03-02T20:00:00",
+    "duration_hours": 3.0
+  },
+  {
+    "date": "04.03.2027",
+    "name": "Eiker Falcons",
+    "datetime": "2027-03-04T21:30:00",
+    "duration_hours": 1.5
+  },
+  {
+    "date": "01.02.2027",
+    "name": "KIF hochey - JU16",
+    "datetime": "2027-02-01T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.02.2027",
+    "name": "KIF hockey - U18",
+    "datetime": "2027-02-01T18:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.02.2027",
+    "name": "KIF hockey - U15",
+    "datetime": "2027-02-01T19:30:00",
+    "duration_hours": 1.0
+  },
+  {
+    "date": "01.02.2027",
+    "name": "KIF hockey - A-lag",
+    "datetime": "2027-02-01T20:30:00",
+    "duration_hours": 1.0
+  }
+]

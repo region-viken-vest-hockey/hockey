@@ -1,0 +1,1430 @@
+[
+  {
+    "date": "12.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-12T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "19.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-19T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "26.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-26T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "02.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-02T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "09.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-09T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "16.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-16T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "23.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-23T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "30.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-30T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "07.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-07T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "14.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-14T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "21.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-21T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "28.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-28T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "04.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-04T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "13.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-13T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "20.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-20T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "27.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-27T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "03.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-03T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "10.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-10T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "17.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-17T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "24.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-24T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "01.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-01T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "08.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-08T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "15.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-15T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "22.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-22T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "29.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-29T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "05.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-05T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "14.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-14T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "21.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-21T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "28.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-28T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "04.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-04T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "11.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-11T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "18.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-18T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "25.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-25T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "02.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-02T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "09.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-09T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "16.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-16T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "30.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-30T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "06.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-06T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "15.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-15T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "22.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-22T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "29.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-29T17:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "05.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-05T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "12.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-12T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "19.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-19T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "26.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-26T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "03.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-03T17:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "10.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-10T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "17.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-17T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "09.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-09T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "16.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-16T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "23.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-23T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "30.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-30T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "06.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-06T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "13.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-13T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "20.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-20T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "27.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-27T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "04.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-04T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "11.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-11T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "18.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-18T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "10.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-10T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "17.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-17T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "24.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-24T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "31.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-31T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "07.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-07T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "14.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-14T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "21.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-21T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "28.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-28T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "05.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-05T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "12.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-12T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "19.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-19T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "02.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-02T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "10.10.2026",
+    "name": "Kamp",
+    "datetime": "2026-10-10T16:00:00",
+    "duration_hours": 2.0,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "07.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-07T16:00:00",
+    "duration_hours": 2.0,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "21.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-21T16:00:00",
+    "duration_hours": 2.0,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "05.12.2026",
+    "name": "Kamp",
+    "datetime": "2026-12-05T16:00:00",
+    "duration_hours": 2.0,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "11.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-11T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "18.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-18T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "25.10.2026",
+    "name": "Trening",
+    "datetime": "2026-10-25T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "01.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-01T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "08.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-08T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "15.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-15T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "22.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-22T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "29.11.2026",
+    "name": "Trening",
+    "datetime": "2026-11-29T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "06.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-06T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "13.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-13T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "20.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-20T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "03.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-03T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "29.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-29T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "20.10.2026",
+    "name": "Kamp",
+    "datetime": "2026-10-20T20:00:00",
+    "duration_hours": 2.5,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "03.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-03T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "05.01.2027",
+    "name": "Kamp",
+    "datetime": "2027-01-05T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "27.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-27T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "13.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-13T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "11.12.2026",
+    "name": "Kamp",
+    "datetime": "2026-12-11T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "24.12.2026",
+    "name": "Trening",
+    "datetime": "2026-12-24T08:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "24.10.2026",
+    "name": "Kamp",
+    "datetime": "2026-10-24T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "08.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-08T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "28.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-28T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "10.12.2026",
+    "name": "Kamp",
+    "datetime": "2026-12-10T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "01.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-01T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "06.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-06T20:00:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "13.12.2026",
+    "name": "Kamp",
+    "datetime": "2026-12-13T16:30:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "11.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-11T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "18.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-18T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "25.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-25T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "01.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-01T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "08.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-08T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "15.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-15T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "22.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-22T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "01.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-01T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "08.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-08T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "15.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-15T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "22.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-22T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "12.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-12T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "19.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-19T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "26.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-26T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "02.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-02T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "09.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-09T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "16.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-16T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "23.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-23T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "02.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-02T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "09.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-09T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "16.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-16T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "23.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-23T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "13.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-13T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "20.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-20T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "27.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-27T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "03.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-03T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "10.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-10T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "17.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-17T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "24.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-24T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "03.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-03T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "10.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-10T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "17.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-17T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "24.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-24T18:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "07.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-07T17:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "14.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-14T17:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "21.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-21T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "28.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-28T17:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "04.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-04T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "11.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-11T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "18.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-18T17:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "25.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-25T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "04.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-04T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "11.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-11T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "18.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-18T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "25.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-25T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "08.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-08T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "15.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-15T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "22.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-22T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "29.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-29T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "05.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-05T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "12.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-12T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "19.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-19T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "26.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-26T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "05.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-05T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "12.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-12T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "19.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-19T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "26.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-26T17:00:00",
+    "duration_hours": 0.8333333333333334,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "09.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-09T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "16.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-16T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "23.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-23T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "30.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-30T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "06.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-06T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "13.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-13T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "20.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-20T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "27.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-27T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "06.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-06T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "13.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-13T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "20.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-20T08:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "27.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-27T09:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "09.01.2027",
+    "name": "Kamp",
+    "datetime": "2027-01-09T16:00:00",
+    "duration_hours": 2.0,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "24.01.2027",
+    "name": "Kamp",
+    "datetime": "2027-01-24T17:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "06.02.2027",
+    "name": "Kamp",
+    "datetime": "2027-02-06T16:00:00",
+    "duration_hours": 2.0,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "16.02.2027",
+    "name": "Kamp",
+    "datetime": "2027-02-16T19:00:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "07.03.2027",
+    "name": "Kamp",
+    "datetime": "2027-03-07T17:00:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "10.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-10T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "17.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-17T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "24.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-24T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "31.01.2027",
+    "name": "Trening",
+    "datetime": "2027-01-31T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "07.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-07T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "14.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-14T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "21.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-21T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "28.02.2027",
+    "name": "Trening",
+    "datetime": "2027-02-28T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "07.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-07T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "14.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-14T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "21.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-21T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "28.03.2027",
+    "name": "Trening",
+    "datetime": "2027-03-28T18:30:00",
+    "duration_hours": 1.3333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "12.01.2027",
+    "name": "Kamp",
+    "datetime": "2027-01-12T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "26.01.2027",
+    "name": "Kamp",
+    "datetime": "2027-01-26T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "02.03.2027",
+    "name": "Kamp",
+    "datetime": "2027-03-02T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "05.03.2027",
+    "name": "Kamp",
+    "datetime": "2027-03-05T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "08.01.2027",
+    "name": "Kamp",
+    "datetime": "2027-01-08T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "16.01.2027",
+    "name": "Kamp",
+    "datetime": "2027-01-16T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "14.02.2027",
+    "name": "Kamp",
+    "datetime": "2027-02-14T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "04.03.2027",
+    "name": "Kamp",
+    "datetime": "2027-03-04T20:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "14.03.2027",
+    "name": "Kamp",
+    "datetime": "2027-03-14T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "31.01.2027",
+    "name": "Kamp",
+    "datetime": "2027-01-31T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "07.02.2027",
+    "name": "Kamp",
+    "datetime": "2027-02-07T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "27.02.2027",
+    "name": "Kamp",
+    "datetime": "2027-02-27T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "13.03.2027",
+    "name": "Kamp",
+    "datetime": "2027-03-13T16:00:00",
+    "duration_hours": 2.3333333333333335,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "17.01.2027",
+    "name": "Kamp",
+    "datetime": "2027-01-17T16:30:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "12.02.2027",
+    "name": "Kamp",
+    "datetime": "2027-02-12T20:00:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "Holmen Ishall"
+  },
+  {
+    "date": "06.03.2027",
+    "name": "Kamp",
+    "datetime": "2027-03-06T16:00:00",
+    "duration_hours": 1.8333333333333333,
+    "location": "Holmen Ishall"
+  }
+]
