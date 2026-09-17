@@ -39,7 +39,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-STAGE3_SESSION_SCHEMA_VERSION = 2
+STAGE3_SESSION_SCHEMA_VERSION = 3
 
 # ---------------------------------------------------------------------------
 # Status / scope / transition vocabulary
@@ -167,6 +167,11 @@ class Stage3Session:
     pending_decision: dict[str, Any] | None = None
     decision_history: list[dict[str, Any]] = field(default_factory=list)
     attempts: dict[str, Any] = field(default_factory=dict)
+    # One concise record per emitted Stage 3 attempt (action signature,
+    # candidate scope and whether it made progress). This is the canonical
+    # continuation evidence -- not a raw attempt cap -- the LLM/controller
+    # reasons over; see ``stage3_progress``.
+    search_attempts: list[dict[str, Any]] = field(default_factory=list)
     finalized_revision: int | None = None
     finalized_fingerprint: str | None = None
 
@@ -334,6 +339,30 @@ class Stage3Session:
         }
         self.status = _CAPABILITY_STATUS.get(capability, STATUS_AWAITING_ADOPTION)
 
+    # -- continuation / progress evidence --------------------------------
+
+    def record_search_attempt(self, record: Mapping[str, Any]) -> dict[str, Any]:
+        """Fold one emitted attempt into the concise search history."""
+        from .stage3_progress import upsert_attempt
+
+        entry = dict(record)
+        self.search_attempts = upsert_attempt(self.search_attempts, entry)
+        return entry
+
+    def latest_hard_violations(self) -> int | None:
+        for item in reversed(self.search_attempts):
+            if item.get("hard_violations") is not None:
+                return int(item["hard_violations"])
+        return None
+
+    def search_history(self) -> dict[str, Any]:
+        from .stage3_progress import build_search_history
+
+        return build_search_history(self.search_attempts)
+
+    def circuit_breaker_tripped(self) -> bool:
+        return bool(self.search_history().get("circuit_breaker_tripped"))
+
     def clear_pending(self) -> None:
         """Drop the pending decision and recompute the non-pending status.
 
@@ -382,6 +411,7 @@ class Stage3Session:
             "pending_decision": self.pending_decision,
             "decision_history": list(self.decision_history),
             "attempts": dict(self.attempts),
+            "search_attempts": [dict(item) for item in self.search_attempts],
             "finalized_revision": self.finalized_revision,
             "finalized_fingerprint": self.finalized_fingerprint,
         }
@@ -427,6 +457,7 @@ class Stage3Session:
             pending_decision=dict(data["pending_decision"]) if isinstance(data.get("pending_decision"), dict) else None,
             decision_history=[dict(item) for item in (data.get("decision_history") or [])],
             attempts=dict(data.get("attempts") or {}),
+            search_attempts=[dict(item) for item in (data.get("search_attempts") or [])],
             finalized_revision=(
                 int(data["finalized_revision"]) if data.get("finalized_revision") is not None else None
             ),

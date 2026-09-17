@@ -6,7 +6,6 @@ from typing import Any
 
 from ...pipeline.run_log_paths import resolve_active_run_log_dir
 from .interactive_state_io import (
-    _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
     _current_run_id,
     _read_stage3_interactive_state,
     _write_stage3_interactive_state,
@@ -22,6 +21,8 @@ def _emit_stage3_pareto_decision(
     end: "Any",
     portfolio: "list[dict[str, Any]] | None",
     log_fn: "Any",
+    *,
+    search_arguments: "dict[str, Any] | None" = None,
 ) -> int:
     """Build, persist and print the Stage 3 :class:`DecisionContext` for a
     completed multi-objective (Pareto) search attempt (issue #264 P1 /
@@ -41,14 +42,29 @@ def _emit_stage3_pareto_decision(
     so ``best_plan``/``best_attempt`` are always already present here.
     """
     import json as _json
+    from dataclasses import replace as _dc_replace
 
     from ...application.decisions import DecisionContext
+    from ...application.stage3_progress import (
+        build_attempt_record,
+        build_search_history,
+        upsert_attempt,
+    )
+    from ...application.stage3_session_store import Stage3SessionStore, fingerprint_plan
     from ...pipeline.fingerprints import stable_payload_sha256
     from ...stage3_decision import STAGE3_DECISION_ACTIONS, _OPTIMIZE_PLAN_SCHEMAS
 
     run_id = _current_run_id(state)
     interactive_state = _read_stage3_interactive_state(state, expected_run_id=run_id)
     attempts_used = int(interactive_state.get("attempts_used", 0)) + 1
+
+    # Continuation evidence is captured against the candidate this search was
+    # requested from, before the new candidates are considered.
+    store = Stage3SessionStore(state.work_dir)
+    session_before = store.load(expected_run_id=run_id)
+    prior_fingerprint = session_before.candidate_fingerprint
+    prior_revision = session_before.candidate_revision
+    prior_hard_violations = session_before.latest_hard_violations()
 
     if not portfolio:
         # Nothing non-dominated came back (e.g. every epoch converged to
@@ -77,8 +93,36 @@ def _emit_stage3_pareto_decision(
     entries = [{**item, "candidate_ref": f"pareto:{attempts_used}:{index}"} for index, item in enumerate(portfolio)]
     candidate_refs = [entry["candidate_ref"] for entry in entries]
 
+    entry_fingerprints = [fp for fp in (fingerprint_plan(entry["candidate"]) for entry in entries) if fp]
+    entry_hard_counts = [
+        len((entry.get("verify_result") or {}).get("violations") or []) for entry in entries
+    ]
+    hard_violation_count = min(entry_hard_counts) if entry_hard_counts else None
+    made_progress = bool(entry_fingerprints) and (
+        not prior_fingerprint
+        or any(fp != prior_fingerprint for fp in entry_fingerprints)
+        or (
+            prior_hard_violations is not None
+            and hard_violation_count is not None
+            and hard_violation_count < prior_hard_violations
+        )
+    )
+    search_attempt = build_attempt_record(
+        action_id="optimize_plan",
+        arguments=search_arguments,
+        candidate_revision=prior_revision,
+        candidate_fingerprint=prior_fingerprint,
+        transition="run_search",
+        progress=made_progress,
+        hard_violations=hard_violation_count,
+    )
+    search_history = build_search_history(
+        upsert_attempt(session_before.search_attempts, search_attempt)
+    )
+    circuit_breaker_tripped = bool(search_history.get("circuit_breaker_tripped"))
+
     available = list(STAGE3_DECISION_ACTIONS)
-    if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
+    if circuit_breaker_tripped:
         available.remove("optimize_plan")
 
     problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
@@ -99,6 +143,7 @@ def _emit_stage3_pareto_decision(
         baseline_hard_violations=tuple(baseline_hard_violations),
         facts={
             "epoch_count": len(entries),
+            "search_history": search_history,
             "candidates": [
                 {
                     "candidate_ref": entry["candidate_ref"],
@@ -118,6 +163,16 @@ def _emit_stage3_pareto_decision(
     )
 
     interactive_state["run_id"] = run_id
+    if circuit_breaker_tripped:
+        context = _dc_replace(
+            context,
+            warnings=tuple(context.warnings)
+            + (
+                "Stage 3 emergency circuit breaker tripped after an implausibly high "
+                "number of actions: a technical safety stop for runaway or broken "
+                "orchestration, not evidence that the scheduling problem is unsolvable.",
+            ),
+        )
     interactive_state["attempts_used"] = attempts_used
     interactive_state["pending_candidates"] = entries
     interactive_state.pop("pending_candidate", None)
@@ -125,14 +180,13 @@ def _emit_stage3_pareto_decision(
     interactive_state["last_context"] = context.to_dict()
 
     try:
-        from ...application.stage3_session_store import Stage3SessionStore
-
-        Stage3SessionStore(state.work_dir).record_emission(
+        store.record_emission(
             interactive_state,
             candidate_revision=attempts_used,
             run_id=run_id,
             transition="run_search",
             action_id="optimize_plan",
+            search_attempt=search_attempt,
         )
     except Exception as exc:
         log_fn(f"stage3_pareto attempt {attempts_used}: could not persist Stage 3 session: {exc}")

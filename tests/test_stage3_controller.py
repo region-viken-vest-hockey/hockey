@@ -317,6 +317,245 @@ class TestSearchExhaustion:
         assert "run_search" not in session.legal_transitions()
 
 
+class TestContinuationPolicy:
+    """A raw attempt count is not a continuation gate.
+
+    The controller bounds *repeated no-progress* actions against the exact
+    same candidate and keeps a generous emergency-only circuit breaker as a
+    technical safety failure; it never removes ``optimize_plan`` merely
+    because a small number of attempts were used.
+    """
+
+    def _attempt(
+        self,
+        *,
+        revision: int,
+        signature: str,
+        fingerprint: str,
+        progress: bool,
+        action_id: str = "optimize_plan",
+    ) -> dict:
+        return {
+            "action_id": action_id,
+            "action_signature": signature,
+            "candidate_revision": revision,
+            "candidate_fingerprint": fingerprint,
+            "transition": "run_search",
+            "progress": progress,
+            "hard_violations": 0,
+            "at": "T",
+        }
+
+    def test_distinct_strategies_remain_available_after_many_actions(self):
+        from tournament_scheduler.application.stage3_progress import action_signature
+
+        session = _session_with_candidate(1)
+        fingerprint = session.candidate_fingerprint
+        for index in range(5):
+            session.search_attempts.append(
+                self._attempt(
+                    revision=index + 1,
+                    signature=action_signature("optimize_plan", {"seed": index}),
+                    fingerprint=fingerprint,
+                    progress=False,
+                )
+            )
+
+        # A genuinely different search scope is still legal after five
+        # attempts, exactly because a raw count is not a gate.
+        reason = Stage3Controller().validate(
+            session,
+            DecisionAction(action_id="optimize_plan", arguments={"seed": 999}),
+        )
+        assert reason == ""
+        assert "run_search" in session.legal_transitions()
+
+    def test_repeated_identical_no_progress_action_is_rejected(self):
+        from tournament_scheduler.application.stage3_progress import action_signature
+
+        session = _session_with_candidate(1)
+        fingerprint = session.candidate_fingerprint
+        arguments = {"seed": 7, "iterations": 500}
+        session.search_attempts.append(
+            self._attempt(
+                revision=1,
+                signature=action_signature("optimize_plan", arguments),
+                fingerprint=fingerprint,
+                progress=False,
+            )
+        )
+
+        reason = Stage3Controller().validate(
+            session,
+            DecisionAction(
+                action_id="optimize_plan",
+                arguments={"seed": 7, "iterations": 500},
+            ),
+        )
+        assert reason == "repeated_no_progress_action"
+
+    def test_repeated_action_is_allowed_against_a_different_candidate(self):
+        from tournament_scheduler.application.stage3_progress import action_signature
+
+        session = _session_with_candidate(1)
+        arguments = {"seed": 7}
+        session.search_attempts.append(
+            self._attempt(
+                revision=1,
+                signature=action_signature("optimize_plan", arguments),
+                fingerprint="some-old-fingerprint",
+                progress=False,
+            )
+        )
+
+        assert (
+            Stage3Controller().validate(
+                session, DecisionAction(action_id="optimize_plan", arguments={"seed": 7})
+            )
+            == ""
+        )
+
+    def test_repeated_action_that_made_progress_is_allowed(self):
+        from tournament_scheduler.application.stage3_progress import action_signature
+
+        session = _session_with_candidate(1)
+        fingerprint = session.candidate_fingerprint
+        arguments = {"seed": 7}
+        session.search_attempts.append(
+            self._attempt(
+                revision=1,
+                signature=action_signature("optimize_plan", arguments),
+                fingerprint=fingerprint,
+                progress=True,
+            )
+        )
+
+        assert (
+            Stage3Controller().validate(
+                session, DecisionAction(action_id="optimize_plan", arguments={"seed": 7})
+            )
+            == ""
+        )
+
+    def test_stale_rejection_still_takes_precedence_over_repeat_check(self):
+        from tournament_scheduler.application.stage3_progress import action_signature
+
+        session = _session_with_candidate(1)
+        fingerprint = session.candidate_fingerprint
+        arguments = {"candidate_fingerprint": "stale-fingerprint", "seed": 7}
+        session.search_attempts.append(
+            self._attempt(
+                revision=1,
+                signature=action_signature("optimize_plan", arguments),
+                fingerprint=fingerprint,
+                progress=False,
+            )
+        )
+
+        reason = Stage3Controller().validate(
+            session,
+            DecisionAction(action_id="optimize_plan", arguments=dict(arguments)),
+        )
+        assert reason == "stale_candidate_fingerprint"
+
+    def test_emergency_circuit_breaker_bounds_search_but_not_terminators(self):
+        from tournament_scheduler.application.stage3_progress import EMERGENCY_STAGE3_ACTION_LIMIT
+
+        session = _session_with_candidate(1)
+        session.search_attempts = [
+            self._attempt(
+                revision=index + 1,
+                signature=f"sig-{index}",
+                fingerprint=session.candidate_fingerprint,
+                progress=True,
+            )
+            for index in range(EMERGENCY_STAGE3_ACTION_LIMIT)
+        ]
+        capabilities = _FakeCapabilities(
+            {
+                "run_search": Stage3CapabilityResult(ok=True, candidate=_plan(2), candidate_changed=True),
+                "keep_baseline": Stage3CapabilityResult(ok=True, candidate=_plan(1), final=True),
+            }
+        )
+
+        blocked = Stage3Controller().validate(
+            session, DecisionAction(action_id="optimize_plan", arguments={"seed": 1})
+        )
+        assert blocked == "emergency_circuit_breaker:runaway_orchestration"
+        # The breaker is technical safety, not a plan-quality verdict: the
+        # loop terminators stay answerable.
+        assert Stage3Controller().validate(session, DecisionAction(action_id="keep_baseline")) == ""
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session, DecisionAction(action_id="keep_baseline"), capabilities
+        )
+        assert outcome.accepted is True
+
+    def test_five_distinct_search_actions_run_without_forced_escalation(self):
+        """Five materially different bounded searches can run in one session.
+
+        Each distinct strategy advances the candidate revision; nothing forces
+        escalation merely because more than the old cap of attempts were used.
+        """
+
+        class _SequenceCapabilities:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def apply(self, transition, session, action):
+                self.calls += 1
+                seed = 10 + self.calls
+                body = _candidate(seed)
+                fingerprint = candidate_content_fingerprint(body)
+                return Stage3CapabilityResult(
+                    ok=True,
+                    candidate=_plan(seed),
+                    candidate_fingerprint=fingerprint,
+                    candidate_source="stage3_optimizer",
+                    candidate_changed=True,
+                    next_context=_context("stage3_optimize", fingerprint=fingerprint),
+                    next_capability="stage3_optimize",
+                    next_candidates=[
+                        {"candidate": _plan(seed), "candidate_ref": f"stage3_interactive:attempt_{seed}"}
+                    ],
+                    next_attempt=self.calls + 1,
+                )
+
+        session = _session_with_candidate(1)
+        capabilities = _SequenceCapabilities()
+        controller = Stage3Controller(clock=lambda: "T")
+
+        for index in range(5):
+            outcome = controller.handle(
+                session,
+                DecisionAction(action_id="optimize_plan", arguments={"seed": index, "iterations": 100 + index}),
+                capabilities,
+            )
+            assert outcome.accepted is True, outcome.reason
+            assert session.pending_decision is not None
+
+        assert capabilities.calls == 5
+        assert session.candidate_revision == 6
+        assert session.is_finalized() is False
+
+    def test_search_history_projection_tracks_progress_and_signatures(self):
+        from tournament_scheduler.application.stage3_progress import build_search_history
+
+        history = build_search_history(
+            [
+                self._attempt(revision=1, signature="a", fingerprint="f1", progress=True),
+                self._attempt(revision=2, signature="b", fingerprint="f1", progress=False),
+                self._attempt(revision=3, signature="c", fingerprint="f2", progress=True),
+            ]
+        )
+        assert history["actions_used"] == 3
+        assert history["unique_action_signatures"] == 3
+        assert history["candidate_revisions"] == 2
+        assert history["repeated_no_progress_actions"] == 1
+        assert history["last_actions"] == ["optimize_plan", "optimize_plan", "optimize_plan"]
+        assert history["circuit_breaker_tripped"] is False
+
+
 class TestNonLifecycleActions:
     def test_abort_is_deferred_to_the_caller(self):
         session = _session_with_candidate(1)

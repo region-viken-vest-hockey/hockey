@@ -351,6 +351,7 @@ class Stage3SessionStore:
         transition: str = "create_baseline",
         action_id: str = "",
         rationale: str = "",
+        search_attempt: Mapping[str, Any] | None = None,
     ) -> Stage3Session:
         """Fold a freshly emitted Stage 3 decision context into the session.
 
@@ -386,6 +387,7 @@ class Stage3SessionStore:
                 migrated.baseline_candidate = existing.baseline_candidate
                 migrated.baseline_fingerprint = existing.baseline_fingerprint
                 migrated.baseline_revision = existing.baseline_revision
+                migrated.search_attempts = [dict(item) for item in existing.search_attempts]
         if candidate is not None:
             body = extract_candidate_body(candidate)
             if body is not None:
@@ -424,6 +426,18 @@ class Stage3SessionStore:
                     to_revision=revision,
                     at=datetime.now(timezone.utc).isoformat(),
                 )
+        if search_attempt is not None:
+            # The session -- not the emission code -- owns the continuation
+            # evidence. Upserting by (revision, signature) keeps a re-emitted
+            # decision from inflating the action count.
+            migrated.record_search_attempt(search_attempt)
+            if migrated.pending_decision:
+                context = dict(migrated.pending_decision.get("context") or {})
+                facts = dict(context.get("facts") or {})
+                facts["search_history"] = migrated.search_history()
+                context["facts"] = facts
+                migrated.pending_decision["context"] = context
+                migrated.pending_decision["search_exhausted"] = migrated.circuit_breaker_tripped()
         self.save(migrated)
         return migrated
 
@@ -494,9 +508,11 @@ class Stage3SessionStore:
                 scope=scope_for_capability(pending_capability),
                 candidates=candidates,
                 attempt=int(interactive.get("pending_attempt", 0) or 0) or None,
-                search_exhausted=int(session.attempts.get("attempts_used", 0)) >= 3
-                and pending_capability
-                in {"stage3_interactive", "stage3_optimize", "stage3_pareto"},
+                # The only search-exhaustion state the lifecycle owns is the
+                # emergency circuit breaker; a raw attempt count is not a
+                # continuation gate (issue #374).
+                search_exhausted=session.circuit_breaker_tripped()
+                and pending_capability in {"stage3_interactive", "stage3_optimize", "stage3_pareto"},
                 marker=marker,
             )
             if session.pending_scope() == SCOPE_CANDIDATE:
@@ -692,6 +708,7 @@ def status_for_session(session: Stage3Session) -> dict[str, Any]:
             "arena": len(session.arena_unresolved),
         },
         "attempts": dict(session.attempts),
+        "search_history": session.search_history(),
         "finalized_revision": session.finalized_revision,
         "finalized_fingerprint": session.finalized_fingerprint,
         "legal_transitions": session.legal_transitions(),

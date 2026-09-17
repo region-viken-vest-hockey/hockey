@@ -6,7 +6,6 @@ from typing import Any
 
 from ...pipeline.run_log_paths import resolve_active_run_log_dir
 from .interactive_state_io import (
-    _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
     _current_run_id,
     _read_stage3_interactive_state,
 )
@@ -329,6 +328,7 @@ def _emit_stage3_interactive_decision(
     suppress_auto_cp_sat_shadow: bool = False,
     stage3_elapsed_seconds: float = 0.0,
     candidate_transition: str = "create_baseline",
+    search_arguments: "Mapping[str, Any] | None" = None,
 ) -> int:
     """Build, persist and print the Stage 3 :class:`DecisionContext` for the
     attempt that just ran (issue #260 P0).
@@ -339,7 +339,12 @@ def _emit_stage3_interactive_decision(
     ``keep_baseline``/``request_operator`` decision loop the headless
     multi-seed path already drives via ``_decide_plan_adoption`` — the
     interactive harness itself is now the judge for this loop; deterministic
-    validation and the bounded-attempt cap remain repo code.
+    validation and the loop-safety guards (stale/duplicate action rejection,
+    per-search budgets, and a generous emergency circuit breaker) remain repo
+    code. A raw attempt count is not a continuation gate: when another search
+    is legal the context exposes concise ``search_history`` evidence and leaves
+    ``optimize_plan`` available so the controller can choose a different
+    strategy.
 
     State (the running best attempt, and any not-yet-adopted candidate from
     the most recent rerun) is persisted to a small JSON side-file next to the
@@ -369,6 +374,12 @@ def _emit_stage3_interactive_decision(
     from time import perf_counter
 
     from ...application.decisions import DecisionContext
+    from ...application.stage3_progress import (
+        build_attempt_record,
+        build_search_history,
+        upsert_attempt,
+    )
+    from ...application.stage3_session_store import Stage3SessionStore, fingerprint_plan
     from ...planning_contract import extract_candidate
     from ...stage3_ab import build_ab_report
     from ...stage3_decision import (
@@ -381,6 +392,41 @@ def _emit_stage3_interactive_decision(
     run_id = _current_run_id(state)
     problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
 
+    # Capture the candidate the submitted action targeted *before* binding the
+    # attempt's freshly produced candidate, so progress is measured against the
+    # right revision and an identical no-op action can be recognised later.
+    store = Stage3SessionStore(state.work_dir)
+    session_before = store.load(expected_run_id=run_id)
+    prior_fingerprint = session_before.candidate_fingerprint
+    prior_revision = session_before.candidate_revision
+    prior_hard_violations = session_before.latest_hard_violations()
+    plan_fingerprint = fingerprint_plan(plan)
+    plan_hard_violations = tuple(_baseline_hard_violations_for_plan(plan, problem))
+    hard_violation_count = len(plan_hard_violations)
+    made_progress = bool(plan_fingerprint) and (
+        plan_fingerprint != prior_fingerprint
+        or (
+            prior_hard_violations is not None
+            and hard_violation_count < prior_hard_violations
+        )
+    )
+    record_action_id = (
+        "optimize_plan" if candidate_transition == "run_search" else (candidate_transition or "create_baseline")
+    )
+    search_attempt = build_attempt_record(
+        action_id=record_action_id,
+        arguments=search_arguments,
+        candidate_revision=prior_revision,
+        candidate_fingerprint=prior_fingerprint,
+        transition=candidate_transition,
+        progress=made_progress,
+        hard_violations=hard_violation_count,
+    )
+    search_history = build_search_history(
+        upsert_attempt(session_before.search_attempts, search_attempt)
+    )
+    circuit_breaker_tripped = bool(search_history.get("circuit_breaker_tripped"))
+
     # Bind the exact candidate this attempt produced as the session's current
     # candidate *before* any candidate-scoped sub-decision is emitted.
     # Otherwise an arena-conflict (or repair) context computed for this
@@ -390,9 +436,7 @@ def _emit_stage3_interactive_decision(
     # context and every semantic guard refer to the same revision, and keeps
     # the transition lineage explicit (revision N -> N+1 only).
     try:
-        from ...application.stage3_session_store import Stage3SessionStore
-
-        Stage3SessionStore(state.work_dir).bind_candidate(
+        store.bind_candidate(
             plan,
             run_id=run_id,
             source=candidate_transition,
@@ -488,7 +532,7 @@ def _emit_stage3_interactive_decision(
         summary = _decision_summary_for_checkpoint(3, plan)
         if cp_sat_shadow is not None:
             summary = {**summary, "cp_sat_shadow": cp_sat_shadow}
-        baseline_hard_violations = _baseline_hard_violations_for_plan(plan, problem)
+        baseline_hard_violations = plan_hard_violations
         repair_context = _local_repair_context(
             plan,
             problem,
@@ -501,7 +545,7 @@ def _emit_stage3_interactive_decision(
                 context = _dc_replace(context, facts={**context.facts, "cp_sat_shadow": cp_sat_shadow})
         else:
             available = ["optimize_plan", "keep_baseline", "request_operator", "abort"]
-            if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
+            if circuit_breaker_tripped:
                 available.remove("optimize_plan")
             if cp_sat_shadow is not None and cp_sat_shadow.get("candidate_ref"):
                 # issue #310: a verified automatic CP-SAT candidate is directly
@@ -562,7 +606,7 @@ def _emit_stage3_interactive_decision(
                 log_fn(f"stage3_interactive attempt {attempts_used}: could not build A/B report: {exc}")
 
             available = list(STAGE3_DECISION_ACTIONS)
-            if attempts_used >= _MAX_INTERACTIVE_STAGE3_ATTEMPTS:
+            if circuit_breaker_tripped:
                 available.remove("optimize_plan")
             if report is not None:
                 context = build_stage3_decision_context(
@@ -607,6 +651,17 @@ def _emit_stage3_interactive_decision(
         interactive_state.pop("pending_candidates", None)
         interactive_state["pending_attempt"] = attempts_used
 
+    context = _dc_replace(context, facts={**context.facts, "search_history": search_history})
+    if circuit_breaker_tripped:
+        context = _dc_replace(
+            context,
+            warnings=tuple(context.warnings)
+            + (
+                "Stage 3 emergency circuit breaker tripped after an implausibly high "
+                "number of actions: a technical safety stop for runaway or broken "
+                "orchestration, not evidence that the scheduling problem is unsolvable.",
+            ),
+        )
     interactive_state["last_context"] = context.to_dict()
 
     # Persist the freshly emitted pending decision into the canonical
@@ -615,15 +670,14 @@ def _emit_stage3_interactive_decision(
     # provenance; the legacy ``stage3_interactive_state.json`` is written by
     # the store only as a non-authoritative compatibility mirror.
     try:
-        from ...application.stage3_session_store import Stage3SessionStore
-
-        Stage3SessionStore(state.work_dir).record_emission(
+        store.record_emission(
             interactive_state,
             candidate=plan,
             candidate_revision=attempts_used,
             run_id=run_id,
             transition=candidate_transition,
             action_id="optimize_plan" if candidate_transition == "run_search" else candidate_transition,
+            search_attempt=search_attempt,
         )
     except Exception as exc:
         log_fn(f"stage3_interactive attempt {attempts_used}: could not persist Stage 3 session: {exc}")

@@ -27,6 +27,12 @@ from datetime import datetime, timezone
 from typing import Any, Mapping, Protocol
 
 from .decisions import DecisionAction
+from .stage3_progress import (
+    EMERGENCY_STAGE3_ACTION_LIMIT,
+    PROGRESS_SCOPED_ACTIONS,
+    action_signature,
+    repeated_no_progress_signature,
+)
 from .stage3_session import (
     SCOPE_CANDIDATE,
     SCOPE_RUN,
@@ -203,7 +209,16 @@ class Stage3Controller:
             return "no_pending_decision"
         if transition not in session.legal_transitions():
             return f"transition_not_legal:{transition}"
-        return self._stale_reason(session, action)
+        stale = self._stale_reason(session, action)
+        if stale:
+            return stale
+        breaker = self._circuit_breaker_reason(session, action)
+        if breaker:
+            return breaker
+        repeated = self._repeated_no_progress_reason(session, action)
+        if repeated:
+            return repeated
+        return ""
 
     def _reject(
         self,
@@ -241,6 +256,36 @@ class Stage3Controller:
             ref = str(action.arguments.get("candidate_ref") or "")
             if refs and ref not in refs:
                 return "unknown_or_stale_candidate_ref"
+        return ""
+
+    def _circuit_breaker_reason(self, session: Stage3Session, action: DecisionAction) -> str:
+        """Block search/repair only after a generous emergency limit.
+
+        This is a technical safety failure (runaway or broken orchestration),
+        not evidence that the schedule is unsolvable, so it never blocks the
+        loop terminators (``keep_baseline``/``apply_candidate``/
+        ``request_operator``). A raw attempt count is otherwise not a
+        continuation gate.
+        """
+        if action.action_id not in PROGRESS_SCOPED_ACTIONS:
+            return ""
+        if len(session.search_attempts) >= EMERGENCY_STAGE3_ACTION_LIMIT:
+            return "emergency_circuit_breaker:runaway_orchestration"
+        return ""
+
+    def _repeated_no_progress_reason(self, session: Stage3Session, action: DecisionAction) -> str:
+        """Reject an identical action against the same candidate that already
+        produced no progress, while leaving a different strategy available."""
+        if action.action_id not in PROGRESS_SCOPED_ACTIONS:
+            return ""
+        fingerprint = session.pending_fingerprint() or session.candidate_fingerprint
+        if repeated_no_progress_signature(
+            session.search_attempts,
+            action_id=action.action_id,
+            signature=action_signature(action.action_id, action.arguments),
+            candidate_fingerprint=fingerprint,
+        ):
+            return "repeated_no_progress_action"
         return ""
 
     def _apply_provenance(self, session: Stage3Session, result: Stage3CapabilityResult) -> None:

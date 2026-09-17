@@ -74,7 +74,7 @@ If the rendered DecisionContext's candidate fingerprint differs from the authori
 
 Use the reset capability only when an **engineering/lifecycle defect or a code change has made the current Stage 3 candidate/session lineage untrustworthy**. Examples include a pending decision created by known-buggy lifecycle code, corrupted candidate/session identity, or an explicitly diagnosed Stage 3 persistence defect.
 
-Do **not** use reset as another optimization attempt, to evade the Stage 3 attempt cap, to bypass a hard verifier finding, or instead of answering a legitimate operator decision.
+Do **not** use reset as another optimization attempt, to evade a Stage 3 continuation safeguard, to bypass a hard verifier finding, or instead of answering a legitimate operator decision.
 
 Never delete or reconcile Stage 3 JSON files by hand. Use:
 

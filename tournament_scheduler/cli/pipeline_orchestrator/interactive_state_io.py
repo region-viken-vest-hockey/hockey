@@ -21,8 +21,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-_MAX_INTERACTIVE_STAGE3_ATTEMPTS = 3
-
 
 def _current_run_id(state: "Any") -> str:
     """Return the active run manifest's ``run_id``, or ``""`` if unreadable."""

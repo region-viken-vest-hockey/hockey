@@ -122,10 +122,13 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     search-budget override) re-runs Stage 3 for another attempt and emits a
     new decision comparing it against the current best, instead of advancing;
     ``apply_candidate``/``keep_baseline`` resolve the loop and advance to
-    Stage 4. The loop is capped at
-    :data:`_MAX_INTERACTIVE_STAGE3_ATTEMPTS` attempts — ``optimize_plan`` is
-    no longer offered past the cap. There is no longer a need to fall back to
-    the non-interactive ``run --resume-from 3`` for multi-attempt refinement.
+    Stage 4. Continuation is evidence- and strategy-driven: the context
+    exposes a concise ``search_history`` and ``optimize_plan`` stays available
+    for as many materially different bounded attempts as the controller judges
+    useful. Only a repeated identical no-progress action, a stale candidate, a
+    per-search budget, or the generous emergency circuit breaker can bound it.
+    There is no longer a need to fall back to the non-interactive
+    ``run --resume-from 3`` for multi-attempt refinement.
 
     Lifecycle for this loop lives in the application-layer Stage 3 session
     (:mod:`tournament_scheduler.application.stage3_session`) and its explicit
@@ -417,7 +420,10 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         portfolio, abort = _run_stage3_pareto_optimize(state, cfg, scraping, start, end, optimize_plan_arguments, _log)
         if abort:
             return 1
-        return _emit_stage3_pareto_decision(state, args.work_dir, cfg, scraping, start, end, portfolio, _log)
+        return _emit_stage3_pareto_decision(
+            state, args.work_dir, cfg, scraping, start, end, portfolio, _log,
+            search_arguments=optimize_plan_arguments,
+        )
 
     if resume_from == 3 and use_v2_optimizer_for_stage3:
         _stage3_started = perf_counter()
@@ -434,6 +440,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             skip_auto_cp_sat_shadow=(engine_used == "cp_sat"),
             stage3_elapsed_seconds=perf_counter() - _stage3_started,
             candidate_transition="run_search",
+            search_arguments=optimize_plan_arguments,
         )
 
     shared_host_decisions: list[dict[str, Any]] = []

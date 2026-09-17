@@ -128,9 +128,11 @@ Interactive Stage 3 is one explicit persisted session with candidate revisions. 
 scripts/rvv-miniputt stage3 session --work-dir .pipeline --json
 ```
 
-The view is authoritative for the active run's status, current candidate revision/fingerprint, pending decision, resolved run-scoped decisions, finalized revision/fingerprint and legal next transitions. Use it to debug a resume problem instead of reconciling several JSON files.
+The view is authoritative for the active run's status, current candidate revision/fingerprint, pending decision, resolved run-scoped decisions, finalized revision/fingerprint, `search_history` and legal next transitions. Use it to debug a resume problem instead of reconciling several JSON files.
 
 A pending candidate-scoped decision (arena/time conflict, local repair, attempt comparison) refers to the current attempt revision, so answer it against that exact fingerprint; the adopted plan is retained separately as the session baseline that `keep_baseline` restores.
+
+Stage 3 continuation is evidence- and strategy-driven, not attempt-count-driven. A raw number of attempts never removes `optimize_plan`, and the returned `facts.search_history` summarizes what has already been tried (actions used, unique action signatures, candidate revisions, hard violations before/now, repeated no-progress actions, last actions) so you can choose a genuinely different repair family, search scope, roster/date hypothesis or evidence investigation, or accept/escalate/abort when continuing has no useful direction. Deterministic loop safety still applies: a stale candidate action is rejected, and repeating the exact same action against the exact same candidate after it made no progress is rejected as `repeated_no_progress_action`. The only attempt-count bound is a generous emergency circuit breaker surfaced as a technical safety failure (runaway/broken orchestration), never as proof that the season is unsolvable.
 
 Approval/lock state lives in `decisions.json`, separate from schedule facts. `season approve` re-verifies the current placement; approval is never a waiver of hard rules. `season unapprove` restores editability. `season approvals` lists status. If protected scheduling facts change, the stored fingerprint becomes a deterministic `stale_approval`, its lock is dropped, and explicit reapproval is required.
 

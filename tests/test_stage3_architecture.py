@@ -18,6 +18,7 @@ LIFECYCLE_MODULES = (
     SOURCE_ROOT / "application" / "stage3_session.py",
     SOURCE_ROOT / "application" / "stage3_session_store.py",
     SOURCE_ROOT / "application" / "stage3_controller.py",
+    SOURCE_ROOT / "application" / "stage3_progress.py",
 )
 
 # Domain/planner modules the lifecycle layer must not depend on: it decides

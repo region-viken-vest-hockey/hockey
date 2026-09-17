@@ -218,6 +218,51 @@ class TestStatusFacade:
         assert view["pending_decision"]["capability"] == "stage3_interactive"
         assert "run_search" in view["legal_transitions"]
         assert view["finalized_revision"] is None
+        assert view["search_history"]["actions_used"] == 0
+
+    def test_search_attempts_round_trip_and_project_into_status(self, tmp_path: Path):
+        from tournament_scheduler.application.stage3_progress import build_attempt_record
+
+        store = Stage3SessionStore(tmp_path)
+        session = Stage3Session(run_id="run-1")
+        session.record_search_attempt(
+            build_attempt_record(
+                action_id="optimize_plan",
+                arguments={"seed": 1},
+                candidate_revision=0,
+                candidate_fingerprint="fp-0",
+                transition="run_search",
+                progress=False,
+                hard_violations=3,
+            )
+        )
+        store.save(session)
+
+        restored = store.load("run-1")
+        assert restored.search_attempts[0]["action_id"] == "optimize_plan"
+        history = restored.search_history()
+        assert history["actions_used"] == 1
+        assert history["repeated_no_progress_actions"] == 1
+        assert history["hard_violations_now"] == 3
+        assert status_for_session(restored)["search_history"] == history
+
+    def test_upserting_the_same_attempt_does_not_inflate_the_action_count(self):
+        from tournament_scheduler.application.stage3_progress import build_attempt_record
+
+        session = Stage3Session(run_id="run-1")
+        record = build_attempt_record(
+            action_id="optimize_plan",
+            arguments={"seed": 1},
+            candidate_revision=0,
+            candidate_fingerprint="fp-0",
+            transition="run_search",
+            progress=False,
+            hard_violations=3,
+        )
+        session.record_search_attempt(record)
+        session.record_search_attempt(dict(record, progress=True))
+        assert session.search_history()["actions_used"] == 1
+        assert session.search_history()["repeated_no_progress_actions"] == 0
 
 
 class TestCandidateBinding:

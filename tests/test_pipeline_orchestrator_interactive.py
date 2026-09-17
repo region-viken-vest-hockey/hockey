@@ -517,6 +517,81 @@ class TestStage3InteractiveDecisionLoop:
         assert "optimize_plan" in interactive_state["last_context"]["action_parameters"]
         assert "weights" in interactive_state["last_context"]["action_parameters"]["optimize_plan"]
 
+    def test_many_distinct_optimize_plan_actions_do_not_force_escalation(self, state, tmp_path):
+        """Across process boundaries, 4+ distinct bounded searches stay
+        answerable: no raw attempt count removes ``optimize_plan`` or forces
+        escalation."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
+        from tournament_scheduler.stage3_ab import build_ab_report
+        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+
+        plan1 = _plan_checkpoint(seed=1)
+        report = build_ab_report(plan1["plan"], plan1["plan"])
+        baseline_context = build_stage3_decision_context(
+            report, run_id="", baseline_ref=None, candidate_ref=None,
+            optimize_plan_schema="v2_optimizer",
+        )
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan1,
+                "last_context": baseline_context.to_dict(),
+            },
+        )
+        state.write_stage(StageName.PLANNING, plan1, status=StageStatus.DONE)
+
+        produced: list[dict] = []
+
+        def _next_plan(*args, **kwargs):
+            produced.append(args)
+            return _plan_checkpoint(seed=len(produced) + 1), False
+
+        def _run():
+            args = _args(
+                work_dir=str(tmp_path),
+                resume_from="4",
+                decision_action=json.dumps(
+                    {
+                        "action_id": "optimize_plan",
+                        "arguments": {"seed": len(produced), "iterations": 500},
+                    }
+                ),
+            )
+            with patch(
+                "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
+                return_value=(
+                    {
+                        "start_date": "2026-09-01",
+                        "end_date": "2027-04-30",
+                        "cp_sat_shadow_enabled": False,
+                    },
+                    False,
+                ),
+            ), patch(
+                "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
+                return_value=(({"sources": [], "blocked": []}), False, False),
+            ), patch(
+                "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3_v2_optimize",
+                side_effect=_next_plan,
+            ):
+                return _cmd_run_interactive(args)
+
+        for _ in range(4):
+            assert _run() == 2
+
+        interactive_state = _read_stage3_interactive_state(state)
+        assert interactive_state["attempts_used"] == 5
+        context = interactive_state["last_context"]
+        assert "optimize_plan" in context["available_actions"]
+        history = context["facts"]["search_history"]
+        assert history["actions_used"] == 4
+        assert history["unique_action_signatures"] == 4
+        assert history["circuit_breaker_tripped"] is False
+        assert history["repeated_no_progress_actions"] == 0
+
     def test_optimize_plan_engine_cp_sat_routes_through_engine_boundary(self, state, tmp_path):
         """issue #276: optimize_plan(arguments={"engine": "cp_sat"}) must
         dispatch through stage3_engine.run_planner to the CP-SAT shadow
@@ -758,6 +833,8 @@ class TestStage3InteractiveDecisionLoop:
         last_context = interactive_state["last_context"]
         assert last_context["capability"] == "stage3_pareto"
         assert len(last_context["facts"]["candidates"]) == 2
+        assert last_context["facts"]["search_history"]["actions_used"] >= 1
+        assert last_context["facts"]["search_history"]["circuit_breaker_tripped"] is False
         assert last_context["action_parameters"]["apply_candidate"]["candidate_ref"]["enum"] == refs
 
     def test_apply_candidate_from_pareto_portfolio_writes_chosen_candidate(self, state, tmp_path):
@@ -1117,18 +1194,21 @@ class TestStage3InteractiveDecisionLoop:
         # is restored on disk before advancing.
         assert state.read_stage(StageName.PLANNING) == plan1
 
-    def test_optimize_plan_not_offered_past_attempt_cap(self, state, tmp_path):
+    def test_optimize_plan_still_offered_past_former_attempt_cap(self, state, tmp_path):
+        """A raw count of attempts is no longer a continuation gate: after the
+        old cap of three, another materially different search stays available
+        and the context carries concise search history for the decision."""
         from datetime import datetime
 
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import _emit_stage3_interactive_decision
-        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _MAX_INTERACTIVE_STAGE3_ATTEMPTS, _write_stage3_interactive_state
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
 
         plan1 = _plan_checkpoint(seed=1)
         _write_stage3_interactive_state(
             state,
             {
                 "run_id": "legacy",
-                "attempts_used": _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
+                "attempts_used": 5,
                 "best_attempt": 1,
                 "best_plan": plan1,
             },
@@ -1148,28 +1228,140 @@ class TestStage3InteractiveDecisionLoop:
 
         assert exit_code == 2
         interactive_state = _read_stage3_interactive_state(state)
-        assert "optimize_plan" not in interactive_state["last_context"]["available_actions"]
-        assert "apply_candidate" in interactive_state["last_context"]["available_actions"]
+        context = interactive_state["last_context"]
+        assert "optimize_plan" in context["available_actions"]
+        history = context["facts"]["search_history"]
+        assert history["actions_used"] >= 1
+        assert history["circuit_breaker_tripped"] is False
+        assert history["last_actions"]
+
+    def test_repeated_no_progress_search_is_rejected_at_emission_boundary(self, state, tmp_path):
+        """An identical search against the exact same candidate that already
+        produced no progress is bounded deterministically, while the emitted
+        context still carries the search history the controller reasoned from."""
+        from datetime import datetime
+
+        from tournament_scheduler.application.decisions import DecisionAction
+        from tournament_scheduler.application.stage3_controller import Stage3Controller
+        from tournament_scheduler.application.stage3_session_store import Stage3SessionStore
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import _emit_stage3_interactive_decision
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
+
+        plan1 = _plan_checkpoint(seed=1)
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan1,
+            },
+        )
+
+        # The search returns the exact same candidate: a no-op attempt.
+        exit_code = _emit_stage3_interactive_decision(
+            state,
+            str(tmp_path),
+            {},
+            {},
+            datetime(2026, 9, 1),
+            datetime(2027, 4, 30),
+            plan1,
+            lambda msg: None,
+            candidate_transition="run_search",
+            search_arguments={"iterations": 500, "seed": 3},
+        )
+        assert exit_code == 2
+
+        session = Stage3SessionStore(str(tmp_path)).load()
+        assert session.search_history()["repeated_no_progress_actions"] == 1
+
+        reason = Stage3Controller().validate(
+            session,
+            DecisionAction(
+                action_id="optimize_plan",
+                arguments={"iterations": 500, "seed": 3},
+            ),
+        )
+        assert reason == "repeated_no_progress_action"
+
+        # A different seed is a materially different strategy and stays legal.
+        assert (
+            Stage3Controller().validate(
+                session,
+                DecisionAction(action_id="optimize_plan", arguments={"iterations": 500, "seed": 4}),
+            )
+            == ""
+        )
+
+    def test_emergency_circuit_breaker_is_surfaced_as_technical_safety(self, state, tmp_path):
+        from datetime import datetime
+
+        from tournament_scheduler.application.stage3_progress import (
+            EMERGENCY_STAGE3_ACTION_LIMIT,
+            build_attempt_record,
+        )
+        from tournament_scheduler.application.stage3_session import Stage3Session
+        from tournament_scheduler.application.stage3_session_store import Stage3SessionStore, fingerprint_plan
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import _emit_stage3_interactive_decision
+
+        plan1 = _plan_checkpoint(seed=1)
+        store = Stage3SessionStore(str(tmp_path))
+        session = Stage3Session(run_id="legacy")
+        session.candidate = plan1
+        session.candidate_fingerprint = fingerprint_plan(plan1)
+        session.candidate_revision = 1
+        session.attempts = {"attempts_used": 1, "best_attempt": 1}
+        for index in range(EMERGENCY_STAGE3_ACTION_LIMIT):
+            session.record_search_attempt(
+                build_attempt_record(
+                    action_id="optimize_plan",
+                    arguments={"seed": index},
+                    candidate_revision=index,
+                    candidate_fingerprint=f"fp-{index}",
+                    transition="run_search",
+                    progress=True,
+                    hard_violations=0,
+                )
+            )
+        store.save(session)
+
+        exit_code = _emit_stage3_interactive_decision(
+            state,
+            str(tmp_path),
+            {},
+            {},
+            datetime(2026, 9, 1),
+            datetime(2027, 4, 30),
+            _plan_checkpoint(seed=2),
+            lambda msg: None,
+        )
+        assert exit_code == 2
+
+        context = _read_stage3_interactive_state(state)["last_context"]
+        assert "optimize_plan" not in context["available_actions"]
+        assert context["facts"]["search_history"]["circuit_breaker_tripped"] is True
+        assert any("technical safety" in warning for warning in context["warnings"])
 
     def test_fresh_run_start_ignores_stale_state_from_a_superseded_run(self, state, tmp_path):
         """issue #264 P0: a Stage 3 controller run must not inherit attempt
         counters or a "best plan so far" from a prior/superseded run sharing
         the same work directory -- reproduces the exact symptom reported in
-        the issue (a recorded attempt count past _MAX_INTERACTIVE_STAGE3_ATTEMPTS,
-        left over from an earlier/aborted run in the same work_dir)."""
-        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _MAX_INTERACTIVE_STAGE3_ATTEMPTS, _write_stage3_interactive_state
+        the issue (a recorded attempt count from an earlier/aborted run in
+        the same work_dir)."""
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.pipeline.run_manifest import RunManifest
 
         # Simulate leftover state from a previous, different run in this
         # same work directory: a run_id that won't match the fresh run's,
-        # and an attempt count already past the cap.
+        # and a large attempt count.
         RunManifest(str(tmp_path)).start_run("old run", run_id="stale-old-run")
         stale_best_plan = _plan_checkpoint(seed=99)
         _write_stage3_interactive_state(
             state,
             {
                 "run_id": "stale-old-run",
-                "attempts_used": _MAX_INTERACTIVE_STAGE3_ATTEMPTS + 2,
+                "attempts_used": 7,
                 "best_attempt": 1,
                 "best_plan": stale_best_plan,
             },
