@@ -193,18 +193,35 @@ function render() {
     visible++;
     if (!timeline) continue;
 
+    // An unverified/manual placeholder or a movable candidate is not an
+    // established hall/time booking, so it must not render like one.
+    var manual = !!t.mb;
+    var confirmationRequired = !!t.rhc;
     var di = formatDateInfo(t.d);
     var timeRangeHtml = '';
-    if (t.ts) {
+    if (manual) {
+      timeRangeHtml = '<div class="time-range time-range--unconfirmed">Tid ikke bekreftet</div>';
+    } else if (t.ts) {
       var timeLabel = t.te ? (t.ts + '–' + t.te) : t.ts;
+      if (confirmationRequired) timeLabel += ' · krever bekreftelse';
       timeRangeHtml = '<div class="time-range">' + timeLabel + '</div>';
     }
+    var arenaTag = t.a || '';
+    if (manual) {
+      arenaTag = arenaTag ? arenaTag + ' (ikke bekreftet)' : 'Arena ikke bekreftet';
+    } else if (confirmationRequired && arenaTag) {
+      arenaTag += ' (krever bekreftelse)';
+    }
     var cancelledClass = t.cx ? ' cancelled' : '';
+    var manualClass = manual ? ' manual' : '';
     var cancelledBadge = t.cx
       ? '<div class="cancelled-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>AVLYST' + (t.cr ? ': ' + t.cr : '') + '</div>'
       : '';
     var manualBadge = t.mb
       ? '<div class="manual-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>MÅ BOOKES MANUELT</div>'
+      : '';
+    var confirmationBadge = (!manual && confirmationRequired)
+      ? '<div class="manual-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>KREVER VERTSSBEKREFTELSE</div>'
       : '';
     var approvalBadge = '';
     if (t.ap === 'approved') {
@@ -212,16 +229,17 @@ function render() {
     } else if (t.ap === 'stale_approval') {
       approvalBadge = '<div class="approval-badge approval-badge--stale"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>GODKJENNING UTGÅR</div>';
     }
-    html += '<div class="tournament-card' + cancelledClass + '" onclick="this.classList.toggle(\'expanded\')">' +
+    html += '<div class="tournament-card' + cancelledClass + manualClass + '" onclick="this.classList.toggle(\'expanded\')">' +
       approvalBadge +
       manualBadge +
+      confirmationBadge +
       cancelledBadge +
       '<div class="tournament-card-header">' +
         '<div class="tournament-date"><div class="day">' + di.day + '</div><div class="month">' + di.month + '</div><div class="weekday">' + di.weekday + '</div>' + timeRangeHtml + '</div>' +
-        '<div class="tournament-info"><h3>' + t.h + ' <span>&middot;</span> ' + t.a + '</h3>' +
+        '<div class="tournament-info"><h3>' + t.h + ' <span>&middot;</span> ' + arenaTag + '</h3>' +
           '<div class="tournament-meta">' +
             '<span class="tag tag--age"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>' + t.g + '</span>' +
-            '<span class="tag tag--arena"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' + t.a + '</span>' +
+            '<span class="tag tag--arena"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' + arenaTag + '</span>' +
             '<span class="tag tag--teams"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' + t.m.length + ' kamper</span>' +
             (t.tr ? '<span class="tag tag--travel">' + t.tr + '</span>' : '') +
           '</div></div>' +

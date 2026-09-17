@@ -363,3 +363,20 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
   .tournament-date .day { font-size: 18px; }
   h1 { font-size: 18px; }
 }
+
+/* Unverified/manual placements must not read as confirmed bookings. */
+.tournament-date .time-range--unconfirmed { color: var(--amber); font-weight: 600; }
+.tournament-card.manual { border-left: 3px solid rgba(245, 158, 11, .5); }
+.tournament-card.manual::before { background: var(--amber); }
+
+/* Grouped manual work items and their candidate-weekend evidence. */
+.work-item-findings,
+.work-item-suggestions ol,
+.work-item-rejections ul { margin: 4px 0 6px 18px; padding: 0; }
+.work-item-findings li,
+.work-item-suggestions li,
+.work-item-rejections li { font-size: 12px; line-height: 1.5; }
+.work-item-subhead { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 8px 0 2px; }
+.work-item-suggestions { border-left: 2px solid rgba(34, 197, 94, .4); padding-left: 8px; }
+.work-item-suggestions--empty { border-left-color: rgba(245, 158, 11, .5); }
+.work-item-rejections { color: var(--text-muted); }

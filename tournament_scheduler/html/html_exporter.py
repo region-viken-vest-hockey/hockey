@@ -435,6 +435,14 @@ class HtmlExporter:
                 entry["cr"] = t.cancellation_reason or ""
             if t.manual_booking_reason:
                 entry["mb"] = t.manual_booking_reason
+            # A placement in a host-controlled movable interval is a real
+            # candidate, not an established booking -- carry the
+            # explicit confirmation requirement so the schedule page never
+            # renders it identically to verified free ice.
+            if t.requires_host_confirmation:
+                entry["rhc"] = True
+                if t.host_confirmation_reason:
+                    entry["hcr"] = t.host_confirmation_reason
             approval = approval_by_tournament.get(str(t.id))
             if approval:
                 entry["ap"] = str(approval.get("status") or "")

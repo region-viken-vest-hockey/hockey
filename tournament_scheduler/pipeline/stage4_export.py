@@ -303,6 +303,28 @@ def run(
         item["type"] = item.get("type", "Arena-/tidskollisjon")
         item["category"] = item.get("category", "arena_collision")
         collision_entries.append(item)
+    # A `manual_booking_reason` does not by itself mean the calendar could not
+    # be verified. When a structured unresolved placement
+    # or external-conflict record already owns the intervention, do not also
+    # emit a spurious "calendar not verified" finding for the same
+    # tournament -- one intervention, one category.
+    tournament_id_by_age_and_date = {
+        (tournament.age_group, tournament.date.isoformat()): tournament.id
+        for tournament in plan.tournaments
+        if tournament.manual_booking_reason
+    }
+    tournament_by_id = {tournament.id: tournament for tournament in plan.tournaments}
+    structured_manual_tournament_ids = {
+        tournament_id_by_age_and_date.get(
+            (str(item.get("age_group") or ""), str(item.get("date") or ""))
+        )
+        for item in getattr(plan, "unresolved_tournament_placements", None) or []
+    }
+    structured_manual_tournament_ids.discard(None)
+    structured_manual_tournament_ids.update(
+        str(item.get("tournament_id") or "")
+        for item in getattr(plan, "unresolved_external_conflicts", None) or []
+    )
     # Clubs whose calendar source could not be scraped still receive their
     # proportional share of home tournaments; those tournaments are marked on
     # the plan (Tournament.manual_booking_reason) because the auto-assigned
@@ -311,6 +333,8 @@ def run(
     manual_host_entries: list[dict[str, str]] = []
     for tournament in plan.tournaments:
         if not tournament.manual_booking_reason:
+            continue
+        if tournament.id in structured_manual_tournament_ids:
             continue
         interval = tournament.start_time or tournament.date.isoformat()
         manual_host_entries.append(
@@ -379,14 +403,55 @@ def run(
             }
         )
     tournament_placement_entries = build_tournament_placement_entries(plan)
+    # An unresolved placement is the concrete intervention behind a manual
+    # placeholder tournament that also carries a calendar/conflict
+    # finding. Link the placement record to that tournament id so the manual
+    # view groups the findings into one operator work item instead of
+    # rendering the same intervention several times.
+    for entry in tournament_placement_entries:
+        if not entry.get("tournament_id"):
+            entry["tournament_id"] = tournament_id_by_age_and_date.get(
+                (str(entry.get("age_group") or ""), str(entry.get("date") or "")), ""
+            )
+        placement_tournament = tournament_by_id.get(entry["tournament_id"])
+        if placement_tournament is None:
+            continue
+        if not entry.get("host_club"):
+            entry["host_club"] = placement_tournament.host_club or ""
+        if not entry.get("arena"):
+            entry["arena"] = placement_tournament.arena
+        if not entry.get("interval"):
+            entry["interval"] = placement_tournament.start_time or placement_tournament.date.isoformat()
+    # Render the canonical conflict-aware candidate weekends
+    # (``candidate_weekends``) for each unresolved placement. This consumes
+    # the same evidence-only provider the Stage 3 decision context exposes; it
+    # never generates a placement or changes schedule state.
+    candidate_weekends_by_tournament: dict[str, dict] = {}
+    if export_problem:
+        try:
+            from ..host_placement_repair import collect_candidate_weekend_evidence
+
+            for bundle in collect_candidate_weekend_evidence(plan_dict, export_problem):
+                tournament_id = str(bundle.get("tournament_id") or "")
+                if tournament_id:
+                    candidate_weekends_by_tournament[tournament_id] = bundle
+        except Exception:  # noqa: BLE001 - evidence is best-effort, never blocks export
+            candidate_weekends_by_tournament = {}
     # Genuine external calendar conflicts the planner/optimizer couldn't route
     # around (see planning_contract.verify_candidate's manual_external_conflict_placements).
     external_conflict_entries: list[dict[str, str]] = []
     for item in getattr(plan, "unresolved_external_conflicts", None) or []:
         conflict_host_club = str(item.get("host_club", "") or "")
         conflict_reason = str(item.get("reason", "") or "")
-        # issue #330: every manual row needs a concrete operator action, not
-        # just a description of the conflict.
+        conflict_tournament = tournament_by_id.get(str(item.get("tournament_id", "") or ""))
+        conflict_arena = conflict_tournament.arena if conflict_tournament else ""
+        conflict_interval = (
+            (conflict_tournament.start_time or conflict_tournament.date.isoformat())
+            if conflict_tournament
+            else ""
+        )
+        # Every manual row needs a concrete operator action, not just a
+        # description of the conflict.
         action = (
             f"Handling: {conflict_host_club or 'RVV'} må bekrefte eller flytte "
             "istiden manuelt for å løse den eksterne kalenderkonflikten."
@@ -396,11 +461,11 @@ def run(
                 "type": "MANUAL PLACEMENT REQUIRED — ekstern kalenderkonflikt",
                 "category": item.get("category", "manual_external_conflict"),
                 "date": str(item.get("date", "") or ""),
-                "arena": "",
+                "arena": conflict_arena,
                 "host_club": conflict_host_club,
                 "age_group": str(item.get("age_group", "") or ""),
                 "tournament_id": str(item.get("tournament_id", "") or ""),
-                "interval": "",
+                "interval": conflict_interval,
                 "conflicting_tournament_id": "",
                 "conflicting_age_group": "",
                 "conflicting_interval": "",
@@ -621,6 +686,7 @@ def run(
             manual_html = _manual_schedule_html(
                 plan,
                 manual_entries=manual_entries,
+                candidate_weekends_by_tournament=candidate_weekends_by_tournament,
                 participation_entries=participation_entries,
                 waiver_entries=waiver_entries,
                 generated_at=generated_at,

@@ -6,6 +6,7 @@ from tournament_scheduler.application.decisions import DecisionAction, decide
 from tournament_scheduler.host_placement_repair import (
     apply_host_placement_repair_option,
     build_host_placement_decision_context,
+    collect_candidate_weekend_evidence,
     enumerate_host_placement_repairs,
 )
 from tournament_scheduler.local_repair_options import (
@@ -655,6 +656,18 @@ def test_untrusted_calendar_still_exposes_unknown_candidate_weekends():
         rejection["reason"] == "calendar_evidence_not_trusted"
         for rejection in repair_set["rejected_candidates"]
     )
+
+
+def test_collect_candidate_weekend_evidence_is_standalone_read_only_evidence():
+    """The operator-output projection (issue #330) can reuse the exact same
+    candidate-weekend evidence the decision context offers, without running
+    the repair search or producing an applyable option id."""
+    bundle = collect_candidate_weekend_evidence(_manual_candidate(), _problem())
+
+    assert len(bundle) == 1
+    assert bundle[0]["tournament_id"] == "t1"
+    assert bundle[0]["candidate_weekends"]
+    assert bundle[0]["status"] == "suggestions"
 
 
 def test_local_repair_dispatcher_carries_candidate_weekends_evidence():

@@ -11,10 +11,16 @@ from ..html.data_computation import (
     ICON_CLIPBOARD,
     ICON_USERS,
     ICON_WARNING,
-    fmt_date,
     season_label,
 )
 from ..html.templates import MANUAL_SCHEDULE, STYLES_CSS
+from .manual_work_items import (
+    CATEGORY_LABELS,
+    build_work_items,
+    format_date_label,
+    render_candidate_weekends_html,
+    render_findings_html,
+)
 
 MANUAL_SCHEDULE_FILENAME = "manual_schedule.html"
 
@@ -187,6 +193,7 @@ def _manual_schedule_html(
     plan: SeasonPlan,
     *,
     manual_entries: list[dict[str, str]] | None = None,
+    candidate_weekends_by_tournament: dict[str, dict] | None = None,
     participation_entries: list[dict[str, str]] | None = None,
     waiver_entries: list[dict[str, object]] | None = None,
     generated_at: str = "",
@@ -224,48 +231,53 @@ def _manual_schedule_html(
 
     # Filter on the structured category, not the rendered reason text -- a
     # participation-target deviation must never inflate this page's count
-    # even if a caller forgets to filter it out first.
-    entries = sorted(
-        (e for e in (manual_entries or []) if e.get("category") in MANUAL_SCHEDULE_CATEGORIES),
-        key=lambda c: (c.get("date", ""), c.get("arena", ""), c.get("tournament_id", "")),
-    )
+    # even if a caller forgets to filter it out first. Grouping then collapses
+    # several findings for one underlying tournament/obligation into a single
+    # operator work item so the headline is a work count, not an evidence-row
+    # count.
+    filtered = [e for e in (manual_entries or []) if e.get("category") in MANUAL_SCHEDULE_CATEGORIES]
+    work_items = build_work_items(filtered, candidate_weekends_by_tournament)
     rows: list[str] = []
-    for idx, c in enumerate(entries, start=1):
-        arena = str(c.get("arena", "") or "")
-        raw_host = str(c.get("host_club", "") or "")
+    for idx, item in enumerate(work_items, start=1):
+        arena = str(item.get("arena", "") or "")
+        raw_host = str(item.get("host_club", "") or "")
         host = canonical_rvv_club_name(raw_host) if raw_host else ""
         if not host or host == "-":
             host = raw_host or arena or "?"
-        tournament_id = str(c.get("tournament_id", "") or "")
-        age_group = str(c.get("age_group", "") or "")
-        date_val = str(c.get("date", "") or "")
-        interval = str(c.get("interval", "") or "")
+        tournament_id = str(item.get("tournament_id", "") or "")
+        age_group = str(item.get("age_group", "") or "")
+        date_val = str(item.get("date", "") or "")
+        interval = str(item.get("interval", "") or "")
         if not interval and date_val:
-            try:
-                from datetime import date as _date
-                interval = fmt_date(_date.fromisoformat(date_val)) or date_val
-            except ValueError:
-                interval = date_val
-        entry_type = str(c.get("type", "") or "Arena-/tidskollisjon")
-        conflict_id = str(c.get("conflicting_tournament_id", "") or "")
-        conflict_ag = str(c.get("conflicting_age_group", "") or "")
-        conflict_interval = str(c.get("conflicting_interval", "") or "")
-        detail = str(c.get("message", "") or "")
-        if not detail:
-            detail = f"{interval} kolliderer med {conflict_interval}" if conflict_interval else interval
-        conflict_cell = " ".join(part for part in (conflict_id, conflict_ag, conflict_interval) if part) or "-"
+            interval = format_date_label(date_val) or date_val
+        if item.get("unconfirmed"):
+            # A placement that was never verified must not read as an
+            # established hall/time booking; the arena/time are proposals.
+            if arena:
+                arena_cell = f"Ikke bekreftet (foreslått: {arena})"
+            else:
+                arena_cell = "Ikke bekreftet"
+            interval_cell = "Ikke bekreftet"
+        else:
+            arena_cell = arena
+            interval_cell = interval
+        categories = item.get("categories") or []
+        category_cell = " · ".join(CATEGORY_LABELS.get(name, name) for name in categories) or "-"
+        conflict_cell = ", ".join(item.get("conflicting") or []) or "-"
+        detail = render_findings_html(item.get("findings") or [])
+        detail += render_candidate_weekends_html(item.get("candidate_weekends"))
         rows.append(
             "<tr>"
             f"<td class=\"numeric-cell\">{idx}</td>"
-            f"<td>{_html.escape(tournament_id)}</td>"
-            f"<td>{_html.escape(date_val)}</td>"
+            f"<td>{_html.escape(tournament_id or '-')}</td>"
+            f"<td>{_html.escape(date_val or '-')}</td>"
             f"<td><strong>{_html.escape(age_group)}</strong></td>"
             f"<td>{_html.escape(host)}</td>"
-            f"<td>{_html.escape(arena)}</td>"
-            f"<td>{_html.escape(interval)}</td>"
-            f"<td>{_html.escape(entry_type)}</td>"
+            f"<td>{_html.escape(arena_cell)}</td>"
+            f"<td>{_html.escape(interval_cell)}</td>"
+            f"<td>{_html.escape(category_cell)}</td>"
             f"<td>{_html.escape(conflict_cell)}</td>"
-            f"<td>{_html.escape(detail)}</td>"
+            f"<td>{detail}</td>"
             "</tr>"
         )
     if not rows:
@@ -320,11 +332,15 @@ def _manual_schedule_html(
     waiver_section = _waiver_section_html(list(waiver_entries or []))
     # issue #321: the hero count/copy above is specifically about ice-time
     # booking work (see the module docstring's `MANUAL_SCHEDULE_CATEGORIES`
-    # note), so it stays scoped to `entries` -- participation findings get
-    # their own count in `_participation_section_html`'s section note, which
-    # must equal `publication_readiness.reasons[participation_shortfalls]`
-    # independently rather than being folded into this unrelated headline.
-    entry_count = str(len(entries))
+    # note), so it stays scoped to the booking work items -- participation
+    # findings get their own count in `_participation_section_html`'s section
+    # note, which must equal
+    # `publication_readiness.reasons[participation_shortfalls]` independently
+    # rather than being folded into this unrelated headline. The headline
+    # count is distinct work items, and the finding count is shown separately
+    # so several findings for one intervention never inflate it.
+    entry_count = str(len(work_items))
+    finding_count = str(sum(len(item.get("findings") or []) for item in work_items))
     parts = {
         "$STYLES$": STYLES_CSS,
         "$CALENDAR_NAV$": calendar_nav,
@@ -336,6 +352,7 @@ def _manual_schedule_html(
         "$ICON_WARNING$": ICON_WARNING,
         "$SUBTITLE$": subtitle,
         "$ENTRY_COUNT$": entry_count,
+        "$FINDING_COUNT$": finding_count,
         "$EXTRA_NOTE$": extra_note,
         "$ROWS$": rows_html,
         "$PARTICIPATION_SECTION$": participation_section,

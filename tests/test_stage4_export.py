@@ -591,7 +591,7 @@ class TestRunStage4:
         # booking table -- the booking count stays scoped to the genuine
         # ice-time booking item (Ringerike) only.
         assert "Skien" in manual_html
-        assert "1 turnering(er) krever manuell istidsplanlegging" in manual_html
+        assert "1 arbeidsoppgave(r) krever manuell istidsplanlegging" in manual_html
 
     def test_only_last_3_draft_timestamped_exports_are_kept(self, tmp_path):
         """Only the 3 most recent draft timestamped exports are kept on disk;
@@ -1826,3 +1826,145 @@ class TestHardVerificationBeforeExport:
         candidate = extract_candidate(plan_checkpoint)
         expected_fingerprint = stable_payload_sha256(candidate.get("tournaments", []))
         assert result_a["export_fingerprint"] == expected_fingerprint
+
+
+class TestManualOperatorOutput:
+    """issue #330: operator output must describe the exact unresolved work.
+
+    - an unverified/manual placement is never rendered like a confirmed booking
+      in ``season_plan.html``;
+    - several findings for one underlying tournament/obligation become one
+      operator work item instead of inflating the count;
+    - the #369 candidate weekends/rejection reasons are rendered.
+    """
+
+    def _state_with_dates(self, tmp_path, raw=None):
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(
+            input_path,
+            raw
+            or {
+                "start_date": "2025-09-01",
+                "end_date": "2025-12-01",
+                "age_groups": ["U10"],
+                "teams": [
+                    {"club": "Kongsberg", "label": "Kongsberg U10A", "age_group": "U10"},
+                    {"club": "Skien", "label": "Skien U10A", "age_group": "U10"},
+                ],
+            },
+        )
+        state.write_stage(
+            StageName.CONFIG,
+            {
+                "round_length_minutes": {"U10": 15},
+                "input_path": str(input_path),
+                "start_date": "2025-09-01",
+                "end_date": "2025-12-01",
+            },
+            status=StageStatus.DONE,
+        )
+        state.write_stage(StageName.SCRAPING, {}, status=StageStatus.DONE)
+        return state
+
+    def test_season_plan_marks_unverified_placements_as_not_confirmed(self, tmp_path):
+        state = self._state_with_dates(tmp_path)
+        plan_checkpoint = _make_plan_dict()
+        tournament = plan_checkpoint["plan"]["tournaments"][0]
+        tournament["manual_booking_reason"] = (
+            "Ingen verifisert ledig istid for Kongsberg 2025-10-05 — turneringen må plasseres manuelt."
+        )
+        tournament["requires_host_confirmation"] = True
+        tournament["host_confirmation_reason"] = "Åpen ishall må flyttes."
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        html = Path(result["output_files"]["html"]).read_text(encoding="utf-8")
+        # The schedule must carry the structured unverified evidence and the
+        # renderer must never print the placeholder arena/time as established.
+        assert '"mb"' in html
+        assert '"rhc"' in html
+        assert "Tid ikke bekreftet" in html
+        assert "ikke bekreftet" in html
+
+    def test_multiple_findings_for_one_tournament_are_one_work_item(self, tmp_path):
+        state = self._state_with_dates(tmp_path)
+        plan_checkpoint = _make_plan_dict()
+        tournament = plan_checkpoint["plan"]["tournaments"][0]
+        tournament["manual_booking_reason"] = (
+            "Ingen verifisert ledig istid for Kongsberg 2025-10-05 — turneringen må plasseres manuelt."
+        )
+        plan_checkpoint["plan"]["unresolved_tournament_placements"] = [
+            {
+                "age_group": "U10",
+                "date": "2025-10-05",
+                "period": "before_christmas",
+                "candidate_hosts": ["Kongsberg"],
+                "participant_clubs": ["Kongsberg", "Skien"],
+                "reason": "no_participant_host_slot",
+                "category": "manual_tournament_placement",
+            }
+        ]
+        plan_checkpoint["plan"]["unresolved_external_conflicts"] = [
+            {
+                "tournament_id": "rvv-0001",
+                "host_club": "Kongsberg",
+                "age_group": "U10",
+                "date": "2025-10-05",
+                "reason": "overlapper en kjent ekstern kalenderbooking.",
+                "category": "manual_external_conflict",
+            }
+        ]
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        manual_html = Path(result["output_files"]["manual_schedule"]).read_text(encoding="utf-8")
+        assert "1 arbeidsoppgave(r) krever manuell istidsplanlegging (2 funn)" in manual_html
+        # Exactly one work-item row for the tournament, with both findings
+        # attached underneath instead of two separate rows.
+        assert manual_html.count("<td>rvv-0001</td>") == 1
+        assert "ingen vertsklubb blant deltakerne" in manual_html.lower()
+        assert "ekstern kalenderkonflikt" in manual_html.lower()
+        # A manual placement with a structured unresolved record must not also
+        # be mislabelled as a calendar-unavailable finding.
+        assert "Kalender ikke verifisert" not in manual_html
+
+    def test_manual_schedule_renders_candidate_weekends_and_rejections(self, tmp_path):
+        state = self._state_with_dates(tmp_path)
+        plan_checkpoint = _make_plan_dict()
+        tournament = plan_checkpoint["plan"]["tournaments"][0]
+        tournament["manual_booking_reason"] = (
+            "Ingen verifisert ledig istid for Kongsberg 2025-10-05 — turneringen må plasseres manuelt."
+        )
+        plan_checkpoint["plan"]["unresolved_tournament_placements"] = [
+            {
+                "age_group": "U10",
+                "date": "2025-10-05",
+                "period": "before_christmas",
+                "candidate_hosts": ["Kongsberg"],
+                "participant_clubs": ["Kongsberg", "Skien"],
+                "reason": "no_participant_host_slot",
+                "category": "manual_tournament_placement",
+            }
+        ]
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+        )
+
+        manual_html = Path(result["output_files"]["manual_schedule"]).read_text(encoding="utf-8")
+        assert "Forslag (fra avgrenset, ansvarsbevarende søk)" in manual_html
+        assert re.search(r"\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}", manual_html)

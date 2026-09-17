@@ -100,6 +100,66 @@ def candidate_has_manual_slot_failure(candidate: Mapping[str, Any]) -> bool:
     )
 
 
+def collect_candidate_weekend_evidence(
+    candidate: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    *,
+    occupancy: Optional[Mapping[str, set]] = None,
+    team_labels: Optional[Mapping[Any, str]] = None,
+) -> List[Dict[str, Any]]:
+    """Per-manual-placement candidate-weekend bundles, keyed by tournament id.
+
+    Evidence only. This is the same read-only shortlist the repair path
+    attaches to the decision context (``enumerate_host_placement_repairs``),
+    exposed as a standalone canonical capability so operator-output
+    projections (the manual-schedule export) can render it without running
+    the whole repair search. It never mutates the candidate and never
+    produces an applyable option id.
+    """
+    if occupancy is None or team_labels is None:
+        occupancy, team_labels = _occupancy_index(candidate)
+    bundles: List[Dict[str, Any]] = []
+    for tournament in candidate.get("tournaments", []):
+        if tournament.get("cancelled") or not _is_manual_slot_failure(tournament):
+            continue
+        finding = _finding_for_tournament(tournament)
+        bundles.append(
+            _candidate_weekend_bundle(
+                problem, tournament, finding, occupancy=occupancy, team_labels=team_labels
+            )
+        )
+    return bundles
+
+
+def _occupancy_index(candidate: Mapping[str, Any]) -> Tuple[Dict[str, set], Dict[Any, str]]:
+    """Team/date occupancy plus display labels, derived once per candidate."""
+    occupancy: Dict[str, set] = {}
+    team_labels: Dict[Any, str] = {}
+    for other in candidate.get("tournaments", []):
+        if other.get("cancelled"):
+            continue
+        date_iso = str(other.get("date") or "")
+        if not date_iso:
+            continue
+        bucket = occupancy.setdefault(date_iso, set())
+        for team in other.get("teams", []):
+            identity = _team_identity(team)
+            bucket.add(identity)
+            team_labels[identity] = str(team.get("label") or team.get("club") or "")
+    return occupancy, team_labels
+
+
+def _finding_for_tournament(tournament: Mapping[str, Any]) -> _Finding:
+    tournament_id = str(tournament.get("id"))
+    return _Finding(
+        finding_id=f"manual_placement:{tournament_id}",
+        tournament_id=tournament_id,
+        host_club=str(tournament.get("host_club") or ""),
+        age_group=str(tournament.get("age_group") or ""),
+        original_date=str(tournament.get("date") or ""),
+    )
+
+
 def enumerate_host_placement_repairs(
     candidate: Mapping[str, Any],
     problem: Mapping[str, Any],
@@ -114,39 +174,18 @@ def enumerate_host_placement_repairs(
     }
     options: List[RepairOption] = []
     rejected: List[Dict[str, Any]] = []
-    candidate_weekend_suggestions: List[Dict[str, Any]] = []
     # Team/date occupancy and display labels are shared by every finding's
     # candidate-weekend evidence, so derive them once from the candidate.
-    occupancy: Dict[str, set] = {}
-    team_labels: Dict[Any, str] = {}
-    for other in candidate.get("tournaments", []):
-        if other.get("cancelled"):
-            continue
-        date_iso = str(other.get("date") or "")
-        if not date_iso:
-            continue
-        bucket = occupancy.setdefault(date_iso, set())
-        for team in other.get("teams", []):
-            identity = _team_identity(team)
-            bucket.add(identity)
-            team_labels[identity] = str(team.get("label") or team.get("club") or "")
+    occupancy, team_labels = _occupancy_index(candidate)
+    candidate_weekend_suggestions = collect_candidate_weekend_evidence(
+        candidate, problem, occupancy=occupancy, team_labels=team_labels
+    )
     for tournament in candidate.get("tournaments", []):
         if tournament.get("cancelled") or not _is_manual_slot_failure(tournament):
             continue
-        tournament_id = str(tournament.get("id"))
-        host_club = str(tournament.get("host_club") or "")
-        finding = _Finding(
-            finding_id=f"manual_placement:{tournament_id}",
-            tournament_id=tournament_id,
-            host_club=host_club,
-            age_group=str(tournament.get("age_group") or ""),
-            original_date=str(tournament.get("date") or ""),
-        )
-        candidate_weekend_suggestions.append(
-            _candidate_weekend_bundle(
-                problem, tournament, finding, occupancy=occupancy, team_labels=team_labels
-            )
-        )
+        finding = _finding_for_tournament(tournament)
+        tournament_id = finding.tournament_id
+        host_club = finding.host_club
         if not host_club:
             rejected.append({**_base(finding), "reason": "missing_host_club"})
             continue
