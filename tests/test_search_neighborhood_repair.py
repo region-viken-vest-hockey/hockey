@@ -284,3 +284,45 @@ def test_findings_are_locally_searchable_requires_a_searchable_hard_finding():
     assert findings_are_locally_searchable(["host_team_missing", "unregistered_team"]) is False
     assert findings_are_locally_searchable(["unregistered_team"]) is False
     assert findings_are_locally_searchable([]) is False
+
+
+def test_bounded_search_rejects_a_host_move_that_transfers_responsibility(monkeypatch):
+    """A verified hard-fix seed that absorbs another club's hosting is rejected.
+
+    The search itself may move hosts, but moving hosting burden onto a club the
+    fairness model did not assign it to is not an improvement (#361). The seed
+    is surfaced as explicit rejection evidence instead of a selectable option.
+    """
+    import tournament_scheduler.search_neighborhood_repair as snr
+
+    candidate = _candidate()
+    problem = _problem()
+    real_verify = snr.verify_candidate
+
+    def _transferring_search_result(cand, prob, **kwargs):
+        result = deepcopy(cand)
+        for tournament in result["tournaments"]:
+            tournament["host_club"] = "Host"
+            tournament["arena"] = "Host Arena"
+        result["_synthetic_transfer"] = True
+        return result
+
+    def _verify(cand, prob):
+        if cand.get("_synthetic_transfer"):
+            return {"ok": True, "violations": []}
+        return real_verify(cand, prob)
+
+    monkeypatch.setattr(snr, "optimize_candidate", _transferring_search_result)
+    monkeypatch.setattr(snr, "verify_candidate", _verify)
+
+    repair_set = enumerate_search_neighborhood_repairs(candidate, problem, run_id="r1")
+
+    assert repair_set["options"] == []
+    reasons = {entry.get("reason") for entry in repair_set["rejected_candidates"]}
+    assert "unexplained_hosting_responsibility_transfer" in reasons
+    transfer_entry = next(
+        entry
+        for entry in repair_set["rejected_candidates"]
+        if entry.get("reason") == "unexplained_hosting_responsibility_transfer"
+    )
+    assert transfer_entry["responsibility_transfers"][0]["club"] == "Host"

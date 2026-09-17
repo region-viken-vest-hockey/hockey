@@ -241,6 +241,57 @@ def test_apply_candidate_rejects_hard_verification_failure(tmp_path):
     assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "pending_review"
 
 
+def test_apply_candidate_rejects_unexplained_hosting_responsibility_transfer(tmp_path):
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("t1", host="A"),
+            _tournament("t2", date_str="2026-10-10", arena="Arena B", host="B"),
+        ],
+    )
+    schedule_file = root / "2026-2027" / "schedule.json"
+    before = schedule_file.read_bytes()
+    problem = {"teams": _teams()}
+
+    # Convenience rehost: move B's tournament onto A's arena even though A does
+    # not owe that hosting responsibility.
+    candidate = _plan(
+        [
+            _tournament("t1", host="A"),
+            _tournament("t2", date_str="2026-10-10", arena="Arena A", host="A"),
+        ]
+    )
+    with pytest.raises(SeasonStateError, match="transfers hosting responsibility"):
+        apply_candidate(season="2026-2027", candidate=candidate, root=root, problem=problem)
+
+    assert schedule_file.read_bytes() == before
+
+
+def test_apply_candidate_allows_responsibility_preserving_change(tmp_path):
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("t1", host="A"),
+            _tournament("t2", date_str="2026-10-10", arena="Arena B", host="B"),
+        ],
+    )
+    problem = {"teams": _teams()}
+
+    # A pure date move keeps each host responsible for its own tournament.
+    candidate = _plan(
+        [
+            _tournament("t1", host="A"),
+            _tournament("t2", date_str="2026-10-17", arena="Arena B", host="B"),
+        ]
+    )
+    schedule, _decisions, _cost = apply_candidate(
+        season="2026-2027", candidate=candidate, root=root, problem=problem
+    )
+
+    hosts = {t["id"]: t["host_club"] for t in schedule["plan"]["tournaments"]}
+    assert hosts == {"t1": "A", "t2": "B"}
+
+
 def test_replan_around_baseline_preserves_ids_and_reports_change_cost(tmp_path):
     from tournament_scheduler.canonical_replan import replan_around_baseline
 

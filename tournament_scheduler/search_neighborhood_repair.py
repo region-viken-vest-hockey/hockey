@@ -35,6 +35,10 @@ from .host_team_missing_repair import (
     _identity,
     candidate_fingerprint,
 )
+from .hosting_responsibility import (
+    responsibility_regression_reason,
+    unexplained_responsibility_transfers,
+)
 from .planning_contract import verify_candidate
 from .stage3_optimizer import optimize_candidate
 
@@ -148,6 +152,21 @@ def enumerate_search_neighborhood_repairs(
                     "reason": "search_candidate_not_hard_valid",
                     "seed": int(seed),
                     "remaining_violation_codes": sorted(after_codes),
+                }
+            )
+            continue
+        transfer_reason = responsibility_regression_reason(candidate, search_result, problem)
+        if transfer_reason:
+            # The search changed host representation; refuse any seed whose
+            # result absorbs another club's hosting burden instead of keeping
+            # the obligation with the club the fairness model assigned it to.
+            rejected.append(
+                {
+                    "reason": transfer_reason,
+                    "seed": int(seed),
+                    "responsibility_transfers": unexplained_responsibility_transfers(
+                        candidate, search_result, problem
+                    ),
                 }
             )
             continue
@@ -317,6 +336,16 @@ def apply_search_neighborhood_repair_option(
             "reason": "verification_failed",
             "before_fingerprint": before,
             "verification": verification,
+        }
+    transfer_reason = responsibility_regression_reason(candidate, result_candidate, problem)
+    if transfer_reason:
+        return {
+            "ok": False,
+            "reason": transfer_reason,
+            "before_fingerprint": before,
+            "responsibility_transfers": unexplained_responsibility_transfers(
+                candidate, result_candidate, problem
+            ),
         }
     return {
         "ok": True,

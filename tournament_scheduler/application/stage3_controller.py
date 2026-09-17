@@ -80,6 +80,7 @@ class Stage3TransitionOutcome:
     transition: str
     reason: str = ""
     context: dict[str, Any] | None = None
+    findings: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _now() -> str:
@@ -113,7 +114,12 @@ class Stage3Controller:
 
         result = capabilities.apply(transition, session, action)
         if not result.ok:
-            return self._reject(session, transition, result.reason or "capability_rejected")
+            return self._reject(
+                session,
+                transition,
+                result.reason or "capability_rejected",
+                findings=list((result.data or {}).get("responsibility_transfers") or []),
+            )
 
         from_revision = session.candidate_revision
         if result.candidate_changed:
@@ -199,8 +205,16 @@ class Stage3Controller:
             return f"transition_not_legal:{transition}"
         return self._stale_reason(session, action)
 
-    def _reject(self, session: Stage3Session, transition: str, reason: str) -> Stage3TransitionOutcome:
-        return Stage3TransitionOutcome(False, session, transition, reason=reason)
+    def _reject(
+        self,
+        session: Stage3Session,
+        transition: str,
+        reason: str,
+        findings: list[dict[str, Any]] | None = None,
+    ) -> Stage3TransitionOutcome:
+        return Stage3TransitionOutcome(
+            False, session, transition, reason=reason, findings=list(findings or [])
+        )
 
     def _stale_reason(self, session: Stage3Session, action: DecisionAction) -> str:
         if session.pending_scope() != SCOPE_CANDIDATE:

@@ -28,6 +28,10 @@ from typing import Any, Callable
 from ...application.decisions import DecisionAction
 from ...application.stage3_controller import Stage3CapabilityResult
 from ...application.stage3_session import Stage3Session
+from ...hosting_responsibility import (
+    RESPONSIBILITY_TRANSFER_CODE,
+    unexplained_responsibility_transfers,
+)
 
 
 class InteractiveStage3Capabilities:
@@ -48,6 +52,7 @@ class InteractiveStage3Capabilities:
         self.run_id = run_id
         self._problem_fn = problem_fn
         self._resolved: tuple[dict[str, Any], dict[str, Any], Any, Any] | None = None
+        self._last_responsibility_findings: list[dict[str, Any]] = []
 
     # -- dispatch ---------------------------------------------------------
 
@@ -56,6 +61,49 @@ class InteractiveStage3Capabilities:
         if handler is None:
             return Stage3CapabilityResult(ok=False, reason=f"unsupported_transition:{transition}")
         return handler(session, action)
+
+    # -- responsibility-preserving candidate guard -----------------------
+
+    def _responsibility_guard(
+        self, session: Stage3Session, candidate: Any, problem: dict[str, Any] | None = None
+    ) -> str:
+        """Reject a candidate change that transfers hosting responsibility.
+
+        This is the common Stage 3 boundary hook: whichever deterministic
+        capability produced *candidate*, the repository-owned semantic owner
+        (``hosting_responsibility``) decides whether the change moved hosting
+        burden onto a club the fairness model did not assign it to. The
+        lifecycle controller stays unaware of hockey semantics; it only
+        accepts or rejects the capability's typed result.
+        """
+        self._last_responsibility_findings = []
+        if not candidate or session.candidate is None:
+            return ""
+        try:
+            from ...planning_contract import extract_candidate
+
+            before = extract_candidate(session.candidate)
+            after = extract_candidate(candidate)
+        except (ValueError, KeyError):
+            return ""
+        problem = problem if problem is not None else self._problem()
+        if not problem:
+            # Without the registration/fairness facts there is no canonical
+            # target to compare against; leave the candidate to the ordinary
+            # hard verifier rather than inventing a responsibility rule.
+            return ""
+        findings = unexplained_responsibility_transfers(before, after, problem)
+        if not findings:
+            return ""
+        self._last_responsibility_findings = findings
+        return RESPONSIBILITY_TRANSFER_CODE
+
+    def _responsibility_rejection(self, reason: str) -> Stage3CapabilityResult:
+        return Stage3CapabilityResult(
+            ok=False,
+            reason=reason,
+            data={"responsibility_transfers": list(self._last_responsibility_findings)},
+        )
 
     # -- resolved planning context ---------------------------------------
 
@@ -181,6 +229,9 @@ class InteractiveStage3Capabilities:
             pass
         if "plan" not in checkpoint:
             checkpoint = {"plan": candidate}
+        guard_reason = self._responsibility_guard(session, checkpoint)
+        if guard_reason:
+            return self._responsibility_rejection(guard_reason)
         self.state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
 
         framework = str(self.state.work_dir)
@@ -241,6 +292,9 @@ class InteractiveStage3Capabilities:
         )
         if not outcome.get("ok"):
             return Stage3CapabilityResult(ok=False, reason=str(outcome.get("reason") or "repair_rejected"))
+        guard_reason = self._responsibility_guard(session, outcome.get("candidate"), problem)
+        if guard_reason:
+            return self._responsibility_rejection(guard_reason)
 
         checkpoint = dict(self.state.read_stage(StageName.PLANNING) or {})
         invalidate_stale_candidate_checkpoint_keys(checkpoint)
@@ -302,14 +356,22 @@ class InteractiveStage3Capabilities:
         # the persisted one: on the single-optimizer path the checkpoint
         # already holds the pending attempt, while the Pareto/CP-SAT paths
         # leave the baseline on disk and must be rewritten explicitly.
-        if chosen_body is not None and fingerprint_plan(checkpoint) != candidate_content_fingerprint(chosen_body):
+        rewrite = chosen_body is not None and fingerprint_plan(checkpoint) != candidate_content_fingerprint(
+            chosen_body
+        )
+        if rewrite:
             invalidate_stale_candidate_checkpoint_keys(checkpoint)
             checkpoint["plan"] = chosen_body
             if source:
                 checkpoint["source"] = source
-            self.state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
         else:
             checkpoint = dict(self.state.read_stage(StageName.PLANNING) or checkpoint)
+
+        guard_reason = self._responsibility_guard(session, checkpoint)
+        if guard_reason:
+            return self._responsibility_rejection(guard_reason)
+        if rewrite:
+            self.state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
 
         fingerprint = fingerprint_plan(checkpoint)
         return Stage3CapabilityResult(

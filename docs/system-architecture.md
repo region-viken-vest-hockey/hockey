@@ -114,8 +114,8 @@ Scheduling rules must have one authoritative implementation and remain valid acr
 | Concern | Owning layer | Examples |
 |---|---|---|
 | Input/configured policy | controlled workbook/config parsing | participation targets, season window, source configuration |
-| Domain facts and reusable rule math | small planner-independent deterministic modules | hosting targets, coverage, participant eligibility, availability facts |
-| Hard/required verification | canonical verifier | host representation, target caps, collisions, required obligations |
+| Domain facts and reusable rule math | small planner-independent deterministic modules | hosting targets, coverage and responsibility facts (`hosting_coverage`, `hosting_responsibility`), participant eligibility, availability facts |
+| Hard/required verification | canonical verifier | host representation, target caps, collisions, required obligations, unexplained responsibility transfer |
 | Soft deterministic measurements | scorecard/fairness measurement | hosting deviation, participation spread, temporal spacing |
 | Feasible repair/action enumeration | canonical application/decision capability | common `local_repair_options` boundary over small planner-neutral providers: `rehost_tournament`/`remove_tournament`/participant repair for `host_team_missing`, `fill_participant`/`swap_participant` for an underfilled roster, `move_same_host_date`/`move_same_host_start_time`/`swap_compatible_tournament_placement` for a manual placement, bounded neighborhood search (`search_neighborhood_repair`) for a locally searchable hard finding no direct option repairs, manual-placement fallback |
 | State mutation and persistence | canonical application/season operation | atomically apply validated changes while respecting locks/approvals |
@@ -162,7 +162,7 @@ atomic mutation -> games regenerated -> full independent verification
 
 A provider never weakens a hard rule, never transfers an obligation implicitly and never hides a legal option behind an ad-hoc ranking. When no local option verifies, the controller may request a bounded broader search or escalate with the recorded rejection evidence.
 
-When none of the direct options is legal, the `search_neighborhood_repair` provider runs the generic Stage 3 local search over an explicit neighborhood -- every tournament in the age group(s) touched by a *locally searchable* hard finding (`host_team_missing`, `excluded_host_club_used`, `club_hard_max_exceeded`, `duplicate_participation_same_date`, `duplicate_team_in_tournament`, `arena_interval_conflict`) -- and freezes every tournament outside it. Inside the neighborhood it may only re-pair participants and reassign the host to a club already represented by that tournament's own teams, and every seed's result must pass the full independent verifier and strictly reduce hard violations before it is exposed as an option id. A plan whose remaining hard findings are not locally searchable (for example `unregistered_team`/`date_outside_window`), or a soft manual placement, keeps the ordinary controller context rather than being replaced by a solver pass.
+When none of the direct options is legal, the `search_neighborhood_repair` provider runs the generic Stage 3 local search over an explicit neighborhood -- every tournament in the age group(s) touched by a *locally searchable* hard finding (`host_team_missing`, `excluded_host_club_used`, `club_hard_max_exceeded`, `duplicate_participation_same_date`, `duplicate_team_in_tournament`, `arena_interval_conflict`) -- and freezes every tournament outside it. Inside the neighborhood it may only re-pair participants and reassign the host to a club already represented by that tournament's own teams, and every seed's result must pass the full independent verifier, strictly reduce hard violations, **and not increase any club's hosting excess over its canonical target** before it is exposed as an option id. A plan whose remaining hard findings are not locally searchable (for example `unregistered_team`/`date_outside_window`), or a soft manual placement, keeps the ordinary controller context rather than being replaced by a solver pass.
 
 ### Responsibility is separate from automatic placement
 
@@ -185,6 +185,15 @@ automatic placement      keep responsibility with intended host
 ```
 
 A manual-placement tournament still counts toward the intended club's assigned hosting burden. Another club must not absorb that tournament merely because it has easier or more abundant ice, unless an explicit validated operator/decision action intentionally changes the hosting responsibility.
+
+The rule has one planner-independent semantic owner, `hosting_responsibility`: it derives the canonical target / actual / assigned / manual-placement facts from the registration model and `hosting_coverage`, and compares two candidates to detect an *unexplained responsibility transfer* -- a club whose physical hosting excess over its canonical target grew without the canonical target itself changing. Every candidate-changing boundary re-checks it and rejects or surfaces the change instead of committing it:
+
+- repair/search providers reject a candidate that introduces a transfer (the bounded search never offers such a seed);
+- the interactive Stage 3 capability guard refuses to commit a candidate revision that introduces a transfer, so the lifecycle controller only accepts capabilities whose result passes the canonical check;
+- canonical `season replan --apply` refuses a candidate that transfers a club's obligation relative to the promoted schedule, and explicit operator host/date/arena moves remain the deliberate, audited mutation path;
+- review/export evidence reports the responsibility ledger (target / assigned / automatic / manual) so a human sees any absorbed burden.
+
+Registration or tournament-volume changes are a canonical fairness recompute, not an unexplained placement transfer: the target math changed, so the guard skips that age group rather than mislabeling the legal redistribution.
 
 ### Change checklist for agents
 

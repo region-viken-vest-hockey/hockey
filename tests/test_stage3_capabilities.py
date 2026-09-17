@@ -224,3 +224,201 @@ def test_emission_mirror_stays_json_serializable_after_arena_transition(tmp_path
     store.save(session)
     raw = json.loads(store.session_path.read_text(encoding="utf-8"))
     assert raw["arena_decisions"][0]["key"] == "k"
+
+
+# ---------------------------------------------------------------------------
+# #361: hosting responsibility is an independently checked candidate semantic
+# ---------------------------------------------------------------------------
+
+
+def _ju12_team(club: str) -> dict:
+    return {"club": club, "age_group": "JU12", "label": f"{club} JU12"}
+
+
+def _ju12_problem(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    return {
+        "ice_time_minutes": {"JU12": 30},
+        "teams": (
+            [_ju12_team("Frisk Asker"), _ju12_team("Frisk Asker")]
+            + [_ju12_team("Ringerike"), _ju12_team("Ringerike")]
+            + [_ju12_team("Kongsberg/Tønsberg"), _ju12_team("Skien"), _ju12_team("Jutul/Jar Kittens")]
+        ),
+    }
+
+
+def _ju12_candidate(host_counts: dict[str, int]) -> dict[str, Any]:
+    tournaments = []
+    for host, count in host_counts.items():
+        for index in range(count):
+            tournaments.append(
+                {
+                    "id": f"{host[:3].lower()}{index}",
+                    "date": "2026-10-25",
+                    "arena": f"{host} Arena",
+                    "age_group": "JU12",
+                    "host_club": host,
+                    "start_time": "10:00",
+                    "teams": [{"club": host, "label": f"{host} JU12", "age_group": "JU12"}],
+                    "games": [],
+                    "cancelled": False,
+                }
+            )
+    return {"tournaments": tournaments}
+
+
+def _stage3_select_fixture(tmp_path, *, chosen_body: dict[str, Any], baseline_body: dict[str, Any] | None = None):
+    from tournament_scheduler.application.stage3_session_store import fingerprint_plan
+
+    state = PipelineState(str(tmp_path))
+    baseline_body = baseline_body or _ju12_candidate(
+        {"Frisk Asker": 5, "Ringerike": 5, "Kongsberg": 2, "Skien": 2, "Jutul": 2}
+    )
+    plan = {"plan": baseline_body}
+    state.write_stage(StageName.PLANNING, plan, status=StageStatus.DONE)
+    state.write_stage(
+        StageName.CONFIG, {"start_date": "2026-09-01", "end_date": "2027-04-30"}, status=StageStatus.DONE
+    )
+
+    store = Stage3SessionStore(tmp_path)
+    session = Stage3Session(run_id="run-1")
+    fingerprint = fingerprint_plan(plan)
+    session.advance_candidate(
+        plan,
+        fingerprint=fingerprint,
+        source="baseline",
+        transition="create_baseline",
+        action_id="create_baseline",
+        rationale="baseline",
+        at="T0",
+    )
+    session.set_pending(
+        capability="stage3_interactive",
+        context={
+            "capability": "stage3_interactive",
+            "facts": {"candidate_fingerprint": fingerprint},
+            "available_actions": ["apply_candidate", "keep_baseline"],
+        },
+        candidates=[{"candidate_ref": "c1", "candidate": {"plan": chosen_body}}],
+    )
+    store.save(session)
+    return state, store, fingerprint
+
+
+def test_select_candidate_rejects_unexplained_responsibility_transfer(tmp_path):
+    """A candidate that absorbs another club's hosting is refused at the
+    Stage 3 revision boundary, and nothing (session or checkpoint) is committed.
+    """
+    transferring = _ju12_candidate(
+        {"Frisk Asker": 5, "Ringerike": 7, "Kongsberg": 2, "Skien": 1, "Jutul": 1}
+    )
+    state, store, fingerprint = _stage3_select_fixture(tmp_path, chosen_body=transferring)
+    baseline_before = json.dumps(state.read_stage(StageName.PLANNING), sort_keys=True)
+
+    loaded = store.load("run-1")
+    action = DecisionAction(
+        action_id="apply_candidate",
+        arguments={"candidate_ref": "c1", "candidate_fingerprint": fingerprint},
+        rationale="more Ringerike ice is convenient",
+    )
+    outcome = Stage3Controller(clock=lambda: "T1").handle(
+        loaded, action, _capabilities(state, "run-1", problem_fn=_ju12_problem)
+    )
+
+    assert outcome.accepted is False
+    assert outcome.reason == "unexplained_hosting_responsibility_transfer"
+    assert outcome.findings[0]["club"] == "Ringerike"
+    # A rejected transition must not advance the session or mutate the checkpoint.
+    assert loaded.candidate_revision == 1
+    assert loaded.finalized_revision is None
+    assert json.dumps(state.read_stage(StageName.PLANNING), sort_keys=True) == baseline_before
+
+
+def test_select_candidate_accepts_responsibility_preserving_candidate(tmp_path):
+    """Returning hosting to the clubs that owe it is a valid adoption."""
+    unbalanced = _ju12_candidate(
+        {"Frisk Asker": 5, "Ringerike": 7, "Kongsberg": 2, "Skien": 1, "Jutul": 1}
+    )
+    balanced = _ju12_candidate(
+        {"Frisk Asker": 5, "Ringerike": 5, "Kongsberg": 2, "Skien": 2, "Jutul": 2}
+    )
+    state, store, fingerprint = _stage3_select_fixture(
+        tmp_path, chosen_body=balanced, baseline_body=unbalanced
+    )
+
+    loaded = store.load("run-1")
+    action = DecisionAction(
+        action_id="apply_candidate",
+        arguments={"candidate_ref": "c1", "candidate_fingerprint": fingerprint},
+        rationale="balance hosting",
+    )
+    outcome = Stage3Controller(clock=lambda: "T1").handle(
+        loaded, action, _capabilities(state, "run-1", problem_fn=_ju12_problem)
+    )
+
+    assert outcome.accepted is True
+    persisted = state.read_stage(StageName.PLANNING)
+    assert len(persisted["plan"]["tournaments"]) == 16
+
+
+def test_apply_repair_rejects_candidate_that_transfers_responsibility(tmp_path, monkeypatch):
+    """The local-repair capability is guarded too, not only candidate adoption."""
+    import tournament_scheduler.local_repair_options as lro
+    from tournament_scheduler.application.stage3_session_store import fingerprint_plan
+
+    state = PipelineState(str(tmp_path))
+    baseline_body = _ju12_candidate(
+        {"Frisk Asker": 5, "Ringerike": 5, "Kongsberg": 2, "Skien": 2, "Jutul": 2}
+    )
+    plan = {"plan": baseline_body}
+    state.write_stage(StageName.PLANNING, plan, status=StageStatus.DONE)
+    state.write_stage(
+        StageName.CONFIG, {"start_date": "2026-09-01", "end_date": "2027-04-30"}, status=StageStatus.DONE
+    )
+
+    transferring = _ju12_candidate(
+        {"Frisk Asker": 5, "Ringerike": 7, "Kongsberg": 2, "Skien": 1, "Jutul": 1}
+    )
+
+    def _fake_apply(candidate, problem, **kwargs):
+        return {"ok": True, "candidate": transferring, "family": "host_placement"}
+
+    monkeypatch.setattr(lro, "apply_local_repair_option", _fake_apply)
+
+    store = Stage3SessionStore(tmp_path)
+    session = Stage3Session(run_id="run-1")
+    fingerprint = fingerprint_plan(plan)
+    session.advance_candidate(
+        plan,
+        fingerprint=fingerprint,
+        source="baseline",
+        transition="create_baseline",
+        action_id="create_baseline",
+        rationale="baseline",
+        at="T0",
+    )
+    session.set_pending(
+        capability="host_placement_repair",
+        context={
+            "capability": "host_placement_repair",
+            "facts": {"candidate_fingerprint": fingerprint},
+            "available_actions": ["apply_repair_option", "keep_baseline"],
+        },
+    )
+    store.save(session)
+    baseline_before = json.dumps(state.read_stage(StageName.PLANNING), sort_keys=True)
+
+    loaded = store.load("run-1")
+    action = DecisionAction(
+        action_id="apply_repair_option",
+        arguments={"option_id": "transfer-option", "candidate_fingerprint": fingerprint},
+        rationale="rehost onto Ringerike",
+    )
+    outcome = Stage3Controller(clock=lambda: "T1").handle(
+        loaded, action, _capabilities(state, "run-1", problem_fn=_ju12_problem)
+    )
+
+    assert outcome.accepted is False
+    assert outcome.reason == "unexplained_hosting_responsibility_transfer"
+    assert outcome.findings[0]["club"] == "Ringerike"
+    assert loaded.candidate_revision == 1
+    assert json.dumps(state.read_stage(StageName.PLANNING), sort_keys=True) == baseline_before

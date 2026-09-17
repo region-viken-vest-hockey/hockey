@@ -907,6 +907,25 @@ def apply_candidate(
         messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
         raise SeasonStateError(f"Refusing canonical apply: candidate fails hard verification: {messages}")
 
+    if problem:
+        # Hosting responsibility is a canonical fact, not a placement
+        # convenience: applying a replan candidate must not move a club's
+        # obligation onto another club merely because that club has easier
+        # ice. A genuine registration/volume change is a fairness recompute
+        # (target change) and is not reported here.
+        from tournament_scheduler.hosting_responsibility import (
+            unexplained_responsibility_transfers,
+        )
+
+        transfers = unexplained_responsibility_transfers(
+            schedule.get("plan"), normalized_candidate, problem
+        )
+        if transfers:
+            messages = "; ".join(str(entry.get("message")) for entry in transfers)
+            raise SeasonStateError(
+                f"Refusing canonical apply: candidate transfers hosting responsibility: {messages}"
+            )
+
     plan = dict(normalized_candidate)
     plan.pop("source", None)
     plan["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
