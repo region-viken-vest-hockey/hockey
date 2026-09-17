@@ -9,6 +9,7 @@ from tournament_scheduler.pipeline.audit_result import (
     is_blocking_status,
     read_audit_result,
     validate_audit_result,
+    with_resolved_audit_id,
     write_audit_result,
 )
 from tournament_scheduler.pipeline.run_manifest import RunManifest
@@ -93,6 +94,52 @@ class TestValidateAuditResult:
         assert errors == []
         stored = read_audit_result(tmp_path)
         assert stored["potential_missing_rule"] == payload["potential_missing_rule"]
+
+    def test_rejects_missing_audit_id(self):
+        payload = _golden(status="PASS")
+        del payload["audit_id"]
+        errors = validate_audit_result(payload)
+        assert any("audit_id" in e for e in errors)
+
+    def test_rejects_empty_audit_id(self):
+        payload = _golden(status="PASS")
+        payload["audit_id"] = ""
+        errors = validate_audit_result(payload)
+        assert any("audit_id" in e for e in errors)
+
+
+class TestWithResolvedAuditId:
+    def test_fills_in_a_missing_id_from_export_run_and_timestamp(self):
+        payload = _golden(status="REVIEW_REQUIRED")
+        del payload["audit_id"]
+        resolved = with_resolved_audit_id(payload)
+        assert resolved["audit_id"] == build_audit_id(
+            export_fingerprint=payload["export_fingerprint"],
+            run_id=payload["run_id"],
+            generated_at=payload["generated_at"],
+        )
+        # The original payload is left untouched (no surprising in-place mutation).
+        assert "audit_id" not in payload
+
+    def test_preserves_an_explicit_id(self):
+        payload = _golden(status="REVIEW_REQUIRED")
+        assert with_resolved_audit_id(payload) is payload
+
+    def test_two_exports_resolve_to_different_ids(self):
+        first = _golden(status="REVIEW_REQUIRED", export_fingerprint="fp-1")
+        second = _golden(status="REVIEW_REQUIRED", export_fingerprint="fp-2")
+        del first["audit_id"]
+        del second["audit_id"]
+        assert with_resolved_audit_id(first)["audit_id"] != with_resolved_audit_id(second)["audit_id"]
+
+    def test_write_audit_result_persists_a_computed_id(self, tmp_path):
+        payload = _golden(status="REVIEW_REQUIRED")
+        del payload["audit_id"]
+        assert write_audit_result(tmp_path, payload) == []
+        stored = read_audit_result(tmp_path)
+        assert stored["audit_id"] == build_audit_id(
+            export_fingerprint="fp-1", run_id="run-1", generated_at=payload["generated_at"]
+        )
 
 
 class TestIsBlockingStatus:

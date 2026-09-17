@@ -118,6 +118,22 @@ class TestAuditSubmitCommand:
         stored = read_audit_result(tmp_path)
         assert stored["status"] == "PASS"
 
+    def test_derives_a_missing_audit_id_through_the_operator_action(self, tmp_path):
+        _write_export(tmp_path)
+        payload = _golden_result(status="REVIEW_REQUIRED")
+        del payload["audit_id"]
+        result_file = tmp_path / "result.json"
+        result_file.write_text(json.dumps(payload), encoding="utf-8")
+
+        rc = _cmd_operator(
+            _args("audit-submit", "--work-dir", str(tmp_path), "--result-file", str(result_file))
+        )
+
+        assert rc == 0
+        stored = read_audit_result(tmp_path)
+        assert stored["audit_id"]
+        assert stored["audit_id"] != "None"
+
     def test_rejects_submission_for_a_different_export_fingerprint(self, tmp_path):
         _write_export(tmp_path, fingerprint="fp-current")
         result_file = tmp_path / "result.json"

@@ -150,6 +150,8 @@ The harness then submits PASS / REVIEW_REQUIRED / FAIL through `operator audit-s
 
 The audit is an independent semantic safety net, not a second Python rules engine. It looks for suspicious operational patterns, missing rules, export inconsistency and defects the deterministic verifier may share with the scheduler.
 
+A `REVIEW_REQUIRED` verdict raises a distinct operator-review question. That question is bound to the reviewed export's fingerprint and audit id, so an approval given for one export never satisfies the review of a later export with different content; each new export needs its own review approval.
+
 ## Publication
 
 Planning/export never implies publication. After a fresh audit of the exact intended export:

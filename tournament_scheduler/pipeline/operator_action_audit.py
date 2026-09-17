@@ -129,7 +129,7 @@ def execute_submit_audit_result(*, work_dir: str, result: dict[str, Any]) -> "Ca
     the export currently on disk — a submission for a stale/different export
     must never be recorded as though it covered the current one.
     """
-    from .audit_result import current_export_fingerprint, write_audit_result
+    from .audit_result import current_export_fingerprint, with_resolved_audit_id, write_audit_result
     from .capability_result import CapabilityResult
 
     current_fp = current_export_fingerprint(work_dir)
@@ -142,6 +142,9 @@ def execute_submit_audit_result(*, work_dir: str, result: dict[str, Any]) -> "Ca
             suggested_actions=["Hent ny kontekst med 'operator audit-context' og send inn på nytt."],
         )
 
+    # A harness submission may omit audit_id; derive it so a later
+    # REVIEW_REQUIRED approval stays scoped to this exact export.
+    result = with_resolved_audit_id(result)
     errors = write_audit_result(work_dir, result)
     if errors:
         return CapabilityResult.failed(
@@ -253,11 +256,17 @@ def apply_publish_audit_gate(
     if audit_status != "REVIEW_REQUIRED":
         return None
 
-    audit_id = audit_result_payload.get("audit_id") if audit_result_payload else None
+    audit_id = (audit_result_payload or {}).get("audit_id")
+    export_fingerprint = (audit_result_payload or {}).get("export_fingerprint")
     audit_question = Question(
         type=EscalationType.AUDIT_REVIEW.value,
         capability="pages_publish",
-        summary=f"Godkjenn publisering til tross for REVIEW_REQUIRED fra semantisk revisjon {audit_id}?",
+        # The export fingerprint is part of the question identity too, so an
+        # approval never spans two different exports even if audit_id is absent.
+        summary=(
+            f"Godkjenn publisering til tross for REVIEW_REQUIRED fra semantisk revisjon "
+            f"{audit_id} for eksport {export_fingerprint}?"
+        ),
     )
     existing_audit_answer = next(
         (q for q in RunManifest(work_dir).all_questions() if q.get("id") == audit_question.id), None

@@ -75,7 +75,7 @@ def validate_audit_result(payload: dict[str, Any]) -> list[str]:
     if not isinstance(payload, dict):
         return ["payload is not a JSON object"]
 
-    for key in ("schema_version", "export_fingerprint", "generated_at", "status"):
+    for key in ("schema_version", "audit_id", "export_fingerprint", "generated_at", "status"):
         if key not in payload or payload.get(key) in (None, ""):
             errors.append(f"missing required field: {key}")
     # run_id may legitimately be empty (e.g. no run manifest was started for
@@ -132,8 +132,12 @@ def write_audit_result(work_dir: "str | Path", payload: dict[str, Any]) -> list[
 
     Returns validation errors (empty on success); refuses to write an
     invalid payload rather than persisting something a later reader would
-    have to re-validate to trust.
+    have to re-validate to trust. A caller that omitted ``audit_id`` gets a
+    server-computed one (see :func:`with_resolved_audit_id`) so every stored
+    result carries the identity that scopes any later review approval to
+    this exact export.
     """
+    payload = with_resolved_audit_id(payload)
     errors = validate_audit_result(payload)
     if errors:
         return errors
@@ -147,6 +151,35 @@ def build_audit_id(*, export_fingerprint: str, run_id: str, generated_at: str) -
     return stable_payload_sha256(
         {"export_fingerprint": export_fingerprint, "run_id": run_id, "generated_at": generated_at}
     )[:16]
+
+
+def with_resolved_audit_id(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return *payload* with a server-computed ``audit_id`` when the caller
+    omitted one.
+
+    ``audit_id`` is what keeps a REVIEW_REQUIRED operator approval scoped to
+    the export it was actually raised for. A harness submission is allowed
+    to leave it out; the server must still derive a stable, content-derived
+    id (from the export fingerprint, run and timestamp it already has to
+    provide) so two unrelated exports' review questions never collapse into
+    the same identity — and an old approval never silently covers new
+    content. Returns *payload* unchanged when an id is already present or a
+    required input is missing (the missing field is reported by validation).
+    """
+    if not isinstance(payload, dict) or payload.get("audit_id"):
+        return payload
+    export_fingerprint = payload.get("export_fingerprint")
+    run_id = payload.get("run_id")
+    generated_at = payload.get("generated_at")
+    if not export_fingerprint or run_id is None or generated_at in (None, ""):
+        return payload
+    resolved = dict(payload)
+    resolved["audit_id"] = build_audit_id(
+        export_fingerprint=str(export_fingerprint),
+        run_id=str(run_id),
+        generated_at=str(generated_at),
+    )
+    return resolved
 
 
 def now_iso() -> str:

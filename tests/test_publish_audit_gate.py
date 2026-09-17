@@ -48,8 +48,20 @@ def _audit_findings() -> list[dict]:
     ]
 
 
-def _write_audit(work_dir, *, status: str, export_fingerprint: str = "fp-1", run_id: str = "") -> dict:
-    payload = {
+def _write_audit_without_audit_id(
+    work_dir, *, status: str, export_fingerprint: str = "fp-1", run_id: str = ""
+) -> dict:
+    """Persist a REVIEW_REQUIRED audit the way a harness that omits
+    ``audit_id`` would submit it; ``write_audit_result`` must derive one."""
+    payload = _golden_result(status=status, export_fingerprint=export_fingerprint, run_id=run_id)
+    del payload["audit_id"]
+    errors = write_audit_result(work_dir, payload)
+    assert not errors, errors
+    return payload
+
+
+def _golden_result(*, status: str, export_fingerprint: str = "fp-1", run_id: str = "") -> dict:
+    return {
         "schema_version": 1,
         "audit_id": f"audit-{status.lower()}",
         "generated_at": "2026-01-01T00:00:00+00:00",
@@ -66,6 +78,10 @@ def _write_audit(work_dir, *, status: str, export_fingerprint: str = "fp-1", run
         "could_not_independently_establish": [],
         "raw_response_ref": None,
     }
+
+
+def _write_audit(work_dir, *, status: str, export_fingerprint: str = "fp-1", run_id: str = "") -> dict:
+    payload = _golden_result(status=status, export_fingerprint=export_fingerprint, run_id=run_id)
     errors = write_audit_result(work_dir, payload)
     assert not errors, errors
     return payload
@@ -219,3 +235,40 @@ class TestReviewRequiredEscalatesToOperator:
 
         result = _publish(tmp_path)
         assert result.status == "ok"
+
+
+class TestReviewRequiredApprovalScopedToExport:
+    def test_a_missing_audit_id_is_derived_server_side(self, tmp_path):
+        _init_repo(tmp_path)
+        _write_export(tmp_path)
+        _write_audit_without_audit_id(tmp_path, status="REVIEW_REQUIRED")
+
+        _publish(tmp_path)
+
+        audit_question = next(
+            q for q in RunManifest(tmp_path).all_questions() if q["type"] == "audit_review"
+        )
+        assert "revisjon None" not in audit_question["summary"]
+
+    def test_prior_export_approval_does_not_cover_a_newer_different_export(self, tmp_path):
+        """An earlier export's approved REVIEW_REQUIRED question must never
+        satisfy the gate for a later, unrelated export whose findings differ."""
+        _init_repo(tmp_path)
+        _write_export(tmp_path, fingerprint="fp-sept14")
+        _write_audit_without_audit_id(tmp_path, status="REVIEW_REQUIRED", export_fingerprint="fp-sept14")
+        _publish(tmp_path)
+        first_question = next(
+            q for q in RunManifest(tmp_path).all_questions() if q["type"] == "audit_review"
+        )
+        RunManifest(tmp_path).answer_question(first_question["id"], "godkjenn revisjon")
+
+        # A materially different later export: its own REVIEW_REQUIRED audit
+        # must raise a fresh question rather than reuse the older approval.
+        _write_export(tmp_path, fingerprint="fp-sept16")
+        _write_audit_without_audit_id(tmp_path, status="REVIEW_REQUIRED", export_fingerprint="fp-sept16")
+        result = _publish(tmp_path)
+
+        assert result.status == "blocked"
+        audit_questions = [q for q in RunManifest(tmp_path).all_questions() if q["type"] == "audit_review"]
+        assert len(audit_questions) == 2
+        assert audit_questions[1]["answered"] is False
