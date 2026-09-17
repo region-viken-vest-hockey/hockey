@@ -52,6 +52,40 @@ Theoretical scale and enterprise completeness are lower priorities unless the re
 - Behavior used by more than one harness belongs in repository/application code or the shared RVV runbook first; adapters stay thin.
 - Generated artifacts are derived data. Correct sources/configuration/code and regenerate rather than maintaining hand-edited generated output.
 
+## Defect repair discipline
+
+Treat every behavioral bug as a violated contract with one canonical owner. Diagnose ownership before editing code.
+
+Default ownership categories are:
+
+- facts/normalization -> input or planning-problem construction;
+- legality/invariants -> planner-independent domain rule and canonical verifier;
+- available legal mutations -> action/repair/search provider;
+- identity/revision/fingerprint/persistence/replay -> application session/store/controller;
+- transition/resume/finalization/stage handoff -> application lifecycle/controller;
+- argument/rendering/process behavior -> CLI transport;
+- explanation/audit/report/export projection -> evidence/report/export;
+- contextual choice among valid alternatives -> agent through declared repository actions.
+
+Fix the lowest canonical owner. Do not compensate for an upstream defect in a downstream caller simply because that is where the symptom is visible.
+
+Cross-layer identities must not have multiple implementations. Candidate normalization/fingerprint, candidate revision, run identity, durable tournament identity, rule identity and similar values need one canonical implementation or facade; all consumers derive from that source.
+
+For behavioral fixes, prefer this sequence:
+
+```text
+reproduce
+-> classify owner
+-> add an owner-boundary regression
+-> fix the owner
+-> exercise the originally failing integration path
+-> run broader verification appropriate to the change
+```
+
+A bug fix that starts accumulating semantic patches in several unrelated modules is a signal to stop and reassess ownership. Prefer one corrected contract with thin callers over synchronized compensating fixes.
+
+Do not change a domain rule to solve lifecycle state, lifecycle state to solve a domain rule, or harness/CLI instructions to mask a repository-code defect.
+
 ## Documentation and repository hygiene
 
 Keep the repository's information architecture small:
