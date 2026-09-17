@@ -93,6 +93,8 @@ def enumerate_search_neighborhood_repairs(
     run_id: str = "",
     iterations: int = _DEFAULT_ITERATIONS,
     seeds: Sequence[int] = _DEFAULT_SEEDS,
+    scope: Optional[Mapping[str, Any]] = None,
+    dimensions: Iterable[str] = ("participants", "host"),
 ) -> Dict[str, Any]:
     """Run a bounded neighborhood search and expose verified results.
 
@@ -123,7 +125,7 @@ def enumerate_search_neighborhood_repairs(
             applicable=False,
         )
 
-    neighborhood = _build_neighborhood(candidate, findings)
+    neighborhood = _build_neighborhood(candidate, findings, scope=scope)
     if not neighborhood.tournament_ids:
         rejected.append(
             {
@@ -135,13 +137,16 @@ def enumerate_search_neighborhood_repairs(
 
     before_codes = Counter(_codes(verification))
     seen_after: set[str] = set()
+    resolved_dimensions = {str(dimension) for dimension in dimensions}
     for seed in seeds:
         search_result = optimize_candidate(
             dict(candidate),
             dict(problem),
             iterations=max(1, int(iterations)),
             seed=int(seed),
-            move_hosts=True,
+            move_hosts="host" in resolved_dimensions,
+            move_dates="date" in resolved_dimensions,
+            move_slots="slot" in resolved_dimensions,
             frozen_tournament_ids=list(neighborhood.frozen_tournament_ids),
         )
         after = verify_candidate(dict(search_result), dict(problem))
@@ -199,7 +204,8 @@ def enumerate_search_neighborhood_repairs(
                     "engine": SEARCH_ENGINE,
                     "seed": int(seed),
                     "iterations": max(1, int(iterations)),
-                    "move_hosts": True,
+                    "dimensions": sorted(resolved_dimensions),
+                    "move_hosts": "host" in resolved_dimensions,
                     "neighborhood_tournament_ids": list(neighborhood.tournament_ids),
                     "frozen_tournament_ids": list(neighborhood.frozen_tournament_ids),
                 },
@@ -301,6 +307,8 @@ def apply_search_neighborhood_repair_option(
     option_id: str,
     expected_fingerprint: str,
     run_id: str = "",
+    scope: Optional[Mapping[str, Any]] = None,
+    dimensions: Iterable[str] = ("participants", "host"),
 ) -> Dict[str, Any]:
     """Atomically replace the candidate with a selected verified search result.
 
@@ -316,7 +324,9 @@ def apply_search_neighborhood_repair_option(
             "before_fingerprint": before,
             "expected_fingerprint": expected_fingerprint,
         }
-    repair_set = enumerate_search_neighborhood_repairs(candidate, problem, run_id=run_id)
+    repair_set = enumerate_search_neighborhood_repairs(
+        candidate, problem, run_id=run_id, scope=scope, dimensions=dimensions
+    )
     option = next(
         (entry for entry in repair_set["options"] if entry["option_id"] == option_id), None
     )
@@ -413,10 +423,34 @@ def _neighborhood_tag(tournament_ids: Sequence[str]) -> str:
 
 
 def _build_neighborhood(
-    candidate: Mapping[str, Any], findings: Sequence[Mapping[str, Any]]
+    candidate: Mapping[str, Any],
+    findings: Sequence[Mapping[str, Any]],
+    *,
+    scope: Optional[Mapping[str, Any]] = None,
 ) -> _Neighborhood:
     tournaments = [t for t in candidate.get("tournaments", []) if not t.get("cancelled")]
     by_id = {str(t.get("id")): t for t in tournaments}
+    all_ids = {str(t.get("id")) for t in tournaments}
+    scope = scope or {}
+    scope_age = str(scope.get("age_group") or "")
+    scope_tournament = str(scope.get("tournament_id") or "")
+    if scope_age or scope_tournament:
+        # A finding-directed search: freeze every tournament outside the
+        # finding's own age group / tournament, so one selected finding never
+        # forces a season-wide change (and unrelated findings impose no order).
+        if scope_tournament and scope_tournament in all_ids:
+            neighborhood_ids = {scope_tournament}
+            age_groups = {str(by_id[scope_tournament].get("age_group") or "")} - {""}
+        else:
+            neighborhood_ids = {
+                str(t.get("id")) for t in tournaments if str(t.get("age_group")) == scope_age
+            }
+            age_groups = {scope_age} - {""}
+        return _Neighborhood(
+            age_groups=tuple(sorted(age_groups)),
+            tournament_ids=tuple(sorted(neighborhood_ids)),
+            frozen_tournament_ids=tuple(sorted(all_ids - neighborhood_ids)),
+        )
     age_groups: set[str] = set()
     for finding in findings:
         if finding.get("age_group"):
@@ -439,7 +473,6 @@ def _build_neighborhood(
             for f in findings
             if f.get("tournament_id") is not None
         }
-    all_ids = {str(t.get("id")) for t in tournaments}
     frozen_ids = all_ids - neighborhood_ids
     return _Neighborhood(
         age_groups=tuple(sorted(age_groups)),

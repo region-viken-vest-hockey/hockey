@@ -71,9 +71,42 @@ Do not alter participants or unrelated tournaments to make a targeted move fit u
 
 Reapprove only when the new placement is actually confirmed/booked.
 
+## Repair a localized finding against the promoted season
+
+Do not re-run Stage 1–4 merely to reach the repair capabilities when the canonical season already has a valid factual baseline. Ask the repository what is actually wrong on the current revision:
+
+```bash
+scripts/rvv-miniputt season findings --season <season>
+```
+
+Findings are fresh, revision-bound facts (recomputed from the canonical plan, never the snapshot promoted with the season). They include unresolved hosting obligations, hosting-balance deficits, manual placements, hard violations and participation strong-goal deviations with their `avoidability`. Findings are independent: address whichever one the operator cares about next; there is no repository-imposed queue.
+
+For one selected finding, enumerate the repository's verified alternatives (direct/cheap options first, then coupled options):
+
+```bash
+scripts/rvv-miniputt season repair-options --season <season> --finding <finding-id>
+```
+
+When the cheap options are insufficient, request a bounded, finding-directed search that preserves unrelated tournaments and approvals:
+
+```bash
+scripts/rvv-miniputt season search --season <season> --finding <finding-id>
+```
+
+Apply exactly one verified option from the current canonical revision:
+
+```bash
+scripts/rvv-miniputt season apply-repair --season <season> \
+  --option-id <id> \
+  --expected-revision <revision> \
+  [--finding <finding-id>]
+```
+
+`--expected-revision` is the `revision` reported by `season findings`/`repair-options`. An apply against a changed revision is rejected as stale and leaves canonical state byte-unchanged. A successful apply is atomic, full-season verified, returns the new revision and a deterministic before/after delta, and re-derives findings from the new revision. Hosting responsibility stays authoritative: a repair may draw down a deficit only from a surplus, never by relocating the shortfall or transferring burden to a club that does not owe it. A `bounded_search_exhausted` participation deviation is never proof of infeasibility.
+
 ## Replan around the published baseline
 
-For broader unresolved/quality problems, keep approved/locked commitments fixed and search around the current canonical schedule:
+Whole-season replanning is an escalation, not the default response to every localized defect. For broader unresolved/quality problems, keep approved/locked commitments fixed and search around the current canonical schedule:
 
 ```bash
 scripts/rvv-miniputt season replan --season <season> --iterations <n>
@@ -111,8 +144,10 @@ Do not knowingly audit or publish an older Stage 4 projection after the canonica
 
 ```text
 canonical season
-  -> approve/unapprove individual tournaments as clubs confirm/change ice
-  -> targeted season move OR baseline-aware season replan
+  -> season findings (fresh, revision-bound)
+  -> season repair-options / season search for ONE selected finding
+  -> season apply-repair (atomic, revision-bound) when a local fix is enough
+  -> OR approve/unapprove, targeted season move, or baseline-aware season replan
   -> diff + verified apply when replanning
   -> season export
   -> semantic audit

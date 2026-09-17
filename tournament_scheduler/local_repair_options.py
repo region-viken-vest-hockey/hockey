@@ -21,6 +21,10 @@ from .host_placement_repair import (
     apply_host_placement_repair_option,
     enumerate_host_placement_repairs,
 )
+from .hosting_balance_repair import (
+    apply_hosting_balance_repair_option,
+    enumerate_hosting_balance_repairs,
+)
 from .host_team_missing_repair import (
     apply_host_team_missing_repair_option,
     candidate_fingerprint,
@@ -29,6 +33,10 @@ from .host_team_missing_repair import (
 from .movable_capacity_repair import (
     apply_movable_capacity_repair_option,
     enumerate_movable_capacity_repairs,
+)
+from .participation_deviation_repair import (
+    apply_participation_deviation_repair_option,
+    enumerate_participation_deviation_repairs,
 )
 from .search_neighborhood_repair import (
     apply_search_neighborhood_repair_option,
@@ -49,6 +57,12 @@ REPAIR_PROVIDERS: Tuple[Tuple[str, EnumerateFn, ApplyFn], ...] = (
     ("underfilled_roster", enumerate_underfilled_roster_repairs, apply_underfilled_roster_repair_option),
     ("host_team_missing", enumerate_host_team_missing_repairs, apply_host_team_missing_repair_option),
     ("host_placement", enumerate_host_placement_repairs, apply_host_placement_repair_option),
+    ("hosting_balance", enumerate_hosting_balance_repairs, apply_hosting_balance_repair_option),
+    (
+        "participation_deviation",
+        enumerate_participation_deviation_repairs,
+        apply_participation_deviation_repair_option,
+    ),
     ("movable_capacity", enumerate_movable_capacity_repairs, apply_movable_capacity_repair_option),
     ("search_neighborhood", enumerate_search_neighborhood_repairs, apply_search_neighborhood_repair_option),
 )
@@ -59,12 +73,22 @@ REPAIR_PROVIDERS: Tuple[Tuple[str, EnumerateFn, ApplyFn], ...] = (
 # when a direct fill/swap/rehost already verifies.
 BROAD_REPAIR_FAMILIES = frozenset({"search_neighborhood"})
 
+# Strong-goal families (hosting balance, participation deviation) are owned by
+# the promoted-season maintenance surface and are only enumerated when a
+# caller explicitly asks for them. The default cheap-first hard-violation
+# enumeration stays exactly as it was, so existing Stage 3 behavior -- and the
+# order in which a bounded search is offered -- is unchanged. The apply
+# dispatcher still includes them, so an explicitly selected goal option id can
+# always be applied through the common boundary.
+GOAL_REPAIR_FAMILIES = frozenset({"hosting_balance", "participation_deviation"})
+
 
 def enumerate_local_repair_options(
     candidate: Mapping[str, Any],
     problem: Mapping[str, Any],
     *,
     run_id: str = "",
+    include_goal_families: bool = False,
 ) -> Dict[str, Any]:
     """Enumerate every provider's options, tagged with their owning family."""
     options = []
@@ -72,6 +96,13 @@ def enumerate_local_repair_options(
     candidate_weekends: list = []
     families: Dict[str, Dict[str, Any]] = {}
     for family, enumerate_fn, _apply_fn in REPAIR_PROVIDERS:
+        if family in GOAL_REPAIR_FAMILIES and not include_goal_families:
+            families[family] = {
+                "option_count": 0,
+                "rejected_count": 0,
+                "skipped": "goal_family_not_requested",
+            }
+            continue
         if family in BROAD_REPAIR_FAMILIES and options:
             # A cheaper family already exposed a legal option; do not burn a
             # bounded search just to add redundant alternatives.
@@ -130,6 +161,17 @@ def apply_local_repair_option(
     option = next(
         (entry for entry in repair_set["options"] if entry["option_id"] == option_id), None
     )
+    if option is None:
+        # Goal-family options (hosting balance / participation deviation) are
+        # not part of the default cheap-first hard-violation enumeration, so a
+        # caller that already selected one is served here without changing
+        # which options the ordinary dispatcher offers.
+        goal_set = enumerate_local_repair_options(
+            candidate, problem, run_id=run_id, include_goal_families=True
+        )
+        option = next(
+            (entry for entry in goal_set["options"] if entry["option_id"] == option_id), None
+        )
     if option is None:
         return {"ok": False, "reason": "unknown_or_stale_option", "before_fingerprint": before}
     provider = next(

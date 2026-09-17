@@ -309,6 +309,12 @@ class InteractiveStage3Capabilities:
         elif family == "host_placement":
             default_source = "host_placement_repair_applied"
             result_key = "host_placement_repair_result"
+        elif family == "hosting_balance":
+            default_source = "hosting_balance_repair_applied"
+            result_key = "hosting_balance_repair_result"
+        elif family == "participation_deviation":
+            default_source = "participation_deviation_repair_applied"
+            result_key = "participation_deviation_repair_result"
         elif family == "search_neighborhood":
             default_source = "search_neighborhood_repair_applied"
             result_key = "search_neighborhood_repair_result"

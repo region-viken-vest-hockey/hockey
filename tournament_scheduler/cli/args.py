@@ -1096,6 +1096,67 @@ def build_parser() -> argparse.ArgumentParser:
     season_replan.add_argument("--apply", action="store_true", help="Apply the verified result to canonical state")
     season_replan.add_argument("--json", action="store_true", help="Print the replan result as JSON")
 
+    season_findings = season_sub.add_parser(
+        "findings",
+        help="List fresh, revision-bound actionable findings over canonical season state",
+    )
+    season_findings.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_findings.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_findings.add_argument("--json", action="store_true", help="Print findings as JSON")
+
+    season_repair = season_sub.add_parser(
+        "repair-options",
+        help="Enumerate deterministic repair options for one selected finding",
+    )
+    season_repair.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_repair.add_argument("--finding", required=True, help="Finding id from 'season findings'")
+    season_repair.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_repair.add_argument(
+        "--search",
+        dest="allow_search",
+        action="store_true",
+        help="Also run the bounded finding-directed search",
+    )
+    season_repair.add_argument("--json", action="store_true", help="Print options as JSON")
+
+    season_search = season_sub.add_parser(
+        "search",
+        help="Run a bounded search for one finding and return verified non-dominated options",
+    )
+    season_search.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_search.add_argument("--finding", required=True, help="Finding id from 'season findings'")
+    season_search.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_search.add_argument(
+        "--dimensions",
+        default="participants,host",
+        help="Comma-separated search dimensions (default: participants,host)",
+    )
+    season_search.add_argument("--json", action="store_true", help="Print search result as JSON")
+
+    season_apply_repair = season_sub.add_parser(
+        "apply-repair",
+        help="Apply one verified repair option to canonical state atomically",
+    )
+    season_apply_repair.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_apply_repair.add_argument("--option-id", required=True, help="Option id from repair-options/search")
+    season_apply_repair.add_argument(
+        "--expected-revision",
+        required=True,
+        help="Canonical revision the option was derived from (stale revisions are rejected)",
+    )
+    season_apply_repair.add_argument("--finding", default=None, help="Finding id the option belongs to")
+    season_apply_repair.add_argument(
+        "--dimensions",
+        default="participants,host",
+        help="Comma-separated search dimensions the option was produced with (default: participants,host)",
+    )
+    season_apply_repair.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_apply_repair.add_argument("--actor", default=None, help="Operator identity for the apply record")
+    season_apply_repair.add_argument(
+        "--dry-run", action="store_true", help="Validate and preview the repair without writing canonical state"
+    )
+    season_apply_repair.add_argument("--json", action="store_true", help="Print the apply result/delta as JSON")
+
     # stage3
     stage3 = sub.add_parser(
         "stage3",

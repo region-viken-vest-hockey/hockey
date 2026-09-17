@@ -1200,6 +1200,32 @@ def _canonical_verification_problem(
     return _build_export_verification_problem(effective_config, state)
 
 
+def _format_delta(delta: dict | None) -> str:
+    """Compact before/after summary for a season maintenance action."""
+    if not delta:
+        return ""
+    parts = [
+        f"endrede turneringer: {delta.get('changed_tournament_count', 0)}",
+        f"hard-feil: {delta.get('hard_violations_before', 0)} -> {delta.get('hard_violations_after', 0)}",
+        (
+            "uoppfylte hostingkrav: "
+            f"{delta.get('unresolved_hosting_obligations_before', 0)} -> "
+            f"{delta.get('unresolved_hosting_obligations_after', 0)}"
+        ),
+        (
+            "hostingbalanse-avvik: "
+            f"{delta.get('hosting_balance_imbalances_before', 0)} -> "
+            f"{delta.get('hosting_balance_imbalances_after', 0)}"
+        ),
+        (
+            "deltakelsesavvik: "
+            f"{delta.get('participation_deviations_before', 0)} -> "
+            f"{delta.get('participation_deviations_after', 0)}"
+        ),
+    ]
+    return "; ".join(parts)
+
+
 def _cmd_season(args: argparse.Namespace) -> int:
     """Handle canonical Git-backed season-state commands."""
     import json as _json
@@ -1220,6 +1246,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         schedule_path,
         unapprove_tournament,
     )
+    from ..season_maintenance import SeasonMaintenanceError
 
     try:
         if args.season_command == "promote":
@@ -1417,6 +1444,89 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
             return 0
 
+        if args.season_command == "findings":
+            from ..season_maintenance import list_findings
+
+            report = list_findings(args.season, root=args.root)
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Funn {args.season}[/bold] (revision {str(report['revision'])[:12]}, "
+                    f"{report['finding_count']} funn)"
+                )
+                for finding in report["findings"]:
+                    _console.print(
+                        f"  [dim]{finding['category']}[/dim] {finding['finding_id']}: {finding['message']}"
+                    )
+            return 0
+
+        if args.season_command in ("repair-options", "search"):
+            from ..season_maintenance import repair_options, search
+
+            if args.season_command == "search":
+                dimensions = [
+                    part.strip()
+                    for part in str(args.dimensions or "").split(",")
+                    if part.strip()
+                ]
+                report = search(args.season, args.finding, root=args.root, dimensions=dimensions)
+            else:
+                report = repair_options(
+                    args.season, args.finding, root=args.root, allow_search=bool(args.allow_search)
+                )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]{args.finding}[/bold]: {report['option_count']} alternativ "
+                    f"(revision {str(report['revision'])[:12]})"
+                )
+                for option in report["options"]:
+                    _console.print(
+                        f"  [green]•[/green] {option['option_id']} ({option.get('family')})"
+                    )
+                if not report["options"]:
+                    _console.print(
+                        f"  [yellow]⚠[/yellow] ingen lovlige alternativer: "
+                        f"{report['escalation'].get('reason')}"
+                    )
+            return 0
+
+        if args.season_command == "apply-repair":
+            from ..season_maintenance import apply_repair
+
+            result = apply_repair(
+                args.season,
+                args.option_id,
+                args.expected_revision,
+                root=args.root,
+                actor=args.actor,
+                dry_run=args.dry_run,
+                finding_id=args.finding,
+                dimensions=[
+                    part.strip()
+                    for part in str(getattr(args, "dimensions", "") or "").split(",")
+                    if part.strip()
+                ],
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                if result.get("ok"):
+                    action = "Validated repair preview for" if result.get("dry_run") else "Applied repair to"
+                    _console.print(
+                        f"[green]✓[/green] {action} {args.season}; "
+                        f"revision {str(result.get('revision_before'))[:12]} -> "
+                        f"{str(result.get('revision_after'))[:12]}"
+                    )
+                    _console.print(f"  {_format_delta(result.get('delta'))}")
+                else:
+                    _console.print(
+                        f"[red]✗[/red] Avvist ({result.get('reason')}); kanonisk revisjon uendret"
+                    )
+            return 0
+
         if args.season_command == "replan":
             from datetime import date as _date
 
@@ -1582,7 +1692,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
 
         _console.print("[red]✗[/red] Missing season subcommand")
         return 1
-    except SeasonStateError as exc:
+    except (SeasonStateError, SeasonMaintenanceError) as exc:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
 

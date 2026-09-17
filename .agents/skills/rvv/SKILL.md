@@ -34,6 +34,10 @@ After promotion, `season/<season>/schedule.json` plus `season/<season>/decisions
 ```bash
 scripts/rvv-miniputt season status --season 2026-2027
 scripts/rvv-miniputt season approvals --season 2026-2027
+scripts/rvv-miniputt season findings --season 2026-2027
+scripts/rvv-miniputt season repair-options --season 2026-2027 --finding <finding-id>
+scripts/rvv-miniputt season search --season 2026-2027 --finding <finding-id>
+scripts/rvv-miniputt season apply-repair --season 2026-2027 --option-id <id> --expected-revision <rev>
 scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
 scripts/rvv-miniputt season unapprove --season 2026-2027 --tournament-id <id> --note "booking changed"
 scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
@@ -42,6 +46,17 @@ scripts/rvv-miniputt season diff --season 2026-2027 --candidate <candidate.json>
 scripts/rvv-miniputt season apply --season 2026-2027 --candidate <candidate.json>
 scripts/rvv-miniputt season export --season 2026-2027
 ```
+
+For a localized defect (an unresolved hosting obligation, a manual placement, a participation strong-goal deviation), prefer the finding-directed loop over whole-season replanning:
+
+```text
+season findings            -> fresh, revision-bound facts (never the promoted snapshot)
+season repair-options       -> direct/coupled options for ONE selected finding
+season search               -> bounded neighborhood search when cheaper options are insufficient
+season apply-repair         -> atomic, full-season-verified, revision-bound apply + delta
+```
+
+Findings are independent facts, not a mandatory queue: select whichever finding matters next. Options and findings are bound to the canonical revision they came from; applying against a changed revision is rejected as stale and leaves canonical state unchanged. A `bounded_search_exhausted` participation deviation is not proof of infeasibility -- request another bounded search rather than recording it as `proven_infeasible`. Repairs must never transfer hosting responsibility to a club that does not owe it, and must never make another club's hosting deficit worse.
 
 Never hand-edit canonical season JSON to work around a lock or verifier.
 

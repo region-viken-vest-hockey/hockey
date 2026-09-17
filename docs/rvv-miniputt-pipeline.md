@@ -87,6 +87,10 @@ Useful commands:
 ```bash
 scripts/rvv-miniputt season status --season 2026-2027
 scripts/rvv-miniputt season approvals --season 2026-2027
+scripts/rvv-miniputt season findings --season 2026-2027
+scripts/rvv-miniputt season repair-options --season 2026-2027 --finding <finding-id>
+scripts/rvv-miniputt season search --season 2026-2027 --finding <finding-id>
+scripts/rvv-miniputt season apply-repair --season 2026-2027 --option-id <id> --expected-revision <rev>
 scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
 scripts/rvv-miniputt season unapprove --season 2026-2027 --tournament-id <id> --note "booking changed"
 scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
@@ -95,6 +99,12 @@ scripts/rvv-miniputt season diff --season 2026-2027 --candidate <candidate.json>
 scripts/rvv-miniputt season apply --season 2026-2027 --candidate <candidate.json>
 scripts/rvv-miniputt season export --season 2026-2027
 ```
+
+### Finding-directed maintenance
+
+`season findings` recomputes the current canonical plan with the independent verifier and reports fresh, revision-bound facts (unresolved hosting obligations, hosting-balance deficits, hard violations, manual placements, participation strong-goal deviations with their `avoidability`). These are never the snapshot promoted with the season, and they are independent facts rather than a mandatory processing queue.
+
+For one selected finding, `season repair-options` enumerates the repository's verified direct/coupled alternatives and `season search` runs the bounded finding-directed neighborhood search when those are insufficient. `season apply-repair` applies exactly one option against the current canonical revision: a stale `--expected-revision` is rejected, the mutation must pass locks/approvals plus full verification, and the result carries the new revision and a repository-computed before/after delta. No Stage 1/2 rerun is required to repair an already-promoted season.
 
 ### Stable identity
 
