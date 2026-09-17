@@ -225,11 +225,17 @@ def operational_rule_entries(planner) -> List[Dict[str, str]]:
             "forklaring": (
                 "Vertskap/arena for en turnering velges bare blant klubbene til turneringens "
                 "egne deltakere -- deltakerne velges først, deretter avledes de lovlige "
-                "vertsklubbene fra dem. Når ingen av deltakernes klubber har en lovlig ledig "
-                "arena-/tidsluke, blir turneringen ikke automatisk plassert hos en urelatert "
-                "klubb, og deltakerlisten endres ikke for å passe en urelatert arena -- den "
-                "legges i «Må planlegges manuelt»-visningen (manual_schedule.html) som "
-                f"«MANUAL PLACEMENT REQUIRED». {len(planner._unresolved_tournament_placements)} "
+                "vertsklubbene fra dem. Når den ansvarlige/opprinnelige vertsklubben er "
+                "representert og fortsatt skylder vertskapsansvar, prøver planleggeren først "
+                "avgrensede ansvarsbevarende reparasjoner (andre lovlige datoer/tidsluker for "
+                "samme vertsklubb, eller en alternativ lagsammensetning som fortsatt "
+                "representerer den). Først når de avgrensede reparasjonsvalgene ikke gir en "
+                "verifisert plassering, blir turneringen ikke automatisk plassert hos en "
+                "urelatert klubb, deltakerlisten endres ikke for å passe en urelatert arena, "
+                "og den legges i «Må planlegges manuelt»-visningen (manual_schedule.html) som "
+                "«MANUAL PLACEMENT REQUIRED». Å bytte vertskap til en annen klubb krever en "
+                "eksplisitt, validert operatør-/beslutningshandling. "
+                f"{len(planner._unresolved_tournament_placements)} "
                 "slik(e) uløst(e) plassering(er) er registrert i denne planen"
                 + (
                     ": " + "; ".join(

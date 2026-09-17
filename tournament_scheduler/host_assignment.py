@@ -221,6 +221,47 @@ def proportional_integer_targets(weights: Dict[str, int], total: int) -> Dict[st
     return _shared_proportional_integer_targets(weights, total)
 
 
+def slot_search_host_order(
+    planner,
+    host_club: str,
+    age_group: str,
+    candidate_hosts: Optional[Sequence[str]] = None,
+) -> List[str]:
+    """Return the ordered hosts a slot search would actually try.
+
+    This is the single authoritative host-search order used by both the
+    slot search itself and by placement evidence, so a report can state
+    exactly which hosts were searched rather than listing candidates that
+    were merely known to exist.
+
+    A joint-club team (e.g. "Jar/Jutul") has no single physical arena of
+    its own — each constituent club's arena is tried instead. issue #274:
+    if an explicit shared-host decision (LLM/controller judgement, never
+    calendar convenience) has already chosen a constituent for this
+    (registration, age_group), search only that constituent -- automatic
+    placement failure must fall through to manual placement for the chosen
+    club, not silently try the other constituent. Otherwise, deterministic
+    order across all constituents, before falling through to the general
+    candidate list. The per-candidate slot search below already picks the
+    first one with a free slot, so this reuses that mechanism rather than
+    adding a separate "most available" comparison.
+    """
+    if "/" in host_club:
+        decisions = getattr(planner, "shared_host_decisions", None) or {}
+        chosen = decisions.get((host_club, age_group))
+        if chosen:
+            search_hosts = [chosen]
+        else:
+            search_hosts = sorted(part.strip() for part in host_club.split("/") if part.strip())
+    else:
+        search_hosts = [host_club]
+    if candidate_hosts:
+        for candidate in candidate_hosts:
+            if candidate not in search_hosts:
+                search_hosts.append(candidate)
+    return search_hosts
+
+
 def find_slot_for_tournament(
     planner,
     tournament_date: date,
@@ -249,30 +290,7 @@ def find_slot_for_tournament(
     if required_minutes <= 0:
         return None
 
-    # A joint-club team (e.g. "Jar/Jutul") has no single physical arena of
-    # its own — try each constituent club's arena instead. issue #274: if an
-    # explicit shared-host decision (LLM/controller judgement, never calendar
-    # convenience) has already chosen a constituent for this
-    # (registration, age_group), search only that constituent -- automatic
-    # placement failure must fall through to manual placement for the chosen
-    # club, not silently try the other constituent. Otherwise, deterministic
-    # order across all constituents, before falling through to the general
-    # candidate list. The per-candidate slot search below already picks the
-    # first one with a free slot, so this reuses that mechanism rather than
-    # adding a separate "most available" comparison.
-    if "/" in host_club:
-        decisions = getattr(planner, "shared_host_decisions", None) or {}
-        chosen = decisions.get((host_club, age_group))
-        if chosen:
-            search_hosts = [chosen]
-        else:
-            search_hosts = sorted(part.strip() for part in host_club.split("/") if part.strip())
-    else:
-        search_hosts = [host_club]
-    if candidate_hosts:
-        for candidate in candidate_hosts:
-            if candidate not in search_hosts:
-                search_hosts.append(candidate)
+    search_hosts = slot_search_host_order(planner, host_club, age_group, candidate_hosts)
 
     for candidate_host in search_hosts:
         candidate_preferred_start = preferred_start

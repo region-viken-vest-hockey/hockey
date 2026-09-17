@@ -125,9 +125,12 @@ Canonical behavior is:
 ```text
 assign fair/intended hosting responsibility
         ↓
-try verified automatic placement
+try verified automatic placement on the selected date
         ↓
-slot exists              no trustworthy/legal slot
+try bounded responsibility-preserving repair
+(same responsible host on another legal date/slot; roster alternatives that keep it represented)
+        ↓
+slot exists              no trustworthy/legal slot after repair budget
     ↓                              ↓
 automatic placement      keep responsibility with intended host
                          + mark MANUAL PLACEMENT REQUIRED

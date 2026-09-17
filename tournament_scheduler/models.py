@@ -374,9 +374,13 @@ class SeasonPlan:
     # "participant_teams": [{"club", "label", "age_group"}, ...],
     # "participant_team_count": int, and "search_attempted": bool
     # (False when no candidate host club existed at all; True when a
-    # genuine per-candidate-host slot search ran and found nothing --
-    # whether that search was exhaustive is #329's territory, not
-    # recorded here).
+    # genuine per-candidate-host slot search ran and found nothing).
+    # Also "responsible_host", "search_hosts_tried" (the hosts actually
+    # searched, in order -- distinct from the participant-derived
+    # "candidate_hosts" that merely exist), "same_host_dates_checked" (other
+    # dates searched for the same responsible host) and
+    # "bounded_repair_exhausted" (the bounded repair set was walked to the
+    # end without a verified placement; not an unbounded-search claim).
     unresolved_tournament_placements: List[Dict[str, object]] = field(default_factory=list)
     # issue #327: per (age_group, period-or-None, club) proportional
     # participation-fairness evidence -- registered demand share vs realized

@@ -54,6 +54,24 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
             )
         else:
             retry_clause = ""
+        # Report the hosts and same-host dates that were actually searched,
+        # not every participant-derived candidate that merely existed. Older
+        # records without `search_hosts_tried` fall back to the candidate
+        # list, matching the previous wording.
+        searched_hosts = item.get("search_hosts_tried") or candidate_hosts
+        same_host_dates_checked = item.get("same_host_dates_checked") or []
+        if same_host_dates_checked:
+            same_host_date_clause = (
+                "Andre datoer søkt for samme vertsklubb: "
+                f"{', '.join(str(d) for d in same_host_dates_checked)}. "
+            )
+        else:
+            same_host_date_clause = ""
+        responsible_host = item.get("responsible_host") or item.get("search_host")
+        if responsible_host:
+            responsible_host_clause = f"Responsible host: {responsible_host}. "
+        else:
+            responsible_host_clause = ""
         entries.append(
             {
                 "type": "MANUAL PLACEMENT REQUIRED — ingen vertsklubb blant deltakerne",
@@ -77,8 +95,10 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
                     f"Participant clubs: {', '.join(str(c) for c in participant_clubs) or 'ukjent'}. "
                     f"{roster_clause}"
                     f"{duration_clause}"
+                    f"{responsible_host_clause}"
                     f"{retry_clause}"
-                    f"Candidate hosts tried: {', '.join(str(c) for c in candidate_hosts) or 'ingen'}. "
+                    f"{same_host_date_clause}"
+                    f"Hosts searched: {', '.join(str(c) for c in searched_hosts) or 'ingen'}. "
                     "Reason: none of the selected participants' clubs had a legal, free arena/time slot. "
                     "Action: RVV must manually assign a host/arena/time for this age group and date."
                 ),

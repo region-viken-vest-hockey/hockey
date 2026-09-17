@@ -36,6 +36,7 @@ from tournament_scheduler.host_assignment import (
     find_slot_for_tournament as _find_slot_for_tournament,
     hosting_targets_for_age_group as _hosting_targets_for_age_group,
     proportional_integer_targets as _proportional_integer_targets,
+    slot_search_host_order as _slot_search_host_order,
 )
 from tournament_scheduler.models import (
     CalendarEvent,
@@ -52,6 +53,9 @@ from tournament_scheduler.arena_conflicts import find_arena_interval_collisions,
 from tournament_scheduler.host_candidate_selection import participant_derived_host_candidates as _participant_derived_host_candidates
 from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
+from tournament_scheduler.responsibility_preserving_repair import (
+    find_same_host_date_placement as _find_same_host_date_placement,
+)
 from tournament_scheduler.hosting_cross_age_repair import (
     candidate_reallocation_slots as _candidate_reallocation_slots,
     club_hosting_evidence as _club_hosting_evidence,
@@ -851,7 +855,109 @@ class SeasonPlanner:
             forced_manual_booking_reason: Optional[str] = None
             alternate_roster_attempted = False
             alternate_rosters_tried = 0
-            if slot is None and slot_search_active and allow_participant_host_fallback:
+            same_host_dates_checked: List[str] = []
+            same_host_date_repair_applied = False
+            # Hosts actually searched, in order -- kept separate from
+            # `candidate_hosts` (hosts merely known to be legal) so the
+            # manual-placement evidence never claims an untried host was
+            # searched.
+            search_hosts_tried: List[str] = _slot_search_host_order(
+                self, search_host, age_group, slot_candidate_hosts
+            )
+
+            def _record_searched_hosts(host_club: str, candidate_hosts_arg: Optional[Sequence[str]]) -> None:
+                for searched in _slot_search_host_order(self, host_club, age_group, candidate_hosts_arg):
+                    if searched not in search_hosts_tried:
+                        search_hosts_tried.append(searched)
+
+            def _try_same_host_date_repair(
+                repair_participants: Sequence[Team],
+                repair_games: List[Game],
+            ) -> Optional[Tuple[date, Tuple[str, str, str]]]:
+                """Find another verified slot for the responsible host only.
+
+                Delegates the bounded search to the planner-independent
+                ``find_same_host_date_placement`` capability. It
+                may move the physical placement to a different free date for
+                the same intended host, but it never tries another participant
+                club's ice while the intended host still owns the obligation.
+                """
+                if not (slot_search_active and original_represented and original_target_remaining):
+                    return None
+                participant_keys = {self._team_key(team) for team in repair_participants}
+                occupied_same_age_dates = {
+                    scheduled_date for scheduled_date, scheduled_age in scheduled if scheduled_age == age_group
+                }
+                search_date = tournament_date
+
+                def _is_acceptable(candidate_date: date) -> bool:
+                    # Do not steal a date already allocated to this age group
+                    # in the date skeleton; future slots may need their teams.
+                    if candidate_date in occupied_same_age_dates:
+                        return False
+                    if _period_for_date(candidate_date) != _period_for_date(search_date):
+                        return False
+                    used_on_candidate = teams_used_today_by_age_group.get((candidate_date, age_group), set())
+                    if participant_keys & used_on_candidate:
+                        return False
+                    # Do not introduce a fresh near-age-group collision on the
+                    # repair date; overlapping-age-group avoidance is a soft
+                    # planning-quality concern the date skeleton handled for
+                    # the original dates.
+                    return self._check_overlap_collision(candidate_date, age_group, scheduled_age_groups_by_date) is None
+
+                def _slot_search(candidate_date: date) -> Optional[Tuple[str, str, str]]:
+                    _record_searched_hosts(original_host_club, None)
+                    return self._find_slot_for_tournament(
+                        candidate_date,
+                        original_host_club,
+                        age_group,
+                        repair_games,
+                        candidate_hosts=None,
+                        reserved_events_by_club=reserved_events_by_club,
+                    )
+
+                search = _find_same_host_date_placement(
+                    current_date=tournament_date,
+                    candidate_dates=sorted(free_dates, key=lambda d: (abs((d - tournament_date).days), d)),
+                    slot_search=_slot_search,
+                    is_acceptable_date=_is_acceptable,
+                )
+                for checked in search.dates_checked:
+                    checked_iso = checked.isoformat()
+                    if checked_iso not in same_host_dates_checked:
+                        same_host_dates_checked.append(checked_iso)
+                if not search.repaired:
+                    return None
+                assert search.chosen_date is not None and search.chosen_slot is not None
+                return search.chosen_date, search.chosen_slot
+
+            def _apply_same_host_date_repair(
+                repaired: Tuple[date, Tuple[str, str, str]],
+            ) -> Tuple[str, str, str]:
+                nonlocal tournament_date
+                repaired_date, repaired_slot = repaired
+                old_month_key = (tournament_date.year, tournament_date.month)
+                old_count = self._month_counts.get(old_month_key, 0)
+                if old_count <= 1:
+                    self._month_counts.pop(old_month_key, None)
+                else:
+                    self._month_counts[old_month_key] = old_count - 1
+                old_day_ages = scheduled_age_groups_by_date.get(tournament_date)
+                if old_day_ages and age_group in old_day_ages:
+                    old_day_ages.remove(age_group)
+                tournament_date = repaired_date
+                self._record_month(tournament_date)
+                scheduled_age_groups_by_date.setdefault(tournament_date, []).append(age_group)
+                return repaired_slot
+
+            if slot is None:
+                repaired = _try_same_host_date_repair(participants, provisional_games)
+                if repaired is not None:
+                    slot = _apply_same_host_date_repair(repaired)
+                    same_host_date_repair_applied = True
+
+            if slot is None and slot_search_active:
                 # issue #329 P0: before declaring manual placement, retry
                 # with a participant roster that gives soft hosting priority
                 # to a club which still has an unmet hosting obligation for
@@ -871,21 +977,29 @@ class SeasonPlanner:
                 # placement (that coupled date/host-swap search is
                 # explicitly out of scope here; see the #329 steering
                 # issue).
-                deficit_clubs_by_shortfall = sorted(
-                    (
-                        club
-                        for club, target in host_targets_by_age.get(age_group, {}).items()
-                        if target > host_counts_by_age.get(age_group, {}).get(club, 0)
-                        and club not in candidate_hosts
-                    ),
-                    key=lambda club: (
-                        -(
-                            host_targets_by_age.get(age_group, {}).get(club, 0)
-                            - host_counts_by_age.get(age_group, {}).get(club, 0)
+                if allow_participant_host_fallback:
+                    deficit_clubs_by_shortfall = sorted(
+                        (
+                            club
+                            for club, target in host_targets_by_age.get(age_group, {}).items()
+                            if target > host_counts_by_age.get(age_group, {}).get(club, 0)
+                            and club not in candidate_hosts
                         ),
-                        club,
-                    ),
-                )
+                        key=lambda club: (
+                            -(
+                                host_targets_by_age.get(age_group, {}).get(club, 0)
+                                - host_counts_by_age.get(age_group, {}).get(club, 0)
+                            ),
+                            club,
+                        ),
+                    )
+                else:
+                    # The intended host is represented and still owns this
+                    # obligation. Alternate rosters are still legal repair
+                    # candidates, but only when they preserve representation
+                    # of that same responsible host; they must not enable
+                    # participant-host fallback to another club.
+                    deficit_clubs_by_shortfall = sorted(original_host_constituents & set(candidate_hosts))
                 for deficit_club in deficit_clubs_by_shortfall:
                     alternate_roster_attempted = True
                     alternate_rosters_tried += 1
@@ -921,12 +1035,14 @@ class SeasonPlanner:
                         self.ice_time_for_age_group,
                         round_count_for_games(retry_games),
                     ).as_dict()
-                    retry_allow_participant_host_fallback = not (
-                        original_host_constituents & set(retry_candidate_hosts)
-                    )
+                    retry_original_represented = bool(original_host_constituents & set(retry_candidate_hosts))
+                    if not allow_participant_host_fallback and not retry_original_represented:
+                        continue
+                    retry_allow_participant_host_fallback = allow_participant_host_fallback and not retry_original_represented
                     retry_slot_candidate_hosts = (
                         retry_candidate_hosts if retry_allow_participant_host_fallback else None
                     )
+                    _record_searched_hosts(retry_search_host, retry_slot_candidate_hosts)
                     retry_slot = self._find_slot_for_tournament(
                         tournament_date,
                         retry_search_host,
@@ -935,6 +1051,11 @@ class SeasonPlanner:
                         candidate_hosts=retry_slot_candidate_hosts,
                         reserved_events_by_club=reserved_events_by_club,
                     )
+                    if retry_slot is None:
+                        repaired = _try_same_host_date_repair(retry_participants, retry_games)
+                        if repaired is not None:
+                            retry_slot = _apply_same_host_date_repair(repaired)
+                            same_host_date_repair_applied = True
                     if retry_slot is not None:
                         participants = retry_participants
                         provisional_games = retry_games
@@ -978,6 +1099,15 @@ class SeasonPlanner:
                         # deficit-club-biased rosters were attempted.
                         "alternate_roster_attempted": alternate_roster_attempted,
                         "alternate_rosters_tried": alternate_rosters_tried,
+                        "same_host_dates_checked": same_host_dates_checked,
+                        "same_host_date_repair_applied": same_host_date_repair_applied,
+                        "responsible_host": original_host_club,
+                        "search_hosts_tried": list(search_hosts_tried),
+                        # The bounded repair options this plan consulted. A
+                        # value of True means the deterministic bounded set
+                        # was walked to the end without a verified placement;
+                        # it is not an unbounded/exhaustive search claim.
+                        "bounded_repair_exhausted": True,
                         "reason": "no_participant_host_slot",
                     }
                 )
