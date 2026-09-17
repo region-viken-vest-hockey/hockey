@@ -177,6 +177,35 @@ def test_cli_transport_does_not_mutate_session_lifecycle() -> None:
     )
 
 
+def test_cli_pending_resume_is_session_generic() -> None:
+    """No-action resume must read the one pending decision, not enumerate
+    capability-specific readers (which is what let it fall through and rerun
+    Stage 3 for an ordinary attempt-comparison decision)."""
+    tree = ast.parse(CLI_TRANSPORT_MODULE.read_text(encoding="utf-8"), filename=str(CLI_TRANSPORT_MODULE))
+    function = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_emit_pending_stage3_subdecision_context"
+        ),
+        None,
+    )
+    assert function is not None, "the no-action resume helper must stay in the CLI transport layer"
+    called = {
+        node.func.id
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    for capability_reader in ("_read_shared_host_state", "_read_arena_conflict_state"):
+        assert capability_reader not in called, (
+            "no-action resume must render Stage3Session.pending_decision instead of "
+            f"checking one capability at a time ({capability_reader})"
+        )
+    assert "pending_decision" in ast.dump(function), (
+        "no-action resume must read the generic Stage3Session.pending_decision"
+    )
+
+
 def test_capabilities_adapter_is_domain_only_not_a_second_controller() -> None:
     text = STAGE3_CAPABILITIES_MODULE.read_text(encoding="utf-8")
     tree = ast.parse(text, filename=str(STAGE3_CAPABILITIES_MODULE))

@@ -387,6 +387,22 @@ class InteractiveStage3Capabilities:
         from ...application.stage3_session_store import fingerprint_plan
         from ...pipeline.state import StageName, StageStatus
 
+        # ``keep_baseline`` restores the adopted/best candidate the current
+        # attempt was compared against, not the current attempt itself.
+        restored = session.baseline_candidate
+        if restored is not None:
+            best_plan = dict(restored)
+            self.state.write_stage(StageName.PLANNING, best_plan, status=StageStatus.DONE)
+            fingerprint = fingerprint_plan(best_plan)
+            return Stage3CapabilityResult(
+                ok=True,
+                candidate=best_plan,
+                candidate_fingerprint=fingerprint,
+                candidate_source="baseline",
+                candidate_changed=bool(fingerprint) and fingerprint != session.candidate_fingerprint,
+                final=True,
+            )
+
         best_plan = session.candidate
         if best_plan is None:
             best_plan = dict(self.state.read_stage(StageName.PLANNING) or {})

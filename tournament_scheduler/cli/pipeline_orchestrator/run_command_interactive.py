@@ -18,8 +18,6 @@ from .interactive_decision_emit import (
 )
 from .interactive_state_io import (
     _current_run_id,
-    _read_arena_conflict_state,
-    _read_shared_host_state,
 )
 from .manifest import _manifest_start_run
 from .run_log import _resolve_resume_stage
@@ -59,26 +57,29 @@ def _render_decision_payload(payload: dict[str, Any], work_dir: str) -> int:
 
 
 def _emit_pending_stage3_subdecision_context(state: "Any", work_dir: str, resume_from: int) -> int | None:
-    """Re-emit an unanswered in-Stage-3 sub-decision, if one is pending.
+    """Re-emit an unanswered in-Stage-3 decision, if one is pending.
 
     Inspecting an interactive run with ``--resume-from 3`` and no fresh
-    ``--decision-action`` must show the current pending shared-host or
-    arena-conflict decision. It must not rebuild Stage 3 from scratch, because
-    that can re-ask already answered sub-decisions and lose convergence.
+    ``--decision-action`` must show the current pending Stage 3 decision. The
+    canonical :class:`Stage3Session` is the one authority for that: whatever
+    capability the pending decision belongs to (shared-host, arena conflict,
+    local repair, attempt comparison, a future candidate-scoped ask), the
+    session already carries its exact persisted context. This must not
+    enumerate capability types -- falling through for an unrecognised
+    capability is exactly what re-ran the planner and produced a new,
+    non-deterministic attempt instead of resuming the persisted state.
     """
     if resume_from != 3:
         return None
 
-    run_id = _current_run_id(state)
-    for reader in (_read_shared_host_state, _read_arena_conflict_state):
-        saved = reader(state, expected_run_id=run_id)
-        if not saved.get("pending"):
-            continue
-        payload = saved.get("last_context")
-        if not isinstance(payload, dict) or not payload:
-            continue
-        return _render_decision_payload(payload, work_dir)
-    return None
+    from ...application.stage3_session_store import Stage3SessionStore
+
+    session = Stage3SessionStore(state.work_dir).load(expected_run_id=_current_run_id(state))
+    pending = session.pending_decision or {}
+    context = pending.get("context")
+    if not isinstance(context, dict) or not context:
+        return None
+    return _render_decision_payload(context, work_dir)
 
 
 def _cmd_run_interactive(args: argparse.Namespace) -> int:

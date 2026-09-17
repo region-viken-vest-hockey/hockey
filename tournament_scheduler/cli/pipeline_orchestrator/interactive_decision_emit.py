@@ -381,6 +381,28 @@ def _emit_stage3_interactive_decision(
     run_id = _current_run_id(state)
     problem = _mid_planning_decision_problem(cfg, scraping, start, end, state.work_dir)
 
+    # Bind the exact candidate this attempt produced as the session's current
+    # candidate *before* any candidate-scoped sub-decision is emitted.
+    # Otherwise an arena-conflict (or repair) context computed for this
+    # attempt could be checked against a previous revision's baseline, so a
+    # responsibility excess that already existed in this candidate would be
+    # misattributed to the local answer. Binding here makes the pending
+    # context and every semantic guard refer to the same revision, and keeps
+    # the transition lineage explicit (revision N -> N+1 only).
+    try:
+        from ...application.stage3_session_store import Stage3SessionStore
+
+        Stage3SessionStore(state.work_dir).bind_candidate(
+            plan,
+            run_id=run_id,
+            source=candidate_transition,
+            transition=candidate_transition,
+            action_id="optimize_plan" if candidate_transition == "run_search" else candidate_transition,
+            rationale="candidate produced for this Stage 3 attempt",
+        )
+    except Exception as exc:
+        log_fn(f"stage3_interactive: could not bind candidate to Stage 3 session: {exc}")
+
     # Resolve every internal arena/time double-booking in *this* candidate
     # before offering the optimize/apply comparison at all -- an interactive
     # harness or headless judge decides which side of each collision keeps
@@ -597,6 +619,7 @@ def _emit_stage3_interactive_decision(
 
         Stage3SessionStore(state.work_dir).record_emission(
             interactive_state,
+            candidate=plan,
             candidate_revision=attempts_used,
             run_id=run_id,
             transition=candidate_transition,

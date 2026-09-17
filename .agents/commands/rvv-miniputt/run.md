@@ -60,4 +60,6 @@ scripts/rvv-miniputt stage3 session --work-dir .pipeline --json
 
 Use it to confirm the current candidate revision/fingerprint, which decision is pending and whether it is run-scoped or candidate-scoped, and which transition types are legal next before you answer a pause.
 
+Running `run --interactive --resume-from 3` with no `--decision-action` is a safe inspection/resume step: it re-renders the exact persisted pending Stage 3 decision and exits paused without rebuilding the candidate or starting a new attempt. Repeating it is idempotent.
+
 Do not invoke internal `stageN_*` modules directly and do not recreate stage gates, scheduling policy, source-validity rules, or publication policy in a harness adapter.

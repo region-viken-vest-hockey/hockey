@@ -136,6 +136,14 @@ class Stage3Session:
     candidate_fingerprint: str = ""
     candidate: dict[str, Any] | None = None
     candidate_source: str = ""
+    # The candidate that ``keep_baseline`` restores. When a search produces a
+    # new *current* candidate, the previously current one is retained here so
+    # ``keep_baseline`` keeps the best/adopted plan while candidate-scoped
+    # decisions (arena/repair) mutate only the current attempt. It is a
+    # candidate body, not a second lifecycle status.
+    baseline_candidate: dict[str, Any] | None = None
+    baseline_fingerprint: str = ""
+    baseline_revision: int | None = None
     shared_host_decisions: list[dict[str, Any]] = field(default_factory=list)
     arena_decisions: list[dict[str, Any]] = field(default_factory=list)
     # Unresolved sub-decisions are kept per scope so a shared-host ask never
@@ -285,11 +293,26 @@ class Stage3Session:
         resolved_scope = scope or (
             SCOPE_RUN if capability in _RUN_SCOPED_CAPABILITIES else SCOPE_CANDIDATE
         )
+        # A candidate-scoped context that carries its own candidate
+        # fingerprint (arena/repair facts) binds to *that* exact candidate,
+        # not to whatever the session's adopted baseline happens to be. This
+        # keeps ``pending_decision.candidate_fingerprint`` identical to the
+        # candidate the capability will mutate.
+        fact_fingerprint = ""
+        if isinstance(context, Mapping):
+            facts = context.get("facts")
+            if isinstance(facts, Mapping):
+                fact_fingerprint = str(facts.get("candidate_fingerprint") or "")
+        pending_fingerprint = (
+            fact_fingerprint
+            if resolved_scope == SCOPE_CANDIDATE and fact_fingerprint
+            else self.candidate_fingerprint
+        )
         self.pending_decision = {
             "capability": capability,
             "scope": resolved_scope,
             "candidate_revision": self.candidate_revision if resolved_scope == SCOPE_CANDIDATE else None,
-            "candidate_fingerprint": self.candidate_fingerprint if resolved_scope == SCOPE_CANDIDATE else "",
+            "candidate_fingerprint": pending_fingerprint,
             "context": dict(context),
             "candidates": list(candidates or []),
             "attempt": attempt,
@@ -336,6 +359,9 @@ class Stage3Session:
             "candidate_fingerprint": self.candidate_fingerprint,
             "candidate": self.candidate,
             "candidate_source": self.candidate_source,
+            "baseline_candidate": self.baseline_candidate,
+            "baseline_fingerprint": self.baseline_fingerprint,
+            "baseline_revision": self.baseline_revision,
             "shared_host_decisions": list(self.shared_host_decisions),
             "arena_decisions": list(self.arena_decisions),
             "shared_host_unresolved": list(self.shared_host_unresolved),
@@ -374,6 +400,13 @@ class Stage3Session:
             candidate_fingerprint=str(data.get("candidate_fingerprint") or ""),
             candidate=dict(data["candidate"]) if isinstance(data.get("candidate"), dict) else None,
             candidate_source=str(data.get("candidate_source") or ""),
+            baseline_candidate=(
+                dict(data["baseline_candidate"]) if isinstance(data.get("baseline_candidate"), dict) else None
+            ),
+            baseline_fingerprint=str(data.get("baseline_fingerprint") or ""),
+            baseline_revision=(
+                int(data["baseline_revision"]) if data.get("baseline_revision") is not None else None
+            ),
             shared_host_decisions=[dict(item) for item in (data.get("shared_host_decisions") or [])],
             arena_decisions=[dict(item) for item in (data.get("arena_decisions") or [])],
             shared_host_unresolved=shared_unresolved,

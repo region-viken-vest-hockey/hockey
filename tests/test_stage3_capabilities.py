@@ -13,6 +13,8 @@ import json
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from tournament_scheduler.application.decisions import DecisionAction
 from tournament_scheduler.application.stage3_controller import Stage3Controller
 from tournament_scheduler.application.stage3_session import Stage3Session
@@ -422,3 +424,165 @@ def test_apply_repair_rejects_candidate_that_transfers_responsibility(tmp_path, 
     assert outcome.findings[0]["club"] == "Ringerike"
     assert loaded.candidate_revision == 1
     assert json.dumps(state.read_stage(StageName.PLANNING), sort_keys=True) == baseline_before
+
+
+# ---------------------------------------------------------------------------
+# #368 regression: candidate-scoped decisions must bind to the exact current
+# attempt, not to a previous revision's adopted baseline.
+# ---------------------------------------------------------------------------
+
+
+def test_responsibility_guard_compares_bound_attempt_not_previous_baseline(tmp_path):
+    """The guard's "before" candidate is the session's current attempt.
+
+    When that attempt already carries its own hosting excess, a change that
+    does not worsen it must not be rejected merely because the previous
+    baseline was balanced -- only a mutation that really grows the excess is.
+    """
+    from tournament_scheduler.application.stage3_session import (
+        Stage3Session,
+        candidate_content_fingerprint,
+    )
+
+    state = PipelineState(str(tmp_path))
+    caps = _capabilities(state, "run-1", problem_fn=_ju12_problem)
+    drifted = _ju12_candidate(
+        {"Frisk Asker": 5, "Ringerike": 7, "Kongsberg": 2, "Skien": 1, "Jutul": 1}
+    )
+    more_drifted = _ju12_candidate(
+        {"Frisk Asker": 5, "Ringerike": 8, "Kongsberg": 2, "Skien": 1, "Jutul": 0}
+    )
+
+    session = Stage3Session(run_id="run-1")
+    session.candidate = {"plan": drifted}
+    session.candidate_fingerprint = candidate_content_fingerprint(drifted)
+    session.candidate_revision = 2
+
+    # B's own pre-existing excess is not attributed to this change.
+    assert caps._responsibility_guard(session, {"plan": drifted}, _ju12_problem()) == ""
+    # A mutation that really increases the excess is still rejected.
+    assert (
+        caps._responsibility_guard(session, {"plan": more_drifted}, _ju12_problem())
+        == "unexplained_hosting_responsibility_transfer"
+    )
+
+
+def test_keep_baseline_restores_the_bound_baseline_and_finalizes_it(tmp_path):
+    """After an attempt is bound, ``keep_baseline`` must restore the adopted
+    plan (not the current attempt) and finalize that exact fingerprint, so the
+    Stage 4 handoff gate accepts the restored checkpoint."""
+    from tournament_scheduler.application.stage3_session_store import (
+        Stage3SessionStore,
+        fingerprint_plan,
+    )
+
+    state = PipelineState(str(tmp_path))
+    baseline_plan = {"plan": {"tournaments": [{"id": "baseline"}]}, "warnings": []}
+    attempt_plan = {"plan": {"tournaments": [{"id": "attempt"}]}, "warnings": []}
+    state.write_stage(StageName.PLANNING, attempt_plan, status=StageStatus.DONE)
+
+    store = Stage3SessionStore(tmp_path)
+    store.bind_candidate(baseline_plan, run_id="run-1", source="baseline")
+    store.bind_candidate(attempt_plan, run_id="run-1", source="search")
+    session = store.load("run-1")
+    session.set_pending(
+        capability="stage3_interactive",
+        context={"capability": "stage3_interactive", "available_actions": ["keep_baseline"]},
+    )
+    store.save(session)
+    assert session.candidate_fingerprint == fingerprint_plan(attempt_plan)
+
+    caps = _capabilities(state, "run-1", problem_fn=_ice_problem)
+    outcome = Stage3Controller(clock=lambda: "T").handle(
+        session, DecisionAction(action_id="keep_baseline", rationale="keep the baseline"), caps
+    )
+    store.save(session)
+
+    assert outcome.accepted is True
+    assert state.read_stage(StageName.PLANNING) == baseline_plan
+    reloaded = store.load("run-1")
+    assert reloaded.is_finalized()
+    assert reloaded.finalized_fingerprint == fingerprint_plan(baseline_plan)
+    assert store.finalized_candidate_matches(baseline_plan) is True
+    assert store.finalized_candidate_matches(attempt_plan) is False
+
+
+@pytest.mark.parametrize("keep_index", [0, 1])
+def test_arena_transition_accepts_demotion_when_attempt_already_exceeds_target(tmp_path, keep_index):
+    """End-to-end arena answer against the exact bound attempt B.
+
+    Reproduces the production regression: B already hosts more than its fair
+    target relative to the previous baseline A. Demoting one of B's colliding
+    tournaments does not move any hosting responsibility, so both directions
+    of the arena question must be answerable. The guard must compare B -> B',
+    not A -> B'.
+    """
+    from tournament_scheduler.application.decisions import DecisionAction
+    from tournament_scheduler.application.stage3_controller import Stage3Controller
+    from tournament_scheduler.application.stage3_session import Stage3Session
+    from tournament_scheduler.application.stage3_session_store import (
+        Stage3SessionStore,
+        fingerprint_plan,
+    )
+    from tournament_scheduler.arena_conflict_decision import (
+        build_arena_conflict_decision_context,
+    )
+
+    state = PipelineState(str(tmp_path))
+    attempt_b = {
+        "plan": _ju12_candidate(
+            {"Frisk Asker": 5, "Ringerike": 7, "Kongsberg": 2, "Skien": 1, "Jutul": 1}
+        )
+    }
+    # Give the tournaments a round so their arena intervals are evaluable; all
+    # Ringerike tournaments share ``Ringerike Arena`` at 10:00 and therefore
+    # collide, exactly like a real tight-arena Stage 3 attempt.
+    for tournament in attempt_b["plan"]["tournaments"]:
+        tournament["games"] = [
+            {
+                "home": tournament["teams"][0]["label"],
+                "away": tournament["teams"][0]["label"],
+                "round_number": 1,
+                "parallel_slot": 0,
+            }
+        ]
+    state.write_stage(StageName.PLANNING, attempt_b, status=StageStatus.DONE)
+    state.write_stage(
+        StageName.CONFIG, {"start_date": "2026-09-01", "end_date": "2027-04-30"}, status=StageStatus.DONE
+    )
+    facts = _collision_facts(attempt_b["plan"], {"JU12": 30})[0]
+    context = build_arena_conflict_decision_context("run-1", facts)
+
+    store = Stage3SessionStore(tmp_path)
+    session = Stage3Session(run_id="run-1")
+    balanced_baseline = _ju12_candidate(
+        {"Frisk Asker": 5, "Ringerike": 5, "Kongsberg": 2, "Skien": 2, "Jutul": 2}
+    )
+    session.candidate = {"plan": balanced_baseline}
+    session.candidate_fingerprint = fingerprint_plan(session.candidate)
+    session.candidate_revision = 1
+    store.save(session)
+    # The emission binds attempt B before emitting its arena context.
+    store.bind_candidate(attempt_b, run_id="run-1", transition="create_baseline")
+    session = store.load("run-1")
+    session.set_pending(
+        capability="arena_conflict_resolution", context=context.to_dict(), marker={"key": "k"}
+    )
+    store.save(session)
+    assert session.candidate_fingerprint == facts["candidate_fingerprint"]
+    assert session.pending_decision["candidate_fingerprint"] == facts["candidate_fingerprint"]
+
+    caps = _capabilities(state, "run-1", problem_fn=_ju12_problem)
+    action = DecisionAction(
+        action_id="resolve_arena_conflict",
+        arguments={"keep_tournament_id": facts["sides"][keep_index]["tournament_id"]},
+        rationale="keep the harder slot",
+    )
+    outcome = Stage3Controller(clock=lambda: "T").handle(session, action, caps)
+
+    # Either direction must be answerable because neither moves hosting between
+    # clubs; only a mutation that really grows the attempt's excess is rejected.
+    assert outcome.accepted is True
+    persisted = state.read_stage(StageName.PLANNING)
+    assert any(t.get("start_time") is None for t in persisted["plan"]["tournaments"])
+

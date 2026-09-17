@@ -130,6 +130,8 @@ scripts/rvv-miniputt stage3 session --work-dir .pipeline --json
 
 The view is authoritative for the active run's status, current candidate revision/fingerprint, pending decision, resolved run-scoped decisions, finalized revision/fingerprint and legal next transitions. Use it to debug a resume problem instead of reconciling several JSON files.
 
+A pending candidate-scoped decision (arena/time conflict, local repair, attempt comparison) refers to the current attempt revision, so answer it against that exact fingerprint; the adopted plan is retained separately as the session baseline that `keep_baseline` restores.
+
 Approval/lock state lives in `decisions.json`, separate from schedule facts. `season approve` re-verifies the current placement; approval is never a waiver of hard rules. `season unapprove` restores editability. `season approvals` lists status. If protected scheduling facts change, the stored fingerprint becomes a deterministic `stale_approval`, its lock is dropped, and explicit reapproval is required.
 
 ### Stage 4 — export/review

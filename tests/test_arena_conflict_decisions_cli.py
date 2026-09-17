@@ -131,6 +131,67 @@ class TestPendingStage3SubdecisionContext:
 
         assert _emit_pending_stage3_subdecision_context(state, str(tmp_path), 4) is None
 
+    def test_reemits_an_ordinary_attempt_comparison_without_replanning(self, tmp_path, capsys):
+        """An unanswered ``stage3_interactive`` adoption decision is a pending
+        Stage 3 decision like any other: resuming with no action must return
+        the persisted context, not fall through and run the planner again."""
+        import json
+
+        from tournament_scheduler.application.stage3_session import Stage3Session
+        from tournament_scheduler.application.stage3_session_store import Stage3SessionStore
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _current_run_id
+
+        state = PipelineState(tmp_path)
+        session = Stage3Session(run_id=_current_run_id(state))
+        context = {
+            "capability": "stage3_interactive",
+            "stage": "planning",
+            "facts": {"tournaments_planned": 12},
+            "available_actions": ["optimize_plan", "keep_baseline", "abort"],
+        }
+        session.set_pending(capability="stage3_interactive", context=context)
+        Stage3SessionStore(tmp_path).save(session)
+
+        code = _emit_pending_stage3_subdecision_context(state, str(tmp_path), 3)
+
+        assert code == 2
+        payload = json.loads(capsys.readouterr().out)
+        assert payload == context
+
+    def test_no_action_resume_is_idempotent(self, tmp_path, capsys):
+        """Repeated no-action resume returns byte-equivalent state and never
+        mutates the session (no new attempt, revision or fingerprint)."""
+        from tournament_scheduler.application.stage3_session import Stage3Session
+        from tournament_scheduler.application.stage3_session_store import Stage3SessionStore
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _current_run_id
+
+        state = PipelineState(tmp_path)
+        session = Stage3Session(run_id=_current_run_id(state))
+        session.candidate = {"plan": _candidate_with_collision(), "warnings": []}
+        session.candidate_fingerprint = "attempt-b-fingerprint"
+        session.candidate_revision = 2
+        session.attempts = {"attempts_used": 2, "best_attempt": 1}
+        session.set_pending(
+            capability="stage3_interactive",
+            context={
+                "capability": "stage3_interactive",
+                "facts": {"tournaments_planned": 2},
+                "available_actions": ["keep_baseline", "abort"],
+            },
+        )
+        store = Stage3SessionStore(tmp_path)
+        store.save(session)
+        before = store.session_path.read_text(encoding="utf-8")
+
+        first = _emit_pending_stage3_subdecision_context(state, str(tmp_path), 3)
+        first_out = capsys.readouterr().out
+        second = _emit_pending_stage3_subdecision_context(state, str(tmp_path), 3)
+        second_out = capsys.readouterr().out
+
+        assert first == 2 and second == 2
+        assert first_out == second_out
+        assert store.session_path.read_text(encoding="utf-8") == before
+
 
 class TestResolveArenaConflictDecisionsPauseAndResume:
     def test_pauses_for_a_collision_and_persists_pending_state(self, tmp_path):
@@ -312,3 +373,57 @@ class TestResolveArenaConflictDecisionsPauseAndResume:
         assert len(demoted) == 1
         second_context = json.loads(capsys.readouterr().out)
         assert second_context["capability"] == "arena_conflict_resolution"
+
+    def test_emit_binds_current_attempt_before_arena_context(self, tmp_path, monkeypatch, capsys):
+        """A freshly produced attempt must be bound as the session's current
+        candidate before its arena-conflict context is emitted, so the pending
+        context and the responsibility guard both refer to that attempt."""
+        from datetime import datetime
+
+        from tournament_scheduler.application.stage3_session_store import (
+            Stage3SessionStore,
+            fingerprint_plan,
+        )
+        from tournament_scheduler.cli.pipeline_orchestrator import interactive_decision_emit as emit
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _current_run_id
+
+        state = PipelineState(tmp_path)
+        run_id = _current_run_id(state)
+        store = Stage3SessionStore(tmp_path)
+
+        # The session currently holds the adopted baseline A.
+        baseline_plan = {"plan": {"tournaments": []}, "warnings": []}
+        store.bind_candidate(baseline_plan, run_id=run_id, source="baseline")
+        baseline = store.load(run_id)
+        assert baseline.candidate_revision == 1
+
+        # A new attempt B is produced and contains a real collision.
+        attempt_plan = {"plan": _candidate_with_collision(), "warnings": []}
+        monkeypatch.setattr(
+            emit, "_mid_planning_decision_problem", lambda *args, **kwargs: {"ice_time_minutes": ICE_TIME}
+        )
+
+        code = emit._emit_stage3_interactive_decision(
+            state,
+            str(tmp_path),
+            {"stage3_wall_clock_ceiling_seconds": 0},
+            {},
+            datetime(2026, 9, 1),
+            datetime(2027, 4, 1),
+            attempt_plan,
+            lambda msg: None,
+        )
+
+        assert code == 2
+        capsys.readouterr()
+        session = store.load(run_id)
+        attempt_fingerprint = fingerprint_plan(attempt_plan)
+        # B, not A, is the session's current candidate and the pending scope.
+        assert session.candidate_fingerprint == attempt_fingerprint
+        assert session.candidate_revision == baseline.candidate_revision + 1
+        pending = session.pending_decision
+        assert pending["capability"] == "arena_conflict_resolution"
+        assert pending["candidate_fingerprint"] == attempt_fingerprint
+        assert pending["candidate_revision"] == session.candidate_revision
+        # A is preserved as the baseline ``keep_baseline`` restores.
+        assert fingerprint_plan(session.baseline_candidate) == fingerprint_plan(baseline_plan)

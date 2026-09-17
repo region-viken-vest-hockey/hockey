@@ -19,6 +19,7 @@ session, hand it to :mod:`stage3_controller`, and save the result.
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 from pathlib import Path
@@ -271,12 +272,80 @@ class Stage3SessionStore:
         for path in (self.session_path, self.interactive_path, self.shared_host_path, self.arena_path):
             path.unlink(missing_ok=True)
 
+    # -- candidate binding ------------------------------------------------
+
+    def bind_candidate(
+        self,
+        plan: Any,
+        *,
+        run_id: str | None = None,
+        source: str = "",
+        transition: str = "create_baseline",
+        action_id: str = "",
+        rationale: str = "",
+    ) -> Stage3Session:
+        """Make *plan* the session's authoritative current candidate.
+
+        The workflow calls this immediately after a planner/search produces a
+        candidate and **before** it emits any candidate-scoped pending decision
+        (arena conflict, local repair, adoption comparison). That ordering is
+        what lets the pending context and every semantic guard refer to the
+        exact candidate capability will mutate, instead of comparing a fresh
+        attempt against whatever baseline a previous revision left behind.
+
+        Binding never lowers the revision. When a genuinely different
+        candidate replaces the current one, the previous current candidate is
+        retained as the baseline ``keep_baseline`` restores; re-emitting the
+        same candidate is a body refresh, not a new revision.
+        """
+        from datetime import datetime, timezone
+
+        session = self.load(expected_run_id=run_id)
+        if run_id:
+            session.run_id = run_id
+        body = extract_candidate_body(plan)
+        if body is None:
+            return session
+        fingerprint = candidate_content_fingerprint(body)
+        if session.candidate is not None and fingerprint == session.candidate_fingerprint:
+            # Same candidate: refresh the body in place without a revision or
+            # baseline change.
+            session.candidate = copy.deepcopy(plan) if isinstance(plan, dict) else session.candidate
+            self.save(session)
+            return session
+
+        from_revision = session.candidate_revision
+        if session.candidate is not None and session.baseline_candidate is None:
+            session.baseline_candidate = copy.deepcopy(session.candidate)
+            session.baseline_fingerprint = session.candidate_fingerprint
+            session.baseline_revision = session.candidate_revision
+        session.candidate = copy.deepcopy(plan) if isinstance(plan, dict) else dict(body)
+        session.candidate_fingerprint = fingerprint
+        if source:
+            session.candidate_source = source
+        session.candidate_revision = from_revision + 1
+        # A new current candidate invalidates a candidate-scoped decision that
+        # referred to the previous revision.
+        if session.pending_scope() == SCOPE_CANDIDATE:
+            session.clear_pending()
+        session.record_history(
+            transition=transition,
+            action_id=action_id or transition,
+            rationale=rationale or "bind candidate",
+            from_revision=from_revision,
+            to_revision=session.candidate_revision,
+            at=datetime.now(timezone.utc).isoformat(),
+        )
+        self.save(session)
+        return session
+
     # -- emission overlay -------------------------------------------------
 
     def record_emission(
         self,
         interactive_state: Mapping[str, Any],
         *,
+        candidate: Mapping[str, Any] | None = None,
         candidate_revision: int | None = None,
         run_id: str | None = None,
         transition: str = "create_baseline",
@@ -290,6 +359,11 @@ class Stage3SessionStore:
         pending decision (and the candidate revision it belongs to) into the
         canonical session without forcing the emission code to build a
         session itself.
+
+        *candidate* is the exact candidate this emission is deciding on. The
+        legacy ``best_plan`` projection is the adopted baseline, so when the
+        two differ the emitted candidate becomes the current candidate and
+        the projection is retained as the baseline ``keep_baseline`` restores.
         """
         shared = self._read_legacy(self.shared_host_path, run_id)
         arena = self._read_legacy(self.arena_path, run_id)
@@ -309,6 +383,27 @@ class Stage3SessionStore:
                     migrated.shared_host_unresolved or existing.shared_host_unresolved
                 )
                 migrated.arena_unresolved = migrated.arena_unresolved or existing.arena_unresolved
+                migrated.baseline_candidate = existing.baseline_candidate
+                migrated.baseline_fingerprint = existing.baseline_fingerprint
+                migrated.baseline_revision = existing.baseline_revision
+        if candidate is not None:
+            body = extract_candidate_body(candidate)
+            if body is not None:
+                emitted_fingerprint = candidate_content_fingerprint(body)
+                if (
+                    migrated.candidate is not None
+                    and migrated.candidate_fingerprint
+                    and migrated.candidate_fingerprint != emitted_fingerprint
+                    and migrated.baseline_candidate is None
+                ):
+                    # ``interactive_state["best_plan"]`` is the adopted
+                    # baseline this attempt is compared against; preserve it
+                    # for keep_baseline instead of overwriting it.
+                    migrated.baseline_candidate = migrated.candidate
+                    migrated.baseline_fingerprint = migrated.candidate_fingerprint
+                    migrated.baseline_revision = migrated.candidate_revision
+                migrated.candidate = dict(candidate)
+                migrated.candidate_fingerprint = emitted_fingerprint
         prior_revision = existing.candidate_revision if existing is not None and existing.run_id == migrated.run_id else 0
         if candidate_revision is not None and migrated.pending_decision:
             # Revisions are monotonic: an explicit transition (for example an
@@ -458,7 +553,7 @@ class Stage3SessionStore:
         if "best_attempt" in attempts:
             state["best_attempt"] = attempts["best_attempt"]
         if session.candidate is not None:
-            state["best_plan"] = session.candidate
+            state["best_plan"] = session.baseline_candidate or session.candidate
         pending = session.pending_decision or {}
         # Only a candidate-scoped pending decision projects onto the
         # interactive-attempt file; run-scoped shared-host/arena asks belong
@@ -572,6 +667,14 @@ def status_for_session(session: Stage3Session) -> dict[str, Any]:
         "candidate_revision": session.candidate_revision,
         "candidate_fingerprint": session.candidate_fingerprint,
         "candidate_source": session.candidate_source,
+        "baseline": (
+            {
+                "revision": session.baseline_revision,
+                "fingerprint": session.baseline_fingerprint,
+            }
+            if session.baseline_candidate is not None
+            else None
+        ),
         "pending_decision": (
             {
                 "capability": session.pending_decision.get("capability"),

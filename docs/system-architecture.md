@@ -86,6 +86,7 @@ Interactive Stage 3 is a resumable workflow -- build a candidate, pause for a de
 ```text
 Stage3Session (one authoritative object per run_id)
   status, candidate_revision, candidate_fingerprint, candidate_source
+  adopted baseline candidate (what keep_baseline restores)
   run-scoped decisions + candidate-scoped pending decision
   transition history + search/attempt metadata
   finalized revision/fingerprint
@@ -100,6 +101,10 @@ request_operator / finalize_stage3
 ```
 
 Each transition validates the submitted action against the session's exact pending scope (run-scoped decisions stay valid across later revisions where their facts remain valid; candidate-scoped decisions are revision/fingerprint-bound), invokes a deterministic domain capability, records `revision N -> N+1` (or rejects a stale action before recording provenance), and returns the next decision context or terminal result. The CLI/harness adapter parses actions and renders contexts; it does not own fall-through lifecycle semantics.
+
+A freshly produced candidate is bound as the session's current candidate (`Stage3SessionStore.bind_candidate`) **before** any candidate-scoped decision for it is emitted. The pending decision's revision/fingerprint therefore identify the exact candidate a capability will mutate, and the hosting-responsibility guard compares that candidate to the mutation (`B -> B'`) rather than a previous attempt's adopted baseline (`A -> B'`). Binding retains the candidate it replaces as the session's baseline, so `keep_baseline` still restores the best/adopted plan while arena/repair decisions operate on the current attempt.
+
+No-action resume (`run --interactive --resume-from 3` with no `--decision-action`) renders the session's one `pending_decision` context and exits paused. It does not enumerate capability types; an ordinary attempt-comparison decision resumes exactly like a shared-host or arena decision, and repeated resume returns the same persisted context without invoking the planner, advancing a revision or creating a new attempt.
 
 The deterministic domain operations behind those transitions live in one adapter, `cli/pipeline_orchestrator/stage3_capabilities.InteractiveStage3Capabilities` (shared-host recording, arena-conflict application and next-collision enumeration, local repair application, candidate selection, baseline retention). `run_command_interactive.py` only picks the persisted session, submits the typed action to `Stage3Controller` with that adapter, and renders the returned context/exit code; it no longer contains the repair/arena/shared-host transition bodies or the fall-through branches that used to decide whether an answer replans, repairs or advances. Executing a search is still a Stage 3 entry point (it builds a new candidate and then binds the resulting revision), so the CLI maps the `run_search` transition to that entry point rather than duplicating the optimizer.
 

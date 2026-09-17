@@ -220,6 +220,69 @@ class TestStatusFacade:
         assert view["finalized_revision"] is None
 
 
+class TestCandidateBinding:
+    """``bind_candidate`` makes the freshly produced attempt authoritative
+    while retaining the adopted baseline ``keep_baseline`` restores."""
+
+    def test_bind_candidate_retains_baseline_and_advances_revision(self, tmp_path: Path):
+        store = Stage3SessionStore(tmp_path)
+        store.bind_candidate(_plan(1), run_id="run-1", source="baseline")
+        first = store.load("run-1")
+        assert first.candidate_revision == 1
+        assert first.baseline_candidate is None
+
+        store.bind_candidate(_plan(2), run_id="run-1", source="search")
+        second = store.load("run-1")
+        assert second.candidate_revision == 2
+        assert second.candidate_fingerprint == candidate_content_fingerprint(_candidate(2))
+        assert second.baseline_candidate == _plan(1)
+        assert second.baseline_fingerprint == candidate_content_fingerprint(_candidate(1))
+        assert second.decision_history[-1]["from_revision"] == 1
+        assert second.decision_history[-1]["to_revision"] == 2
+
+    def test_bind_same_candidate_is_a_body_refresh_not_a_new_revision(self, tmp_path: Path):
+        store = Stage3SessionStore(tmp_path)
+        store.bind_candidate(_plan(1), run_id="run-1", source="baseline")
+        store.bind_candidate(_plan(1), run_id="run-1", source="search")
+
+        session = store.load("run-1")
+        assert session.candidate_revision == 1
+        assert session.baseline_candidate is None
+
+    def test_binding_a_new_candidate_invalidates_candidate_scoped_pending(self, tmp_path: Path):
+        store = Stage3SessionStore(tmp_path)
+        store.bind_candidate(_plan(1), run_id="run-1", source="baseline")
+        session = store.load("run-1")
+        session.set_pending(
+            capability="arena_conflict_resolution",
+            context=_context("arena_conflict_resolution", fingerprint="fp"),
+        )
+        store.save(session)
+
+        store.bind_candidate(_plan(2), run_id="run-1", source="search")
+
+        reloaded = store.load("run-1")
+        assert reloaded.pending_decision is None
+        assert reloaded.baseline_candidate == _plan(1)
+
+    def test_projection_reports_baseline_as_best_plan_for_a_new_attempt(self, tmp_path: Path):
+        store = Stage3SessionStore(tmp_path)
+        store.bind_candidate(_plan(1), run_id="run-1", source="baseline")
+        store.bind_candidate(_plan(2), run_id="run-1", source="search")
+        session = store.load("run-1")
+        session.set_pending(
+            capability="stage3_interactive",
+            context=_context("stage3_interactive"),
+            candidates=[{"candidate": _plan(2), "candidate_ref": "stage3_interactive:attempt_2"}],
+            attempt=2,
+        )
+        store.save(session)
+
+        projection = json.loads(store.interactive_path.read_text(encoding="utf-8"))
+        assert projection["best_plan"] == _plan(1)
+        assert projection["pending_candidate"] == _plan(2)
+
+
 class TestCanonicalSubDecisionState:
     """The session, not the legacy side files, owns shared-host/arena state.
 
