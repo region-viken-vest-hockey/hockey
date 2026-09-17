@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "export_id": "2026-09-17T2002",
+  "generated_at": "2026-09-17T20:02:47+00:00",
+  "export_fingerprint": "6d377f6a59ec86643161883a2ed62a1ded221fee3e756664ec2bfb709422fb33",
+  "canonical_season": "2026-2027",
+  "canonical_revision": "6d377f6a59ec86643161883a2ed62a1ded221fee3e756664ec2bfb709422fb33",
+  "lifecycle_status": "draft",
+  "published_at": null,
+  "pages_commit": null,
+  "pages_branch": null,
+  "pages_run_id": null,
+  "pages_bundle_fingerprint": null,
+  "source_run_id": "20260917T135759Z-2b785812"
+}
