@@ -1,10 +1,10 @@
 {
   "applied_from": {
     "actor": "claude-code",
-    "previous_revision": "8d5c287caf7db61edd57241a8c00dad3a3fc1970d871fa91d2ce4748ce2b9e2b"
+    "previous_revision": "96c29c5a91155146e1b3a1fd64156b2426b0f3321ee7bf58f80d84d5f9f7f129"
   },
   "created_at": "2026-09-17T14:55:37.414824+00:00",
-  "fingerprint": "f25e95f6a5983cd1fde1c393cf9a91858232a17510d9cff27473bafbd26899ca",
+  "fingerprint": "af4d7428757d67536d153c54e0951223a01f1854069cb266d58b0a9a2d992d86",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -10141,7 +10141,7 @@
       },
       {
         "age_group": "U9",
-        "arena": "Baerum ishall",
+        "arena": "Jar Isforum",
         "date": "2026-10-31",
         "games": [
           {
@@ -10265,7 +10265,7 @@
             "round_number": 5
           }
         ],
-        "host_club": "Jutul",
+        "host_club": "Jar",
         "id": "rvv-0033",
         "start_time": "10:00",
         "teams": [
@@ -10313,7 +10313,7 @@
       },
       {
         "age_group": "U10",
-        "arena": "Askerhallen",
+        "arena": "Jar Isforum",
         "date": "2026-11-01",
         "games": [
           {
@@ -10407,7 +10407,7 @@
             "round_number": 5
           }
         ],
-        "host_club": "Frisk Asker",
+        "host_club": "Jar",
         "id": "rvv-0034",
         "start_time": "13:50",
         "teams": [
@@ -12924,7 +12924,7 @@
       },
       {
         "age_group": "U11",
-        "arena": "Tonsberghallen",
+        "arena": "Skien ishall",
         "date": "2026-11-21",
         "games": [
           {
@@ -12941,7 +12941,7 @@
           },
           {
             "away": "Jar Oransje",
-            "home": "Tønsberg Rød",
+            "home": "Skien",
             "parallel_slot": 2,
             "round_number": 1
           },
@@ -12959,7 +12959,7 @@
           },
           {
             "away": "Frisk Asker 2",
-            "home": "Tønsberg Rød",
+            "home": "Skien",
             "parallel_slot": 2,
             "round_number": 2
           },
@@ -12977,7 +12977,7 @@
           },
           {
             "away": "Jar Rød",
-            "home": "Tønsberg Rød",
+            "home": "Skien",
             "parallel_slot": 2,
             "round_number": 3
           },
@@ -12995,7 +12995,7 @@
           },
           {
             "away": "Jutul Grønn",
-            "home": "Tønsberg Rød",
+            "home": "Skien",
             "parallel_slot": 2,
             "round_number": 4
           },
@@ -13013,19 +13013,19 @@
           },
           {
             "away": "Ringerike 2",
-            "home": "Tønsberg Rød",
+            "home": "Skien",
             "parallel_slot": 2,
             "round_number": 5
           }
         ],
-        "host_club": "Tønsberg",
+        "host_club": "Skien",
         "id": "rvv-0056",
         "start_time": "14:00",
         "teams": [
           {
             "age_group": "U11",
-            "club": "Tønsberg",
-            "label": "Tønsberg Rød"
+            "club": "Skien",
+            "label": "Skien"
           },
           {
             "age_group": "U11",
@@ -14775,7 +14775,7 @@
       },
       {
         "age_group": "JU12",
-        "arena": "Askerhallen",
+        "arena": "Baerum ishall",
         "date": "2026-12-05",
         "games": [
           {
@@ -14815,7 +14815,7 @@
             "round_number": 3
           }
         ],
-        "host_club": "Frisk Asker",
+        "host_club": "Jutul",
         "id": "rvv-0072",
         "start_time": "12:50",
         "teams": [
@@ -14843,7 +14843,7 @@
       },
       {
         "age_group": "U10",
-        "arena": "Askerhallen",
+        "arena": "Ringerikshallen",
         "date": "2026-12-05",
         "games": [
           {
@@ -14937,7 +14937,7 @@
             "round_number": 5
           }
         ],
-        "host_club": "Frisk Asker",
+        "host_club": "Ringerike",
         "id": "rvv-0073",
         "start_time": "14:35",
         "teams": [
@@ -25068,7 +25068,7 @@
       },
       {
         "age_group": "U12",
-        "arena": "Tonsberghallen",
+        "arena": "Kongsberghallen",
         "date": "2027-02-27",
         "games": [
           {
@@ -25108,7 +25108,7 @@
             "round_number": 3
           }
         ],
-        "host_club": "Tønsberg",
+        "host_club": "Kongsberg",
         "id": "rvv-0162",
         "start_time": "14:00",
         "teams": [
@@ -31917,10 +31917,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "f25e95f6a5983cd1fde1c393cf9a91858232a17510d9cff27473bafbd26899ca",
+  "revision": "af4d7428757d67536d153c54e0951223a01f1854069cb266d58b0a9a2d992d86",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-17T20:14:36.274918+00:00",
+  "updated_at": "2026-09-17T20:38:30.617604+00:00",
   "verification_context": {
     "candidate_fingerprint": "8d5c287caf7db61edd57241a8c00dad3a3fc1970d871fa91d2ce4748ce2b9e2b",
     "problem": {

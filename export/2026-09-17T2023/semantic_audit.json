@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "audit_id": "95377bfc506d14e2",
+  "generated_at": "2026-09-17T20:25:00+00:00",
+  "run_id": "20260917T201124Z-ca144159",
+  "export_fingerprint": "96c29c5a91155146e1b3a1fd64156b2426b0f3321ee7bf58f80d84d5f9f7f129",
+  "status": "REVIEW_REQUIRED",
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Unchanged by this session's hosting rebalancing (it only moved host_club/arena assignments, not rosters). club_participation_fairness remains 0 unresolved; deviation breakdown unchanged (0 avoidable, 13 proven_infeasible, 130 bounded_search_exhausted).",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category participation_target_deviations"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "Resolved the Ringerike U9 unresolved hosting obligation (previous audit) plus 5 more hosting-balance imbalances via targeted, dry-run-verified `season move`s, each reassigning one excess club's slot to a deficit club in the same age group where the deficit club was already a listed participant (no roster change needed): U9 Jutul->Jar (rvv-0033), U10 Frisk Asker->Jar (rvv-0034), U10 Frisk Asker->Ringerike (rvv-0073), JU12 Frisk Asker->Jutul (rvv-0072), U12 Tønsberg->Kongsberg (rvv-0162). hosting_balance_imbalances dropped from 11 to 2 (Skien -1 / Tønsberg +1, U11) — no candidate tournament exists where Skien already participates in a Tønsberg-hosted U11 tournament, so this pair could not be resolved by the same technique; it needs either a genuinely new U11 slot or operator/club coordination. unresolved_hosting_obligations remains empty (deterministic, authoritative).",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category unresolved_hosting_obligations"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "Unchanged: all 191 tournaments have a valid computed duration; 0 invalid byes; 6 JU8 tournaments remain legitimately input-constrained.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category tournament_duration"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "Unchanged: 0 unresolved external conflicts; 38 manual_external_conflict_placements still need operator confirmation of calendar interpretation.",
+      "severity": "minor",
+      "confidence": "medium",
+      "evidence": [
+        "operator audit-evidence --category manual_external_conflict_placements"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "0 tournaments where the host club is not among the participants, confirmed again after this session's 5 additional host reassignments (each was only legal because the new host already participated that weekend).",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category host_participation"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "0 duplicate team-day entries.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category duplicate_team_days"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "0 tournaments exceed the hard max of 3; exceptions remain within policy.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category same_club_participants"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "All export-consistency checks match the plan exactly with 0 mismatches.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-evidence --category export_consistency"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt on?",
+      "finding": "Deterministic verification is clean (ok=true, 0 violations) after 6 total targeted canonical moves this session. The known stale-reporting defect (filed as GitHub issue #377: publication_readiness/cross_age_hosting_repairs lag behind deterministic_verify_result after a season move) is expected to still show stale unresolved_hosting/cross_age_hosting_repairs entries in those two specific fields — treat deterministic_verify_result as authoritative per that filed issue, not publication_readiness.reasons' unresolved_hosting code, until #377 is fixed. Remaining REVIEW_REQUIRED items (2 hosting-balance imbalances, 38 external-conflict confirmations, participation shortfalls, unresolved placements) are genuine operator-coordination items, not planner defects.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "operator audit-context",
+        "https://github.com/region-viken-vest-hockey/hockey/issues/377"
+      ],
+      "could_not_establish": false
+    }
+  ],
+  "potential_missing_rule": [],
+  "could_not_independently_establish": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "96c29c5a91155146e1b3a1fd64156b2426b0f3321ee7bf58f80d84d5f9f7f129",
+  "publication_gate_status": "operator_review_required"
+}
