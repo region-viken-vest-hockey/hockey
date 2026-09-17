@@ -62,4 +62,33 @@ Use it to confirm the current candidate revision/fingerprint, which decision is 
 
 Running `run --interactive --resume-from 3` with no `--decision-action` is a safe inspection/resume step: it re-renders the exact persisted pending Stage 3 decision and exits paused without rebuilding the candidate or starting a new attempt. Repeating it is idempotent.
 
+## Resetting an untrustworthy Stage 3 lineage
+
+Use the reset capability only when an **engineering/lifecycle defect or a code change has made the current Stage 3 candidate/session lineage untrustworthy**. Examples include a pending decision created by known-buggy lifecycle code, corrupted candidate/session identity, or an explicitly diagnosed Stage 3 persistence defect.
+
+Do **not** use reset as another optimization attempt, to evade the Stage 3 attempt cap, to bypass a hard verifier finding, or instead of answering a legitimate operator decision.
+
+Never delete or reconcile Stage 3 JSON files by hand. Use:
+
+```bash
+scripts/rvv-miniputt stage3 reset --work-dir .pipeline --json
+```
+
+The reset command must:
+
+- refuse to run unless Stage 1 and Stage 2 are complete and non-stale;
+- preserve the Stage 1 configuration checkpoint and Stage 2 scrape/evidence checkpoint unchanged;
+- clear the canonical `Stage3Session` and compatibility mirrors;
+- remove Stage 3 and Stage 4 checkpoints;
+- clear Stage 3 attempt evidence and the run-scoped CP-SAT cache;
+- start a **new run id** so decisions from the superseded Stage 3 lineage are not mixed with the recovered run.
+
+After a successful reset, follow the `next_command` returned by the command. Normally this is equivalent to:
+
+```bash
+scripts/rvv-miniputt run --interactive --input input.xlsx --work-dir .pipeline --resume-from 3
+```
+
+This reuses the already-normalized Stage 1/2 facts and does **not** re-scrape calendars. Once the new Stage 3 candidate has been emitted, ordinary resume semantics apply again.
+
 Do not invoke internal `stageN_*` modules directly and do not recreate stage gates, scheduling policy, source-validity rules, or publication policy in a harness adapter.

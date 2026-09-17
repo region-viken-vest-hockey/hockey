@@ -2,8 +2,11 @@
 set -euo pipefail
 
 # Thin repository launcher used by non-Pi harness adapters.
-# All command behavior lives in tournament_scheduler.cli.rvv_cli; this wrapper
-# only selects the repository virtualenv when it exists.
+# Normal command behavior lives in tournament_scheduler.cli.rvv_cli. The
+# Stage 3 reset recovery entry point is intentionally bootstrapped here so an
+# already-invalid interactive session can be discarded without depending on
+# the ordinary Stage 3 argparse/session path; reset semantics themselves live
+# in the Python application/CLI recovery modules.
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 PYTHON_BIN="$ROOT_DIR/venv/bin/python3"
 
@@ -11,6 +14,11 @@ if [[ -x "$PYTHON_BIN" ]]; then
   PYTHON_CMD="$PYTHON_BIN"
 else
   PYTHON_CMD=python3
+fi
+
+if [[ "${1:-}" == "stage3" && "${2:-}" == "reset" ]]; then
+  shift 2
+  exec "$PYTHON_CMD" -m tournament_scheduler.cli.pipeline_orchestrator.stage3_reset_command "$@"
 fi
 
 exec "$PYTHON_CMD" -m tournament_scheduler.cli.rvv_cli "$@"
