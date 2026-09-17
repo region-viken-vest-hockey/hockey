@@ -10,6 +10,7 @@ from .hard_verification_gate import (
     _assert_hard_verification_before_export,
     _baseline_hard_violations_for_plan,
 )
+from ...plan_derived_state import reconcile_plan_derived_state
 
 __all__ = [
     "_assert_hard_verification_before_export",
@@ -88,18 +89,11 @@ def _reconcile_verified_manual_state(
         return
 
     plan_dict = plan["plan"]
-    plan_dict["unresolved_hosting_obligations"] = [
-        {
-            "club": item.get("club", ""),
-            "age_group": item.get("age_group", ""),
-            "reason": (
-                "required hosting obligation has no verified feasible automatic slot"
-            ),
-        }
-        for item in result.get("unresolved_hosting_obligations") or []
-    ]
-    plan_dict["hosting_balance"] = list(result.get("hosting_balance") or [])
-    plan_dict["hosting_balance_imbalances"] = list(result.get("hosting_balance_imbalances") or [])
+    # Hosting coverage/imbalance facts and publication readiness are
+    # descriptive projections of the (possibly change-then-reconciled)
+    # tournaments; refresh them from the fresh verifier result through the
+    # single shared reconciliation so they can never disagree with it.
+    reconcile_plan_derived_state(plan_dict, result)
     plan_dict["unresolved_external_conflicts"] = [
         {
             "tournament_id": item.get("tournament_id", ""),
@@ -189,21 +183,6 @@ def _reconcile_verified_manual_state(
         row for row in waiver_audit_rows(problem) if str(row.get("id")) in applied_waiver_ids
     ]
     plan_dict["operator_waived_violations"] = list(result.get("waived_violations") or [])
-    readiness = dict(result.get("publication_readiness") or {})
-    # issue #323 P0: unresolved_tournament_placements is a baseline-planner-
-    # time fact about tournaments that were never created -- there is no
-    # candidate tournament for `verify_final_candidate` to recompute this
-    # from, so it can't come from `result`. Fold it into the readiness
-    # reasons here from the plan's own (untouched) list instead, the same
-    # way the other unresolved_* findings block PUBLISHABLE status.
-    unresolved_placements = plan_dict.get("unresolved_tournament_placements") or []
-    if unresolved_placements and readiness.get("status") != "INVALID":
-        reasons = list(readiness.get("reasons") or [])
-        reasons.append({"code": "tournament_placement_shortfall", "count": len(unresolved_placements)})
-        readiness["reasons"] = reasons
-        readiness["status"] = "REVIEW_REQUIRED"
-        readiness["publishable"] = False
-    plan_dict["publication_readiness"] = readiness
     log_fn(
         "Stage 4 manual-state reconciled from final verification: "
         f"{len(plan_dict['unresolved_hosting_obligations'])} unresolved hosting, "

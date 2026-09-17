@@ -23,6 +23,7 @@ from tournament_scheduler.pipeline.verification_context import (
     VerificationContextError,
     resolve_promotion_verification_context,
 )
+from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
@@ -500,6 +501,11 @@ def move_tournament(
     if not result.get("ok", True):
         messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
         raise SeasonStateError(f"Refusing canonical mutation: candidate fails hard verification: {messages}")
+    # The move changed which club hosts which age group, so the plan's
+    # descriptive hosting/readiness snapshot is now stale. Re-derive it from
+    # the fresh verifier result instead of leaving the pre-mutation snapshot
+    # to contradict it.
+    reconcile_plan_derived_state(plan, result)
 
     now = datetime.now(tz=timezone.utc).isoformat()
     fingerprint = schedule_fingerprint(plan)
@@ -937,6 +943,10 @@ def apply_candidate(
     plan["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
     plan.setdefault("start_date", schedule["plan"].get("start_date"))
     plan.setdefault("end_date", schedule["plan"].get("end_date"))
+    # An applied replan candidate replaces the plan's tournaments, so its
+    # descriptive hosting/readiness snapshot must be re-derived from the
+    # fresh verifier result rather than trusted from the candidate payload.
+    reconcile_plan_derived_state(plan, result)
 
     now = datetime.now(tz=timezone.utc).isoformat()
     fingerprint = schedule_fingerprint(plan)

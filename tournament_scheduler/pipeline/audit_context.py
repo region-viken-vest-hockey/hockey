@@ -20,6 +20,10 @@ from typing import Any
 
 from ..effective_tournament_shape import compute_effective_tournament_shape, shape_violation
 from ..host_representation import clubs_represent_same_club
+from ..plan_derived_state import (
+    publication_readiness_with_plan_placements,
+    reconcile_plan_derived_state,
+)
 from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from . import audit_evidence
 from .audit_result import current_export_fingerprint, current_run_id
@@ -731,9 +735,21 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
         run_id=run_id,
         export_fingerprint=export_fingerprint,
     )
-    plan_dict = _plan_dict_with_final_operator_evidence(plan_dict, final_operator_evidence)
-
     deterministic_verify_result = export_checkpoint.get("verify_result") or {}
+    plan_dict = _plan_dict_with_final_operator_evidence(plan_dict, final_operator_evidence)
+    # The fresh verifier result (or the fingerprint-bound final operator
+    # evidence derived from it) is authoritative for the descriptive
+    # hosting/readiness snapshot. The plan checkpoint's own snapshot can be
+    # stale after a canonical mutation (e.g. `season move`) changed
+    # `plan.tournaments` without recomputing those derived fields.
+    bound_readiness = (
+        final_operator_evidence.get("publication_readiness")
+        if isinstance(final_operator_evidence, dict)
+        and isinstance(final_operator_evidence.get("publication_readiness"), dict)
+        else None
+    )
+    authoritative_state = final_operator_evidence if bound_readiness else deterministic_verify_result
+    plan_dict = reconcile_plan_derived_state(plan_dict, authoritative_state, readiness=bound_readiness)
     operator_waived_violations = list((final_operator_evidence or {}).get("operator_waived_violations") or [])
     if not operator_waived_violations:
         operator_waived_violations = list(deterministic_verify_result.get("waived_violations") or [])
@@ -746,15 +762,11 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
         from ..operator_waivers import load_active_waivers, waiver_audit_rows
 
         operator_waivers = waiver_audit_rows({"operator_waivers": load_active_waivers(work_dir)})
-    publication_readiness: dict[str, Any] | None = None
-    if isinstance(final_operator_evidence, dict) and final_operator_evidence.get("publication_readiness"):
-        publication_readiness = final_operator_evidence.get("publication_readiness")
-    elif isinstance(plan_dict, dict) and plan_dict.get("publication_readiness"):
-        publication_readiness = plan_dict.get("publication_readiness")
-    else:
-        from ..final_verification import publication_readiness as _compute_readiness
-
-        publication_readiness = _compute_readiness(deterministic_verify_result)
+    publication_readiness = plan_dict.get("publication_readiness") if isinstance(plan_dict, dict) else None
+    if not publication_readiness:
+        publication_readiness = publication_readiness_with_plan_placements(
+            deterministic_verify_result, plan_dict
+        )
 
     approval_status: dict[str, Any] | None = None
     if isinstance(final_operator_evidence, dict) and isinstance(final_operator_evidence.get("approval_status"), dict):
