@@ -89,7 +89,7 @@ Scheduling rules must have one authoritative implementation and remain valid acr
 | Domain facts and reusable rule math | small planner-independent deterministic modules | hosting targets, coverage, participant eligibility, availability facts |
 | Hard/required verification | canonical verifier | host representation, target caps, collisions, required obligations |
 | Soft deterministic measurements | scorecard/fairness measurement | hosting deviation, participation spread, temporal spacing |
-| Feasible repair/action enumeration | canonical application/decision capability | `rehost_tournament`, participant swap, manual-placement fallback |
+| Feasible repair/action enumeration | canonical application/decision capability | common `local_repair_options` boundary over small planner-neutral providers: `rehost_tournament`/`remove_tournament`/participant repair for `host_team_missing`, `fill_participant`/`swap_participant` for an underfilled roster, manual-placement fallback |
 | State mutation and persistence | canonical application/season operation | atomically apply validated changes while respecting locks/approvals |
 | Baseline generation/search | planner/optimizer implementations | propose candidates using the shared domain facts; never redefine the rule |
 | Rules/report/export | rules model and renderers | display serialized/recomputed facts; never become the business-policy engine |
@@ -115,6 +115,24 @@ rules/report/export rendering
 Generators and optimizers may consume these rules to construct candidates, but they do not own them. A rule that must remain true after later mutations must be independently measurable/verifiable outside the generator that produced the original candidate.
 
 Likewise, renderers and generated HTML must consume authoritative serialized/recomputed state; they must not infer or repair scheduling policy themselves.
+
+### Local repair-option families
+
+A localized hard defect is repaired through the same validated action boundary as every other decision, not through another procedural pass inside the planner. `local_repair_options` is the single application entry point: each planner-neutral provider owns one finding family, enumerates hard-feasible options plus explicit per-candidate rejection reasons, and applies a selected option id atomically before the independent verifier runs.
+
+```text
+finding (host_team_missing, bye_team_not_allowed, ...)
+        ↓
+providers enumerate legal options + rejected alternatives
+        ↓
+DecisionContext exposes stable option ids to the controller
+        ↓
+controller selects one option id
+        ↓
+atomic mutation -> games regenerated -> full independent verification
+```
+
+A provider never weakens a hard rule, never transfers an obligation implicitly and never hides a legal option behind an ad-hoc ranking. When no local option verifies, the controller may request a bounded broader search or escalate with the recorded rejection evidence.
 
 ### Responsibility is separate from automatic placement
 

@@ -446,7 +446,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 else:
                     use_v2_optimizer_for_stage3 = True
             elif decision_action.action_id == "apply_repair_option":
-                from ...host_team_missing_repair import apply_host_team_missing_repair_option
+                from ...local_repair_options import apply_local_repair_option
                 from ...planning_contract import extract_candidate
                 from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
 
@@ -463,7 +463,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 repair_start = datetime.strptime(repair_cfg["start_date"], "%Y-%m-%d")
                 repair_end = datetime.strptime(repair_cfg["end_date"], "%Y-%m-%d")
                 problem = _mid_planning_decision_problem(repair_cfg, repair_scraping, repair_start, repair_end, state.work_dir)
-                outcome = apply_host_team_missing_repair_option(
+                outcome = apply_local_repair_option(
                     extract_candidate(best_plan),
                     problem,
                     option_id=str((decision_action.arguments or {}).get("option_id") or ""),
@@ -476,10 +476,17 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                 checkpoint = dict(state.read_stage(StageName.PLANNING) or {})
                 invalidate_stale_candidate_checkpoint_keys(checkpoint)
                 checkpoint["plan"] = outcome["candidate"]
-                checkpoint["source"] = "host_team_missing_repair_applied"
-                checkpoint["host_team_missing_repair_result"] = {
-                    key: value for key, value in outcome.items() if key != "candidate"
-                }
+                family = outcome.get("family")
+                if family == "underfilled_roster":
+                    checkpoint["source"] = "underfilled_roster_repair_applied"
+                    checkpoint["underfilled_roster_repair_result"] = {
+                        key: value for key, value in outcome.items() if key != "candidate"
+                    }
+                else:
+                    checkpoint["source"] = "host_team_missing_repair_applied"
+                    checkpoint["host_team_missing_repair_result"] = {
+                        key: value for key, value in outcome.items() if key != "candidate"
+                    }
                 state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
                 _clear_stage3_interactive_state(state)
             elif decision_action.action_id == "apply_candidate":

@@ -138,6 +138,75 @@ def _host_team_missing_repair_context(
     return context
 
 
+def _underfilled_roster_repair_context(
+    plan: "dict[str, Any]",
+    problem: "dict[str, Any] | None",
+    *,
+    run_id: str,
+    candidate_ref: str,
+    require_options: bool = False,
+) -> "Any | None":
+    """Repair context for a locally underfilled tournament roster, or ``None``.
+
+    Companion to :func:`_host_team_missing_repair_context` for the other local
+    size/participation defect: a tournament whose participant count is below
+    the independently derived ``effective_team_count`` even though the
+    canonical registered pool can fill it. The context exposes only
+    repository-generated fill/swap option ids plus explicit per-candidate
+    rejection evidence; the harness never hand-edits a participant list.
+    """
+    from ...planning_contract import extract_candidate
+    from ...underfilled_roster_repair import build_underfilled_roster_decision_context
+
+    violations = _baseline_hard_violations_for_plan(plan, problem)
+    if not any(str(v).startswith("bye_team_not_allowed:") for v in violations):
+        return None
+    context = build_underfilled_roster_decision_context(
+        extract_candidate(plan),
+        problem,
+        run_id=run_id,
+        candidate_ref=candidate_ref,
+    )
+    if require_options and not context.facts.get("repair_options"):
+        return None
+    return context
+
+
+def _local_repair_context(
+    plan: "dict[str, Any]",
+    problem: "dict[str, Any] | None",
+    *,
+    run_id: str,
+    candidate_ref: str,
+    require_options: bool = False,
+) -> "Any | None":
+    """First repository-generated local repair context for *plan* with legal
+    options, or the first context carrying rejection evidence.
+
+    Underfilled roster is the smallest local defect, so it is preferred when
+    it actually has a legal option; a provider that only has rejection
+    evidence must not shadow a different provider that does have one. Each
+    provider still returns its own capability string and option evidence.
+    """
+    contexts = [
+        builder(
+            plan,
+            problem,
+            run_id=run_id,
+            candidate_ref=candidate_ref,
+            require_options=False,
+        )
+        for builder in (_underfilled_roster_repair_context, _host_team_missing_repair_context)
+    ]
+    contexts = [context for context in contexts if context is not None]
+    for context in contexts:
+        if context.facts.get("repair_options"):
+            return context
+    if require_options:
+        return None
+    return contexts[0] if contexts else None
+
+
 def _emit_stage3_interactive_decision(
     state: "Any",
     work_dir: str,
@@ -289,7 +358,7 @@ def _emit_stage3_interactive_decision(
         if cp_sat_shadow is not None:
             summary = {**summary, "cp_sat_shadow": cp_sat_shadow}
         baseline_hard_violations = _baseline_hard_violations_for_plan(plan, problem)
-        repair_context = _host_team_missing_repair_context(
+        repair_context = _local_repair_context(
             plan,
             problem,
             run_id=run_id,
@@ -340,11 +409,12 @@ def _emit_stage3_interactive_decision(
         attempts_used += 1
         best_plan = interactive_state["best_plan"]
         best_attempt = interactive_state.get("best_attempt", 1)
-        # A later attempt that re-introduces host_team_missing must not be
-        # answered by yet another opaque optimize_plan retry loop: when a local
-        # repair exists, expose it here too. When none exists, fall through to
-        # the ordinary comparison context so keep_baseline stays available.
-        repair_context = _host_team_missing_repair_context(
+        # A later attempt that re-introduces a local hard defect (host_team_missing
+        # or an underfilled roster) must not be answered by yet another opaque
+        # optimize_plan retry loop: when a local repair exists, expose it here too.
+        # When none exists, fall through to the ordinary comparison context so
+        # keep_baseline stays available.
+        repair_context = _local_repair_context(
             plan,
             problem,
             run_id=run_id,

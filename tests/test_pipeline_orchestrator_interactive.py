@@ -2165,3 +2165,150 @@ class TestStage3HostTeamMissingRepairContext:
         assert checkpoint["host_team_missing_repair_result"]["ok"] is True
         assert any(team["club"] == "Host" for team in checkpoint["plan"]["tournaments"][0]["teams"])
         assert not _stage3_interactive_state_path(state).exists()
+
+
+def _underfilled_roster_plan() -> dict[str, Any]:
+    teams = [_team("B", "B1", "U10"), _team("C", "C1", "U10"), _team("D", "D1", "U10")]
+    return {
+        "plan": {
+            "schema_version": 1,
+            "tournaments": [
+                {
+                    "id": "t1",
+                    "date": "2026-09-05",
+                    "age_group": "U10",
+                    "host_club": "B",
+                    "arena": "B Arena",
+                    "start_time": "10:00",
+                    "duration_minutes": 120,
+                    "teams": teams,
+                    "games": _round_robin_games([t["label"] for t in teams]),
+                },
+            ],
+        },
+        "warnings": [],
+    }
+
+
+def _underfilled_roster_problem() -> dict[str, Any]:
+    clubs = ("A", "B", "C", "D", "E", "F")
+    return {
+        "teams": [
+            _team("A", "A1", "U10"),
+            _team("B", "B1", "U10"),
+            _team("C", "C1", "U10"),
+            _team("D", "D1", "U10"),
+            _team("E", "E1", "U10"),
+            _team("F", "F1", "U10"),
+        ],
+        "parallel_games": {"U10": 2},
+        "club_arenas": {club: f"{club} Arena" for club in clubs},
+        "club_calendar_status": {club: "known" for club in clubs},
+        "club_busy_intervals": {},
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+    }
+
+
+class TestStage3UnderfilledRosterRepairContext:
+    """issue #347/#348: a locally underfilled tournament must expose
+    repository-generated fill/swap options before optimizer retries or
+    operator escalation, through the common repair-action boundary."""
+
+    _CFG = {"start_date": "2026-09-01", "end_date": "2027-04-30"}
+
+    def _emit(self, state, tmp_path, plan, problem):
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import (
+            _emit_stage3_interactive_decision,
+        )
+
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit._mid_planning_decision_problem",
+            return_value=problem,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit._maybe_run_stage3_cp_sat_shadow",
+            return_value=None,
+        ):
+            return _emit_stage3_interactive_decision(
+                state, str(tmp_path), self._CFG, {}, None, None, plan, lambda msg: None,
+            )
+
+    def test_first_attempt_exposes_fill_options(self, state, tmp_path, capsys):
+        exit_code = self._emit(state, tmp_path, _underfilled_roster_plan(), _underfilled_roster_problem())
+        payload = json.loads(capsys.readouterr().out)
+
+        assert exit_code == 2
+        assert payload["capability"] == "underfilled_roster_repair"
+        assert payload["facts"]["repair_options"]
+        assert "apply_repair_option" in payload["available_actions"]
+        option_ids = payload["action_parameters"]["apply_repair_option"]["option_id"]["enum"]
+        assert option_ids == [option["option_id"] for option in payload["facts"]["repair_options"]]
+
+    def test_apply_repair_option_commits_verified_plan_and_skips_stage3_rerun(self, state, tmp_path):
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import (
+            _stage3_interactive_state_path,
+            _write_stage3_interactive_state,
+        )
+        from tournament_scheduler.underfilled_roster_repair import (
+            build_underfilled_roster_decision_context,
+        )
+
+        plan = _underfilled_roster_plan()
+        problem = _underfilled_roster_problem()
+        context = build_underfilled_roster_decision_context(plan["plan"], problem, run_id="legacy")
+        option = context.facts["repair_options"][0]
+
+        _write_stage3_interactive_state(
+            state,
+            {
+                "run_id": "legacy",
+                "attempts_used": 1,
+                "best_attempt": 1,
+                "best_plan": plan,
+                "pending_attempt": 1,
+                "last_context": context.to_dict(),
+            },
+        )
+        state.write_stage(
+            StageName.CONFIG, {"start_date": "2026-09-01", "end_date": "2027-04-30"}, status=StageStatus.DONE
+        )
+        state.write_stage(
+            StageName.SCRAPING, {"sources": [], "blocked": []}, status=StageStatus.DONE
+        )
+        state.write_stage(StageName.PLANNING, plan, status=StageStatus.DONE)
+
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {
+                    "action_id": "apply_repair_option",
+                    "rationale": "select the local roster fill",
+                    "arguments": {
+                        "option_id": option["option_id"],
+                        "candidate_fingerprint": context.facts["candidate_fingerprint"],
+                    },
+                }
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
+            return_value=({"start_date": "2026-09-01", "end_date": "2027-04-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._mid_planning_decision_problem",
+            return_value=problem,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        checkpoint = state.read_stage(StageName.PLANNING)
+        assert checkpoint["source"] == "underfilled_roster_repair_applied"
+        assert checkpoint["underfilled_roster_repair_result"]["ok"] is True
+        assert len(checkpoint["plan"]["tournaments"][0]["teams"]) == 4
+        assert not _stage3_interactive_state_path(state).exists()
