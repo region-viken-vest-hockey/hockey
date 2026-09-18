@@ -32,7 +32,13 @@ from .local_repair_options import enumerate_local_repair_options
 from .pareto import non_dominated_indices, representative_indices
 from .participation_deviation_repair import participation_finding_id
 from .participation_targets import search_evidence_from_acceptances
-from .planning_contract import verify_candidate
+from .planning_contract import score_candidate, verify_candidate
+from .quality_objectives import (
+    QUALITY_OBJECTIVE_DIMENSIONS,
+    compare_quality_scores,
+    quality_objective_vector,
+    with_unresolved_obligations_count,
+)
 from .season_state import (
     DEFAULT_SEASON_ROOT,
     canonical_state_revision,
@@ -54,7 +60,15 @@ DEFAULT_DIMENSIONS: Tuple[str, ...] = ("participants", "host")
 # signature changed. An option is only on the front when no other option is at
 # least as good everywhere and strictly better somewhere -- a verified option is
 # not automatically a non-dominated one.
-PARETO_DIMENSIONS: Tuple[str, ...] = (
+#
+# The vector deliberately combines two families:
+#   * hard/defect and change-cost dimensions owned by this module (a maintenance
+#     repair must never buy a lower travel cost with a new hard violation);
+#   * the shared Stage-3 soft-quality objectives (opponent diversity, turnaround,
+#     same-club clustering, temporal coverage) plus travel, so a local repair is
+#     compared on the same planner-independent quality facts Stage 3 uses
+#     instead of only on the defect it was asked to fix.
+MAINTENANCE_DEFECT_DIMENSIONS: Tuple[str, ...] = (
     "hard_violations",
     "unresolved_hosting_obligations",
     "hosting_balance_imbalances",
@@ -63,6 +77,18 @@ PARETO_DIMENSIONS: Tuple[str, ...] = (
     "avoidable_participation_deviations",
     "host_confirmation_dependencies",
     "changed_tournament_count",
+)
+
+# Travel is a first-class operational consequence of moving a tournament to a
+# different host/date, so it is measured both as a season total and as the worst
+# single team. Computed by the canonical ``compute_team_travel_distances``.
+TRAVEL_OBJECTIVE_DIMENSIONS: Tuple[str, ...] = (
+    "total_travel_km",
+    "max_team_travel_km",
+)
+
+PARETO_DIMENSIONS: Tuple[str, ...] = (
+    MAINTENANCE_DEFECT_DIMENSIONS + QUALITY_OBJECTIVE_DIMENSIONS + TRAVEL_OBJECTIVE_DIMENSIONS
 )
 
 # A non-dominated front is still bounded before it is reported: one extreme per
@@ -298,7 +324,9 @@ def apply_repair(
             verification=verification,
             delta=_metric_delta(plan, before_verification),
         )
-    preview = _metric_delta(plan, before_verification, candidate=result_candidate, after_verification=verification)
+    preview = _metric_delta(
+        plan, before_verification, candidate=result_candidate, after_verification=verification, problem=problem
+    )
     preview["changed_tournament_ids"] = _changed_tournament_ids(plan, result_candidate)
     preview["change_cost"] = change_cost(build_canonical_baseline(schedule, decisions), result_candidate)
     if dry_run:
@@ -325,7 +353,9 @@ def apply_repair(
     new_revision = canonical_state_revision(updated_schedule, updated_decisions)
     fresh_verification = verify_candidate(dict(updated_schedule.get("plan") or {}), problem)
     after_plan = dict(updated_schedule.get("plan") or {})
-    delta = _metric_delta(plan, before_verification, candidate=after_plan, after_verification=fresh_verification)
+    delta = _metric_delta(
+        plan, before_verification, candidate=after_plan, after_verification=fresh_verification, problem=problem
+    )
     delta["changed_tournament_ids"] = _changed_tournament_ids(plan, after_plan)
     delta["change_cost"] = cost
     return {
@@ -982,6 +1012,7 @@ def _annotate_pareto(
     front instead of being reported as a verified trade-off.
     """
     measured: List[Tuple[int, Dict[str, float]]] = []
+    before_score = with_unresolved_obligations_count(score_candidate(dict(plan), problem=dict(problem)))
     for index, option in enumerate(options):
         applied = _apply_option(plan, problem, option, finding, dimensions)
         candidate = applied.get("candidate") if applied.get("ok") else None
@@ -992,8 +1023,19 @@ def _annotate_pareto(
         verification = applied.get("verification") or verify_candidate(
             dict(candidate), dict(problem)
         )
-        vector = _objective_vector(candidate, verification, plan)
+        score = score_candidate(dict(candidate), problem=dict(problem))
+        travel = _travel_metrics(candidate)
+        vector = _objective_vector(
+            candidate, verification, plan, score=score, travel=travel
+        )
         option["objectives"] = vector
+        # The same Stage-3 quality comparison Stage 3 uses to gate promotion,
+        # measured against the current canonical plan, so the harness sees the
+        # soft side effects of a repair without reconstructing them.
+        option["quality_vs_current"] = compare_quality_scores(
+            before_score, with_unresolved_obligations_count(score)
+        )
+        option["travel"] = travel
         measured.append((index, vector))
 
     vectors = [vector for _index, vector in measured]
@@ -1020,9 +1062,18 @@ def _objective_vector(
     candidate: Mapping[str, Any],
     verification: Mapping[str, Any],
     before_plan: Mapping[str, Any],
+    *,
+    score: Mapping[str, Any],
+    travel: Mapping[str, Any],
 ) -> Dict[str, float]:
-    """Extract the uniformly "lower is better" maintenance objective vector."""
-    return {
+    """Extract the uniformly "lower is better" maintenance objective vector.
+
+    Combines the verifier-derived defect/change-cost dimensions owned here, the
+    shared Stage-3 soft-quality vector (``quality_objectives``) and travel, so a
+    single uniform dominance check and one bounded Pareto front cover both the
+    hard and the soft consequences of a repair.
+    """
+    vector: Dict[str, float] = {
         "hard_violations": float(_count(verification, "violations")),
         "unresolved_hosting_obligations": float(
             _count(verification, "unresolved_hosting_obligations")
@@ -1042,6 +1093,38 @@ def _objective_vector(
             len(_changed_tournament_ids(before_plan, candidate))
         ),
     }
+    vector.update(quality_objective_vector(dict(score)))
+    for dimension in TRAVEL_OBJECTIVE_DIMENSIONS:
+        vector[dimension] = float(travel.get(dimension, 0.0))
+    return vector
+
+
+def _travel_metrics(plan: Mapping[str, Any]) -> Dict[str, Any]:
+    """Return canonical season travel totals for a plan dict.
+
+    Delegates to the one travel implementation (``compute_team_travel_distances``)
+    rather than re-summing arena distances here. A plan that cannot be decoded
+    (for example a synthetic candidate missing model fields) reports zero travel
+    with ``available: false`` instead of failing the repair surface.
+    """
+    try:
+        from .club_distances import compute_team_travel_distances
+        from .serialization.season_plan import season_plan_from_dict
+
+        season_plan = season_plan_from_dict(dict(plan))
+        team_travel = compute_team_travel_distances(season_plan)
+    except Exception:
+        return {
+            "total_travel_km": 0.0,
+            "max_team_travel_km": 0.0,
+            "available": False,
+        }
+    values = list(team_travel.values())
+    return {
+        "total_travel_km": float(sum(values)),
+        "max_team_travel_km": float(max(values) if values else 0),
+        "available": True,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1055,10 +1138,11 @@ def _metric_delta(
     *,
     candidate: Mapping[str, Any] | None = None,
     after_verification: Mapping[str, Any] | None = None,
+    problem: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
     after_plan = candidate if candidate is not None else before_plan
     after = after_verification or before_verification
-    return {
+    delta = {
         "hard_violations": _count(after, "violations") - _count(before_verification, "violations"),
         "hard_violations_before": _count(before_verification, "violations"),
         "hard_violations_after": _count(after, "violations"),
@@ -1075,6 +1159,47 @@ def _metric_delta(
         "avoidable_before": _avoidability_count(before_verification, "avoidable"),
         "avoidable_after": _avoidability_count(after, "avoidable"),
         "changed_tournament_count": len(_changed_tournament_ids(before_plan, after_plan)),
+    }
+    delta.update(
+        _quality_delta(
+            before_plan, after_plan, problem=dict(problem) if problem is not None else None
+        )
+    )
+    return delta
+
+
+def _quality_delta(
+    before_plan: Mapping[str, Any],
+    after_plan: Mapping[str, Any],
+    *,
+    problem: Mapping[str, Any] | None,
+) -> Dict[str, Any]:
+    """Shared soft-quality + travel delta for one before/after plan pair.
+
+    Uses the same Stage-3 quality comparison (``compare_quality_scores``) the
+    promotion gate uses, so a maintenance action returns the exact
+    improvement/regression evidence an operator would see from Stage 3 -- not a
+    second, maintenance-only quality rule.
+    """
+    before_score = with_unresolved_obligations_count(
+        score_candidate(dict(before_plan), problem=problem)
+    )
+    after_score = with_unresolved_obligations_count(
+        score_candidate(dict(after_plan), problem=problem)
+    )
+    comparison = compare_quality_scores(before_score, after_score)
+    before_travel = _travel_metrics(before_plan)
+    after_travel = _travel_metrics(after_plan)
+    return {
+        "quality_metrics": comparison["metrics"],
+        "quality_regressions": comparison["regressions"],
+        "total_travel_km_before": before_travel["total_travel_km"],
+        "total_travel_km_after": after_travel["total_travel_km"],
+        "total_travel_km_delta": after_travel["total_travel_km"] - before_travel["total_travel_km"],
+        "max_team_travel_km_before": before_travel["max_team_travel_km"],
+        "max_team_travel_km_after": after_travel["max_team_travel_km"],
+        "max_team_travel_km_delta": after_travel["max_team_travel_km"]
+        - before_travel["max_team_travel_km"],
     }
 
 

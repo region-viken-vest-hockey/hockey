@@ -13,111 +13,14 @@ candidates from any two planner implementations that emit the same contract.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from .canonical_baseline import change_cost
 from .planning_contract import score_candidate, verify_candidate
-
-# (report path, direction) — "higher" means bigger is better, "lower" means
-# smaller is better. Mirrors the promotion criteria in issue #257 scope item 7
-# (participation balance, opponent diversity, repeated matchups, turnaround
-# spacing, same-club clustering, hosting fairness).
-_METRIC_PATHS: List[Tuple[str, str]] = [
-    ("participation.spread", "lower"),
-    # Participation target compliance is a guardrail dimension, not one more
-    # equal-weighted term: a candidate with strictly worse bounded target
-    # deviation must not dominate/be promoted merely because it improves a
-    # lower-priority quality metric (issue #376).
-    ("participation.season_total_absolute_deviation", "lower"),
-    ("participation.max_team_season_deviation", "lower"),
-    ("participation.half_total_absolute_deviation", "lower"),
-    ("participation.max_team_half_deviation", "lower"),
-    ("participation.avoidable_deviation_count", "lower"),
-    ("opponent_diversity.unique_pairs", "higher"),
-    ("opponent_diversity.pairwise_novelty", "higher"),
-    ("opponent_diversity.pairs_meeting_3_plus", "lower"),
-    ("opponent_diversity.max_pair_repeat", "lower"),
-    ("opponent_diversity.inter_club_diversity", "higher"),
-    ("opponent_diversity.same_club_pairing_count", "lower"),
-    ("opponent_diversity.max_same_club_teams_per_tournament", "lower"),
-    # issue #324: an aggregate/count metric so one candidate can't silently
-    # trade fewer same-club *pairings* for more 3rd-or-later-team clusters.
-    ("opponent_diversity.club_count_excess_over_2", "lower"),
-    ("opponent_diversity.tournaments_with_3plus_same_club", "lower"),
-    ("turnaround.min_turnaround_days", "higher"),
-    ("turnaround.gaps_under_days.7", "lower"),
-    ("turnaround.gaps_under_days.14", "lower"),
-    ("hosting.spread", "lower"),
-    ("hosting.unresolved_obligations_count", "lower"),
-    ("temporal.max_gap_days", "lower"),
-    ("temporal.offenders_count", "lower"),
-]
-
-
-def _get_path(report: Dict[str, Any], path: str) -> Any:
-    value: Any = report
-    for part in path.split("."):
-        if not isinstance(value, dict):
-            return None
-        # `turnaround.gaps_under_days` is keyed by int threshold (see
-        # score_candidate), not str, so a dotted string path needs both
-        # lookups tried.
-        if part in value:
-            value = value[part]
-        elif part.isdigit() and int(part) in value:
-            value = value[int(part)]
-        else:
-            return None
-    return value
-
-
-def _with_unresolved_count(report: Dict[str, Any]) -> Dict[str, Any]:
-    """Fold ``hosting.unresolved_obligations`` (a list) into a comparable count.
-
-    ``score_candidate(..., problem=problem)`` reports the unresolved
-    club x age-group hosting rows as a list; ``_compare_scores`` only diffs
-    numeric leaves, so surface the count alongside it rather than teaching
-    the generic path-walker about list-valued metrics.
-    """
-    hosting = report.get("hosting")
-    unresolved = hosting.get("unresolved_obligations") if isinstance(hosting, dict) else None
-    if not isinstance(unresolved, list):
-        return report
-    report = dict(report)
-    report["hosting"] = {**hosting, "unresolved_obligations_count": len(unresolved)}
-    return report
-
-
-def _compare_scores(old_report: Dict[str, Any], new_report: Dict[str, Any]) -> Dict[str, Any]:
-    """Diff two :func:`score_candidate` reports metric-by-metric.
-
-    A metric "regresses" when the new value moves strictly in the wrong
-    direction for its declared direction (e.g. a "lower is better" metric
-    going up). Equal values never count as a regression — issue #257 asks
-    for "preserves or improves", not strict improvement on every axis.
-    """
-    metrics: List[Dict[str, Any]] = []
-    regressions: List[str] = []
-    for path, direction in _METRIC_PATHS:
-        old_value = _get_path(old_report, path)
-        new_value = _get_path(new_report, path)
-        if old_value is None or new_value is None:
-            continue
-        delta = new_value - old_value
-        regressed = (direction == "lower" and delta > 0) or (direction == "higher" and delta < 0)
-        metrics.append(
-            {
-                "metric": path,
-                "direction": direction,
-                "old": old_value,
-                "new": new_value,
-                "delta": delta,
-                "regressed": regressed,
-            }
-        )
-        if regressed:
-            regressions.append(path)
-    return {"metrics": metrics, "regressions": regressions}
+from .quality_objectives import (
+    compare_quality_scores as _compare_scores,
+    with_unresolved_obligations_count as _with_unresolved_count,
+)
 
 
 def _candidate_for_age_group(candidate: Dict[str, Any], age_group: str) -> Dict[str, Any]:

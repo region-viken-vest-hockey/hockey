@@ -1222,6 +1222,16 @@ def _format_delta(delta: dict | None) -> str:
             f"{delta.get('participation_deviations_before', 0)} -> "
             f"{delta.get('participation_deviations_after', 0)}"
         ),
+        (
+            "reise (km): "
+            f"{delta.get('total_travel_km_before', 0):.0f} -> "
+            f"{delta.get('total_travel_km_after', 0):.0f} "
+            f"({delta.get('total_travel_km_delta', 0):+.0f})"
+        ),
+        (
+            "kvalitetsregresjoner: "
+            f"{len(delta.get('quality_regressions') or [])}"
+        ),
     ]
     return "; ".join(parts)
 

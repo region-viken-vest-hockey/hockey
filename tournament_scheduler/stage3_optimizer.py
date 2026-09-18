@@ -60,6 +60,10 @@ from .models import Team
 from .pareto import dominates as _dominates
 from .pareto import representative_indices as _representative_indices
 from .pareto import vectors_equal as _vectors_equal
+from .quality_objectives import (
+    QUALITY_OBJECTIVE_DIMENSIONS,
+    quality_objective_vector,
+)
 from . import planning_half
 from .planning_contract import (
     CANDIDATE_SCHEMA_VERSION,
@@ -1581,45 +1585,17 @@ def optimize_candidate(
 # the cost of the inner search loop itself.
 
 # Objective vector dimensions, all oriented "lower is better" so a single
-# uniform dominance check works across every dimension (score_candidate's
-# inter_club_diversity is a "higher is better" fraction, so it is stored
-# inverted -- see _objective_vector).
-_PARETO_DIMENSIONS: Tuple[str, ...] = (
-    # Participation target compliance is a guardrail dimension placed first so
-    # a lower-priority quality gain cannot justify a worse bounded deviation.
-    "participation_season_deviation",
-    "participation_avoidable",
-    "max_pair_repeat",
-    "same_club_pairing_count",
-    "gaps_under_7",
-    "gaps_under_14",
-    "hosting_spread",
-    "inter_club_diversity_inverted",
-    "temporal_max_gap_days",
-)
+# uniform dominance check works across every dimension. The extraction is
+# shared with promoted-season maintenance via ``quality_objectives`` so both
+# surfaces cannot drift on which quality metrics matter or how they are
+# oriented.
+_PARETO_DIMENSIONS: Tuple[str, ...] = QUALITY_OBJECTIVE_DIMENSIONS
 
 
 def _objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
     """Extract a uniformly "lower is better" objective vector from a
     :func:`tournament_scheduler.planning_contract.score_candidate` result."""
-    gaps = (score.get("turnaround") or {}).get("gaps_under_days") or {}
-    opponent = score.get("opponent_diversity") or {}
-    hosting = score.get("hosting") or {}
-    temporal = score.get("temporal") or {}
-    participation = score.get("participation") or {}
-    return {
-        "participation_season_deviation": float(
-            participation.get("season_total_absolute_deviation", 0)
-        ),
-        "participation_avoidable": float(participation.get("avoidable_deviation_count", 0)),
-        "max_pair_repeat": float(opponent.get("max_pair_repeat", 0)),
-        "same_club_pairing_count": float(opponent.get("same_club_pairing_count", 0)),
-        "gaps_under_7": float(gaps.get(7, 0)),
-        "gaps_under_14": float(gaps.get(14, 0)),
-        "hosting_spread": float(hosting.get("spread", 0)),
-        "inter_club_diversity_inverted": 1.0 - float(opponent.get("inter_club_diversity", 0.0)),
-        "temporal_max_gap_days": float(temporal.get("max_gap_days", 0)),
-    }
+    return quality_objective_vector(score)
 
 
 def _default_pareto_weight_vectors(base_weights: Dict[str, float]) -> List[Dict[str, float]]:

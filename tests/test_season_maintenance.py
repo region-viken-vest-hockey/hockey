@@ -18,7 +18,10 @@ from tournament_scheduler.participation_deviation_repair import _classification
 from tournament_scheduler.pareto import non_dominated_indices
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_maintenance import (
+    MAINTENANCE_DEFECT_DIMENSIONS,
     PARETO_DIMENSIONS,
+    TRAVEL_OBJECTIVE_DIMENSIONS,
+    _travel_metrics,
     accept_finding,
     apply_repair,
     list_findings,
@@ -26,6 +29,7 @@ from tournament_scheduler.season_maintenance import (
     revoke_acceptance,
     search,
 )
+from tournament_scheduler.quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS
 from tournament_scheduler.season_state import (
     canonical_state_revision,
     load_decisions,
@@ -351,6 +355,99 @@ def test_repair_options_expose_a_non_dominated_pareto_front(tmp_path: Path) -> N
     vectors = [option["objectives"] for option in report["options"]]
     expected_front = [report["options"][i]["option_id"] for i in non_dominated_indices(vectors)]
     assert pareto["non_dominated_option_ids"] == expected_front
+
+
+def test_maintenance_objectives_include_shared_stage3_quality_and_travel(tmp_path: Path) -> None:
+    """A repair is compared on the shared Stage-3 quality facts, not just its defect.
+
+    The maintenance vector is deliberately the union of this module's
+    verifier-derived defect/change-cost dimensions, the shared Stage-3
+    ``QUALITY_OBJECTIVE_DIMENSIONS`` and canonical travel, so a localized
+    maintenance action is judged on the same planner-independent quality
+    evidence Stage 3 already uses.
+    """
+    root, _plan, _problem_dict, _revision = _two_club_season(tmp_path)
+
+    report = repair_options(YEAR, "hosting_balance:U10:Sorby", root=root)
+
+    assert set(PARETO_DIMENSIONS) == (
+        set(MAINTENANCE_DEFECT_DIMENSIONS)
+        | set(QUALITY_OBJECTIVE_DIMENSIONS)
+        | set(TRAVEL_OBJECTIVE_DIMENSIONS)
+    )
+    for option in report["options"]:
+        assert set(option["objectives"]) == set(PARETO_DIMENSIONS)
+        assert set(QUALITY_OBJECTIVE_DIMENSIONS) <= set(option["objectives"])
+        assert set(TRAVEL_OBJECTIVE_DIMENSIONS) <= set(option["travel"])
+        # The same Stage-3 quality comparison Stage 3 uses, measured against
+        # the current canonical plan.
+        quality = option["quality_vs_current"]
+        assert quality["metrics"]
+        assert all("metric" in metric and "direction" in metric for metric in quality["metrics"])
+
+
+def test_search_options_carry_the_same_quality_and_travel_evidence(tmp_path: Path) -> None:
+    root, _plan, _problem_dict, _revision = _two_club_season(tmp_path)
+
+    result = search(YEAR, "hosting_balance:U10:Sorby", root=root)
+
+    for option in result["options"]:
+        assert set(option["objectives"]) == set(PARETO_DIMENSIONS)
+        assert option["quality_vs_current"]["metrics"]
+        # Synthetic clubs have no known arena, so canonical travel is zero but
+        # still measured (not absent) -- dominance must not silently drop it.
+        assert option["travel"]["available"] is True
+        assert option["travel"]["total_travel_km"] == 0.0
+
+
+def test_travel_objective_uses_the_canonical_travel_implementation(tmp_path: Path) -> None:
+    """Travel is measured from real club distances, not a second local estimate."""
+    teams = [
+        {"club": "Kongsberg", "label": "Kongsberg 1", "age_group": "U10"},
+        {"club": "Kongsberg", "label": "Kongsberg 2", "age_group": "U10"},
+        {"club": "Kongsberg", "label": "Kongsberg 3", "age_group": "U10"},
+        {"club": "Skien", "label": "Skien 1", "age_group": "U10"},
+    ]
+    hosted_locally = _travel_metrics(
+        _plan([_tournament("T1", "2026-10-10", "Kongsberg", teams)])
+    )
+    hosted_away = _travel_metrics(
+        _plan([_tournament("T1", "2026-10-10", "Skien", teams)])
+    )
+
+    assert hosted_locally["available"] is True
+    assert hosted_away["available"] is True
+    # One Skien team travels to Kongsberg vs. three Kongsberg teams to Skien.
+    assert hosted_locally["total_travel_km"] > 0
+    assert hosted_away["total_travel_km"] > hosted_locally["total_travel_km"]
+    for metrics in (hosted_locally, hosted_away):
+        assert set(TRAVEL_OBJECTIVE_DIMENSIONS) <= set(metrics)
+
+
+def test_apply_delta_reports_quality_and_travel_consequences(tmp_path: Path) -> None:
+    root, _plan, _problem_dict, revision = _two_club_season(tmp_path)
+    options = repair_options(YEAR, "hosting_balance:U10:Sorby", root=root)
+
+    result = apply_repair(
+        YEAR,
+        options["options"][0]["option_id"],
+        revision,
+        root=root,
+        finding_id="hosting_balance:U10:Sorby",
+    )
+
+    assert result["ok"] is True
+    delta = result["delta"]
+    # The post-action evidence is the same Stage-3 quality comparison Stage 3
+    # uses, so the harness never reconstructs quality arithmetic itself.
+    assert delta["quality_metrics"]
+    assert any(
+        metric["metric"] == "participation.spread" for metric in delta["quality_metrics"]
+    )
+    assert delta["quality_regressions"] == []
+    assert "total_travel_km_before" in delta
+    assert "total_travel_km_after" in delta
+    assert "max_team_travel_km_delta" in delta
 
 
 def test_search_reports_the_same_pareto_surface(tmp_path: Path) -> None:
