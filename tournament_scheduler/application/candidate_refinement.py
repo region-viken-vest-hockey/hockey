@@ -34,6 +34,7 @@ re-runs the same audit boundary over the new export.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Optional
@@ -52,6 +53,84 @@ DEFAULT_DIMENSIONS = ("participants", "host")
 
 class RefinementError(RuntimeError):
     """The refinement request cannot be served safely."""
+
+
+def _promoted_from_matches(
+    export_fingerprint: str | None, candidate_fingerprint: str | None, season_root: str | Path
+) -> bool:
+    """True when this reviewed candidate is already the promoted season state."""
+    root = Path(season_root)
+    if not root.exists():
+        return False
+    for schedule_path in sorted(root.glob("*/schedule.json")):
+        try:
+            schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        promoted = schedule.get("promoted_from") or {}
+        if export_fingerprint and promoted.get("stage4_export_fingerprint") == export_fingerprint:
+            return True
+        if candidate_fingerprint and promoted.get("stage3_fingerprint") == candidate_fingerprint:
+            return True
+    return False
+
+
+def reviewed_unpromoted_candidate(
+    work_dir: str | Path,
+    *,
+    season_root: str | Path = "season",
+) -> dict[str, Any] | None:
+    """Describe a finalized, exported, unpromoted Stage 3 candidate, if one exists.
+
+    This is the lifecycle predicate behind the plain-run guard: a plain
+    ``rvv-miniputt run`` that restarts/revalidates Stage 1 would invalidate
+    exactly this candidate. It is deliberately conservative -- a candidate
+    with no current Stage 4 export is not yet *reviewed*, and one whose
+    ``promoted_from`` provenance matches the canonical season is already the
+    operational baseline -- so the guard never blocks a genuinely new
+    planning run.
+    """
+    store = Stage3SessionStore(work_dir)
+    session = store.load()
+    if not session.is_finalized():
+        return None
+
+    from ..pipeline.export_lifecycle import SUPERSEDED_STATUS, read_export_manifest
+    from ..pipeline.state import PipelineState, StageName
+
+    state = PipelineState(work_dir)
+    export_checkpoint = state.read_stage(StageName.EXPORT) or {}
+    export_dir = export_checkpoint.get("export_dir")
+    export_fingerprint = export_checkpoint.get("export_fingerprint")
+    if not export_dir or not export_fingerprint:
+        return None
+
+    manifest = read_export_manifest(export_dir) or {}
+    lifecycle_status = manifest.get("lifecycle_status")
+    if lifecycle_status == SUPERSEDED_STATUS:
+        return None
+    manifest_fingerprint = manifest.get("export_fingerprint")
+    if manifest_fingerprint and str(manifest_fingerprint) != str(export_fingerprint):
+        return None
+
+    candidate_fingerprint = session.finalized_fingerprint or session.candidate_fingerprint
+    if _promoted_from_matches(
+        str(export_fingerprint) if export_fingerprint else None,
+        str(candidate_fingerprint) if candidate_fingerprint else None,
+        season_root,
+    ):
+        return None
+
+    return {
+        "run_id": session.run_id,
+        "candidate_fingerprint": candidate_fingerprint,
+        "finalized_revision": session.finalized_revision,
+        "export_dir": str(export_dir),
+        "export_id": manifest.get("export_id") or Path(export_dir).name,
+        "export_fingerprint": export_fingerprint,
+        "lifecycle_status": lifecycle_status,
+        "published": lifecycle_status == "published",
+    }
 
 
 def _now() -> str:

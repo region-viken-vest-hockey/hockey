@@ -47,6 +47,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
     if resume_from > 1:
         _console.print(f"[dim]Gjenopptar fra Stage {resume_from}[/dim]")
 
+    if resume_from == 1:
+        from .new_run_guard import guard_new_full_run
+
+        if guard_new_full_run(args):
+            return 1
+
     _manifest_start_run(args.work_dir, args.input, getattr(args, "objective", None))
     from ...application.stage3_session_store import Stage3SessionStore
     from ...pipeline.evidence_bundle import clear_stage3_attempt_log

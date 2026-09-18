@@ -23,7 +23,7 @@ returns that context for the controller to bind to the session.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from ...application.decisions import DecisionAction
 from ...application.stage3_controller import Stage3CapabilityResult
@@ -285,6 +285,32 @@ class InteractiveStage3Capabilities:
 
     # -- candidate transitions -------------------------------------------
 
+    def _stale_retained_attempt_reason(
+        self, attempt: Mapping[str, Any]
+    ) -> str:
+        """Re-validate a retained attempt against current authoritative state.
+
+        Returns a stable rejection reason, or ``""`` when the attempt may
+        still be adopted. Only the *facts* identity is checked here; the hard
+        verifier (with the current locks/decisions problem) is run by the
+        caller.
+        """
+        from ...application.stage3_session_store import stage3_checkpoint_facts_fingerprint
+
+        expected = str(attempt.get("facts_fingerprint") or "")
+        if not expected:
+            # Legacy attempt without recorded provenance: refuse rather than
+            # silently trust an unverifiable candidate.
+            return "retained_candidate_missing_facts_provenance"
+        try:
+            current = stage3_checkpoint_facts_fingerprint(self.state)
+        except Exception as exc:
+            self.log_fn(f"stage3: kunne ikke re-validere beholdt kandidat: {exc}")
+            return "retained_candidate_facts_unavailable"
+        if current != expected:
+            return "stale_retained_candidate_facts"
+        return ""
+
     def _apply_apply_repair(self, session: Stage3Session, action: DecisionAction) -> Stage3CapabilityResult:
         from ...local_repair_options import apply_local_repair_option
         from ...planning_contract import extract_candidate
@@ -355,6 +381,7 @@ class InteractiveStage3Capabilities:
         checkpoint = dict(self.state.read_stage(StageName.PLANNING) or {})
         chosen_body: dict[str, Any] | None = None
         source = ""
+        retained_attempt: dict[str, Any] | None = session.find_candidate_attempt(candidate_ref)
 
         if candidate_ref.startswith("stage3_cp_sat:"):
             from .stage3_cpsat_cache import resolve_candidate_ref
@@ -363,6 +390,28 @@ class InteractiveStage3Capabilities:
             if entry is not None:
                 chosen_body = extract_candidate_body(entry["candidate"])
                 source = "stage3_cp_sat_shadow_applied"
+        elif retained_attempt is not None:
+            # A previously verified, still-retained attempt (possibly not the
+            # current one). Re-validate it before adoption: it must not be
+            # stale against changed Stage 1/2 facts, and it must still pass the
+            # canonical hard verifier under the current locks/decisions.
+            resolved = self._stale_retained_attempt_reason(retained_attempt)
+            if resolved:
+                return Stage3CapabilityResult(ok=False, reason=resolved)
+            chosen_body = extract_candidate_body(retained_attempt.get("candidate"))
+            source = str(retained_attempt.get("source") or "retained_attempt")
+            if chosen_body is not None:
+                from ...planning_contract import verify_candidate
+
+                problem = self._problem() or {}
+                if problem:
+                    verification = verify_candidate(chosen_body, problem)
+                    if not verification.get("ok", True):
+                        return Stage3CapabilityResult(
+                            ok=False,
+                            reason="stale_retained_candidate_hard_violations",
+                            data={"verification": verification},
+                        )
         elif pending_candidates:
             match = next(
                 (entry for entry in pending_candidates if entry.get("candidate_ref") == candidate_ref),

@@ -349,6 +349,15 @@ def build_parser() -> argparse.ArgumentParser:
         "checkpoint on the next invocation",
     )
     run.add_argument(
+        "--new-full-run",
+        dest="new_full_run",
+        action="store_true",
+        help="Explicitly start a new full pipeline run even though a reviewed, exported, "
+        "unpromoted Stage 3/4 candidate exists. Without this, a plain run that would restart "
+        "Stage 1 is refused and points to 'stage3 refine' instead of silently invalidating the "
+        "reviewed candidate",
+    )
+    run.add_argument(
         "--decision-action",
         default=None,
         metavar="JSON",

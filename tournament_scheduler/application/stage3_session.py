@@ -38,9 +38,17 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 # Schema 4 adds ``operator_request`` (an explicit awaiting-operator pause that
-# preserves the current candidate revision/fingerprint). Older payloads load
-# unchanged because the field defaults to ``None``.
-STAGE3_SESSION_SCHEMA_VERSION = 4
+# preserves the current candidate revision/fingerprint). Schema 5 adds
+# ``candidate_attempts``: a bounded portfolio of verified Stage 3 attempts with
+# stable refs that survive later attempts, so a previously generated good
+# candidate stays selectable instead of being lost when another attempt is
+# generated. Older payloads load unchanged because the field defaults to empty.
+STAGE3_SESSION_SCHEMA_VERSION = 5
+
+# Bounded retention window for the verified-attempt portfolio. Deliberately
+# small: it exists so the controller can pick the better of a few recently
+# compared attempts, not as an unbounded candidate archive.
+RETAINED_ATTEMPT_LIMIT = 6
 
 # ---------------------------------------------------------------------------
 # Status / scope / transition vocabulary
@@ -181,6 +189,14 @@ class Stage3Session:
     refinement: dict[str, Any] | None = None
     decision_history: list[dict[str, Any]] = field(default_factory=list)
     attempts: dict[str, Any] = field(default_factory=dict)
+    # Bounded, stable-ref portfolio of independently verified Stage 3 attempt
+    # candidates (see :meth:`retain_candidate_attempt`). Each entry carries the
+    # candidate body plus its concise verification/quality evidence so a
+    # non-current attempt can be re-selected without reset, re-solve or
+    # reproduction. Retention is lifecycle state, not a second candidate
+    # authority: an entry is only ever adopted through the explicit
+    # ``select_candidate`` transition after re-validating staleness.
+    candidate_attempts: list[dict[str, Any]] = field(default_factory=list)
     # One concise record per emitted Stage 3 attempt (action signature,
     # candidate scope and whether it made progress). This is the canonical
     # continuation evidence -- not a raw attempt cap -- the LLM/controller
@@ -256,6 +272,81 @@ class Stage3Session:
         if self.pending_decision.get("search_exhausted"):
             legal.remove(TRANSITION_RUN_SEARCH)
         return legal
+
+    # -- retained verified-attempt portfolio ------------------------------
+
+    def retain_candidate_attempt(self, record: Mapping[str, Any]) -> dict[str, Any]:
+        """Add/refresh one verified candidate attempt in the bounded portfolio.
+
+        Identity is the stable ``candidate_ref``; re-recording the same ref
+        refreshes its evidence instead of duplicating it. The most recent
+        :data:`RETAINED_ATTEMPT_LIMIT` entries are kept. The current
+        candidate's own entry is never dropped to make room for a different
+        one.
+        """
+        ref = str(record.get("candidate_ref") or "")
+        if not ref:
+            return {}
+        entry = dict(record)
+        entry["candidate_ref"] = ref
+        self.candidate_attempts = [
+            item for item in self.candidate_attempts if str(item.get("candidate_ref") or "") != ref
+        ]
+        self.candidate_attempts.append(entry)
+        if len(self.candidate_attempts) > RETAINED_ATTEMPT_LIMIT:
+            current_ref = self._current_attempt_ref()
+            retained = self.candidate_attempts[-RETAINED_ATTEMPT_LIMIT:]
+            if current_ref and not any(
+                str(item.get("candidate_ref") or "") == current_ref for item in retained
+            ):
+                current = next(
+                    (
+                        item
+                        for item in self.candidate_attempts
+                        if str(item.get("candidate_ref") or "") == current_ref
+                    ),
+                    None,
+                )
+                if current is not None:
+                    retained = [current, *retained[1:]]
+            self.candidate_attempts = retained
+        return entry
+
+    def _current_attempt_ref(self) -> str:
+        fingerprint = self.candidate_fingerprint
+        for item in self.candidate_attempts:
+            if str(item.get("candidate_fingerprint") or "") == fingerprint:
+                return str(item.get("candidate_ref") or "")
+        return ""
+
+    def find_candidate_attempt(self, candidate_ref: str) -> dict[str, Any] | None:
+        ref = str(candidate_ref or "")
+        if not ref:
+            return None
+        return next(
+            (
+                item
+                for item in self.candidate_attempts
+                if str(item.get("candidate_ref") or "") == ref
+            ),
+            None,
+        )
+
+    def retained_candidate_refs(self) -> list[str]:
+        return [str(item.get("candidate_ref") or "") for item in self.candidate_attempts]
+
+    def retained_candidate_view(self) -> list[dict[str, Any]]:
+        """Concise, body-free projection of the retained portfolio."""
+        view: list[dict[str, Any]] = []
+        for item in self.candidate_attempts:
+            view.append(
+                {
+                    key: value
+                    for key, value in item.items()
+                    if key != "candidate"
+                }
+            )
+        return view
 
     # -- mutation ---------------------------------------------------------
 
@@ -526,6 +617,7 @@ class Stage3Session:
             "refinement": dict(self.refinement) if self.refinement else None,
             "decision_history": list(self.decision_history),
             "attempts": dict(self.attempts),
+            "candidate_attempts": [dict(item) for item in self.candidate_attempts],
             "search_attempts": [dict(item) for item in self.search_attempts],
             "finalized_revision": self.finalized_revision,
             "finalized_fingerprint": self.finalized_fingerprint,
@@ -578,6 +670,7 @@ class Stage3Session:
             ),
             decision_history=[dict(item) for item in (data.get("decision_history") or [])],
             attempts=dict(data.get("attempts") or {}),
+            candidate_attempts=[dict(item) for item in (data.get("candidate_attempts") or [])],
             search_attempts=[dict(item) for item in (data.get("search_attempts") or [])],
             finalized_revision=(
                 int(data["finalized_revision"]) if data.get("finalized_revision") is not None else None

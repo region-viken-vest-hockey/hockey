@@ -270,6 +270,10 @@ class Stage3Controller:
                 str(entry.get("candidate_ref"))
                 for entry in (session.pending_decision or {}).get("candidates") or []
             }
+            # The session's bounded verified-attempt portfolio keeps earlier
+            # attempts addressable after a later, worse attempt supersedes
+            # them; their refs are valid selection targets too.
+            refs.update(session.retained_candidate_refs())
             ref = str(action.arguments.get("candidate_ref") or "")
             if refs and ref not in refs:
                 return "unknown_or_stale_candidate_ref"

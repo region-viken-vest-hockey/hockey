@@ -107,6 +107,34 @@ def fingerprint_plan(plan: Any) -> str:
     return candidate_content_fingerprint(body)
 
 
+def stage3_facts_fingerprint(config: Any, scraping: Any) -> str:
+    """Deterministic identity of the Stage 1/2 facts a candidate was built from.
+
+    A retained candidate attempt may only be re-adopted while the upstream
+    facts it was verified against are unchanged; a later Stage 1 config or
+    Stage 2 scraping revision makes it stale. One implementation so the
+    recording and the re-validation boundaries can never disagree.
+    """
+    from ..pipeline.fingerprints import stable_payload_sha256
+
+    return stable_payload_sha256(
+        {
+            "config": dict(config) if isinstance(config, Mapping) else config,
+            "scraping": dict(scraping) if isinstance(scraping, Mapping) else scraping,
+        }
+    )
+
+
+def stage3_checkpoint_facts_fingerprint(state: Any) -> str:
+    """Stage 1/2 checkpoint identity for a retained-attempt staleness check."""
+    from ..pipeline.state import StageName
+
+    return stage3_facts_fingerprint(
+        state.read_stage(StageName.CONFIG) or {},
+        state.read_stage(StageName.SCRAPING) or {},
+    )
+
+
 class Stage3SessionStore:
     """Canonical read/write API for one work directory's Stage 3 session."""
 
@@ -341,6 +369,20 @@ class Stage3SessionStore:
 
     # -- emission overlay -------------------------------------------------
 
+    def retain_candidate_attempt(
+        self,
+        record: Mapping[str, Any],
+        *,
+        run_id: str | None = None,
+    ) -> Stage3Session:
+        """Persist one verified Stage 3 attempt in the bounded portfolio."""
+        session = self.load(expected_run_id=run_id)
+        if run_id:
+            session.run_id = run_id
+        session.retain_candidate_attempt(record)
+        self.save(session)
+        return session
+
     def record_emission(
         self,
         interactive_state: Mapping[str, Any],
@@ -388,6 +430,11 @@ class Stage3SessionStore:
                 migrated.baseline_fingerprint = existing.baseline_fingerprint
                 migrated.baseline_revision = existing.baseline_revision
                 migrated.search_attempts = [dict(item) for item in existing.search_attempts]
+                # The verified-attempt portfolio is owned by the session, not
+                # by the transient legacy emission projection; an overlay must
+                # never drop retained attempts just because it rebuilt the
+                # session from side files.
+                migrated.candidate_attempts = [dict(item) for item in existing.candidate_attempts]
         if candidate is not None:
             body = extract_candidate_body(candidate)
             if body is not None:
@@ -710,6 +757,8 @@ def status_for_session(session: Stage3Session) -> dict[str, Any]:
             "arena": len(session.arena_unresolved),
         },
         "attempts": dict(session.attempts),
+        "retained_candidates": session.retained_candidate_view(),
+        "retained_candidate_refs": session.retained_candidate_refs(),
         "search_history": session.search_history(),
         "finalized_revision": session.finalized_revision,
         "finalized_fingerprint": session.finalized_fingerprint,

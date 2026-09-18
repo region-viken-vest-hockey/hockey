@@ -190,6 +190,13 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             return 1
 
     if resume_from == 1 and decision_payload is None:
+        # Refuse to silently invalidate a finalized, exported, unpromoted
+        # candidate merely because the harness chose a plain run instead of
+        # the normal `stage3 refine` path.
+        from .new_run_guard import guard_new_full_run
+
+        if guard_new_full_run(args):
+            return 1
         # issue #264 P0: this is the very first invocation of a new logical
         # run (no decision to answer yet, starting at Stage 1) -- resolve
         # this run's run_id here, before anything else, so every Stage 3

@@ -89,6 +89,63 @@ def _decision_summary_for_checkpoint(
     }
 
 
+def _retained_candidate_record(
+    *,
+    candidate_ref: str,
+    revision: int,
+    fingerprint: str,
+    plan: dict[str, Any],
+    problem: dict[str, Any] | None,
+    source: str,
+    search_arguments: Mapping[str, Any] | None,
+    hard_violation_count: int,
+    scorecard: Mapping[str, Any] | None,
+    facts_fingerprint: str,
+) -> dict[str, Any]:
+    """Concise, stable-ref evidence for one verified Stage 3 attempt.
+
+    Carries the minimum a later selection decision needs: stable ref,
+    revision/fingerprint, search arguments, hard-verification result, the
+    shared quality/objective vector, hosting/manual-placement counts, concise
+    A/B evidence and the Stage 1/2 facts identity the attempt was verified
+    against. The candidate body is carried so it can be adopted without a
+    reset/re-solve/reproduction.
+    """
+    from ...planning_contract import extract_candidate, score_candidate
+
+    body = extract_candidate(plan)
+    try:
+        score: dict[str, Any] = score_candidate(body, problem=problem) or {}
+    except Exception:
+        score = {}
+    participation = score.get("participation") or {}
+    hosting = score.get("hosting") or {}
+    return {
+        "candidate_ref": str(candidate_ref),
+        "candidate_revision": int(revision),
+        "candidate_fingerprint": str(fingerprint),
+        "source": str(source or ""),
+        "search_arguments": dict(search_arguments or {}),
+        "hard_verification_ok": int(hard_violation_count) == 0,
+        "hard_violations": int(hard_violation_count),
+        "quality": {
+            "participation_spread": participation.get("spread"),
+            "participation_avoidable_deviations": participation.get("avoidable_deviation_count"),
+            "participation_search_exhausted_deviations": participation.get(
+                "search_exhausted_deviation_count"
+            ),
+            "hosting_spread": hosting.get("spread"),
+        },
+        "hosting_counts": dict(hosting.get("counts_by_host") or {}),
+        "unresolved_hosting_obligations": len(body.get("unresolved_hosting_obligations") or []),
+        "manual_placement_count": len(body.get("unresolved_tournament_placements") or []),
+        "unresolved_external_conflicts": len(body.get("unresolved_external_conflicts") or []),
+        "ab_evidence": dict(scorecard or {}),
+        "facts_fingerprint": str(facts_fingerprint),
+        "candidate": plan,
+    }
+
+
 def _emit_interactive_decision_context(
     stage_num: int, state: "Any", work_dir: str, *, input_path: str | None = None
 ) -> int:
@@ -726,6 +783,56 @@ def _emit_stage3_interactive_decision(
         # stale multi-candidate list from two attempts ago.
         interactive_state.pop("pending_candidates", None)
         interactive_state["pending_attempt"] = attempts_used
+
+    # Retain this verified attempt in the session's bounded portfolio so a
+    # later, worse attempt can never make it unselectable. This is lifecycle
+    # state: selection still goes through the explicit ``select_candidate``
+    # transition, which re-validates staleness against current facts.
+    attempt_ref = f"stage3_interactive:attempt_{attempts_used}"
+    try:
+        from ...application.stage3_session_store import stage3_checkpoint_facts_fingerprint
+
+        retained_record = _retained_candidate_record(
+            candidate_ref=attempt_ref,
+            revision=attempts_used,
+            fingerprint=plan_fingerprint,
+            plan=plan,
+            problem=problem,
+            source=candidate_transition,
+            search_arguments=search_arguments,
+            hard_violation_count=hard_violation_count,
+            scorecard=context.scorecard,
+            facts_fingerprint=stage3_checkpoint_facts_fingerprint(state),
+        )
+        store.retain_candidate_attempt(retained_record, run_id=run_id)
+        retained_session = store.load(expected_run_id=run_id)
+        retained_refs = retained_session.retained_candidate_refs()
+        offered = tuple(context.available_actions)
+        if (
+            len(retained_refs) > 1
+            and not context.hard_violations
+            and "apply_candidate" not in offered
+        ):
+            offered = offered + ("apply_candidate",)
+        action_parameters = dict(context.action_parameters)
+        if len(retained_refs) > 1:
+            action_parameters["apply_candidate"] = {
+                "candidate_ref": {"type": "string", "enum": retained_refs}
+            }
+        context = _dc_replace(
+            context,
+            facts={
+                **context.facts,
+                "retained_candidates": retained_session.retained_candidate_view(),
+                "retained_candidate_refs": retained_refs,
+            },
+            available_actions=offered,
+            action_parameters=action_parameters,
+        )
+    except Exception as exc:
+        log_fn(
+            f"stage3_interactive attempt {attempts_used}: could not retain verified candidate: {exc}"
+        )
 
     context = _dc_replace(context, facts={**context.facts, "search_history": search_history})
     if circuit_breaker_tripped:

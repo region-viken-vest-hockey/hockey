@@ -100,6 +100,8 @@ The Stage 3 attempt loop is special internally: submitting `optimize_plan` with 
 
 Escalating a candidate-scoped decision with `request_operator` does not resolve it: it records the question in the session and pauses on the exact current candidate revision/fingerprint, then returns the same context. `keep_baseline` restores the session baseline, which after an optimization attempt is the **previous** attempt -- it is not "accept the work I just saw". When the current attempt is hard-valid, retain it with `apply_candidate` against the context's `candidate_ref` (a manual/repair context exposes that action for exactly this reason). After the operator answers, continue from that same revision.
 
+Within one session the loop also retains a bounded portfolio of previously verified attempts, so a later worse attempt does not make an earlier good one unreachable. The context exposes the retained refs (`facts.retained_candidates`, the `apply_candidate` enum); select one directly with `apply_candidate(candidate_ref="stage3_interactive:attempt_N")`. The selection is re-validated against the current Stage 1/2 facts and the current hard verifier before adoption -- a retained attempt that is stale or no longer hard-valid is rejected rather than adopted from its original verification. You never need to reset or re-solve merely to recover an already verified attempt.
+
 Stage 3 also has true in-stage sub-decisions that are answered with the **same** stage number because Stage 3 has not produced the candidate decision boundary yet:
 
 | In-Stage-3 capability | Resume with |
@@ -153,6 +155,16 @@ The command:
 - returns `audit_required` with the fresh export fingerprint: re-run `operator audit-context`/`audit-submit` over the new export before publication.
 
 Use `--dry-run` to preview the verified delta without mutating anything.
+
+While a finalized, exported, unpromoted candidate exists, a plain `run --interactive --resume-from 1` is refused before Stage 1 restarts and before the session is cleared:
+
+```
+✗ Nektet: en ferdigstilt, ikke-promotert kandidat er allerede eksportert og gjennomgått
+  Forbedre den gjennomgåtte kandidaten: scripts/rvv-miniputt stage3 refine --finding <id>
+  Start bevisst en ny full kjøring: scripts/rvv-miniputt run --new-full-run
+```
+
+Use `stage3 refine` for ordinary post-audit improvement. `--new-full-run` is the explicit opt-in for a genuinely new full pipeline run and must not be used merely to bypass an audit finding or an unanswered operator decision. Once the candidate is promoted, the plain run is no longer guarded.
 
 ## Resetting an untrustworthy Stage 3 lineage
 
