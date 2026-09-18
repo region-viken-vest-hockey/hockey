@@ -33,12 +33,16 @@ QUALITY_METRIC_PATHS: List[Tuple[str, str]] = [
     # Participation target compliance is a guardrail dimension, not one more
     # equal-weighted term: a candidate with strictly worse bounded target
     # deviation must not be promoted merely because it improves a
-    # lower-priority quality metric.
-    ("participation.season_total_absolute_deviation", "lower"),
-    ("participation.max_team_season_deviation", "lower"),
-    ("participation.half_total_absolute_deviation", "lower"),
-    ("participation.max_team_half_deviation", "lower"),
-    ("participation.avoidable_deviation_count", "lower"),
+    # lower-priority quality metric. The *club-pool* unresolved metrics are
+    # used, not the raw per-team totals, so a pure intra-club label imbalance
+    # (an aggregate-complete pool split 5+3) is not treated as an equal-weight
+    # missing participation opportunity.
+    ("participation.club_pool_unresolved_season_total_absolute_deviation", "lower"),
+    ("participation.club_pool_unresolved_max_team_season_deviation", "lower"),
+    ("participation.club_pool_unresolved_half_total_absolute_deviation", "lower"),
+    ("participation.club_pool_unresolved_max_team_half_deviation", "lower"),
+    ("participation.club_pool_unresolved_avoidable_deviation_count", "lower"),
+    ("participation.club_pool_unresolved_shortfall_count", "lower"),
     ("opponent_diversity.unique_pairs", "higher"),
     ("opponent_diversity.pairwise_novelty", "higher"),
     ("opponent_diversity.pairs_meeting_3_plus", "lower"),
@@ -68,6 +72,7 @@ QUALITY_METRIC_PATHS: List[Tuple[str, str]] = [
 QUALITY_OBJECTIVE_DIMENSIONS: Tuple[str, ...] = (
     "participation_season_deviation",
     "participation_avoidable",
+    "participation_club_pool_unresolved_shortfalls",
     "max_pair_repeat",
     "same_club_pairing_count",
     "gaps_under_7",
@@ -156,11 +161,24 @@ def quality_objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
     hosting = score.get("hosting") or {}
     temporal = score.get("temporal") or {}
     participation = score.get("participation") or {}
+    # Prefer the club-pool unresolved totals (present whenever the score came
+    # from ``evaluate_participation``) so an intra-club label imbalance is not
+    # an equal-weight objective; fall back to the raw per-team totals for
+    # hand-built/partial reports that predate the club-pool view.
+    season_deviation = participation.get(
+        "club_pool_unresolved_season_total_absolute_deviation",
+        participation.get("season_total_absolute_deviation", 0),
+    )
+    avoidable = participation.get(
+        "club_pool_unresolved_avoidable_deviation_count",
+        participation.get("avoidable_deviation_count", 0),
+    )
     return {
-        "participation_season_deviation": float(
-            participation.get("season_total_absolute_deviation", 0)
+        "participation_season_deviation": float(season_deviation),
+        "participation_avoidable": float(avoidable),
+        "participation_club_pool_unresolved_shortfalls": float(
+            participation.get("club_pool_unresolved_shortfall_count", 0)
         ),
-        "participation_avoidable": float(participation.get("avoidable_deviation_count", 0)),
         "max_pair_repeat": float(opponent.get("max_pair_repeat", 0)),
         "same_club_pairing_count": float(opponent.get("same_club_pairing_count", 0)),
         "gaps_under_7": float(gaps.get(7, 0)),

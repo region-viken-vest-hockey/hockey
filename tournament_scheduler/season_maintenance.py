@@ -31,7 +31,7 @@ from .hosting_balance_repair import hosting_finding_id
 from .local_repair_options import enumerate_local_repair_options
 from .pareto import non_dominated_indices, representative_indices
 from .participation_deviation_repair import participation_finding_id
-from .participation_targets import search_evidence_from_acceptances
+from .participation_targets import INTRA_CLUB_DISTRIBUTION, search_evidence_from_acceptances
 from .planning_contract import score_candidate, verify_candidate
 from .quality_objectives import (
     QUALITY_OBJECTIVE_DIMENSIONS,
@@ -765,6 +765,12 @@ def _participation_findings(
     out: List[Dict[str, Any]] = []
     acceptances = _acceptances_by_scope(problem)
     for deviation in verification.get("participation_deviations") or []:
+        if not _deviation_is_unresolved(deviation):
+            # An aggregate-complete, uneven multi-team pool is intra-club
+            # distribution, not an unresolved participation deficit -- it stays
+            # visible as evidence/metrics but is not an actionable finding and
+            # must not trigger repair search.
+            continue
         club = str(deviation.get("club") or "")
         team = str(deviation.get("team") or "")
         scope = str(deviation.get("scope") or "")
@@ -1389,9 +1395,9 @@ def _objective_vector(
         "unresolved_placement_obligations": float(
             len(candidate.get("unresolved_tournament_placements") or [])
         ),
-        "participation_deviations": float(_count(verification, "participation_deviations")),
+        "participation_deviations": float(_unresolved_participation_deviation_count(verification)),
         "avoidable_participation_deviations": float(
-            _avoidability_count(verification, "avoidable")
+            _unresolved_avoidability_count(verification, "avoidable")
         ),
         "host_confirmation_dependencies": float(
             _count(verification, "movable_allocations_used")
@@ -1542,10 +1548,17 @@ def _count(verification: Mapping[str, Any], key: str) -> int:
 
 
 def _manual_count(verification: Mapping[str, Any]) -> int:
-    return sum(
+    # Participation entries flagged as pure intra-club distribution are not
+    # unresolved manual work, so they must not inflate the manual-placement
+    # defect dimension.
+    participation = [
+        item
+        for item in (verification.get("manual_participation_placements") or [])
+        if isinstance(item, Mapping) and item.get("counts_as_unresolved_shortfall", True)
+    ]
+    return len(participation) + sum(
         _count(verification, key)
         for key in (
-            "manual_participation_placements",
             "manual_calendar_placements",
             "manual_external_conflict_placements",
         )
@@ -1557,6 +1570,33 @@ def _avoidability_count(verification: Mapping[str, Any], avoidability: str) -> i
         1
         for deviation in verification.get("participation_deviations") or []
         if str(deviation.get("avoidability") or "") == avoidability
+    )
+
+
+def _deviation_is_unresolved(deviation: Mapping[str, Any]) -> bool:
+    """False for a pure intra-club label imbalance.
+
+    An aggregate-complete pool split 5+3 is not an unresolved participation
+    deficit, so it must not drive repair search or count as an equal-weight
+    objective dimension.
+    """
+    return str(deviation.get("club_pool_classification") or "") != INTRA_CLUB_DISTRIBUTION
+
+
+def _unresolved_participation_deviation_count(verification: Mapping[str, Any]) -> int:
+    return sum(
+        1
+        for deviation in verification.get("participation_deviations") or []
+        if _deviation_is_unresolved(deviation)
+    )
+
+
+def _unresolved_avoidability_count(verification: Mapping[str, Any], avoidability: str) -> int:
+    return sum(
+        1
+        for deviation in verification.get("participation_deviations") or []
+        if str(deviation.get("avoidability") or "") == avoidability
+        and _deviation_is_unresolved(deviation)
     )
 
 

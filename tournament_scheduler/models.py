@@ -415,6 +415,14 @@ class SeasonPlan:
     # placement is host-confirmation-gated. Each entry: {"club", "date",
     # "start", "end", "calendar_event", "reason"}.
     calendar_interpretations: List[Dict[str, str]] = field(default_factory=list)
+    # Club x age-group x scope aggregate player-pool participation views, with
+    # the deterministic classification ("intra_club_distribution",
+    # "minor_club_pool_shortfall", "material_club_pool_shortfall", ...) that
+    # tells a genuine club/player-pool shortage apart from an intra-club label
+    # imbalance. Exact per-team counts stay in
+    # ``unresolved_participation_shortfalls``; this is the aggregation the
+    # objective vector/audit consume. See ``participation_targets``.
+    participation_club_pools: List[Dict[str, object]] = field(default_factory=list)
 
 
 # Mapping of age groups whose player pools are known to overlap (e.g. a player

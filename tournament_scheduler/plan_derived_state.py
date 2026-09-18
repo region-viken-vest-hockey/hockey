@@ -3,9 +3,9 @@
 ``plan.publication_readiness``, ``plan.unresolved_hosting_obligations``,
 ``plan.hosting_balance_imbalances``, the ``same_age_hosting_repairs`` /
 ``cross_age_hosting_repairs`` attempt logs, ``unresolved_external_conflicts``,
-``unresolved_participation_shortfalls`` and the operator-waiver audit rows are
-*descriptive projections* of the plan's tournaments as verified at one point in
-time.  A canonical mutation (``season move`` / ``season apply``) changes
+``unresolved_participation_shortfalls``, ``participation_club_pools`` and the
+operator-waiver audit rows are *descriptive projections* of the plan's
+tournaments as verified at one point in time.  A canonical mutation (``season move`` / ``season apply``) changes
 ``plan.tournaments`` without rerunning the planner, so those snapshots go stale
 and can contradict a fresh deterministic verify result -- e.g. still reporting a
 club x age-group hosting obligation the mutation just resolved.
@@ -139,6 +139,17 @@ def _reconciled_participation_shortfalls(
             "category": category,
             "reason": reason,
         }
+        # Preserve the deterministic club-pool classification the verifier
+        # attached, so the exported page/publication readiness can distinguish
+        # a genuine club-pool shortage from an intra-club label imbalance.
+        for key in (
+            "club_pool_classification",
+            "club_pool_significance",
+            "counts_as_unresolved_shortfall",
+            "club_pool",
+        ):
+            if key in item:
+                reconciled_entry[key] = item.get(key)
         if half:
             reconciled_entry["half"] = half
         if category == "participation_under_target_same_date_capacity":
@@ -248,6 +259,8 @@ def reconcile_plan_derived_state(
         plan_dict["unresolved_participation_shortfalls"] = _reconciled_participation_shortfalls(
             plan_dict, source
         )
+    if "participation_club_pools" in source:
+        plan_dict["participation_club_pools"] = list(source.get("participation_club_pools") or [])
     if "waived_violations" in source:
         _reconcile_operator_waivers(plan_dict, source, problem)
 

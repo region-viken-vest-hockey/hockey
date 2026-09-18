@@ -53,6 +53,91 @@ AVOIDABILITY_STATUSES: Tuple[str, ...] = (
     OPERATOR_ACCEPTED,
 )
 
+# ---------------------------------------------------------------------------
+# club x age-group x scope player-pool view
+# ---------------------------------------------------------------------------
+#
+# A participation target is configured per registered team, but a club with
+# several teams in one age group can operationally redistribute players between
+# the nominal team labels.  The *operational* question is therefore whether the
+# club's age-group player pool received its intended participation capacity,
+# with the exact per-team split as secondary evidence.
+#
+# This module owns that aggregation deterministically so a harness/objective
+# never has to infer "players can simply be shuffled" from team names.
+#
+# Classifications:
+#
+# ``complete``
+#     Every team is exactly on target.
+# ``intra_club_distribution``
+#     A multi-team club's pool is at or above its aggregate target, but the
+#     team labels are uneven -- pure redistribution, no missing club-pool
+#     participation opportunity.
+# ``minor_club_pool_shortfall``
+#     A multi-team club's pool is below its aggregate target by at most half of
+#     one team's nominal target -- a small residual, lower priority than a
+#     single-team miss.
+# ``material_club_pool_shortfall``
+#     A multi-team club's pool is materially below its aggregate target.
+# ``single_team_deviation``
+#     A single-team club: the per-team deviation *is* the club-pool deviation,
+#     so existing per-team semantics apply unchanged.
+# ``over_target``
+#     A multi-team club's pool exceeds its aggregate target with no label under
+#     its own target.
+CLUB_POOL_COMPLETE = "complete"
+INTRA_CLUB_DISTRIBUTION = "intra_club_distribution"
+MINOR_CLUB_POOL_SHORTFALL = "minor_club_pool_shortfall"
+MATERIAL_CLUB_POOL_SHORTFALL = "material_club_pool_shortfall"
+SINGLE_TEAM_DEVIATION = "single_team_deviation"
+CLUB_POOL_OVER_TARGET = "over_target"
+
+CLUB_POOL_CLASSIFICATIONS: Tuple[str, ...] = (
+    CLUB_POOL_COMPLETE,
+    INTRA_CLUB_DISTRIBUTION,
+    MINOR_CLUB_POOL_SHORTFALL,
+    MATERIAL_CLUB_POOL_SHORTFALL,
+    SINGLE_TEAM_DEVIATION,
+    CLUB_POOL_OVER_TARGET,
+)
+
+#: Planning significance implied by each classification.  ``resolved`` and
+#: ``informational`` are *not* unresolved participation deficits; ``minor`` and
+#: ``material`` are.
+CLUB_POOL_SIGNIFICANCE: Dict[str, str] = {
+    CLUB_POOL_COMPLETE: "resolved",
+    INTRA_CLUB_DISTRIBUTION: "informational",
+    MINOR_CLUB_POOL_SHORTFALL: "minor",
+    MATERIAL_CLUB_POOL_SHORTFALL: "material",
+    SINGLE_TEAM_DEVIATION: "material",
+    CLUB_POOL_OVER_TARGET: "informational",
+}
+
+#: Classifications that represent a genuine unresolved participation deficit.
+UNRESOLVED_CLUB_POOL_CLASSIFICATIONS: frozenset[str] = frozenset(
+    {
+        MINOR_CLUB_POOL_SHORTFALL,
+        MATERIAL_CLUB_POOL_SHORTFALL,
+        SINGLE_TEAM_DEVIATION,
+    }
+)
+
+
+def counts_as_unresolved_shortfall(
+    classification: str, *, direction: str = "under_target"
+) -> bool:
+    """Whether *classification* is a genuine missing participation opportunity.
+
+    Single-team *over*-target and multi-team over-target are not shortages, so
+    only the under-target cases of the unresolved families count.  This is the
+    one predicate other layers (objective vector, publication readiness,
+    export grouping) must call instead of re-deriving the policy.
+    """
+    if classification == SINGLE_TEAM_DEVIATION:
+        return direction == "under_target"
+    return classification in UNRESOLVED_CLUB_POOL_CLASSIFICATIONS
+
 
 def _evidence_entries(raw: Any) -> List[Mapping[str, Any]]:
     """Normalize one identity's search/acceptance evidence into a list.
@@ -293,6 +378,145 @@ class ParticipationEvaluation:
     deviations: List[Dict[str, Any]] = field(default_factory=list)
     hard_max_violations: List[Dict[str, Any]] = field(default_factory=list)
     metrics: Dict[str, Any] = field(default_factory=dict)
+    #: Club x age-group x scope aggregate player-pool views (multi-team clubs
+    #: included) with the bounded classification above.
+    club_pools: List[Dict[str, Any]] = field(default_factory=list)
+    #: The subset of ``club_pools`` that counts as a genuine unresolved
+    #: participation deficit (excludes intra-club distribution/over-target).
+    club_pool_shortfalls: List[Dict[str, Any]] = field(default_factory=list)
+
+
+def _pool_classification(
+    *,
+    registered_team_count: int,
+    pool_target: int,
+    pool_actual: int,
+    per_team_targets: Sequence[int],
+    per_team_actuals: Sequence[int],
+) -> Tuple[str, Optional[int]]:
+    """Classify one club x age-group x scope pool deterministically.
+
+    Returns ``(classification, minor_shortfall_threshold)``.  The threshold is
+    derived from the configured target model (half of the smallest nominal
+    per-team target, at least one) rather than a fixed example count, so a
+    target of 4 marks a 1-2 miss minor and a 3+ miss material, while a larger
+    configured target scales with it.
+    """
+    deviation = pool_actual - pool_target
+    if registered_team_count <= 1:
+        if deviation == 0:
+            return CLUB_POOL_COMPLETE, None
+        return SINGLE_TEAM_DEVIATION, None
+    minor_threshold = max(1, (min(per_team_targets) if per_team_targets else 1) // 2)
+    any_label_under = any(a < t for a, t in zip(per_team_actuals, per_team_targets))
+    if deviation >= 0 and any_label_under:
+        # Aggregate capacity is there; only the nominal labels are uneven.
+        return INTRA_CLUB_DISTRIBUTION, minor_threshold
+    if deviation > 0:
+        return CLUB_POOL_OVER_TARGET, minor_threshold
+    if deviation == 0:
+        return CLUB_POOL_COMPLETE, minor_threshold
+    if abs(deviation) <= minor_threshold:
+        return MINOR_CLUB_POOL_SHORTFALL, minor_threshold
+    return MATERIAL_CLUB_POOL_SHORTFALL, minor_threshold
+
+
+def _club_pool_views(
+    *,
+    counts: Mapping[TeamIdentity, Mapping[str, int]],
+    problem: Mapping[str, Any],
+    team_lookup: Mapping[TeamIdentity, Mapping[str, Any]],
+    split_date: Optional[date],
+) -> List[Dict[str, Any]]:
+    """Build the club x age-group x scope aggregate participation views.
+
+    Uses the same canonical target resolution as the per-team evaluation, so an
+    aggregate target is the sum of the club's registered teams' own targets, not
+    a re-derived per-team number.  Pools without any configured target are
+    omitted (there is nothing to classify against).
+    """
+    problem = problem or {}
+    club_age_teams: Dict[Tuple[str, str], List[TeamIdentity]] = {}
+    for team in problem.get("teams", []) or []:
+        if not isinstance(team, Mapping):
+            continue
+        club = str(team.get("club") or "")
+        age_group = str(team.get("age_group") or "")
+        label = str(team.get("label") or "")
+        if not club or not age_group or not label:
+            continue
+        club_age_teams.setdefault((club, age_group), []).append((club, label, age_group))
+    # Include candidate-only teams too, so an unregistered label is still visible
+    # in its pool instead of silently disappearing from the aggregate view.
+    known_members = {member for members in club_age_teams.values() for member in members}
+    for identity in counts:
+        if identity not in known_members:
+            club_age_teams.setdefault((identity[0], identity[2]), []).append(identity)
+
+    scopes: Tuple[Tuple[str, Optional[str]], ...] = ((SEASON_SCOPE, None),)
+    if split_date is not None:
+        scopes = scopes + tuple((half, half) for half in HALVES)
+
+    pools: List[Dict[str, Any]] = []
+    for (club, age_group), identities in sorted(club_age_teams.items()):
+        for scope, half in scopes:
+            per_team_targets: List[int] = []
+            per_team_actuals: List[int] = []
+            distribution: List[Dict[str, Any]] = []
+            for identity in sorted(identities):
+                registered_team = team_lookup.get(identity)
+                if scope == SEASON_SCOPE:
+                    target = resolve_season_target(identity, problem, team=registered_team)
+                    actual = sum(counts.get(identity, {}).get(h, 0) for h in HALVES)
+                else:
+                    target = resolve_half_target(identity, problem, scope, team=registered_team)
+                    actual = counts.get(identity, {}).get(half, 0)
+                if target is None:
+                    continue
+                per_team_targets.append(int(target))
+                per_team_actuals.append(int(actual))
+                distribution.append({"team": identity[1], "actual": int(actual), "target": int(target)})
+            if not per_team_targets:
+                continue
+            # Teams whose own target resolves are the ones the aggregate is
+            # meaningful for, so a partially-configured club is classified on
+            # the teams that actually count rather than a mislabeled partial sum.
+            registered_team_count = len(per_team_targets)
+            pool_target = sum(per_team_targets)
+            pool_actual = sum(per_team_actuals)
+            classification, threshold = _pool_classification(
+                registered_team_count=registered_team_count,
+                pool_target=pool_target,
+                pool_actual=pool_actual,
+                per_team_targets=per_team_targets,
+                per_team_actuals=per_team_actuals,
+            )
+            uniform_target = (
+                per_team_targets[0]
+                if all(target == per_team_targets[0] for target in per_team_targets)
+                else None
+            )
+            pools.append(
+                {
+                    "club": club,
+                    "age_group": age_group,
+                    "scope": scope,
+                    "registered_team_count": registered_team_count,
+                    "nominal_target_per_team": uniform_target,
+                    "minor_shortfall_threshold": threshold,
+                    "club_pool_target": pool_target,
+                    "club_pool_actual": pool_actual,
+                    "club_pool_deviation": pool_actual - pool_target,
+                    "team_distribution": distribution,
+                    "classification": classification,
+                    "planning_significance": CLUB_POOL_SIGNIFICANCE[classification],
+                    "counts_as_unresolved_shortfall": counts_as_unresolved_shortfall(
+                        classification,
+                        direction="over_target" if pool_actual > pool_target else "under_target",
+                    ),
+                }
+            )
+    return pools
 
 
 def evaluate_participation(
@@ -368,6 +592,31 @@ def evaluate_participation(
     team_lookup = _team_lookup(problem)
     known_identities.update(team_lookup)
     search_evidence = search_evidence or {}
+
+    club_pools = _club_pool_views(
+        counts=counts,
+        problem=problem,
+        team_lookup=team_lookup,
+        split_date=split_date,
+    )
+    club_pool_lookup: Dict[Tuple[str, str, str], Dict[str, Any]] = {
+        (str(pool.get("club") or ""), str(pool.get("age_group") or ""), str(pool.get("scope") or "")): pool
+        for pool in club_pools
+    }
+
+    def _pool_annotation(identity: TeamIdentity, scope: str, direction: str) -> Dict[str, Any]:
+        pool = club_pool_lookup.get((identity[0], identity[2], scope))
+        if pool is None:
+            return {}
+        classification = str(pool.get("classification") or "")
+        return {
+            "club_pool_classification": classification,
+            "club_pool_significance": pool.get("planning_significance"),
+            "counts_as_unresolved_shortfall": counts_as_unresolved_shortfall(
+                classification, direction=direction
+            ),
+            "club_pool": pool,
+        }
 
     teams: List[Dict[str, Any]] = []
     deviations: List[Dict[str, Any]] = []
@@ -473,6 +722,7 @@ def evaluate_participation(
                     "deviation": season_actual - season_target,
                     "avoidability": status,
                     "evidence": coverage,
+                    **_pool_annotation(identity, SEASON_SCOPE, direction),
                 }
             )
 
@@ -523,9 +773,13 @@ def evaluate_participation(
                         "deviation": half_actual - half_target,
                         "avoidability": status,
                         "evidence": coverage,
+                        **_pool_annotation(identity, half, direction),
                     }
                 )
 
+    club_pool_shortfalls = [
+        pool for pool in club_pools if pool.get("counts_as_unresolved_shortfall")
+    ]
     metrics = _metrics(
         teams,
         deviations,
@@ -534,12 +788,15 @@ def evaluate_participation(
         club_age_half_counts,
         club_age_half_totals,
         split_date,
+        club_pools,
     )
     return ParticipationEvaluation(
         teams=teams,
         deviations=deviations,
         hard_max_violations=hard_max_violations,
         metrics=metrics,
+        club_pools=club_pools,
+        club_pool_shortfalls=club_pool_shortfalls,
     )
 
 
@@ -551,10 +808,20 @@ def _metrics(
     club_age_half_counts: Mapping[Tuple[str, str, str], int],
     club_age_half_totals: Mapping[Tuple[str, str], int],
     split_date: Optional[date],
+    club_pools: Sequence[Mapping[str, Any]] = (),
 ) -> Dict[str, Any]:
     targeted = [entry for entry in teams if isinstance(entry.get("season_target"), int)]
     season_deviations = [d for d in deviations if d.get("scope") == SEASON_SCOPE]
     half_deviations = [d for d in deviations if d.get("scope") in HALVES]
+
+    def _is_unresolved(deviation: Mapping[str, Any]) -> bool:
+        flag = deviation.get("counts_as_unresolved_shortfall")
+        # Older/synthetic deviation fixtures without a club-pool view keep the
+        # original per-team semantics (every material deviation counts).
+        return True if flag is None else bool(flag)
+
+    unresolved_season_deviations = [d for d in season_deviations if _is_unresolved(d)]
+    unresolved_half_deviations = [d for d in half_deviations if _is_unresolved(d)]
 
     teams_exact = sum(1 for entry in targeted if entry["season_actual"] == entry["season_target"])
     teams_under = sum(1 for entry in targeted if entry["season_actual"] < entry["season_target"])
@@ -607,12 +874,18 @@ def _metrics(
     proven = sum(1 for d in deviations if d.get("avoidability") == PROVEN_INFEASIBLE)
     exhausted = sum(1 for d in deviations if d.get("avoidability") == BOUNDED_SEARCH_EXHAUSTED)
     accepted = sum(1 for d in deviations if d.get("avoidability") == OPERATOR_ACCEPTED)
+    unresolved_avoidable = sum(
+        1 for d in deviations if d.get("avoidability") == AVOIDABLE and _is_unresolved(d)
+    )
     cross_half_opportunities = sum(
         1
         for d in deviations
         if d.get("direction") == "under_target"
         and (d.get("evidence") or {}).get("cross_half_capacity_available")
     )
+
+    pool_classifications = [str(pool.get("classification") or "") for pool in club_pools]
+    unresolved_pools = [pool for pool in club_pools if pool.get("counts_as_unresolved_shortfall")]
 
     return {
         "teams_with_season_target": len(targeted),
@@ -634,6 +907,43 @@ def _metrics(
         "search_exhausted_deviation_count": exhausted,
         "operator_accepted_deviation_count": accepted,
         "cross_half_compensation_opportunity_count": cross_half_opportunities,
+        # Club x age-group x scope player-pool view. The per-team numbers above
+        # stay exact and auditable; these are the aggregation the objective
+        # vector / publication readiness consume so an intra-club label
+        # imbalance is not treated as an equal-weight participation shortfall.
+        "club_pool_count": len(club_pools),
+        "club_pool_intra_distribution_count": sum(
+            1 for name in pool_classifications if name == INTRA_CLUB_DISTRIBUTION
+        ),
+        "club_pool_minor_shortfall_count": sum(
+            1 for name in pool_classifications if name == MINOR_CLUB_POOL_SHORTFALL
+        ),
+        "club_pool_material_shortfall_count": sum(
+            1 for name in pool_classifications if name == MATERIAL_CLUB_POOL_SHORTFALL
+        ),
+        "club_pool_single_team_deviation_count": sum(
+            1 for name in pool_classifications if name == SINGLE_TEAM_DEVIATION
+        ),
+        "club_pool_over_target_count": sum(
+            1 for name in pool_classifications if name == CLUB_POOL_OVER_TARGET
+        ),
+        "club_pool_unresolved_shortfall_count": len(unresolved_pools),
+        "club_pool_unresolved_total_absolute_deviation": sum(
+            abs(int(pool.get("club_pool_deviation") or 0)) for pool in unresolved_pools
+        ),
+        "club_pool_unresolved_season_total_absolute_deviation": sum(
+            abs(int(d.get("deviation") or 0)) for d in unresolved_season_deviations
+        ),
+        "club_pool_unresolved_max_team_season_deviation": max(
+            (abs(int(d.get("deviation") or 0)) for d in unresolved_season_deviations), default=0
+        ),
+        "club_pool_unresolved_half_total_absolute_deviation": sum(
+            abs(int(d.get("deviation") or 0)) for d in unresolved_half_deviations
+        ),
+        "club_pool_unresolved_max_team_half_deviation": max(
+            (abs(int(d.get("deviation") or 0)) for d in unresolved_half_deviations), default=0
+        ),
+        "club_pool_unresolved_avoidable_deviation_count": unresolved_avoidable,
     }
 
 
@@ -645,7 +955,17 @@ __all__ = [
     "AVOIDABILITY_STATUSES",
     "HALVES",
     "SEASON_SCOPE",
+    "CLUB_POOL_COMPLETE",
+    "INTRA_CLUB_DISTRIBUTION",
+    "MINOR_CLUB_POOL_SHORTFALL",
+    "MATERIAL_CLUB_POOL_SHORTFALL",
+    "SINGLE_TEAM_DEVIATION",
+    "CLUB_POOL_OVER_TARGET",
+    "CLUB_POOL_CLASSIFICATIONS",
+    "CLUB_POOL_SIGNIFICANCE",
+    "UNRESOLVED_CLUB_POOL_CLASSIFICATIONS",
     "ParticipationEvaluation",
+    "counts_as_unresolved_shortfall",
     "evaluate_participation",
     "evidence_covers_deviation",
     "search_evidence_from_acceptances",

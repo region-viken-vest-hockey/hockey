@@ -15,8 +15,14 @@ from tournament_scheduler.operator_waivers import scope_fingerprint
 from tournament_scheduler.participation_targets import (
     AVOIDABLE,
     BOUNDED_SEARCH_EXHAUSTED,
+    CLUB_POOL_COMPLETE,
+    INTRA_CLUB_DISTRIBUTION,
+    MATERIAL_CLUB_POOL_SHORTFALL,
+    MINOR_CLUB_POOL_SHORTFALL,
     OPERATOR_ACCEPTED,
     PROVEN_INFEASIBLE,
+    SINGLE_TEAM_DEVIATION,
+    counts_as_unresolved_shortfall,
     evaluate_participation,
     evidence_covers_deviation,
     resolve_half_target,
@@ -297,7 +303,7 @@ def test_worse_participation_blocks_dominance_over_a_quality_gain():
         for metric in report["overall_comparison"]["metrics"]
         if metric["regressed"] and metric["metric"].startswith("participation.")
     ]
-    assert "participation.season_total_absolute_deviation" in participation_regressions
+    assert "participation.club_pool_unresolved_season_total_absolute_deviation" in participation_regressions
     assert report["dominates_baseline"] is False
     assert report["production_ready"] is False
 
@@ -395,3 +401,217 @@ def test_operator_acceptance_reclassifies_a_deviation_through_the_verifier() -> 
         if deviation["scope"] == "season"
     )
     assert injected["avoidability"] == OPERATOR_ACCEPTED
+
+
+# ---------------------------------------------------------------------------
+# Club x age-group player-pool classification
+# ---------------------------------------------------------------------------
+
+_JU10 = "JU10"
+
+
+def _after_christmas_problem(*teams: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "start_date": "2025-01-01",
+        "end_date": "2026-12-31",
+        "teams": [dict(t, target_tournament_count=None) for t in teams],
+        "parallel_games": {},
+        "participation_targets_by_age_group": {_JU10: {"before_christmas": 0, "after_christmas": 4}},
+    }
+
+
+def _after_christmas_candidate(
+    a: dict[str, Any], b: dict[str, Any], c: dict[str, Any], *, a_count: int, b_count: int
+) -> dict[str, Any]:
+    """Build a valid after-Christmas skeleton with exact Jar A/B counts.
+
+    Each Jar team shares a tournament with an unrelated club ``c`` (so every
+    tournament has the effective minimum size) and never with each other; the
+    Jar pool total is therefore exactly ``a_count + b_count``.
+    """
+    dates = [
+        "2026-01-10",
+        "2026-01-17",
+        "2026-01-24",
+        "2026-02-07",
+        "2026-02-14",
+        "2026-02-21",
+        "2026-03-07",
+        "2026-03-14",
+    ]
+    tournaments: list[dict[str, Any]] = []
+    for index, date in enumerate(dates):
+        if index < a_count:
+            teams = [a, c]
+        elif index < a_count + b_count:
+            teams = [b, c]
+        else:
+            break
+        tournaments.append(_tournament(f"t{index}", date, teams, age_group=_JU10))
+    return {"tournaments": tournaments}
+
+
+def _pool(result: Any, scope: str, club: str) -> dict[str, Any]:
+    pools = result["participation_club_pools"] if isinstance(result, dict) else result.club_pools
+    return next(
+        pool for pool in pools if pool["scope"] == scope and pool["club"] == club
+    )
+
+
+def test_club_pool_balanced_aggregate_with_uneven_labels_is_intra_club_distribution():
+    """5 + 3 = 8/8: the club player pool got its capacity; only labels differ."""
+    a, b, c = _team("Jar", "Jar Hvit", _JU10), _team("Jar", "Jar Blå", _JU10), _team(
+        "Kongsberg", "Kongsberg 1", _JU10
+    )
+    problem = _after_christmas_problem(a, b, c)
+    candidate = _after_christmas_candidate(a, b, c, a_count=5, b_count=3)
+    result = evaluate_participation(candidate, problem)
+
+    pool = _pool(result, "after_christmas", "Jar")
+    assert pool["club_pool_actual"] == 8
+    assert pool["club_pool_target"] == 8
+    assert pool["classification"] == INTRA_CLUB_DISTRIBUTION
+    assert pool["planning_significance"] == "informational"
+    assert pool["counts_as_unresolved_shortfall"] is False
+    assert pool["registered_team_count"] == 2
+    # Exact per-team counts stay visible and auditable.
+    distribution = {item["team"]: item for item in pool["team_distribution"]}
+    assert distribution["Jar Hvit"]["actual"] == 5
+    assert distribution["Jar Blå"]["actual"] == 3
+    # The intra-club imbalance is not counted as an unresolved club-pool deficit.
+    assert result.metrics["club_pool_intra_distribution_count"] >= 1
+    assert result.metrics["club_pool_unresolved_shortfall_count"] == 0
+    assert all(
+        deviation["counts_as_unresolved_shortfall"] is False
+        for deviation in result.deviations
+        if deviation["scope"] == "after_christmas"
+    )
+
+
+def test_club_pool_small_shortfall_is_minor_and_distinct_from_single_team():
+    """4 + 3 = 7/8 is a minor multi-team residual, not a single-team 3/4."""
+    a, b, c = _team("Jar", "Jar Hvit", _JU10), _team("Jar", "Jar Blå", _JU10), _team(
+        "Kongsberg", "Kongsberg 1", _JU10
+    )
+    problem = _after_christmas_problem(a, b, c)
+    candidate = _after_christmas_candidate(a, b, c, a_count=4, b_count=3)
+    result = evaluate_participation(candidate, problem)
+
+    pool = _pool(result, "after_christmas", "Jar")
+    assert (pool["club_pool_actual"], pool["club_pool_target"]) == (7, 8)
+    assert pool["classification"] == MINOR_CLUB_POOL_SHORTFALL
+    assert pool["planning_significance"] == "minor"
+    assert pool["counts_as_unresolved_shortfall"] is True
+    assert result.metrics["club_pool_minor_shortfall_count"] >= 1
+
+
+def test_club_pool_material_shortfall_stays_material():
+    """3 + 2 = 5/8 is a material club-pool shortfall, not hidden by flexibility."""
+    a, b, c = _team("Jar", "Jar Hvit", _JU10), _team("Jar", "Jar Blå", _JU10), _team(
+        "Kongsberg", "Kongsberg 1", _JU10
+    )
+    problem = _after_christmas_problem(a, b, c)
+    candidate = _after_christmas_candidate(a, b, c, a_count=3, b_count=2)
+    result = evaluate_participation(candidate, problem)
+
+    pool = _pool(result, "after_christmas", "Jar")
+    assert (pool["club_pool_actual"], pool["club_pool_target"]) == (5, 8)
+    assert pool["classification"] == MATERIAL_CLUB_POOL_SHORTFALL
+    assert pool["planning_significance"] == "material"
+    assert pool["counts_as_unresolved_shortfall"] is True
+
+
+def test_single_team_club_keeps_per_team_semantics():
+    """A single-team club's per-team deviation *is* its club-pool deviation."""
+    solo = _team("Kongsberg", "Kongsberg 1", _JU10)
+    other = _team("Jar", "Jar 1", _JU10)
+    problem = _after_christmas_problem(solo, other)
+    candidate = {
+        "tournaments": [
+            _tournament(f"t{i}", f"2026-01-{10 + i:02d}", [solo, other], age_group=_JU10)
+            for i in range(3)
+        ]
+    }
+    result = evaluate_participation(candidate, problem)
+    pool = _pool(result, "after_christmas", "Kongsberg")
+    assert pool["registered_team_count"] == 1
+    assert pool["classification"] == SINGLE_TEAM_DEVIATION
+    assert pool["counts_as_unresolved_shortfall"] is True
+
+
+def test_counts_as_unresolved_shortfall_only_for_genuine_deficits():
+    assert counts_as_unresolved_shortfall(INTRA_CLUB_DISTRIBUTION) is False
+    assert counts_as_unresolved_shortfall(CLUB_POOL_COMPLETE) is False
+    assert counts_as_unresolved_shortfall(MINOR_CLUB_POOL_SHORTFALL) is True
+    assert counts_as_unresolved_shortfall(MATERIAL_CLUB_POOL_SHORTFALL) is True
+    assert counts_as_unresolved_shortfall(SINGLE_TEAM_DEVIATION, direction="under_target") is True
+    assert counts_as_unresolved_shortfall(SINGLE_TEAM_DEVIATION, direction="over_target") is False
+
+
+def test_verify_candidate_carries_club_pool_classification_and_readiness_ignores_redistribution():
+    """The export/readiness layer receives the classification and does not
+    count pure intra-club redistribution as an unresolved shortfall."""
+    from tournament_scheduler.final_verification import publication_readiness
+
+    a, b, c = _team("Jar", "Jar Hvit", _JU10), _team("Jar", "Jar Blå", _JU10), _team(
+        "Kongsberg", "Kongsberg 1", _JU10
+    )
+    problem = _after_christmas_problem(a, b, c)
+    candidate = _after_christmas_candidate(a, b, c, a_count=5, b_count=3)
+    result = verify_candidate(candidate, problem)
+    assert result["ok"] is True
+
+    jar_entries = [
+        entry for entry in result["manual_participation_placements"] if entry["club"] == "Jar"
+    ]
+    assert jar_entries
+    assert all(
+        entry["club_pool_classification"] == INTRA_CLUB_DISTRIBUTION for entry in jar_entries
+    )
+    assert all(entry["counts_as_unresolved_shortfall"] is False for entry in jar_entries)
+
+    readiness = publication_readiness(result)
+    reason_codes = {reason["code"] for reason in readiness["reasons"]}
+    # No genuine under-target club/player-pool deficit remains (Jar is
+    # aggregate-complete; Kongsberg is over target), so intra-club
+    # redistribution must not create a `participation_shortfalls` reason.
+    assert "participation_shortfalls" not in reason_codes
+    assert {item["code"] for item in readiness["informational_reasons"]} == {
+        "intra_club_participation_distribution"
+    }
+
+
+def test_publication_readiness_is_publishable_when_only_intra_club_distribution_remains():
+    """Aggregate-complete 5 + 3 must not block publication by itself."""
+    from tournament_scheduler.final_verification import publication_readiness
+
+    result = {
+        "violations": [],
+        "manual_participation_placements": [
+            {
+                "club": "Jar",
+                "label": "Jar Blå",
+                "age_group": _JU10,
+                "actual": "3",
+                "target": "4",
+                "club_pool_classification": INTRA_CLUB_DISTRIBUTION,
+                "counts_as_unresolved_shortfall": False,
+            }
+        ],
+        "participation_deviations": [
+            {
+                "club": "Jar",
+                "team": "Jar Hvit",
+                "direction": "over_target",
+                "club_pool_classification": INTRA_CLUB_DISTRIBUTION,
+            }
+        ],
+    }
+    readiness = publication_readiness(result)
+    assert readiness["status"] == "PUBLISHABLE"
+    assert readiness["publishable"] is True
+    assert readiness["reasons"] == []
+    assert readiness["informational_reasons"] == [
+        {"code": "intra_club_participation_distribution", "count": 1}
+    ]
+

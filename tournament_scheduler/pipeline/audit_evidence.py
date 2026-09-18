@@ -65,6 +65,17 @@ EVIDENCE_CATEGORIES: dict[str, dict[str, Any]] = {
         "unresolved": False,
         "severity": "info",
     },
+    "participation_club_pools": {
+        "description": (
+            "Club x age-group x scope aggregate player-pool view: aggregate target/actual, exact team "
+            "distribution and the deterministic classification (intra_club_distribution / minor / "
+            "material club-pool shortfall / single-team) that separates a genuine shortage from an "
+            "intra-club label imbalance."
+        ),
+        "checklist_item": 1,
+        "unresolved": False,
+        "severity": "info",
+    },
     "manual_participation_placements": {
         "description": "Manual participation placements the final verifier surfaced for operator follow-up.",
         "checklist_item": 1,
@@ -317,6 +328,24 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
                 tournament_id=row.get("tournament_id") or row.get("tournament"),
                 club=row.get("club"),
                 clubs=_record_clubs(row),
+                age_group=row.get("age_group"),
+            )
+        )
+
+    for row in _as_list(facts.get("participation_club_pools")):
+        if not isinstance(row, dict):
+            continue
+        records.append(
+            _record(
+                category="participation_club_pools",
+                finding_type=str(row.get("classification") or "unknown"),
+                summary=(
+                    f"{row.get('club') or '?'} ({row.get('age_group') or '?'}, {row.get('scope') or 'season'}): "
+                    f"{row.get('club_pool_actual')}/{row.get('club_pool_target')} "
+                    f"— {row.get('classification') or 'unknown'}"
+                ),
+                detail=row,
+                club=row.get("club"),
                 age_group=row.get("age_group"),
             )
         )

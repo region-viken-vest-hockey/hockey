@@ -62,6 +62,7 @@ class SeasonPlanCodec:
             "cross_age_hosting_repairs": list(plan.cross_age_hosting_repairs),
             "unresolved_external_conflicts": list(plan.unresolved_external_conflicts),
             "unresolved_participation_shortfalls": list(plan.unresolved_participation_shortfalls),
+            "participation_club_pools": list(plan.participation_club_pools),
             "unresolved_tournament_placements": list(plan.unresolved_tournament_placements),
             "club_participation_fairness": list(plan.club_participation_fairness),
             "participation_targets_by_age_group": dict(plan.participation_targets_by_age_group),
@@ -113,6 +114,7 @@ class SeasonPlanCodec:
             cross_age_hosting_repairs=list(data.get("cross_age_hosting_repairs", [])),
             unresolved_external_conflicts=list(data.get("unresolved_external_conflicts", [])),
             unresolved_participation_shortfalls=list(data.get("unresolved_participation_shortfalls", [])),
+            participation_club_pools=list(data.get("participation_club_pools", [])),
             unresolved_tournament_placements=list(data.get("unresolved_tournament_placements", [])),
             club_participation_fairness=list(data.get("club_participation_fairness", [])),
             participation_targets_by_age_group={

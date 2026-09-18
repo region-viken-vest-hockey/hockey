@@ -16,6 +16,7 @@ from tournament_scheduler.host_representation import constituent_clubs
 from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
 from tournament_scheduler.limited_rounds import minimum_same_club_games_for_limited_rounds
 from tournament_scheduler.models import Team
+from tournament_scheduler.participation_targets import INTRA_CLUB_DISTRIBUTION
 from tournament_scheduler.planning_contract import verify_candidate as _verify_candidate
 
 MIN_TEAMS_PER_TOURNAMENT = 3
@@ -239,7 +240,6 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
         # (e.g. open ice) and therefore requires explicit host confirmation
         # before the placement can be treated as locked/booked.
         ("movable_allocations_used", "movable_host_confirmation_required"),
-        ("manual_participation_placements", "participation_shortfalls"),
         ("stale_approvals", "stale_approvals"),
         ("orphaned_approvals", "orphaned_approvals"),
     ):
@@ -247,13 +247,39 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
         if count:
             reasons.append({"code": code, "count": count})
 
+    # Participation findings are split by the canonical club-pool
+    # classification: only a genuine club/player-pool (or single-team) deficit
+    # blocks as `participation_shortfalls`. A pure intra-club label imbalance
+    # (an aggregate-complete pool split 5+3) stays visible as informational
+    # evidence but is not counted as an equivalent missing participation
+    # opportunity.
+    participation_entries = [
+        item for item in (result.get("manual_participation_placements") or []) if isinstance(item, dict)
+    ]
+    unresolved_participation = [
+        item for item in participation_entries if item.get("counts_as_unresolved_shortfall", True)
+    ]
+    intra_club_distribution = [
+        item for item in participation_entries if not item.get("counts_as_unresolved_shortfall", True)
+    ]
+    informational_reasons: list[dict[str, Any]] = []
+    if unresolved_participation:
+        reasons.append({"code": "participation_shortfalls", "count": len(unresolved_participation)})
+    if intra_club_distribution:
+        informational_reasons.append(
+            {"code": "intra_club_participation_distribution", "count": len(intra_club_distribution)}
+        )
+
     # Over-target participation is never a hard failure (a target is a strong
     # goal, not a ceiling), but a candidate that exceeds its configured targets
     # still needs explicit review instead of publishing as if it matched them.
+    # A multi-team pool's aggregate-complete over/under split is intra-club
+    # distribution, not an independent deviation.
     over_target = [
         deviation
         for deviation in (result.get("participation_deviations") or [])
         if deviation.get("direction") == "over_target"
+        and deviation.get("club_pool_classification") != INTRA_CLUB_DISTRIBUTION
     ]
     if over_target:
         reasons.append({"code": "participation_target_deviation", "count": len(over_target)})
@@ -263,6 +289,7 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
         "status": status,
         "publishable": status == "PUBLISHABLE",
         "reasons": reasons,
+        "informational_reasons": informational_reasons,
     }
 
 

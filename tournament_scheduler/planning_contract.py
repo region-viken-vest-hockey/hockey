@@ -840,6 +840,8 @@ def verify_candidate(
             "manual_participation_placements": [],
             "participation_deviations": [],
             "participation_metrics": {},
+            "participation_club_pools": [],
+            "participation_club_pool_shortfalls": [],
             "input_constrained_shapes": [],
             "stale_approvals": stale_approvals,
             "orphaned_approvals": orphaned_approvals,
@@ -1234,6 +1236,18 @@ def verify_candidate(
             "target": str(deviation.get("target")),
             "avoidability": deviation.get("avoidability"),
         }
+        # Carry the deterministic club x age-group player-pool classification so
+        # the operator/audit surface can tell a genuine club-pool shortage apart
+        # from an intra-club label imbalance, and publication readiness can stop
+        # counting pure redistribution as an unresolved participation deficit.
+        pool = deviation.get("club_pool")
+        if isinstance(pool, Mapping):
+            entry["club_pool_classification"] = deviation.get("club_pool_classification")
+            entry["club_pool_significance"] = deviation.get("club_pool_significance")
+            entry["counts_as_unresolved_shortfall"] = bool(
+                deviation.get("counts_as_unresolved_shortfall", True)
+            )
+            entry["club_pool"] = dict(pool)
         if deviation.get("scope") in ("before_christmas", "after_christmas"):
             entry["half"] = deviation.get("scope")
         manual_participation_placements.append(entry)
@@ -1299,6 +1313,11 @@ def verify_candidate(
         "manual_participation_placements": manual_participation_placements,
         "participation_deviations": participation_deviations,
         "participation_metrics": participation_metrics,
+        # Club x age-group x scope player-pool aggregation (classification +
+        # exact team distribution) and the unresolved subset, exposed as
+        # first-class deterministic facts for the audit/objective layers.
+        "participation_club_pools": participation_evaluation.club_pools,
+        "participation_club_pool_shortfalls": participation_evaluation.club_pool_shortfalls,
         "input_constrained_shapes": input_constrained_shapes,
         "stale_approvals": stale_approvals,
         "orphaned_approvals": orphaned_approvals,

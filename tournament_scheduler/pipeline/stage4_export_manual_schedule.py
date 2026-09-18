@@ -52,6 +52,12 @@ def _participation_section_html(entries: list[dict[str, str]]) -> str:
     as its own section/table (not merged into the booking table above)
     since these are team-level participation-count mismatches, not
     tournaments that need an arena/time slot.
+
+    Multi-team clubs are grouped/annotated at club-pool level from the
+    deterministic verifier classification: a genuine club/player-pool
+    shortfall stays in the actionable table, while an aggregate-complete but
+    uneven split (``intra_club_distribution``) is rendered as informational
+    evidence rather than unresolved manual work.
     """
     if not entries:
         return ""
@@ -64,8 +70,15 @@ def _participation_section_html(entries: list[dict[str, str]]) -> str:
             str(item.get("half", "") or item.get("period", "")),
         )
 
-    rows: list[str] = []
-    for idx, item in enumerate(sorted(entries, key=_sort_key), start=1):
+    def _pool_cell(item: dict[str, str]) -> str:
+        pool = item.get("club_pool")
+        if not isinstance(pool, dict):
+            return ""
+        if int(pool.get("registered_team_count") or 0) < 2:
+            return ""
+        return f'{pool.get("club_pool_actual", "?")}/{pool.get("club_pool_target", "?")}'
+
+    def _render_row(idx: int, item: dict[str, str]) -> str:
         club = str(item.get("club", "") or "")
         label = str(item.get("label", "") or "")
         age_group = str(item.get("age_group", "") or "")
@@ -78,6 +91,13 @@ def _participation_section_html(entries: list[dict[str, str]]) -> str:
         target = str(item.get("target", "") or "")
         category = str(item.get("category", "") or "")
         reason = str(item.get("reason", "") or "actual participation count does not match target")
+        pool_note = ""
+        pool = item.get("club_pool")
+        if isinstance(pool, dict) and int(pool.get("registered_team_count") or 0) >= 2:
+            pool_note = (
+                f'Klubb-pool {pool.get("club_pool_actual", "?")}/{pool.get("club_pool_target", "?")} '
+                f'({pool.get("registered_team_count")} lag): {pool.get("classification", "")}.'
+            )
         evidence = item.get("same_date_capacity_evidence") or []
         if category == "participation_under_target_same_date_capacity" and evidence:
             evidence_bits = []
@@ -97,7 +117,9 @@ def _participation_section_html(entries: list[dict[str, str]]) -> str:
                     )
             if evidence_bits:
                 reason = f"{reason} ({'; '.join(evidence_bits)})"
-        rows.append(
+        if pool_note:
+            reason = f"{reason} {pool_note}"
+        return (
             "<tr>"
             f"<td class=\"numeric-cell\">{idx}</td>"
             f"<td><strong>{_html.escape(age_group)}</strong></td>"
@@ -105,22 +127,56 @@ def _participation_section_html(entries: list[dict[str, str]]) -> str:
             f"<td>{_html.escape(label)}</td>"
             f"<td>{_html.escape(half_display)}</td>"
             f"<td class=\"numeric-cell\">{_html.escape(actual)}/{_html.escape(target)}</td>"
+            f"<td>{_html.escape(_pool_cell(item)) or '-'}</td>"
             f"<td>{_html.escape(reason)}</td>"
             "</tr>"
         )
 
-    return (
+    actionable = [item for item in entries if item.get("counts_as_unresolved_shortfall", True)]
+    informational = [item for item in entries if not item.get("counts_as_unresolved_shortfall", True)]
+
+    def _table(rows: list[str]) -> str:
+        return (
+            '<div class="table-wrap"><table class="report-table"><thead><tr>'
+            "<th>#</th><th>Aldersgruppe</th><th>Klubb</th><th>Lag</th><th>Halvdel</th>"
+            "<th>Faktisk/Mål</th><th>Klubb-pool</th><th>Årsak</th>"
+            f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+        )
+
+    actionable_rows = [
+        _render_row(idx, item) for idx, item in enumerate(sorted(actionable, key=_sort_key), start=1)
+    ]
+    if not actionable_rows:
+        actionable_rows.append(
+            '<tr><td colspan="8" class="empty-cell">Ingen ubekreftede deltakelsesavvik.</td></tr>'
+        )
+
+    section = (
         '<section class="report-section" id="participationShortfalls">'
         '<div class="section-head"><div><p class="eyebrow">Deltakelse</p>'
         "<h2>Deltakelsesavvik som ikke fikk plass automatisk</h2></div>"
-        f'<p class="section-note">{len(entries)} lag deltar ikke det konfigurerte antallet ganger. '
+        f'<p class="section-note">{len(actionable)} lag deltar ikke det konfigurerte antallet ganger. '
         "Dette er ikke en ledig-istid-oppgave, men et planleggingsavvik som må vurderes før publisering.</p>"
         "</div>"
-        '<div class="table-wrap"><table class="report-table"><thead><tr>'
-        "<th>#</th><th>Aldersgruppe</th><th>Klubb</th><th>Lag</th><th>Halvdel</th><th>Faktisk/Mål</th><th>Årsak</th>"
-        f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
-        "</section>"
+        f"{_table(actionable_rows)}"
     )
+
+    if informational:
+        info_rows = [
+            _render_row(idx, item)
+            for idx, item in enumerate(sorted(informational, key=_sort_key), start=1)
+        ]
+        section += (
+            '<div class="section-head" style="margin-top:1.5rem"><div><p class="eyebrow">Informasjon</p>'
+            "<h3>Fordeling mellom lag i samme klubb</h3></div>"
+            f'<p class="section-note">{len(informational)} lag har en annen fordeling enn målet, '
+            "men klubben har samlet sett fått sine deltakelsesplasser i aldersgruppen. "
+            "Dette er en intern fordeling mellom lagene, ikke et manglende deltakelsesavvik.</p>"
+            "</div>"
+            f"{_table(info_rows)}"
+        )
+    section += "</section>"
+    return section
 
 
 def _waiver_section_html(entries: list[dict[str, object]]) -> str:

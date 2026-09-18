@@ -1143,3 +1143,68 @@ def test_revocation_matches_a_legacy_acceptance_without_prior_migration(tmp_path
 
     assert revoked["revoked_at"]
     assert load_participation_acceptances(YEAR, root=root) == []
+
+
+def test_intra_club_distribution_is_not_an_actionable_participation_finding() -> None:
+    """An aggregate-complete multi-team pool split 5+3 is intra-club
+    distribution: visible as evidence but not an unresolved finding/search
+    objective (only a genuine club-pool deficit is)."""
+    from tournament_scheduler.season_maintenance import (
+        _manual_count,
+        _participation_findings,
+        _unresolved_participation_deviation_count,
+    )
+
+    verification = {
+        "participation_deviations": [
+            {
+                "club": "Jar",
+                "team": "Jar Hvit",
+                "age_group": "JU10",
+                "scope": "after_christmas",
+                "direction": "over_target",
+                "actual": 5,
+                "target": 4,
+                "deviation": 1,
+                "avoidability": "avoidable",
+                "club_pool_classification": "intra_club_distribution",
+                "counts_as_unresolved_shortfall": False,
+            },
+            {
+                "club": "Jar",
+                "team": "Jar Blå",
+                "age_group": "JU10",
+                "scope": "after_christmas",
+                "direction": "under_target",
+                "actual": 3,
+                "target": 4,
+                "deviation": -1,
+                "avoidability": "avoidable",
+                "club_pool_classification": "intra_club_distribution",
+                "counts_as_unresolved_shortfall": False,
+            },
+            {
+                "club": "Kongsberg",
+                "team": "Kongsberg 1",
+                "age_group": "JU10",
+                "scope": "after_christmas",
+                "direction": "under_target",
+                "actual": 2,
+                "target": 4,
+                "deviation": -2,
+                "avoidability": "bounded_search_exhausted",
+                "club_pool_classification": "material_club_pool_shortfall",
+                "counts_as_unresolved_shortfall": True,
+            },
+        ],
+        "manual_participation_placements": [
+            {"club": "Jar", "counts_as_unresolved_shortfall": False},
+            {"club": "Kongsberg", "counts_as_unresolved_shortfall": True},
+        ],
+    }
+
+    findings = _participation_findings(verification, {})
+    clubs = {finding["club"] for finding in findings}
+    assert clubs == {"Kongsberg"}
+    assert _unresolved_participation_deviation_count(verification) == 1
+    assert _manual_count(verification) == 1

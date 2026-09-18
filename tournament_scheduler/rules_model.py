@@ -142,16 +142,27 @@ def _arena_collision_rule(plan: SeasonPlan) -> dict[str, Any]:
 
 def _participation_shortfall_rule(plan: SeasonPlan) -> dict[str, Any]:
     unresolved = list(plan.unresolved_participation_shortfalls or [])
-    if unresolved:
+    # A multi-team club whose aggregate age-group pool is complete but whose
+    # team labels are uneven is intra-club distribution, not a genuine missing
+    # participation opportunity -- keep it visible but do not report it as an
+    # unresolved shortfall.
+    genuine = [item for item in unresolved if item.get("counts_as_unresolved_shortfall", True)]
+    intra_club = [item for item in unresolved if not item.get("counts_as_unresolved_shortfall", True)]
+    if genuine:
         def _label(item: dict[str, Any]) -> str:
             half = item.get("period")
             half_suffix = f", {half}" if half else ""
             return f"{item.get('label', '?')} ({item.get('actual', '?')}/{item.get('target', '?')}{half_suffix})"
 
-        names = ", ".join(_label(item) for item in unresolved)
-        status = f"{len(unresolved)} avvik: {names}"
+        names = ", ".join(_label(item) for item in genuine)
+        status = f"{len(genuine)} avvik: {names}"
     else:
         status = "Oppfylt"
+    if intra_club:
+        status += (
+            f". {len(intra_club)} lag har en intern fordelingsulikhet i en aldersgruppe "
+            "der klubben samlet har fått sine deltakelsesplasser (ikke en manglende deltakelse)."
+        )
     return {
         "id": "participation_shortfalls",
         "title": "Lag under sitt mål for antall turneringsdeltakelser",
@@ -163,11 +174,14 @@ def _participation_shortfall_rule(plan: SeasonPlan) -> dict[str, Any]:
             "ikke fantes nok ledige turneringsplasser), avvises ikke hele planen — dette er en "
             "ikke-blokkerende mangel, ikke istidsarbeid, og rapporteres her i stedet for i "
             "«Må planlegges manuelt». Et lag som er planlagt *over* et eksplisitt mål er derimot "
-            "et hardt verifikatoravvik — se «Deltakelsesmål må ikke overskrides» blant hardkravene."
+            "et hardt verifikatoravvik — se «Deltakelsesmål må ikke overskrides» blant hardkravene. "
+            "For klubber med flere lag i samme aldersgruppe vurderes klubbens samlede spillerpool; "
+            "en jevn fordeling mellom lagnavnene er sekundært så lenge klubben har fått sine "
+            "deltakelsesplasser."
         ),
         "configured_value": "Faktisk ≥ mål",
         "status": status,
-        "ok": not unresolved,
+        "ok": not genuine,
         "detail_rows": (
             {
                 "label": "Vis avvik per lag",

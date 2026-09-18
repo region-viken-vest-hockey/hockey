@@ -25,6 +25,7 @@ from ..plan_derived_state import (
     reconcile_plan_derived_state,
 )
 from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+from ..participation_targets import INTRA_CLUB_DISTRIBUTION
 from . import audit_evidence
 from .audit_result import current_export_fingerprint, current_run_id
 from .fingerprints import stable_payload_sha256
@@ -490,6 +491,12 @@ def _collect_plan_audit_facts(
         # an individual team's miss against the club aggregate above instead
         # of only seeing an unlabeled actual/target pair.
         "unresolved_participation_shortfalls": list(plan_dict.get("unresolved_participation_shortfalls") or []),
+        # Club x age-group x scope aggregate player-pool view (classification +
+        # exact team distribution). Exposed alongside the exact per-team
+        # shortfalls above so the semantic judge can distinguish a genuine
+        # club-pool shortage from an intra-club label imbalance without
+        # inventing the rule from team names.
+        "participation_club_pools": list(plan_dict.get("participation_club_pools") or []),
         # issue #329: same-age hosting-coverage repairs already attempted
         # (repaired or rejected-with-reason), before cross-age repair below,
         # for this plan's remaining `unresolved_hosting_obligations`.
@@ -505,6 +512,30 @@ def _collect_plan_audit_facts(
         # behind it yet). Kept in full here so the selective-evidence API can
         # retrieve an exact roster on demand.
         "unresolved_tournament_placements": list(plan_dict.get("unresolved_tournament_placements") or []),
+    }
+
+
+def _summarize_club_pools(pools: list[dict[str, Any]]) -> dict[str, Any]:
+    """Bounded overview of the club x age-group player-pool classifications.
+
+    Counts by classification plus the unresolved examples, so a judge can see
+    how many residuals are a genuine club/player-pool shortage versus a pure
+    intra-club label distribution without loading the full pool list.
+    """
+    working = [pool for pool in pools if isinstance(pool, dict)]
+    by_classification: dict[str, int] = {}
+    for pool in working:
+        name = str(pool.get("classification") or "unknown")
+        by_classification[name] = by_classification.get(name, 0) + 1
+    unresolved = [pool for pool in working if pool.get("counts_as_unresolved_shortfall")]
+    intra = [pool for pool in working if pool.get("classification") == INTRA_CLUB_DISTRIBUTION]
+    return {
+        "by_classification": dict(sorted(by_classification.items())),
+        "unresolved_count": len(unresolved),
+        "intra_club_distribution_count": len(intra),
+        "unresolved_examples": unresolved[: audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+        "intra_club_distribution_examples": intra[: audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+        "evidence_ref": "operator audit-evidence --category participation_club_pools",
     }
 
 
@@ -571,6 +602,8 @@ def _summarize_plan_facts(facts: dict[str, Any]) -> dict[str, Any]:
             "evidence_ref": "operator audit-evidence --category same_club_participants",
         },
         "unresolved_participation_shortfall_count": len(facts["unresolved_participation_shortfalls"]),
+        "participation_club_pool_count": len(facts.get("participation_club_pools") or []),
+        "participation_club_pool_summary": _summarize_club_pools(facts.get("participation_club_pools") or []),
         "club_participation_fairness_count": len(facts["club_participation_fairness"]),
         "same_age_hosting_repair_count": len(facts["same_age_hosting_repairs"]),
         "cross_age_hosting_repair_count": len(facts["cross_age_hosting_repairs"]),
