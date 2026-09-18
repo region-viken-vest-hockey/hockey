@@ -56,7 +56,7 @@ season search               -> bounded neighborhood search when cheaper options 
 season apply-repair         -> atomic, full-season-verified, revision-bound apply + delta
 ```
 
-Findings are independent facts, not a mandatory queue: select whichever finding matters next. Options and findings are bound to the canonical revision they came from; applying against a changed revision is rejected as stale and leaves canonical state unchanged. A `bounded_search_exhausted` participation deviation is not proof of infeasibility -- request another bounded search rather than recording it as `proven_infeasible`. Repairs must never transfer hosting responsibility to a club that does not owe it, and must never make another club's hosting deficit worse.
+Findings are independent facts, not a mandatory queue: select whichever finding matters next. Options and findings are bound to the canonical revision they came from; applying against a changed revision is rejected as stale and leaves canonical state unchanged. A `bounded_search_exhausted` participation deviation is not proof of infeasibility -- request another bounded search rather than recording it as `proven_infeasible`. Repairs must never transfer hosting responsibility to a club that does not owe it, and must never make another club's hosting deficit worse. Respect the repository's repair-cost order: when a tournament's host/date/arena/time are already legal and only the selected roster conflicts, the first options are placement-preserving roster substitutions, so do not move the slot or escalate to a broader search while a verified substitution exists.
 
 Never hand-edit canonical season JSON to work around a lock or verifier.
 

@@ -642,10 +642,16 @@ def verify_candidate(
         dict(entry) for entry in (_canonical_baseline.get("orphaned_approvals") or [])
     ]
 
-    def _violate(code: str, message: str, tournament_id: Optional[str] = None) -> None:
+    def _violate(
+        code: str,
+        message: str,
+        tournament_id: Optional[str] = None,
+        **extra: Any,
+    ) -> None:
         entry: Dict[str, Any] = {"code": code, "message": message}
         if tournament_id is not None:
             entry["tournament_id"] = tournament_id
+        entry.update(extra)
         violations.append(entry)
 
     # --- self-consistent checks (no problem required) ----------------------
@@ -757,10 +763,19 @@ def verify_candidate(
         for t_date, t_id in entries:
             by_date.setdefault(t_date, []).append(t_id)
         for t_date, ids in by_date.items():
-            if len(ids) > 1:
+            distinct_ids = sorted(set(ids))
+            # A team appearing twice in *one* tournament is already reported as
+            # ``duplicate_team_in_tournament``; only two or more distinct
+            # tournaments on the same date are a genuine double-booking. The
+            # structured team/date/tournament evidence lets a repair provider
+            # route a stable finding without parsing the message.
+            if len(distinct_ids) > 1:
                 _violate(
                     "duplicate_participation_same_date",
-                    f"Team {display!r} is scheduled in {len(ids)} tournaments on {t_date.isoformat()}: {ids}",
+                    f"Team {display!r} is scheduled in {len(distinct_ids)} tournaments on {t_date.isoformat()}: {distinct_ids}",
+                    team=list(identity),
+                    date=t_date.isoformat(),
+                    tournament_ids=distinct_ids,
                 )
 
     if problem is None:

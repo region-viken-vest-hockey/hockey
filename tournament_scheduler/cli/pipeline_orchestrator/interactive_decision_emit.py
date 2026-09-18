@@ -170,6 +170,46 @@ def _underfilled_roster_repair_context(
     return context
 
 
+def _placement_preserving_roster_repair_context(
+    plan: "dict[str, Any]",
+    problem: "dict[str, Any] | None",
+    *,
+    run_id: str,
+    candidate_ref: str,
+    require_options: bool = False,
+) -> "Any | None":
+    """Repair context for a participant conflict on an already-valid placement.
+
+    A tournament whose host/date/arena/start time are already legal but which
+    selects a double-booked (or duplicated) participant must be repaired by
+    reselecting that participant first -- moving the whole tournament is a
+    higher-cost change. This context exposes the repository-generated
+    substitution option ids plus explicit rejection evidence so the cheap
+    roster repair is always tried before any date/host or solver pass.
+    """
+    from ...placement_preserving_roster_repair import (
+        build_placement_preserving_roster_decision_context,
+    )
+    from ...planning_contract import extract_candidate
+
+    violations = _baseline_hard_violations_for_plan(plan, problem)
+    conflict_codes = (
+        "duplicate_participation_same_date:",
+        "duplicate_team_in_tournament:",
+    )
+    if not any(str(v).startswith(conflict_codes) for v in violations):
+        return None
+    context = build_placement_preserving_roster_decision_context(
+        extract_candidate(plan),
+        problem,
+        run_id=run_id,
+        candidate_ref=candidate_ref,
+    )
+    if require_options and not context.facts.get("repair_options"):
+        return None
+    return context
+
+
 def _local_repair_context(
     plan: "dict[str, Any]",
     problem: "dict[str, Any] | None",
@@ -180,13 +220,15 @@ def _local_repair_context(
 ) -> "Any | None":
     """Repository-generated repair context for *plan*, cheapest family first.
 
-    The small local families (underfilled roster, host-team-missing, manual
-    placement) are tried first: underfilled roster is the smallest local
-    defect, so it is preferred when it actually has a legal option. Only when
-    none of them exposes a legal option does the bounded neighborhood search
-    run, so a localized defect that a direct fill/swap/rehost already repairs
-    never pays for a solver pass. A family that only has rejection evidence
-    must not shadow a different family that does have an option.
+    The small local families (underfilled roster, host-team-missing,
+    placement-preserving roster, manual placement) are tried first: a
+    participant-level defect with an already-valid placement is repaired by
+    reselecting the roster before any provider is allowed to move the
+    tournament. Only when none of them exposes a legal option does the bounded
+    neighborhood search run, so a localized defect that a direct fill/swap/rehost
+    already repairs never pays for a solver pass. A family that only has
+    rejection evidence must not shadow a different family that does have an
+    option.
 
     When nothing has a legal option, *require_options* suppresses the context
     so a caller can fall back to the ordinary comparison context (which can
@@ -204,6 +246,7 @@ def _local_repair_context(
         for builder in (
             _underfilled_roster_repair_context,
             _host_team_missing_repair_context,
+            _placement_preserving_roster_repair_context,
             _host_placement_repair_context,
         )
     ]

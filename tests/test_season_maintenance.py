@@ -374,3 +374,65 @@ def test_hard_finding_reuses_the_common_stage3_repair_providers(tmp_path: Path) 
     assert applied["ok"] is True
     assert applied["delta"]["hard_violations_before"] == 1
     assert applied["delta"]["hard_violations_after"] == 0
+
+
+def test_promoted_season_exposes_placement_preserving_roster_repair(tmp_path: Path) -> None:
+    """A double-booked team is repaired by roster only, never by moving the slot.
+
+    This is the season-maintenance counterpart of the production Kongsberg
+    movable-capacity case: the tournament's host/date/arena/start time are
+    already legal, so the first repair must keep that placement and only
+    reselect the conflicting participant.
+    """
+    teams = _teams(["Nordby", "Sorby", "Tredje", "Fjerde"])
+    problem = _problem(teams)
+    plan = _plan(
+        [
+            _tournament("T1", "2026-10-10", "Nordby", [teams[0], teams[2], teams[4], teams[6]]),
+            _tournament("T2", "2026-10-10", "Sorby", [teams[3], teams[2], teams[5], teams[7]]),
+        ]
+    )
+    root = tmp_path / "season"
+    revision = _write_season(root, plan, problem)
+
+    findings = list_findings(YEAR, root=root)
+    conflict = next(
+        finding
+        for finding in findings["findings"]
+        if finding["code"] == "duplicate_participation_same_date"
+    )
+    assert conflict["finding_id"] == "duplicate_participation_same_date:T1+T2"
+    assert conflict["tournament_ids"] == ["T1", "T2"]
+
+    options = repair_options(YEAR, conflict["finding_id"], root=root)
+    t1_options = [option for option in options["options"] if option["tournament_id"] == "T1"]
+    assert t1_options
+    chosen = t1_options[0]
+    assert chosen["family"] == "placement_preserving_roster"
+    assert chosen["evidence"]["placement_unchanged"] is True
+    assert chosen["evidence"]["host_club"] == "Nordby"
+    assert chosen["evidence"]["date"] == "2026-10-10"
+
+    applied = apply_repair(
+        YEAR,
+        chosen["option_id"],
+        revision,
+        root=root,
+        finding_id=conflict["finding_id"],
+    )
+
+    assert applied["ok"] is True, applied
+    assert applied["delta"]["hard_violations_after"] == 0
+    assert applied["delta"]["changed_tournament_count"] == 1
+    repaired = next(
+        tournament
+        for tournament in json.loads(
+            (root / YEAR / "schedule.json").read_text(encoding="utf-8")
+        )["plan"]["tournaments"]
+        if tournament["id"] == "T1"
+    )
+    assert repaired["date"] == "2026-10-10"
+    assert repaired["arena"] == "Nordby Arena"
+    assert repaired["host_club"] == "Nordby"
+    assert repaired["start_time"] == "10:00"
+    assert "Sorby 1" not in {team["label"] for team in repaired["teams"]}

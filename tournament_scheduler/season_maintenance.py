@@ -290,19 +290,34 @@ def _hard_findings(plan: Mapping[str, Any], verification: Mapping[str, Any]) -> 
     out: List[Dict[str, Any]] = []
     for index, violation in enumerate(verification.get("violations") or [], start=1):
         code = str(violation.get("code") or "hard_violation")
-        tournament_id = str(violation.get("tournament_id") or "")
-        finding_id = f"{code}:{tournament_id}" if tournament_id else f"{code}:{index}"
-        out.append(
-            {
-                "finding_id": finding_id,
-                "code": code,
-                "category": HARD_VIOLATION,
-                "severity": "hard",
-                "age_group": violation.get("age_group"),
-                "tournament_id": tournament_id or None,
-                "message": violation.get("message") or code,
-            }
+        tournament_ids = sorted(
+            {str(item) for item in violation.get("tournament_ids") or [] if item}
         )
+        tournament_id = str(violation.get("tournament_id") or "")
+        if tournament_id and tournament_id not in tournament_ids:
+            tournament_ids = sorted({tournament_id, *tournament_ids})
+        # A stable finding id: prefer the exact tournament scope the finding
+        # names, and only fall back to the violation index when the verifier
+        # reports no tournament identity at all.
+        if tournament_ids:
+            finding_id = f"{code}:{'+'.join(tournament_ids)}"
+        else:
+            finding_id = f"{code}:{index}"
+        entry: Dict[str, Any] = {
+            "finding_id": finding_id,
+            "code": code,
+            "category": HARD_VIOLATION,
+            "severity": "hard",
+            "age_group": violation.get("age_group"),
+            "tournament_id": tournament_ids[0] if tournament_ids else None,
+            "message": violation.get("message") or code,
+        }
+        if tournament_ids:
+            entry["tournament_ids"] = tournament_ids
+        for key in ("team", "date"):
+            if violation.get(key) is not None:
+                entry[key] = violation[key]
+        out.append(entry)
     return out
 
 
@@ -530,6 +545,7 @@ def _hard_options(
         finding["finding_id"],
         family=None,
         tournament_id=finding.get("tournament_id"),
+        tournament_ids=finding.get("tournament_ids"),
     )
     if allow_search:
         search_set = enumerate_search_neighborhood_repairs(
@@ -560,7 +576,11 @@ def _collect(
     family: Optional[str],
     apply_finding_filter: bool = True,
     tournament_id: Optional[str] = None,
+    tournament_ids: Optional[Iterable[str]] = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    scope_ids = {str(item) for item in (tournament_ids or []) if item}
+    if tournament_id:
+        scope_ids.add(str(tournament_id))
     options: List[Dict[str, Any]] = []
     for option in repair_set.get("options") or []:
         if apply_finding_filter and option.get("finding_id") != finding_id:
@@ -568,7 +588,9 @@ def _collect(
             # (for example a movable-capacity opportunity for a tournament the
             # placement provider reports as manual) is still a legal repair for
             # this tournament, so keep it rather than hiding it.
-            if not (tournament_id and str(option.get("tournament_id") or "") == str(tournament_id)):
+            if not (
+                scope_ids and str(option.get("tournament_id") or "") in scope_ids
+            ):
                 continue
         payload = dict(option)
         payload["family"] = family or option.get("family") or ""

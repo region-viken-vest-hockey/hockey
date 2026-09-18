@@ -38,6 +38,10 @@ from .participation_deviation_repair import (
     apply_participation_deviation_repair_option,
     enumerate_participation_deviation_repairs,
 )
+from .placement_preserving_roster_repair import (
+    apply_placement_preserving_roster_repair_option,
+    enumerate_placement_preserving_roster_repairs,
+)
 from .search_neighborhood_repair import (
     apply_search_neighborhood_repair_option,
     enumerate_search_neighborhood_repairs,
@@ -56,6 +60,11 @@ ApplyFn = Callable[..., Dict[str, Any]]
 REPAIR_PROVIDERS: Tuple[Tuple[str, EnumerateFn, ApplyFn], ...] = (
     ("underfilled_roster", enumerate_underfilled_roster_repairs, apply_underfilled_roster_repair_option),
     ("host_team_missing", enumerate_host_team_missing_repairs, apply_host_team_missing_repair_option),
+    (
+        "placement_preserving_roster",
+        enumerate_placement_preserving_roster_repairs,
+        apply_placement_preserving_roster_repair_option,
+    ),
     ("host_placement", enumerate_host_placement_repairs, apply_host_placement_repair_option),
     ("hosting_balance", enumerate_hosting_balance_repairs, apply_hosting_balance_repair_option),
     (
