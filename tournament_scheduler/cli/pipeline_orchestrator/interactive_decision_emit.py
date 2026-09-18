@@ -16,6 +16,34 @@ from .verification import _baseline_hard_violations_for_plan, _mid_planning_deci
 _INTERACTIVE_STAGE_KEYS = {1: "config", 2: "scraping", 3: "planning", 4: "export"}
 
 
+def _with_current_candidate_adoption(
+    context: "Any",
+    *,
+    plan: dict[str, Any],
+    problem: "dict[str, Any] | None",
+    has_baseline: bool,
+) -> "Any":
+    """Keep the exact current hard-valid attempt adoptable from a repair context.
+
+    A local-repair context is emitted for the attempt the session now holds.
+    When a previous attempt exists as the session baseline, ``keep_baseline``
+    restores that *previous* attempt, so without an explicit adopt-current
+    action a hard-valid optimized attempt would have no route to finalization.
+    This only exposes the existing ``apply_candidate`` transition (resolved
+    against the context's own ``candidate_ref``); it changes no repair
+    semantics and never offers to adopt a hard-invalid candidate.
+    """
+    from dataclasses import replace as _dc_replace
+
+    if not has_baseline or "apply_candidate" in context.available_actions:
+        return context
+    if _baseline_hard_violations_for_plan(plan, problem):
+        return context
+    return _dc_replace(
+        context, available_actions=tuple(context.available_actions) + ("apply_candidate",)
+    )
+
+
 def _decision_summary_for_checkpoint(
     stage_num: int, checkpoint: dict[str, Any], *, effective_config: dict[str, Any] | None = None
 ) -> dict[str, Any]:
@@ -641,7 +669,12 @@ def _emit_stage3_interactive_decision(
         )
         report = None
         if repair_context is not None:
-            context = repair_context
+            # The repair context is about the current attempt, but
+            # ``keep_baseline`` would restore the previous baseline; expose an
+            # explicit route to finalize the current hard-valid attempt.
+            context = _with_current_candidate_adoption(
+                repair_context, plan=plan, problem=problem, has_baseline=True
+            )
         else:
             try:
                 report = build_ab_report(extract_candidate(best_plan), extract_candidate(plan), problem)

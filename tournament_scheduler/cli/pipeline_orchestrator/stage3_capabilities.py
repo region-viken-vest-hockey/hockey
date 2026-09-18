@@ -261,14 +261,27 @@ class InteractiveStage3Capabilities:
         capability = str((session.pending_decision or {}).get("capability") or "")
         marker = session.pending_marker()
         if capability == "shared_host_assignment":
+            # Run-scoped pre-plan ask: record it as unresolved and let the
+            # caller re-ask. It never selects a hosting club.
             unresolved = list(session.shared_host_unresolved) + [dict(marker)]
             return Stage3CapabilityResult(ok=True, unresolved=unresolved)
         if capability == "arena_conflict_resolution":
+            # Candidate-scoped double-booking ask: record it as unresolved and
+            # let the caller continue. It never demotes a placement.
             unresolved = list(session.arena_unresolved) + [{"key": marker.get("key")}]
             return Stage3CapabilityResult(ok=True, unresolved=unresolved)
-        # Candidate-scoped operator request: keep the persisted best baseline
-        # and let the session finalize it.
-        return self._apply_keep_baseline(session, action)
+        # Candidate-scoped escalation (attempt comparison, local repair, a
+        # future capability): pause on the exact current candidate and let the
+        # operator answer later. It must not restore the baseline, rewrite the
+        # checkpoint or finalize Stage 3 -- the lifecycle controller turns this
+        # result into an explicit awaiting-operator session state.
+        return Stage3CapabilityResult(
+            ok=True,
+            operator_request={
+                "question": str(action.arguments.get("question") or ""),
+                "capability": capability,
+            },
+        )
 
     # -- candidate transitions -------------------------------------------
 

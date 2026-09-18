@@ -701,6 +701,7 @@ def status_for_session(session: Stage3Session) -> dict[str, Any]:
             if session.pending_decision
             else None
         ),
+        "operator_request": dict(session.operator_request) if session.operator_request else None,
         "shared_host_decisions": len(session.shared_host_decisions),
         "arena_decisions": len(session.arena_decisions),
         "unresolved": {

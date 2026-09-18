@@ -17,6 +17,7 @@ from tournament_scheduler.application.stage3_controller import (
 from tournament_scheduler.application.stage3_session import (
     SCOPE_CANDIDATE,
     SCOPE_RUN,
+    STATUS_AWAITING_OPERATOR,
     STATUS_FINALIZED,
     Stage3Session,
     candidate_content_fingerprint,
@@ -597,3 +598,84 @@ class TestOperatorRequest:
         assert outcome.accepted is True
         assert session.pending_decision is not None
         assert session.pending_decision["capability"] == "stage3_operator"
+
+    def test_request_operator_pauses_on_the_exact_current_candidate(self):
+        """Escalating must not select, mutate or finalize a candidate."""
+        session = _session_with_candidate(1)
+        revision_before = session.candidate_revision
+        fingerprint_before = session.candidate_fingerprint
+        capabilities = _FakeCapabilities(
+            {
+                "request_operator": Stage3CapabilityResult(
+                    ok=True,
+                    operator_request={
+                        "question": "confirm the manual placement?",
+                        "capability": "host_placement_repair",
+                    },
+                )
+            }
+        )
+
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(
+                action_id="request_operator",
+                arguments={"question": "confirm the manual placement?"},
+                rationale="host confirmation",
+            ),
+            capabilities,
+        )
+
+        assert outcome.accepted is True
+        assert session.is_finalized() is False
+        assert session.candidate_revision == revision_before
+        assert session.candidate_fingerprint == fingerprint_before
+        assert session.candidate == _plan(1)
+        assert session.status == STATUS_AWAITING_OPERATOR
+        # The pending decision is retained so the operator answer still
+        # targets the same revision.
+        assert session.pending_decision is not None
+        assert session.pending_decision["capability"] == "stage3_interactive"
+        assert session.operator_request["question"] == "confirm the manual placement?"
+        assert session.operator_request["candidate_revision"] == revision_before
+        assert session.operator_request["candidate_fingerprint"] == fingerprint_before
+
+    def test_operator_resume_selects_current_candidate_and_clears_operator_request(self):
+        session = _session_with_candidate(1)
+        Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(action_id="request_operator", arguments={"question": "which?"}),
+            _FakeCapabilities(
+                {
+                    "request_operator": Stage3CapabilityResult(
+                        ok=True, operator_request={"question": "which?"}
+                    )
+                }
+            ),
+        )
+        assert session.operator_request is not None
+
+        capabilities = _FakeCapabilities(
+            {
+                "select_candidate": Stage3CapabilityResult(
+                    ok=True,
+                    candidate=_plan(1),
+                    candidate_fingerprint=candidate_content_fingerprint(_candidate(1)),
+                    candidate_changed=False,
+                    final=True,
+                )
+            }
+        )
+        outcome = Stage3Controller(clock=lambda: "T").handle(
+            session,
+            DecisionAction(
+                action_id="apply_candidate",
+                arguments={"candidate_ref": "stage3_interactive:attempt_1"},
+                rationale="adopt the current attempt",
+            ),
+            capabilities,
+        )
+
+        assert outcome.accepted is True
+        assert session.is_finalized()
+        assert session.operator_request is None

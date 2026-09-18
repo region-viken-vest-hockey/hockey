@@ -56,6 +56,21 @@ def _render_decision_payload(payload: dict[str, Any], work_dir: str) -> int:
     return 2
 
 
+def _operator_request_payload(session: "Any") -> dict[str, Any]:
+    """Build the paused DecisionContext payload for an awaiting-operator session.
+
+    The persisted candidate-scoped context is re-rendered unchanged (the
+    operator still answers the same decision) with the recorded question and
+    the exact candidate revision/fingerprint it refers to. This is transport
+    only: the session already owns the pause state.
+    """
+    context = dict((session.pending_decision or {}).get("context") or {})
+    request = session.operator_request
+    if isinstance(request, dict) and request:
+        context["operator_request"] = dict(request)
+    return context
+
+
 def _emit_pending_stage3_subdecision_context(state: "Any", work_dir: str, resume_from: int) -> int | None:
     """Re-emit an unanswered in-Stage-3 decision, if one is pending.
 
@@ -79,7 +94,9 @@ def _emit_pending_stage3_subdecision_context(state: "Any", work_dir: str, resume
     context = pending.get("context")
     if not isinstance(context, dict) or not context:
         return None
-    return _render_decision_payload(context, work_dir)
+    # An awaiting-operator pause carries its recorded question alongside the
+    # unchanged candidate-scoped context.
+    return _render_decision_payload(_operator_request_payload(session), work_dir)
 
 
 def _cmd_run_interactive(args: argparse.Namespace) -> int:
@@ -398,6 +415,12 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
                     _console.print(f"[red]✗[/red] Stage 3-avgjørelse avvist: {outcome.reason}.")
                     return 1
                 session_store.save(session)
+                from ...application.stage3_session import STATUS_AWAITING_OPERATOR
+
+                if session.status == STATUS_AWAITING_OPERATOR:
+                    # Escalation pauses on the exact current candidate; it must
+                    # not advance to Stage 4 or rebuild Stage 3.
+                    return _render_decision_payload(_operator_request_payload(session), args.work_dir)
         elif decision_action.action_id == "retry_stage":
             resume_from = prev_stage_num
 

@@ -64,6 +64,10 @@ class Stage3CapabilityResult:
     next_marker: dict[str, Any] = field(default_factory=dict)
     search_exhausted: bool = False
     final: bool = False
+    # Set when the transition is a candidate-scoped ``request_operator``: the
+    # session must pause on the exact current candidate revision/fingerprint
+    # rather than select, mutate or finalize one.
+    operator_request: dict[str, Any] | None = None
     shared_host_decisions: list[dict[str, Any]] | None = None
     arena_decisions: list[dict[str, Any]] | None = None
     unresolved: list[dict[str, Any]] | None = None
@@ -149,6 +153,19 @@ class Stage3Controller:
                 session.candidate_source = result.candidate_source
 
         self._apply_provenance(session, result)
+
+        if result.operator_request is not None:
+            # Candidate-scoped escalation: record the operator question and
+            # pause, keeping the current candidate revision/fingerprint and the
+            # pending decision intact. It must never select or finalize a
+            # candidate the operator did not choose.
+            session.raise_operator_request(
+                question=str(result.operator_request.get("question") or ""),
+                rationale=str(result.operator_request.get("rationale") or action.rationale or ""),
+                at=self._clock(),
+                capability=str(result.operator_request.get("capability") or ""),
+            )
+            return Stage3TransitionOutcome(True, session, transition)
 
         if result.final:
             session.finalize(

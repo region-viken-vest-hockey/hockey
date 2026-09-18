@@ -590,3 +590,132 @@ def test_arena_transition_accepts_demotion_when_attempt_already_exceeds_target(t
     assert len(persisted["plan"]["unresolved_tournament_placements"]) == 1
     assert all(t.get("start_time") is not None for t in persisted["plan"]["tournaments"])
 
+
+
+# ---------------------------------------------------------------------------
+# Regression: a candidate-scoped operator escalation must pause on the exact
+# current revision, and the operator must still be able to finalize the
+# current (hard-valid) attempt rather than only restore the old baseline.
+# ---------------------------------------------------------------------------
+
+
+def _candidate_scoped_operator_fixture(tmp_path):
+    """A session on attempt 2 of a lineage where attempt 1 is the baseline.
+
+    Mirrors the production shape: ``optimize_plan`` produced a hard-valid
+    attempt 2, ``bind_candidate`` retained attempt 1 as the baseline, and a
+    manual-placement repair context is pending on attempt 2.
+    """
+    from tournament_scheduler.application.stage3_session_store import fingerprint_plan
+
+    state = PipelineState(str(tmp_path))
+    baseline_plan = {"plan": {"tournaments": [{"id": "baseline"}]}, "warnings": []}
+    attempt_plan = {"plan": {"tournaments": [{"id": "attempt"}]}, "warnings": []}
+    state.write_stage(StageName.PLANNING, attempt_plan, status=StageStatus.DONE)
+    state.write_stage(
+        StageName.CONFIG, {"start_date": "2026-09-01", "end_date": "2027-04-30"}, status=StageStatus.DONE
+    )
+
+    store = Stage3SessionStore(tmp_path)
+    store.bind_candidate(baseline_plan, run_id="run-1", source="baseline")
+    store.bind_candidate(
+        attempt_plan, run_id="run-1", source="search", transition="run_search", action_id="optimize_plan"
+    )
+    session = store.load("run-1")
+    fingerprint = fingerprint_plan(attempt_plan)
+    session.set_pending(
+        capability="host_placement_repair",
+        context={
+            "capability": "host_placement_repair",
+            "facts": {"candidate_fingerprint": fingerprint},
+            "available_actions": [
+                "apply_repair_option",
+                "keep_baseline",
+                "optimize_plan",
+                "request_operator",
+                "apply_candidate",
+            ],
+        },
+        candidates=[{"candidate": attempt_plan, "candidate_ref": "stage3_interactive:attempt_2"}],
+        attempt=2,
+    )
+    store.save(session)
+    return state, store, baseline_plan, attempt_plan
+
+
+def test_candidate_scoped_request_operator_pauses_without_mutating_candidate(tmp_path):
+    from tournament_scheduler.application.stage3_session import (
+        STATUS_AWAITING_OPERATOR,
+        candidate_content_fingerprint,
+    )
+
+    state, store, _baseline_plan, attempt_plan = _candidate_scoped_operator_fixture(tmp_path)
+    checkpoint_before = json.dumps(state.read_stage(StageName.PLANNING), sort_keys=True)
+    session = store.load("run-1")
+    revision_before = session.candidate_revision
+    fingerprint_before = session.candidate_fingerprint
+    assert revision_before == 2
+
+    action = DecisionAction(
+        action_id="request_operator",
+        arguments={"question": "confirm the manual placement?"},
+        rationale="host confirmation",
+    )
+    outcome = Stage3Controller(clock=lambda: "T").handle(
+        session, action, _capabilities(state, "run-1", problem_fn=lambda *a, **k: {})
+    )
+    assert outcome.accepted is True
+    store.save(session)
+
+    reloaded = store.load("run-1")
+    assert reloaded.status == STATUS_AWAITING_OPERATOR
+    assert reloaded.is_finalized() is False
+    assert reloaded.candidate_revision == revision_before
+    assert reloaded.candidate_fingerprint == fingerprint_before
+    assert reloaded.candidate_fingerprint == candidate_content_fingerprint(attempt_plan["plan"])
+    assert reloaded.operator_request["question"] == "confirm the manual placement?"
+    assert reloaded.operator_request["candidate_revision"] == revision_before
+    # The pending candidate-scoped decision is retained, not replaced.
+    assert (reloaded.pending_decision or {}).get("capability") == "host_placement_repair"
+    # Telling the operator something must not rewrite the checkpoint.
+    assert json.dumps(state.read_stage(StageName.PLANNING), sort_keys=True) == checkpoint_before
+
+
+def test_operator_resume_finalizes_current_attempt_never_baseline(tmp_path):
+    from tournament_scheduler.application.stage3_session_store import fingerprint_plan
+
+    state, store, baseline_plan, attempt_plan = _candidate_scoped_operator_fixture(tmp_path)
+    session = store.load("run-1")
+
+    Stage3Controller(clock=lambda: "T").handle(
+        session,
+        DecisionAction(action_id="request_operator", arguments={"question": "confirm?"}),
+        _capabilities(state, "run-1", problem_fn=lambda *a, **k: {}),
+    )
+    store.save(session)
+    assert store.load("run-1").status == "awaiting_operator"
+
+    # The operator resumes by adopting the exact current attempt.
+    resumed = store.load("run-1")
+    outcome = Stage3Controller(clock=lambda: "T").handle(
+        resumed,
+        DecisionAction(
+            action_id="apply_candidate",
+            arguments={"candidate_ref": "stage3_interactive:attempt_2"},
+            rationale="adopt the hard-valid optimized attempt",
+        ),
+        _capabilities(state, "run-1", problem_fn=lambda *a, **k: {}),
+    )
+    assert outcome.accepted is True
+    store.save(resumed)
+
+    finalized = store.load("run-1")
+    assert finalized.is_finalized()
+    assert finalized.finalized_revision == 2
+    assert finalized.finalized_fingerprint == fingerprint_plan(attempt_plan)
+    assert finalized.operator_request is None
+    # Stage 4's handoff gate accepts exactly the adopted attempt and refuses
+    # the superseded baseline.
+    assert store.finalized_candidate_matches(attempt_plan) is True
+    assert store.finalized_candidate_matches(baseline_plan) is False
+    assert state.read_stage(StageName.PLANNING) == attempt_plan

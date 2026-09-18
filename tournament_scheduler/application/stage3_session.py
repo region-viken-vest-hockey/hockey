@@ -37,7 +37,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-STAGE3_SESSION_SCHEMA_VERSION = 3
+# Schema 4 adds ``operator_request`` (an explicit awaiting-operator pause that
+# preserves the current candidate revision/fingerprint). Older payloads load
+# unchanged because the field defaults to ``None``.
+STAGE3_SESSION_SCHEMA_VERSION = 4
 
 # ---------------------------------------------------------------------------
 # Status / scope / transition vocabulary
@@ -154,6 +157,12 @@ class Stage3Session:
     shared_host_unresolved: list[dict[str, Any]] = field(default_factory=list)
     arena_unresolved: list[dict[str, Any]] = field(default_factory=list)
     pending_decision: dict[str, Any] | None = None
+    # Set when a candidate-scoped ``request_operator`` pauses the session: the
+    # exact question/rationale and the candidate revision/fingerprint it refers
+    # to. Asking the operator must never select, mutate or finalize a
+    # candidate; the pending decision and current revision are preserved so the
+    # operator answer continues from the same candidate.
+    operator_request: dict[str, Any] | None = None
     decision_history: list[dict[str, Any]] = field(default_factory=list)
     attempts: dict[str, Any] = field(default_factory=dict)
     # One concise record per emitted Stage 3 attempt (action signature,
@@ -315,6 +324,9 @@ class Stage3Session:
             if resolved_scope == SCOPE_CANDIDATE and fact_fingerprint
             else self.candidate_fingerprint
         )
+        # A fresh pending decision supersedes any operator pause it is a
+        # continuation of.
+        self.operator_request = None
         self.pending_decision = {
             "capability": capability,
             "scope": resolved_scope,
@@ -327,6 +339,43 @@ class Stage3Session:
             "marker": dict(marker or {}),
         }
         self.status = _CAPABILITY_STATUS.get(capability, STATUS_AWAITING_ADOPTION)
+
+    def raise_operator_request(
+        self,
+        *,
+        question: str,
+        rationale: str,
+        at: str,
+        capability: str = "",
+    ) -> dict[str, Any]:
+        """Pause for a human/operator answer without changing candidate selection.
+
+        This is the explicit ``request_operator`` transition for a
+        candidate-scoped decision: it preserves the current candidate
+        revision/fingerprint and the pending decision (so the operator answer
+        still targets the same revision) and only records that the session is
+        waiting for an operator question to be answered.
+        """
+        request = {
+            "question": str(question),
+            "rationale": str(rationale),
+            "capability": str(capability or (self.pending_decision or {}).get("capability") or ""),
+            "candidate_revision": self.candidate_revision,
+            "candidate_fingerprint": self.candidate_fingerprint,
+            "at": at,
+        }
+        self.operator_request = request
+        self.status = STATUS_AWAITING_OPERATOR
+        self.record_history(
+            transition=TRANSITION_REQUEST_OPERATOR,
+            action_id="request_operator",
+            rationale=str(rationale),
+            from_revision=self.candidate_revision,
+            to_revision=self.candidate_revision,
+            at=at,
+            extra={"detail": {"question": str(question), "awaiting_operator": True}},
+        )
+        return request
 
     # -- continuation / progress evidence --------------------------------
 
@@ -360,6 +409,7 @@ class Stage3Session:
         must never stay stuck reporting the cleared sub-decision's status.
         """
         self.pending_decision = None
+        self.operator_request = None
         if self.candidate is None:
             self.status = STATUS_NEW
         else:
@@ -370,6 +420,7 @@ class Stage3Session:
         self.finalized_fingerprint = self.candidate_fingerprint
         self.status = STATUS_FINALIZED
         self.pending_decision = None
+        self.operator_request = None
         self.record_history(
             transition=transition,
             action_id=action_id,
@@ -398,6 +449,7 @@ class Stage3Session:
             "shared_host_unresolved": list(self.shared_host_unresolved),
             "arena_unresolved": list(self.arena_unresolved),
             "pending_decision": self.pending_decision,
+            "operator_request": self.operator_request,
             "decision_history": list(self.decision_history),
             "attempts": dict(self.attempts),
             "search_attempts": [dict(item) for item in self.search_attempts],
@@ -444,6 +496,9 @@ class Stage3Session:
             shared_host_unresolved=shared_unresolved,
             arena_unresolved=arena_unresolved,
             pending_decision=dict(data["pending_decision"]) if isinstance(data.get("pending_decision"), dict) else None,
+            operator_request=(
+                dict(data["operator_request"]) if isinstance(data.get("operator_request"), dict) else None
+            ),
             decision_history=[dict(item) for item in (data.get("decision_history") or [])],
             attempts=dict(data.get("attempts") or {}),
             search_attempts=[dict(item) for item in (data.get("search_attempts") or [])],

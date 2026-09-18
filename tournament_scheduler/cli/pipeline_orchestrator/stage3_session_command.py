@@ -53,6 +53,13 @@ def _cmd_stage3_session(args: argparse.Namespace) -> int:
         )
     else:
         _console.print("  venter på: (ingen)")
+    operator_request = view.get("operator_request")
+    if operator_request:
+        _console.print(
+            "  operatørspørsmål: "
+            f"{operator_request.get('question') or '(uten spørsmål)'} "
+            f"(revisjon {operator_request.get('candidate_revision')})"
+        )
     _console.print(f"  løste delt-vertskap: {view['shared_host_decisions']}")
     if view["finalized_revision"] is not None:
         _console.print(

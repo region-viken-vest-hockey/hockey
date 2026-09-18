@@ -2768,3 +2768,150 @@ class TestStage3HostPlacementRepairContext:
         assert repaired["host_club"] == "H"
         assert repaired["manual_booking_reason"] is None
         assert not _stage3_interactive_state_path(state).exists()
+
+
+class TestStage3OperatorEscalationLifecycle:
+    """A candidate-scoped operator escalation pauses on the exact current
+    attempt and never selects, rewrites or finalizes a candidate. The current
+    hard-valid attempt stays adoptable even from a manual/repair context."""
+
+    _CFG = {"start_date": "2026-01-01", "end_date": "2026-06-30"}
+
+    def _emit_attempt_two(self, state, tmp_path, problem, capsys):
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit import (
+            _emit_stage3_interactive_decision,
+        )
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import (
+            _write_stage3_interactive_state,
+        )
+
+        baseline = _plan_checkpoint(seed=1)
+        _write_stage3_interactive_state(
+            state,
+            {"run_id": "legacy", "attempts_used": 1, "best_attempt": 1, "best_plan": baseline},
+        )
+        # A later attempt with a manual-placement confirmation context. The
+        # attempt is hard-valid (manual placement is soft evidence), so the
+        # operator must be able to keep it instead of only restoring the old
+        # baseline.
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit._mid_planning_decision_problem",
+            return_value=problem,
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.interactive_decision_emit._maybe_run_stage3_cp_sat_shadow",
+            return_value=None,
+        ):
+            exit_code = _emit_stage3_interactive_decision(
+                state,
+                str(tmp_path),
+                self._CFG,
+                {},
+                None,
+                None,
+                _manual_placement_plan(),
+                lambda msg: None,
+            )
+        assert exit_code == 2
+        return json.loads(capsys.readouterr().out), baseline
+
+    def _problem(self):
+        problem = _manual_placement_problem()
+        problem["club_busy_intervals"] = {
+            "H": [{"date": "2026-01-10", "start": "09:00", "end": "20:00", "kind": "external"}]
+        }
+        return problem
+
+    def test_repair_context_still_offers_apply_candidate_for_current_attempt(self, state, tmp_path, capsys):
+        payload, _baseline = self._emit_attempt_two(state, tmp_path, self._problem(), capsys)
+
+        assert payload["capability"] == "host_placement_repair"
+        assert "apply_candidate" in payload["available_actions"]
+        assert "keep_baseline" in payload["available_actions"]
+        assert payload["candidate_ref"] == "stage3_interactive:attempt_2"
+
+    def test_operator_request_pauses_without_finalizing_then_resume_adopts_attempt_two(
+        self, state, tmp_path, capsys
+    ):
+        from tournament_scheduler.application.stage3_session import STATUS_AWAITING_OPERATOR
+        from tournament_scheduler.application.stage3_session_store import (
+            Stage3SessionStore,
+            fingerprint_plan,
+        )
+
+        payload, baseline = self._emit_attempt_two(state, tmp_path, self._problem(), capsys)
+        candidate_ref = payload["candidate_ref"]
+        attempt_two = state.read_stage(StageName.PLANNING)
+
+        # Submit the operator escalation. It pauses on the exact current
+        # attempt and must not advance to Stage 4 or restore the baseline.
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {
+                    "action_id": "request_operator",
+                    "arguments": {"question": "confirm the manual placement?"},
+                    "rationale": "needs operator confirmation",
+                }
+            ),
+        )
+        exit_code = _cmd_run_interactive(args)
+        paused = json.loads(capsys.readouterr().out)
+
+        assert exit_code == 2
+        assert paused["operator_request"]["question"] == "confirm the manual placement?"
+        session = Stage3SessionStore(str(tmp_path)).load()
+        assert session.status == STATUS_AWAITING_OPERATOR
+        assert session.is_finalized() is False
+        assert session.candidate_fingerprint == fingerprint_plan(attempt_two)
+        assert (session.pending_decision or {}).get("capability") == "host_placement_repair"
+        assert state.read_stage(StageName.PLANNING) == attempt_two
+
+        # No-action resume re-renders the same paused context and question,
+        # idempotently, without rebuilding Stage 3 or changing the revision.
+        args = _args(work_dir=str(tmp_path), resume_from="3", decision_action=None)
+        exit_code = _cmd_run_interactive(args)
+        resumed_payload = json.loads(capsys.readouterr().out)
+        assert exit_code == 2
+        assert resumed_payload["operator_request"]["question"] == "confirm the manual placement?"
+        replayed = Stage3SessionStore(str(tmp_path)).load()
+        assert replayed.candidate_fingerprint == fingerprint_plan(attempt_two)
+        assert replayed.candidate_revision == session.candidate_revision
+        assert state.read_stage(StageName.PLANNING) == attempt_two
+
+        # The operator answers by adopting the current attempt. Stage 4 must
+        # consume attempt two, never the superseded baseline.
+        args = _args(
+            work_dir=str(tmp_path),
+            resume_from="4",
+            decision_action=json.dumps(
+                {
+                    "action_id": "apply_candidate",
+                    "arguments": {"candidate_ref": candidate_ref},
+                    "rationale": "adopt the hard-valid attempt two",
+                }
+            ),
+        )
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
+            return_value=({"start_date": "2026-01-01", "end_date": "2026-06-30"}, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
+            return_value=({"sources": [], "blocked": []}, False, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._mid_planning_decision_problem",
+            return_value=self._problem(),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage4_export",
+            return_value=(False, False, False),
+        ):
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        store = Stage3SessionStore(str(tmp_path))
+        finalized = store.load()
+        assert finalized.is_finalized()
+        assert finalized.finalized_fingerprint == fingerprint_plan(attempt_two)
+        assert store.finalized_candidate_matches(attempt_two) is True
+        assert store.finalized_candidate_matches(baseline) is False
+        assert state.read_stage(StageName.PLANNING) == attempt_two

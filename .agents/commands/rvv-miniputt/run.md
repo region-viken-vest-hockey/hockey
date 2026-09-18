@@ -98,6 +98,8 @@ A Stage 3 repair context is a **post-plan candidate decision**, even though appl
 
 The Stage 3 attempt loop is special internally: submitting `optimize_plan` with `--resume-from 4` does **not** mean "skip optimization and export". The orchestrator records the Stage 3 decision and loops back into Stage 3 optimization itself, then emits a new Stage 3 decision context. `apply_candidate` / `keep_baseline` resolve that loop and allow Stage 4 to run.
 
+Escalating a candidate-scoped decision with `request_operator` does not resolve it: it records the question in the session and pauses on the exact current candidate revision/fingerprint, then returns the same context. `keep_baseline` restores the session baseline, which after an optimization attempt is the **previous** attempt -- it is not "accept the work I just saw". When the current attempt is hard-valid, retain it with `apply_candidate` against the context's `candidate_ref` (a manual/repair context exposes that action for exactly this reason). After the operator answers, continue from that same revision.
+
 Stage 3 also has true in-stage sub-decisions that are answered with the **same** stage number because Stage 3 has not produced the candidate decision boundary yet:
 
 | In-Stage-3 capability | Resume with |
