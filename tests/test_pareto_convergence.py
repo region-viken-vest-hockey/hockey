@@ -25,7 +25,11 @@ from tournament_scheduler.application.pareto_convergence import (
     classify_findings,
     describe_pause,
     describe_terminal,
+    rank_frontier_for_review,
+    recommended_review_candidate_ref,
+    recorded_exhaustion_is_stale,
 )
+from tournament_scheduler.search_capability import SearchCapability, capability_is_stale
 
 
 def _entry(ref: str, vector: dict[str, float], fingerprint: str = "") -> ArchiveEntry:
@@ -446,3 +450,145 @@ def test_exploration_exhausted_reports_bounded_plateau_not_budget() -> None:
     )
     assert outcome.terminal_reason == TERMINAL_PARETO_STABLE
     assert "pareto-stable" in outcome.terminal_detail.lower()
+
+
+# ---------------------------------------------------------------------------
+# Search-capability identity: stale exhaustion is retryable
+# ---------------------------------------------------------------------------
+
+
+def _finding(capability: SearchCapability, *, finding_id: str = "h") -> dict:
+    return {
+        "finding_id": finding_id,
+        "category": "hosting",
+        "search_coverage": {"status": "search_incomplete", "capability": capability.to_dict()},
+    }
+
+
+def test_capability_fingerprint_changes_with_configuration_and_version() -> None:
+    v1 = SearchCapability("hosting", "1", {"dimensions": ["participants"]})
+    v1_same = SearchCapability("hosting", "1", {"dimensions": ["participants"]})
+    widened = SearchCapability("hosting", "1", {"dimensions": ["participants", "host"]})
+    bumped = SearchCapability("hosting", "2", {"dimensions": ["participants"]})
+    assert v1.fingerprint == v1_same.fingerprint
+    assert v1.fingerprint != widened.fingerprint
+    assert v1.fingerprint != bumped.fingerprint
+    assert v1.to_dict()["fingerprint"] == v1.fingerprint
+
+
+def test_capability_is_stale_treats_unrecorded_evidence_as_stale() -> None:
+    current = SearchCapability("hosting", "2", {"dimensions": ["participants"]})
+    assert capability_is_stale({"capability": {"fingerprint": "deadbeef"}}, current) is True
+    # No recorded capability cannot be shown to describe the current search.
+    assert capability_is_stale({}, current) is True
+    # A missing current capability cannot decide staleness and is never
+    # treated as changed.
+    assert capability_is_stale({"capability": {"fingerprint": "deadbeef"}}, "") is False
+    assert recorded_exhaustion_is_stale({"capability": {"fingerprint": "deadbeef"}}, "") is False
+
+
+def test_bounded_exhaustion_under_superseded_capability_is_retryable() -> None:
+    v1 = SearchCapability("hosting", "1", {"dimensions": ["participants"]})
+    v2 = SearchCapability("hosting", "2", {"dimensions": ["participants", "host"]})
+    controller = ConvergenceController(ConvergenceState(), ParetoArchive(max_size=4), max_epochs=6)
+    fresh_v2 = classify_findings([_finding(v2)])
+    controller.record_epoch(
+        direction=fresh_v2[0],
+        generated=[],
+        findings=fresh_v2,
+        resolved_coverage={"h": {"status": "bounded_search_exhausted", "capability": v1.to_dict()}},
+    )
+
+    effective = controller.effective_findings(classify_findings([_finding(v2)]))
+    assert effective[0].search_capability == v2.fingerprint
+    assert effective[0].capability_stale is True
+    assert effective[0].bounded_exhausted is False
+    assert effective[0].actionable is True
+    # The finding re-enters the actionable set instead of being suppressed by
+    # exhaustion evidence produced by a superseded search.
+    chosen = controller.next_direction(classify_findings([_finding(v2)]))
+    assert chosen is not None and chosen.finding_id == "h"
+
+    # Evidence recorded under the *current* capability is still honored and
+    # does not endlessly re-open the same search.
+    same = controller.effective_findings(classify_findings([_finding(v1)]))
+    assert same[0].capability_stale is False
+    assert same[0].bounded_exhausted is True
+    assert same[0].actionable is False
+
+
+def test_recorded_exhaustion_without_capability_is_honored_when_none_declared() -> None:
+    controller = ConvergenceController(ConvergenceState(), ParetoArchive(max_size=4), max_epochs=6)
+    finding = classify_findings([{"finding_id": "h", "category": "hosting"}])[0]
+    controller.record_epoch(
+        direction=finding,
+        generated=[],
+        findings=[finding],
+        resolved_coverage={"h": {"status": "bounded_search_exhausted"}},
+    )
+    effective = controller.effective_findings(
+        classify_findings([{"finding_id": "h", "category": "hosting"}])
+    )
+    assert effective[0].capability_stale is False
+    assert effective[0].bounded_exhausted is True
+
+
+# ---------------------------------------------------------------------------
+# Review handoff ranking
+# ---------------------------------------------------------------------------
+
+
+def test_review_ranking_prefers_fewer_unresolved_placements() -> None:
+    # Scenario A: repair B has one fewer unresolved placement (43 vs 44) and is
+    # non-dominated because C improves another objective but reintroduces the
+    # placement. B must remain on the frontier *and* be the preferred handoff.
+    b = ArchiveEntry(
+        candidate_ref="pareto:placement:b",
+        candidate_fingerprint="fp-b",
+        objective_vector={
+            "hard_violations": 0.0,
+            "unresolved_placement_obligations": 43.0,
+            "changed_tournament_count": 4.0,
+        },
+        metrics={"hard_violations": 0.0, "unresolved_placement_count": 43.0},
+    )
+    c = ArchiveEntry(
+        candidate_ref="pareto:hosting:c",
+        candidate_fingerprint="fp-c",
+        objective_vector={
+            "hard_violations": 0.0,
+            "unresolved_placement_obligations": 44.0,
+            "changed_tournament_count": 1.0,
+        },
+        metrics={"hard_violations": 0.0, "unresolved_placement_count": 44.0},
+    )
+    archive = ParetoArchive(max_size=8)
+    assert archive.consider(b)["accepted"] is True
+    assert archive.consider(c)["accepted"] is True  # trade-off, not dominated
+
+    ranked = rank_frontier_for_review(archive.entries)
+    assert [entry["candidate_ref"] for entry in ranked] == [
+        "pareto:placement:b",
+        "pareto:hosting:c",
+    ]
+    assert ranked[0]["recommended"] is True
+    assert ranked[0]["audit_priorities"]["unresolved_placement_count"] == 43.0
+    assert ranked[1]["audit_priorities"]["unresolved_placement_count"] == 44.0
+    assert "unresolved_placement_count" in ranked[0]["selection_reason"]
+    assert recommended_review_candidate_ref(archive.entries) == "pareto:placement:b"
+
+
+def test_review_ranking_matches_current_when_no_material_priorities_exist() -> None:
+    a = ArchiveEntry(
+        candidate_ref="pareto:hosting:a",
+        candidate_fingerprint="fp-a",
+        objective_vector={"x": 1.0, "y": 5.0},
+    )
+    b = ArchiveEntry(
+        candidate_ref="pareto:hosting:b",
+        candidate_fingerprint="fp-b",
+        objective_vector={"x": 5.0, "y": 1.0},
+    )
+    ranked = rank_frontier_for_review([b, a])
+    assert ranked[0]["recommended"] is True
+    assert "deterministic candidate identity" in ranked[0]["selection_reason"]

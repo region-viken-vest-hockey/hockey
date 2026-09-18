@@ -63,6 +63,7 @@ def _cmd_stage3_converge(args: argparse.Namespace) -> int:
             force_finding_id=getattr(args, "finding", None),
             preferred_option_id=getattr(args, "option_id", None),
             audit_payload=audit_payload,
+            review_candidate_ref=getattr(args, "review_candidate", None),
         )
     except Exception as exc:  # noqa: BLE001 - surfaced as a transport failure
         if json_output:
@@ -181,6 +182,20 @@ def _render(result: dict[str, Any]) -> None:
             f"    - {entry.get('candidate_ref')} [{entry.get('direction')}] "
             f"{(entry.get('candidate_fingerprint') or '')[:12]}"
         )
+    review_frontier = result.get("review_frontier") or []
+    for entry in review_frontier:
+        priorities = entry.get("audit_priorities") or {}
+        marker = "anbefalt" if entry.get("recommended") else ""
+        _console.print(
+            f"    #{entry.get('review_rank')} {entry.get('candidate_ref')} {marker} "
+            f"[uløste plasseringer: {int(priorities.get('unresolved_placement_count', 0))}, "
+            f"harde brudd: {int(priorities.get('hard_violations', 0))}]"
+        )
+    selection = result.get("review_selection") or {}
+    if selection:
+        _console.print(f"  revisjonskandidat: {selection.get('selected_ref')} ({selection.get('reason')})")
+        if selection.get("adopted"):
+            _console.print("  adoptert eksplisitt fra beholdt front før eksport")
     audit_decision = result.get("audit_decision") or {}
     for question in audit_decision.get("operator_questions") or []:
         _console.print(

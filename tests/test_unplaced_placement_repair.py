@@ -335,12 +335,14 @@ def _coupled_fixture() -> tuple[Dict[str, Any], Dict[str, Any]]:
             ]
         },
     )
-    # The blocker must own the whole widened same-day start-time search
-    # window (not just the first couple of candidate times), otherwise the
-    # cheap pass finds a real gap right after the blocker's own game and this
-    # fixture stops exercising the coupled capacity-release path it is for.
+    # The blocker must own the whole widened same-day start-time search window
+    # (not just the first couple of candidate times), otherwise the cheap pass
+    # finds a real gap right after the blocker's own game and this fixture stops
+    # exercising the coupled capacity-release path it is for. 480 minutes keeps
+    # the shared Jar arena busy from the blocker's start through the latest
+    # generated start (16:00) plus the obligation's own duration.
     problem["ice_time_minutes"] = dict(problem["ice_time_minutes"])
-    problem["ice_time_minutes"]["JU10"] = 240
+    problem["ice_time_minutes"]["JU10"] = 480
     obligation_age = "U12"
     blocker_age = "JU10"
     blocker = _tournament(
@@ -565,3 +567,137 @@ def test_same_host_date_search_reaches_a_genuinely_open_date_beyond_the_nearest_
     dates_offered = {option["arguments"]["date"] for option in options}
     assert "2026-11-21" in dates_offered
     assert all(day not in dates_offered for day in blocked_dates)
+
+
+# ---------------------------------------------------------------------------
+# Start-time sampling reaches the whole allowed day (#392)
+# ---------------------------------------------------------------------------
+
+
+def test_alternate_date_afternoon_slot_is_found_within_the_start_time_cap(tmp_path: Path) -> None:
+    """A capped alternate-date search must still reach a legal afternoon slot.
+
+    The old ``[:6]`` slice of the ordered candidate list always tried morning
+    starts (10:00-12:30) even though the generated window ran to 16:00, so an
+    alternate date whose only gap began after lunch was reported as if it had
+    no legal slot at all.
+    """
+    teams = _teams(["Jar", "Frisk Asker"])
+    problem = _problem(
+        teams,
+        start=date(2026, 10, 10),
+        end=date(2026, 10, 25),
+        busy={
+            "Jar": [
+                # Source date has no gap at all.
+                {"date": "2026-10-10", "start": "00:00", "end": "23:59", "calendar_event": "Kamp"},
+                # The only usable alternate date is free from 15:00.
+                {"date": "2026-10-17", "start": "00:00", "end": "14:30", "calendar_event": "Kamp"},
+                {"date": "2026-10-18", "start": "00:00", "end": "14:30", "calendar_event": "Kamp"},
+            ]
+        },
+    )
+    plan = _base_plan(
+        [],
+        _obligation(age_group="U10", day="2026-10-10", host="Jar", roster=teams),
+        start="2026-10-10",
+        end="2026-10-25",
+    )
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    report = repair_options(YEAR, "unplaced_placement:U10:2026-10-10:1", root=root)
+
+    afternoon = [
+        option
+        for option in report["options"]
+        if option["arguments"]["date"] in {"2026-10-17", "2026-10-18"}
+        and option["arguments"]["start_time"] in {"15:00", "15:30", "16:00"}
+    ]
+    assert afternoon, report["options"]
+    chosen = afternoon[0]
+    assert chosen["arguments"]["start_time"] <= "16:00"
+    applied = apply_repair(
+        YEAR,
+        chosen["option_id"],
+        report["revision"],
+        root=root,
+        finding_id="unplaced_placement:U10:2026-10-10:1",
+    )
+    assert applied["ok"] is True, applied
+
+
+# ---------------------------------------------------------------------------
+# Search-capability staleness (#392)
+# ---------------------------------------------------------------------------
+
+
+def test_bounded_exhaustion_marker_from_superseded_search_is_retryable(tmp_path: Path) -> None:
+    """A planner exhaustion claim from an older search becomes stale/retryable.
+
+    The marker records only the bounded search that produced it. When the
+    repository widens the neighborhood, canonical maintenance must re-open the
+    obligation instead of inheriting the superseded result.
+    """
+    from tournament_scheduler.search_capability import SearchCapability
+    from tournament_scheduler.unplaced_placement_repair import (
+        unplaced_placement_search_capability,
+    )
+
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams, start=date(2026, 10, 1), end=date(2026, 10, 31))
+    obligation = _obligation(age_group="U10", day="2026-10-10", host="Sorby", roster=teams)
+    obligation["bounded_repair_exhausted"] = True
+    obligation["search_capability"] = SearchCapability(
+        "unplaced_placement",
+        "1",
+        {"max_date_candidates": 8, "max_start_times_per_date": 2},
+    ).to_dict()
+    plan = _base_plan([], obligation, start="2026-10-01", end="2026-10-31")
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    report = list_findings(YEAR, root=root)
+    finding = next(
+        entry for entry in report["findings"] if entry["code"] == "unplaced_tournament_placement"
+    )
+    assert finding["bounded_repair_exhausted"] is True
+    assert finding["bounded_repair_exhausted_stale"] is True
+    coverage = finding["search_coverage"]
+    assert coverage["status"] == SEARCH_INCOMPLETE
+    assert coverage["capability_stale"] is True
+    assert coverage["previous_status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert coverage["proven_infeasible"] is False
+    assert coverage["capability"]["fingerprint"] == unplaced_placement_search_capability().fingerprint
+
+    # The stale finding is eligible for the new search and the current search
+    # produces a verified option.
+    bounded = search(YEAR, finding["finding_id"], root=root)
+    assert bounded["option_count"] >= 1
+    assert bounded["finding"]["search_coverage"]["status"] == SEARCH_OPTION_AVAILABLE
+
+
+def test_exhaustion_marker_from_current_search_is_not_stale(tmp_path: Path) -> None:
+    from tournament_scheduler.unplaced_placement_repair import (
+        unplaced_placement_search_capability,
+    )
+
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams, start=date(2026, 10, 1), end=date(2026, 10, 31))
+    obligation = _obligation(age_group="U10", day="2026-10-10", host="Sorby", roster=teams)
+    obligation["bounded_repair_exhausted"] = True
+    obligation["search_capability"] = unplaced_placement_search_capability().to_dict()
+    plan = _base_plan([], obligation, start="2026-10-01", end="2026-10-31")
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    finding = next(
+        entry
+        for entry in list_findings(YEAR, root=root)["findings"]
+        if entry["code"] == "unplaced_tournament_placement"
+    )
+    assert finding["bounded_repair_exhausted_stale"] is False
+    assert finding["search_coverage"]["capability_stale"] is False
+    # The cheap listing still reports the supported ladder as untried; the
+    # current marker is not itself an option-available claim.
+    assert finding["search_coverage"]["status"] == SEARCH_INCOMPLETE

@@ -45,6 +45,8 @@ from .pareto_convergence import (
     classify_findings,
     describe_pause,
     describe_terminal,
+    rank_frontier_for_review,
+    recommended_review_candidate_ref,
 )
 
 DEFAULT_DIMENSIONS = ("participants", "host")
@@ -209,6 +211,7 @@ def run_bounded_convergence(
     preferred_option_id: str | None = None,
     audit_payload: Mapping[str, Any] | None = None,
     run_id: str | None = None,
+    review_candidate_ref: str | None = None,
     finding_provider: Callable[..., list[dict[str, Any]]] | None = None,
     option_provider: Callable[..., dict[str, Any]] | None = None,
     apply_provider: Callable[..., dict[str, Any]] | None = None,
@@ -527,6 +530,19 @@ def run_bounded_convergence(
         archive=archive,
         epochs=epochs,
         extra={"committed_epochs": committed, "audit_decision": audit_decision},
+    )
+    report["review_selection"] = _resolve_review_selection(
+        work_dir,
+        run_id=run_id,
+        archive=archive,
+        problem=problem,
+        requested_ref=review_candidate_ref,
+        export=export,
+        export_dir=export_dir,
+        timestamped_export=timestamped_export,
+        strict=strict,
+        dry_run=dry_run,
+        log_fn=log,
     )
     _materialize_batch_boundary(
         work_dir,
@@ -868,6 +884,11 @@ def _report(
         "convergence": state.to_dict(),
         "frontier": archive.to_list(),
         "frontier_refs": archive.refs(),
+        # Deliberate review comparison: every retained non-dominated candidate
+        # with its material audit metrics, ranked best-first, so the handoff
+        # can choose deliberately instead of inheriting the last mutation.
+        "review_frontier": rank_frontier_for_review(archive.entries),
+        "recommended_review_candidate_ref": recommended_review_candidate_ref(archive.entries),
         "epochs": epochs,
     }
     if extra:
@@ -879,6 +900,90 @@ def _report(
     payload.setdefault("audit_required", False)
     payload.setdefault("export_required", False)
     return payload
+
+
+def _resolve_review_selection(
+    work_dir: Any,
+    *,
+    run_id: str | None,
+    archive: ParetoArchive,
+    problem: Mapping[str, Any],
+    requested_ref: str | None,
+    export: bool,
+    export_dir: str | None,
+    timestamped_export: bool,
+    strict: bool,
+    dry_run: bool,
+    log_fn: Callable[[str], None],
+) -> dict[str, Any]:
+    """Choose the review handoff candidate from the retained frontier.
+
+    The recommended candidate is the best-ranked retained non-dominated
+    candidate. ``requested_ref`` (an explicit operator/harness choice) is
+    adopted when supplied; otherwise the recommendation is recorded as the
+    review candidate while the current verified revision is kept as the
+    baseline. Either way the selection and its reason are persisted in the
+    report, so the handoff is never an implicit "whatever mutated last".
+    """
+    from .stage3_session_store import Stage3SessionStore
+
+    ranked = rank_frontier_for_review(archive.entries)
+    recommended_ref = str(ranked[0]["candidate_ref"]) if ranked else ""
+    session = Stage3SessionStore(work_dir).load(expected_run_id=run_id or None)
+    current_fp = session.finalized_fingerprint or session.candidate_fingerprint
+    current_entry = next(
+        (entry for entry in archive.entries if entry.candidate_fingerprint == current_fp), None
+    )
+    current_ref = current_entry.candidate_ref if current_entry is not None else ""
+    if requested_ref and not dry_run:
+        if requested_ref == current_ref:
+            return {
+                "selected_ref": current_ref,
+                "recommended_ref": recommended_ref,
+                "adopted": False,
+                "already_current": True,
+                "reason": f"requested review candidate {requested_ref} is already the current revision",
+            }
+        result = select_frontier_candidate(
+            work_dir,
+            candidate_ref=requested_ref,
+            problem=problem,
+            export=False,
+            export_dir=export_dir,
+            timestamped_export=timestamped_export,
+            strict=strict,
+            rationale=f"review handoff selection from retained frontier {requested_ref}",
+            run_id=run_id,
+            log_fn=log_fn,
+        )
+        return {
+            "selected_ref": requested_ref,
+            "recommended_ref": recommended_ref,
+            "adopted": bool(result.get("ok")),
+            "reason": (
+                f"explicit review handoff selection from retained frontier {requested_ref}"
+                if result.get("ok")
+                else f"review candidate {requested_ref} rejected: {result.get('reason')}"
+            ),
+            "adoption_result": result,
+        }
+    reason = (
+        "current revision is the recommended retained candidate"
+        if current_ref and current_ref == recommended_ref
+        else (
+            f"current revision is a retained candidate; recommended {recommended_ref} "
+            "remains selectable with stage3 adopt --candidate-ref"
+            if current_ref
+            else "no retained candidate matches the current revision"
+        )
+    )
+    return {
+        "selected_ref": current_ref or recommended_ref,
+        "recommended_ref": recommended_ref,
+        "adopted": False,
+        "already_current": bool(current_ref),
+        "reason": reason,
+    }
 
 
 __all__ = ["run_bounded_convergence", "select_frontier_candidate", "DEFAULT_DIMENSIONS"]

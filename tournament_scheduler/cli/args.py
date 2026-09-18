@@ -1274,6 +1274,14 @@ def build_parser() -> argparse.ArgumentParser:
     stage3_converge.add_argument("--export-dir", default=None, help="Export root for the batch review exports (defaults to the reviewed export's root)")
     stage3_converge.add_argument("--flat-export", action="store_true", help="Write the batch export flat instead of timestamped")
     stage3_converge.add_argument("--non-strict", action="store_true", help="Continue on non-fatal export errors")
+    stage3_converge.add_argument(
+        "--review-candidate",
+        default=None,
+        help=(
+            "Retained frontier candidate ref to adopt as the review handoff "
+            "before the batch export (default: record the recommended candidate)"
+        ),
+    )
     stage3_converge.add_argument("--dry-run", action="store_true", help="Preview the next epoch without mutating")
     stage3_converge.add_argument(
         "--ignore-audit",

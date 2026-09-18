@@ -259,6 +259,9 @@ def _obligation_from_tournament(
         "source_tournament_id": verdict.get("tournament_id"),
         "normalized_from": "placement_normalization",
     }
+    from .unplaced_placement_repair import unplaced_placement_search_capability
+
+    obligation["search_capability"] = unplaced_placement_search_capability().to_dict()
     evidence = verdict.get("evidence")
     if isinstance(evidence, Mapping):
         obligation["placement_evidence"] = dict(evidence)

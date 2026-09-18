@@ -2486,6 +2486,16 @@ class SeasonPlanner:
             and str(existing.get("date") or "") == date_iso
         )
         entry["id"] = unplaced_placement_finding_id(age_group, date_iso, sequence)
+        # Record which bounded search produced this exhaustion claim. A later
+        # widening of the ladder makes this marker stale, so the obligation is
+        # re-openable in canonical maintenance instead of inheriting an
+        # out-of-date ``bounded_repair_exhausted``.
+        if entry.get("bounded_repair_exhausted") and not entry.get("search_capability"):
+            from tournament_scheduler.unplaced_placement_repair import (
+                unplaced_placement_search_capability,
+            )
+
+            entry["search_capability"] = unplaced_placement_search_capability().to_dict()
         self._unresolved_tournament_placements.append(entry)
         collisions[:] = [
             item

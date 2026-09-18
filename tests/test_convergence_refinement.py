@@ -625,6 +625,67 @@ def test_unknown_frontier_candidate_ref_is_rejected(tmp_path: Path) -> None:
     assert result["reason"] == "unknown_frontier_candidate_ref"
 
 
+def test_review_handoff_reports_ranked_frontier_and_adopts_explicit_candidate(
+    tmp_path: Path,
+) -> None:
+    """Scenario A: a later epoch cannot make an earlier verified repair unavailable.
+
+    The convergence batch compares the retained frontier by material audit
+    priority and records which candidate is the handoff; an explicit
+    ``review_candidate_ref`` adopts the earlier repair even though a later
+    epoch mutated another objective.
+    """
+    from tournament_scheduler.application.stage3_session_store import extract_candidate_body
+
+    _seed_finalized(tmp_path)
+    commits: List[str] = []
+    finding_provider, option_provider, body_provider, apply_provider = _providers(commits)
+    first = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=6,
+        max_no_improvement_epochs=1,
+        export=False,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        run_id=RUN_ID,
+    )
+
+    # The report always exposes the deliberate comparison, not just the last
+    # mutation, including each candidate's audit priorities.
+    review_refs = [entry["candidate_ref"] for entry in first["review_frontier"]]
+    assert len(review_refs) == len(first["frontier"]) == 2
+    assert first["recommended_review_candidate_ref"] in review_refs
+    for entry in first["review_frontier"]:
+        assert "unresolved_placement_count" in entry["audit_priorities"]
+        assert entry["selection_reason"]
+
+    session = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    hosting = next(e for e in session.pareto_archive if e["direction"] == "hosting")
+
+    second = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=2,
+        export=False,
+        review_candidate_ref=hosting["candidate_ref"],
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        run_id=RUN_ID,
+    )
+
+    selection = second["review_selection"]
+    assert selection["selected_ref"] == hosting["candidate_ref"]
+    assert selection["adopted"] is True
+    assert "explicit review handoff selection" in selection["reason"]
+    body = extract_candidate_body(PipelineState(str(tmp_path)).read_stage(StageName.PLANNING))
+    assert body["stage"] == 1  # the retained hosting repair, not the later mutation
+
+
 # ---------------------------------------------------------------------------
 # Multiple non-dominated options from one epoch are retained
 # ---------------------------------------------------------------------------

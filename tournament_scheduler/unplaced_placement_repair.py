@@ -44,12 +44,14 @@ from . import planning_half
 from .candidate_weekends import season_weekend_dates
 from .host_representation import clubs_represent_same_club, constituent_clubs
 from .host_team_missing_repair import (
+    GENERATED_START_TIMES,
     RepairOption,
     _candidate_start_times,
     _duration_minutes,
     _end_time,
     _regenerate_games,
     _slug,
+    bounded_start_times,
     candidate_fingerprint,
 )
 from .models import Team  # noqa: F401  (re-exported for callers/tests)
@@ -61,6 +63,12 @@ from .planning_contract import (
     external_calendar_conflict,
     movable_calendar_opportunity,
     verify_candidate,
+)
+from .search_capability import (
+    COVERAGE_BOUNDED_EXHAUSTED,
+    SearchCapability,
+    capability_is_stale,
+    mark_coverage_stale,
 )
 
 # Ladder dimensions, in escalating-cost order. The first two are always tried
@@ -106,6 +114,34 @@ _MAX_RELEASE_DATES = 3
 _MAX_BLOCKERS = 2
 _MAX_BLOCKER_DATES = 3
 _MAX_START_TIMES_PER_DATE = 6
+
+# One canonical identity for this provider's bounded search. It includes the
+# supported ladder, every configured cap and the generated start-time policy,
+# so widening any of them changes the fingerprint and makes prior
+# ``bounded_search_exhausted`` evidence stale/retryable (see
+# ``search_capability``). Bump ``UNPLACED_PLACEMENT_SEARCH_VERSION`` when the
+# *semantics* change without a parameter change.
+UNPLACED_PLACEMENT_SEARCH_VERSION = "2"
+UNPLACED_PLACEMENT_CAPABILITY = SearchCapability(
+    family="unplaced_placement",
+    version=UNPLACED_PLACEMENT_SEARCH_VERSION,
+    parameters={
+        "dimensions": list(SUPPORTED_DIMENSIONS),
+        "max_options_per_obligation": _MAX_OPTIONS_PER_OBLIGATION,
+        "max_date_candidates": _MAX_DATE_CANDIDATES,
+        "max_release_dates": _MAX_RELEASE_DATES,
+        "max_blockers": _MAX_BLOCKERS,
+        "max_blocker_dates": _MAX_BLOCKER_DATES,
+        "max_start_times_per_date": _MAX_START_TIMES_PER_DATE,
+        "generated_start_times": list(GENERATED_START_TIMES),
+        "start_time_sampling": "representative_day_coverage",
+    },
+)
+
+
+def unplaced_placement_search_capability() -> SearchCapability:
+    """Current bounded-search capability for the unplaced-placement ladder."""
+    return UNPLACED_PLACEMENT_CAPABILITY
 
 
 def enumerate_unplaced_placement_repairs(
@@ -156,9 +192,37 @@ def obligation_search_coverage(
     recorded plus the dimensions this provider supports. The authoritative
     attempted/untried set for a selected finding comes from
     :func:`enumerate_unplaced_placement_repairs`.
+
+    A planner marker (``bounded_repair_exhausted``) written by an older search
+    capability is *stale*, not current evidence: the coverage is rewritten as
+    retryable ``search_incomplete`` so canonical maintenance can re-open the
+    obligation against the widened search instead of inheriting the old result.
     """
     attempted = _recorded_dimensions(obligation)
-    return _coverage(attempted, found_option=False, allow_search=allow_search)
+    coverage = _coverage(attempted, found_option=False, allow_search=allow_search)
+    return _apply_recorded_capability(coverage, obligation)
+
+
+def _apply_recorded_capability(
+    coverage: Dict[str, Any], obligation: Mapping[str, Any]
+) -> Dict[str, Any]:
+    """Fold the obligation's persisted capability marker into *coverage*.
+
+    Only a persisted bounded-exhaustion claim can become stale; the current
+    provider's own resolved coverage is always produced under the current
+    capability and is left untouched.
+    """
+    if not obligation.get("bounded_repair_exhausted"):
+        return coverage
+    recorded = obligation.get("search_capability")
+    if recorded and not capability_is_stale(recorded, UNPLACED_PLACEMENT_CAPABILITY):
+        coverage["capability_stale"] = False
+        return coverage
+    return mark_coverage_stale(
+        {**coverage, "status": COVERAGE_BOUNDED_EXHAUSTED},
+        current=UNPLACED_PLACEMENT_CAPABILITY,
+        reason="recorded_bounded_repair_exhausted_superseded",
+    )
 
 
 def apply_unplaced_placement_repair_option(
@@ -417,7 +481,7 @@ def _enumerate_for_obligation(
     attempted.add(DIMENSION_SAME_HOST_DATE)
     alternate_dates = _candidate_dates(problem, original_date)
     for date_iso in alternate_dates:
-        for start_time in _start_times_for(obligation)[:_MAX_START_TIMES_PER_DATE]:
+        for start_time in _bounded_start_times_for(obligation):
             attempt(date_iso=date_iso, start_time=start_time, dimension=DIMENSION_SAME_HOST_DATE)
 
     # 3. Participant reselection only when the current roster collides. Try it
@@ -432,7 +496,7 @@ def _enumerate_for_obligation(
                 reselect=True,
             )
         for date_iso in alternate_dates:
-            for start_time in _start_times_for(obligation)[:_MAX_START_TIMES_PER_DATE]:
+            for start_time in _bounded_start_times_for(obligation):
                 attempt(
                     date_iso=date_iso,
                     start_time=start_time,
@@ -500,7 +564,7 @@ def _capacity_release_options(
         :_MAX_RELEASE_DATES
     ]
     blocker_dates = _candidate_dates(problem, original_date)[:_MAX_BLOCKER_DATES]
-    start_times = _start_times_for(obligation)
+    start_times = _bounded_start_times_for(obligation)
     for date_iso in candidate_dates:
         if option_count() >= _MAX_OPTIONS_PER_OBLIGATION:
             return
@@ -512,7 +576,7 @@ def _capacity_release_options(
             and str(tournament.get("arena") or "") == host_arena
         ][:_MAX_BLOCKERS]
         for blocker in blockers:
-            for start_time in start_times[:_MAX_START_TIMES_PER_DATE]:
+            for start_time in start_times:
                 for new_date in blocker_dates:
                     if new_date == str(blocker.get("date")):
                         continue
@@ -646,10 +710,19 @@ def _start_times_for(obligation: Mapping[str, Any]) -> List[str]:
     return _candidate_start_times({"start_time": preferred})
 
 
+def _bounded_start_times_for(obligation: Mapping[str, Any]) -> List[str]:
+    """Preferred start plus a day-covering sample capped at the configured limit.
+
+    An alternate-date/roster/capacity search must not spend its whole start-time
+    budget on the first six morning entries: a legal afternoon slot (<= 16:00)
+    has to remain reachable within the bound.
+    """
+    preferred = str(obligation.get("preferred_start_time") or "10:00")
+    return bounded_start_times(preferred, _MAX_START_TIMES_PER_DATE)
+
+
 def _blocker_start_times(blocker: Mapping[str, Any]) -> List[str]:
-    return _candidate_start_times({"start_time": str(blocker.get("start_time") or "10:00")})[
-        :_MAX_START_TIMES_PER_DATE
-    ]
+    return bounded_start_times(str(blocker.get("start_time") or "10:00"), _MAX_START_TIMES_PER_DATE)
 
 
 def _candidate_dates(problem: Mapping[str, Any], on_date: str) -> List[str]:
@@ -918,6 +991,9 @@ def _coverage(attempted: Set[str], *, found_option: bool, allow_search: bool) ->
         "supported": list(SUPPORTED_DIMENSIONS),
         "search_requested": allow_search,
         "proven_infeasible": False,
+        # Coverage is only current for the search that produced it; the
+        # controller compares this fingerprint against the current capability.
+        "capability": UNPLACED_PLACEMENT_CAPABILITY.to_dict(),
     }
 
 
@@ -963,7 +1039,10 @@ __all__ = [
     "SEARCH_PROVEN_INFEASIBLE",
     "SEARCH_DIMENSIONS",
     "SUPPORTED_DIMENSIONS",
+    "UNPLACED_PLACEMENT_CAPABILITY",
+    "UNPLACED_PLACEMENT_SEARCH_VERSION",
     "apply_unplaced_placement_repair_option",
     "enumerate_unplaced_placement_repairs",
     "obligation_search_coverage",
+    "unplaced_placement_search_capability",
 ]

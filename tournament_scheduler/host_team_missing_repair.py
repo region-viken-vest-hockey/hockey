@@ -522,22 +522,53 @@ def _duration_minutes(tournament, problem):
     return int(ice or 120)
 
 
+# Realistic generated miniputt start times. 16:00 is the latest generated
+# start; later source-calendar events still remain facts, and an
+# already-established later tournament time may be preserved via
+# ``tournament.get("start_time")``, but repair search must not invent evening
+# tournament starts simply because an arena happens to be free.
+GENERATED_START_TIMES: Tuple[str, ...] = (
+    "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
+    "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
+    "16:00",
+)
+
+
 def _candidate_start_times(tournament):
-    # Search a bounded set of realistic miniputt start times. 16:00 is the
-    # latest generated start; later source-calendar events still remain facts,
-    # and an already-established later tournament time may be preserved via
-    # tournament.get("start_time"), but repair search must not invent evening
-    # tournament starts simply because an arena happens to be free.
     seen = []
-    for item in (
-        tournament.get("start_time"),
-        "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
-        "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
-        "16:00",
-    ):
+    for item in (tournament.get("start_time"), *GENERATED_START_TIMES):
         if item and item not in seen:
             seen.append(item)
     return seen
+
+
+def representative_start_times(limit: int) -> List[str]:
+    """Evenly spaced generated start times covering the whole allowed day.
+
+    The old ``[:limit]`` slice of the ordered candidate list always returned
+    the earliest morning times, so a wider generated range never made an
+    afternoon slot reachable for a capped alternate-date search. Sampling by
+    position over the full day keeps the cap bounded *and* representative.
+    """
+    times = list(GENERATED_START_TIMES)
+    if limit <= 0:
+        return []
+    if limit >= len(times):
+        return times
+    if limit == 1:
+        return [times[0]]
+    step = (len(times) - 1) / (limit - 1)
+    indices = sorted({round(index * step) for index in range(limit)})
+    return [times[index] for index in indices]
+
+
+def bounded_start_times(preferred: str, limit: int) -> List[str]:
+    """Preferred start plus a representative, day-covering sample up to *limit*."""
+    ordered: List[str] = []
+    for item in (preferred, *representative_start_times(limit)):
+        if item and item not in ordered:
+            ordered.append(item)
+    return ordered[:limit]
 
 
 def _find_tournament(candidate, tournament_id):

@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
 from ..pareto import dominates, representative_indices, vectors_equal
+from ..search_capability import recorded_capability_fingerprint
 
 # Bounded frontier size and convergence safeguards. These are the "configured
 # budgets" a terminal reason refers to; hitting one is bounded convergence, not
@@ -299,6 +300,11 @@ class FindingDirection:
     accepted: bool = False
     search_incomplete: bool = False
     bounded_exhausted: bool = False
+    # Fingerprint of the search capability the freshly discovered finding
+    # describes (from its ``search_coverage``). A recorded exhaustion produced
+    # by a different capability is stale, not current.
+    search_capability: str = ""
+    capability_stale: bool = False
 
     @property
     def actionable(self) -> bool:
@@ -306,7 +312,10 @@ class FindingDirection:
             return False
         # A direction whose supported search reported bounded exhaustion has no
         # further automatic work *for that search*; it stays non-actionable
-        # unless its coverage is explicitly still incomplete.
+        # unless its coverage is explicitly still incomplete or the recorded
+        # exhaustion was produced by a superseded search capability.
+        if self.capability_stale:
+            return True
         return not (self.bounded_exhausted and not self.search_incomplete)
 
     def to_dict(self) -> dict[str, Any]:
@@ -319,6 +328,8 @@ class FindingDirection:
             "accepted": self.accepted,
             "search_incomplete": self.search_incomplete,
             "bounded_exhausted": self.bounded_exhausted,
+            "search_capability": self.search_capability,
+            "capability_stale": self.capability_stale,
             "actionable": self.actionable,
         }
 
@@ -346,11 +357,28 @@ def classify_finding(finding: Mapping[str, Any]) -> FindingDirection:
         accepted=bool(finding.get("accepted")),
         search_incomplete=search_incomplete,
         bounded_exhausted=bounded_exhausted,
+        search_capability=recorded_capability_fingerprint(coverage),
     )
 
 
 def classify_findings(findings: Iterable[Mapping[str, Any]]) -> list[FindingDirection]:
     return [classify_finding(finding) for finding in findings]
+
+
+def recorded_exhaustion_is_stale(
+    recorded: Mapping[str, Any], current_capability: str
+) -> bool:
+    """True when recorded exhaustion predates the current search capability.
+
+    When the fresh finding declares a capability fingerprint, a recorded
+    exhaustion without one (legacy evidence) or with a different one was
+    produced by a superseded search and must be re-evaluated. When neither
+    side declares a capability, staleness cannot be decided and the recorded
+    exhaustion is honored.
+    """
+    if not current_capability:
+        return False
+    return recorded_capability_fingerprint(recorded) != current_capability
 
 
 @dataclass
@@ -509,8 +537,17 @@ class ConvergenceController:
         for direction in directions:
             recorded = self.state.search_coverage.get(direction.finding_id) or {}
             if str(recorded.get("status") or "") == "bounded_search_exhausted":
-                direction.bounded_exhausted = True
-                direction.search_incomplete = False
+                if recorded_exhaustion_is_stale(recorded, direction.search_capability):
+                    # The recorded exhaustion was produced by a superseded search
+                    # capability (widened neighborhood, new dimension, ...). It
+                    # is retryable under the current search: do not suppress
+                    # exploration with stale evidence.
+                    direction.bounded_exhausted = False
+                    direction.search_incomplete = True
+                    direction.capability_stale = True
+                else:
+                    direction.bounded_exhausted = True
+                    direction.search_incomplete = False
             effective.append(direction)
         return effective
 
@@ -809,3 +846,91 @@ def objective_vectors_equal(
 ) -> bool:
     """Same tolerance-aware equality used by the shared Pareto arithmetic."""
     return _comparable(a, b) and vectors_equal(a, b, tol)
+
+
+# Declared audit priorities used to *compare* retained frontier candidates at a
+# review handoff. Lower is better; the list is evaluated lexicographically.
+# Unresolved placements come first because they are the strongest material
+# consequence: a candidate that leaves fewer obligations unresolved is not
+# "worse" merely because a later epoch touched another objective. The ordering
+# is a reporting/selection aid over already-verified non-dominated candidates;
+# it changes no scheduling rule and never commits anything on its own.
+REVIEW_PRIORITY_DIMENSIONS: tuple[tuple[str, str], ...] = (
+    ("hard_violations", "hard_violations"),
+    ("unresolved_placement_count", "unresolved_placement_obligations"),
+    ("avoidable_participation_count", "avoidable_participation_deviations"),
+    ("unresolved_hosting_obligation_count", "unresolved_hosting_obligations"),
+    ("manual_placement_count", "manual_placements"),
+    ("host_confirmation_dependency_count", "host_confirmation_dependencies"),
+    ("change_cost_changed_tournament_count", "changed_tournament_count"),
+)
+
+
+def review_priority_values(entry: ArchiveEntry) -> dict[str, float]:
+    """Named audit priorities for one retained candidate.
+
+    Prefers the named consequence metrics; falls back to the shared objective
+    vector dimension so a synthetic/partial entry is still comparable instead
+    of silently ranking as if every priority were unknown.
+    """
+    values: dict[str, float] = {}
+    for metric, dimension in REVIEW_PRIORITY_DIMENSIONS:
+        raw = entry.metrics.get(metric)
+        if raw is None:
+            raw = entry.objective_vector.get(dimension)
+        values[metric] = _as_float(raw, 0.0) if raw is not None else 0.0
+    return values
+
+
+def _review_selection_reason(entry: ArchiveEntry, values: Mapping[str, float]) -> str:
+    metrics = [metric for metric, _dimension in REVIEW_PRIORITY_DIMENSIONS if values.get(metric)]
+    if not metrics:
+        return (
+            "No retained candidate carries a material audit-priority count; "
+            "selected by deterministic candidate identity."
+        )
+    return (
+        "Lowest "
+        + ", ".join(metrics)
+        + " among retained non-dominated candidates (hard-valid, lexicographic audit priority)."
+    )
+
+
+def rank_frontier_for_review(
+    entries: Iterable[ArchiveEntry],
+) -> list[dict[str, Any]]:
+    """Deterministically rank retained frontier candidates for a review handoff.
+
+    Returns one entry per candidate, ordered best-first, each carrying its
+    material audit metrics and the reason it was ranked there. This is the
+    deliberate comparison the review handoff needs: the candidate to
+    materialize is chosen from the *retained frontier*, not implicitly from
+    whichever mutation happened last.
+    """
+    scored = [
+        (
+            tuple(
+                review_priority_values(entry)[metric]
+                for metric, _ in REVIEW_PRIORITY_DIMENSIONS
+            ),
+            entry,
+        )
+        for entry in entries
+    ]
+    scored.sort(key=lambda item: (item[0], item[1].candidate_ref))
+    ranked: list[dict[str, Any]] = []
+    for rank, (_values, entry) in enumerate(scored):
+        payload = entry.to_dict()
+        priorities = review_priority_values(entry)
+        payload["review_rank"] = rank
+        payload["audit_priorities"] = priorities
+        payload["recommended"] = rank == 0
+        payload["selection_reason"] = _review_selection_reason(entry, priorities)
+        ranked.append(payload)
+    return ranked
+
+
+def recommended_review_candidate_ref(entries: Iterable[ArchiveEntry]) -> str:
+    """Ref of the best-ranked retained candidate, or ``""`` for an empty frontier."""
+    ranked = rank_frontier_for_review(entries)
+    return str(ranked[0]["candidate_ref"]) if ranked else ""

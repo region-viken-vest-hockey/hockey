@@ -48,6 +48,7 @@ from .season_state import (
     record_participation_acceptance,
     revoke_participation_acceptance,
 )
+from .search_capability import SearchCapability
 
 SEASON_MAINTENANCE_SCHEMA_VERSION = 1
 
@@ -116,6 +117,11 @@ SEARCH_COVERAGE_INCOMPLETE = "search_incomplete"
 SEARCH_COVERAGE_BOUNDED_EXHAUSTED = "bounded_search_exhausted"
 SEARCH_COVERAGE_PROVEN_INFEASIBLE = "proven_infeasible"
 
+# Bump when a generic maintenance provider's search semantics change without a
+# parameter change, so prior exhaustion evidence is invalidated.
+MAINTENANCE_SEARCH_VERSION = "1"
+
+
 # Supported repair/search dimensions per finding category. These describe the
 # neighborhood a bounded search may widen into, not a scheduling rule.
 SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
@@ -134,6 +140,22 @@ def supported_dimensions_for_finding(finding: Mapping[str, Any]) -> Tuple[str, .
     return SUPPORTED_DIMENSIONS_BY_CATEGORY.get(category, DEFAULT_DIMENSIONS)
 
 
+def maintenance_search_capability(finding: Mapping[str, Any]) -> SearchCapability:
+    """Current bounded-search capability for a generic maintenance finding.
+
+    The unplaced-placement family owns a richer capability fingerprint in its
+    provider; this covers the remaining generic providers so every coverage
+    record still names the search that produced it.
+    """
+    supported = supported_dimensions_for_finding(finding)
+    category = str(finding.get("category") or "generic")
+    return SearchCapability(
+        family=category or "generic",
+        version=MAINTENANCE_SEARCH_VERSION,
+        parameters={"dimensions": list(supported)},
+    )
+
+
 def cheap_search_coverage(finding: Mapping[str, Any]) -> Dict[str, Any]:
     """Conservative coverage for a finding whose bounded search has not run yet.
 
@@ -149,6 +171,7 @@ def cheap_search_coverage(finding: Mapping[str, Any]) -> Dict[str, Any]:
         "attempted": [],
         "search_requested": False,
         "proven_infeasible": False,
+        "capability": maintenance_search_capability(finding).to_dict(),
     }
 
 
@@ -158,6 +181,7 @@ def derive_search_coverage(
     rejected_count: int,
     allow_search: bool,
     supported: Iterable[str],
+    capability: SearchCapability | None = None,
 ) -> Dict[str, Any]:
     """Resolved coverage after a provider actually ran for one finding.
 
@@ -165,6 +189,7 @@ def derive_search_coverage(
     ran and produced no verified option", never "no solution exists".
     ``rejected_count`` is carried so a caller can inspect the deterministic
     rejection evidence instead of treating the absence of options as proof.
+    The capability fingerprint records *which* search this evidence describes.
     """
     supported_list = [str(item) for item in supported]
     if option_count > 0:
@@ -173,7 +198,7 @@ def derive_search_coverage(
         status = SEARCH_COVERAGE_BOUNDED_EXHAUSTED
     else:
         status = SEARCH_COVERAGE_INCOMPLETE
-    return {
+    payload: Dict[str, Any] = {
         "status": status,
         "supported": supported_list,
         "untried": [] if allow_search or option_count > 0 else list(supported_list),
@@ -182,6 +207,9 @@ def derive_search_coverage(
         "rejected_count": int(rejected_count),
         "proven_infeasible": False,
     }
+    if capability is not None:
+        payload["capability"] = capability.to_dict()
+    return payload
 
 
 class SeasonMaintenanceError(RuntimeError):
@@ -915,6 +943,11 @@ def _unplaced_findings(
                 "reason": entry.get("reason"),
                 "search_attempted": bool(entry.get("search_attempted")),
                 "bounded_repair_exhausted": bool(entry.get("bounded_repair_exhausted")),
+                # A planner exhaustion claim written by a superseded search is
+                # not current evidence: surface it as stale/retryable rather
+                # than indistinguishable from a fresh result.
+                "bounded_repair_exhausted_stale": bool(coverage.get("capability_stale")),
+                "search_capability": dict(entry.get("search_capability") or {}),
                 # The planner's own ``bounded_repair_exhausted`` flag describes
                 # only the search it actually ran. The supported ladder is
                 # broader, so report what this capability can still attempt
@@ -1070,6 +1103,7 @@ def _options_for_finding(
         rejected_count=len(rejected),
         allow_search=allow_search,
         supported=supported_dimensions_for_finding(finding),
+        capability=maintenance_search_capability(finding),
     )
     return options, rejected, families
 
