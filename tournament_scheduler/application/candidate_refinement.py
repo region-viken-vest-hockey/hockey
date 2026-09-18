@@ -335,25 +335,85 @@ def refine_finalized_candidate(
             "session_revision_unchanged": before_revision,
         }
 
+    return commit_refined_candidate(
+        work_dir,
+        session,
+        checkpoint=checkpoint,
+        candidate=result_candidate,
+        before_fingerprint=before_fingerprint,
+        after_fingerprint=after_fingerprint,
+        source="refinement_repair",
+        transition=TRANSITION_APPLY_REPAIR,
+        action_id="apply_repair",
+        detail={"option_id": option_id, "finding": applied.get("finding")},
+        result_extra={
+            "option_id": option_id,
+            "finding": applied.get("finding"),
+            "family": applied.get("family"),
+            "delta": delta,
+            "verification": applied.get("verification"),
+        },
+        problem=problem,
+        export=export,
+        export_dir=export_dir,
+        timestamped_export=timestamped_export,
+        strict=strict,
+        actor=actor,
+        rationale=rationale,
+        log_fn=log,
+    )
+
+
+def commit_refined_candidate(
+    work_dir: str | Path,
+    session: Any,
+    *,
+    checkpoint: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+    before_fingerprint: str,
+    after_fingerprint: str,
+    source: str,
+    transition: str,
+    action_id: str,
+    detail: Mapping[str, Any],
+    result_extra: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    export: bool,
+    export_dir: str | None,
+    timestamped_export: bool,
+    strict: bool,
+    actor: str | None,
+    rationale: str,
+    log_fn: Callable[[str], None],
+) -> dict[str, Any]:
+    """Commit one candidate revision over the reviewed candidate and re-export.
+
+    Shared by option-based refinement and frontier adoption so a candidate is
+    always advanced the same way (explicit reopen -> new revision ->
+    re-finalize -> Stage 4 with provenance) and a partial export can never
+    silently leave the reviewed candidate replaced.
+    """
+    before_revision = session.candidate_revision
+    prior_export = _prior_export_provenance(work_dir)
     new_checkpoint = dict(checkpoint)
-    new_checkpoint["plan"] = result_candidate
-    new_checkpoint["source"] = "refinement_repair"
+    new_checkpoint["plan"] = dict(candidate)
+    new_checkpoint["source"] = source
     new_checkpoint["refinement"] = {
         "from_candidate_fingerprint": before_fingerprint,
         "to_candidate_fingerprint": after_fingerprint,
-        "option_id": option_id,
-        "finding": applied.get("finding"),
+        "option_id": detail.get("option_id"),
+        "finding": detail.get("finding"),
         "actor": actor,
         "at": _now(),
     }
 
-    # Explicit reopen of the reviewed candidate, then one revision-bound repair
-    # and re-finalization. Stage 1/2 evidence is never touched. The candidate
-    # is committed before the regeneration attempt so a partial export can
-    # never leave the reviewed candidate silently replaced.
+    # Explicit reopen of the reviewed candidate, then one revision-bound
+    # mutation and re-finalization. Stage 1/2 evidence is never touched. The
+    # candidate is committed before the regeneration attempt so a partial
+    # export can never leave the reviewed candidate silently replaced.
     reopened = session.begin_refinement(
         export_provenance=prior_export,
-        rationale=rationale or f"refine reviewed candidate via {option_id}",
+        rationale=rationale or f"refine reviewed candidate ({source})",
         at=_now(),
     )
 
@@ -365,16 +425,16 @@ def refine_finalized_candidate(
     session.advance_candidate(
         new_checkpoint,
         fingerprint=after_fingerprint,
-        source="refinement_repair",
-        transition=TRANSITION_APPLY_REPAIR,
-        action_id="apply_repair",
-        rationale=rationale or f"refine reviewed candidate via {option_id}",
+        source=source,
+        transition=transition,
+        action_id=action_id,
+        rationale=rationale or f"refine reviewed candidate ({source})",
         at=_now(),
-        extra={"detail": {"option_id": option_id, "finding": applied.get("finding")}},
+        extra={"detail": dict(detail)},
     )
     session.finalize(
-        transition=TRANSITION_APPLY_REPAIR,
-        action_id="apply_repair",
+        transition=transition,
+        action_id=action_id,
         rationale=rationale or "refinement re-finalized",
         at=_now(),
     )
@@ -383,17 +443,13 @@ def refine_finalized_candidate(
     result: dict[str, Any] = {
         "ok": True,
         "dry_run": False,
-        "option_id": option_id,
-        "finding": applied.get("finding"),
-        "family": applied.get("family"),
         "session_revision_before": before_revision,
         "session_revision_after": session.candidate_revision,
         "candidate_fingerprint_before": before_fingerprint,
         "candidate_fingerprint_after": after_fingerprint,
-        "delta": delta,
-        "verification": applied.get("verification"),
         "refinement": reopened,
         "audit_required": True,
+        **dict(result_extra),
     }
 
     if not export:
@@ -408,7 +464,7 @@ def refine_finalized_candidate(
             export_dir=export_dir,
             timestamped_export=timestamped_export,
             strict=strict,
-            log_fn=log,
+            log_fn=log_fn,
         )
     except Exception as exc:  # noqa: BLE001 - the committed candidate survives
         result.update(

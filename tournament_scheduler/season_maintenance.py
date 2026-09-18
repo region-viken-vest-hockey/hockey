@@ -106,6 +106,83 @@ MANUAL_PLACEMENT = "manual_placement"
 MOVABLE_CAPACITY = "movable_capacity"
 ROSTER_SHAPE = "roster_shape"
 
+# Canonical search-coverage vocabulary shared by every finding family. A
+# finding always carries ``search_coverage`` so a caller can tell apart
+# "a verified option exists", "supported dimensions remain untried" and "the
+# configured bounded search was run and found nothing" -- the last is
+# deliberately *not* ``proven_infeasible`` (no bounded search proves that).
+SEARCH_COVERAGE_OPTION_AVAILABLE = "option_available"
+SEARCH_COVERAGE_INCOMPLETE = "search_incomplete"
+SEARCH_COVERAGE_BOUNDED_EXHAUSTED = "bounded_search_exhausted"
+SEARCH_COVERAGE_PROVEN_INFEASIBLE = "proven_infeasible"
+
+# Supported repair/search dimensions per finding category. These describe the
+# neighborhood a bounded search may widen into, not a scheduling rule.
+SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
+    HOSTING: ("participants", "host"),
+    PARTICIPATION: ("participants",),
+    MANUAL_PLACEMENT: ("participants", "host"),
+    MOVABLE_CAPACITY: ("host",),
+    HARD_VIOLATION: ("participants", "host"),
+    ROSTER_SHAPE: (),
+}
+
+
+def supported_dimensions_for_finding(finding: Mapping[str, Any]) -> Tuple[str, ...]:
+    """Canonical supported search dimensions for one finding's category."""
+    category = str(finding.get("category") or "")
+    return SUPPORTED_DIMENSIONS_BY_CATEGORY.get(category, DEFAULT_DIMENSIONS)
+
+
+def cheap_search_coverage(finding: Mapping[str, Any]) -> Dict[str, Any]:
+    """Conservative coverage for a finding whose bounded search has not run yet.
+
+    The cheap listing path never runs the provider search, so every supported
+    dimension is still untried: ``search_incomplete``, never a false
+    ``bounded_search_exhausted``.
+    """
+    supported = list(supported_dimensions_for_finding(finding))
+    return {
+        "status": SEARCH_COVERAGE_INCOMPLETE,
+        "supported": supported,
+        "untried": list(supported),
+        "attempted": [],
+        "search_requested": False,
+        "proven_infeasible": False,
+    }
+
+
+def derive_search_coverage(
+    *,
+    option_count: int,
+    rejected_count: int,
+    allow_search: bool,
+    supported: Iterable[str],
+) -> Dict[str, Any]:
+    """Resolved coverage after a provider actually ran for one finding.
+
+    ``bounded_search_exhausted`` means exactly "the configured bounded search
+    ran and produced no verified option", never "no solution exists".
+    ``rejected_count`` is carried so a caller can inspect the deterministic
+    rejection evidence instead of treating the absence of options as proof.
+    """
+    supported_list = [str(item) for item in supported]
+    if option_count > 0:
+        status = SEARCH_COVERAGE_OPTION_AVAILABLE
+    elif allow_search:
+        status = SEARCH_COVERAGE_BOUNDED_EXHAUSTED
+    else:
+        status = SEARCH_COVERAGE_INCOMPLETE
+    return {
+        "status": status,
+        "supported": supported_list,
+        "untried": [] if allow_search or option_count > 0 else list(supported_list),
+        "attempted": list(supported_list) if allow_search else [],
+        "search_requested": bool(allow_search),
+        "rejected_count": int(rejected_count),
+        "proven_infeasible": False,
+    }
+
 
 class SeasonMaintenanceError(RuntimeError):
     """Raised when a maintenance request cannot be served safely."""
@@ -610,6 +687,12 @@ def _findings(
     findings.extend(_movable_capacity_findings(problem, plan))
     findings.extend(_shape_findings(verification))
     findings.sort(key=lambda entry: (entry["category"], entry["finding_id"]))
+    # Every finding carries a coverage view so a controller never has to infer
+    # "untried dimensions remain" from the absence of options. The unplaced
+    # provider already attached its authoritative per-obligation coverage; the
+    # other families get the conservative cheap view here.
+    for finding in findings:
+        finding.setdefault("search_coverage", cheap_search_coverage(finding))
     return findings
 
 
@@ -960,12 +1043,29 @@ def _options_for_finding(
         return _unplaced_options(plan, problem, finding, allow_search=allow_search)
     category = finding["category"]
     if category == HOSTING:
-        return _hosting_options(plan, problem, finding, allow_search=allow_search, dimensions=dimensions)
-    if category == PARTICIPATION:
-        return _participation_options(plan, problem, finding, allow_search=allow_search, dimensions=dimensions)
-    if category == MOVABLE_CAPACITY:
-        return _movable_capacity_options(plan, problem, finding)
-    return _hard_options(plan, problem, finding, allow_search=allow_search, dimensions=dimensions)
+        options, rejected, families = _hosting_options(
+            plan, problem, finding, allow_search=allow_search, dimensions=dimensions
+        )
+    elif category == PARTICIPATION:
+        options, rejected, families = _participation_options(
+            plan, problem, finding, allow_search=allow_search, dimensions=dimensions
+        )
+    elif category == MOVABLE_CAPACITY:
+        options, rejected, families = _movable_capacity_options(plan, problem, finding)
+    else:
+        options, rejected, families = _hard_options(
+            plan, problem, finding, allow_search=allow_search, dimensions=dimensions
+        )
+    # Record the resolved coverage on the finding the caller receives, unless
+    # the owning provider already produced its own authoritative coverage
+    # (the unplaced provider does; that branch returned above).
+    finding["search_coverage"] = derive_search_coverage(
+        option_count=len(options),
+        rejected_count=len(rejected),
+        allow_search=allow_search,
+        supported=supported_dimensions_for_finding(finding),
+    )
+    return options, rejected, families
 
 
 def _hosting_options(

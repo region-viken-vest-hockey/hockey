@@ -299,3 +299,64 @@ def test_archive_entry_from_option_uses_measured_objectives() -> None:
     )
     assert entry.objective_vector == {"hard_violations": 0.0}
     assert entry.source["option_id"] == "o1"
+
+
+# ---------------------------------------------------------------------------
+# Resolved search coverage tracking
+# ---------------------------------------------------------------------------
+
+
+def test_recorded_bounded_exhaustion_overrides_cheap_incomplete_view() -> None:
+    controller = ConvergenceController(ConvergenceState(), ParetoArchive(max_size=4), max_epochs=6)
+    findings = classify_findings(
+        [{"finding_id": "h", "category": "hosting", "search_coverage": {"status": "search_incomplete"}}]
+    )
+    outcome = controller.record_epoch(
+        direction=findings[0],
+        generated=[],
+        findings=findings,
+        resolved_coverage={"h": {"status": "bounded_search_exhausted"}},
+    )
+    assert controller.state.search_coverage["h"]["status"] == "bounded_search_exhausted"
+    assert outcome.terminal_reason == TERMINAL_BOUNDED_SEARCH_EXHAUSTED
+    # A finding recorded as exhausted is no longer re-explored on this candidate.
+    fresh = classify_findings(
+        [{"finding_id": "h", "category": "hosting", "search_coverage": {"status": "search_incomplete"}}]
+    )
+    assert controller.next_direction(fresh) is None
+
+
+def test_candidate_change_clears_recorded_coverage_and_explored_findings() -> None:
+    controller = ConvergenceController(ConvergenceState(), ParetoArchive(max_size=4), max_epochs=6)
+    finding = classify_findings([{"finding_id": "h", "category": "hosting"}])[0]
+    controller.record_epoch(
+        direction=finding,
+        generated=[],
+        findings=[finding],
+        resolved_coverage={"h": {"status": "bounded_search_exhausted"}},
+    )
+    assert controller.state.explored_findings == ["h"]
+    # A committed candidate is a new baseline: the old search evidence no
+    # longer describes it, so the next epoch may search it again.
+    controller.record_epoch(
+        direction=None,
+        generated=[],
+        findings=[finding],
+        candidate_changed=True,
+    )
+    assert controller.state.search_coverage == {}
+    assert controller.state.explored_findings == []
+
+
+def test_exploration_exhausted_reports_bounded_plateau_not_budget() -> None:
+    controller = ConvergenceController(ConvergenceState(), ParetoArchive(max_size=4), max_epochs=6)
+    findings = classify_findings([{"finding_id": "h", "category": "hosting"}])
+    outcome = controller.record_epoch(
+        direction=findings[0],
+        generated=[],
+        findings=findings,
+        resolved_coverage={"h": {"status": "option_available"}},
+        exploration_exhausted=True,
+    )
+    assert outcome.terminal_reason == TERMINAL_PARETO_STABLE
+    assert "pareto-stable" in outcome.terminal_detail.lower()

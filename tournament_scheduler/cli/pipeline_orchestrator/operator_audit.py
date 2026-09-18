@@ -71,6 +71,61 @@ def _cmd_operator_audit_evidence(args: argparse.Namespace) -> int:
     return 0
 
 
+def _auto_refine_review_required(args: argparse.Namespace, *, max_epochs: int) -> dict[str, Any]:
+    """Continue a REVIEW_REQUIRED run through bounded Pareto convergence.
+
+    Returns the convergence report, or ``{"ok": False, "reason": ...}`` when
+    the workspace has no finalized unpromoted candidate to refine (for example
+    a promoted-season audit) or the planning problem cannot be rebuilt. Never
+    raises: a transport must report the outcome, not crash the audit.
+    """
+    from ...application.audit_convergence import audit_payload_for_current_export
+    from ...application.convergence_refinement import run_bounded_convergence
+    from ...pipeline.state import PipelineState
+    from .stage3_refine_command import _refinement_problem
+
+    work_dir = args.work_dir
+    state = PipelineState(work_dir)
+    try:
+        _cfg, _scraping, _start, _end, problem = _refinement_problem(state, args)
+    except Exception as exc:  # noqa: BLE001 - reported, not raised
+        return {"ok": False, "reason": f"planning_problem_unavailable: {exc}"}
+    audit_payload = audit_payload_for_current_export(work_dir)
+    try:
+        return run_bounded_convergence(
+            work_dir,
+            problem=problem,
+            max_epochs=int(max_epochs),
+            audit_payload=audit_payload,
+        )
+    except Exception as exc:  # noqa: BLE001 - includes "no finalized candidate"
+        return {"ok": False, "reason": str(exc)}
+
+
+def _render_convergence_summary(convergence: dict[str, Any]) -> None:
+    if not convergence.get("ok"):
+        _console.print(
+            "[dim]Ingen automatisk raffinering: "
+            f"{convergence.get('reason') or 'ikke tilgjengelig'}[/dim]"
+        )
+        return
+    reason = str(convergence.get("terminal_reason") or "")
+    style = "green" if reason == "pass" else "yellow"
+    _console.print(
+        f"[{style}]Konvergens: {reason}[/{style}] {convergence.get('terminal_detail') or ''}".rstrip()
+    )
+    for question in (convergence.get("audit_decision") or {}).get("operator_questions") or []:
+        _console.print(
+            f"  [yellow]operatørspørsmål[/yellow] (item {question.get('item_id')}): "
+            f"{question.get('finding') or question.get('question')}"
+        )
+    if convergence.get("committed_epochs"):
+        _console.print(
+            "  ny eksport krever frisk semantisk revisjon: ja "
+            f"({convergence.get('committed_epochs')} mutasjon(er))"
+        )
+
+
 def _cmd_operator_audit_submit(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt operator audit-submit`` — persist a structured
     audit verdict (submitted by an interactive harness after in-session
@@ -99,6 +154,17 @@ def _cmd_operator_audit_submit(args: argparse.Namespace) -> int:
 
     if result.status == "ok":
         _console.print(f"[green]✓[/green] {result.summary}")
+        if str(payload.get("status")) == "REVIEW_REQUIRED" and not bool(
+            getattr(args, "no_refine", False)
+        ):
+            _console.print(
+                "[dim]REVIEW_REQUIRED → fortsetter med avgrenset Pareto-konvergens over "
+                "denne kandidaten …[/dim]"
+            )
+            convergence = _auto_refine_review_required(
+                args, max_epochs=int(getattr(args, "max_refine_epochs", 6))
+            )
+            _render_convergence_summary(convergence)
         return 0
     _console.print(f"[red]✗[/red] {result.summary}")
     for problem in result.problems:
@@ -125,24 +191,46 @@ def _cmd_operator_audit_run(args: argparse.Namespace) -> int:
         )
         return 1
 
-    context = build_audit_context(work_dir=args.work_dir)
-    if not context.get("export_fingerprint"):
-        _console.print("[red]✗[/red] Ingen Stage 4-eksport funnet — kjør eksport før revisjon.")
-        return 1
+    max_rounds = max(1, int(getattr(args, "max_refine_rounds", 2)))
+    last_status = ""
+    for _round in range(max_rounds):
+        context = build_audit_context(work_dir=args.work_dir)
+        if not context.get("export_fingerprint"):
+            _console.print("[red]✗[/red] Ingen Stage 4-eksport funnet — kjør eksport før revisjon.")
+            return 1
 
-    evidence_index = build_audit_evidence_index(work_dir=args.work_dir)
-    result = run_headless_audit(context, args.backend, evidence_index=evidence_index)
+        evidence_index = build_audit_evidence_index(work_dir=args.work_dir)
+        result = run_headless_audit(context, args.backend, evidence_index=evidence_index)
+        last_status = str(result.get("status") or "")
 
-    action = DEFAULT_REGISTRY.build("submit_audit_result", work_dir=args.work_dir, result=result)
-    try:
-        submit_result = DEFAULT_REGISTRY.execute(action, approved=True)
-    except UnknownActionError as exc:
-        _console.print(f"[red]✗[/red] {exc}")
-        return 1
+        action = DEFAULT_REGISTRY.build("submit_audit_result", work_dir=args.work_dir, result=result)
+        try:
+            submit_result = DEFAULT_REGISTRY.execute(action, approved=True)
+        except UnknownActionError as exc:
+            _console.print(f"[red]✗[/red] {exc}")
+            return 1
 
-    if submit_result.status != "ok":
-        _console.print(f"[red]✗[/red] {submit_result.summary}")
-        return 1
+        if submit_result.status != "ok":
+            _console.print(f"[red]✗[/red] {submit_result.summary}")
+            return 1
 
-    _console.print(f"[green]✓[/green] Revisjon fullført (status={result.get('status')}).")
-    return 0 if result.get("status") == "PASS" else 1
+        _console.print(f"[green]✓[/green] Revisjon fullført (status={last_status}).")
+        if last_status == "PASS":
+            return 0
+        if last_status != "REVIEW_REQUIRED" or bool(getattr(args, "no_refine", False)):
+            return 1
+
+        _console.print(
+            "[dim]REVIEW_REQUIRED → fortsetter med avgrenset Pareto-konvergens …[/dim]"
+        )
+        convergence = _auto_refine_review_required(
+            args, max_epochs=int(getattr(args, "max_refine_epochs", 6))
+        )
+        _render_convergence_summary(convergence)
+        if not convergence.get("committed_epochs"):
+            return 1
+
+    _console.print(
+        f"[yellow]⚠[/yellow] Avgrenset revisjonsrunder brukt opp (siste status={last_status})."
+    )
+    return 1

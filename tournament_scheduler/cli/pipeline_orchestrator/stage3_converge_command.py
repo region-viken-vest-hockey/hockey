@@ -43,6 +43,11 @@ def _cmd_stage3_converge(args: argparse.Namespace) -> int:
         return 1
 
     try:
+        audit_payload = None
+        if not bool(getattr(args, "ignore_audit", False)):
+            from ...application.audit_convergence import audit_payload_for_current_export
+
+            audit_payload = audit_payload_for_current_export(work_dir)
         result = run_bounded_convergence(
             work_dir,
             problem=problem,
@@ -53,6 +58,8 @@ def _cmd_stage3_converge(args: argparse.Namespace) -> int:
             dry_run=bool(getattr(args, "dry_run", False)),
             allow_search=not bool(getattr(args, "no_search", False)),
             force_finding_id=getattr(args, "finding", None),
+            preferred_option_id=getattr(args, "option_id", None),
+            audit_payload=audit_payload,
         )
     except Exception as exc:  # noqa: BLE001 - surfaced as a transport failure
         if json_output:
@@ -83,6 +90,66 @@ def _cmd_stage3_converge(args: argparse.Namespace) -> int:
     return 0 if result.get("ok") else 1
 
 
+def _cmd_stage3_adopt(args: argparse.Namespace) -> int:
+    """``rvv-miniputt stage3 adopt`` — re-validate and adopt a retained candidate.
+
+    Thin transport over
+    :func:`tournament_scheduler.application.convergence_refinement.select_frontier_candidate`.
+    """
+    from ...application.convergence_refinement import select_frontier_candidate
+    from ...pipeline.state import PipelineState
+    from .stage3_refine_command import _refinement_problem
+
+    work_dir = getattr(args, "work_dir", ".pipeline")
+    state = PipelineState(work_dir)
+    json_output = bool(getattr(args, "json", False))
+    as_json = lambda payload: json.dumps(payload, indent=2, ensure_ascii=False)  # noqa: E731
+
+    try:
+        _cfg, _scraping, _start, _end, problem = _refinement_problem(state, args)
+    except Exception as exc:
+        if json_output:
+            print(as_json({"ok": False, "reason": str(exc)}))
+        else:
+            _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
+    try:
+        result = select_frontier_candidate(
+            work_dir,
+            candidate_ref=str(getattr(args, "candidate_ref", "")),
+            problem=problem,
+            export=not bool(getattr(args, "no_export", False)),
+            export_dir=getattr(args, "export_dir", None),
+            timestamped_export=not bool(getattr(args, "flat_export", False)),
+            strict=not bool(getattr(args, "non_strict", False)),
+            actor="operator",
+            rationale=str(getattr(args, "rationale", "") or ""),
+        )
+    except Exception as exc:  # noqa: BLE001 - surfaced as a transport failure
+        if json_output:
+            print(as_json({"ok": False, "reason": str(exc)}))
+        else:
+            _console.print(f"[red]✗[/red] Adopsjon feilet: {exc}")
+        return 1
+
+    if json_output:
+        print(as_json(result))
+    elif result.get("ok"):
+        if result.get("already_current"):
+            _console.print("[green]✓[/green] Kandidaten er allerede gjeldende revisjon.")
+        else:
+            _console.print(
+                f"[green]✓[/green] Adoptert {result.get('candidate_ref')}: "
+                f"revisjon {result.get('session_revision_before')} → {result.get('session_revision_after')}"
+            )
+            if result.get("audit_required"):
+                _console.print("  krever ny semantisk revisjon over nyeste eksport: ja")
+    else:
+        _console.print(f"[red]✗[/red] Avvist: {result.get('reason')}")
+    return 0 if result.get("ok") else 1
+
+
 def _render(result: dict[str, Any]) -> None:
     reason = str(result.get("terminal_reason") or "")
     detail = str(result.get("terminal_detail") or "")
@@ -100,6 +167,12 @@ def _render(result: dict[str, Any]) -> None:
         _console.print(
             f"    - {entry.get('candidate_ref')} [{entry.get('direction')}] "
             f"{(entry.get('candidate_fingerprint') or '')[:12]}"
+        )
+    audit_decision = result.get("audit_decision") or {}
+    for question in audit_decision.get("operator_questions") or []:
+        _console.print(
+            f"  [yellow]operatørspørsmål[/yellow] (item {question.get('item_id')}): "
+            f"{question.get('finding') or question.get('question')}"
         )
     if result.get("audit_required"):
         _console.print("  krever ny semantisk revisjon over nyeste eksport: ja")

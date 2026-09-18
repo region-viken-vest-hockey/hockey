@@ -1256,6 +1256,11 @@ def build_parser() -> argparse.ArgumentParser:
     stage3_converge.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
     stage3_converge.add_argument("--input", default=None, help="Input workbook path (defaults to the run's)")
     stage3_converge.add_argument("--finding", default=None, help="Force the first epoch to this finding id")
+    stage3_converge.add_argument(
+        "--option-id",
+        default=None,
+        help="Prefer this verified option as the next exploration baseline when it is non-dominated",
+    )
     stage3_converge.add_argument("--max-epochs", type=int, default=6, help="Bounded controller epoch budget (default: 6)")
     stage3_converge.add_argument(
         "--max-no-improvement",
@@ -1267,7 +1272,25 @@ def build_parser() -> argparse.ArgumentParser:
     stage3_converge.add_argument("--no-search", action="store_true", help="Only use cheap repair options, not bounded search")
     stage3_converge.add_argument("--no-export", action="store_true", help="Mutate candidates without re-running Stage 4")
     stage3_converge.add_argument("--dry-run", action="store_true", help="Preview the next epoch without mutating")
+    stage3_converge.add_argument(
+        "--ignore-audit",
+        action="store_true",
+        help="Do not read the persisted semantic-audit verdict for this export",
+    )
     stage3_converge.add_argument("--json", action="store_true", help="Print the convergence report as JSON")
+    stage3_adopt = stage3_sub.add_parser(
+        "adopt",
+        help="Adopt one still-valid retained frontier candidate as the current candidate",
+    )
+    stage3_adopt.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
+    stage3_adopt.add_argument("--input", default=None, help="Input workbook path (defaults to the run's)")
+    stage3_adopt.add_argument("--candidate-ref", required=True, help="Retained frontier/attempt candidate ref")
+    stage3_adopt.add_argument("--no-export", action="store_true", help="Adopt without re-running Stage 4")
+    stage3_adopt.add_argument("--export-dir", default=None, help="Export root (defaults to the reviewed export's root)")
+    stage3_adopt.add_argument("--flat-export", action="store_true", help="Write the export flat instead of timestamped")
+    stage3_adopt.add_argument("--non-strict", action="store_true", help="Continue on non-fatal export errors")
+    stage3_adopt.add_argument("--rationale", default="", help="Concise operational rationale")
+    stage3_adopt.add_argument("--json", action="store_true", help="Print the result as JSON")
 
     # cancel
     cancel = sub.add_parser("cancel", help="Cancel a tournament and suggest/reschedule makeup dates")

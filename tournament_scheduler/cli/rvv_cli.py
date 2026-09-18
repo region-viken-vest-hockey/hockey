@@ -1864,6 +1864,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             from .pipeline_orchestrator.stage3_converge_command import _cmd_stage3_converge
 
             return _cmd_stage3_converge(args)
+        if getattr(args, "stage3_command", None) == "adopt":
+            from .pipeline_orchestrator.stage3_converge_command import _cmd_stage3_adopt
+
+            return _cmd_stage3_adopt(args)
         return _cmd_stage3_session(args)
     elif args.command == "waiver":
         return _cmd_waiver(args)

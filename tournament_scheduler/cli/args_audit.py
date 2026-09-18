@@ -87,6 +87,24 @@ def add_operator_audit_subparsers(operator_sub: "argparse._SubParsersAction") ->
     op_audit_submit_group.add_argument(
         "--result-json", default=None, help="The structured audit result as a JSON string"
     )
+    op_audit_submit.add_argument(
+        "--no-refine",
+        action="store_true",
+        help=(
+            "Do not automatically enter bounded refinement after a REVIEW_REQUIRED verdict. "
+            "By default actionable repository findings continue the run instead of escalating "
+            "to a human immediately."
+        ),
+    )
+    op_audit_submit.add_argument(
+        "--max-refine-epochs",
+        type=int,
+        default=6,
+        help="Bounded controller epoch budget for the automatic refinement (default: 6)",
+    )
+    op_audit_submit.add_argument(
+        "--input", default=None, help="Input workbook path (defaults to the run's)"
+    )
 
     op_audit_run = operator_sub.add_parser(
         "audit-run",
@@ -111,4 +129,21 @@ def add_operator_audit_subparsers(operator_sub: "argparse._SubParsersAction") ->
         action="store_true",
         help="Run the headless audit even while an interactive harness session is detected "
         "(normally the harness should perform the audit itself in-session instead)",
+    )
+    op_audit_run.add_argument(
+        "--no-refine",
+        action="store_true",
+        help="Report REVIEW_REQUIRED without automatically entering bounded refinement",
+    )
+    op_audit_run.add_argument(
+        "--max-refine-epochs",
+        type=int,
+        default=6,
+        help="Bounded controller epoch budget per automatic refinement round (default: 6)",
+    )
+    op_audit_run.add_argument(
+        "--max-refine-rounds",
+        type=int,
+        default=2,
+        help="Bounded audit→refine→re-audit rounds (default: 2)",
     )

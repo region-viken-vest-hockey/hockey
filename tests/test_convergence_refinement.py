@@ -402,3 +402,307 @@ def test_stage3_converge_cli_reports_truthful_terminal(tmp_path: Path, capsys: A
     payload = json.loads(capsys.readouterr().out)
     assert payload["terminal_reason"] in {"pass", "operator_required", "pareto_stable"}
     assert payload["globally_optimal"] is False
+
+
+# ---------------------------------------------------------------------------
+# Truthful coverage: zero options from the bounded search is not a budget stop
+# ---------------------------------------------------------------------------
+
+
+def test_exhausted_finding_reports_bounded_search_exhausted_not_budget(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+
+    def finding_provider(candidate: Dict[str, Any], problem: Dict[str, Any]) -> List[Dict[str, Any]]:
+        return [
+            {
+                "finding_id": "h",
+                "category": "hosting",
+                "search_coverage": {"status": "search_incomplete", "search_requested": False},
+            }
+        ]
+
+    def option_provider(
+        plan: Dict[str, Any], problem: Dict[str, Any], finding_id: str, *, allow_search: bool, dimensions: tuple
+    ) -> Dict[str, Any]:
+        return {
+            "finding": {
+                "finding_id": finding_id,
+                "category": "hosting",
+                "search_coverage": {
+                    "status": "bounded_search_exhausted",
+                    "search_requested": True,
+                    "proven_infeasible": False,
+                },
+            },
+            "options": [],
+            "rejected_candidates": [{"finding_id": finding_id, "reason": "no_candidate"}],
+        }
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=6,
+        max_no_improvement_epochs=2,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=lambda *a, **k: {"ok": False},
+        apply_provider=lambda *a, **k: {"ok": False, "reason": "should_not_run"},
+        run_id=RUN_ID,
+    )
+
+    assert result["terminal_reason"] == "bounded_search_exhausted"
+    assert "not proof of infeasibility" in result["terminal_detail"]
+    session = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    assert session.convergence["search_coverage"]["h"]["status"] == "bounded_search_exhausted"
+    # It stopped because the configured search is exhausted, not because an
+    # epoch/attempt budget ran out.
+    assert session.convergence["epoch"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Semantic-audit bridge
+# ---------------------------------------------------------------------------
+
+
+def test_audit_open_ended_finding_stops_and_asks_operator(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+    payload = {
+        "status": "REVIEW_REQUIRED",
+        "checklist_findings": [
+            {
+                "item_id": 9,
+                "question": "anything else?",
+                "finding": "a rule we have not modelled",
+                "severity": "major",
+                "confidence": "high",
+            }
+        ],
+    }
+
+    def finding_provider(candidate: Dict[str, Any], problem: Dict[str, Any]) -> List[Dict[str, Any]]:
+        return []
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        audit_payload=payload,
+        finding_provider=finding_provider,
+        option_provider=lambda *a, **k: {"finding": {}, "options": []},
+        body_provider=lambda *a, **k: {"ok": False},
+        apply_provider=lambda *a, **k: {"ok": False, "reason": "should_not_run"},
+        run_id=RUN_ID,
+    )
+
+    assert result["terminal_reason"] == TERMINAL_OPERATOR_REQUIRED
+    questions = result["audit_decision"]["operator_questions"]
+    assert questions and questions[0]["item_id"] == 9
+    assert "a rule we have not modelled" in result["terminal_detail"]
+
+
+def test_audit_covered_finding_continues_refinement(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+    commits: List[str] = []
+    finding_provider, option_provider, body_provider, apply_provider = _providers(commits)
+    # stage 1 surfaces finding "B" (direction participants).
+    payload = {
+        "status": "REVIEW_REQUIRED",
+        "checklist_findings": [
+            {
+                "item_id": 1,
+                "question": "cuper pr lag?",
+                "finding": "one team is short",
+                "severity": "major",
+                "confidence": "high",
+            }
+        ],
+    }
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=4,
+        max_no_improvement_epochs=1,
+        export=False,
+        audit_payload=payload,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        run_id=RUN_ID,
+    )
+
+    assert result["committed_epochs"] >= 1
+    assert result["audit_decision"]["covered_directions"] == ["participants"]
+    # The covered audit finding did not itself become an operator question, and
+    # automatic refinement was not blocked.
+    assert not result["audit_decision"]["operator_questions"]
+
+
+# ---------------------------------------------------------------------------
+# Frontier selectability
+# ---------------------------------------------------------------------------
+
+
+def test_any_retained_frontier_candidate_can_be_adopted(tmp_path: Path) -> None:
+    from tournament_scheduler.application.convergence_refinement import select_frontier_candidate
+    from tournament_scheduler.application.stage3_session_store import extract_candidate_body
+
+    _seed_finalized(tmp_path)
+    commits: List[str] = []
+    finding_provider, option_provider, body_provider, apply_provider = _providers(commits)
+    run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=6,
+        max_no_improvement_epochs=1,
+        export=False,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        run_id=RUN_ID,
+    )
+    session = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    # Two non-dominated frontier entries; only one is the current candidate.
+    assert len(session.pareto_archive) == 2
+    hosting = next(e for e in session.pareto_archive if e["direction"] == "hosting")
+    assert hosting["objective_vector"]["x"] == 1.0
+
+    result = select_frontier_candidate(
+        tmp_path,
+        candidate_ref=hosting["candidate_ref"],
+        problem={},
+        export=False,
+        run_id=RUN_ID,
+    )
+
+    assert result["ok"] is True, result
+    after = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    assert after.finalized_fingerprint == result["candidate_fingerprint_after"]
+    body = extract_candidate_body(PipelineState(str(tmp_path)).read_stage(StageName.PLANNING))
+    assert body["stage"] == 1  # the retained A candidate, not the later B
+
+
+def test_unknown_frontier_candidate_ref_is_rejected(tmp_path: Path) -> None:
+    from tournament_scheduler.application.convergence_refinement import select_frontier_candidate
+
+    _seed_finalized(tmp_path)
+    result = select_frontier_candidate(
+        tmp_path, candidate_ref="pareto:hosting:does-not-exist", problem={}, export=False, run_id=RUN_ID
+    )
+    assert result["ok"] is False
+    assert result["reason"] == "unknown_frontier_candidate_ref"
+
+
+# ---------------------------------------------------------------------------
+# Multiple non-dominated options from one epoch are retained
+# ---------------------------------------------------------------------------
+
+
+def test_multiple_non_dominated_options_are_retained_and_selectable(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+
+    def finding_provider(candidate: Dict[str, Any], problem: Dict[str, Any]) -> List[Dict[str, Any]]:
+        if int(candidate.get("stage", 99)) == 0:
+            return [{"finding_id": "A", "category": "hosting", "search_coverage": {"status": "search_incomplete"}}]
+        return []
+
+    options = [
+        {
+            "option_id": "oA1",
+            "finding_id": "A",
+            "family": "hosting_balance",
+            "objectives": {"hard_violations": 0.0, "manual_placements": 0.0, "x": 1.0, "y": 5.0},
+            "non_dominated": True,
+        },
+        {
+            "option_id": "oA2",
+            "finding_id": "A",
+            "family": "hosting_balance",
+            "objectives": {"hard_violations": 0.0, "manual_placements": 1.0, "x": 5.0, "y": 1.0},
+            "non_dominated": True,
+        },
+    ]
+
+    def option_provider(plan, problem, finding_id, *, allow_search, dimensions):
+        return {
+            "finding": {"finding_id": "A", "category": "hosting", "search_coverage": {"status": "option_available"}},
+            "options": [dict(o) for o in options],
+        }
+
+    def body_provider(plan, problem, option_id, *, finding_id, dimensions):
+        return {"ok": True, "candidate": {"tournaments": [], "stage": 1 if option_id == "oA1" else 2}}
+
+    def apply_provider(work_dir, **kwargs):
+        option_id = kwargs["option_id"]
+        fingerprint = _commit(
+            work_dir, {"tournaments": [], "stage": 1 if option_id == "oA1" else 2}
+        )
+        return {"ok": True, "candidate_fingerprint_after": fingerprint, "export_fingerprint": "e"}
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=3,
+        export=False,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        run_id=RUN_ID,
+    )
+
+    assert result["terminal_reason"] == "pass"
+    refs = [entry["candidate_ref"] for entry in result["frontier"]]
+    assert len(refs) == 2
+    session = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    retained = set(session.retained_candidate_refs())
+    assert set(refs).issubset(retained)
+    # Each retained entry carries the named consequence metrics, not just the
+    # raw objective vector.
+    manual_counts = sorted(e["metrics"]["manual_placement_count"] for e in result["frontier"])
+    assert manual_counts == [0.0, 1.0]
+
+
+def test_preferred_option_chooses_the_next_exploration_baseline(tmp_path: Path) -> None:
+    from tournament_scheduler.application.stage3_session_store import extract_candidate_body
+
+    _seed_finalized(tmp_path)
+
+    def finding_provider(candidate: Dict[str, Any], problem: Dict[str, Any]) -> List[Dict[str, Any]]:
+        if int(candidate.get("stage", 99)) == 0:
+            return [{"finding_id": "A", "category": "hosting", "search_coverage": {"status": "search_incomplete"}}]
+        return []
+
+    def option_provider(plan, problem, finding_id, *, allow_search, dimensions):
+        return {
+            "finding": {"finding_id": "A", "category": "hosting", "search_coverage": {"status": "option_available"}},
+            "options": [
+                {"option_id": "oA1", "finding_id": "A", "family": "f", "objectives": {"x": 1.0, "y": 5.0}, "non_dominated": True},
+                {"option_id": "oA2", "finding_id": "A", "family": "f", "objectives": {"x": 5.0, "y": 1.0}, "non_dominated": True},
+            ],
+        }
+
+    def body_provider(plan, problem, option_id, *, finding_id, dimensions):
+        return {"ok": True, "candidate": {"tournaments": [], "stage": 1 if option_id == "oA1" else 2}}
+
+    def apply_provider(work_dir, **kwargs):
+        body = {"tournaments": [], "stage": 1 if kwargs["option_id"] == "oA1" else 2}
+        fingerprint = _commit(work_dir, body)
+        return {"ok": True, "candidate_fingerprint_after": fingerprint}
+
+    run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=2,
+        export=False,
+        preferred_option_id="oA2",
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        run_id=RUN_ID,
+    )
+
+    body = extract_candidate_body(PipelineState(str(tmp_path)).read_stage(StageName.PLANNING))
+    assert body["stage"] == 2

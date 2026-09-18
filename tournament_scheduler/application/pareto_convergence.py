@@ -97,6 +97,10 @@ class ArchiveEntry:
     export_fingerprint: str = ""
     source: dict[str, Any] = field(default_factory=dict)
     evidence: dict[str, Any] = field(default_factory=dict)
+    # Named consequence metrics (manual/unresolved placement counts,
+    # participation and hosting deltas, change cost, quality comparison) so a
+    # retained trade-off is inspectable without decoding the objective vector.
+    metrics: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -110,6 +114,7 @@ class ArchiveEntry:
             "export_fingerprint": self.export_fingerprint,
             "source": dict(self.source),
             "evidence": dict(self.evidence),
+            "metrics": dict(self.metrics),
         }
 
     @classmethod
@@ -133,6 +138,7 @@ class ArchiveEntry:
             export_fingerprint=str(data.get("export_fingerprint") or ""),
             source=dict(data.get("source") or {}),
             evidence=dict(data.get("evidence") or {}),
+            metrics=dict(data.get("metrics") or {}),
         )
 
 
@@ -333,6 +339,13 @@ class ConvergenceState:
     explored_findings: list[str] = field(default_factory=list)
     remaining_findings: list[dict[str, Any]] = field(default_factory=list)
     search_incomplete_directions: list[str] = field(default_factory=list)
+    # Resolved per-finding search coverage (finding_id -> coverage dict) for the
+    # current candidate revision. Lets the controller recognise a finding whose
+    # configured bounded search was actually run and found nothing, instead of
+    # treating every cheap ``search_incomplete`` view as untried forever. The
+    # map is cleared whenever the candidate changes (a new baseline deserves a
+    # fresh search).
+    search_coverage: dict[str, dict[str, Any]] = field(default_factory=dict)
     frontier_refs: list[str] = field(default_factory=list)
     no_improvement_epochs: int = 0
     last_direction: str = ""
@@ -347,6 +360,7 @@ class ConvergenceState:
             "explored_findings": list(self.explored_findings),
             "remaining_findings": [dict(finding) for finding in self.remaining_findings],
             "search_incomplete_directions": list(self.search_incomplete_directions),
+            "search_coverage": {str(k): dict(v) for k, v in self.search_coverage.items()},
             "frontier_refs": list(self.frontier_refs),
             "no_improvement_epochs": self.no_improvement_epochs,
             "last_direction": self.last_direction,
@@ -369,6 +383,11 @@ class ConvergenceState:
             search_incomplete_directions=[
                 str(item) for item in (data.get("search_incomplete_directions") or [])
             ],
+            search_coverage={
+                str(key): dict(value)
+                for key, value in (data.get("search_coverage") or {}).items()
+                if isinstance(value, Mapping)
+            },
             frontier_refs=[str(item) for item in (data.get("frontier_refs") or [])],
             no_improvement_epochs=int(data.get("no_improvement_epochs") or 0),
             last_direction=str(data.get("last_direction") or ""),
@@ -419,17 +438,39 @@ class ConvergenceController:
 
     # -- exploration order -------------------------------------------------
 
+    def effective_findings(
+        self, directions: Sequence[FindingDirection]
+    ) -> list[FindingDirection]:
+        """Apply recorded resolved coverage to freshly classified findings.
+
+        A cheap finding view always reports ``search_incomplete`` because its
+        bounded search has not run yet. Once this controller actually ran the
+        configured bounded search for a finding on the current candidate and it
+        produced no option, the recorded ``bounded_search_exhausted`` evidence
+        must override that cheap view -- otherwise the loop would re-search an
+        exhausted finding forever and never report truthful convergence.
+        """
+        effective: list[FindingDirection] = []
+        for direction in directions:
+            recorded = self.state.search_coverage.get(direction.finding_id) or {}
+            if str(recorded.get("status") or "") == "bounded_search_exhausted":
+                direction.bounded_exhausted = True
+                direction.search_incomplete = False
+            effective.append(direction)
+        return effective
+
     def next_direction(
         self, directions: Sequence[FindingDirection], *, force_finding_id: str | None = None
     ) -> FindingDirection | None:
         """Choose the next supported direction to explore, or ``None``.
 
-        Priority: an explicitly forced finding, then an actionable direction
-        never explored before, then an actionable direction whose supported
+        Priority: an explicitly forced finding, then an actionable finding
+        never explored before, then an actionable finding whose supported
         search is still incomplete (``search_incomplete`` must drive further
         exploration rather than false convergence). A terminal controller
         returns ``None``.
         """
+        directions = self.effective_findings(directions)
         if force_finding_id:
             forced = next(
                 (d for d in directions if d.finding_id == force_finding_id and d.actionable),
@@ -456,6 +497,9 @@ class ConvergenceController:
         generated: Sequence[ArchiveEntry],
         findings: Sequence[FindingDirection],
         search_incomplete_directions: Iterable[str] = (),
+        resolved_coverage: Mapping[str, dict[str, Any]] | None = None,
+        candidate_changed: bool = False,
+        exploration_exhausted: bool = False,
         max_epochs: int | None = None,
     ) -> EpochOutcome:
         """Fold one epoch's verified candidates and fresh findings into state."""
@@ -468,6 +512,17 @@ class ConvergenceController:
             else:
                 rejected_refs.append(entry.candidate_ref)
 
+        # A committed candidate is a new baseline: its recorded coverage and
+        # explored-finding set no longer describe it, so both are reset before
+        # this epoch's resolved coverage is folded in.
+        if candidate_changed:
+            self.state.search_coverage = {}
+            self.state.explored_findings = []
+        if resolved_coverage:
+            self.state.search_coverage.update(
+                {str(key): dict(value) for key, value in resolved_coverage.items()}
+            )
+
         self.state.epoch += 1
         direction_label = direction.direction if direction is not None else ""
         self.state.last_direction = direction_label
@@ -475,10 +530,13 @@ class ConvergenceController:
             self.state.explored_directions.append(direction_label)
         if direction is not None and direction.finding_id and direction.finding_id not in self.state.explored_findings:
             self.state.explored_findings.append(direction.finding_id)
-        self.state.remaining_findings = [d.to_dict() for d in findings]
-        self.state.search_incomplete_directions = sorted(
-            {str(item) for item in search_incomplete_directions}
-        )
+        effective = self.effective_findings(findings)
+        self.state.remaining_findings = [d.to_dict() for d in effective]
+        incomplete = {str(item) for item in search_incomplete_directions}
+        incomplete |= {
+            d.direction for d in effective if d.actionable and d.search_incomplete
+        }
+        self.state.search_incomplete_directions = sorted(incomplete)
         self.state.frontier_refs = self.archive.refs()
         improved = bool(accepted_refs)
         self.state.no_improvement_epochs = 0 if improved else self.state.no_improvement_epochs + 1
@@ -486,7 +544,7 @@ class ConvergenceController:
 
         limit = max_epochs if max_epochs is not None else self.max_epochs
         self.state.terminal_reason, self.state.terminal_detail = self._terminal_for(
-            findings, limit=limit
+            effective, limit=limit, exploration_exhausted=exploration_exhausted
         )
         return EpochOutcome(
             epoch=self.state.epoch,
@@ -503,7 +561,11 @@ class ConvergenceController:
     # -- convergence criteria ---------------------------------------------
 
     def _terminal_for(
-        self, findings: Sequence[FindingDirection], *, limit: int
+        self,
+        findings: Sequence[FindingDirection],
+        *,
+        limit: int,
+        exploration_exhausted: bool = False,
     ) -> tuple[str, str]:
         actionable = [d for d in findings if d.actionable]
         operator_required = [d for d in findings if d.operator_required and not d.accepted]
@@ -522,14 +584,18 @@ class ConvergenceController:
         # a false convergence, while the configured budget lasts.
         if self.state.search_incomplete_directions and self.state.epoch < limit:
             return TERMINAL_NONE, ""
-        if self.state.epoch >= limit:
-            return TERMINAL_BOUNDED_BUDGET, describe_terminal(TERMINAL_BOUNDED_BUDGET)
-        if self.state.no_improvement_epochs >= self.max_no_improvement_epochs:
+        if exploration_exhausted:
+            # Every supported direction was tried on this candidate and none
+            # produced a new useful non-dominated candidate: a bounded plateau.
             return TERMINAL_PARETO_STABLE, describe_terminal(TERMINAL_PARETO_STABLE)
         if actionable and all(d.bounded_exhausted for d in actionable):
             return TERMINAL_BOUNDED_SEARCH_EXHAUSTED, describe_terminal(
                 TERMINAL_BOUNDED_SEARCH_EXHAUSTED
             )
+        if self.state.epoch >= limit:
+            return TERMINAL_BOUNDED_BUDGET, describe_terminal(TERMINAL_BOUNDED_BUDGET)
+        if self.state.no_improvement_epochs >= self.max_no_improvement_epochs:
+            return TERMINAL_PARETO_STABLE, describe_terminal(TERMINAL_PARETO_STABLE)
         return TERMINAL_NONE, ""
 
 
@@ -591,6 +657,20 @@ def archive_entry_from_option(
         if isinstance(raw_vector, Mapping)
         else {}
     )
+    metrics = {
+        "hard_verification_ok": vector.get("hard_violations", 0.0) == 0.0,
+        "hard_violations": vector.get("hard_violations"),
+        "manual_placement_count": vector.get("manual_placements"),
+        "unresolved_placement_count": vector.get("unresolved_placement_obligations"),
+        "participation_deviation_count": vector.get("participation_deviations"),
+        "avoidable_participation_count": vector.get("avoidable_participation_deviations"),
+        "hosting_imbalance_count": vector.get("hosting_balance_imbalances"),
+        "unresolved_hosting_obligation_count": vector.get("unresolved_hosting_obligations"),
+        "host_confirmation_dependency_count": vector.get("host_confirmation_dependencies"),
+        "change_cost_changed_tournament_count": vector.get("changed_tournament_count"),
+        "quality_vs_current": option.get("quality_vs_current"),
+        "travel": option.get("travel"),
+    }
     return ArchiveEntry(
         candidate_ref=str(candidate_ref),
         candidate_fingerprint=str(candidate_fingerprint),
@@ -604,6 +684,7 @@ def archive_entry_from_option(
             "family": str(option.get("family") or ""),
         },
         evidence=dict(evidence or {}),
+        metrics=metrics,
     )
 
 

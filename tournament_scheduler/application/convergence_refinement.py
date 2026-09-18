@@ -46,6 +46,38 @@ def _ref_for(direction: FindingDirection, option: Mapping[str, Any]) -> str:
     return f"pareto:{direction.direction}:{_short_hash(str(option.get('option_id') or ''))}"
 
 
+def _resolved_coverage(
+    report: Mapping[str, Any], direction: FindingDirection
+) -> dict[str, dict[str, Any]]:
+    """Resolved per-finding coverage the provider attached to its report."""
+    finding = report.get("finding") or {}
+    coverage = finding.get("search_coverage") if isinstance(finding, Mapping) else None
+    if isinstance(coverage, Mapping) and coverage:
+        return {direction.finding_id: dict(coverage)}
+    return {}
+
+
+def _exhausted_coverage(
+    _resolved: Mapping[str, dict[str, Any]], direction: FindingDirection
+) -> dict[str, Any]:
+    """Coverage for a direction whose only option proved stale/unapplicable.
+
+    The bounded search ran and produced an option, but it did not reproduce
+    against the current candidate, so no usable automatic option exists for
+    this candidate. Recorded as bounded exhaustion (never ``proven_infeasible``)
+    so the loop does not repeat the same stale apply forever.
+    """
+    return {
+        "status": "bounded_search_exhausted",
+        "supported": [],
+        "untried": [],
+        "attempted": [],
+        "search_requested": True,
+        "proven_infeasible": False,
+        "reason": "stale_or_unapplicable_option",
+    }
+
+
 def _load_state(work_dir: Any, run_id: str | None, frontier_limit: int) -> tuple[Any, ParetoArchive, ConvergenceState]:
     from .stage3_session_store import Stage3SessionStore
 
@@ -106,6 +138,7 @@ def _retain_frontier_bodies(
             "hard_verification_ok": True,
             "candidate": {"plan": dict(body)},
             "objective_vector": dict(entry.objective_vector),
+            "metrics": dict(entry.metrics),
             "direction": entry.direction,
             "frontier": True,
         }
@@ -144,6 +177,8 @@ def run_bounded_convergence(
     allow_search: bool = True,
     reconcile_budget: bool = True,
     force_finding_id: str | None = None,
+    preferred_option_id: str | None = None,
+    audit_payload: Mapping[str, Any] | None = None,
     run_id: str | None = None,
     finding_provider: Callable[..., list[dict[str, Any]]] | None = None,
     option_provider: Callable[..., dict[str, Any]] | None = None,
@@ -185,6 +220,8 @@ def run_bounded_convergence(
     epochs: list[dict[str, Any]] = []
     committed = 0
     pending_force = force_finding_id
+    pending_preferred_option = preferred_option_id
+    audit_decision: dict[str, Any] | None = None
 
     while not state.is_terminal() and state.epoch < max_epochs:
         from .candidate_refinement import load_finalized_candidate
@@ -192,12 +229,45 @@ def run_bounded_convergence(
         _session, _checkpoint, candidate = load_finalized_candidate(work_dir, run_id=run_id)
         findings = finding_provider(candidate, problem)
         directions = classify_findings(findings)
+        if audit_payload is not None:
+            from .audit_convergence import audit_convergence_decision
+
+            # Re-evaluate against the current candidate's repository findings:
+            # a direction the audit flagged may only become actionable after an
+            # earlier commit changed the candidate.
+            audit_decision = audit_convergence_decision(
+                audit_payload,
+                repository_directions=sorted(
+                    {d.direction for d in directions} | set(state.explored_directions)
+                ),
+            )
+            # An audit finding the repository cannot act on is exactly the
+            # question to ask: do not search blindly on its behalf. If nothing
+            # automatic remains at all, stop immediately; otherwise carry the
+            # questions through the automatic refinement and surface them at
+            # the terminal.
+            if audit_decision["operator_required"] and not any(d.actionable for d in directions):
+                state.terminal_reason = "operator_required"
+                state.terminal_detail = _operator_detail(audit_decision)
+                if not dry_run:
+                    _persist(store, run_id, archive, state)
+                return _report(
+                    reason=state.terminal_reason,
+                    detail=state.terminal_detail,
+                    state=state,
+                    archive=archive,
+                    epochs=epochs,
+                    extra={"committed_epochs": committed, "audit_decision": audit_decision},
+                )
         direction = controller.next_direction(directions, force_finding_id=pending_force)
         pending_force = None
-        coverage_directions: list[str] = []
         if direction is None:
             outcome = controller.record_epoch(
-                direction=None, generated=[], findings=directions, search_incomplete_directions=[]
+                direction=None,
+                generated=[],
+                findings=directions,
+                search_incomplete_directions=[],
+                exploration_exhausted=True,
             )
             epochs.append(_epoch_dict(outcome, None))
             if not dry_run:
@@ -216,9 +286,7 @@ def run_bounded_convergence(
             directions = [
                 resolved if d.finding_id == direction.finding_id else d for d in directions
             ]
-        coverage_directions = [
-            d.direction for d in directions if d.actionable and d.search_incomplete
-        ]
+        resolved_coverage = _resolved_coverage(report, direction)
         measured = [
             option
             for option in (report.get("options") or [])
@@ -230,7 +298,7 @@ def run_bounded_convergence(
                 direction=direction,
                 generated=[],
                 findings=directions,
-                search_incomplete_directions=coverage_directions,
+                resolved_coverage=resolved_coverage,
             )
             epochs.append(_epoch_dict(outcome, None))
             if not dry_run:
@@ -253,13 +321,26 @@ def run_bounded_convergence(
                 direction=direction,
                 generated=entries,
                 findings=directions,
-                search_incomplete_directions=coverage_directions,
+                resolved_coverage=resolved_coverage,
             )
             epochs.append(_epoch_dict(outcome, None))
             if not dry_run:
                 _persist(store, run_id, archive, state)
             continue
         chosen_entry = committable[0]
+        if pending_preferred_option:
+            preferred = next(
+                (
+                    entry
+                    for entry in committable
+                    if str((entry.source or {}).get("option_id") or "")
+                    == pending_preferred_option
+                ),
+                None,
+            )
+            if preferred is not None:
+                chosen_entry = preferred
+        pending_preferred_option = None
         chosen = next(
             option
             for option in measured
@@ -300,7 +381,9 @@ def run_bounded_convergence(
                 direction=direction,
                 generated=[],
                 findings=directions,
-                search_incomplete_directions=coverage_directions,
+                resolved_coverage={
+                    direction.finding_id: _exhausted_coverage(resolved_coverage, direction)
+                },
             )
             epochs.append(_epoch_dict(outcome, result))
             _persist(store, run_id, archive, state)
@@ -313,12 +396,11 @@ def run_bounded_convergence(
                 entry.export_fingerprint = str(result.get("export_fingerprint") or "")
         session, _checkpoint, next_candidate = load_finalized_candidate(work_dir, run_id=run_id)
         fresh = classify_findings(finding_provider(next_candidate, problem))
-        fresh_incomplete = [d.direction for d in fresh if d.actionable and d.search_incomplete]
         outcome = controller.record_epoch(
             direction=direction,
             generated=entries,
             findings=fresh,
-            search_incomplete_directions=fresh_incomplete,
+            candidate_changed=True,
         )
         epochs.append(_epoch_dict(outcome, result))
         _retain_frontier_bodies(store, run_id, entries, bodies)
@@ -335,13 +417,21 @@ def run_bounded_convergence(
         state.terminal_reason, state.terminal_detail = reason, detail
         _persist(store, run_id, archive, state)
 
+    # Uncovered material audit findings are asked as questions even when the
+    # automatic repair/search work converged; the human decides them.
+    if audit_decision and audit_decision.get("operator_required"):
+        if state.terminal_reason != "operator_required":
+            state.terminal_reason = "operator_required"
+            state.terminal_detail = _operator_detail(audit_decision)
+            _persist(store, run_id, archive, state)
+
     return _report(
         reason=state.terminal_reason,
         detail=state.terminal_detail or describe_terminal(state.terminal_reason),
         state=state,
         archive=archive,
         epochs=epochs,
-        extra={"committed_epochs": committed},
+        extra={"committed_epochs": committed, "audit_decision": audit_decision},
     )
 
 
@@ -388,6 +478,128 @@ def _measure_frontier(
         )
         bodies[ref] = dict(body)
     return entries, bodies
+
+
+def _operator_detail(decision: Mapping[str, Any]) -> str:
+    questions = decision.get("operator_questions") or []
+    if not questions:
+        return describe_terminal("operator_required")
+    rendered = "; ".join(
+        str(item.get("finding") or item.get("question") or "").strip()
+        for item in questions
+        if (item.get("finding") or item.get("question"))
+    )
+    return (
+        "Automatic refinement stopped: the semantic audit raised findings the "
+        f"repository cannot act on automatically and the operator must decide: {rendered}"
+    )
+
+
+def select_frontier_candidate(
+    work_dir: Any,
+    *,
+    candidate_ref: str,
+    problem: Mapping[str, Any],
+    export: bool = True,
+    export_dir: str | None = None,
+    timestamped_export: bool = True,
+    strict: bool = True,
+    actor: str | None = None,
+    rationale: str = "",
+    run_id: str | None = None,
+    log_fn: Optional[Callable[[str], None]] = None,
+) -> dict[str, Any]:
+    """Adopt one still-valid retained frontier candidate as the current revision.
+
+    The bounded frontier keeps every non-dominated candidate selectable, not
+    just the last committed one. Adoption re-validates the retained candidate
+    against the current Stage 1/2 facts identity and the current hard verifier
+    before committing it as a new revision and re-exporting, so a stale
+    candidate is rejected rather than trusted from its original verification.
+    """
+    from .candidate_refinement import commit_refined_candidate, load_finalized_candidate
+    from .stage3_session import TRANSITION_SELECT_CANDIDATE
+    from .stage3_session_store import (
+        extract_candidate_body,
+        fingerprint_plan,
+        stage3_checkpoint_facts_fingerprint,
+    )
+
+    log = log_fn or (lambda _message: None)
+    session, checkpoint, _current = load_finalized_candidate(work_dir, run_id=run_id)
+    attempt = session.find_candidate_attempt(candidate_ref)
+    if attempt is None:
+        archived = any(
+            str(entry.get("candidate_ref") or "") == candidate_ref
+            for entry in session.pareto_archive
+        )
+        return {
+            "ok": False,
+            "reason": (
+                "frontier_candidate_body_not_retained"
+                if archived
+                else "unknown_frontier_candidate_ref"
+            ),
+            "candidate_ref": candidate_ref,
+        }
+    expected_facts = str(attempt.get("facts_fingerprint") or "")
+    if not expected_facts:
+        return {
+            "ok": False,
+            "reason": "retained_candidate_missing_facts_provenance",
+            "candidate_ref": candidate_ref,
+        }
+    from ..pipeline.state import PipelineState
+
+    if stage3_checkpoint_facts_fingerprint(PipelineState(work_dir)) != expected_facts:
+        return {
+            "ok": False,
+            "reason": "stale_frontier_candidate_facts",
+            "candidate_ref": candidate_ref,
+        }
+    body = extract_candidate_body(attempt.get("candidate"))
+    if body is None:
+        return {
+            "ok": False,
+            "reason": "frontier_candidate_body_missing",
+            "candidate_ref": candidate_ref,
+        }
+    from ..planning_contract import verify_candidate
+
+    verification = verify_candidate(dict(body), dict(problem)) if problem else {"ok": True}
+    if not verification.get("ok", True):
+        return {
+            "ok": False,
+            "reason": "stale_frontier_candidate_hard_violations",
+            "candidate_ref": candidate_ref,
+            "verification": verification,
+        }
+    after_fingerprint = fingerprint_plan(body)
+    if after_fingerprint and after_fingerprint == (
+        session.finalized_fingerprint or session.candidate_fingerprint
+    ):
+        return {"ok": True, "already_current": True, "candidate_ref": candidate_ref}
+    return commit_refined_candidate(
+        work_dir,
+        session,
+        checkpoint=checkpoint,
+        candidate=body,
+        before_fingerprint=session.finalized_fingerprint or session.candidate_fingerprint,
+        after_fingerprint=after_fingerprint,
+        source="frontier_selection",
+        transition=TRANSITION_SELECT_CANDIDATE,
+        action_id="apply_candidate",
+        detail={"candidate_ref": candidate_ref},
+        result_extra={"candidate_ref": candidate_ref, "verification": verification},
+        problem=problem,
+        export=export,
+        export_dir=export_dir,
+        timestamped_export=timestamped_export,
+        strict=strict,
+        actor=actor,
+        rationale=rationale or f"adopt retained frontier candidate {candidate_ref}",
+        log_fn=log,
+    )
 
 
 def _stalled_reason(state: ConvergenceState) -> tuple[str, str]:
@@ -443,4 +655,4 @@ def _report(
     return payload
 
 
-__all__ = ["run_bounded_convergence", "DEFAULT_DIMENSIONS"]
+__all__ = ["run_bounded_convergence", "select_frontier_candidate", "DEFAULT_DIMENSIONS"]
