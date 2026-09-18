@@ -26,6 +26,7 @@ This file owns the ``run()`` orchestration itself and the CLI entry point.
 
 from __future__ import annotations
 
+import copy
 import logging
 import os
 import sys
@@ -70,6 +71,37 @@ from .stage4_export_verification import _build_export_verification_problem
 from .verification_context import build_verification_context
 
 logger = logging.getLogger(__name__)
+
+
+def _export_approvals(effective_config: dict[str, Any], plan_dict: dict[str, Any]) -> dict[str, Any]:
+    """Operator-confirmed placements for the plan's canonical season, if any.
+
+    An explicit approval/placement lock is confirmation: that placement is a
+    real booking even when a scraped calendar disagrees, so normalization must
+    never demote it. Best-effort -- a missing canonical season just means no
+    approval overlay.
+    """
+    try:
+        from ..canonical_baseline import resolve_canonical_state
+
+        def _as_date(value: Any):
+            if hasattr(value, "isoformat") and not isinstance(value, str):
+                return value
+            try:
+                return datetime.strptime(str(value), "%Y-%m-%d").date()
+            except (TypeError, ValueError):
+                return None
+
+        start = _as_date(plan_dict.get("start_date") or effective_config.get("start_date"))
+        end = _as_date(plan_dict.get("end_date") or effective_config.get("end_date"))
+        if start is None or end is None:
+            return {}
+        resolved = resolve_canonical_state(effective_config, start, end)
+        if not resolved:
+            return {}
+        return dict(resolved.get("decisions", {}).get("decisions", {}) or {})
+    except Exception:
+        return {}
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -160,11 +192,35 @@ def run(
     export_problem = verification_problem
     if export_problem is None and use_pipeline_metadata:
         export_problem = _build_export_verification_problem(effective_config, state)
+
+    # Placement-state normalization: whatever reaches the exporters must be a
+    # real schedule. A tournament whose concrete placement provably collides
+    # with a trusted/fixed external booking, or a legacy placeholder from an
+    # exhausted slot search, is moved out of `plan.tournaments` into a durable
+    # `unresolved_tournament_placements` obligation before verification and
+    # every export format. Operator-approved placements are confirmation and
+    # are never demoted.
+    normalization_report: dict[str, Any] = {}
+    if isinstance(plan_dict, dict) and plan_dict.get("tournaments"):
+        from ..placement_normalization import normalize_unplaced_placements
+
+        plan_dict = copy.deepcopy(plan_dict)
+        plan_checkpoint = {**plan_checkpoint, "plan": plan_dict}
+        normalization_report = normalize_unplaced_placements(
+            plan_dict,
+            export_problem,
+            approvals=_export_approvals(effective_config, plan_dict),
+        )
+
     try:
         export_candidate = extract_candidate(plan_checkpoint)
     except ValueError:
         export_candidate = dict(plan_dict)
     export_verify_result = verify_candidate(export_candidate, export_problem)
+    if normalization_report.get("changed"):
+        from ..plan_derived_state import reconcile_plan_derived_state
+
+        reconcile_plan_derived_state(plan_dict, export_verify_result, problem=export_problem)
     export_fingerprint = stable_payload_sha256(export_candidate.get("tournaments", []))
     # Provenance-bound verification context: persist the exact
     # problem this candidate was verified against, plus its fingerprint and
@@ -200,6 +256,23 @@ def run(
         )
         _progress("Eksport avbrutt: kandidaten feiler hard verifisering")
         raise Stage4Error(reason)
+
+    if normalization_report.get("changed") and use_pipeline_metadata:
+        # Keep the workspace's selected Stage 3 candidate consistent with the
+        # plan that was actually verified and exported. Placement
+        # normalization is a deterministic domain-state correction, not a
+        # re-plan, and promotion proves the promoted plan against the reviewed
+        # export fingerprint; persisting the corrected candidate is what stops
+        # a legitimately normalized handoff from looking like a changed
+        # candidate at promotion time.
+        try:
+            state.write_stage(
+                StageName.PLANNING,
+                {**dict(plan_checkpoint), "plan": plan_dict},
+                status=StageStatus.DONE,
+            )
+        except Exception as exc:  # noqa: BLE001 - export must not fail on this best-effort sync
+            logger.warning("Could not persist the normalized planning checkpoint: %s", exc)
 
     plan = season_plan_from_dict(plan_dict)
     export_path = Path(export_dir)
@@ -432,9 +505,9 @@ def run(
             from ..host_placement_repair import collect_candidate_weekend_evidence
 
             for bundle in collect_candidate_weekend_evidence(plan_dict, export_problem):
-                tournament_id = str(bundle.get("tournament_id") or "")
-                if tournament_id:
-                    candidate_weekends_by_tournament[tournament_id] = bundle
+                key = str(bundle.get("tournament_id") or "") or str(bundle.get("finding_id") or "")
+                if key:
+                    candidate_weekends_by_tournament[key] = bundle
         except Exception:  # noqa: BLE001 - evidence is best-effort, never blocks export
             candidate_weekends_by_tournament = {}
     # Genuine external calendar conflicts the planner/optimizer couldn't route
@@ -811,6 +884,8 @@ def run(
         "approval_status": approval_status,
         "export_lifecycle": lifecycle_manifest,
     }
+    if normalization_report:
+        checkpoint["placement_normalization"] = normalization_report
     if errors and strict:
         state.write_stage(StageName.EXPORT, checkpoint, status=StageStatus.FAILED)
         _progress("Eksport feilet")

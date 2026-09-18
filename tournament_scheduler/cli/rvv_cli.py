@@ -1250,6 +1250,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         move_tournament,
         load_decisions,
         load_schedule,
+        normalize_placements,
         effective_config_from_verification_problem,
         planning_checkpoint_from_schedule,
         promote_from_stage3,
@@ -1358,6 +1359,48 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     _console.print(
                         "  [yellow]⚠[/yellow] stale approvals (reapprove or unapprove): "
                         + ", ".join(entry["tournament_id"] for entry in report["stale_approvals"])
+                    )
+            return 0
+
+        if args.season_command == "normalize-placements":
+            schedule, decisions = normalize_placements(
+                season=args.season,
+                root=args.root,
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+            )
+            report = schedule.get("placement_normalization") or {}
+            summary = {
+                "season": args.season,
+                "dry_run": bool(args.dry_run),
+                "changed": bool(report.get("changed", schedule.get("normalized_from") is not None)),
+                "tournament_count": len(schedule.get("plan", {}).get("tournaments", [])),
+                "removed_tournament_ids": (
+                    report.get("removed_tournament_ids")
+                    or (schedule.get("normalized_from") or {}).get("removed_tournament_ids", [])
+                ),
+                "obligation_count": (
+                    report.get("obligation_count")
+                    or len(schedule.get("plan", {}).get("unresolved_tournament_placements", []))
+                ),
+                "revision": schedule.get("revision"),
+            }
+            if args.json:
+                print(_json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                action = "would remove" if args.dry_run else "removed"
+                _console.print(
+                    f"[green]✓[/green] Placement normalization for {args.season}: "
+                    f"{action} {len(summary['removed_tournament_ids'])} unplaced tournament(s)"
+                )
+                _console.print(
+                    f"  tournaments: {summary['tournament_count']} · "
+                    f"obligations: {summary['obligation_count']}"
+                )
+                if summary["removed_tournament_ids"]:
+                    _console.print(
+                        "  unplaced ids: " + ", ".join(summary["removed_tournament_ids"])
                     )
             return 0
 

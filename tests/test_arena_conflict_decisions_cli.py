@@ -77,15 +77,24 @@ class TestCollisionFacts:
 
 
 class TestApplyArenaConflictDecision:
-    def test_demotes_the_losing_tournament_to_manual_placement(self):
+    def test_demotes_the_losing_tournament_to_unplaced_work(self):
         candidate = _candidate_with_collision()
-        _apply_arena_conflict_decision(candidate, "aaa11111", "bbb22222", "kept higher hosting deficit")
+        _apply_arena_conflict_decision(
+            candidate, "aaa11111", "bbb22222", "kept higher hosting deficit", ICE_TIME
+        )
 
-        loser = next(t for t in candidate["tournaments"] if t["id"] == "bbb22222")
+        # The losing tournament is genuinely unplaced: it is no longer a
+        # scheduled tournament at all, not a start_time=None placeholder.
+        ids = {t["id"] for t in candidate["tournaments"]}
+        assert "bbb22222" not in ids
         winner = next(t for t in candidate["tournaments"] if t["id"] == "aaa11111")
-        assert loser["start_time"] is None
-        assert loser["manual_booking_reason"]
         assert winner["start_time"] == "09:00"
+
+        obligations = candidate["unresolved_tournament_placements"]
+        assert len(obligations) == 1
+        assert obligations[0]["id"].startswith("unplaced_placement:U10:2026-11-07:")
+        assert obligations[0]["responsible_host"] == "Jar"
+        assert obligations[0]["reason"] == "arena_conflict_no_alternative"
 
         placements = candidate["manual_arena_conflict_placements"]
         assert placements[0]["tournament_id"] == "bbb22222"
@@ -249,11 +258,12 @@ class TestResolveArenaConflictDecisionsPauseAndResume:
         # The previously recorded decision matches by stable key and is
         # re-applied automatically -- no new pause needed.
         assert pause_code is None
-        loser = next(t for t in rebuilt_candidate["tournaments"] if t["age_group"] == "U10")
-        winner = next(t for t in rebuilt_candidate["tournaments"] if t["age_group"] == "U11")
-        assert loser["start_time"] is None
-        assert loser["manual_booking_reason"]
+        assert [t["id"] for t in rebuilt_candidate["tournaments"]] == ["fresh-id-1"]
+        winner = rebuilt_candidate["tournaments"][0]
         assert winner["start_time"] == "09:00"
+        obligation = rebuilt_candidate["unresolved_tournament_placements"][0]
+        assert obligation["age_group"] == "U10"
+        assert obligation["reason"] == "arena_conflict_no_alternative"
         assert collision_key(facts) == record["key"]
 
     def test_unmappable_recorded_key_does_not_suppress_still_real_collision(self, tmp_path, capsys):
@@ -319,9 +329,8 @@ class TestResolveArenaConflictDecisionsPauseAndResume:
         assert code == 2
         capsys.readouterr()
         persisted = state.read_stage(StageName.PLANNING)
-        loser = next(t for t in persisted["plan"]["tournaments"] if t["id"] == "bbb22222")
-        assert loser["start_time"] is None
-        assert loser["manual_booking_reason"]
+        assert [t["id"] for t in persisted["plan"]["tournaments"]] == ["aaa11111"]
+        assert persisted["plan"]["unresolved_tournament_placements"][0]["age_group"] == "U10"
 
     def test_answering_arena_conflict_mutates_checkpoint_without_replanning(self, tmp_path, monkeypatch, capsys):
         import json
@@ -369,8 +378,9 @@ class TestResolveArenaConflictDecisionsPauseAndResume:
         assert exit_code == 2
         run_stage3.assert_not_called()
         persisted = state.read_stage(StageName.PLANNING)
-        demoted = [t for t in persisted["plan"]["tournaments"] if t.get("start_time") is None]
-        assert len(demoted) == 1
+        assert all(t.get("start_time") is not None for t in persisted["plan"]["tournaments"])
+        assert len(persisted["plan"]["tournaments"]) == 2
+        assert len(persisted["plan"]["unresolved_tournament_placements"]) == 1
         second_context = json.loads(capsys.readouterr().out)
         assert second_context["capability"] == "arena_conflict_resolution"
 

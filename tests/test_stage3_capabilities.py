@@ -157,11 +157,14 @@ def test_arena_transition_applies_conflict_and_binds_next_collision(tmp_path):
     assert outcome.accepted
     store.save(loaded)
 
-    # The checkpoint's losing tournament is demoted in place, and the
-    # candidate advanced to a new revision.
+    # The checkpoint's losing tournament is demoted out of the scheduled
+    # plan into an unresolved placement obligation, and the candidate advanced
+    # to a new revision.
     persisted = state.read_stage(StageName.PLANNING)
-    demoted = [t for t in persisted["plan"]["tournaments"] if t.get("start_time") is None]
-    assert len(demoted) == 1
+    assert [t["id"] for t in persisted["plan"]["tournaments"]] == [keep]
+    obligations = persisted["plan"]["unresolved_tournament_placements"]
+    assert len(obligations) == 1
+    assert obligations[0]["reason"] == "arena_conflict_no_alternative"
     assert loaded.candidate_revision == 2
     assert loaded.arena_decisions
     assert loaded.pending_decision is None
@@ -584,5 +587,6 @@ def test_arena_transition_accepts_demotion_when_attempt_already_exceeds_target(t
     # clubs; only a mutation that really grows the attempt's excess is rejected.
     assert outcome.accepted is True
     persisted = state.read_stage(StageName.PLANNING)
-    assert any(t.get("start_time") is None for t in persisted["plan"]["tournaments"])
+    assert len(persisted["plan"]["unresolved_tournament_placements"]) == 1
+    assert all(t.get("start_time") is not None for t in persisted["plan"]["tournaments"])
 

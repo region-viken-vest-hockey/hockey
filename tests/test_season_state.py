@@ -14,6 +14,7 @@ from tournament_scheduler.season_state import (
     load_decisions,
     load_schedule,
     move_tournament,
+    normalize_placements,
     planning_checkpoint_from_schedule,
     promote_from_stage3,
 )
@@ -330,3 +331,53 @@ def test_repeated_noop_promotion_keeps_ids_and_order(tmp_path: Path) -> None:
     second_ids = [t["id"] for t in second["plan"]["tournaments"]]
     assert first_ids == second_ids
     assert first["fingerprint"] == second["fingerprint"]
+
+
+def _legacy_unplaced_candidate() -> dict:
+    candidate = _candidate()
+    candidate["tournaments"][0]["manual_booking_reason"] = (
+        "Ingen verifisert ledig istid for A 2026-09-12 — turneringen må plasseres manuelt."
+    )
+    candidate["unresolved_tournament_placements"] = [
+        {
+            "age_group": "U10",
+            "date": "2026-09-12",
+            "category": "manual_tournament_placement",
+            "candidate_hosts": ["A", "B"],
+            "search_hosts_tried": ["A", "B"],
+        }
+    ]
+    return candidate
+
+
+def test_normalize_placements_demotes_a_genuine_slot_failure(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    _stage_plan(state, _legacy_unplaced_candidate())
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    schedule, _ = normalize_placements(season="2026-2027", root=root, actor="tester")
+
+    assert schedule["plan"]["tournaments"] == []
+    obligations = schedule["plan"]["unresolved_tournament_placements"]
+    assert len(obligations) == 1
+    assert obligations[0]["id"] == "unplaced_placement:U10:2026-09-12:1"
+    # The richer pre-existing search evidence survives the normalization.
+    assert obligations[0]["search_hosts_tried"] == ["A", "B"]
+    # The canonical revision advanced and the corrected state is durable.
+    assert load_schedule("2026-2027", root=root)["plan"]["tournaments"] == []
+
+
+def test_normalize_placements_is_a_noop_for_a_valid_plan(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    _stage_plan(state)
+    before, _ = promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    before_bytes = (root / "2026-2027" / "schedule.json").read_bytes()
+
+    after, _ = normalize_placements(season="2026-2027", root=root, actor="tester")
+
+    assert after["plan"]["tournaments"] == before["plan"]["tournaments"]
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before_bytes

@@ -1,17 +1,9 @@
 {
   "actor": "niclasl",
+  "canonical_state_revision": "b8ffdfad9035e73133fce0202b88af90e7c0c01efb18bc64a42bea4d63723cef",
   "created_at": "2026-09-17T14:55:37.414824+00:00",
   "decisions": {
     "rvv-0001": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0002": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -47,15 +39,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0006": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0007": {
       "approved_at": null,
       "approved_by": null,
@@ -66,15 +49,6 @@
       "status": "pending_review"
     },
     "rvv-0008": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0009": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -119,43 +93,7 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0014": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0015": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0016": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0017": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0018": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -227,15 +165,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0026": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0027": {
       "approved_at": null,
       "approved_by": null,
@@ -273,33 +202,6 @@
       "status": "pending_review"
     },
     "rvv-0031": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0032": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0033": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0034": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -353,15 +255,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0040": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0041": {
       "approved_at": null,
       "approved_by": null,
@@ -389,24 +282,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0044": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0045": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0046": {
       "approved_at": null,
       "approved_by": null,
@@ -417,15 +292,6 @@
       "status": "pending_review"
     },
     "rvv-0047": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0048": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -461,24 +327,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0052": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0053": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0054": {
       "approved_at": null,
       "approved_by": null,
@@ -489,15 +337,6 @@
       "status": "pending_review"
     },
     "rvv-0055": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0056": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -525,15 +364,6 @@
       "status": "pending_review"
     },
     "rvv-0059": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0060": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -614,24 +444,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0069": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0070": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0071": {
       "approved_at": null,
       "approved_by": null,
@@ -695,15 +507,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0078": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0079": {
       "approved_at": null,
       "approved_by": null,
@@ -749,43 +552,7 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0084": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0085": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0086": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0087": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0088": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -803,15 +570,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0090": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0091": {
       "approved_at": null,
       "approved_by": null,
@@ -821,25 +579,7 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0092": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0093": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0094": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -893,24 +633,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0100": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0101": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0102": {
       "approved_at": null,
       "approved_by": null,
@@ -930,15 +652,6 @@
       "status": "pending_review"
     },
     "rvv-0104": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0105": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -1136,24 +849,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0127": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0128": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0129": {
       "approved_at": null,
       "approved_by": null,
@@ -1181,15 +876,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0132": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0133": {
       "approved_at": null,
       "approved_by": null,
@@ -1200,15 +886,6 @@
       "status": "pending_review"
     },
     "rvv-0134": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0135": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -1263,24 +940,6 @@
       "status": "pending_review"
     },
     "rvv-0141": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0142": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0143": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -1541,15 +1200,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0172": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0173": {
       "approved_at": null,
       "approved_by": null,
@@ -1560,15 +1210,6 @@
       "status": "pending_review"
     },
     "rvv-0174": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0175": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -1613,15 +1254,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0180": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0181": {
       "approved_at": null,
       "approved_by": null,
@@ -1640,15 +1272,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0183": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0184": {
       "approved_at": null,
       "approved_by": null,
@@ -1659,24 +1282,6 @@
       "status": "pending_review"
     },
     "rvv-0185": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0186": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0187": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -42882,10 +42487,70 @@
       "schedule_fingerprint": "05a3725822784916234a87c3610eb6de62240741ef804391ceb4340f33106326",
       "tournament_fingerprint": "94112e9b7d2d88910c8cf6b8b8e0225867e64ca454057e1c7abdce095415f79c",
       "tournament_id": "rvv-0016"
+    },
+    {
+      "actor": "agent",
+      "at": "2026-09-18T09:43:40.432106+00:00",
+      "details": {
+        "obligation_count": 45,
+        "removed_tournament_ids": [
+          "rvv-0002",
+          "rvv-0006",
+          "rvv-0009",
+          "rvv-0014",
+          "rvv-0016",
+          "rvv-0017",
+          "rvv-0018",
+          "rvv-0026",
+          "rvv-0032",
+          "rvv-0033",
+          "rvv-0034",
+          "rvv-0040",
+          "rvv-0044",
+          "rvv-0045",
+          "rvv-0048",
+          "rvv-0052",
+          "rvv-0053",
+          "rvv-0056",
+          "rvv-0060",
+          "rvv-0069",
+          "rvv-0070",
+          "rvv-0078",
+          "rvv-0084",
+          "rvv-0086",
+          "rvv-0087",
+          "rvv-0088",
+          "rvv-0090",
+          "rvv-0092",
+          "rvv-0094",
+          "rvv-0100",
+          "rvv-0101",
+          "rvv-0105",
+          "rvv-0127",
+          "rvv-0128",
+          "rvv-0132",
+          "rvv-0135",
+          "rvv-0142",
+          "rvv-0143",
+          "rvv-0172",
+          "rvv-0175",
+          "rvv-0180",
+          "rvv-0183",
+          "rvv-0186",
+          "rvv-0187"
+        ],
+        "verification_ok": true
+      },
+      "event": "normalize_placements",
+      "note": "Fix #381: move genuinely unplaced/fixed-conflict placements out of plan.tournaments into unresolved obligations",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "cfa202ae574ee1c48b545f85ca895ec6a4bbc37ff2761afa8a11b610aa77c8fc",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
-  "schedule_fingerprint": "16e00148a13eb65b4a938fe29d995c43592868f2a4ab57a75e61208a2e190883",
+  "schedule_fingerprint": "cfa202ae574ee1c48b545f85ca895ec6a4bbc37ff2761afa8a11b610aa77c8fc",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-17T20:59:06.688990+00:00"
+  "updated_at": "2026-09-18T09:43:40.432106+00:00"
 }

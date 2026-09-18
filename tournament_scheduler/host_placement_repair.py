@@ -128,7 +128,55 @@ def collect_candidate_weekend_evidence(
                 problem, tournament, finding, occupancy=occupancy, team_labels=team_labels
             )
         )
+    # An unresolved placement obligation has no tournament object, but it
+    # carries the same responsible host, roster, source date and duration
+    # evidence, so the same read-only shortlist is computable for it. It is
+    # keyed by the obligation's stable finding id (there is no tournament id).
+    for obligation in candidate.get("unresolved_tournament_placements", []) or []:
+        if not isinstance(obligation, Mapping):
+            continue
+        finding = _finding_for_obligation(obligation)
+        if not finding.finding_id or not finding.host_club or not finding.original_date:
+            continue
+        tournament = _obligation_as_tournament(obligation, finding)
+        bundles.append(
+            _candidate_weekend_bundle(
+                problem, tournament, finding, occupancy=occupancy, team_labels=team_labels
+            )
+        )
     return bundles
+
+
+def _finding_for_obligation(obligation: Mapping[str, Any]) -> _Finding:
+    return _Finding(
+        finding_id=str(obligation.get("id") or ""),
+        # No tournament exists; the work item is keyed by the stable finding id.
+        tournament_id="",
+        host_club=str(obligation.get("responsible_host") or obligation.get("host_club") or ""),
+        age_group=str(obligation.get("age_group") or ""),
+        original_date=str(obligation.get("date") or ""),
+    )
+
+
+def _obligation_as_tournament(obligation: Mapping[str, Any], finding: _Finding) -> Dict[str, Any]:
+    """Synthesize the tournament-shaped evidence a candidate-weekend scan needs."""
+    duration = obligation.get("required_duration_minutes")
+    tournament: Dict[str, Any] = {
+        "id": finding.finding_id,
+        "date": finding.original_date,
+        "age_group": finding.age_group,
+        "host_club": finding.host_club,
+        "teams": [
+            dict(team)
+            for team in (obligation.get("participant_teams") or [])
+            if isinstance(team, Mapping)
+        ],
+        "start_time": str(obligation.get("preferred_start_time") or "10:00"),
+        "cancelled": False,
+    }
+    if isinstance(duration, int) and duration > 0:
+        tournament["duration_minutes"] = duration
+    return tournament
 
 
 def _occupancy_index(candidate: Mapping[str, Any]) -> Tuple[Dict[str, set], Dict[Any, str]]:

@@ -87,6 +87,12 @@ def build_work_items(
         first = findings[0]
         categories = sorted({str(item.get("category") or "") for item in findings if item.get("category")})
         tournament_id = str(first.get("tournament_id") or "").strip()
+        finding_id = str(first.get("finding_id") or "").strip()
+        # An unresolved obligation has no tournament id; its candidate-weekend
+        # evidence is keyed by the same stable finding id as the work item.
+        candidate_weekends = candidate_weekends_by_tournament.get(tournament_id) if tournament_id else None
+        if candidate_weekends is None and finding_id:
+            candidate_weekends = candidate_weekends_by_tournament.get(finding_id)
         work_items.append(
             {
                 "key": key,
@@ -100,7 +106,7 @@ def build_work_items(
                 "categories": categories,
                 "unconfirmed": any(category in UNCONFIRMED_CATEGORIES for category in categories),
                 "findings": list(findings),
-                "candidate_weekends": candidate_weekends_by_tournament.get(tournament_id),
+                "candidate_weekends": candidate_weekends,
             }
         )
     work_items.sort(key=_sort_key)

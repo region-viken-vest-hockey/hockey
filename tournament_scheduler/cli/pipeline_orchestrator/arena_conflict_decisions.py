@@ -38,9 +38,8 @@ def _candidate_fingerprint(candidate: Mapping[str, Any]) -> str:
 
 def _collision_facts(candidate: "dict[str, Any]", ice_time_for_age_group: "dict[str, int]") -> "list[dict[str, Any]]":
     """Return structured facts for every current arena/time collision pair
-    in *candidate*'s tournaments (excludes tournaments already demoted to
-    manual placement -- their start_time is cleared, so they're already
-    outside ``tournament_interval``'s collision detection)."""
+    in *candidate*'s tournaments (a tournament already demoted to an unplaced
+    obligation is no longer in ``tournaments``, so it cannot be a side)."""
     from ...arena_conflicts import arena_interval_collision_pairs, tournament_intervals
     from ...serialization.season_plan import tournament_from_dict
 
@@ -79,35 +78,69 @@ def _collision_facts(candidate: "dict[str, Any]", ice_time_for_age_group: "dict[
 
 
 def _apply_arena_conflict_decision(
-    candidate: "dict[str, Any]", keep_tournament_id: str, manual_tournament_id: str, rationale: str
+    candidate: "dict[str, Any]",
+    keep_tournament_id: str,
+    manual_tournament_id: str,
+    rationale: str,
+    ice_time_for_age_group: "dict[str, int] | None" = None,
 ) -> None:
-    """Demote the losing tournament to manual placement in *candidate*:
-    clear its start time (so it no longer occupies an arena interval, the
-    same way any other not-yet-scheduled tournament is represented) and
-    flag it via ``manual_booking_reason``, then record it under
-    ``manual_arena_conflict_placements`` for export/review visibility
-    (mirrors ``unresolved_external_conflicts``)."""
-    for tournament in candidate.get("tournaments", []):
-        if not isinstance(tournament, dict) or tournament.get("id") != manual_tournament_id:
-            continue
-        tournament["start_time"] = None
-        tournament["manual_booking_reason"] = (
-            f"Arena/time collision with tournament {keep_tournament_id} at "
-            f"{tournament.get('arena', '?')} on {tournament.get('date', '?')}; needs manual "
-            "re-scheduling to a different slot."
-        )
-        placements = candidate.setdefault("manual_arena_conflict_placements", [])
-        placements.append(
-            {
-                "tournament_id": manual_tournament_id,
-                "kept_tournament_id": keep_tournament_id,
-                "arena": tournament.get("arena", ""),
-                "age_group": tournament.get("age_group", ""),
-                "date": tournament.get("date", ""),
-                "reason": rationale or "arena/time collision resolved in favor of the other tournament",
-            }
-        )
+    """Resolve one arena/time collision by removing the losing placement.
+
+    The losing tournament has no concrete verified replacement slot, so it is
+    *unplaced*, not a scheduled tournament with a cleared start time: it is
+    moved out of ``candidate["tournaments"]`` into a stable
+    ``unresolved_tournament_placements`` obligation (the #381 state model).
+    Leaving a ``start_time=None`` placeholder would keep it indistinguishable
+    from a real tournament to every export/metric consumer, which is exactly
+    the bug this replaces. The conflict provenance is kept in
+    ``manual_arena_conflict_placements`` for review/audit.
+    """
+    from ...placement_normalization import (
+        REASON_ARENA_CONFLICT,
+        demote_tournament_to_unplaced,
+    )
+
+    target = next(
+        (
+            t
+            for t in candidate.get("tournaments", [])
+            if isinstance(t, dict) and t.get("id") == manual_tournament_id
+        ),
+        None,
+    )
+    if target is None:
         return
+    arena = target.get("arena", "")
+    date = target.get("date", "")
+    reason = (
+        f"Arena/time collision with tournament {keep_tournament_id} at "
+        f"{arena or '?'} on {date or '?'}; the demoted placement has no "
+        "concrete verified replacement slot."
+    )
+    demote_tournament_to_unplaced(
+        candidate,
+        manual_tournament_id,
+        reason=REASON_ARENA_CONFLICT,
+        ice_time_for_age_group=ice_time_for_age_group,
+        evidence={
+            "arena": arena,
+            "date": date,
+            "conflicting_tournament_id": keep_tournament_id,
+            "conflict_reason": rationale
+            or "arena/time collision resolved in favor of the other tournament",
+        },
+    )
+    placements = candidate.setdefault("manual_arena_conflict_placements", [])
+    placements.append(
+        {
+            "tournament_id": manual_tournament_id,
+            "kept_tournament_id": keep_tournament_id,
+            "arena": arena,
+            "age_group": target.get("age_group", ""),
+            "date": date,
+            "reason": rationale or "arena/time collision resolved in favor of the other tournament",
+        }
+    )
 
 
 def _collision_facts_with_keys(
@@ -149,7 +182,9 @@ def _apply_recorded_arena_decisions(
         manual_id = by_label.get(record.get("manual_side", ""))
         if not keep or not manual_id or keep == manual_id:
             continue
-        _apply_arena_conflict_decision(candidate, keep, manual_id, str(record.get("rationale", "")))
+        _apply_arena_conflict_decision(
+            candidate, keep, manual_id, str(record.get("rationale", "")), ice_time_for_age_group
+        )
         applied.add(key)
     return applied
 
@@ -280,7 +315,9 @@ def _resolve_arena_conflict_decisions(
                 decided_at=datetime.now(timezone.utc).isoformat(),
             )
             decisions.append(record)
-            _apply_arena_conflict_decision(candidate, keep, manual_id, str(action.rationale or ""))
+            _apply_arena_conflict_decision(
+                candidate, keep, manual_id, str(action.rationale or ""), ice_time_for_age_group
+            )
             log_fn(f"Arena-kollisjon {facts['arena']} {facts['date']}: dommer beholdt {keep}")
         _write_arena_conflict_state(state, {"run_id": run_id, "decisions": decisions, "unresolved": unresolved})
         return None

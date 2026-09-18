@@ -1871,8 +1871,12 @@ class TestManualOperatorOutput:
         state = self._state_with_dates(tmp_path)
         plan_checkpoint = _make_plan_dict()
         tournament = plan_checkpoint["plan"]["tournaments"][0]
+        # A calendar-unavailable placement is concrete-but-provisional: it is
+        # retained, but must never render as verified free ice. A *genuine*
+        # exhausted slot search is a different state and is covered by the
+        # normalization/unplaced tests below.
         tournament["manual_booking_reason"] = (
-            "Ingen verifisert ledig istid for Kongsberg 2025-10-05 — turneringen må plasseres manuelt."
+            "Kalender utilgjengelig for Kongsberg — istid må bookes/verifiseres manuelt."
         )
         tournament["requires_host_confirmation"] = True
         tournament["host_confirmation_reason"] = "Åpen ishall må flyttes."
@@ -1892,7 +1896,7 @@ class TestManualOperatorOutput:
         assert "Tid ikke bekreftet" in html
         assert "ikke bekreftet" in html
 
-    def test_multiple_findings_for_one_tournament_are_one_work_item(self, tmp_path):
+    def test_multiple_findings_for_one_unplaced_tournament_are_one_work_item(self, tmp_path):
         state = self._state_with_dates(tmp_path)
         plan_checkpoint = _make_plan_dict()
         tournament = plan_checkpoint["plan"]["tournaments"][0]
@@ -1928,16 +1932,24 @@ class TestManualOperatorOutput:
             timestamped_export=False,
         )
 
+        # The genuine slot-search failure is no longer a scheduled tournament:
+        # it is removed from the season plan and lives only as one stable
+        # planning obligation.
+        season_html = Path(result["output_files"]["html"]).read_text(encoding="utf-8")
+        assert "rvv-0001" not in season_html
+        normalization = result["placement_normalization"]
+        assert normalization["removed_tournament_ids"] == ["rvv-0001"]
+        obligation_id = normalization["unplaced"][0]["finding_id"]
+        assert obligation_id.startswith("unplaced_placement:U10:2025-10-05:")
+
         manual_html = Path(result["output_files"]["manual_schedule"]).read_text(encoding="utf-8")
-        assert "1 arbeidsoppgave(r) krever manuell istidsplanlegging (2 funn)" in manual_html
-        # Exactly one work-item row for the tournament, with both findings
-        # attached underneath instead of two separate rows.
-        assert manual_html.count("<td>rvv-0001</td>") == 1
+        assert "1 arbeidsoppgave(r) krever manuell istidsplanlegging" in manual_html
+        # Exactly one work-item row for the obligation, carrying the attempted
+        # search evidence -- not a scheduled tournament row plus a separate
+        # manual row for the same slot.
+        assert "MANUAL PLACEMENT REQUIRED" in manual_html
         assert "ingen vertsklubb blant deltakerne" in manual_html.lower()
-        assert "ekstern kalenderkonflikt" in manual_html.lower()
-        # A manual placement with a structured unresolved record must not also
-        # be mislabelled as a calendar-unavailable finding.
-        assert "Kalender ikke verifisert" not in manual_html
+        assert "Responsible host: Kongsberg." in manual_html
 
     def test_manual_schedule_renders_candidate_weekends_and_rejections(self, tmp_path):
         state = self._state_with_dates(tmp_path)

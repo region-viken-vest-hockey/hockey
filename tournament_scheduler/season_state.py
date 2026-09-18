@@ -243,6 +243,26 @@ def approval_report(
     return _service(root).approval_report(season)
 
 
+def normalize_placements(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Upgrade a canonical plan to the placed/provisional/unplaced state model."""
+
+    return _service(root).normalize_placements(
+        season=season,
+        problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+    )
+
+
 def load_participation_acceptances(
     season: str,
     *,

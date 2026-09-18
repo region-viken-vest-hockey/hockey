@@ -24,6 +24,7 @@ layer that sequences them.
 
 from __future__ import annotations
 
+import copy
 import os
 from datetime import date as _date, datetime, timezone
 from typing import Any, Mapping
@@ -609,6 +610,104 @@ class CanonicalSeasonService:
             snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
         )
         return committed.schedule, committed.decisions, cost
+
+    def normalize_placements(
+        self,
+        *,
+        season: str,
+        problem: dict[str, Any] | None = None,
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Upgrade an already-generated canonical plan to the #381 state model.
+
+        Genuinely unplaced tournaments (exhausted slot search, no concrete
+        slot, or a fixed external calendar conflict with no verified
+        alternative) are moved out of ``plan.tournaments`` into durable
+        ``unresolved_tournament_placements`` obligations. Operator-approved /
+        placement-locked tournaments are confirmation and are never demoted.
+        Every unaffected tournament id, placement and roster is preserved;
+        the full verifier and the derived projections are recomputed before
+        the result is accepted.
+        """
+        from tournament_scheduler.placement_normalization import (
+            normalize_unplaced_placements,
+        )
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        verification_context = schedule.get("verification_context")
+        resolved_problem = problem
+        if resolved_problem is None and isinstance(verification_context, Mapping):
+            candidate_problem = verification_context.get("problem")
+            if isinstance(candidate_problem, Mapping):
+                resolved_problem = dict(candidate_problem)
+
+        plan = copy.deepcopy(schedule["plan"])
+        approvals = decisions.get("decisions", {})
+        report = normalize_unplaced_placements(plan, resolved_problem, approvals=approvals)
+        if not report.get("changed"):
+            return schedule, decisions
+
+        result = (
+            verify_candidate(plan, resolved_problem)
+            if resolved_problem
+            else verify_candidate(plan)
+        )
+        if not result.get("ok", True):
+            messages = "; ".join(
+                str(v.get("message") or v.get("code")) for v in result.get("violations", [])
+            )
+            raise SeasonStateError(
+                f"Refusing placement normalization: candidate fails hard verification: {messages}"
+            )
+        reconcile_plan_derived_state(plan, result, problem=resolved_problem)
+
+        now = _now_iso()
+        fingerprint = schedule_fingerprint(plan)
+        updated_schedule = {
+            **schedule,
+            "updated_at": now,
+            "revision": fingerprint,
+            "fingerprint": fingerprint,
+            "plan_schema_version": SEASON_PLAN_SCHEMA_VERSION,
+            "plan": plan,
+            "normalized_from": {
+                "previous_revision": schedule.get("revision"),
+                "actor": _operator_identity(actor),
+                "removed_tournament_ids": report.get("removed_tournament_ids", []),
+                "obligation_count": report.get("obligation_count"),
+            },
+        }
+        updated_decisions = {
+            **decisions,
+            "updated_at": now,
+            "schedule_fingerprint": fingerprint,
+            "decisions": _reconcile_decisions(decisions.get("decisions", {}), plan, now=now),
+        }
+        if dry_run:
+            updated_schedule["dry_run"] = True
+            updated_schedule["placement_normalization"] = report
+            return updated_schedule, decisions
+
+        _append_decision_history(
+            updated_decisions,
+            event="normalize_placements",
+            tournament_id="",
+            actor=actor,
+            now=now,
+            note=note,
+            details={
+                "removed_tournament_ids": report.get("removed_tournament_ids", []),
+                "obligation_count": report.get("obligation_count"),
+                "verification_ok": True,
+            },
+        )
+        committed = self._commit(
+            snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
+        )
+        return committed.schedule, committed.decisions
 
     # -- decision-only mutations ------------------------------------------
 

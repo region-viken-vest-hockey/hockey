@@ -1004,6 +1004,20 @@ def build_parser() -> argparse.ArgumentParser:
     season_status.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_status.add_argument("--json", action="store_true", help="Print canonical state metadata as JSON")
 
+    season_normalize = season_sub.add_parser(
+        "normalize-placements",
+        help=(
+            "Upgrade an already-generated canonical plan to the placed/provisional/unplaced "
+            "state model without rerunning Stage 1-3"
+        ),
+    )
+    season_normalize.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_normalize.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_normalize.add_argument("--actor", default=None, help="Operator identity")
+    season_normalize.add_argument("--note", default="", help="Audit note")
+    season_normalize.add_argument("--dry-run", action="store_true", help="Report what would change without writing canonical state")
+    season_normalize.add_argument("--json", action="store_true", help="Print the normalization report as JSON")
+
     season_approve = season_sub.add_parser("approve", help="Approve/lock one canonical tournament in decisions.json")
     season_approve.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_approve.add_argument("--tournament-id", required=True, help="Durable tournament id to approve")
