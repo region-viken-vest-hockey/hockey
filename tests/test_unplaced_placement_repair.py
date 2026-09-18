@@ -335,6 +335,12 @@ def _coupled_fixture() -> tuple[Dict[str, Any], Dict[str, Any]]:
             ]
         },
     )
+    # The blocker must own the whole widened same-day start-time search
+    # window (not just the first couple of candidate times), otherwise the
+    # cheap pass finds a real gap right after the blocker's own game and this
+    # fixture stops exercising the coupled capacity-release path it is for.
+    problem["ice_time_minutes"] = dict(problem["ice_time_minutes"])
+    problem["ice_time_minutes"]["JU10"] = 240
     obligation_age = "U12"
     blocker_age = "JU10"
     blocker = _tournament(
@@ -497,3 +503,65 @@ def test_search_incomplete_is_distinct_from_bounded_search_exhausted(tmp_path: P
     assert coverage["status"] == SEARCH_BOUNDED_EXHAUSTED
     assert coverage["untried"] == []
     assert coverage["proven_infeasible"] is False
+
+
+def test_same_host_date_search_reaches_a_genuinely_open_date_beyond_the_nearest_few(
+    tmp_path: Path,
+) -> None:
+    # Real-world case: the responsible host's arena is booked solid on the
+    # source date and every one of the nearest few same-half weekends, but a
+    # weekend more than 8 (the old bounded cap) weekends out is completely
+    # open. The bounded same_host_date search must actually reach it instead
+    # of reporting bounded_search_exhausted merely because it never looked
+    # that far.
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams, start=date(2026, 10, 1), end=date(2026, 11, 30))
+    # Every same-half weekend date in the window except 2026-11-21 -- the
+    # only genuinely open date, and one the old 8-nearest-dates cap would
+    # never have reached from the 2026-10-18 source date.
+    blocked_dates = [
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-10",
+        "2026-10-11",
+        "2026-10-17",
+        "2026-10-18",  # source date
+        "2026-10-24",
+        "2026-10-25",
+        "2026-10-31",
+        "2026-11-01",
+        "2026-11-07",
+        "2026-11-08",
+        "2026-11-14",
+        "2026-11-15",
+        "2026-11-22",
+        "2026-11-28",
+        "2026-11-29",
+    ]
+    problem["club_busy_intervals"] = {
+        "Sorby": [
+            {"date": day, "start": "00:00", "end": "23:59", "calendar_event": "Booked"}
+            for day in blocked_dates
+        ]
+    }
+    plan = _base_plan(
+        [],
+        _obligation(age_group="U10", day="2026-10-18", host="Sorby", roster=teams),
+        start="2026-10-01",
+        end="2026-11-30",
+    )
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    result = enumerate_unplaced_placement_repairs(
+        plan,
+        problem,
+        finding_ids=["unplaced_placement:U10:2026-10-18:1"],
+        allow_search=False,
+    )
+
+    options = result["options"]
+    assert options, result["coverage"]
+    dates_offered = {option["arguments"]["date"] for option in options}
+    assert "2026-11-21" in dates_offered
+    assert all(day not in dates_offered for day in blocked_dates)

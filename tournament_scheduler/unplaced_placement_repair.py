@@ -92,13 +92,20 @@ SEARCH_BOUNDED_EXHAUSTED = "bounded_search_exhausted"
 SEARCH_PROVEN_INFEASIBLE = "proven_infeasible"
 
 # Bounded neighborhoods: enough alternatives for a controller to choose from
-# without turning one obligation into a season-wide scan.
+# without turning one obligation into a season-wide scan. issue: a cap tight
+# enough to sit inside one same-half season (nearest 8 weekend dates, 2 start
+# times) silently never reached a real host-controlled opening -- e.g. a
+# movable_busy interval (Kongsberg's "Åpen ishall") clearing an evening slot
+# on a date more than 8 weekends out was never even attempted, and reported
+# as bounded_search_exhausted/search_incomplete rather than "not yet looked
+# at that date". Widened to cover a realistic same-half span while staying a
+# bounded (not season-wide-across-both-halves) scan.
 _MAX_OPTIONS_PER_OBLIGATION = 8
-_MAX_DATE_CANDIDATES = 8
+_MAX_DATE_CANDIDATES = 20
 _MAX_RELEASE_DATES = 3
 _MAX_BLOCKERS = 2
 _MAX_BLOCKER_DATES = 3
-_MAX_START_TIMES_PER_DATE = 2
+_MAX_START_TIMES_PER_DATE = 6
 
 
 def enumerate_unplaced_placement_repairs(

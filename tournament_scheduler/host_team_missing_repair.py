@@ -523,8 +523,17 @@ def _duration_minutes(tournament, problem):
 
 
 def _candidate_start_times(tournament):
+    # issue: capping at 15:00 meant an evening opening after a late-afternoon
+    # commitment (e.g. a movable_busy interval ending around 15:30) was never
+    # a representable candidate at all, regardless of how many dates/dimensions
+    # a repair ladder tried -- widened through a typical club-ice evening.
     seen = []
-    for item in (tournament.get("start_time"), "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00"):
+    for item in (
+        tournament.get("start_time"),
+        "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
+        "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
+        "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00",
+    ):
         if item and item not in seen:
             seen.append(item)
     return seen
