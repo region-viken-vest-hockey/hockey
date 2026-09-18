@@ -121,7 +121,7 @@ _MAX_START_TIMES_PER_DATE = 6
 # ``bounded_search_exhausted`` evidence stale/retryable (see
 # ``search_capability``). Bump ``UNPLACED_PLACEMENT_SEARCH_VERSION`` when the
 # *semantics* change without a parameter change.
-UNPLACED_PLACEMENT_SEARCH_VERSION = "2"
+UNPLACED_PLACEMENT_SEARCH_VERSION = "3"
 UNPLACED_PLACEMENT_CAPABILITY = SearchCapability(
     family="unplaced_placement",
     version=UNPLACED_PLACEMENT_SEARCH_VERSION,

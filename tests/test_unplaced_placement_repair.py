@@ -627,6 +627,62 @@ def test_alternate_date_afternoon_slot_is_found_within_the_start_time_cap(tmp_pa
     assert applied["ok"] is True, applied
 
 
+def test_alternate_date_latest_allowed_start_survives_preferred_time_insertion(
+    tmp_path: Path,
+) -> None:
+    """The latest allowed start stays reachable for a non-sampled preferred start.
+
+    Prepending the obligation's preferred start to a bounded, day-covering
+    sample must not evict the last sampled endpoint. With preferred 12:00 (not
+    itself one of the sampled values) a naive slice dropped 16:00, so an
+    alternate date whose only legal generated start was exactly the latest
+    allowed time was reported as having no legal slot.
+    """
+    teams = _teams(["Jar", "Frisk Asker"])
+    problem = _problem(
+        teams,
+        start=date(2026, 10, 10),
+        end=date(2026, 10, 25),
+        busy={
+            "Jar": [
+                # Source date and every alternate date except 2026-10-11 have
+                # no gap at all.
+                {"date": "2026-10-10", "start": "00:00", "end": "23:59", "calendar_event": "Kamp"},
+                {"date": "2026-10-17", "start": "00:00", "end": "23:59", "calendar_event": "Kamp"},
+                {"date": "2026-10-18", "start": "00:00", "end": "23:59", "calendar_event": "Kamp"},
+                {"date": "2026-10-24", "start": "00:00", "end": "23:59", "calendar_event": "Kamp"},
+                {"date": "2026-10-25", "start": "00:00", "end": "23:59", "calendar_event": "Kamp"},
+                # The only usable date is free only from 15:30, so the latest
+                # allowed generated start (16:00) is the only legal slot.
+                {"date": "2026-10-11", "start": "00:00", "end": "15:30", "calendar_event": "Kamp"},
+            ]
+        },
+    )
+    obligation = _obligation(age_group="U10", day="2026-10-10", host="Jar", roster=teams)
+    obligation["preferred_start_time"] = "12:00"
+    plan = _base_plan([], obligation, start="2026-10-10", end="2026-10-25")
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    report = repair_options(YEAR, "unplaced_placement:U10:2026-10-10:1", root=root)
+
+    latest = [
+        option
+        for option in report["options"]
+        if option["arguments"]["date"] == "2026-10-11"
+        and option["arguments"]["start_time"] == "16:00"
+    ]
+    assert latest, report["options"]
+    applied = apply_repair(
+        YEAR,
+        latest[0]["option_id"],
+        report["revision"],
+        root=root,
+        finding_id="unplaced_placement:U10:2026-10-10:1",
+    )
+    assert applied["ok"] is True, applied
+
+
 # ---------------------------------------------------------------------------
 # Search-capability staleness (#392)
 # ---------------------------------------------------------------------------

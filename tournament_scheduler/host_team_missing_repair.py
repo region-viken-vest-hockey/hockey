@@ -562,13 +562,47 @@ def representative_start_times(limit: int) -> List[str]:
     return [times[index] for index in indices]
 
 
+def _start_time_minutes(value: str) -> int:
+    try:
+        parsed = datetime.strptime(str(value), "%H:%M")
+    except (TypeError, ValueError):
+        return 0
+    return parsed.hour * 60 + parsed.minute
+
+
 def bounded_start_times(preferred: str, limit: int) -> List[str]:
-    """Preferred start plus a representative, day-covering sample up to *limit*."""
-    ordered: List[str] = []
-    for item in (preferred, *representative_start_times(limit)):
-        if item and item not in ordered:
-            ordered.append(item)
-    return ordered[:limit]
+    """Preferred start plus a representative, day-covering sample up to *limit*.
+
+    The sample must survive prepending the obligation's preferred start. If
+    ``preferred`` is not already one of the sampled values, a plain
+    ``(preferred, *sample)[:limit]`` evicts the last sampled endpoint (normally
+    16:00), so a date whose only legal generated start is the latest allowed
+    time would be missed depending on the obligation's preferred start. Keep
+    the sample's endpoints and drop the interior value nearest the preferred
+    time instead.
+    """
+    if limit <= 0:
+        return []
+    sample = representative_start_times(limit)
+    if not preferred:
+        return sample
+    if preferred in sample:
+        return [preferred, *(item for item in sample if item != preferred)]
+    if limit == 1:
+        return [preferred]
+    interior = sample[1:-1]
+    if interior:
+        preferred_minutes = _start_time_minutes(preferred)
+        dropped = min(
+            interior,
+            key=lambda item: (abs(_start_time_minutes(item) - preferred_minutes), item),
+        )
+        sample = [item for item in sample if item != dropped]
+    else:
+        # Only the endpoints fit; preserve the latest allowed start (the policy
+        # ceiling) and let the preferred time take the other slot.
+        sample = sample[-1:]
+    return [preferred, *sample][:limit]
 
 
 def _find_tournament(candidate, tournament_id):
