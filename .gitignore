@@ -184,6 +184,9 @@ node_modules
 export/.DS_Store
 MagicMock/mock.work_dir/**/run_manifest.json
 
+# CLI/test scratch output must never be committed.
+cli-smoke-tmp/
+
 # Local/project-agent scratch state is not repository state
 .ps-next/
 .notes/
