@@ -47,10 +47,18 @@ _REJECTION_LABELS = {
 
 
 def work_item_key(entry: Mapping[str, Any]) -> tuple:
-    """Stable identity for the underlying intervention, not the finding."""
+    """Stable identity for the underlying intervention, not the finding.
+
+    An unresolved placement has no tournament, so its stable ``finding_id``
+    (not its empty ``tournament_id``) disambiguates parallel same-age-group/
+    same-date obligations that would otherwise collapse into one work item.
+    """
     tournament_id = str(entry.get("tournament_id") or "").strip()
     if tournament_id:
         return ("tournament", tournament_id)
+    finding_id = str(entry.get("finding_id") or "").strip()
+    if finding_id:
+        return ("finding", finding_id)
     club = str(entry.get("host_club") or "").strip()
     age_group = str(entry.get("age_group") or "").strip()
     if club or age_group:

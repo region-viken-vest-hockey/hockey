@@ -38,6 +38,10 @@ from tournament_scheduler.host_assignment import (
     proportional_integer_targets as _proportional_integer_targets,
     slot_search_host_order as _slot_search_host_order,
 )
+from tournament_scheduler.placement_findings import (
+    UNPLACED_PLACEMENT_CATEGORY,
+    unplaced_placement_finding_id,
+)
 from tournament_scheduler.models import (
     CalendarEvent,
     DatePreference,
@@ -789,7 +793,9 @@ class SeasonPlanner:
                 # Defensive: participants always yield at least one
                 # constituent club in practice (len(participants) >=
                 # MIN_TEAMS_PER_TOURNAMENT), but never invent a host here.
-                self._unresolved_tournament_placements.append(
+                # No tournament is materialized: there is no concrete
+                # placement, only a planning obligation to repair later.
+                self._record_unresolved_placement(
                     {
                         "age_group": age_group,
                         "date": tournament_date.isoformat(),
@@ -802,10 +808,14 @@ class SeasonPlanner:
                         ],
                         "participant_team_count": len(participants),
                         **duration_evidence,
-                        "category": "manual_tournament_placement",
+                        "category": UNPLACED_PLACEMENT_CATEGORY,
                         "search_attempted": False,
                         "reason": "no_participant_host_slot",
-                    }
+                    },
+                    tournament_date=tournament_date,
+                    age_group=age_group,
+                    scheduled_age_groups_by_date=scheduled_age_groups_by_date,
+                    collisions=collisions,
                 )
                 continue
 
@@ -860,7 +870,6 @@ class SeasonPlanner:
                 placement_evidence=slot_evidence,
             )
 
-            forced_manual_booking_reason: Optional[str] = None
             alternate_roster_attempted = False
             alternate_rosters_tried = 0
             same_host_dates_checked: List[str] = []
@@ -1047,7 +1056,17 @@ class SeasonPlanner:
                     retry_original_represented = bool(original_host_constituents & set(retry_candidate_hosts))
                     if not allow_participant_host_fallback and not retry_original_represented:
                         continue
-                    retry_allow_participant_host_fallback = allow_participant_host_fallback and not retry_original_represented
+                    # The intended host may fall back to another participant
+                    # host whenever it does not itself still owe hosting for
+                    # this age group (`allow_participant_host_fallback`). The
+                    # retry roster often still contains the intended host, so
+                    # re-gating on `retry_original_represented` here would
+                    # re-impose an obligation this slot's owner already does
+                    # not have and would abandon a legal deficit-club host
+                    # (issue #329). Listing the intended host first in the
+                    # search order still preserves it whenever its ice is
+                    # actually free.
+                    retry_allow_participant_host_fallback = allow_participant_host_fallback
                     retry_slot_candidate_hosts = (
                         retry_candidate_hosts if retry_allow_participant_host_fallback else None
                     )
@@ -1081,10 +1100,15 @@ class SeasonPlanner:
                 # A genuine search ran across every participant-derived
                 # candidate host (including the #329 alternate-roster retry
                 # above, when applicable) and found no legal, free arena/time
-                # slot -- do not invent an unrelated host or mutate
-                # participants to fit one; surface it for manual placement
-                # instead.
-                self._unresolved_tournament_placements.append(
+                # slot. Do not invent an unrelated host, do not mutate the
+                # participants to fit one, and do not materialize a fake
+                # Tournament: an unplaced obligation is planning work, not a
+                # scheduled event. Record the structured finding with the
+                # attempted-search evidence and skip every downstream
+                # bookkeeping commit (team/day usage, grouping, opponent
+                # history, host counts, ice reservation) so it cannot count
+                # as hosted, played or reserved.
+                self._record_unresolved_placement(
                     {
                         "age_group": age_group,
                         "date": tournament_date.isoformat(),
@@ -1097,7 +1121,7 @@ class SeasonPlanner:
                         ],
                         "participant_team_count": len(participants),
                         **duration_evidence,
-                        "category": "manual_tournament_placement",
+                        "category": UNPLACED_PLACEMENT_CATEGORY,
                         "search_attempted": True,
                         # issue #329: True when at least one hosting-deficit-
                         # biased alternate roster was tried and still failed
@@ -1119,14 +1143,13 @@ class SeasonPlanner:
                         # it is not an unbounded/exhaustive search claim.
                         "bounded_repair_exhausted": True,
                         "reason": "no_participant_host_slot",
-                    }
+                    },
+                    tournament_date=tournament_date,
+                    age_group=age_group,
+                    scheduled_age_groups_by_date=scheduled_age_groups_by_date,
+                    collisions=collisions,
                 )
-                final_host_club = search_host
-                start_time = DEFAULT_TOURNAMENT_START_TIME
-                forced_manual_booking_reason = (
-                    f"Ingen verifisert ledig istid for {final_host_club} "
-                    f"{tournament_date.isoformat()} — turneringen må plasseres manuelt."
-                )
+                continue
             else:
                 # No calendar/reservation data is available to search at all
                 # (calendar-less fixtures, pre-scrape runs) -- place at the
@@ -1179,8 +1202,8 @@ class SeasonPlanner:
                 )
             else:
                 calendar_verified = _club_calendar_available(final_host_club, self.available_calendar_clubs)
-            manual_booking_reason: Optional[str] = forced_manual_booking_reason
-            if manual_booking_reason is None and not calendar_verified:
+            manual_booking_reason: Optional[str] = None
+            if not calendar_verified:
                 manual_booking_reason = (
                     f"Kalender utilgjengelig for {final_host_club} — "
                     "istid må bookes/verifiseres manuelt."
@@ -1213,12 +1236,13 @@ class SeasonPlanner:
             )
             plan.tournaments.append(tournament)
             reservation = self._reservation_event_for_tournament(tournament)
-            if reservation is not None and forced_manual_booking_reason is None:
+            if reservation is not None:
                 reserved_events_by_club.setdefault(final_host_club, []).append(reservation)
             # issue #323/#361: a genuine slot-search failure is recorded in
-            # `unresolved_tournament_placements` above and may still create a
-            # manual-placement tournament for the represented intended host;
-            # do not treat that as an arena collision or reserve verified ice.
+            # `unresolved_tournament_placements` and never reaches this point
+            # (no tournament is materialized), so every tournament committed
+            # here has a concrete placement to reserve; a calendar-unverified
+            # provisional placement still reserves its provisional ice.
             # Record actual host so the tracking dict reflects committed assignments.
             month_key = (tournament_date.year, tournament_date.month)
             self._hosting_days_by_club_month.setdefault(
@@ -2434,6 +2458,59 @@ class SeasonPlanner:
     def _record_month(self, tournament_date: date) -> None:
         key = (tournament_date.year, tournament_date.month)
         self._month_counts[key] = self._month_counts.get(key, 0) + 1
+
+    def _record_unresolved_placement(
+        self,
+        entry: Dict[str, object],
+        *,
+        tournament_date: date,
+        age_group: str,
+        scheduled_age_groups_by_date: Dict[date, List[str]],
+        collisions: List[Tuple[date, str, str]],
+    ) -> None:
+        """Record an unplaced obligation and release its per-date bookkeeping.
+
+        A genuine slot-search failure must not leave the date looking used:
+        the month-load count, the per-date age-group list and any overlap
+        collision recorded for this slot at the top of the tournament loop
+        were all committed before placement was known, so they are rolled
+        back here. Every other piece of bookkeeping (team/day usage, grouping,
+        opponent history, host counts, reservation) is committed only after a
+        concrete placement, so it is never touched.
+        """
+        date_iso = str(entry.get("date") or tournament_date.isoformat())
+        sequence = 1 + sum(
+            1
+            for existing in self._unresolved_tournament_placements
+            if str(existing.get("age_group") or "") == age_group
+            and str(existing.get("date") or "") == date_iso
+        )
+        entry["id"] = unplaced_placement_finding_id(age_group, date_iso, sequence)
+        self._unresolved_tournament_placements.append(entry)
+        collisions[:] = [
+            item
+            for item in collisions
+            if not (item[0] == tournament_date and item[1] == age_group)
+        ]
+        self._release_unplaced_date_bookkeeping(
+            tournament_date, age_group, scheduled_age_groups_by_date
+        )
+
+    def _release_unplaced_date_bookkeeping(
+        self,
+        tournament_date: date,
+        age_group: str,
+        scheduled_age_groups_by_date: Dict[date, List[str]],
+    ) -> None:
+        month_key = (tournament_date.year, tournament_date.month)
+        month_count = self._month_counts.get(month_key, 0)
+        if month_count <= 1:
+            self._month_counts.pop(month_key, None)
+        else:
+            self._month_counts[month_key] = month_count - 1
+        ages_on_date = scheduled_age_groups_by_date.get(tournament_date)
+        if ages_on_date and age_group in ages_on_date:
+            ages_on_date.remove(age_group)
 
     def _score_candidate_date(
         self,

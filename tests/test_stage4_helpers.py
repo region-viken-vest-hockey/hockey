@@ -56,3 +56,27 @@ def test_legacy_record_without_search_hosts_falls_back_to_candidate_hosts():
     (entry,) = build_tournament_placement_entries(plan)
 
     assert "Hosts searched: Jar, Kongsberg." in entry["message"]
+
+
+def test_unplaced_finding_carries_stable_identity_and_responsible_host():
+    """An unplaced obligation has no tournament, so the manual row must carry
+    the planner's stable finding id and the club that still owes the
+    tournament rather than an empty tournament id and host."""
+    plan = _plan([
+        {
+            "id": "unplaced_placement:U10:2026-10-10:1",
+            "age_group": "U10",
+            "date": "2026-10-10",
+            "candidate_hosts": ["Jar"],
+            "participant_clubs": ["Jar"],
+            "responsible_host": "Jar",
+            "search_hosts_tried": ["Jar"],
+            "reason": "no_participant_host_slot",
+        }
+    ])
+
+    (entry,) = build_tournament_placement_entries(plan)
+
+    assert entry["finding_id"] == "unplaced_placement:U10:2026-10-10:1"
+    assert entry["host_club"] == "Jar"
+    assert entry["tournament_id"] == ""

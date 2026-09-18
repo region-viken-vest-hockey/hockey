@@ -57,9 +57,10 @@ def tournament_placement_rule(plan: SeasonPlan) -> dict[str, Any]:
         "description": (
             "Vertskap/arena velges kun blant klubbene som faktisk deltar i turneringen. "
             "Når ingen av deltakernes klubber har en lovlig ledig arena-/tidsluke, blir "
-            "turneringen ikke automatisk plassert hos en urelatert klubb, og deltakerlisten "
-            "endres ikke for å passe en urelatert arena -- den legges i «Må planlegges "
-            "manuelt» i stedet."
+            "turneringen ikke automatisk plassert hos en urelatert klubb, deltakerlisten "
+            "endres ikke for å passe en urelatert arena, og det opprettes ingen falsk "
+            "turnering på ønsket dato/arena -- den legges i «Må planlegges manuelt» i stedet. "
+            "Det ansvarlige vertskapet forblir synlig som en uløst plassering."
         ),
         "configured_value": "0 uløste plasseringer",
         "status": status,

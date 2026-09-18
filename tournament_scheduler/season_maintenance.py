@@ -436,6 +436,7 @@ def _findings(
     findings.extend(_hosting_findings(problem, plan))
     findings.extend(_participation_findings(verification, problem))
     findings.extend(_manual_findings(plan, verification))
+    findings.extend(_unplaced_findings(plan))
     findings.extend(_movable_capacity_findings(problem, plan))
     findings.extend(_shape_findings(verification))
     findings.sort(key=lambda entry: (entry["category"], entry["finding_id"]))
@@ -609,6 +610,51 @@ def _manual_findings(
                 "message": (
                     f"{tournament_id} is scheduled but still marked as an unresolved "
                     f"manual placement (calendar)"
+                ),
+            }
+        )
+    return out
+
+
+def _unplaced_findings(plan: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Findings for genuine unplaced obligations (no tournament exists).
+
+    A tournament the deterministic slot search could not place is not a
+    scheduled tournament with a marker; it only exists as structured planning
+    work in ``unresolved_tournament_placements``. Own the stable finding id the
+    planner assigned it (``placement_findings``), never a synthetic tournament
+    id, so the obligation stays visible/actionable without a fake placement.
+    """
+    out: List[Dict[str, Any]] = []
+    for entry in plan.get("unresolved_tournament_placements") or []:
+        if not isinstance(entry, Mapping):
+            continue
+        finding_id = str(entry.get("id") or "")
+        if not finding_id:
+            # Older/hand-built records without a canonical id: derive the same
+            # stable identity shape from the finding's own scope rather than
+            # hiding the obligation.
+            finding_id = (
+                f"unplaced_placement:{entry.get('age_group') or '?'}:"
+                f"{entry.get('date') or '?'}"
+            )
+        out.append(
+            {
+                "finding_id": finding_id,
+                "code": "unplaced_tournament_placement",
+                "category": MANUAL_PLACEMENT,
+                "severity": "unresolved",
+                "age_group": entry.get("age_group"),
+                "date": entry.get("date"),
+                "host_club": entry.get("responsible_host"),
+                "responsible_host": entry.get("responsible_host"),
+                "reason": entry.get("reason"),
+                "search_attempted": bool(entry.get("search_attempted")),
+                "bounded_repair_exhausted": bool(entry.get("bounded_repair_exhausted")),
+                "message": (
+                    f"{entry.get('age_group') or '?'} on {entry.get('date') or '?'} could not be "
+                    f"placed automatically; responsible host {entry.get('responsible_host') or 'unknown'} "
+                    "keeps the hosting obligation"
                 ),
             }
         )

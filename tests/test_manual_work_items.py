@@ -143,3 +143,29 @@ def test_render_findings_prefers_the_operator_facing_type():
 
     assert "ingen vertsklubb blant deltakerne" in rendered
     assert "detalj" in rendered
+
+
+def test_unplaced_placements_stay_distinct_via_their_stable_finding_id():
+    """Parallel same-age-group/same-date obligations have no tournament id;
+    their stable finding id must keep them separate work items instead of
+    collapsing into one row."""
+    entries = [
+        _entry(
+            tournament_id="",
+            finding_id="unplaced_placement:U11:2026-10-10:1",
+            date="2026-10-10",
+        ),
+        _entry(
+            tournament_id="",
+            finding_id="unplaced_placement:U11:2026-10-10:2",
+            date="2026-10-10",
+        ),
+    ]
+
+    items = build_work_items(entries)
+
+    assert len(items) == 2
+    assert work_item_key(entries[0]) == (
+        "finding",
+        "unplaced_placement:U11:2026-10-10:1",
+    )

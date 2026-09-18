@@ -374,11 +374,15 @@ class SeasonPlan:
     # scope. Kept visible so a waived exception is never indistinguishable
     # from a clean pass.
     operator_waived_violations: List[Dict[str, object]] = field(default_factory=list)
-    # issue #323 P0: tournaments whose selected participants had no
-    # candidate host club with a free slot -- never auto-placed, surfaced
-    # here for manual placement instead. Entry: {"age_group", "date",
-    # "period", "candidate_hosts", "participant_clubs", "reason",
-    # "category": "manual_tournament_placement"}. issue #330: also carries
+    # issue #323 P0 / #381: tournaments whose selected participants had no
+    # candidate host club with a free slot -- never auto-placed and no longer
+    # materialized as a placeholder ``Tournament`` at all, surfaced here as
+    # explicit planning work for manual placement instead. Each entry has a
+    # stable ``id`` that does not depend on a tournament id (see
+    # ``placement_findings.unplaced_placement_finding_id``). Entry:
+    # {"id", "age_group", "date", "period", "candidate_hosts",
+    # "participant_clubs", "reason", "category":
+    # "manual_tournament_placement"}. issue #330: also carries
     # the exact roster the deduplicated "participant_clubs" list loses --
     # "participant_teams": [{"club", "label", "age_group"}, ...],
     # "participant_team_count": int, and "search_attempted": bool

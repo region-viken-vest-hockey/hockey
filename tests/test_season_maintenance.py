@@ -797,3 +797,33 @@ def test_accept_deviation_cli_round_trip(tmp_path: Path, capsys) -> None:
     assert rc == 0
     assert json.loads(capsys.readouterr().out)["revoked"]["revoked_at"]
     assert load_participation_acceptances(YEAR, root=root) == []
+
+
+def test_unplaced_obligation_is_a_manual_finding_without_a_tournament_id() -> None:
+    """An unplaced obligation is planning work, not a scheduled tournament:
+    it must surface as a stable-id manual finding whose identity does not
+    depend on a tournament id."""
+    from tournament_scheduler.season_maintenance import _unplaced_findings
+
+    findings = _unplaced_findings(
+        {
+            "unresolved_tournament_placements": [
+                {
+                    "id": "unplaced_placement:U10:2026-10-10:1",
+                    "age_group": "U10",
+                    "date": "2026-10-10",
+                    "responsible_host": "Jar",
+                    "search_attempted": True,
+                    "bounded_repair_exhausted": True,
+                    "reason": "no_participant_host_slot",
+                }
+            ]
+        }
+    )
+
+    (finding,) = findings
+    assert finding["finding_id"] == "unplaced_placement:U10:2026-10-10:1"
+    assert finding["category"] == "manual_placement"
+    assert finding["code"] == "unplaced_tournament_placement"
+    assert finding["host_club"] == "Jar"
+    assert "tournament_id" not in finding

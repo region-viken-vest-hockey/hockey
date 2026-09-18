@@ -710,10 +710,19 @@ class TestSeasonPlanner:
             [t for t in plan.tournaments if t.arena == "Jarahallen" and t.date == start.date()],
             key=lambda t: t.start_time,
         )
-        assert len(same_day) == 3
-        assert DEFAULT_TOURNAMENT_START_TIME in {t.start_time for t in same_day}
+        # issue #381: the exhausted third slot is not materialized as a
+        # tournament at all -- only the two genuinely placed slots exist.
+        assert len(same_day) == 2
         assert plan.arena_day_collisions == []
-        assert all(t.manual_booking_reason for t in same_day)
+        assert not any(
+            "må plasseres manuelt" in (t.manual_booking_reason or "") for t in plan.tournaments
+        )
+        unresolved = planner.unresolved_tournament_placements
+        assert len(unresolved) == 1
+        assert unresolved[0]["search_attempted"] is True
+        assert unresolved[0]["reason"] == "no_participant_host_slot"
+        # Stable identity independent of a tournament id.
+        assert unresolved[0]["id"].startswith("unplaced_placement:")
 
     def test_alternate_roster_retry_rescues_unmet_hosting_deficit_club(self, season_window):
         """issue #329 P0: when the participant-derived candidate hosts have
@@ -898,13 +907,20 @@ class TestSeasonPlanner:
             planner._select_participants = selective
             plan = planner.build_plan(start, end)
 
-        assert len(plan.tournaments) == 1
-        assert plan.tournaments[0].manual_booking_reason
+        # issue #381: a genuine exhausted placement search creates no
+        # tournament; the obligation remains structured planning work.
+        assert plan.tournaments == []
         unresolved = planner.unresolved_tournament_placements
         assert len(unresolved) == 1
         assert unresolved[0]["search_attempted"] is True
         assert unresolved[0]["alternate_roster_attempted"] is True
         assert unresolved[0]["candidate_hosts"] == ["Jar", "Holmen"]
+        assert unresolved[0]["id"].startswith("unplaced_placement:U10:")
+        # The hosting responsibility stays visible even with no tournament.
+        assert any(
+            item["club"] == "Jar" and item["age_group"] == "U10"
+            for item in plan.unresolved_hosting_obligations
+        )
 
     def test_each_tournament_is_single_age_group_with_round_robin_games(self, planner_and_plan):
         _, plan, *_ = planner_and_plan
@@ -2916,16 +2932,22 @@ class TestProportionalHosting:
 
         plan = planner.build_plan(datetime(2026, 10, 1), datetime(2026, 10, 31))
 
-        assert len(plan.tournaments) == 2
-        by_date = {t.date: t for t in plan.tournaments}
-        tournament = by_date[date(2026, 10, 10)]
-        assert tournament.host_club == "Alpha"
-        assert tournament.manual_booking_reason
-        assert "må plasseres manuelt" in tournament.manual_booking_reason
-        assert {team.club for team in tournament.teams} == {"Alpha", "Beta"}
-        assert by_date[date(2026, 10, 17)].host_club == "Beta"
-        assert not by_date[date(2026, 10, 17)].manual_booking_reason
-        assert plan.unresolved_tournament_placements
+        # The represented intended host keeps the hosting obligation; the
+        # exhausted slot is not materialized as a tournament and is not
+        # silently rehosted onto Beta's easier ice.
+        assert len(plan.tournaments) == 1
+        tournament = plan.tournaments[0]
+        assert tournament.date == date(2026, 10, 17)
+        assert tournament.host_club == "Beta"
+        assert not tournament.manual_booking_reason
+        unresolved = plan.unresolved_tournament_placements
+        assert len(unresolved) == 1
+        assert unresolved[0]["responsible_host"] == "Alpha"
+        assert unresolved[0]["date"] == "2026-10-10"
+        assert any(
+            item["club"] == "Alpha" and item["age_group"] == "U10"
+            for item in plan.unresolved_hosting_obligations
+        )
 
     def test_intended_host_tries_other_same_host_dates_before_manual(self):
         """A represented responsible host should not become manual after only
@@ -3765,16 +3787,10 @@ class TestSlotAwareScheduling:
         """The represented intended host owns this obligation. Even after the
         bounded same-host date repair is exhausted (here: every known club
         except Holmen is booked all day on every free date), the hosting
-        responsibility must stay with the intended host as manual placement
-        rather than transferring to Holmen's easier ice."""
+        responsibility must stay with the intended host as an unresolved
+        planning obligation rather than transferring to Holmen's easier ice."""
         start, end = datetime(2026, 10, 1), datetime(2027, 4, 30)
         free_dates = all_weekend_dates(start, end)
-
-        probe_planner = self._basic_planner(free_dates, events_by_club=None)
-        probe_plan = probe_planner.build_plan(start, end)
-        original_hosts_by_tournament = {
-            (t.date, t.age_group): t.host_club for t in probe_plan.tournaments
-        }
 
         # Every known club except Holmen is fully booked all day on every
         # free date, so no same-host date repair can succeed either.
@@ -3800,18 +3816,12 @@ class TestSlotAwareScheduling:
         planner = self._basic_planner(free_dates, events_by_club=events_by_club)
         plan = planner.build_plan(start, end)
 
-        assert plan.tournaments
+        assert plan.tournaments == []
         assert planner.fallback_host_substitutions == []
 
-        for tournament in plan.tournaments:
-            original_host = original_hosts_by_tournament[(tournament.date, tournament.age_group)]
-            if tournament.host_club == original_host and original_host != "Holmen":
-                assert tournament.manual_booking_reason
-                assert "må plasseres manuelt" in tournament.manual_booking_reason
-
-        # Evidence must show what was actually searched: the responsible
-        # host only, plus the other dates that were checked for it -- not the
-        # participant-derived candidates that merely existed.
+        # No placement is materialized for the intended hosts whose ice is
+        # fully booked; each remains a responsible-host obligation instead of
+        # being silently transferred to Holmen's free ice.
         unresolved = planner.unresolved_tournament_placements
         assert unresolved
         for item in unresolved:

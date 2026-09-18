@@ -76,9 +76,17 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
             {
                 "type": "MANUAL PLACEMENT REQUIRED — ingen vertsklubb blant deltakerne",
                 "category": str(item.get("category") or "manual_tournament_placement"),
+                # Stable finding identity, independent of any tournament id:
+                # an unplaced obligation has no tournament. Used by the
+                # manual-work projection to keep parallel same-age-group/
+                # same-date obligations as distinct operator work items.
+                "finding_id": str(item.get("id") or ""),
                 "date": date_value,
                 "arena": "",
-                "host_club": "",
+                # The responsible host still owes this tournament even though
+                # no scheduled tournament exists, so the operator sees whose
+                # obligation it is rather than an anonymous row.
+                "host_club": str(responsible_host or ""),
                 "age_group": age_group,
                 "tournament_id": "",
                 "interval": "",
