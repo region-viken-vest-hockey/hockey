@@ -46,6 +46,18 @@ Re-verify the selected candidate and write the timestamped review bundle. Hard v
 
 A normal export may contain season HTML/report, manual follow-up view, calendar/input views, Excel/CSV/iCal, Spond workbooks, per-club review packets and `export_manifest.json` lifecycle/provenance metadata.
 
+## Refine before promotion
+
+A reviewed but unpromoted candidate can be refined in place if the semantic audit (or the operator) finds a localized defect. This is the normal path and is deliberately not promotion, not a Stage 3 reset and not a Stage 1/2 rerun:
+
+```bash
+scripts/rvv-miniputt stage3 refine --work-dir .pipeline --json
+scripts/rvv-miniputt stage3 refine --work-dir .pipeline --finding <finding-id> --json
+scripts/rvv-miniputt stage3 refine --work-dir .pipeline --finding <finding-id> --option-id <option-id> --json
+```
+
+The explicit `refine_candidate` session transition reopens the exact reviewed candidate (which stays the baseline), the repository-owned providers enumerate finding-directed options, one verified option becomes a new candidate revision and Stage 4 re-runs. Stage 1/2 checkpoints and fingerprints are read-only inputs (no rescrape, no baseline rebuild). The replacement export records the reviewed export it `supersedes`; the reviewed export itself is marked `superseded`, kept as immutable history and protected from draft retention, and a published export is refused (that is the publication/rollback boundary). The result reports `audit_required` and the fresh export fingerprint so the same semantic-audit boundary is re-run over the new export before publication. `--dry-run` previews the verified delta without mutating anything.
+
 ## Promote the operational baseline
 
 When the verified schedule is accepted for club review/ice booking, promote it explicitly:

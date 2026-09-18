@@ -4,6 +4,7 @@ Use this as the shared conversational guide procedure for every agent harness.
 
 1. Determine which lifecycle the user's goal belongs to:
    - **initial season creation**: `run`, `status`, `logs`, `calendars`, `scrape`, `scrape-llm`, then audit/review and explicit baseline promotion;
+   - **refine a reviewed-but-unpromoted candidate**: `stage3 refine` after the semantic audit finds a localized defect (do not promote/reset/rerun just to repair one finding);
    - **promoted-season maintenance**: `season` for promote/status/approvals/approve/unapprove/move/replan/diff/apply/export;
    - **publication**: `publish` only after the exact current exported revision has passed the semantic audit.
 2. Prefer the canonical `season` workflow once `season/<season>/schedule.json` exists. Do not treat ordinary club feedback such as booking approval, a requested move, or bounded replanning as a request to regenerate the season from scratch.
@@ -13,6 +14,7 @@ Use this as the shared conversational guide procedure for every agent harness.
 
 Typical promoted-season routing:
 
+- reviewed Stage 4 candidate has a localized audit finding and is not promoted yet -> `stage3 refine`, then re-run the semantic audit over the new export;
 - schedule accepted for club review/ice booking -> `season promote`;
 - inspect the operational schedule/revision -> `season status`;
 - club confirms ice -> `season approve`;

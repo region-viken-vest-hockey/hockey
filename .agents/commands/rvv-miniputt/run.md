@@ -130,6 +130,30 @@ Running `run --interactive --resume-from 3` with no `--decision-action` is a saf
 
 If the rendered DecisionContext's candidate fingerprint differs from the authoritative Stage3Session current candidate fingerprint, stop and treat that as an engineering/session-identity defect. Do not retry with a different fingerprint, hand-edit an option, reset repeatedly, or patch an individual repair provider.
 
+## Refining a finalized but unpromoted candidate
+
+If a hard-valid Stage 4 candidate/export has been produced and reviewed but the semantic audit (or the operator) finds a localized defect, do **not** promote the season merely to unlock repair, reset Stage 3 (a recovery operation) or rerun Stages 1-4. Refine the exact reviewed candidate instead:
+
+```bash
+# list findings on the finalized, unpromoted candidate
+scripts/rvv-miniputt stage3 refine --work-dir .pipeline --json
+# enumerate repository-owned options for one finding (add --search for the bounded dimensions)
+scripts/rvv-miniputt stage3 refine --work-dir .pipeline --finding <finding-id> --json
+# apply one verified option: new revision, re-finalize, Stage 4 re-export with provenance
+scripts/rvv-miniputt stage3 refine --work-dir .pipeline --finding <finding-id> --option-id <option-id> --json
+```
+
+The command:
+
+- reopens the exact reviewed candidate through the explicit `refine_candidate` session transition (the reviewed candidate stays the baseline);
+- uses the same repository-owned repair providers and independent verifier as every other boundary;
+- leaves Stage 1/2 checkpoints and fingerprints untouched (no rescrape, no baseline rebuild);
+- does not promote anything and does not touch `season/<season>/`;
+- keeps the reviewed export as immutable history, marks it `superseded` and records the new export's `supersedes` provenance; a published export is refused (use the publication/rollback boundary);
+- returns `audit_required` with the fresh export fingerprint: re-run `operator audit-context`/`audit-submit` over the new export before publication.
+
+Use `--dry-run` to preview the verified delta without mutating anything.
+
 ## Resetting an untrustworthy Stage 3 lineage
 
 Use the reset capability only when an **engineering/lifecycle defect or a code change has made the current Stage 3 candidate/session lineage untrustworthy**. Examples include a pending decision created by known-buggy lifecycle code, corrupted candidate/session identity, or an explicitly diagnosed Stage 3 persistence defect.

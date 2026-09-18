@@ -455,6 +455,143 @@ def revoke_acceptance(
 
 
 # ---------------------------------------------------------------------------
+# Plan-level core (no canonical season required)
+#
+# The canonical-season entry points above are thin wrappers around the same
+# facts/legality boundary: findings, options and atomic applies are pure
+# functions of a candidate plan plus a planning problem. An unpromoted Stage
+# 3/Stage 4 candidate that has not been promoted is refined through the exact
+# same repository-owned providers, so a candidate-only rule set cannot drift
+# away from the canonical one.
+# ---------------------------------------------------------------------------
+
+
+def plan_fingerprint(plan: Mapping[str, Any]) -> str:
+    return _plan_fingerprint(plan)
+
+
+def baseline_for_plan(plan: Mapping[str, Any]) -> Dict[str, Any]:
+    """Change-cost baseline for an unpromoted candidate (no approvals/locks).
+
+    The reviewed candidate itself is the refinement baseline, so change cost
+    measures movement away from what was reviewed rather than inventing a
+    canonical-season baseline that does not apply before promotion.
+    """
+    return build_canonical_baseline({"plan": dict(plan)}, {})
+
+
+def findings_for_plan(
+    plan: Mapping[str, Any], problem: Mapping[str, Any]
+) -> List[Dict[str, Any]]:
+    """Stable actionable findings over any candidate plan + planning problem."""
+    return _findings(plan, problem, verify_candidate(dict(plan), dict(problem)))
+
+
+def repair_options_for_plan(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    finding_id: str,
+    *,
+    allow_search: bool = False,
+    dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
+) -> Dict[str, Any]:
+    """Enumerate deterministic repair options for one finding on a bare plan."""
+    resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
+    findings = findings_for_plan(plan, problem)
+    finding = _require_finding(findings, finding_id)
+    options, rejected, families = _options_for_finding(
+        plan, problem, finding, allow_search=allow_search, dimensions=resolved_dimensions
+    )
+    pareto = _annotate_pareto(plan, problem, options, finding, resolved_dimensions)
+    return {
+        "candidate_fingerprint": _plan_fingerprint(plan),
+        "finding": finding,
+        "option_count": len(options),
+        "options": options,
+        "rejected_candidates": rejected,
+        "families": families,
+        "pareto": pareto,
+        "escalation": _escalation(options, rejected, finding),
+    }
+
+
+def apply_repair_to_plan(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    option_id: str,
+    *,
+    finding_id: Optional[str] = None,
+    dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
+    baseline: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Atomically reproduce and apply one verified option to a bare plan.
+
+    Returns the mutated candidate plus the same before/after metric delta the
+    canonical boundary returns; it never writes any canonical state.
+    """
+    resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
+    findings = findings_for_plan(plan, problem)
+    if finding_id:
+        candidates = [_require_finding(findings, finding_id)]
+    else:
+        inferred = _infer_finding_id(option_id, findings)
+        candidates = [inferred] if inferred is not None else _findings_for_option(findings, option_id)
+    match = None
+    resolved_finding = None
+    for finding in candidates:
+        options, _rejected, _families = _options_for_finding(
+            plan, problem, finding, allow_search=True, dimensions=resolved_dimensions
+        )
+        found = next((entry for entry in options if entry["option_id"] == option_id), None)
+        if found is not None:
+            match, resolved_finding = found, finding
+            break
+    if match is None or resolved_finding is None:
+        return {"ok": False, "reason": "unknown_or_stale_option", "option_id": option_id}
+
+    before_verification = verify_candidate(dict(plan), dict(problem))
+    applied = _apply_option(plan, problem, match, resolved_finding, resolved_dimensions)
+    if not applied.get("ok"):
+        return {
+            "ok": False,
+            "reason": str(applied.get("reason") or "repair_rejected"),
+            "option_id": option_id,
+            "verification": applied.get("verification"),
+        }
+    result_candidate = applied["candidate"]
+    verification = applied.get("verification") or verify_candidate(
+        dict(result_candidate), dict(problem)
+    )
+    if not verification.get("ok"):
+        return {
+            "ok": False,
+            "reason": "verification_failed",
+            "option_id": option_id,
+            "verification": verification,
+        }
+    delta = _metric_delta(
+        plan,
+        before_verification,
+        candidate=result_candidate,
+        after_verification=verification,
+        problem=problem,
+    )
+    delta["changed_tournament_ids"] = _changed_tournament_ids(plan, result_candidate)
+    delta["change_cost"] = change_cost(
+        baseline if baseline is not None else baseline_for_plan(plan), result_candidate
+    )
+    return {
+        "ok": True,
+        "option_id": option_id,
+        "finding": resolved_finding,
+        "family": match.get("family"),
+        "candidate": result_candidate,
+        "verification": verification,
+        "delta": delta,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Findings
 # ---------------------------------------------------------------------------
 

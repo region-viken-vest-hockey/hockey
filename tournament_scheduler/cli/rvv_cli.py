@@ -1856,6 +1856,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     elif args.command == "stage3":
         from .pipeline_orchestrator.stage3_session_command import _cmd_stage3_session
 
+        if getattr(args, "stage3_command", None) == "refine":
+            from .pipeline_orchestrator.stage3_refine_command import _cmd_stage3_refine
+
+            return _cmd_stage3_refine(args)
         return _cmd_stage3_session(args)
     elif args.command == "waiver":
         return _cmd_waiver(args)

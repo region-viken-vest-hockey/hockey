@@ -11,12 +11,16 @@ import json
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 EXPORT_LIFECYCLE_FILENAME = "export_manifest.json"
 EXPORT_LIFECYCLE_SCHEMA_VERSION = 1
 DRAFT_STATUS = "draft"
 PUBLISHED_STATUS = "published"
+# A previously generated export that a later refinement export replaced. It is
+# kept as immutable history (and protected from draft retention) and points at
+# the export that superseded it.
+SUPERSEDED_STATUS = "superseded"
 
 
 def _now_iso() -> str:
@@ -47,8 +51,15 @@ def write_draft_manifest(
     source_run_id: str | None,
     canonical_season: str | None = None,
     canonical_revision: str | None = None,
+    supersedes: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Write the initial lifecycle marker for a generated export."""
+    """Write the initial lifecycle marker for a generated export.
+
+    *supersedes* records the reviewed export this generation refines (its
+    ``export_id``/``export_fingerprint``/``export_dir``) so the new export's
+    provenance back to the prior reviewed handoff is explicit instead of
+    inferred from directory ordering.
+    """
     path = manifest_path(export_dir)
     previous = read_export_manifest(export_dir) or {}
     payload: dict[str, Any] = {
@@ -65,9 +76,45 @@ def write_draft_manifest(
         "pages_run_id": previous.get("pages_run_id"),
         "pages_bundle_fingerprint": previous.get("pages_bundle_fingerprint"),
         "source_run_id": source_run_id,
+        "supersedes": dict(supersedes) if supersedes else None,
     }
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return payload
+
+
+def mark_export_superseded(
+    export_dir: str | Path,
+    *,
+    superseded_by: Mapping[str, Any],
+    at: str | None = None,
+) -> dict[str, Any]:
+    """Mark an existing export as superseded without touching its artifacts.
+
+    A published export is the live public projection, so refinement refuses to
+    silently replace it; that transition belongs to the export/publication
+    boundary, not to candidate refinement. The superseded export is kept on
+    disk (its manifest is protected from draft retention) and records which
+    export replaced it.
+    """
+    current = read_export_manifest(export_dir)
+    if current is None:
+        raise ValueError(f"Export lifecycle manifest missing in {export_dir}")
+    if current.get("lifecycle_status") == PUBLISHED_STATUS:
+        raise ValueError(
+            f"Refusing to supersede published export {current.get('export_id')!r}; "
+            "use the publication/rollback boundary instead"
+        )
+    current.update(
+        {
+            "lifecycle_status": SUPERSEDED_STATUS,
+            "superseded_at": at or _now_iso(),
+            "superseded_by": dict(superseded_by),
+        }
+    )
+    manifest_path(export_dir).write_text(
+        json.dumps(current, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    return current
 
 
 def promote_export_manifest(
@@ -117,7 +164,7 @@ def _is_protected_export(path: Path) -> bool:
         # Legacy/unclassified exports are treated conservatively: never delete
         # them in the normal draft retention window.
         return True
-    return manifest.get("lifecycle_status") == PUBLISHED_STATUS
+    return manifest.get("lifecycle_status") in (PUBLISHED_STATUS, SUPERSEDED_STATUS)
 
 
 def prune_draft_exports(export_dirs: list[Path], *, keep: int) -> list[str]:

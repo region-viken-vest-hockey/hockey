@@ -19,6 +19,7 @@ from tournament_scheduler.application.stage3_session import (
     SCOPE_RUN,
     STATUS_AWAITING_OPERATOR,
     STATUS_FINALIZED,
+    TRANSITION_REFINE_CANDIDATE,
     Stage3Session,
     candidate_content_fingerprint,
 )
@@ -135,7 +136,9 @@ class TestCandidateChangingTransitions:
         assert session.status == STATUS_FINALIZED
         assert session.finalized_revision == 2
         assert session.finalized_fingerprint == repaired_fp
-        assert session.legal_transitions() == []
+        # A finalized unpromoted candidate may be explicitly reopened for
+        # refinement; it offers no other lifecycle transition.
+        assert session.legal_transitions() == [TRANSITION_REFINE_CANDIDATE]
 
     def test_keep_baseline_finalizes_at_the_authoritative_plan(self):
         session = _session_with_candidate(1)

@@ -120,6 +120,7 @@ def run(
     verification_problem: dict[str, Any] | None = None,
     effective_config_override: dict[str, Any] | None = None,
     use_pipeline_metadata: bool = True,
+    supersedes: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Export the Stage 3 plan to Excel, iCal, and CSV.
 
@@ -135,6 +136,10 @@ def run(
         Base filename without extension (default ``season_plan``).
     strict:
         If ``True``, raise :class:`Stage4Error` on any export failure.
+    supersedes:
+        Provenance back to the reviewed export this generation refines. It is
+        recorded in the new export's lifecycle manifest and returned in the
+        checkpoint; the caller owns marking the prior export superseded.
 
     Returns
     -------
@@ -332,6 +337,7 @@ def run(
                 source_run_id=source_run_id,
                 canonical_season=canonical_season,
                 canonical_revision=canonical_revision,
+                supersedes=supersedes,
             )
             output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
             pruned_exports = _prune_old_exports(primary_export_path.parent)
@@ -349,6 +355,7 @@ def run(
             "canonical_season": canonical_season,
             "canonical_revision": canonical_revision,
             "export_lifecycle": lifecycle_manifest,
+            "supersedes": supersedes,
             "pruned_exports": pruned_exports,
         }
         state.write_stage(StageName.EXPORT, checkpoint, status=StageStatus.DONE)
@@ -858,6 +865,7 @@ def run(
                 source_run_id=source_run_id,
                 canonical_season=canonical_season,
                 canonical_revision=canonical_revision,
+                supersedes=supersedes,
             )
             output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
             pruned_exports = _prune_old_exports(primary_export_path.parent)
@@ -883,6 +891,7 @@ def run(
         "canonical_revision": canonical_revision,
         "approval_status": approval_status,
         "export_lifecycle": lifecycle_manifest,
+        "supersedes": supersedes,
     }
     if normalization_report:
         checkpoint["placement_normalization"] = normalization_report

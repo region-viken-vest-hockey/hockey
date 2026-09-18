@@ -1218,6 +1218,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     stage3_status.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
     stage3_status.add_argument("--json", action="store_true", help="Print the session/status view as JSON")
+    stage3_refine = stage3_sub.add_parser(
+        "refine",
+        help=(
+            "Refine a finalized unpromoted candidate without promotion, reset "
+            "or a Stage 1/2 rerun"
+        ),
+    )
+    stage3_refine.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
+    stage3_refine.add_argument("--input", default=None, help="Input workbook path (defaults to the run's)")
+    stage3_refine.add_argument("--finding", default=None, help="Finding id to repair (omit to list findings)")
+    stage3_refine.add_argument("--option-id", default=None, help="Verified option id to apply")
+    stage3_refine.add_argument("--search", action="store_true", help="Allow the bounded search dimensions")
+    stage3_refine.add_argument("--dry-run", action="store_true", help="Preview the verified delta without mutating")
+    stage3_refine.add_argument("--no-export", action="store_true", help="Mutate the candidate without re-running Stage 4")
+    stage3_refine.add_argument("--export-dir", default=None, help="Export root (defaults to the reviewed export's root)")
+    stage3_refine.add_argument("--flat-export", action="store_true", help="Write the export flat instead of timestamped")
+    stage3_refine.add_argument("--non-strict", action="store_true", help="Continue on non-fatal export errors")
+    stage3_refine.add_argument("--rationale", default="", help="Concise operational rationale")
+    stage3_refine.add_argument("--json", action="store_true", help="Print the result as JSON")
 
     # cancel
     cancel = sub.add_parser("cancel", help="Cancel a tournament and suggest/reschedule makeup dates")

@@ -17,6 +17,7 @@ from tournament_scheduler.application.stage3_controller import (
 )
 from tournament_scheduler.application.stage3_session import (
     STATUS_FINALIZED,
+    TRANSITION_REFINE_CANDIDATE,
     Stage3Session,
     candidate_content_fingerprint,
 )
@@ -164,7 +165,7 @@ def test_two_repairs_across_invocations_build_one_revision_lineage(tmp_path: Pat
     assert terminal.finalized_fingerprint == candidate_content_fingerprint(_candidate(3))
     assert store.finalized_candidate_matches(_plan(3)) is True
     assert store.finalized_candidate_matches(_plan(1)) is False
-    assert terminal.legal_transitions() == []
+    assert terminal.legal_transitions() == [TRANSITION_REFINE_CANDIDATE]
 
 
 def test_stale_revision_action_across_processes_is_rejected(tmp_path: Path):

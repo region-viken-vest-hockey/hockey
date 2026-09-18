@@ -51,6 +51,11 @@ STATUS_AWAITING_SHARED_HOST = "awaiting_shared_host"
 STATUS_AWAITING_PLACEMENT_CONFLICT = "awaiting_placement_conflict"
 STATUS_AWAITING_ADOPTION = "awaiting_adoption"
 STATUS_AWAITING_OPERATOR = "awaiting_operator"
+# A finalized (already exported/reviewed) unpromoted candidate that was
+# explicitly reopened for finding-directed refinement. The reviewed candidate
+# remains the baseline ``keep_baseline`` restores; a successful repair
+# advances to a new revision and re-finalizes.
+STATUS_REFINING = "refining"
 STATUS_FINALIZED = "finalized"
 
 # A run-scoped decision stays valid across later candidate revisions where its
@@ -70,6 +75,11 @@ TRANSITION_SELECT_CANDIDATE = "select_candidate"
 TRANSITION_KEEP_BASELINE = "keep_baseline"
 TRANSITION_REQUEST_OPERATOR = "request_operator"
 TRANSITION_FINALIZE_STAGE3 = "finalize_stage3"
+# Explicitly reopen a finalized-but-unpromoted candidate for refinement. It is
+# deliberately distinct from ``create_baseline`` (a fresh planning baseline),
+# ``finalize_stage3`` (the Stage 4 handoff) and the recovery-only Stage 3
+# reset: it keeps the exact reviewed candidate as the refinement baseline.
+TRANSITION_REFINE_CANDIDATE = "refine_candidate"
 
 ALL_TRANSITIONS: tuple[str, ...] = (
     TRANSITION_CREATE_BASELINE,
@@ -81,6 +91,7 @@ ALL_TRANSITIONS: tuple[str, ...] = (
     TRANSITION_KEEP_BASELINE,
     TRANSITION_REQUEST_OPERATOR,
     TRANSITION_FINALIZE_STAGE3,
+    TRANSITION_REFINE_CANDIDATE,
 )
 
 # Which DecisionAction maps to which lifecycle transition. This is the one
@@ -163,6 +174,11 @@ class Stage3Session:
     # candidate; the pending decision and current revision are preserved so the
     # operator answer continues from the same candidate.
     operator_request: dict[str, Any] | None = None
+    # Set while (and after) an explicit refinement of an already-finalized
+    # unpromoted candidate: the reviewed revision/fingerprint this refinement
+    # descends from and the export it supersedes. Provenance, not a second
+    # candidate authority.
+    refinement: dict[str, Any] | None = None
     decision_history: list[dict[str, Any]] = field(default_factory=list)
     attempts: dict[str, Any] = field(default_factory=dict)
     # One concise record per emitted Stage 3 attempt (action signature,
@@ -210,7 +226,17 @@ class Stage3Session:
     def legal_transitions(self) -> list[str]:
         """Return the transition types valid from the current session state."""
         if self.is_finalized():
-            return []
+            # A finalized unpromoted candidate may be reopened for refinement
+            # (new revision over the exact reviewed candidate) instead of
+            # requiring promotion, a Stage 3 reset or a Stage 1/2 rerun.
+            return [TRANSITION_REFINE_CANDIDATE]
+        if self.status == STATUS_REFINING:
+            return [
+                TRANSITION_APPLY_REPAIR,
+                TRANSITION_RUN_SEARCH,
+                TRANSITION_SELECT_CANDIDATE,
+                TRANSITION_KEEP_BASELINE,
+            ]
         if not self.pending_decision:
             return [TRANSITION_CREATE_BASELINE]
         capability = str(self.pending_decision.get("capability") or "")
@@ -430,6 +456,53 @@ class Stage3Session:
             at=at,
         )
 
+    def begin_refinement(
+        self,
+        *,
+        export_provenance: Mapping[str, Any] | None,
+        rationale: str,
+        at: str,
+        action_id: str = TRANSITION_REFINE_CANDIDATE,
+    ) -> dict[str, Any]:
+        """Reopen a finalized unpromoted candidate for in-place refinement.
+
+        The exact reviewed candidate stays the session's current candidate and
+        becomes the baseline ``keep_baseline`` restores, so refinement always
+        starts from what was reviewed (never from a rebuilt/re-scraped
+        baseline). Stage 1/2 evidence is untouched; nothing is promoted; this
+        is not the recovery-only Stage 3 reset.
+        """
+        if not self.is_finalized():
+            raise ValueError("Only a finalized candidate can be refined")
+        if self.candidate is None:
+            raise ValueError("The finalized session carries no candidate to refine")
+        self.refinement = {
+            "origin_finalized_revision": self.finalized_revision
+            if self.finalized_revision is not None
+            else self.candidate_revision,
+            "origin_finalized_fingerprint": self.finalized_fingerprint
+            or self.candidate_fingerprint,
+            "origin_export": dict(export_provenance) if export_provenance else None,
+            "started_at": at,
+            "revision": self.candidate_revision,
+        }
+        self.baseline_candidate = self.candidate
+        self.baseline_fingerprint = self.candidate_fingerprint
+        self.baseline_revision = self.candidate_revision
+        self.finalized_revision = None
+        self.finalized_fingerprint = None
+        self.status = STATUS_REFINING
+        self.record_history(
+            transition=TRANSITION_REFINE_CANDIDATE,
+            action_id=action_id,
+            rationale=rationale,
+            from_revision=self.candidate_revision,
+            to_revision=self.candidate_revision,
+            at=at,
+            extra={"detail": dict(self.refinement)},
+        )
+        return dict(self.refinement)
+
     # -- serialization ----------------------------------------------------
 
     def to_dict(self) -> dict[str, Any]:
@@ -450,6 +523,7 @@ class Stage3Session:
             "arena_unresolved": list(self.arena_unresolved),
             "pending_decision": self.pending_decision,
             "operator_request": self.operator_request,
+            "refinement": dict(self.refinement) if self.refinement else None,
             "decision_history": list(self.decision_history),
             "attempts": dict(self.attempts),
             "search_attempts": [dict(item) for item in self.search_attempts],
@@ -498,6 +572,9 @@ class Stage3Session:
             pending_decision=dict(data["pending_decision"]) if isinstance(data.get("pending_decision"), dict) else None,
             operator_request=(
                 dict(data["operator_request"]) if isinstance(data.get("operator_request"), dict) else None
+            ),
+            refinement=(
+                dict(data["refinement"]) if isinstance(data.get("refinement"), dict) else None
             ),
             decision_history=[dict(item) for item in (data.get("decision_history") or [])],
             attempts=dict(data.get("attempts") or {}),
