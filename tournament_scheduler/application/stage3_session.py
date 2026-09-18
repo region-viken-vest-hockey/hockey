@@ -42,8 +42,12 @@ from typing import Any, Mapping
 # ``candidate_attempts``: a bounded portfolio of verified Stage 3 attempts with
 # stable refs that survive later attempts, so a previously generated good
 # candidate stays selectable instead of being lost when another attempt is
-# generated. Older payloads load unchanged because the field defaults to empty.
-STAGE3_SESSION_SCHEMA_VERSION = 5
+# generated. Schema 6 adds ``pareto_archive``/``convergence``: the bounded
+# non-dominated frontier and the outer-loop convergence state, so an audited
+# ``REVIEW_REQUIRED`` candidate can be refined autonomously across epochs
+# instead of falling through to human escalation. Older payloads load unchanged
+# because both fields default to empty.
+STAGE3_SESSION_SCHEMA_VERSION = 6
 
 # Bounded retention window for the verified-attempt portfolio. Deliberately
 # small: it exists so the controller can pick the better of a few recently
@@ -202,6 +206,17 @@ class Stage3Session:
     # continuation evidence -- not a raw attempt cap -- the LLM/controller
     # reasons over; see ``stage3_progress``.
     search_attempts: list[dict[str, Any]] = field(default_factory=list)
+    # Bounded, dominance-pruned frontier of independently verified candidates
+    # (see ``application.pareto_convergence``). Each entry is a candidate ref +
+    # objective vector/evidence; the candidate body (when retained) lives in
+    # ``candidate_attempts``. It is lifecycle state, not a second candidate
+    # authority: an entry is only ever adopted through the explicit
+    # ``select_candidate`` transition.
+    pareto_archive: list[dict[str, Any]] = field(default_factory=list)
+    # Outer-loop convergence state (epochs, explored directions, remaining
+    # findings, search coverage, plateau counter, terminal reason). Stored on
+    # the session so it resumes with the revision/fingerprint it describes.
+    convergence: dict[str, Any] | None = None
     finalized_revision: int | None = None
     finalized_fingerprint: str | None = None
 
@@ -619,6 +634,8 @@ class Stage3Session:
             "attempts": dict(self.attempts),
             "candidate_attempts": [dict(item) for item in self.candidate_attempts],
             "search_attempts": [dict(item) for item in self.search_attempts],
+            "pareto_archive": [dict(item) for item in self.pareto_archive],
+            "convergence": dict(self.convergence) if self.convergence else None,
             "finalized_revision": self.finalized_revision,
             "finalized_fingerprint": self.finalized_fingerprint,
         }
@@ -672,6 +689,10 @@ class Stage3Session:
             attempts=dict(data.get("attempts") or {}),
             candidate_attempts=[dict(item) for item in (data.get("candidate_attempts") or [])],
             search_attempts=[dict(item) for item in (data.get("search_attempts") or [])],
+            pareto_archive=[dict(item) for item in (data.get("pareto_archive") or [])],
+            convergence=(
+                dict(data["convergence"]) if isinstance(data.get("convergence"), dict) else None
+            ),
             finalized_revision=(
                 int(data["finalized_revision"]) if data.get("finalized_revision") is not None else None
             ),
