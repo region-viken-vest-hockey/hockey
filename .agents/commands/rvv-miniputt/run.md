@@ -20,6 +20,46 @@ At each pause:
 4. follow the shared RVV skill for recovery, refinement, shared-host, resume, audit, and escalation semantics;
 5. continue through the same canonical command with the required resume/decision arguments until completion or human escalation.
 
+## DecisionAction transport
+
+`--decision-action` accepts **one JSON DecisionAction object**. Never translate fields from the returned template into separate CLI flags.
+
+Use the exact matching entry from `DecisionContext.decision_action_template`, replace its placeholders, serialize that whole object, and pass it as the value of `--decision-action`.
+
+The envelope is:
+
+```json
+{
+  "action_id": "<one returned available action>",
+  "arguments": {},
+  "rationale": "<concise audit summary>"
+}
+```
+
+- `rationale` is a top-level field **inside the JSON object**. There is no `--rationale` flag.
+- Every action-specific parameter belongs under `arguments`. Do not turn declared parameters into sibling CLI flags.
+- Do not invent `--action`, `--target`, `--rationale`, or action-specific CLI options when answering a `DecisionContext`.
+- If the context's template contains additional required fields, preserve their nesting exactly.
+- For complex quoting, write the filled template to a JSON file and use `--decision-action-file`; the JSON schema is identical.
+
+Example — answering a Stage 1 `proceed` decision:
+
+```bash
+scripts/rvv-miniputt run --interactive --input input.xlsx --work-dir .pipeline \
+  --resume-from 2 \
+  --decision-action '{"action_id":"proceed","arguments":{},"rationale":"Stage 1 config valid: 9 sources, season window accepted, no hard violations."}'
+```
+
+Example — action with parameters:
+
+```bash
+scripts/rvv-miniputt run --interactive --input input.xlsx --work-dir .pipeline \
+  --resume-from 4 \
+  --decision-action '{"action_id":"apply_repair_option","arguments":{"option_id":"<returned option id>","candidate_fingerprint":"<returned fingerprint>"},"rationale":"Selected the lowest-cost verified repair returned by this context."}'
+```
+
+If a command fails because an action field was passed as a separate CLI flag, treat that as a harness-instruction/transport error; rebuild the command from the returned `decision_action_template` instead of probing `--help` and inventing another shape.
+
 ## Interactive resume contract
 
 Do not infer `--resume-from` from whether an action sounds like it stays in or advances beyond a stage. Use the **DecisionContext capability** and the pipeline's explicit decision ownership model below.
