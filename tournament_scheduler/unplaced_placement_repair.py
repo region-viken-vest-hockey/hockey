@@ -121,7 +121,7 @@ _MAX_START_TIMES_PER_DATE = 6
 # ``bounded_search_exhausted`` evidence stale/retryable (see
 # ``search_capability``). Bump ``UNPLACED_PLACEMENT_SEARCH_VERSION`` when the
 # *semantics* change without a parameter change.
-UNPLACED_PLACEMENT_SEARCH_VERSION = "3"
+UNPLACED_PLACEMENT_SEARCH_VERSION = "4"
 UNPLACED_PLACEMENT_CAPABILITY = SearchCapability(
     family="unplaced_placement",
     version=UNPLACED_PLACEMENT_SEARCH_VERSION,
@@ -317,6 +317,12 @@ def _enumerate_for_obligation(
     options: List[Dict[str, Any]] = []
     rejected: List[Dict[str, Any]] = []
     attempted: Set[str] = set()
+    # Dimensions with a hard precondition that is unmet for this obligation
+    # (today: participant reselection with no roster collision on any tried
+    # date). They are neither attempted nor untried -- reporting them as
+    # untried would make coverage look permanently incomplete and invite an
+    # unbounded re-request loop for a search that can never run.
+    inapplicable: Set[str] = set()
     seen: Set[Tuple[Any, ...]] = set()
 
     host_club = str(obligation.get("responsible_host") or obligation.get("host_club") or "")
@@ -484,25 +490,36 @@ def _enumerate_for_obligation(
         for start_time in _bounded_start_times_for(obligation):
             attempt(date_iso=date_iso, start_time=start_time, dimension=DIMENSION_SAME_HOST_DATE)
 
-    # 3. Participant reselection only when the current roster collides. Try it
-    #    at each cheap date before escalating to a coupled capacity release.
-    if not options and _has_roster_conflicts(occupancy, original_date, current_roster):
-        attempted.add(DIMENSION_PARTICIPANT_RESELECTION)
-        for start_time in _start_times_for(obligation):
-            attempt(
-                date_iso=original_date,
-                start_time=start_time,
-                dimension=DIMENSION_PARTICIPANT_RESELECTION,
-                reselect=True,
-            )
-        for date_iso in alternate_dates:
-            for start_time in _bounded_start_times_for(obligation):
-                attempt(
-                    date_iso=date_iso,
-                    start_time=start_time,
-                    dimension=DIMENSION_PARTICIPANT_RESELECTION,
-                    reselect=True,
+    # 3. Participant reselection replaces only roster members that already
+    #    play on the date under consideration, so its applicability is
+    #    per-date: it can help on the source date *or* on any alternate date
+    #    whose current roster collides. Gate on that full date set, not only
+    #    the source date -- otherwise an obligation whose source roster is
+    #    free but whose alternate dates collide reports the dimension as
+    #    forever-untried even though it was never tried anywhere.
+    reselect_dates = [
+        date_iso
+        for date_iso in [original_date, *alternate_dates]
+        if _has_roster_conflicts(occupancy, date_iso, current_roster)
+    ]
+    if not options:
+        if reselect_dates:
+            attempted.add(DIMENSION_PARTICIPANT_RESELECTION)
+            for date_iso in reselect_dates:
+                start_times = (
+                    _start_times_for(obligation)
+                    if date_iso == original_date
+                    else _bounded_start_times_for(obligation)
                 )
+                for start_time in start_times:
+                    attempt(
+                        date_iso=date_iso,
+                        start_time=start_time,
+                        dimension=DIMENSION_PARTICIPANT_RESELECTION,
+                        reselect=True,
+                    )
+        else:
+            inapplicable.add(DIMENSION_PARTICIPANT_RESELECTION)
 
     # 4/5. Coupled capacity release: move a scheduled tournament that consumes
     #      the responsible host's arena/time, then materialize into the freed
@@ -522,7 +539,12 @@ def _enumerate_for_obligation(
             option_count=lambda: len(options),
         )
 
-    covered = _coverage(attempted, found_option=bool(options), allow_search=allow_search)
+    covered = _coverage(
+        attempted,
+        found_option=bool(options),
+        allow_search=allow_search,
+        inapplicable=inapplicable,
+    )
     if not options:
         rejected.append(
             {
@@ -974,10 +996,24 @@ def _recorded_dimensions(obligation: Mapping[str, Any]) -> Set[str]:
     return attempted
 
 
-def _coverage(attempted: Set[str], *, found_option: bool, allow_search: bool) -> Dict[str, Any]:
+def _coverage(
+    attempted: Set[str],
+    *,
+    found_option: bool,
+    allow_search: bool,
+    inapplicable: Optional[Set[str]] = None,
+) -> Dict[str, Any]:
+    inapplicable = set(inapplicable or ())
     supported = set(SUPPORTED_DIMENSIONS if allow_search else CHEAP_DIMENSIONS)
     attempted = {dimension for dimension in attempted if dimension in supported}
-    untried = [dimension for dimension in SUPPORTED_DIMENSIONS if dimension not in attempted]
+    # A structurally inapplicable dimension is resolved, not pending: excluding
+    # it from ``untried`` lets coverage reach ``bounded_search_exhausted`` once
+    # every applicable dimension has actually run.
+    untried = [
+        dimension
+        for dimension in SUPPORTED_DIMENSIONS
+        if dimension not in attempted and dimension not in inapplicable
+    ]
     if found_option:
         status = SEARCH_OPTION_AVAILABLE
     elif not allow_search or untried:
@@ -988,6 +1024,9 @@ def _coverage(attempted: Set[str], *, found_option: bool, allow_search: bool) ->
         "status": status,
         "attempted": [dimension for dimension in SUPPORTED_DIMENSIONS if dimension in attempted],
         "untried": untried,
+        "inapplicable": [
+            dimension for dimension in SUPPORTED_DIMENSIONS if dimension in inapplicable
+        ],
         "supported": list(SUPPORTED_DIMENSIONS),
         "search_requested": allow_search,
         "proven_infeasible": False,

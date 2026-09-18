@@ -307,6 +307,128 @@ def test_participant_reselection_materializes_when_roster_already_plays(tmp_path
     assert verify_candidate(persisted, problem_loaded)["ok"]
 
 
+def test_participant_reselection_applies_to_a_colliding_alternate_date(tmp_path: Path) -> None:
+    """Reselection is date-aware, not gated on the source date alone.
+
+    The source date has no roster collision (its ice is simply booked), but an
+    alternate date does. Reselection can only help on the colliding alternate
+    date, yet the old applicability check looked only at the source date and so
+    never attempted the dimension anywhere -- the obligation stayed
+    ``search_incomplete`` forever. A host-representing replacement roster must
+    materialize on the colliding alternate date.
+    """
+    teams = _teams(["Nordby", "Vestby"]) + [
+        {"club": "Sorby", "label": f"Sorby {index}", "age_group": "U10"}
+        for index in (1, 2, 3, 4)
+    ]
+    problem = _problem(
+        teams,
+        start=date(2026, 10, 10),
+        end=date(2026, 10, 11),
+        busy={
+            "Sorby": [
+                # Source date: the responsible host's ice is booked all day.
+                {"date": "2026-10-10", "start": "00:00", "end": "23:59", "calendar_event": "Booked"}
+            ]
+        },
+    )
+    roster = [team for team in teams if team["club"] in ("Nordby", "Sorby")][:4]
+    # The obligation's current roster already plays on the alternate date, so
+    # neither the current-roster same-host-date pass nor the source date can
+    # place it; only a host-representing replacement roster on 2026-10-11 can.
+    collision = _tournament("COL", "2026-10-11", "Ekstern", roster)
+    plan = _base_plan(
+        [collision],
+        _obligation(age_group="U10", day="2026-10-10", host="Sorby", roster=roster),
+        start="2026-10-10",
+        end="2026-10-11",
+    )
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    report = search(YEAR, "unplaced_placement:U10:2026-10-10:1", root=root)
+
+    reselected = [
+        option
+        for option in report["options"]
+        if option["arguments"]["roster_source"] == "alternate"
+        and option["arguments"]["date"] == "2026-10-11"
+    ]
+    assert reselected, report["options"]
+    coverage = report["finding"]["search_coverage"]
+    assert coverage["status"] == SEARCH_OPTION_AVAILABLE
+    assert "participant_reselection" in coverage["attempted"]
+
+    result = apply_repair(
+        YEAR,
+        reselected[0]["option_id"],
+        report["revision"],
+        root=root,
+        finding_id="unplaced_placement:U10:2026-10-10:1",
+    )
+    assert result["ok"] is True, result
+    _schedule, _decisions, persisted, problem_loaded = load_context(YEAR, root=root)
+    materialized = next(t for t in persisted["tournaments"] if t["id"] != "COL")
+    assert materialized["date"] == "2026-10-11"
+    assert any(team["club"] == "Sorby" for team in materialized["teams"])
+    assert verify_candidate(persisted, problem_loaded)["ok"]
+
+
+def test_inapplicable_reselection_terminates_search_coverage(tmp_path: Path) -> None:
+    """A structurally inapplicable dimension is resolved, not forever-untried.
+
+    When the roster collides on no tried date, participant reselection has an
+    unmet hard precondition and can never run. Reporting it as ``untried`` kept
+    the obligation at ``search_incomplete`` on every request, inviting an
+    unbounded retry loop. It must be reported as ``inapplicable`` and excluded
+    from ``untried`` so the bounded search terminates as
+    ``bounded_search_exhausted``.
+    """
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(
+        teams,
+        start=date(2026, 10, 10),
+        end=date(2026, 10, 10),
+        busy={
+            "Sorby": [
+                {"date": "2026-10-10", "start": "00:00", "end": "23:59", "calendar_event": "Booked"}
+            ]
+        },
+    )
+    plan = _base_plan(
+        [],
+        _obligation(age_group="U10", day="2026-10-10", host="Sorby", roster=teams),
+        start="2026-10-10",
+        end="2026-10-10",
+    )
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    result = enumerate_unplaced_placement_repairs(
+        plan,
+        problem,
+        finding_ids=["unplaced_placement:U10:2026-10-10:1"],
+        allow_search=True,
+    )
+
+    coverage = result["coverage"]["unplaced_placement:U10:2026-10-10:1"]
+    assert result["options"] == []
+    assert coverage["status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert coverage["untried"] == []
+    assert coverage["inapplicable"] == ["participant_reselection"]
+    assert coverage["proven_infeasible"] is False
+    # The canonical search view no longer advertises the dimension as a
+    # still-retryable direction once the search has resolved it.
+    bounded = search(YEAR, "unplaced_placement:U10:2026-10-10:1", root=root)
+    assert bounded["option_count"] == 0
+    assert bounded["finding"]["search_coverage"]["status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert bounded["finding"]["search_coverage"]["inapplicable"] == [
+        "participant_reselection"
+    ]
+    assert bounded["escalation"]["reason"] == SEARCH_BOUNDED_EXHAUSTED
+    assert bounded["escalation"]["untried_dimensions"] == []
+
+
 # ---------------------------------------------------------------------------
 # Coupled capacity release (cross-age)
 # ---------------------------------------------------------------------------
