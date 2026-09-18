@@ -27,6 +27,8 @@ they can judge candidates produced by any planner implementation.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import date
 from itertools import combinations
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
@@ -275,6 +277,23 @@ def extract_candidate(data: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("Could not find a candidate plan (expected a 'tournaments' or 'plan' key)")
     candidate.setdefault("schema_version", CANDIDATE_SCHEMA_VERSION)
     return candidate
+
+
+def candidate_content_fingerprint(candidate: Mapping[str, Any]) -> str:
+    """Canonical content fingerprint for one candidate envelope.
+
+    Candidate identity is a lifecycle contract shared by the Stage 3 session
+    and every repair/arena provider, so it has exactly one implementation
+    here. The schema default is applied before hashing so an unversioned
+    legacy checkpoint and the same candidate after ``extract_candidate``
+    hashes to one identity rather than two. Callers must hash the same
+    candidate body shape (the payload ``extract_candidate`` returns), never a
+    wrapper and a body interchangeably.
+    """
+    normalized = dict(candidate)
+    normalized.setdefault("schema_version", CANDIDATE_SCHEMA_VERSION)
+    payload = json.dumps(normalized, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 # ---------------------------------------------------------------------------

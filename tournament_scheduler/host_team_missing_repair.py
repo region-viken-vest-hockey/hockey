@@ -23,8 +23,6 @@ broader search/escalation loop instead of committing partial progress.
 from __future__ import annotations
 
 import copy
-import hashlib
-import json
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
@@ -36,7 +34,12 @@ from .game_generation import generate_tournament_games
 from .host_representation import clubs_represent_same_club, constituent_clubs, host_eligible_teams
 from .models import Team
 from .operator_waivers import find_participation_waiver
-from .planning_contract import _parse_date, external_calendar_conflict, verify_candidate
+from .planning_contract import (
+    _parse_date,
+    candidate_content_fingerprint,
+    external_calendar_conflict,
+    verify_candidate,
+)
 
 TeamIdentity = Tuple[str, str, str]
 
@@ -66,8 +69,14 @@ class RepairOption:
 
 
 def candidate_fingerprint(candidate: Mapping[str, Any]) -> str:
-    payload = json.dumps(candidate, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    """Candidate identity facade shared with the Stage 3 lifecycle session.
+
+    Delegates to the single canonical implementation in ``planning_contract``
+    so the same candidate can never carry two fingerprints across the repair
+    and lifecycle boundaries (a mismatch made an otherwise-valid repair look
+    stale).
+    """
+    return candidate_content_fingerprint(candidate)
 
 
 def search_dimension_tag(dimensions: Iterable[str]) -> str:
