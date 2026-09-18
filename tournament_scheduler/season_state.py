@@ -1,175 +1,86 @@
-"""Git-backed canonical season state for promoted RVV schedules.
+"""Compatibility facade over the canonical-season store and mutation service.
 
-The pipeline checkpoints under ``.pipeline`` are transient run state.  This
-module owns the durable per-season boundary used after an operator deliberately
-promotes a verified candidate: ``season/<season-id>/schedule.json`` for schedule
-facts and ``season/<season-id>/decisions.json`` for current human workflow state.
+The durable promoted-season boundary used to live entirely in this module. It
+now has one persistence owner
+(:mod:`tournament_scheduler.infrastructure.canonical_season_store`) and one
+mutation/verification/reconciliation lifecycle owner
+(:class:`tournament_scheduler.application.canonical_season_service.CanonicalSeasonService`).
+
+The functions here are thin, stable facades so existing CLI/planning/maintenance
+callers keep their signatures; they contain no independent persistence or
+mutation implementation.
 """
 
 from __future__ import annotations
 
-import json
 import os
-import shutil
-import tempfile
-from datetime import date as _date, datetime, timezone
-from pathlib import Path
 from typing import Any
 
-from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
-from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
-from tournament_scheduler.pipeline.state import PipelineState, StageName
-from tournament_scheduler.pipeline.verification_context import (
-    VerificationContextError,
-    resolve_promotion_verification_context,
+from tournament_scheduler.application.canonical_season_service import (
+    APPROVED_STATUS,
+    PENDING_REVIEW_STATUS,
+    STALE_APPROVAL_STATUS,
+    CanonicalSeasonService,
 )
-from tournament_scheduler.participation_targets import OPERATOR_ACCEPTED
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
-from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
+from tournament_scheduler.canonical_state import (
+    CANONICAL_STATE_REVISION_KEY,
+    PARTICIPATION_ACCEPTANCES_KEY,
+    PARTICIPATION_ACCEPTANCE_PREFIX,
+    canonical_state_revision,
+    participation_acceptance_id,
+    schedule_fingerprint,
+)
+from tournament_scheduler.infrastructure.canonical_season_store import (
+    DECISIONS_SCHEMA_VERSION,
+    DEFAULT_SEASON_ROOT,
+    SEASON_STATE_SCHEMA_VERSION,
+    SeasonStateError,
+    decisions_path,
+    load_decisions,
+    load_json,
+    load_schedule,
+    schedule_path,
+    season_dir,
+    season_id_from_plan,
+)
 
-SEASON_STATE_SCHEMA_VERSION = 1
-DECISIONS_SCHEMA_VERSION = 1
-DEFAULT_SEASON_ROOT = Path("season")
-
-# Statuses an approval lifecycle can be in.  ``stale_approval`` means a
-# previously approved tournament changed without an explicit unapprove, so
-# the stored fingerprint no longer proves the current placement.
-APPROVED_STATUS = "approved"
-STALE_APPROVAL_STATUS = "stale_approval"
-PENDING_REVIEW_STATUS = "pending_review"
-
-# Top-level decisions.json section for explicit operator acceptance of a
-# participation strong-goal deviation. These are durable operator decisions,
-# not schedule facts: accepting one never edits the schedule or the configured
-# target, and it stops applying by itself once the target changes or the
-# deviation becomes worse (see ``participation_targets.evidence_covers_deviation``).
-PARTICIPATION_ACCEPTANCES_KEY = "participation_acceptances"
-PARTICIPATION_ACCEPTANCE_PREFIX = "participation_acceptance"
-
-
-class SeasonStateError(RuntimeError):
-    """Raised when canonical season state cannot be read or written safely."""
-
-
-def _json_bytes(payload: dict[str, Any]) -> bytes:
-    return (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
-
-
-def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    data = _json_bytes(payload)
-    with tempfile.NamedTemporaryFile("wb", delete=False, dir=path.parent, prefix=f".{path.name}.", suffix=".tmp") as handle:
-        handle.write(data)
-        handle.flush()
-        os.fsync(handle.fileno())
-        tmp_name = handle.name
-    os.replace(tmp_name, path)
-
-
-def _write_season_state_atomic(
-    season_directory: Path,
-    schedule_payload: dict[str, Any],
-    decisions_payload: dict[str, Any],
-    *,
-    require_absent: bool,
-) -> None:
-    """Install both canonical season-state files as one atomic boundary.
-
-    The directory is staged and swapped, so a failure never leaves only
-    ``schedule.json`` or only ``decisions.json`` behind.  ``require_absent``
-    refuses to replace existing canonical state (used by deliberate
-    promotion); mutation callers replace it and rely on the swap for rollback.
-    """
-
-    parent = season_directory.parent
-    parent.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix=f".{season_directory.name}.", suffix=".tmp", dir=parent))
-    backup = parent / f".{season_directory.name}.backup"
-    try:
-        (staging / "schedule.json").write_bytes(_json_bytes(schedule_payload))
-        (staging / "decisions.json").write_bytes(_json_bytes(decisions_payload))
-        for staged_file in (staging / "schedule.json", staging / "decisions.json"):
-            with staged_file.open("rb") as handle:
-                os.fsync(handle.fileno())
-        if season_directory.exists():
-            if require_absent:
-                raise SeasonStateError(
-                    f"Canonical season state already exists for {season_directory.name}; "
-                    "use --force only for deliberate replacement"
-                )
-            if backup.exists():
-                shutil.rmtree(backup)
-            os.replace(season_directory, backup)
-            try:
-                os.replace(staging, season_directory)
-            except Exception:
-                os.replace(backup, season_directory)
-                raise
-            shutil.rmtree(backup, ignore_errors=True)
-        else:
-            os.replace(staging, season_directory)
-    finally:
-        if staging.exists():
-            shutil.rmtree(staging, ignore_errors=True)
+__all__ = [
+    "APPROVED_STATUS",
+    "CANONICAL_STATE_REVISION_KEY",
+    "DECISIONS_SCHEMA_VERSION",
+    "DEFAULT_SEASON_ROOT",
+    "PARTICIPATION_ACCEPTANCES_KEY",
+    "PARTICIPATION_ACCEPTANCE_PREFIX",
+    "PENDING_REVIEW_STATUS",
+    "SEASON_STATE_SCHEMA_VERSION",
+    "STALE_APPROVAL_STATUS",
+    "SeasonStateError",
+    "apply_candidate",
+    "approval_report",
+    "approve_tournament",
+    "canonical_state_revision",
+    "decisions_path",
+    "effective_config_from_verification_problem",
+    "load_decisions",
+    "load_json",
+    "load_participation_acceptances",
+    "load_schedule",
+    "move_tournament",
+    "participation_acceptance_id",
+    "planning_checkpoint_from_schedule",
+    "promote_from_stage3",
+    "record_participation_acceptance",
+    "revoke_participation_acceptance",
+    "schedule_fingerprint",
+    "schedule_path",
+    "season_dir",
+    "season_id_from_plan",
+    "unapprove_tournament",
+]
 
 
-def load_json(path: Path) -> dict[str, Any]:
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
-        raise SeasonStateError(f"Canonical season file not found: {path}") from exc
-    except json.JSONDecodeError as exc:
-        raise SeasonStateError(f"Invalid JSON in canonical season file {path}: {exc}") from exc
-
-
-def season_id_from_plan(plan_dict: dict[str, Any]) -> str:
-    start = str(plan_dict.get("start_date") or "")
-    end = str(plan_dict.get("end_date") or "")
-    if len(start) >= 4 and len(end) >= 4:
-        return f"{start[:4]}-{end[:4]}"
-    dates = sorted(str(t.get("date")) for t in plan_dict.get("tournaments", []) if t.get("date"))
-    if dates:
-        first_year = int(dates[0][:4])
-        last_year = int(dates[-1][:4])
-        return f"{first_year}-{last_year}"
-    raise SeasonStateError("Cannot infer season id; pass --season explicitly")
-
-
-def season_dir(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> Path:
-    return Path(root) / season
-
-
-def schedule_path(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> Path:
-    return season_dir(season, root=root) / "schedule.json"
-
-
-def decisions_path(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> Path:
-    return season_dir(season, root=root) / "decisions.json"
-
-
-def schedule_fingerprint(plan_dict: dict[str, Any]) -> str:
-    return stable_payload_sha256(plan_dict.get("tournaments", []))
-
-
-def load_schedule(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
-    payload = load_json(schedule_path(season, root=root))
-    version = int(payload.get("schema_version", 0) or 0)
-    if version != SEASON_STATE_SCHEMA_VERSION:
-        raise SeasonStateError(f"Unsupported schedule schema_version: {version!r}")
-    if not isinstance(payload.get("plan"), dict):
-        raise SeasonStateError("Canonical schedule is missing its plan payload")
-    return payload
-
-
-def load_decisions(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
-    payload = load_json(decisions_path(season, root=root))
-    version = int(payload.get("schema_version", 0) or 0)
-    if version != DECISIONS_SCHEMA_VERSION:
-        raise SeasonStateError(f"Unsupported decisions schema_version: {version!r}")
-    if not isinstance(payload.get("decisions"), dict):
-        raise SeasonStateError("Canonical decisions file is missing its decisions object")
-    return payload
+def _service(root: str | os.PathLike[str]) -> CanonicalSeasonService:
+    return CanonicalSeasonService(root=root)
 
 
 def planning_checkpoint_from_schedule(schedule: dict[str, Any]) -> dict[str, Any]:
@@ -216,58 +127,6 @@ def effective_config_from_verification_problem(problem: dict[str, Any] | None) -
     return config
 
 
-def _initial_decisions(plan_dict: dict[str, Any]) -> dict[str, Any]:
-    records: dict[str, Any] = {}
-    for tournament in plan_dict.get("tournaments", []):
-        tournament_id = str(tournament.get("id") or "")
-        if not tournament_id:
-            continue
-        records[tournament_id] = {
-            "status": PENDING_REVIEW_STATUS,
-            "placement_locked": False,
-            "participants_locked": False,
-            "approved_fingerprint": None,
-            "approved_at": None,
-            "approved_by": None,
-            "note": "",
-        }
-    return records
-
-
-def _append_decision_history(
-    decisions: dict[str, Any],
-    *,
-    event: str,
-    tournament_id: str,
-    actor: str | None,
-    now: str,
-    tournament_fingerprint: str | None = None,
-    previous_fingerprint: str | None = None,
-    note: str = "",
-    details: dict[str, Any] | None = None,
-) -> None:
-    """Append a durable approval-lifecycle audit entry to decisions.json.
-
-    The event log is deliberately tamper-visible and compact: it records who
-    did what to which tournament and which protected-fields fingerprint was
-    involved, never private reasoning.
-    """
-    history = decisions.setdefault("history", [])
-    entry = {
-        "event": event,
-        "tournament_id": tournament_id,
-        "actor": actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator",
-        "at": now,
-        "tournament_fingerprint": tournament_fingerprint,
-        "previous_fingerprint": previous_fingerprint,
-        "schedule_fingerprint": decisions.get("schedule_fingerprint"),
-        "note": note or "",
-    }
-    if details:
-        entry["details"] = details
-    history.append(entry)
-
-
 def promote_from_stage3(
     *,
     work_dir: str | os.PathLike[str] = ".pipeline",
@@ -276,122 +135,9 @@ def promote_from_stage3(
     actor: str | None = None,
     force: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Promote the reviewed Stage 4 candidate into canonical season state.
+    """Promote the reviewed Stage 4 candidate into canonical season state."""
 
-    Promotion verifies the exact candidate against the provenance-bound
-    verification context that accepted the reviewed Stage 4 export -- never
-    against a problem rebuilt from whatever Stage 1/2 state happens to be in
-    ``.pipeline`` now, and never against a context-free fallback.
-    ``--force`` only replaces existing canonical state; it is not a verification
-    bypass.
-    """
-
-    state = PipelineState(work_dir)
-    checkpoint = state.read_stage(StageName.PLANNING)
-    if not checkpoint:
-        raise SeasonStateError("No Stage 3 planning checkpoint found to promote")
-    candidate = extract_candidate(checkpoint)
-    try:
-        bound_context = resolve_promotion_verification_context(
-            work_dir=str(work_dir), candidate=candidate
-        )
-    except VerificationContextError as exc:
-        raise SeasonStateError(f"Refusing promotion: {exc}") from exc
-    # Re-verify the exact candidate against the exact bound context.  This is
-    # the same deterministic verifier Stage 4 ran; promotion cannot accept a
-    # candidate that context rejects, and cannot substitute a different ruleset.
-    result = verify_candidate(candidate, bound_context["problem"])
-    if not result.get("ok", True):
-        messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
-        raise SeasonStateError(f"Refusing promotion: selected candidate fails hard verification: {messages}")
-
-    reviewed_plan = bound_context.get("reviewed_plan")
-    if isinstance(reviewed_plan, dict):
-        plan_dict = dict(reviewed_plan)
-    else:
-        plan_dict = dict(candidate)
-    plan_dict["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
-    resolved_season = season or season_id_from_plan(plan_dict)
-    sched_path = schedule_path(resolved_season, root=root)
-    dec_path = decisions_path(resolved_season, root=root)
-    season_directory = season_dir(resolved_season, root=root)
-    if (sched_path.exists() or dec_path.exists()) and not force:
-        raise SeasonStateError(
-            f"Canonical season state already exists for {resolved_season}; use --force only for deliberate replacement"
-        )
-
-    now = datetime.now(tz=timezone.utc).isoformat()
-    fingerprint = schedule_fingerprint(plan_dict)
-    schedule_payload = {
-        "schema_version": SEASON_STATE_SCHEMA_VERSION,
-        "season": resolved_season,
-        "created_at": now,
-        "updated_at": now,
-        "revision": fingerprint,
-        "fingerprint": fingerprint,
-        "plan_schema_version": SEASON_PLAN_SCHEMA_VERSION,
-        "plan": plan_dict,
-        # Immutable provenance for the transition into canonical state:
-        # which run produced the baseline, which reviewed export
-        # was promoted, and which verification context accepted it.
-        "verification_context": dict(bound_context["context"]),
-        "promoted_from": {
-            "work_dir": str(work_dir),
-            "run_id": bound_context["run_id"],
-            "stage3_fingerprint": fingerprint,
-            "stage4_export_fingerprint": bound_context["export_fingerprint"],
-            "stage4_export_dir": bound_context.get("export_dir"),
-            "verification_context_schema_version": bound_context["context"].get("schema_version"),
-            "verification_context_problem_fingerprint": bound_context.get("problem_fingerprint"),
-            "verification_context_candidate_fingerprint": bound_context["candidate_fingerprint"],
-            "verification_context_verified_ok": True,
-        },
-    }
-    decisions_payload = {
-        "schema_version": DECISIONS_SCHEMA_VERSION,
-        "season": resolved_season,
-        "created_at": now,
-        "updated_at": now,
-        "schedule_fingerprint": fingerprint,
-        "actor": actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator",
-        "decisions": _initial_decisions(plan_dict),
-    }
-
-    # Install both files as one durable boundary; a failed promotion must not
-    # leave only schedule.json or only decisions.json behind.
-    _write_season_state_atomic(
-        season_directory, schedule_payload, decisions_payload, require_absent=not force
-    )
-    return schedule_payload, decisions_payload
-
-
-def _parse_iso_date_for_move(value: str, field: str) -> _date:
-    try:
-        return _date.fromisoformat(str(value))
-    except (TypeError, ValueError) as exc:
-        raise SeasonStateError(f"Invalid {field}: {value!r}; expected YYYY-MM-DD") from exc
-
-
-def _validate_start_time_for_move(value: str | None) -> None:
-    if value is None:
-        return
-    try:
-        hour_s, minute_s = str(value).split(":", 1)
-        hour = int(hour_s)
-        minute = int(minute_s)
-    except (TypeError, ValueError) as exc:
-        raise SeasonStateError(f"Invalid start_time: {value!r}; expected HH:MM") from exc
-    if not (0 <= hour <= 23 and 0 <= minute <= 59):
-        raise SeasonStateError(f"Invalid start_time: {value!r}; expected HH:MM")
-
-
-def _placement_snapshot(tournament: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "date": tournament.get("date"),
-        "arena": tournament.get("arena"),
-        "host_club": tournament.get("host_club"),
-        "start_time": tournament.get("start_time"),
-    }
+    return _service(root).promote(work_dir=work_dir, season=season, actor=actor, force=force)
 
 
 def move_tournament(
@@ -410,206 +156,22 @@ def move_tournament(
     allow_cross_half: bool = False,
     run_id: str | None = None,
 ) -> dict[str, Any]:
-    """Apply or preview a bounded placement mutation to canonical state.
+    """Apply or preview a bounded placement mutation to canonical state."""
 
-    Approval/lock decisions are enforced before mutation.  The selected plan is
-    cloned, exactly the requested placement fields are changed (deriving a
-    physical host only from a known arena-owner mapping), and the complete
-    resulting candidate is re-verified before any write.  A rejected mutation
-    and every ``dry_run`` leave both canonical files byte-unchanged.
-    """
-
-    if not any(value is not None for value in (date, arena, host_club, start_time)):
-        raise SeasonStateError("Refusing canonical move: specify at least one target placement field")
-    target_date = _parse_iso_date_for_move(date, "date") if date is not None else None
-    _validate_start_time_for_move(start_time)
-
-    schedule = load_schedule(season, root=root)
-    decisions = load_decisions(season, root=root)
-    before_revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
-    plan = dict(schedule["plan"])
-    tournaments = [dict(t) for t in plan.get("tournaments", [])]
-    target = next(
-        (t for t in tournaments if str(t.get("id")) == tournament_id),
-        None,
-    )
-    if target is None:
-        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
-    if target.get("cancelled"):
-        raise SeasonStateError(f"Tournament {tournament_id} is cancelled and cannot be moved")
-    record = decisions.get("decisions", {}).get(tournament_id, {})
-    resolved = resolve_approval(record, target)
-    if resolved["placement_locked"]:
-        raise SeasonStateError(
-            f"Tournament {tournament_id} has an active placement lock and cannot be moved; "
-            "unapprove it explicitly first"
-        )
-
-    original_placement = _placement_snapshot(target)
-    original_tournament_fingerprint = approval_fingerprint(target)
-    if target_date is not None:
-        start_raw = plan.get("start_date") or (problem or {}).get("start_date")
-        end_raw = plan.get("end_date") or (problem or {}).get("end_date")
-        if start_raw and end_raw:
-            window_start = _parse_iso_date_for_move(str(start_raw), "season start_date")
-            window_end = _parse_iso_date_for_move(str(end_raw), "season end_date")
-            if not (window_start <= target_date <= window_end):
-                raise SeasonStateError(
-                    f"Cannot move {tournament_id}: target date {target_date.isoformat()} is outside "
-                    f"the planning window {window_start.isoformat()}–{window_end.isoformat()}"
-                )
-            if not allow_cross_half and original_placement.get("date"):
-                from tournament_scheduler import planning_half
-
-                split = planning_half.christmas_split_date(window_start, window_end)
-                old_half = planning_half.tournament_half(
-                    _parse_iso_date_for_move(str(original_placement["date"]), "current date"), split
-                )
-                new_half = planning_half.tournament_half(target_date, split)
-                if old_half != new_half:
-                    raise SeasonStateError(
-                        f"Cannot move {tournament_id}: target date crosses planning half "
-                        f"({old_half} -> {new_half}); pass allow_cross_half only for an explicit policy exception"
-                    )
-
-    effective_host_club = host_club
-    if arena is not None and host_club is None:
-        from tournament_scheduler.club_distances import arena_to_club
-
-        owner = arena_to_club(arena)
-        if owner and owner != target.get("host_club"):
-            effective_host_club = owner
-
-    changed = False
-    moved_tournament: dict[str, Any] | None = None
-    for tournament in tournaments:
-        if str(tournament.get("id")) != tournament_id:
-            continue
-        for field, value in {
-            "date": date,
-            "arena": arena,
-            "host_club": effective_host_club,
-            "start_time": start_time,
-        }.items():
-            if value is not None and tournament.get(field) != value:
-                tournament[field] = value
-                changed = True
-        if changed:
-            # A changed placement invalidates any prior host
-            # confirmation of a movable/open-ice interval -- the operator must
-            # re-confirm the new placement rather than inherit a stale flag.
-            tournament.pop("requires_host_confirmation", None)
-            tournament.pop("host_confirmation_reason", None)
-        moved_tournament = tournament
-        break
-    if not changed:
-        return schedule
-
-    plan["tournaments"] = tournaments
-    result = verify_candidate(plan, problem) if problem else verify_candidate(plan)
-    if not result.get("ok", True):
-        messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
-        raise SeasonStateError(f"Refusing canonical mutation: candidate fails hard verification: {messages}")
-    # The move changed which club hosts which age group, so the plan's
-    # descriptive hosting/readiness snapshot is now stale. Re-derive it from
-    # the fresh verifier result instead of leaving the pre-mutation snapshot
-    # to contradict it.
-    reconcile_plan_derived_state(plan, result)
-
-    now = datetime.now(tz=timezone.utc).isoformat()
-    fingerprint = schedule_fingerprint(plan)
-    updated_schedule = dict(schedule)
-    updated_schedule.update(
-        {
-            "updated_at": now,
-            "revision": fingerprint,
-            "fingerprint": fingerprint,
-            "plan": plan,
-        }
-    )
-    if dry_run:
-        updated_schedule["dry_run"] = True
-        updated_schedule["move_preview"] = {
-            "tournament_id": tournament_id,
-            "old_placement": original_placement,
-            "new_placement": _placement_snapshot(moved_tournament or target),
-            "before_fingerprint": before_revision,
-            "after_fingerprint": fingerprint,
-            "verification_result": result,
-            "run_id": run_id,
-        }
-        return updated_schedule
-
-    decisions = dict(decisions)
-    decisions["schedule_fingerprint"] = fingerprint
-    decisions["updated_at"] = now
-    # A canonical move invalidates any approval whose protected fingerprint
-    # no longer matches the moved tournament (only possible for a tournament
-    # approved without a placement lock) -- surface it as stale_approval
-    # instead of leaving a record that still claims to be approved.
-    decisions["decisions"] = _reconcile_decisions(decisions.get("decisions", {}), plan, now=now)
-    _append_decision_history(
-        decisions,
-        event="move",
+    return _service(root).move_tournament(
+        season=season,
         tournament_id=tournament_id,
+        date=date,
+        arena=arena,
+        host_club=host_club,
+        start_time=start_time,
+        problem=problem,
         actor=actor,
-        now=now,
-        tournament_fingerprint=approval_fingerprint(moved_tournament or target),
-        previous_fingerprint=original_tournament_fingerprint,
         note=note,
-        details={
-            "old_placement": original_placement,
-            "new_placement": _placement_snapshot(moved_tournament or target),
-            "before_fingerprint": before_revision,
-            "after_fingerprint": fingerprint,
-            "verification_result": result,
-            "run_id": run_id,
-        },
+        dry_run=dry_run,
+        allow_cross_half=allow_cross_half,
+        run_id=run_id,
     )
-    _write_season_state_atomic(
-        season_dir(season, root=root), updated_schedule, decisions, require_absent=False
-    )
-    return updated_schedule
-
-
-def _attributable_blockers(
-    verification: dict[str, Any],
-    tournament_id: str,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Split a verification result into this tournament's hard/unresolved blockers.
-
-    Only findings that actually concern *tournament_id* block approval; an
-    unrelated hard violation elsewhere (another unresolved tournament the
-    operator has not reviewed yet) must not prevent incrementally approving
-    a tournament that is itself valid.  A violation with no explicit
-    ``tournament_id`` counts when its message names this tournament.
-    """
-    hard: list[dict[str, Any]] = []
-    unresolved: list[dict[str, Any]] = []
-    for violation in verification.get("violations") or []:
-        owner = violation.get("tournament_id")
-        if owner is not None:
-            if str(owner) == tournament_id:
-                hard.append(violation)
-            continue
-        if tournament_id and tournament_id in str(violation.get("message") or ""):
-            hard.append(violation)
-    # A known external calendar double-booking is real booking risk, not a
-    # soft quality warning: approving it would freeze a placement already
-    # proven to conflict with trusted evidence.
-    for placement in verification.get("manual_external_conflict_placements") or []:
-        if str(placement.get("tournament_id") or "") == tournament_id:
-            unresolved.append(
-                {
-                    "code": "manual_external_conflict_placements",
-                    "message": (
-                        f"Tournament {tournament_id} has a known external calendar conflict; "
-                        "resolve it before approving"
-                    ),
-                    "tournament_id": tournament_id,
-                }
-            )
-    return hard, unresolved
 
 
 def approve_tournament(
@@ -623,69 +185,17 @@ def approve_tournament(
     participants_locked: bool = False,
     problem: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Approve/lock one tournament after canonical hard verification.
+    """Approve/lock one tournament after canonical hard verification."""
 
-    Approval is an operator judgment on a *hard-valid* placement, not a
-    waiver: the selected canonical plan is re-verified here and a
-    tournament-attributable hard violation or known external conflict
-    refuses the approval.  The recorded ``approved_fingerprint`` covers the
-    normalized protected scheduling state, so any later real change makes
-    the approval deterministically stale instead of silently staying valid.
-    """
-
-    schedule = load_schedule(season, root=root)
-    decisions = load_decisions(season, root=root)
-    plan = schedule["plan"]
-    tournament = next((t for t in plan.get("tournaments", []) if str(t.get("id")) == tournament_id), None)
-    if tournament is None:
-        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
-
-    verification = verify_candidate(plan, problem) if problem else verify_candidate(plan)
-    hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
-    blockers = hard_blockers + unresolved_blockers
-    if blockers:
-        messages = "; ".join(
-            str(blocker.get("message") or blocker.get("code")) for blocker in blockers
-        )
-        raise SeasonStateError(
-            f"Refusing to approve {tournament_id}: tournament fails canonical verification: {messages}"
-        )
-
-    approved_at = datetime.now(tz=timezone.utc).isoformat()
-    resolved_actor = actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator"
-    tournament_fingerprint = approval_fingerprint(tournament)
-    previous = decisions["decisions"].get(tournament_id, {})
-    record = dict(previous)
-    record.update(
-        {
-            "status": APPROVED_STATUS,
-            "placement_locked": bool(placement_locked),
-            "participants_locked": bool(participants_locked),
-            "approved_fingerprint": tournament_fingerprint,
-            "approved_at": approved_at,
-            "approved_by": resolved_actor,
-            "note": note,
-        }
-    )
-    # A (re)approval always supersedes earlier invalidation state.
-    record.pop("stale_at", None)
-    record.pop("stale_reason", None)
-    record.pop("unapproved_at", None)
-    record.pop("unapproved_by", None)
-    decisions["decisions"][tournament_id] = record
-    decisions["updated_at"] = approved_at
-    _append_decision_history(
-        decisions,
-        event="approve",
+    return _service(root).approve_tournament(
+        season=season,
         tournament_id=tournament_id,
-        actor=resolved_actor,
-        now=approved_at,
-        tournament_fingerprint=tournament_fingerprint,
-        previous_fingerprint=previous.get("approved_fingerprint"),
+        actor=actor,
         note=note,
+        placement_locked=placement_locked,
+        participants_locked=participants_locked,
+        problem=problem,
     )
-    _write_json_atomic(decisions_path(season, root=root), decisions)
-    return decisions
 
 
 def unapprove_tournament(
@@ -696,60 +206,41 @@ def unapprove_tournament(
     actor: str | None = None,
     note: str = "",
 ) -> dict[str, Any]:
-    """Explicitly revoke approval and all locks for one canonical tournament.
+    """Explicitly revoke approval and all locks for one canonical tournament."""
 
-    This is the only way back to editability for a locked tournament: it
-    clears the approval fingerprint and both lock scopes, and records who
-    revoked what.  The schedule facts are untouched; a subsequent canonical
-    move/apply can then change the tournament normally.
-    """
-    schedule = load_schedule(season, root=root)
-    decisions = load_decisions(season, root=root)
-    plan = schedule["plan"]
-    tournament = next((t for t in plan.get("tournaments", []) if str(t.get("id")) == tournament_id), None)
-    if tournament is None:
-        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
-    existing = decisions["decisions"].get(tournament_id)
-    if existing is None:
-        raise SeasonStateError(f"Unknown tournament id in decisions state: {tournament_id}")
-
-    now = datetime.now(tz=timezone.utc).isoformat()
-    resolved_actor = actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator"
-    previous_fingerprint = existing.get("approved_fingerprint")
-    record = dict(existing)
-    record.update(
-        {
-            "status": PENDING_REVIEW_STATUS,
-            "placement_locked": False,
-            "participants_locked": False,
-            "approved_fingerprint": None,
-            "approved_at": None,
-            "approved_by": None,
-            "note": note or existing.get("note") or "",
-            "unapproved_at": now,
-            "unapproved_by": resolved_actor,
-        }
+    return _service(root).unapprove_tournament(
+        season=season, tournament_id=tournament_id, actor=actor, note=note
     )
-    record.pop("stale_at", None)
-    record.pop("stale_reason", None)
-    decisions["decisions"][tournament_id] = record
-    decisions["updated_at"] = now
-    _append_decision_history(
-        decisions,
-        event="unapprove",
-        tournament_id=tournament_id,
-        actor=resolved_actor,
-        now=now,
-        previous_fingerprint=previous_fingerprint,
-        note=note,
+
+
+def apply_candidate(
+    *,
+    season: str,
+    candidate: dict[str, Any],
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    change_weights: dict[str, float] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Apply a verified replan candidate to canonical season state."""
+
+    return _service(root).apply_candidate(
+        season=season,
+        candidate=candidate,
+        problem=problem,
+        actor=actor,
+        change_weights=change_weights,
     )
-    _write_json_atomic(decisions_path(season, root=root), decisions)
-    return decisions
 
 
-def participation_acceptance_id(club: str, label: str, scope: str) -> str:
-    """Stable identity for one accepted team/scope participation deviation."""
-    return f"{PARTICIPATION_ACCEPTANCE_PREFIX}:{club}:{label}:{scope}"
+def approval_report(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+) -> dict[str, Any]:
+    """Read-only approval/lock status for every canonical tournament."""
+
+    return _service(root).approval_report(season)
 
 
 def load_participation_acceptances(
@@ -758,15 +249,8 @@ def load_participation_acceptances(
     root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
 ) -> list[dict[str, Any]]:
     """Return the active (non-revoked) operator participation acceptances."""
-    decisions = load_decisions(season, root=root)
-    records = decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or []
-    if not isinstance(records, list):
-        return []
-    return [
-        dict(record)
-        for record in records
-        if isinstance(record, dict) and not record.get("revoked_at")
-    ]
+
+    return _service(root).load_participation_acceptances(season)
 
 
 def record_participation_acceptance(
@@ -783,49 +267,20 @@ def record_participation_acceptance(
     actor: str | None = None,
     note: str = "",
 ) -> dict[str, Any]:
-    """Persist an explicit operator acceptance of one participation deviation.
+    """Persist an explicit operator acceptance of one participation deviation."""
 
-    Acceptance records provenance (who/when/why, the accepted deviation and its
-    target) and never changes the schedule or the configured target. Re-accepting
-    the same team/scope supersedes the earlier active record; the deviation's
-    sign and magnitude are stored so the acceptance deterministically stops
-    applying if the target or deviation later change.
-    """
-    if not club or not label or not scope:
-        raise SeasonStateError(
-            "Refusing participation acceptance: club, team label and scope are required"
-        )
-    schedule = load_schedule(season, root=root)
-    decisions = load_decisions(season, root=root)
-    now = datetime.now(tz=timezone.utc).isoformat()
-    resolved_actor = actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator"
-    acceptance_id = participation_acceptance_id(club, label, scope)
-    record = {
-        "id": acceptance_id,
-        "club": club,
-        "label": label,
-        "age_group": age_group,
-        "scope": scope,
-        "direction": direction,
-        "target": int(target),
-        "actual": int(actual),
-        "accepted_deviation": int(actual) - int(target),
-        "status": OPERATOR_ACCEPTED,
-        "accepted_at": now,
-        "accepted_by": resolved_actor,
-        "note": note or "",
-        "schedule_fingerprint": schedule.get("fingerprint"),
-    }
-    existing = decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or []
-    if not isinstance(existing, list):
-        existing = []
-    # Supersede any earlier active record for the exact same scope while keeping
-    # its audit trail: an acceptance is a current decision, not an append-only log.
-    kept = [entry for entry in existing if not isinstance(entry, dict) or entry.get("id") != acceptance_id]
-    kept.append(record)
-    updated = {**decisions, PARTICIPATION_ACCEPTANCES_KEY: kept, "updated_at": now}
-    _write_json_atomic(decisions_path(season, root=root), updated)
-    return record
+    return _service(root).record_participation_acceptance(
+        season=season,
+        club=club,
+        label=label,
+        age_group=age_group,
+        scope=scope,
+        direction=direction,
+        actual=actual,
+        target=target,
+        actor=actor,
+        note=note,
+    )
 
 
 def revoke_participation_acceptance(
@@ -833,271 +288,20 @@ def revoke_participation_acceptance(
     season: str,
     club: str,
     label: str,
+    age_group: str,
     scope: str,
     root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
     actor: str | None = None,
     note: str = "",
 ) -> dict[str, Any]:
     """Revoke one active participation acceptance, preserving its audit trail."""
-    decisions = load_decisions(season, root=root)
-    now = datetime.now(tz=timezone.utc).isoformat()
-    resolved_actor = actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator"
-    acceptance_id = participation_acceptance_id(club, label, scope)
-    records = decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or []
-    if not isinstance(records, list):
-        records = []
-    updated_records: list[dict[str, Any]] = []
-    revoked: dict[str, Any] | None = None
-    for record in records:
-        if isinstance(record, dict) and record.get("id") == acceptance_id and not record.get("revoked_at"):
-            revoked = {
-                **record,
-                "revoked_at": now,
-                "revoked_by": resolved_actor,
-                "revoke_note": note or "",
-            }
-            updated_records.append(revoked)
-        else:
-            updated_records.append(record)
-    if revoked is None:
-        raise SeasonStateError(f"No active participation acceptance for {acceptance_id!r}")
-    updated = {**decisions, PARTICIPATION_ACCEPTANCES_KEY: updated_records, "updated_at": now}
-    _write_json_atomic(decisions_path(season, root=root), updated)
-    return revoked
 
-
-def approval_report(
-    season: str,
-    *,
-    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
-) -> dict[str, Any]:
-    """Read-only approval/lock status for every canonical tournament.
-
-    Recomputes each stored approval fingerprint against the current
-    tournament, so ``stale_approval`` is a deterministic diagnostic of what
-    the persisted decision state currently means -- never a cached claim.
-    """
-    schedule = load_schedule(season, root=root)
-    decisions = load_decisions(season, root=root)
-    records = decisions.get("decisions", {}) or {}
-    tournaments: list[dict[str, Any]] = []
-    stale_approvals: list[dict[str, Any]] = []
-    seen_ids: set[str] = set()
-    for tournament in schedule["plan"].get("tournaments", []) or []:
-        tournament_id = str(tournament.get("id") or "")
-        if not tournament_id:
-            continue
-        seen_ids.add(tournament_id)
-        resolved = resolve_approval(records.get(tournament_id), tournament)
-        entry = {
-            "tournament_id": tournament_id,
-            "status": resolved["status"],
-            "stale": resolved["stale"],
-            "placement_locked": resolved["placement_locked"],
-            "participants_locked": resolved["participants_locked"],
-            "approved_fingerprint": resolved["approved_fingerprint"],
-            "current_fingerprint": resolved["current_fingerprint"],
-            "approved_at": resolved["approved_at"],
-            "approved_by": resolved["approved_by"],
-            "note": resolved["note"],
-            "stale_reason": resolved.get("stale_reason"),
-        }
-        tournaments.append(entry)
-        if resolved["stale"]:
-            stale_approvals.append(
-                {
-                    "code": "stale_approval",
-                    "tournament_id": tournament_id,
-                    "approved_fingerprint": resolved["approved_fingerprint"],
-                    "current_fingerprint": resolved["current_fingerprint"],
-                    "stale_reason": resolved.get("stale_reason"),
-                }
-            )
-    orphaned = [
-        {
-            "code": "orphaned_approval",
-            "tournament_id": tournament_id,
-            "approved_fingerprint": (record or {}).get("approved_fingerprint"),
-        }
-        for tournament_id, record in records.items()
-        if tournament_id not in seen_ids and (record or {}).get("approved_fingerprint")
-    ]
-    counts = {
-        "total": len(tournaments),
-        "approved": sum(1 for entry in tournaments if entry["status"] == APPROVED_STATUS),
-        "stale": len(stale_approvals),
-        "orphaned": len(orphaned),
-        "locked": sum(
-            1
-            for entry in tournaments
-            if entry["placement_locked"] or entry["participants_locked"]
-        ),
-        "pending_review": sum(
-            1 for entry in tournaments if entry["status"] == PENDING_REVIEW_STATUS
-        ),
-    }
-    return {
-        "season": season,
-        "schedule_fingerprint": decisions.get("schedule_fingerprint"),
-        "revision": schedule.get("revision"),
-        "counts": counts,
-        "tournaments": tournaments,
-        "stale_approvals": stale_approvals,
-        "orphaned_approvals": orphaned,
-    }
-
-
-def _reconcile_decisions(
-    existing: dict[str, Any],
-    plan_dict: dict[str, Any],
-    *,
-    now: str,
-) -> dict[str, Any]:
-    """Carry approval/lock state forward for surviving tournaments only.
-
-    A tournament whose identity survives keeps its record.  A previously
-    approved tournament whose facts changed (possible only when it was
-    approved without a placement lock) becomes an explicit
-    ``stale_approval`` with its old fingerprint retained for audit -- an
-    approval fingerprint that no longer matches the schedule is not
-    approval, and silently reverting to ``pending_review`` would hide that
-    this placement was once trusted.  Removed tournaments drop their
-    records; new ids start at ``pending_review``.
-    """
-    reconciled: dict[str, Any] = {}
-    for tournament in plan_dict.get("tournaments", []) or []:
-        tournament_id = str(tournament.get("id") or "")
-        if not tournament_id:
-            continue
-        record = dict(existing.get(tournament_id) or {})
-        if not record:
-            record = {
-                "status": PENDING_REVIEW_STATUS,
-                "placement_locked": False,
-                "participants_locked": False,
-                "approved_fingerprint": None,
-                "approved_at": None,
-                "approved_by": None,
-                "note": "",
-            }
-        elif record.get("status") in (APPROVED_STATUS, STALE_APPROVAL_STATUS) or record.get("approved_fingerprint"):
-            approved_fingerprint = record.get("approved_fingerprint")
-            fingerprint_matches = bool(approved_fingerprint) and approved_fingerprint == approval_fingerprint(tournament)
-            if record.get("status") == STALE_APPROVAL_STATUS or not fingerprint_matches:
-                # A changed approval is a first-class stale_approval, not a
-                # silent reset to pending_review: the operator must be able
-                # to see that this placement was previously approved and is
-                # no longer trustworthy until explicitly reapproved.
-                record = {
-                    "status": STALE_APPROVAL_STATUS,
-                    "placement_locked": False,
-                    "participants_locked": False,
-                    "approved_fingerprint": approved_fingerprint,
-                    "approved_at": record.get("approved_at"),
-                    "approved_by": record.get("approved_by"),
-                    "note": record.get("note") or "",
-                    "stale_at": record.get("stale_at") or now,
-                    "stale_reason": "approval invalidated by schedule change",
-                }
-        reconciled[tournament_id] = record
-    return reconciled
-
-
-def apply_candidate(
-    *,
-    season: str,
-    candidate: dict[str, Any],
-    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
-    problem: dict[str, Any] | None = None,
-    actor: str | None = None,
-    change_weights: dict[str, float] | None = None,
-) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-    """Apply a verified replan candidate to canonical season state.
-
-    The candidate must be the output of baseline-aware planning: canonical
-    placement/participant locks are re-checked here (never trusting the
-    caller), the candidate is hard-verified (against *problem* when the
-    caller can reconstruct the full planning contract), and surviving
-    tournaments keep their durable ids and approval records.  Both canonical
-    files are replaced atomically; a rejected candidate leaves them
-    byte-unchanged.
-
-    Returns ``(schedule, decisions, change_cost)``.  ``actor`` is accepted
-    for symmetry with the other mutation entry points and is not written to
-    schedule facts.
-    """
-    from tournament_scheduler.canonical_baseline import (
-        build_canonical_baseline,
-        change_cost,
-        verify_canonical_locks,
+    return _service(root).revoke_participation_acceptance(
+        season=season,
+        club=club,
+        label=label,
+        age_group=age_group,
+        scope=scope,
+        actor=actor,
+        note=note,
     )
-
-    schedule = load_schedule(season, root=root)
-    decisions = load_decisions(season, root=root)
-    baseline = build_canonical_baseline(schedule, decisions)
-    normalized_candidate = extract_candidate(candidate)
-
-    lock_violations = verify_canonical_locks(baseline, normalized_candidate)
-    if lock_violations:
-        messages = "; ".join(str(v.get("message")) for v in lock_violations)
-        raise SeasonStateError(f"Refusing canonical apply: candidate violates canonical locks: {messages}")
-
-    result = verify_candidate(normalized_candidate, problem) if problem else verify_candidate(normalized_candidate)
-    if not result.get("ok", True):
-        messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
-        raise SeasonStateError(f"Refusing canonical apply: candidate fails hard verification: {messages}")
-
-    if problem:
-        # Hosting responsibility is a canonical fact, not a placement
-        # convenience: applying a replan candidate must not move a club's
-        # obligation onto another club merely because that club has easier
-        # ice. A genuine registration/volume change is a fairness recompute
-        # (target change) and is not reported here.
-        from tournament_scheduler.hosting_responsibility import (
-            unexplained_responsibility_transfers,
-        )
-
-        transfers = unexplained_responsibility_transfers(
-            schedule.get("plan"), normalized_candidate, problem
-        )
-        if transfers:
-            messages = "; ".join(str(entry.get("message")) for entry in transfers)
-            raise SeasonStateError(
-                f"Refusing canonical apply: candidate transfers hosting responsibility: {messages}"
-            )
-
-    plan = dict(normalized_candidate)
-    plan.pop("source", None)
-    plan["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
-    plan.setdefault("start_date", schedule["plan"].get("start_date"))
-    plan.setdefault("end_date", schedule["plan"].get("end_date"))
-    # An applied replan candidate replaces the plan's tournaments, so its
-    # descriptive hosting/readiness snapshot must be re-derived from the
-    # fresh verifier result rather than trusted from the candidate payload.
-    reconcile_plan_derived_state(plan, result)
-
-    now = datetime.now(tz=timezone.utc).isoformat()
-    fingerprint = schedule_fingerprint(plan)
-    updated_schedule = {
-        **schedule,
-        "updated_at": now,
-        "revision": fingerprint,
-        "fingerprint": fingerprint,
-        "plan_schema_version": SEASON_PLAN_SCHEMA_VERSION,
-        "plan": plan,
-        "applied_from": {
-            "previous_revision": schedule.get("revision"),
-            "actor": actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator",
-        },
-    }
-    updated_decisions = {
-        **decisions,
-        "updated_at": now,
-        "schedule_fingerprint": fingerprint,
-        "decisions": _reconcile_decisions(decisions.get("decisions", {}), plan, now=now),
-    }
-    cost = change_cost(baseline, plan, weights=change_weights)
-    _write_season_state_atomic(
-        season_dir(season, root=root), updated_schedule, updated_decisions, require_absent=False
-    )
-    return updated_schedule, updated_decisions, cost

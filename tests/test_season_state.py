@@ -10,6 +10,7 @@ import pytest
 from tournament_scheduler.season_state import (
     SeasonStateError,
     approve_tournament,
+    canonical_state_revision,
     load_decisions,
     load_schedule,
     move_tournament,
@@ -124,6 +125,33 @@ def test_approval_updates_only_decisions_file(tmp_path: Path) -> None:
     assert record["approved_by"] == "ice-booker"
     assert record["note"] == "ice booked"
     assert load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]["date"] == "2026-09-12"
+
+
+def test_approval_advances_canonical_revision_without_touching_schedule(tmp_path: Path) -> None:
+    """A decision-only approval is still an effective-state change."""
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    _stage_plan(state)
+    schedule, decisions = promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    before_revision = canonical_state_revision(schedule, decisions)
+    schedule_file = root / "2026-2027" / "schedule.json"
+    before_schedule = schedule_file.read_bytes()
+
+    approve_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        actor="ice-booker",
+        note="ice booked",
+    )
+
+    updated_schedule = load_schedule("2026-2027", root=root)
+    updated_decisions = load_decisions("2026-2027", root=root)
+    after_revision = canonical_state_revision(updated_schedule, updated_decisions)
+    assert after_revision != before_revision
+    assert updated_decisions["canonical_state_revision"] == after_revision
+    assert schedule_file.read_bytes() == before_schedule
 
 
 def test_move_mutates_schedule_when_unlocked_and_rejects_locked_moves(tmp_path: Path) -> None:

@@ -35,6 +35,7 @@ from .participation_targets import search_evidence_from_acceptances
 from .planning_contract import verify_candidate
 from .season_state import (
     DEFAULT_SEASON_ROOT,
+    canonical_state_revision,
     load_decisions,
     load_participation_acceptances,
     load_schedule,
@@ -143,9 +144,9 @@ def _acceptances_by_scope(
 
 def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, Any]:
     """Return stable, revision-bound actionable findings over canonical state."""
-    schedule, _decisions, plan, problem = load_context(season, root=root)
+    schedule, decisions, plan, problem = load_context(season, root=root)
     verification = verify_candidate(plan, problem)
-    revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verification)
     counts: Dict[str, int] = {}
     for finding in findings:
@@ -170,8 +171,8 @@ def repair_options(
     allow_search: bool = False,
 ) -> Dict[str, Any]:
     """Enumerate deterministic repair options for one selected finding."""
-    schedule, _decisions, plan, problem = load_context(season, root=root)
-    revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    schedule, decisions, plan, problem = load_context(season, root=root)
+    revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verify_candidate(plan, problem))
     finding = _require_finding(findings, finding_id)
     options, rejected, families = _options_for_finding(
@@ -201,8 +202,8 @@ def search(
 ) -> Dict[str, Any]:
     """Run the bounded finding-directed search and return verified non-dominated options."""
     resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
-    schedule, _decisions, plan, problem = load_context(season, root=root)
-    revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    schedule, decisions, plan, problem = load_context(season, root=root)
+    revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verify_candidate(plan, problem))
     finding = _require_finding(findings, finding_id)
     options, rejected, families = _options_for_finding(
@@ -252,7 +253,7 @@ def apply_repair(
     if recovered_dimensions is not None:
         resolved_dimensions = recovered_dimensions
     schedule, decisions, plan, problem = load_context(season, root=root)
-    revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    revision = canonical_state_revision(schedule, decisions)
     if expected_revision and expected_revision != revision:
         return _rejected_delta(
             season, revision, "stale_canonical_revision", expected_revision=expected_revision
@@ -314,14 +315,14 @@ def apply_repair(
 
     from .season_state import apply_candidate
 
-    updated_schedule, _updated_decisions, cost = apply_candidate(
+    updated_schedule, updated_decisions, cost = apply_candidate(
         season=season,
         candidate=result_candidate,
         root=root,
         problem=problem,
         actor=actor,
     )
-    new_revision = str(updated_schedule.get("revision") or updated_schedule.get("fingerprint") or "")
+    new_revision = canonical_state_revision(updated_schedule, updated_decisions)
     fresh_verification = verify_candidate(dict(updated_schedule.get("plan") or {}), problem)
     after_plan = dict(updated_schedule.get("plan") or {})
     delta = _metric_delta(plan, before_verification, candidate=after_plan, after_verification=fresh_verification)
@@ -354,8 +355,8 @@ def accept_finding(
     note: str = "",
 ) -> Dict[str, Any]:
     """Persist an explicit operator acceptance of one participation finding."""
-    schedule, _decisions, plan, problem = load_context(season, root=root)
-    revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    schedule, decisions, plan, problem = load_context(season, root=root)
+    revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verify_candidate(plan, problem))
     finding = _require_finding(findings, finding_id)
     if finding["category"] != PARTICIPATION:
@@ -394,8 +395,8 @@ def revoke_acceptance(
     note: str = "",
 ) -> Dict[str, Any]:
     """Revoke the active operator acceptance for one participation finding."""
-    schedule, _decisions, plan, problem = load_context(season, root=root)
-    revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    schedule, decisions, plan, problem = load_context(season, root=root)
+    revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verify_candidate(plan, problem))
     finding = _require_finding(findings, finding_id)
     if finding["category"] != PARTICIPATION:
@@ -406,6 +407,7 @@ def revoke_acceptance(
         season=season,
         club=str(finding["club"]),
         label=str(finding["team"]),
+        age_group=str(finding.get("age_group") or ""),
         scope=str(finding["scope"]),
         root=root,
         actor=actor,

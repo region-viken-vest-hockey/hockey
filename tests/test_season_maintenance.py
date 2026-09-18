@@ -27,7 +27,12 @@ from tournament_scheduler.season_maintenance import (
     search,
 )
 from tournament_scheduler.season_state import (
+    canonical_state_revision,
+    load_decisions,
     load_participation_acceptances,
+    load_schedule,
+    record_participation_acceptance,
+    revoke_participation_acceptance,
     schedule_fingerprint,
 )
 
@@ -827,3 +832,145 @@ def test_unplaced_obligation_is_a_manual_finding_without_a_tournament_id() -> No
     assert finding["code"] == "unplaced_tournament_placement"
     assert finding["host_club"] == "Jar"
     assert "tournament_id" not in finding
+
+
+def test_decision_only_change_advances_canonical_revision_and_stales_options(
+    tmp_path: Path,
+) -> None:
+    """An approval/acceptance is not a schedule change, but it *is* an
+    effective-state change: the combined canonical revision must advance so
+    options generated before the decision are rejected as stale."""
+    root, _plan, _problem_dict, schedule_revision = _two_club_season(tmp_path)
+    options = repair_options(YEAR, "hosting_balance:U10:Sorby", root=root)
+    option_id = options["options"][0]["option_id"]
+    schedule_bytes = (root / YEAR / "schedule.json").read_bytes()
+    before = canonical_state_revision(
+        load_schedule(YEAR, root=root), load_decisions(YEAR, root=root)
+    )
+    assert before == schedule_revision
+
+    record_participation_acceptance(
+        season=YEAR,
+        club="Nordby",
+        label="Nordby 1",
+        age_group="U10",
+        scope="before_christmas",
+        direction="below",
+        actual=0,
+        target=3,
+        root=root,
+    )
+
+    decisions = load_decisions(YEAR, root=root)
+    after = canonical_state_revision(load_schedule(YEAR, root=root), decisions)
+    assert after != before
+    assert decisions["canonical_state_revision"] == after
+    # A decision-only mutation installs decisions without rewriting schedule content.
+    assert (root / YEAR / "schedule.json").read_bytes() == schedule_bytes
+
+    result = apply_repair(
+        YEAR, option_id, before, root=root, finding_id="hosting_balance:U10:Sorby"
+    )
+    assert result["ok"] is False
+    assert result["reason"] == "stale_canonical_revision"
+    assert result["canonical_revision_unchanged"] is True
+
+
+def test_participation_acceptance_identity_includes_age_group(tmp_path: Path) -> None:
+    """Canonical team identity is (club, label, age_group): the same label/scope
+    in two age groups must be two independent acceptances."""
+    root, _plan, _problem, _revision = _participation_season(tmp_path)
+
+    record_participation_acceptance(
+        season=YEAR, club="Nordby", label="Nordby 1", age_group="U10",
+        scope="season", direction="below", actual=1, target=3, root=root,
+    )
+    record_participation_acceptance(
+        season=YEAR, club="Nordby", label="Nordby 1", age_group="U12",
+        scope="season", direction="below", actual=1, target=3, root=root,
+    )
+
+    active = load_participation_acceptances(YEAR, root=root)
+    assert {record["id"] for record in active} == {
+        "participation_acceptance:Nordby:Nordby 1:U10:season",
+        "participation_acceptance:Nordby:Nordby 1:U12:season",
+    }
+
+    revoked = revoke_participation_acceptance(
+        season=YEAR, club="Nordby", label="Nordby 1", age_group="U10", scope="season", root=root
+    )
+    assert revoked["age_group"] == "U10"
+    assert [record["age_group"] for record in load_participation_acceptances(YEAR, root=root)] == [
+        "U12"
+    ]
+
+
+def test_legacy_participation_acceptance_id_is_migrated(tmp_path: Path) -> None:
+    """A legacy acceptance id that omitted age_group is rewritten explicitly,
+    keeping the old value for audit."""
+    root, _plan, _problem, _revision = _participation_season(tmp_path)
+    decisions_file = root / YEAR / "decisions.json"
+    legacy_id = "participation_acceptance:Nordby:Nordby 1:before_christmas"
+    decisions = json.loads(decisions_file.read_text(encoding="utf-8"))
+    decisions["participation_acceptances"] = [
+        {
+            "id": legacy_id,
+            "club": "Nordby",
+            "label": "Nordby 1",
+            "age_group": "U10",
+            "scope": "before_christmas",
+            "status": "operator_accepted",
+            "accepted_deviation": -2,
+            "target": 3,
+            "actual": 1,
+        }
+    ]
+    decisions_file.write_text(
+        json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    # Any canonical write migrates legacy acceptance identities.
+    record_participation_acceptance(
+        season=YEAR, club="Sorby", label="Sorby 1", age_group="U10",
+        scope="season", direction="below", actual=1, target=3, root=root,
+    )
+
+    records = json.loads(decisions_file.read_text(encoding="utf-8"))["participation_acceptances"]
+    migrated = next(record for record in records if record.get("migrated_from") == legacy_id)
+    assert migrated["id"] == "participation_acceptance:Nordby:Nordby 1:U10:before_christmas"
+
+
+def test_revocation_matches_a_legacy_acceptance_without_prior_migration(tmp_path: Path) -> None:
+    root, _plan, _problem, _revision = _participation_season(tmp_path)
+    decisions_file = root / YEAR / "decisions.json"
+    decisions = json.loads(decisions_file.read_text(encoding="utf-8"))
+    decisions["participation_acceptances"] = [
+        {
+            "id": "participation_acceptance:Nordby:Nordby 1:before_christmas",
+            "club": "Nordby",
+            "label": "Nordby 1",
+            "age_group": "U10",
+            "scope": "before_christmas",
+            "status": "operator_accepted",
+            "accepted_deviation": -2,
+            "target": 3,
+            "actual": 1,
+        }
+    ]
+    decisions_file.write_text(
+        json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    revoked = revoke_participation_acceptance(
+        season=YEAR,
+        club="Nordby",
+        label="Nordby 1",
+        age_group="U10",
+        scope="before_christmas",
+        root=root,
+    )
+
+    assert revoked["revoked_at"]
+    assert load_participation_acceptances(YEAR, root=root) == []

@@ -290,6 +290,30 @@ Generic personal agent frameworks/tooling stay outside this repository.
 
 ## Canonical-season boundary
 
+All promoted-season writes go through one explicit lifecycle. The
+infrastructure-only `CanonicalSeasonStore`
+(`tournament_scheduler/infrastructure/canonical_season_store.py`) owns the two
+durable files and installs them together as one staged directory swap; the
+application `CanonicalSeasonService`
+(`tournament_scheduler/application/canonical_season_service.py`) owns the common
+load -> mutate -> verify -> reconcile -> history -> write sequence. Schedule
+mutations (`season move`, `season replan`/`apply`, promotion) and decision-only
+mutations (`approve`/`unapprove`, participation `accept`/`revoke`) share that
+boundary, so a rejected mutation leaves both files untouched and a decision-only
+change still advances the effective state revision. `season_state` is a thin
+compatibility facade over the store/service.
+
+Two identities are kept distinct:
+
+- `schedule_fingerprint` is the tournament-content identity;
+- `canonical_state_revision` (persisted in `decisions.json`) additionally covers
+decisions, participation acceptances and the promoted verification/problem
+context. Findings, repair options and applies bind to it, so a decision
+change invalidates options generated before it even though the schedule did not
+change. Participation acceptance identity includes `age_group`
+(`participation_acceptance:<club>:<label>:<age_group>:<scope>`); legacy ids are
+migrated explicitly.
+
 Once a verified schedule is promoted, normal planning becomes baseline-aware:
 
 - durable tournament IDs survive ordinary moves/rehosting/participant edits;
