@@ -8,6 +8,12 @@ then submits its verdict via ``audit-submit``. ``audit-run`` is the
 headless-only path (no interactive harness active) that does all of that —
 context, bounded judge call with evidence expansion, submit — in one command,
 for cron/CI.
+
+The audit verdict is part of a persisted workflow, not a terminal run result:
+``REVIEW_REQUIRED`` enters bounded convergence automatically, and a committed
+mutation re-enters ``audit_required`` for the new export. The workflow phase is
+owned by :mod:`tournament_scheduler.application.audit_lifecycle`; this module
+only transports it and renders the canonical next transition.
 """
 
 from __future__ import annotations
@@ -19,12 +25,34 @@ from typing import Any
 from ._shared import _console
 
 
+def _workflow_snapshot(work_dir: str) -> dict[str, Any] | None:
+    from ...application.audit_lifecycle import workflow_snapshot
+
+    try:
+        return workflow_snapshot(work_dir)
+    except Exception:
+        return None
+
+
+def _print_next_transition(workflow: dict[str, Any] | None) -> None:
+    if not workflow:
+        return
+    phase = workflow.get("phase") or "(ukjent)"
+    next_command = workflow.get("next_command")
+    _console.print(f"[dim]Arbeidsflyt: {phase}[/dim]")
+    if next_command:
+        _console.print(f"  neste: {next_command}")
+
+
 def _cmd_operator_audit_context(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt operator audit-context`` — print the assembled
     evidence inventory for an interactive harness to read and reason over."""
     from ...pipeline.operator_action import DEFAULT_REGISTRY, UnknownActionError
 
-    action = DEFAULT_REGISTRY.build("get_audit_context", work_dir=args.work_dir)
+    workflow = _workflow_snapshot(args.work_dir)
+    action = DEFAULT_REGISTRY.build(
+        "get_audit_context", work_dir=args.work_dir, workflow=workflow
+    )
     try:
         result = DEFAULT_REGISTRY.execute(action, approved=True)
     except UnknownActionError as exc:
@@ -130,6 +158,7 @@ def _cmd_operator_audit_submit(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt operator audit-submit`` — persist a structured
     audit verdict (submitted by an interactive harness after in-session
     review, or by ``audit-run`` for the headless path)."""
+    from ...application.audit_lifecycle import record_audit_verdict
     from ...pipeline.operator_action import (
         DEFAULT_REGISTRY,
         ApprovalRequiredError,
@@ -154,6 +183,7 @@ def _cmd_operator_audit_submit(args: argparse.Namespace) -> int:
 
     if result.status == "ok":
         _console.print(f"[green]✓[/green] {result.summary}")
+        record_audit_verdict(args.work_dir, payload)
         if str(payload.get("status")) == "REVIEW_REQUIRED" and not bool(
             getattr(args, "no_refine", False)
         ):
@@ -165,6 +195,7 @@ def _cmd_operator_audit_submit(args: argparse.Namespace) -> int:
                 args, max_epochs=int(getattr(args, "max_refine_epochs", 6))
             )
             _render_convergence_summary(convergence)
+        _print_next_transition(_workflow_snapshot(args.work_dir))
         return 0
     _console.print(f"[red]✗[/red] {result.summary}")
     for problem in result.problems:
@@ -177,6 +208,7 @@ def _cmd_operator_audit_run(args: argparse.Namespace) -> int:
     context, call the given judge backend, submit the result. Refuses to run
     while an interactive harness is active, since the harness is expected to
     perform the audit itself in-session instead (issue #325)."""
+    from ...application.audit_lifecycle import record_audit_verdict
     from ...llm_judge.audit import run_headless_audit
     from ...llm_judge.harness import is_harness_active
     from ...pipeline.audit_context import build_audit_context, build_audit_evidence_index
@@ -194,7 +226,9 @@ def _cmd_operator_audit_run(args: argparse.Namespace) -> int:
     max_rounds = max(1, int(getattr(args, "max_refine_rounds", 2)))
     last_status = ""
     for _round in range(max_rounds):
-        context = build_audit_context(work_dir=args.work_dir)
+        context = build_audit_context(
+            work_dir=args.work_dir, workflow=_workflow_snapshot(args.work_dir)
+        )
         if not context.get("export_fingerprint"):
             _console.print("[red]✗[/red] Ingen Stage 4-eksport funnet — kjør eksport før revisjon.")
             return 1
@@ -215,9 +249,12 @@ def _cmd_operator_audit_run(args: argparse.Namespace) -> int:
             return 1
 
         _console.print(f"[green]✓[/green] Revisjon fullført (status={last_status}).")
+        record_audit_verdict(args.work_dir, result)
         if last_status == "PASS":
+            _print_next_transition(_workflow_snapshot(args.work_dir))
             return 0
         if last_status != "REVIEW_REQUIRED" or bool(getattr(args, "no_refine", False)):
+            _print_next_transition(_workflow_snapshot(args.work_dir))
             return 1
 
         _console.print(
@@ -228,9 +265,11 @@ def _cmd_operator_audit_run(args: argparse.Namespace) -> int:
         )
         _render_convergence_summary(convergence)
         if not convergence.get("committed_epochs"):
+            _print_next_transition(_workflow_snapshot(args.work_dir))
             return 1
 
     _console.print(
         f"[yellow]⚠[/yellow] Avgrenset revisjonsrunder brukt opp (siste status={last_status})."
     )
+    _print_next_transition(_workflow_snapshot(args.work_dir))
     return 1

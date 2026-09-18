@@ -46,6 +46,15 @@ def _run_stage4_export(
                 log_fn(f"Stage 4: could not record timing: {exc}")
             files = export.get("output_files", {})
             generated_calendars = "calendars_html" in files
+            # A finalized Stage 4 export starts the explicit audit/convergence
+            # workflow for its fingerprint: the run is non-terminal until a
+            # fresh audit (and any bounded convergence) reaches a terminal.
+            try:
+                from ...application.audit_lifecycle import mark_audit_required
+
+                mark_audit_required(state.work_dir)
+            except Exception as exc:  # noqa: BLE001 - workflow state is best-effort
+                log_fn(f"Stage 4: could not record audit workflow state: {exc}")
             _console.print(f"  [green]✓[/green] {len(files)} fil(er) eksportert")
             for label, file_path in files.items():
                 _console.print(f"    → {file_path}")

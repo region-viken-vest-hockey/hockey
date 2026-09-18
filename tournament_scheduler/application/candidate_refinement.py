@@ -502,6 +502,17 @@ def commit_refined_candidate(
         },
     }
     Stage3SessionStore(work_dir).save(session)
+    # A successfully re-exported candidate is a new reviewed revision: the
+    # persisted audit/convergence workflow must re-enter ``audit_required`` for
+    # the new export fingerprint so the run cannot complete on the superseded
+    # audit. Best-effort: workflow state never blocks an already-committed
+    # candidate/export.
+    try:
+        from .audit_lifecycle import mark_audit_required
+
+        mark_audit_required(work_dir, run_id=session.run_id or None)
+    except Exception:
+        pass
     return result
 
 

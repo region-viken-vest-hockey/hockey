@@ -169,6 +169,21 @@ def _emit_interactive_decision_context(
     context = build_decision_context(_INTERACTIVE_STAGE_KEYS[stage_num], summary)
     payload = context.to_dict()
 
+    if stage_num == 4:
+        # Expose the persisted audit/convergence workflow on the Stage 4 handoff
+        # so the harness sees the mandatory next transition instead of treating
+        # "export produced" as a terminal run result.
+        try:
+            from ...application.audit_lifecycle import workflow_snapshot
+
+            workflow = workflow_snapshot(work_dir)
+        except Exception:
+            workflow = None
+        if workflow is not None:
+            payload["audit_workflow"] = workflow
+            if workflow.get("pending"):
+                payload.setdefault("facts", {})["audit_workflow"] = workflow
+
     try:
         from ...pipeline.run_log_paths import resolve_active_run_log_dir
 

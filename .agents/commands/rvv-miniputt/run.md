@@ -166,6 +166,26 @@ While a finalized, exported, unpromoted candidate exists, a plain `run --interac
 
 Use `stage3 refine` for ordinary post-audit improvement. `--new-full-run` is the explicit opt-in for a genuinely new full pipeline run and must not be used merely to bypass an audit finding or an unanswered operator decision. Once the candidate is promoted, the plain run is no longer guarded.
 
+## Audit/convergence workflow is a persisted phase, not a prompt convention
+
+After Stage 4 there is an explicit persisted workflow phase, not a judgement call about whether the run is "done":
+
+```text
+Stage 4 export        -> audit_required
+  audit PASS          -> complete (pass)
+  audit REVIEW_REQUIRED -> convergence_required
+bounded convergence
+  candidate changed   -> audit_required (fresh export fingerprint)
+  terminal reached    -> complete (pareto_stable | bounded_search_exhausted | operator_required)
+```
+
+- `operator audit-context` and `operator audit-submit` include a `workflow` block with `phase`, `pending`, `complete`, the export/candidate fingerprint it refers to and the canonical `next_command`.
+- `stage3 converge` and the Stage 4 `DecisionContext` expose the same block; inspect it with `scripts/rvv-miniputt stage3 session --work-dir .pipeline --json`.
+- A run must not be summarized as complete while `audit_required` or `convergence_required` is pending. A stale audit for a superseded export can never satisfy the newer export fingerprint.
+- While a safe automatic continuation (`next_command`) remains, do **not** ask the operator whether to refine; continue the loop. Human interaction is only appropriate at a genuine `operator_required` boundary.
+
+The phase is part of the same Stage3Session as the candidate revision, so it survives a new process/resume without a side file.
+
 ## Resetting an untrustworthy Stage 3 lineage
 
 Use the reset capability only when an **engineering/lifecycle defect or a code change has made the current Stage 3 candidate/session lineage untrustworthy**. Examples include a pending decision created by known-buggy lifecycle code, corrupted candidate/session identity, or an explicitly diagnosed Stage 3 persistence defect.

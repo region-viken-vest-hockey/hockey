@@ -764,6 +764,7 @@ def status_for_session(session: Stage3Session) -> dict[str, Any]:
             str(item.get("candidate_ref") or "") for item in session.pareto_archive
         ],
         "convergence": dict(session.convergence) if session.convergence else None,
+        "audit_workflow": dict(session.audit_workflow) if session.audit_workflow else None,
         "search_history": session.search_history(),
         "finalized_revision": session.finalized_revision,
         "finalized_fingerprint": session.finalized_fingerprint,

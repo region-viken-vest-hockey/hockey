@@ -45,9 +45,12 @@ from typing import Any, Mapping
 # generated. Schema 6 adds ``pareto_archive``/``convergence``: the bounded
 # non-dominated frontier and the outer-loop convergence state, so an audited
 # ``REVIEW_REQUIRED`` candidate can be refined autonomously across epochs
-# instead of falling through to human escalation. Older payloads load unchanged
-# because both fields default to empty.
-STAGE3_SESSION_SCHEMA_VERSION = 6
+# instead of falling through to human escalation. Schema 7 adds
+# ``audit_workflow``: the explicit persisted audit -> convergence -> re-audit
+# phase (``pipeline.audit_workflow``), so an interactive harness cannot treat
+# its own ``REVIEW_REQUIRED`` conclusion as a terminal run result. Older
+# payloads load unchanged because every added field defaults to empty.
+STAGE3_SESSION_SCHEMA_VERSION = 7
 
 # Bounded retention window for the verified-attempt portfolio. Deliberately
 # small: it exists so the controller can pick the better of a few recently
@@ -217,6 +220,12 @@ class Stage3Session:
     # findings, search coverage, plateau counter, terminal reason). Stored on
     # the session so it resumes with the revision/fingerprint it describes.
     convergence: dict[str, Any] | None = None
+    # Explicit audit/convergence workflow phase (``pipeline.audit_workflow``).
+    # It is the persisted outer-loop control state: a run is non-terminal while
+    # it reports ``audit_required`` or ``convergence_required`` for the current
+    # export fingerprint, so lifecycle correctness no longer depends on the
+    # harness remembering to submit a verdict or start another audit cycle.
+    audit_workflow: dict[str, Any] | None = None
     finalized_revision: int | None = None
     finalized_fingerprint: str | None = None
 
@@ -636,6 +645,7 @@ class Stage3Session:
             "search_attempts": [dict(item) for item in self.search_attempts],
             "pareto_archive": [dict(item) for item in self.pareto_archive],
             "convergence": dict(self.convergence) if self.convergence else None,
+            "audit_workflow": dict(self.audit_workflow) if self.audit_workflow else None,
             "finalized_revision": self.finalized_revision,
             "finalized_fingerprint": self.finalized_fingerprint,
         }
@@ -692,6 +702,11 @@ class Stage3Session:
             pareto_archive=[dict(item) for item in (data.get("pareto_archive") or [])],
             convergence=(
                 dict(data["convergence"]) if isinstance(data.get("convergence"), dict) else None
+            ),
+            audit_workflow=(
+                dict(data["audit_workflow"])
+                if isinstance(data.get("audit_workflow"), dict)
+                else None
             ),
             finalized_revision=(
                 int(data["finalized_revision"]) if data.get("finalized_revision") is not None else None

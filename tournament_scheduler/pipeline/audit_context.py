@@ -811,7 +811,9 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
     }
 
 
-def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
+def build_audit_context(
+    *, work_dir: "str | Path", workflow: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Assemble the *bounded* audit evidence overview for the current export.
 
     The default context intentionally never embeds the wholesale
@@ -820,6 +822,12 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
     an ``evidence_index`` that tells the judge which selective
     ``operator audit-evidence`` queries are available. Full detail remains
     retrievable through :func:`build_audit_evidence`.
+
+    ``workflow`` is the caller-supplied audit/convergence lifecycle projection
+    (see :mod:`tournament_scheduler.application.audit_lifecycle`). It is
+    injected by the adapter rather than read here so this pipeline module never
+    imports the application/session layer; when present it exposes the exact
+    mandatory next transition so a harness cannot stop on its own summary.
     """
     raw = _assemble_raw_audit_evidence(work_dir=work_dir)
     index = audit_evidence.build_evidence_index(raw)
@@ -846,6 +854,8 @@ def build_audit_context(*, work_dir: "str | Path") -> dict[str, Any]:
         "checklist_evidence_guide": _build_checklist_evidence_guide(evidence_overview=evidence_overview),
         "evidence_index": evidence_overview,
     }
+    if workflow is not None:
+        context["workflow"] = dict(workflow)
     context["evidence_metrics"] = audit_evidence.build_overview_metrics(context, index)
     return context
 

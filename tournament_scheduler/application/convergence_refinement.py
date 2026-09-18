@@ -210,6 +210,20 @@ def run_bounded_convergence(
         body_provider = apply_repair_to_plan
 
     store, archive, state = _load_state(work_dir, run_id, frontier_limit)
+    # A fresh REVIEW_REQUIRED audit verdict demands re-evaluation of the current
+    # candidate: a convergence terminal recorded before this verdict described
+    # an earlier candidate/audit and must not silently satisfy the new audit
+    # cycle (including a stale ``operator_required`` question the fresh audit no
+    # longer raises). The re-explored cycle gets a fresh bounded budget so the
+    # audit cannot be ignored because an earlier cycle spent the epoch budget.
+    if (
+        audit_payload is not None
+        and str(audit_payload.get("status") or "") == "REVIEW_REQUIRED"
+        and state.terminal_reason
+    ):
+        state.terminal_reason = ""
+        state.terminal_detail = ""
+        state.epoch = 0
     controller = ConvergenceController(
         state,
         archive,
@@ -251,7 +265,7 @@ def run_bounded_convergence(
                 state.terminal_detail = _operator_detail(audit_decision)
                 if not dry_run:
                     _persist(store, run_id, archive, state)
-                return _report(
+                report = _report(
                     reason=state.terminal_reason,
                     detail=state.terminal_detail,
                     state=state,
@@ -259,6 +273,8 @@ def run_bounded_convergence(
                     epochs=epochs,
                     extra={"committed_epochs": committed, "audit_decision": audit_decision},
                 )
+                _finalize_workflow(work_dir, report, run_id)
+                return report
         direction = controller.next_direction(directions, force_finding_id=pending_force)
         pending_force = None
         if direction is None:
@@ -350,7 +366,7 @@ def run_bounded_convergence(
             # No mutation and no persistence: return the planned epoch only.
             for entry in entries:
                 archive.consider(entry)
-            return _report(
+            report = _report(
                 reason="dry_run",
                 detail="Preview only; no candidate was mutated.",
                 state=state,
@@ -361,6 +377,8 @@ def run_bounded_convergence(
                 ],
                 extra={"planned_entries": [e.to_dict() for e in entries]},
             )
+            _finalize_workflow(work_dir, report, run_id)
+            return report
         result = apply_provider(
             work_dir,
             problem=problem,
@@ -425,7 +443,7 @@ def run_bounded_convergence(
             state.terminal_detail = _operator_detail(audit_decision)
             _persist(store, run_id, archive, state)
 
-    return _report(
+    report = _report(
         reason=state.terminal_reason,
         detail=state.terminal_detail or describe_terminal(state.terminal_reason),
         state=state,
@@ -433,6 +451,8 @@ def run_bounded_convergence(
         epochs=epochs,
         extra={"committed_epochs": committed, "audit_decision": audit_decision},
     )
+    _finalize_workflow(work_dir, report, run_id)
+    return report
 
 
 def _measure_frontier(
@@ -478,6 +498,26 @@ def _measure_frontier(
         )
         bodies[ref] = dict(body)
     return entries, bodies
+
+
+def _finalize_workflow(work_dir: Any, report: dict[str, Any], run_id: str | None) -> dict[str, Any]:
+    """Fold the convergence report into the persisted audit/convergence workflow.
+
+    A committed mutation re-exports a new candidate and therefore re-enters
+    ``audit_required``; a terminal report that committed nothing may complete
+    the workflow. The projection is attached to the returned report so the
+    caller/transport always sees the canonical next transition.
+    """
+    try:
+        from .audit_lifecycle import record_convergence_result, workflow_snapshot
+
+        record_convergence_result(work_dir, report, run_id=run_id)
+        view = workflow_snapshot(work_dir, run_id=run_id)
+        if view is not None:
+            report["workflow"] = view
+    except Exception:
+        pass
+    return report
 
 
 def _operator_detail(decision: Mapping[str, Any]) -> str:

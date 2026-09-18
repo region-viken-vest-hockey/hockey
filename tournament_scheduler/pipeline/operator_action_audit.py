@@ -50,14 +50,18 @@ def register_audit_actions(registry: "ActionRegistry") -> None:
     )
 
 
-def execute_get_audit_context(*, work_dir: str) -> "CapabilityResult":
+def execute_get_audit_context(
+    *, work_dir: str, workflow: dict[str, Any] | None = None
+) -> "CapabilityResult":
     """Assemble the read-only evidence inventory for the semantic safety-net
     audit — no LLM call, no fresh scraping, just facts the pipeline already
-    produced."""
+    produced. ``workflow`` is the caller-supplied audit/convergence lifecycle
+    projection; this module injects it rather than reading the application/session
+    layer so the dependency direction is preserved."""
     from .audit_context import build_audit_context
     from .capability_result import CapabilityResult
 
-    context = build_audit_context(work_dir=work_dir)
+    context = build_audit_context(work_dir=work_dir, workflow=workflow)
     if not context.get("export_fingerprint"):
         return CapabilityResult.failed(
             "Ingen Stage 4-eksport funnet — kjør eksport før revisjon.", capability="llm_audit"

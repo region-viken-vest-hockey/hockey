@@ -26,6 +26,7 @@ def _active_run_id(work_dir: str) -> str:
 
 
 def _cmd_stage3_session(args: argparse.Namespace) -> int:
+    from ...application.audit_lifecycle import workflow_snapshot
     from ...application.stage3_session_store import Stage3SessionStore, status_for_session
 
     work_dir = getattr(args, "work_dir", ".pipeline")
@@ -33,6 +34,10 @@ def _cmd_stage3_session(args: argparse.Namespace) -> int:
     session = Stage3SessionStore(work_dir).load(expected_run_id=run_id or None)
     view: dict[str, Any] = status_for_session(session)
     view["work_dir"] = str(work_dir)
+    # The reconciled workflow phase carries the canonical next transition; the
+    # persisted phase alone would not know whether the current export has since
+    # superseded it.
+    view["audit_workflow"] = workflow_snapshot(work_dir) or view.get("audit_workflow")
 
     if getattr(args, "json", False):
         print(json.dumps(view, indent=2, ensure_ascii=False))
@@ -72,6 +77,14 @@ def _cmd_stage3_session(args: argparse.Namespace) -> int:
             f"  konvergens: {convergence.get('terminal_reason') or '(fortsetter)'} "
             f"(epoke {convergence.get('epoch', 0)})"
         )
+    workflow = view.get("audit_workflow") or {}
+    if workflow:
+        _console.print(
+            f"  revisjonsarbeidsflyt: {workflow.get('phase') or '(ukjent)'} "
+            f"({'venter' if workflow.get('pending') else 'terminal'})"
+        )
+        if workflow.get("next_command"):
+            _console.print(f"    neste: {workflow['next_command']}")
     if view.get("pareto_frontier_refs"):
         _console.print(f"  paretofront: {', '.join(view['pareto_frontier_refs'])}")
     _console.print(f"  lovlige overganger: {', '.join(view['legal_transitions']) or '(ingen)'}")
