@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "audit_id": "harness-2026-09-18-1944-promoted",
+  "generated_at": "2026-09-18T19:44:00+00:00",
+  "run_id": "20260918T135604Z-8d38f146",
+  "export_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
+  "status": "REVIEW_REQUIRED",
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "117 unresolved participation shortfalls (down from 151 in the previously promoted revision 38), 229 target deviations, 0 avoidable deviations (13 proven_infeasible, 216 search_exhausted).",
+      "severity": "major",
+      "confidence": "high"
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "0 unresolved hosting obligations, 13 hosting_balance_imbalances (up from 10 in revision 38, all non-avoidable), 17 unresolved tournament placements (down from 40 in revision 38).",
+      "severity": "major",
+      "confidence": "high"
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "All tournaments have consistent derived duration, 0 blocking byes.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "9/9 calendar sources known/unblocked, 0 unresolved external conflicts, 1 movable-ice allocation used (surfaced as movable_host_confirmation_required for operator follow-up).",
+      "severity": "minor",
+      "confidence": "medium"
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "0 tournaments where host club lacks its own participating team.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "0 duplicate team-day entries.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "Same-club participant counts remain within the documented hard max of 3.",
+      "severity": "minor",
+      "confidence": "high"
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "0 export-format mismatches across all controlled checks.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "Deterministic verify: 0 violations, 0 waivers, 0 stale approvals. This is the canonical export (export/2026-09-18T1944, fingerprint 17b91a52..., promoted from pipeline candidate revision 95) that deliberately replaces the previously promoted revision 38: it is a net improvement (placement backlog 40->17, participation shortfalls 151->117) with only non-avoidable (bounded_search_exhausted/proven_infeasible) regressions in hosting balance and target deviation. Filed GitHub issue #393 for an unrelated bounded-search coverage-reporting defect (unplaced_placement participant_reselection dimension) discovered while refining this candidate; it did not block this promotion.",
+      "severity": "info",
+      "confidence": "high"
+    }
+  ],
+  "potential_missing_rule": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
+  "publication_gate_status": "operator_review_required"
+}
