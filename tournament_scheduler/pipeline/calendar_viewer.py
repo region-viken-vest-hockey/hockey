@@ -158,21 +158,56 @@ def _stage4_not_started_message(work_dir: str) -> str | None:
     return None
 
 
-def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> str:
+def _read_scraping_confidence(work_dir: str) -> dict[str, Any] | None:
+    """Read the Stage 2 confidence assessment, or ``None`` when unavailable."""
+    try:
+        from .state import PipelineState, StageName
+
+        checkpoint = PipelineState(work_dir).read_stage(StageName.SCRAPING)
+    except Exception:
+        return None
+    confidence = (checkpoint or {}).get("confidence")
+    return confidence if isinstance(confidence, dict) else None
+
+
+def generate_html(
+    work_dir: str = ".pipeline",
+    export_dir: str = "export",
+    *,
+    data: dict[str, Any] | None = None,
+    confidence: dict[str, Any] | None = None,
+) -> str:
     """Generate the calendar viewer HTML and return its file path.
 
     Writes to ``<export_dir>/calendars.html`` by default.
+
+    By default the payload is read from ``<work_dir>/cache/scraped_data.json``.
+    Passing *data* (and optional *confidence*) renders from an immutable
+    snapshot instead, which is how a canonical ``season export`` rebuilds the
+    viewer without depending on the live ``.pipeline`` workspace.
     """
     out_path = Path(export_dir) / "calendars.html"
-    not_started_message = _stage4_not_started_message(work_dir)
-    if not_started_message:
-        return _write_not_started_html(out_path, not_started_message)
+    if data is None:
+        not_started_message = _stage4_not_started_message(work_dir)
+        if not_started_message:
+            return _write_not_started_html(out_path, not_started_message)
+        cache = ScrapedDataCache(work_dir)
+        data = cache.read()
+        data["_all_events"] = cache.get_all_events()
+        if confidence is None:
+            confidence = _read_scraping_confidence(work_dir)
+    else:
+        confidence = confidence if confidence is not None else data.get("confidence")
 
-    cache = ScrapedDataCache(work_dir)
-    data = cache.read()
     sources: dict[str, Any] = data.get("sources", {})
     meta: dict[str, Any] = data.get("_meta", {})
-    all_events = cache.get_all_events()
+    if "_all_events" in data:
+        all_events = data["_all_events"]
+    else:
+        all_events = []
+        for name, entry in sources.items():
+            for event in entry.get("events", []):
+                all_events.append({**event, "_source": name, "_source_url": entry.get("url", "")})
 
     # Assign colours per source
     source_names = sorted(sources.keys())
@@ -375,13 +410,10 @@ def generate_html(work_dir: str = ".pipeline", export_dir: str = "export") -> st
         else ""
     )
 
-    # Read scraping confidence assessment from Stage 2 checkpoint (if available)
+    # Scraping confidence assessment (Stage 2 checkpoint, or a frozen snapshot)
     confidence_html = ""
     try:
-        from .state import PipelineState, StageName
-        _state = PipelineState(work_dir)
-        _scraping_cp = _state.read_stage(StageName.SCRAPING)
-        _conf = _scraping_cp.get("confidence") if _scraping_cp else None
+        _conf = confidence
         if _conf:
             _verdict = _conf.get("verdict", "OK")
             _assessment = _escape_html(_conf.get("overall_assessment", ""))

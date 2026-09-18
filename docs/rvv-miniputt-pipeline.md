@@ -87,6 +87,7 @@ This creates:
 ```text
 season/2026-2027/schedule.json
 season/2026-2027/decisions.json
+season/2026-2027/export_context.json   # when the reviewed handoff carried source/public metadata
 ```
 
 Promotion verifies the exact reviewed candidate against the verification context that
@@ -105,6 +106,18 @@ exports. Legacy reviewed exports that lack either verification context or the re
 plan snapshot are not promotable in-place; re-run Stage 4 for the same candidate to
 create a new provenance-bound reviewed handoff while preserving the old export as
 historical evidence.
+
+Promotion also persists the reviewed handoff's immutable public/source presentation
+context (`export_context.json`: scrape source/event counts, blocked sources,
+cluster/calendar viewer payload, the whitelisted registered-team snapshot, the public
+activity payload and its fingerprint). Verification and presentation context are
+deliberately separate: canonical export still verifies only against the promoted
+verification problem, but rebuilds `calendars.html`, `input.html`, the activity
+artifacts and the navbar source/event status from this frozen snapshot instead of
+re-reading mutable `.pipeline` scrape state. The snapshot is bound to
+`promoted_from.public_export_context_fingerprint`; a mismatch is refused. Seasons
+promoted before this context existed simply export without source metadata until they
+are re-promoted.
 
 Promotion is deliberate and exclusive. An ordinary later Stage 3 run whose window matches the promoted season adopts that canonical schedule as its baseline rather than silently regenerating it.
 
@@ -170,7 +183,7 @@ Canonical writes are transactional: rejected verification or write failure must 
 
 Timestamped exports start as `draft`. `export_manifest.json` records export/candidate fingerprint, source run and (when applicable) canonical season/revision. Draft retention may prune old drafts; published exports and unclassified legacy exports are protected from the draft rolling window.
 
-`season export` regenerates review output from canonical state and records the current canonical revision in the Stage 4 checkpoint/manifest and generated HTML metadata. It verifies with the durable verification context stored in canonical `schedule.json` and does not silently reload mutable Stage 1/2 checkpoints or scrape cache from `.pipeline`; deleting or replacing `.pipeline` must not change what the canonical revision means.
+`season export` regenerates review output from canonical state and records the current canonical revision in the Stage 4 checkpoint/manifest and generated HTML metadata. It verifies with the durable verification context stored in canonical `schedule.json` and does not silently reload mutable Stage 1/2 checkpoints or scrape cache from `.pipeline`; deleting or replacing `.pipeline` must not change what the canonical revision means. Source/public presentation metadata (source/event counts, scraped-calendar and registered-team companion pages, activity calendar) is rebuilt from the promoted `export_context.json`, and the navbar status combines those source facts with the plan-local tournament/game/team counts on `season_plan.html`, `season_plan_report.html` and `manual_schedule.html`.
 
 After canonical schedule/decision state changes, regenerate with `season export` before audit/publication. Do not knowingly publish an older projection of newer canonical state.
 

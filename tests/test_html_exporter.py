@@ -441,3 +441,35 @@ class TestChronologicalTournamentOrdering:
         html = _export_schedule_html(_plan_with_tournaments([{"id": "x", "date": "2026-10-18"}]), tmp_path)
         assert "function compareTournaments(a, b)" in html
         assert "TOURNAMENTS.sort(compareTournaments)" in html
+
+
+class TestSharedNavbarStatus:
+    """The shared navbar status must combine plan-local and source counts."""
+
+    def _export(self, tmp_path: Path, pipeline_meta: dict) -> str:
+        plan = _make_minimal_plan()
+        out_path = tmp_path / "season_plan.html"
+        HtmlExporter().export(plan, out_path, pipeline_meta=pipeline_meta, age_groups=["U10"])
+        return out_path.read_text(encoding="utf-8")
+
+    def test_navbar_shows_plan_counts_and_source_counts(self, tmp_path):
+        html = self._export(
+            tmp_path,
+            {
+                "generated_at": "2026-09-18T13:56:09+00:00",
+                "scrape_updated_at": "2026-09-18T13:56:09+00:00",
+                "source_count": 9,
+                "total_events": 8038,
+            },
+        )
+        assert "1 turneringer" in html
+        assert "1 kamper" in html
+        assert "2 lag" in html
+        assert "9 kilder" in html
+        assert "8038 hendelser" in html
+
+    def test_navbar_omits_zero_source_counts(self, tmp_path):
+        html = self._export(tmp_path, {"generated_at": "2026-09-18T13:56:09+00:00"})
+        assert "1 turneringer" in html
+        assert "0 kilder" not in html
+        assert "0 hendelser" not in html

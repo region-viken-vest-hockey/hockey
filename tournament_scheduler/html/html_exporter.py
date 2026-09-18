@@ -33,6 +33,7 @@ from .data_computation import (
     season_label,
     fmt_date,
     timestamp_string,
+    build_nav_status,
     compute_team_game_counts,
     compute_team_travel_info,
     compute_heatmap_data,
@@ -189,10 +190,19 @@ class HtmlExporter:
         source_count = src
         event_count = ev
         generated_at = str(pipeline.get("generated_at", ""))
-        scrape_stamp = timestamp_string(generated_at)
-        scrape_meta = f"{source_count} kilder &middot; {event_count} hendelser"
-        if scrape_stamp:
-            scrape_meta += f" &middot; {scrape_stamp}"
+        # Prefer the actual scrape time over the export build time so the navbar
+        # reports data provenance, not when the HTML was rendered.
+        scrape_stamp = timestamp_string(
+            str(pipeline.get("scrape_updated_at") or generated_at)
+        )
+        scrape_meta = build_nav_status(
+            tournament_count=len(plan.tournaments),
+            game_count=sum(len(t.games) for t in plan.tournaments),
+            team_count=len(team_game_counts),
+            source_count=source_count,
+            event_count=event_count,
+            timestamp=scrape_stamp,
+        )
 
         canonical_revision = str(pipeline.get("canonical_revision", "") or "")
         season_revision_meta = (

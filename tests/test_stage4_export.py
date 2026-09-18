@@ -1438,6 +1438,9 @@ class TestRunStage4:
         assert "Regler</a>" in manual_html
         assert "Rapport</a>" not in manual_html
         assert "tnsb001" in manual_html
+        # Shared navbar status carries plan-local counts on every review page,
+        # using the same team-identity count as the season-plan page.
+        assert "1 turneringer &middot; 1 kamper &middot; 2 lag" in manual_html
         html = Path(files["html"]).read_text(encoding="utf-8")
         assert 'href="manual_schedule.html"' in html
         assert "MÅ BOOKES MANUELT" in html

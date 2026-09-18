@@ -24,7 +24,19 @@ def generate_activity_artifacts(
     payload = build_activities_payload(input_path, default_year=default_year, generated_at=generated_at)
     if payload is None:
         return None
+    return write_activity_artifacts_from_payload(payload, export_dir=export_dir)
 
+
+def write_activity_artifacts_from_payload(
+    payload: dict,
+    *,
+    export_dir: str = "export",
+) -> dict[str, str]:
+    """Write the activity artifacts from an already-normalized payload.
+
+    Canonical ``season export`` uses this to rebuild the public activity
+    calendar from the promoted snapshot instead of re-reading a workbook.
+    """
     export_path = Path(export_dir)
     export_path.mkdir(parents=True, exist_ok=True)
     json_path = export_path / "activities.json"

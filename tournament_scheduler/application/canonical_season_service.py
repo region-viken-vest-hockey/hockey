@@ -338,6 +338,7 @@ class CanonicalSeasonService:
                 "verification_context_problem_fingerprint": bound_context.get("problem_fingerprint"),
                 "verification_context_candidate_fingerprint": bound_context["candidate_fingerprint"],
                 "verification_context_verified_ok": True,
+                "public_export_context_fingerprint": bound_context.get("public_export_context_fingerprint"),
             },
         }
         decisions_payload = {
@@ -350,7 +351,10 @@ class CanonicalSeasonService:
             "decisions": _initial_decisions(plan_dict),
         }
         snapshot = CanonicalSeasonSnapshot(
-            season=resolved_season, schedule=schedule_payload, decisions=decisions_payload
+            season=resolved_season,
+            schedule=schedule_payload,
+            decisions=decisions_payload,
+            export_context=bound_context.get("public_export_context"),
         )
         committed = self._commit(snapshot, require_absent=not force)
         return committed.schedule, committed.decisions

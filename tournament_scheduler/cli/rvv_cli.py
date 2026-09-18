@@ -1249,6 +1249,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         decisions_path,
         move_tournament,
         load_decisions,
+        load_export_context,
         load_schedule,
         normalize_placements,
         effective_config_from_verification_problem,
@@ -1299,6 +1300,21 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     "Canonical season export requires a promoted verification-context problem; "
                     "re-promote from a provenance-bound Stage 4 handoff."
                 )
+            # The public/source presentation snapshot is carried with the
+            # promoted handoff, so export never reads mutable `.pipeline`
+            # scrape state. It is fingerprint-verified before use.
+            from ..pipeline.public_export_context import (
+                PublicExportContextError,
+                resolve_promoted_public_export_context,
+            )
+
+            try:
+                public_export_context = resolve_promoted_public_export_context(
+                    schedule,
+                    load_export_context(args.season, root=args.root),
+                )
+            except PublicExportContextError as exc:
+                raise SeasonStateError(str(exc)) from exc
             result = run_export(
                 checkpoint,
                 state=state,
@@ -1308,6 +1324,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 verification_problem=verification_problem,
                 effective_config_override=effective_config_from_verification_problem(verification_problem),
                 use_pipeline_metadata=False,
+                public_export_context=public_export_context,
             )
             result["canonical_season"] = args.season
             result["canonical_revision"] = schedule.get("revision")

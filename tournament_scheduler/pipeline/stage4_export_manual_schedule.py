@@ -284,7 +284,11 @@ def _manual_schedule_html(
     that `publication_readiness` counts as an operator-facing finding, but
     that are not themselves an ice-time/booking task.
     """
-    from ..html.data_computation import canonical_rvv_club_name
+    from ..html.data_computation import (
+        build_nav_status,
+        canonical_rvv_club_name,
+        compute_team_game_counts,
+    )
 
     # Filter on the structured category, not the rendered reason text -- a
     # participation-target deviation must never inflate this page's count
@@ -354,14 +358,17 @@ def _manual_schedule_html(
     manual_nav = _nav_link(MANUAL_SCHEDULE_FILENAME, "Må planlegges manuelt", ICON_WARNING, active=True)
     input_nav = _nav_link(input_href, "Påmeldte lag", ICON_USERS) if input_href else ""
 
-    scrape_meta_parts: list[str] = []
-    if source_count:
-        scrape_meta_parts.append(f"{source_count} kilder")
-    if event_count:
-        scrape_meta_parts.append(f"{event_count} hendelser")
-    if scrape_age:
-        scrape_meta_parts.append(f"Data: {scrape_age}")
-    scrape_meta = " &middot; ".join(scrape_meta_parts)
+    scrape_meta = build_nav_status(
+        tournament_count=len(plan.tournaments),
+        game_count=sum(len(t.games) for t in plan.tournaments),
+        # Same team-identity count as the season-plan navbar
+        # (``compute_team_game_counts`` keys on club+age_group+label, so two
+        # age groups reusing a label are two teams, not one).
+        team_count=len(compute_team_game_counts(plan)),
+        source_count=source_count,
+        event_count=event_count,
+        timestamp=f"Data: {scrape_age}" if scrape_age else "",
+    )
     if scrape_meta:
         scrape_meta = f'<span class="meta-nav">{scrape_meta}</span>'
 

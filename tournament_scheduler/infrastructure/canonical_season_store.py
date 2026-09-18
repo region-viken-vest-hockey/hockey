@@ -48,6 +48,20 @@ def decisions_path(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON
     return season_dir(season, root=root) / "decisions.json"
 
 
+def export_context_path(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> Path:
+    return season_dir(season, root=root) / "export_context.json"
+
+
+def load_export_context(
+    season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
+) -> dict[str, Any] | None:
+    """Return the persisted public export context, or ``None`` for legacy seasons."""
+    path = export_context_path(season, root=root)
+    if not path.exists():
+        return None
+    return load_json(path)
+
+
 def _json_bytes(payload: Mapping[str, Any]) -> bytes:
     return (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
@@ -100,13 +114,19 @@ def _write_season_state_atomic(
     decisions_payload: dict[str, Any],
     *,
     require_absent: bool,
+    export_context: dict[str, Any] | None = None,
 ) -> None:
-    """Install both canonical season-state files as one atomic boundary.
+    """Install the canonical season-state files as one atomic boundary.
 
     The directory is staged and swapped, so a failure never leaves only
     ``schedule.json`` or only ``decisions.json`` behind. ``require_absent``
     refuses to replace existing canonical state (used by deliberate
     promotion); mutation callers replace it and rely on the swap for rollback.
+
+    ``export_context.json`` is the immutable public/source presentation
+    snapshot promoted with the reviewed handoff. It is written only when
+    present; mutation callers carry the loaded snapshot forward so an existing
+    file is never dropped by a swap.
     """
 
     parent = season_directory.parent
@@ -116,7 +136,11 @@ def _write_season_state_atomic(
     try:
         (staging / "schedule.json").write_bytes(_json_bytes(schedule_payload))
         (staging / "decisions.json").write_bytes(_json_bytes(decisions_payload))
-        for staged_file in (staging / "schedule.json", staging / "decisions.json"):
+        staged_files = [staging / "schedule.json", staging / "decisions.json"]
+        if export_context is not None:
+            (staging / "export_context.json").write_bytes(_json_bytes(export_context))
+            staged_files.append(staging / "export_context.json")
+        for staged_file in staged_files:
             with staged_file.open("rb") as handle:
                 os.fsync(handle.fileno())
         if season_directory.exists():
@@ -146,13 +170,16 @@ class CanonicalSeasonSnapshot:
     """The complete durable canonical state for one season.
 
     ``schedule`` holds the promoted schedule facts and provenance;
-    ``decisions`` holds the durable operator/approval/acceptance state. They are
+    ``decisions`` holds the durable operator/approval/acceptance state; and
+    ``export_context`` holds the immutable public/source presentation snapshot
+    promoted with the reviewed handoff (``None`` for legacy seasons). They are
     read and written together so callers never observe a half-installed season.
     """
 
     season: str
     schedule: dict[str, Any]
     decisions: dict[str, Any]
+    export_context: dict[str, Any] | None = None
 
     @property
     def plan(self) -> dict[str, Any]:
@@ -184,11 +211,15 @@ class CanonicalSeasonStore:
     def decisions_path(self, season: str) -> Path:
         return decisions_path(season, root=self.root)
 
+    def load_export_context(self, season: str) -> dict[str, Any] | None:
+        return load_export_context(season, root=self.root)
+
     def load(self, season: str) -> CanonicalSeasonSnapshot:
         return CanonicalSeasonSnapshot(
             season=season,
             schedule=load_schedule(season, root=self.root),
             decisions=load_decisions(season, root=self.root),
+            export_context=load_export_context(season, root=self.root),
         )
 
     def write(self, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool = False) -> None:
@@ -197,6 +228,7 @@ class CanonicalSeasonStore:
             snapshot.schedule,
             snapshot.decisions,
             require_absent=require_absent,
+            export_context=snapshot.export_context,
         )
 
 
@@ -208,7 +240,9 @@ __all__ = [
     "SEASON_STATE_SCHEMA_VERSION",
     "SeasonStateError",
     "decisions_path",
+    "export_context_path",
     "load_decisions",
+    "load_export_context",
     "load_json",
     "load_schedule",
     "schedule_path",

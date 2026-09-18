@@ -48,7 +48,7 @@ from ..serialization.season_plan import season_plan_from_dict
 from .stage4_helpers import build_tournament_placement_entries
 from .calendar_viewer import generate_html as _generate_calendars_html
 from .input_viewer import generate_html as _generate_input_html
-from .activity_viewer import generate_activity_artifacts as _generate_activity_artifacts
+from .activity_viewer import write_activity_artifacts_from_payload
 from .not_started import NOT_STARTED_MESSAGE
 from ..review.review_packet_exporter import ReviewPacketExporter
 from ..spond.spond_exporter import SpondExporter
@@ -69,8 +69,29 @@ from .stage4_export_manual_schedule import (
 )
 from .stage4_export_verification import _build_export_verification_problem
 from .verification_context import build_verification_context
+from .public_export_context import (
+    build_public_export_context,
+    fingerprint_public_export_context,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _compute_scrape_age(updated_at: str) -> str:
+    """Return a human-readable age for a scrape timestamp, or ``""``."""
+    if not updated_at:
+        return ""
+    from datetime import datetime as _dt, timezone as _tz
+
+    try:
+        delta = _dt.now(tz=_tz.utc) - _dt.fromisoformat(updated_at)
+    except Exception:  # noqa: BLE001 - presentation metadata is best-effort
+        return ""
+    if delta.total_seconds() < 3600:
+        return f"{int(delta.total_seconds() // 60)}m siden"
+    if delta.days < 1:
+        return f"{int(delta.total_seconds() // 3600)}t siden"
+    return f"{delta.days}d siden"
 
 
 def _export_approvals(effective_config: dict[str, Any], plan_dict: dict[str, Any]) -> dict[str, Any]:
@@ -120,6 +141,7 @@ def run(
     verification_problem: dict[str, Any] | None = None,
     effective_config_override: dict[str, Any] | None = None,
     use_pipeline_metadata: bool = True,
+    public_export_context: dict[str, Any] | None = None,
     supersedes: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Export the Stage 3 plan to Excel, iCal, and CSV.
@@ -351,6 +373,7 @@ def run(
             "message": message,
             "export_fingerprint": export_fingerprint,
             "verification_context": verification_context,
+            "public_export_context": public_export_context,
             "reviewed_plan": dict(plan_dict),
             "canonical_season": canonical_season,
             "canonical_revision": canonical_revision,
@@ -633,69 +656,56 @@ def run(
         "canonical_revision": canonical_revision,
         "approval_status": approval_status,
     }
-    meta: dict[str, Any] | None = None
-    _scrape_cache_data: dict[str, Any] = {}
-    _calendars_path: str | None = None
-    _input_html_path: str | None = None
-    try:
-        if use_pipeline_metadata:
-            _progress("Samler pipeline-metadata for rapporten")
-            scraping_envelope = state.read_envelope(StageName.SCRAPING)
-        else:
-            scraping_envelope = None
-    except Exception as exc:
-        logger.warning("Kunne ikke lese scraping-checkpoint for rapporten: %s", exc)
-        scraping_envelope = None
-    scraping_ckpt = scraping_envelope.get("data", {}) if scraping_envelope else None
-    if scraping_ckpt and isinstance(scraping_ckpt, dict):
-        # read_envelope() returns the full wrapper so updated_at is accessible at top level
-        sources = scraping_ckpt.get("sources", [])
-        pipeline_meta["source_count"] = len(sources)
-        pipeline_meta["total_events"] = sum(s.get("event_count", 0) for s in sources)
-        pipeline_meta["blocked"] = scraping_ckpt.get("blocked", [])
-        pipeline_meta["date_range"] = (
-            f"{effective_config.get('start_date', '')} &ndash; {effective_config.get('end_date', '')}"
-        )
-        pipeline_meta["age_groups"] = configured_age_groups
-        updated = scraping_envelope.get("updated_at", "") if scraping_envelope else ""
+    # Immutable public/source presentation context. The normal pipeline captures
+    # it from the live workspace once, here; a canonical `season export` passes
+    # the context promoted with the season so this never re-reads mutable
+    # `.pipeline` scrape state. It is provenance-bound to the reviewed handoff
+    # by `fingerprint_public_export_context`.
+    if public_export_context is None and use_pipeline_metadata:
+        _progress("Samler pipeline-metadata for rapporten")
+        try:
+            public_export_context = build_public_export_context(
+                state, effective_config, generated_at=generated_at
+            )
+        except Exception as exc:  # noqa: BLE001 - never block export on presentation context
+            logger.warning("Kunne ikke bygge public export context: %s", exc)
+            public_export_context = None
+    export_context = public_export_context if isinstance(public_export_context, dict) else {}
+    public_export_context_fingerprint = fingerprint_public_export_context(export_context)
+    scrape_context = export_context.get("scrape") if isinstance(export_context.get("scrape"), dict) else {}
+    if scrape_context:
+        pipeline_meta["source_count"] = int(scrape_context.get("source_count") or 0)
+        pipeline_meta["total_events"] = int(scrape_context.get("total_events") or 0)
+        pipeline_meta["blocked"] = list(scrape_context.get("blocked") or [])
+        updated = str(scrape_context.get("updated_at") or "")
         if updated:
             pipeline_meta["scrape_updated_at"] = updated
-            from datetime import datetime as _dt, timezone as _tz
-            try:
-                delta = _dt.now(tz=_tz.utc) - _dt.fromisoformat(updated)
-                if delta.total_seconds() < 3600:
-                    pipeline_meta["scrape_age"] = f"{int(delta.total_seconds() // 60)}m siden"
-                elif delta.days < 1:
-                    pipeline_meta["scrape_age"] = f"{int(delta.total_seconds() // 3600)}t siden"
-                else:
-                    pipeline_meta["scrape_age"] = f"{delta.days}d siden"
-            except Exception as exc:
-                logger.warning(
-                    "Kunne ikke tolke updated_at='%s' i scraping-checkpoint: %s",
-                    updated,
-                    exc,
-                )
-    # Scrape metadata from cache for navbar
-    if use_pipeline_metadata:
-        try:
-            from .cache_manager import ScrapedDataCache
-            _scrape_cache_data = ScrapedDataCache(state.work_dir).read()
-            meta = _scrape_cache_data.get("_meta")
-        except Exception as exc:
-            logger.warning("Kunne ikke lese scrape-cache for rapporten: %s", exc)
+            scrape_age = _compute_scrape_age(updated)
+            if scrape_age:
+                pipeline_meta["scrape_age"] = scrape_age
+    configured_start = effective_config.get("start_date")
+    configured_end = effective_config.get("end_date")
+    if configured_start or configured_end:
+        pipeline_meta["date_range"] = f"{configured_start or ''} &ndash; {configured_end or ''}"
+    context_age_groups = export_context.get("age_groups")
+    if context_age_groups or configured_age_groups:
+        pipeline_meta["age_groups"] = list(context_age_groups or configured_age_groups)
+
+    _calendars_path: str | None = None
+    _input_html_path: str | None = None
     # --- Input viewer (input.html) — public overview of registered clubs/teams ---
     # Generated before the calendar viewer so calendars.html's navbar can link to it.
-    # Only the whitelisted "Lag" worksheet is read (see input_workbook.PUBLIC_SHEET_WHITELIST).
-    # Only generated when Stage 1 actually recorded an input workbook path that exists on
-    # disk — deliberately not the "input.xlsx" fallback default used for cosmetic display
-    # elsewhere in this function, so callers that skip Stage 1 (e.g. most stage4 tests, or
-    # a plan built directly) never accidentally pick up an unrelated input.xlsx from cwd.
-    _configured_input_path = effective_config.get("input_path")
-    if _configured_input_path and os.path.exists(_configured_input_path):
+    # The context's input snapshot is only present when Stage 1 recorded a real
+    # input workbook (the whitelisted "Lag" sheet), so skipping Stage 1 never
+    # accidentally picks up an unrelated input.xlsx from cwd.
+    input_context = export_context.get("input") if isinstance(export_context.get("input"), dict) else None
+    if input_context is not None:
+        if input_context.get("file_name"):
+            pipeline_meta["input_file"] = str(input_context["file_name"])
         try:
             _progress("Genererer oversikt over påmeldte lag")
             _generate_input_html(
-                input_path=_configured_input_path,
+                teams=list(input_context.get("teams") or []),
                 export_dir=str(primary_export_path),
             )
             _input_html_path = str(primary_export_path / "input.html")
@@ -703,31 +713,31 @@ def run(
         except Exception as exc:  # noqa: BLE001
             errors.append(f"Input-visning feilet: {exc}")
 
-        try:
-            start_year = None
-            start_date_value = effective_config.get("start_date")
-            if isinstance(start_date_value, str) and len(start_date_value) >= 4:
-                start_year = int(start_date_value[:4])
-            _progress("Genererer aktivitetskalender")
-            activity_files = _generate_activity_artifacts(
-                input_path=_configured_input_path,
-                export_dir=str(primary_export_path),
-                default_year=start_year,
-                generated_at=generated_at,
-            )
-            if activity_files:
-                output_files.update(activity_files)
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"Aktivitetskalender feilet: {exc}")
+        activities_payload = export_context.get("activities")
+        if isinstance(activities_payload, dict) and activities_payload:
+            try:
+                _progress("Genererer aktivitetskalender")
+                output_files.update(
+                    write_activity_artifacts_from_payload(
+                        activities_payload, export_dir=str(primary_export_path)
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"Aktivitetskalender feilet: {exc}")
     # --- Calendar viewer (calendars.html) ---
     # Generate before HtmlExporter so calendars_path can be passed in and the navbar can link to it.
-    # Only generate when scrape data exists — without it the file would be empty and the navbar link would be broken.
-    # total_events/source_count are top-level keys in the cache, not inside _meta.
-    if _scrape_cache_data.get("total_events", 0) > 0 or _scrape_cache_data.get("source_count", 0) > 0:
+    # Only generate when the snapshot actually has events/sources — without it the file would be
+    # empty and the navbar link would be broken.
+    calendar_context = export_context.get("calendar") if isinstance(export_context.get("calendar"), dict) else None
+    if calendar_context and (
+        int(calendar_context.get("total_events") or 0) > 0
+        or int(calendar_context.get("source_count") or 0) > 0
+    ):
         try:
             _progress("Genererer kalenderoversikt")
             _generate_calendars_html(
-                work_dir=str(state.work_dir),
+                data=calendar_context,
+                confidence=export_context.get("scrape_confidence"),
                 export_dir=str(primary_export_path),
             )
             _calendars_path = str(primary_export_path / "calendars.html")
@@ -742,7 +752,6 @@ def run(
         HtmlExporter().export(
             plan,
             html_path,
-            meta=meta,
             output_files=output_files,
             pipeline_meta=pipeline_meta,
             ice_time_for_age_group=ice_time_for_age_group,
@@ -795,8 +804,7 @@ def run(
             HtmlExporter().export(
                 plan,
                 html_path,
-                meta=meta,
-                output_files=output_files,
+                    output_files=output_files,
                 pipeline_meta=pipeline_meta,
                 ice_time_for_age_group=ice_time_for_age_group,
                 age_groups=configured_age_groups,
@@ -886,6 +894,8 @@ def run(
         "verify_result": export_verify_result,
         "export_fingerprint": export_fingerprint,
         "verification_context": verification_context,
+        "public_export_context": export_context,
+        "public_export_context_fingerprint": public_export_context_fingerprint,
         "reviewed_plan": dict(plan_dict),
         "canonical_season": canonical_season,
         "canonical_revision": canonical_revision,

@@ -34,18 +34,26 @@ def _age_group_sort_key(age_group: str) -> tuple[int, str]:
 
 def generate_html(
     *,
-    input_path: str,
+    input_path: str | None = None,
     export_dir: str = "export",
     calendars_path: str | None = None,
     season_label: str = "",
+    teams: list[dict[str, Any]] | None = None,
 ) -> str:
     """Generate ``input.html`` and return its path.
 
     Reads only the whitelisted ``Lag`` worksheet via
     :func:`input_workbook.read_public_teams`. Returns the path even when the
     sheet has no rows (an empty, valid page is written rather than nothing).
+
+    Pass *teams* to render from an immutable public snapshot instead of a live
+    workbook; this is how canonical ``season export`` rebuilds the page after
+    the workspace and input workbook may no longer be present.
     """
-    teams = read_public_teams(input_path)
+    if teams is None:
+        if not input_path:
+            raise ValueError("generate_html requires either input_path or teams")
+        teams = read_public_teams(input_path)
 
     # Deduplicate identical (club, label, age_group) rows and sort for display.
     seen: set[tuple[str, str, str]] = set()

@@ -165,6 +165,29 @@ def resolve_promotion_verification_context(
             "Cannot promote: the reviewed Stage 4 plan snapshot does not match the export fingerprint."
         )
 
+    # Public/source presentation context is optional (legacy handoffs predate
+    # it) but, when present, it is fingerprint-verified so canonical export
+    # never renders unverified source metadata.
+    from .public_export_context import (
+        PublicExportContextError,
+        fingerprint_public_export_context,
+        verify_public_export_context,
+    )
+
+    public_export_context = export_checkpoint.get("public_export_context")
+    if not isinstance(public_export_context, dict) or not public_export_context:
+        public_export_context = None
+    public_export_context_fingerprint = None
+    if public_export_context is not None:
+        try:
+            public_export_context_fingerprint = verify_public_export_context(
+                public_export_context,
+                expected_fingerprint=export_checkpoint.get("public_export_context_fingerprint")
+                or fingerprint_public_export_context(public_export_context),
+            )
+        except PublicExportContextError as exc:
+            raise VerificationContextError(f"Cannot promote: {exc}") from exc
+
     return {
         "problem": problem,
         "context": context,
@@ -174,4 +197,6 @@ def resolve_promotion_verification_context(
         "export_fingerprint": export_fingerprint,
         "export_dir": export_checkpoint.get("export_dir"),
         "problem_fingerprint": context.get("problem_fingerprint"),
+        "public_export_context": public_export_context,
+        "public_export_context_fingerprint": public_export_context_fingerprint,
     }

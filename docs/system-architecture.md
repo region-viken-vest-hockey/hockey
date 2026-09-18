@@ -21,7 +21,7 @@ All three may feed the same sanitized GitHub Pages publication snapshot.
 - **`Årshjul for aktiviteter.xlsx`** is the activity-calendar source workbook.
 - **External calendar sources** are authoritative for their own availability evidence, subject to source-health/provenance checks.
 - **Repository code and tests** define deterministic parsing, hard constraints, verification, metrics, persistence, export and publication safety.
-- **`season/<season>/schedule.json` and `season/<season>/decisions.json`** are the Git-backed canonical current season state after deliberate promotion. The schedule file owns schedule facts; the decisions file owns approval/lock workflow state.
+- **`season/<season>/schedule.json`, `season/<season>/decisions.json` and (when present) `season/<season>/export_context.json`** are the Git-backed canonical current season state after deliberate promotion. The schedule file owns schedule facts and provenance; the decisions file owns approval/lock workflow state; `export_context.json` owns the immutable public/source presentation snapshot (scrape counts, calendar viewer payload, registered-team and activity snapshots) promoted with the reviewed Stage 4 handoff. Verification stays bound to the promoted verification problem, while canonical export rebuilds source/public companion pages and the navbar source/event status from this frozen snapshot instead of mutable `.pipeline` scrape state.
 - **`.agents/skills/rvv/SKILL.md`** and `.agents/commands/rvv-miniputt/` are the shared harness-neutral operating policy/procedures.
 - **GitHub issues** are the implementation backlog; ADRs preserve durable rationale.
 

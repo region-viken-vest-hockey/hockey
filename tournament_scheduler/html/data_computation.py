@@ -128,6 +128,36 @@ def timestamp_string(iso_str: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def build_nav_status(
+    *,
+    tournament_count: int,
+    game_count: int,
+    team_count: int,
+    source_count: int = 0,
+    event_count: int = 0,
+    timestamp: str = "",
+) -> str:
+    """Return the compact navbar status shared by every review page.
+
+    Always shows the plan-local counts; source/event counts and the scrape
+    timestamp are appended only when the promoted export context actually has
+    them, so a source-less export never renders a misleading
+    ``0 kilder · 0 hendelser``.
+    """
+    parts = [
+        f"{tournament_count} turneringer",
+        f"{game_count} kamper",
+        f"{team_count} lag",
+    ]
+    if source_count:
+        parts.append(f"{source_count} kilder")
+    if event_count:
+        parts.append(f"{event_count} hendelser")
+    if timestamp:
+        parts.append(timestamp)
+    return " &middot; ".join(parts)
+
+
 def compute_team_game_counts(plan: object) -> dict[str, int]:
     """Return a dict mapping team_key → total games played.
 
