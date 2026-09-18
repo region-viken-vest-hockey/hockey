@@ -523,10 +523,11 @@ def _duration_minutes(tournament, problem):
 
 
 def _candidate_start_times(tournament):
-    # issue: capping at 15:00 meant an evening opening after a late-afternoon
-    # commitment (e.g. a movable_busy interval ending around 15:30) was never
-    # a representable candidate at all, regardless of how many dates/dimensions
-    # a repair ladder tried -- widened through a typical club-ice evening.
+    # Search a bounded set of realistic miniputt start times. 16:00 is the
+    # latest generated start; later source-calendar events still remain facts,
+    # and an already-established later tournament time may be preserved via
+    # tournament.get("start_time"), but repair search must not invent evening
+    # tournament starts simply because an arena happens to be free.
     seen = []
     for item in (
         tournament.get("start_time"),

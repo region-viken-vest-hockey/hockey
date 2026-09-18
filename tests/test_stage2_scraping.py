@@ -1139,7 +1139,7 @@ class TestStrategyBasedDispatch:
     def test_brp_exigo_parser_uses_embedded_event_json_date_time_and_resource(self):
         events = _parse_brp_exigo_day(
             r'''
-            <script>self.__next_f.push([1,"f:[\"$\",\"$L11\",null,{\"resources\":[{\"id\":362,\"name\":\"Ishockey - bane 1\",\"type\":\"OTHER\",\"externalDescription\":null}],\"events\":[{\"id\":\"1\",\"title\":\"Skien fritidspark KF\",\"start\":\"2026-09-05T07:00:00.000Z\",\"end\":\"2026-09-05T17:00:00.000Z\",\"resources\":[],\"resourceId\":362,\"orderId\":1131048,\"message\":\"\",\"minutesFromStart\":540,\"minutesDuration\":600,\"timeRange\":\"09:00-16:00\",\"continues\":false}],\"date\":\"$D2026-09-05T00:00:00.000Z\"}]"])</script>
+            <script>self.__next_f.push([1,"f:[\"$\",\"$L11\",null,{\"resources\":[{\"id\":362,\"name\":\"Ishockey - bane 1\",\"type\":\"OTHER\",\"externalDescription\":null}],\"events\":[{\"id\":\"1\",\"title\":\"Skien fritidspark KF\",\"start\":\"2026-09-05T07:00:00.000Z\",\"end\":\"2026-09-05T17:00:00.000Z\",\"resources\":[],\"resourceId\":362,\"orderId\":1131048,\"message\":\"\",\"minutesFromStart\":540,\"minutesDuration\":600,\"timeRange\":\"09:00-19:00\",\"continues\":false}],\"date\":\"$D2026-09-05T00:00:00.000Z\"}]"])</script>
             ''',
             datetime(2026, 9, 5),
         )
@@ -1149,7 +1149,7 @@ class TestStrategyBasedDispatch:
         assert events[0].datetime == datetime(2026, 9, 5, 9, 0)
         assert events[0].duration_hours == 10.0
         assert events[0].location == "Ishockey - bane 1"
-        assert events[0].name == "Skien fritidspark KF 09:00-16:00"
+        assert events[0].name == "Skien fritidspark KF 09:00-19:00"
 
     def test_styled_calendar_strategy_routes_to_styledcalendar_scraper(self, tmp_path):
         """A source whose strategy has CalendarEngine.STYLED_CALENDAR calls _run_styledcalendar_scraper."""

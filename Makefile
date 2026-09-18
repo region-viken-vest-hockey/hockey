@@ -17,7 +17,7 @@ SECRET_SCAN ?= $(ROOT_DIR)/scripts/secret-scan.sh
 RULES_REPORT ?= $(ROOT_DIR)/scripts/rules-report.sh
 KAMPVEILEDER_CONVERT ?= $(ROOT_DIR)/scripts/convert-kampveileder.sh
 
-export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CSV ARGS BACKEND RESULT_FILE
+export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE
 
 PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-report kampveileder-markdown \
 	operator-run operator-run-force run status logs calendars calendars-refresh sources-status \
@@ -26,6 +26,7 @@ PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-repo
 	questions questions-all answer promote \
 	audit-context audit-evidence audit-run audit-submit \
 	publish-preview publish verify-publish publish-history rollback \
+	cleanup-exports cleanup-exports-apply \
 	release-dry-run release
 
 .PHONY: $(PUBLIC_TARGETS) all
@@ -84,6 +85,11 @@ help:
 	@echo "  make verify-publish                Verify latest published bundle"
 	@echo "  make publish-history               List publish/rollback history"
 	@echo "  make rollback RUN_ID=<id> CONFIRM_PUBLIC=1"
+	@echo ""
+	@echo "Export housekeeping:"
+	@echo "  make cleanup-exports                Dry-run safe cleanup of proven superseded exports"
+	@echo "  make cleanup-exports-apply CONFIRM_CLEANUP=1"
+	@echo "                                      Delete only lifecycle-verified superseded exports"
 	@echo ""
 	@echo "Guarded release:"
 	@echo "  make release-dry-run TAG=vX.Y.Z    Validate release without tag/push"
@@ -210,6 +216,13 @@ rollback:
 	@if [ "$${CONFIRM_PUBLIC:-}" != "1" ]; then echo "ERROR: make rollback requires CONFIRM_PUBLIC=1" >&2; exit 2; fi
 	@cd "$(ROOT_DIR)" && "$(RVV)" operator rollback "$$RUN_ID" --confirm-public $(ARGS)
 
+
+cleanup-exports:
+	@cd "$(ROOT_DIR)" && "$(ROOT_DIR)/scripts/cleanup-exports" $(ARGS)
+
+cleanup-exports-apply:
+	@if [ "${CONFIRM_CLEANUP:-}" != "1" ]; then echo "ERROR: make cleanup-exports-apply requires CONFIRM_CLEANUP=1" >&2; exit 2; fi
+	@cd "$(ROOT_DIR)" && "$(ROOT_DIR)/scripts/cleanup-exports" --apply $(ARGS)
 
 release-dry-run:
 	@if [ -z "$${TAG:-}" ]; then echo "ERROR: make release-dry-run requires TAG=vX.Y.Z" >&2; exit 2; fi

@@ -118,13 +118,13 @@ class TestComputeSourceHealth:
             {
                 "date": "05.09.2026",
                 "datetime": "2026-09-05T09:00:00",
-                "name": "Skien fritidspark KF 09:00-16:00",
+                "name": "Skien fritidspark KF 09:00-19:00",
                 "location": "Ishockey - bane 1",
             },
             {
                 "date": "05.09.2026",
                 "datetime": "2026-09-05T09:00:00",
-                "name": "Skien fritidspark KF 09:00-16:00",
+                "name": "Skien fritidspark KF 09:00-19:00",
                 "location": "Ishockey - bane 2",
             },
         ]
