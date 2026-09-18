@@ -744,6 +744,11 @@ def status_for_session(session: Stage3Session) -> dict[str, Any]:
                 "scope": session.pending_decision.get("scope"),
                 "candidate_revision": session.pending_decision.get("candidate_revision"),
                 "candidate_fingerprint": session.pending_decision.get("candidate_fingerprint"),
+                # The stage number a transport must answer this decision with
+                # (``3`` for in-Stage-3 sub-decisions, ``4`` for post-plan
+                # candidate decisions). Exposed so a harness never has to
+                # duplicate the capability table.
+                "resume_from": session.pending_resume_stage(),
             }
             if session.pending_decision
             else None

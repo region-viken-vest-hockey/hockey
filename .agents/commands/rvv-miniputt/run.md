@@ -116,7 +116,7 @@ So the canonical distinction is based on the returned `capability`, not on an ag
 
 Never switch a Stage 3 `optimize_plan` or repair decision to `--resume-from 3` just because the chosen action will perform more Stage 3 work; the orchestrator owns that loop. Likewise, never answer a pending shared-host or arena-conflict context with `--resume-from 4`.
 
-When uncertain, inspect the exact persisted `DecisionContext.capability` and follow this table rather than reasoning from checkpoint files, action names, or guessed state transitions.
+When uncertain, inspect the exact persisted `DecisionContext.capability` and follow this table rather than reasoning from checkpoint files, action names, or guessed state transitions. The session owns this same mapping: `stage3 session --json` reports `pending_decision.resume_from`, and the CLI rejects an action submitted with the wrong `--resume-from` with a precise lifecycle error before any stage context is built or domain work runs.
 
 ## Inspecting pending Stage 3 state
 
@@ -126,7 +126,7 @@ Do not reconcile Stage 3 side files by hand. The active run's explicit session i
 scripts/rvv-miniputt stage3 session --work-dir .pipeline --json
 ```
 
-Use it to confirm the current candidate revision/fingerprint, which decision is pending and whether it is run-scoped or candidate-scoped, and which transition types are legal next before you answer a pause.
+Use it to confirm the current candidate revision/fingerprint, which decision is pending and whether it is run-scoped or candidate-scoped, which stage number answers it (`pending_decision.resume_from`), and which transition types are legal next before you answer a pause.
 
 Running `run --interactive --resume-from 3` with no `--decision-action` is a safe inspection/resume step: it re-renders the exact persisted pending Stage 3 decision and exits paused without rebuilding the candidate or starting a new attempt. Repeating it is idempotent. **Inspection with `--resume-from 3` does not imply that the eventual answer should also use 3**; use the capability table above for the action invocation.
 

@@ -54,7 +54,8 @@ def _cmd_stage3_session(args: argparse.Namespace) -> int:
     if pending:
         _console.print(
             f"  venter på: {pending['capability']} ({pending['scope']}, "
-            f"revisjon {pending['candidate_revision']})"
+            f"revisjon {pending['candidate_revision']}, "
+            f"svar med --resume-from {pending.get('resume_from')})"
         )
     else:
         _console.print("  venter på: (ingen)")

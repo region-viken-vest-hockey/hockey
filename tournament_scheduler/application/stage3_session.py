@@ -140,6 +140,26 @@ _CAPABILITY_STATUS = {
 
 _RUN_SCOPED_CAPABILITIES = frozenset({"shared_host_assignment"})
 
+# Which pipeline stage number owns a capability's pending decision. This is
+# lifecycle ownership, not harness routing policy: a shared-host ask or an
+# internal arena/time collision is an in-Stage-3 sub-decision answered with
+# ``--resume-from 3``, while candidate adoption/repair/search decisions are
+# post-plan candidate decisions answered with ``--resume-from 4`` -- even
+# though applying them may loop back into Stage 3 internally. The session
+# exposes this so no CLI or harness adapter has to duplicate the capability
+# table (and accidentally rebuild an unrelated stage context).
+_CAPABILITY_RESUME_STAGE: Mapping[str, int] = {
+    "shared_host_assignment": 3,
+    "arena_conflict_resolution": 3,
+    "stage3_interactive": 4,
+    "stage3_optimize": 4,
+    "stage3_pareto": 4,
+    "host_team_missing_repair": 4,
+    "underfilled_roster_repair": 4,
+    "host_placement_repair": 4,
+    "search_neighborhood_repair": 4,
+}
+
 
 class Stage3SessionVersionError(ValueError):
     """Raised when persisted session state uses an unsupported schema version."""
@@ -256,6 +276,22 @@ class Stage3Session:
         if not self.pending_decision:
             return ""
         return str(self.pending_decision.get("candidate_fingerprint") or "")
+
+    def pending_resume_stage(self) -> int | None:
+        """Stage number a transport must answer the pending decision with.
+
+        ``None`` when nothing is pending. A capability the session does not
+        know falls back to the ownership its scope implies: run-scoped asks
+        belong to the in-Stage-3 sub-decision step (``3``), candidate-scoped
+        asks to the post-plan Stage 3 decision (``4``). Exposing this from the
+        session lets a transport reject a wrong ``--resume-from`` with a
+        lifecycle error instead of accidentally building an unrelated stage
+        context.
+        """
+        if not self.pending_decision:
+            return None
+        capability = str(self.pending_decision.get("capability") or "")
+        return resume_stage_for_capability(capability, scope=self.pending_scope())
 
     def pending_marker(self) -> dict[str, Any]:
         """Domain-specific identity of the pending sub-decision, if any.
@@ -735,3 +771,10 @@ def status_for_capability(capability: str) -> str:
 
 def scope_for_capability(capability: str) -> str:
     return SCOPE_RUN if capability in _RUN_SCOPED_CAPABILITIES else SCOPE_CANDIDATE
+
+
+def resume_stage_for_capability(capability: str, *, scope: str = "") -> int:
+    """Stage number a transport must answer *capability* with."""
+    if capability in _CAPABILITY_RESUME_STAGE:
+        return _CAPABILITY_RESUME_STAGE[capability]
+    return 3 if scope == SCOPE_RUN else 4

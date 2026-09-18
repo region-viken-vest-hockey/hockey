@@ -236,6 +236,28 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     session_store = Stage3SessionStore(state.work_dir)
     session = session_store.load(expected_run_id=_current_run_id(state))
     pending_capability = str((session.pending_decision or {}).get("capability") or "")
+
+    # The session owns which pipeline stage a pending Stage 3 decision belongs
+    # to. Reject a wrong --resume-from here, before any domain work or stage
+    # context is built, so a mis-routed answer cannot silently rebuild an
+    # unrelated stage or skip the exact candidate transition.
+    if decision_payload is not None and session.pending_decision:
+        from ...application.stage3_session import TRANSITION_FOR_ACTION
+
+        expected_resume_from = session.pending_resume_stage()
+        submitted_action = str(decision_payload.get("action_id") or "")
+        if (
+            expected_resume_from is not None
+            and submitted_action in TRANSITION_FOR_ACTION
+            and resume_from != expected_resume_from
+        ):
+            _console.print(
+                f"[red]✗[/red] Stage 3-avgjørelsen '{pending_capability}' "
+                f"tilhører --resume-from {expected_resume_from}, ikke {resume_from}. "
+                "Svaret avvises uten å gjenoppbygge en annen stage."
+            )
+            return 1
+
     capabilities = InteractiveStage3Capabilities(
         state,
         args,
