@@ -16,7 +16,10 @@ from tournament_scheduler.pipeline.controller_trace import (
     EVENT_CANDIDATE_MUTATION,
     EVENT_DIRECTION_SELECTED,
     EVENT_FRONTIER_MUTATION,
+    EVENT_OPERATOR_ANSWER,
+    EVENT_PUBLICATION,
     EVENT_RUN_START,
+    EVENT_STAGE_DECISION,
     EVENT_TERMINAL,
     ControllerTrace,
     candidate_lineage,
@@ -24,6 +27,7 @@ from tournament_scheduler.pipeline.controller_trace import (
     controller_trace_reference,
     metric_pairs,
     read_controller_trace,
+    resolve_trace_run_id,
     summarize_controller_trace,
 )
 
@@ -172,6 +176,59 @@ def test_metric_pairs_projects_before_after_delta() -> None:
     )
     assert before == {"hard_violations": 0, "unresolved_placement_obligations": 3}
     assert after == {"hard_violations": 0, "unresolved_placement_obligations": 2}
+
+
+def test_summary_includes_stage_decisions_answers_and_publications() -> None:
+    events = [
+        {
+            "event": EVENT_STAGE_DECISION,
+            "seq": 1,
+            "stage": "planning",
+            "capability": "stage3_interactive",
+            "action_id": "apply_candidate",
+            "accepted": True,
+            "candidate_ref": "stage3_interactive:attempt_2",
+            "candidate_fingerprint": "fp1",
+        },
+        {
+            "event": EVENT_OPERATOR_ANSWER,
+            "seq": 2,
+            "question_id": "q-1",
+            "question_type": "external_publication",
+            "scope": "run",
+            "answer": "godkjenn",
+            "decided_by": "operator",
+            "candidate_fingerprint": "fp1",
+            "export_fingerprint": "efp1",
+        },
+        {
+            "event": EVENT_PUBLICATION,
+            "seq": 3,
+            "status": "ok",
+            "export_fingerprint": "efp1",
+            "bundle_fingerprint": "bfp1",
+            "pages_commit": "abc123",
+            "pages_branch": "gh-pages",
+            "verify_status": "ok",
+        },
+    ]
+    summary = summarize_controller_trace(events)
+    assert summary["event_counts"] == {
+        EVENT_OPERATOR_ANSWER: 1,
+        EVENT_PUBLICATION: 1,
+        EVENT_STAGE_DECISION: 1,
+    }
+    assert summary["stage_decisions"][0]["action_id"] == "apply_candidate"
+    assert summary["operator_answers"][0]["answer"] == "godkjenn"
+    assert summary["publications"][0]["pages_commit"] == "abc123"
+
+
+def test_resolve_trace_run_id_falls_back_to_the_manifest(tmp_path: Path) -> None:
+    from tournament_scheduler.pipeline.run_manifest import RunManifest
+
+    RunManifest(str(tmp_path)).start_run("objective", run_id="run-fallback")
+    assert resolve_trace_run_id(tmp_path) == "run-fallback"
+    assert resolve_trace_run_id(tmp_path, "explicit") == "explicit"
 
 
 def test_trace_reference_is_compact_and_includes_a_summary(tmp_path: Path) -> None:

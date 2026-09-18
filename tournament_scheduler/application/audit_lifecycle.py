@@ -42,20 +42,11 @@ def _now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def _active_run_id(work_dir: Any) -> str:
-    try:
-        from ..pipeline.run_manifest import RunManifest
-
-        return str(RunManifest(work_dir).read().get("run_id") or "")
-    except Exception:
-        return ""
-
-
 def _trace(work_dir: Any, run_id: str | None) -> Any:
     """Best-effort controller trace writer for this run's audit transitions."""
-    from ..pipeline.controller_trace import ControllerTrace
+    from ..pipeline.controller_trace import ControllerTrace, resolve_trace_run_id
 
-    return ControllerTrace(work_dir, run_id or _active_run_id(work_dir))
+    return ControllerTrace(work_dir, resolve_trace_run_id(work_dir, run_id))
 
 
 def _load(work_dir: Any, run_id: str | None) -> Stage3Session:

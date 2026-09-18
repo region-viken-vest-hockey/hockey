@@ -674,14 +674,69 @@ def record_llm_decision(
 
     Wraps :meth:`RunManifest.record_decision` so transports never touch
     manifest internals directly, matching the ``operator_state`` use-case
-    pattern.
+    pattern. This is also the single boundary every stage-gate/Stage 3
+    optimize/keep/apply decision passes through, so it mirrors the recorded
+    decision into the run's append-only controller trace.
     """
     RunManifest(work_dir).record_decision(
         context=context.to_dict(),
         action=action.to_dict(),
         result=result.to_dict(),
     )
+    _trace_stage_decision(work_dir, context, action, result)
     return result
+
+
+def _trace_stage_decision(
+    work_dir: str,
+    context: DecisionContext,
+    action: DecisionAction,
+    result: DecisionResult,
+) -> None:
+    """Record one stage/Stage 3 gate decision in the controller trace.
+
+    The manifest ``decision_log`` holds the full context/action/result; the
+    trace keeps the compact, chronologically analyzable shape (stage,
+    capability, chosen action, candidate/baseline refs, counted hard
+    violations, concise rationale). It deliberately records no hidden
+    reasoning. Best-effort: a trace failure never fails the decision.
+    """
+    try:
+        from ..pipeline.controller_trace import (
+            EVENT_STAGE_DECISION,
+            ControllerTrace,
+            resolve_trace_run_id,
+        )
+
+        facts = dict(context.facts or {})
+        extra = dict(context.extra or {})
+        candidate_fingerprint = (
+            facts.get("candidate_fingerprint")
+            or extra.get("candidate_fingerprint")
+            or facts.get("facts_fingerprint")
+        )
+        export_fingerprint = facts.get("export_fingerprint") or extra.get("export_fingerprint")
+        ControllerTrace(work_dir, resolve_trace_run_id(work_dir, context.run_id or None)).emit(
+            EVENT_STAGE_DECISION,
+            stage=context.stage,
+            capability=context.capability,
+            action_id=action.action_id,
+            accepted=bool(result.accepted),
+            rationale=action.rationale,
+            candidate_ref=context.candidate_ref,
+            baseline_ref=context.baseline_ref,
+            candidate_fingerprint=candidate_fingerprint,
+            export_fingerprint=export_fingerprint,
+            hard_violation_count=len(context.hard_violations),
+            baseline_hard_violation_count=len(context.baseline_hard_violations),
+            changed_violations=list(result.changed_violations),
+            changed_metrics=dict(result.changed_metrics or {}),
+            rejection_reason=result.rejection_reason,
+            result_ref=result.result_ref,
+        )
+    except Exception:
+        # Observability must never fail or roll back the recorded decision.
+        pass
 
 
 def _optional_str(value: Any) -> str | None:

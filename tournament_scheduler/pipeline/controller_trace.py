@@ -61,6 +61,13 @@ EVENT_REVIEW_SELECTION = "review_selection"
 EVENT_STAGE4_MATERIALIZATION = "stage4_materialization"
 EVENT_PROMOTION = "promotion"
 EVENT_FRONTIER_ADOPTION = "frontier_adoption"
+# Ordinary stage-gate and Stage 3 optimize/keep/apply decisions outside the
+# bounded-convergence sub-loop, plus the durable operator/publication
+# boundaries. Together with the convergence events above these let an analyst
+# reconstruct the whole controller path, not only the convergence epochs.
+EVENT_STAGE_DECISION = "stage_decision"
+EVENT_OPERATOR_ANSWER = "operator_answer"
+EVENT_PUBLICATION = "publication"
 
 # Family groups used by the summary.
 _FRONTIER_MUTATION_EVENTS = frozenset({EVENT_FRONTIER_MUTATION})
@@ -82,6 +89,26 @@ def controller_trace_dir(work_dir: "str | os.PathLike[str]", run_id: str | None)
 
 def controller_trace_path(work_dir: "str | os.PathLike[str]", run_id: str | None) -> Path:
     return controller_trace_dir(work_dir, run_id) / CONTROLLER_TRACE_FILENAME
+
+
+def resolve_trace_run_id(
+    work_dir: "str | os.PathLike[str]", run_id: str | None = None
+) -> str:
+    """Resolve the run identity a trace event belongs to.
+
+    A decision boundary may hold an explicit run id (a ``DecisionContext``) or
+    none at all (a standalone operator command). Falling back to the run
+    manifest's active ``run_id`` keeps those events in the same run-scoped
+    trace instead of creating a second ``unscoped`` file.
+    """
+    if run_id:
+        return str(run_id)
+    try:
+        from .run_manifest import RunManifest
+
+        return str(RunManifest(work_dir).read().get("run_id") or "")
+    except Exception:
+        return ""
 
 
 def _last_sequence(path: Path) -> int:
@@ -260,6 +287,9 @@ def summarize_controller_trace(events: Iterable[Mapping[str, Any]]) -> dict[str,
     pause_reason = ""
     review_selection: dict[str, Any] | None = None
     stage4_materializations: list[dict[str, Any]] = []
+    stage_decisions: list[dict[str, Any]] = []
+    operator_answers: list[dict[str, Any]] = []
+    publications: list[dict[str, Any]] = []
     first_fingerprint = ""
     last_fingerprint = ""
 
@@ -319,6 +349,46 @@ def summarize_controller_trace(events: Iterable[Mapping[str, Any]]) -> dict[str,
                     "export_dir": entry.get("export_dir"),
                 }
             )
+        elif event == EVENT_STAGE_DECISION:
+            stage_decisions.append(
+                {
+                    "seq": entry.get("seq"),
+                    "stage": entry.get("stage"),
+                    "capability": entry.get("capability"),
+                    "action_id": entry.get("action_id"),
+                    "accepted": bool(entry.get("accepted")),
+                    "candidate_ref": entry.get("candidate_ref"),
+                    "baseline_ref": entry.get("baseline_ref"),
+                    "candidate_fingerprint": entry.get("candidate_fingerprint"),
+                }
+            )
+        elif event == EVENT_OPERATOR_ANSWER:
+            operator_answers.append(
+                {
+                    "seq": entry.get("seq"),
+                    "question_id": entry.get("question_id"),
+                    "question_type": entry.get("question_type"),
+                    "scope": entry.get("scope"),
+                    "answer": entry.get("answer"),
+                    "decided_by": entry.get("decided_by"),
+                    "candidate_fingerprint": entry.get("candidate_fingerprint"),
+                    "export_fingerprint": entry.get("export_fingerprint"),
+                }
+            )
+        elif event == EVENT_PUBLICATION:
+            publications.append(
+                {
+                    "seq": entry.get("seq"),
+                    "status": entry.get("status"),
+                    "export_fingerprint": entry.get("export_fingerprint"),
+                    "bundle_fingerprint": entry.get("bundle_fingerprint"),
+                    "target_fingerprint": entry.get("target_fingerprint"),
+                    "pages_commit": entry.get("pages_commit"),
+                    "pages_branch": entry.get("pages_branch"),
+                    "verify_status": entry.get("verify_status"),
+                    "detail": entry.get("detail"),
+                }
+            )
 
     lineage = candidate_lineage(events)
     return {
@@ -336,6 +406,9 @@ def summarize_controller_trace(events: Iterable[Mapping[str, Any]]) -> dict[str,
         "audit_statuses": audit_statuses,
         "operator_questions": operator_questions,
         "stage4_materializations": stage4_materializations,
+        "stage_decisions": stage_decisions,
+        "operator_answers": operator_answers,
+        "publications": publications,
         "terminal_reason": terminal_reason,
         "terminal_detail": terminal_detail,
         "pause_reason": pause_reason,
@@ -370,13 +443,16 @@ __all__ = [
     "EVENT_EPOCH_START",
     "EVENT_FRONTIER_ADOPTION",
     "EVENT_FRONTIER_MUTATION",
+    "EVENT_OPERATOR_ANSWER",
     "EVENT_OPERATOR_QUESTION",
     "EVENT_OPTIONS_ENUMERATED",
     "EVENT_PAUSE",
     "EVENT_PROMOTION",
+    "EVENT_PUBLICATION",
     "EVENT_REVIEW_SELECTION",
     "EVENT_RUN_START",
     "EVENT_STAGE4_MATERIALIZATION",
+    "EVENT_STAGE_DECISION",
     "EVENT_STAGE_GATE",
     "EVENT_TERMINAL",
     "ControllerTrace",
@@ -386,5 +462,6 @@ __all__ = [
     "controller_trace_reference",
     "metric_pairs",
     "read_controller_trace",
+    "resolve_trace_run_id",
     "summarize_controller_trace",
 ]

@@ -346,6 +346,54 @@ class TestPublishPagesExecutor:
         # would have failed with a git error, not blocked with a privacy finding.
         assert not (tmp_path / ".git").exists()
 
+    def test_successful_publish_records_a_publication_trace(self, tmp_path):
+        """Which audited bundle became public, and its Pages commit, is traceable."""
+        from tournament_scheduler.pipeline.controller_trace import read_controller_trace
+
+        _init_repo(tmp_path)
+        _write_export(tmp_path)
+
+        action = DEFAULT_REGISTRY.build(
+            "publish_pages", work_dir=str(tmp_path), repo_dir=str(tmp_path), push=False, confirm_public=True
+        )
+        result = DEFAULT_REGISTRY.execute(action, approved=True)
+        assert result.status == "ok"
+
+        run_id = RunManifest(tmp_path).read()["run_id"]
+        publications = [
+            event for event in read_controller_trace(tmp_path, run_id) if event["event"] == "publication"
+        ]
+        assert len(publications) == 1
+        publication = publications[0]
+        assert publication["status"] == "ok"
+        assert publication["export_fingerprint"]
+        assert publication["bundle_fingerprint"]
+        assert publication["target_fingerprint"]
+        assert publication["pages_commit"]
+        assert publication["pages_branch"] == "gh-pages"
+
+    def test_blocked_publication_is_traced_with_the_pending_question(self, tmp_path):
+        """A publication that never happened is visible as an explicit block."""
+        from tournament_scheduler.pipeline.controller_trace import read_controller_trace
+
+        _init_repo(tmp_path)
+        _write_export(tmp_path)
+
+        action = DEFAULT_REGISTRY.build(
+            "publish_pages", work_dir=str(tmp_path), repo_dir=str(tmp_path), push=False
+        )
+        result = DEFAULT_REGISTRY.execute(action, approved=True)
+        assert result.status == "blocked"
+
+        run_id = RunManifest(tmp_path).read()["run_id"]
+        publications = [
+            event for event in read_controller_trace(tmp_path, run_id) if event["event"] == "publication"
+        ]
+        assert len(publications) == 1
+        assert publications[0]["status"] == "blocked"
+        assert publications[0]["question_id"]
+        assert publications[0]["export_fingerprint"]
+
 
 def _init_repo(repo_dir) -> None:
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo_dir)], check=True)

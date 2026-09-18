@@ -849,7 +849,17 @@ def _emit_stage3_interactive_decision(
             f"stage3_interactive attempt {attempts_used}: could not retain verified candidate: {exc}"
         )
 
-    context = _dc_replace(context, facts={**context.facts, "search_history": search_history})
+    context = _dc_replace(
+        context,
+        facts={
+            **context.facts,
+            "search_history": search_history,
+            # Expose the exact candidate this decision is about so the
+            # controller trace can link the answer to a comparable fingerprint
+            # instead of only a human-readable ref.
+            "candidate_fingerprint": plan_fingerprint,
+        },
+    )
     if circuit_breaker_tripped:
         context = _dc_replace(
             context,

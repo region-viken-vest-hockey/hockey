@@ -337,3 +337,48 @@ def test_record_llm_decision_persists_to_manifest_decision_log(tmp_path):
     assert entry["result"]["accepted"] is True
     assert entry["context"]["capability"] == "scraping"
     assert "recorded_at" in entry
+
+
+def test_record_llm_decision_mirrors_a_stage_decision_into_the_controller_trace(tmp_path):
+    """Every gate/Stage 3 decision is reconstructable from the run trace."""
+    from tournament_scheduler.pipeline.controller_trace import (
+        EVENT_STAGE_DECISION,
+        read_controller_trace,
+    )
+
+    RunManifest(str(tmp_path)).start_run("objective")
+    run_id = RunManifest(str(tmp_path)).read()["run_id"]
+    context = _context(
+        run_id=run_id,
+        stage="planning",
+        capability="stage3_interactive",
+        candidate_ref="stage3_interactive:attempt_2",
+        baseline_ref="stage3_interactive:attempt_1",
+        facts={"candidate_fingerprint": "fp-candidate"},
+        baseline_hard_violations=("host_team_missing:u11",),
+        available_actions=("apply_candidate", "keep_baseline"),
+    )
+    action = DecisionAction(
+        action_id="apply_candidate",
+        arguments={"candidate_ref": "stage3_interactive:attempt_2"},
+        rationale="attempt 2 removed one hard violation without regressing quality",
+    )
+    result = decide(context, action)
+
+    record_llm_decision(str(tmp_path), context, action, result)
+
+    events = read_controller_trace(tmp_path, run_id)
+    decisions = [e for e in events if e["event"] == EVENT_STAGE_DECISION]
+    assert len(decisions) == 1
+    decision = decisions[0]
+    assert decision["stage"] == "planning"
+    assert decision["capability"] == "stage3_interactive"
+    assert decision["action_id"] == "apply_candidate"
+    assert decision["accepted"] is True
+    assert decision["candidate_ref"] == "stage3_interactive:attempt_2"
+    assert decision["baseline_ref"] == "stage3_interactive:attempt_1"
+    assert decision["candidate_fingerprint"] == "fp-candidate"
+    assert decision["hard_violation_count"] == 0
+    assert decision["baseline_hard_violation_count"] == 1
+    assert "removed one hard violation" in decision["rationale"]
+    assert "chain_of_thought" not in decision

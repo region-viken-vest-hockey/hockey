@@ -47,6 +47,44 @@ def test_answer_and_all_questions_preserve_audit_trail(tmp_path):
     assert [q.id for q in list_operator_questions(str(tmp_path), include_all=True)] == [question.id]
 
 
+def test_answer_is_linked_into_the_controller_trace(tmp_path):
+    """An operator answer is reconstructable against the same run/candidate."""
+    from tournament_scheduler.pipeline.controller_trace import (
+        EVENT_OPERATOR_ANSWER,
+        read_controller_trace,
+    )
+    from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+
+    manifest = RunManifest(tmp_path)
+    manifest.start_run("objective", run_id="run-trace-1")
+    PipelineState(tmp_path).write_stage(
+        StageName.EXPORT,
+        {"export_fingerprint": "export-fp-1"},
+        status=StageStatus.DONE,
+    )
+    question = Question(
+        type="external_publication",
+        capability="pages_publish",
+        summary="Godkjenn publisering?",
+        scope="run",
+        scope_key="run-trace-1",
+    )
+    raise_question(str(tmp_path), question)
+
+    record_operator_answer(str(tmp_path), question.id, "godkjenn", decided_by="operator")
+
+    events = read_controller_trace(tmp_path, "run-trace-1")
+    answers = [e for e in events if e["event"] == EVENT_OPERATOR_ANSWER]
+    assert len(answers) == 1
+    answer = answers[0]
+    assert answer["question_id"] == question.id
+    assert answer["question_type"] == "external_publication"
+    assert answer["scope"] == "run"
+    assert answer["answer"] == "godkjenn"
+    assert answer["decided_by"] == "operator"
+    assert answer["export_fingerprint"] == "export-fp-1"
+
+
 def test_promote_operator_question_returns_new_typed_scope(tmp_path):
     RunManifest(tmp_path).start_run("objective", run_id="run-1")
     question = Question(

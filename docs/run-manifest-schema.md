@@ -81,6 +81,17 @@ The manifest `decision_log` and the Stage 3 attempt log are summaries; they do n
 
 Each JSONL event records only explicit decision inputs/outputs and measurable effects: event family, epoch, direction/finding, candidate-before/after fingerprints, selected option/ref, objective/verification deltas, Pareto-frontier add/prune and terminal/pause reason, plus a concise explicit rationale. It never contains hidden chain-of-thought or raw model reasoning. The file is keyed by `run_id` and sequence number and is appended across process restarts/resume rather than truncated. Read/summarize it with `tournament_scheduler.pipeline.controller_trace.read_controller_trace` / `summarize_controller_trace` / `candidate_lineage`.
 
+Event families cover the whole controller path, not only the convergence epochs:
+
+- `stage_gate` / `stage4_materialization` / `promotion` -- pipeline gate and handoff transitions;
+- `stage_decision` -- every ordinary Stage 1/2/3 gate and Stage 3 optimize/keep/apply decision outside the convergence sub-loop, written by `application.decisions.record_llm_decision` with stage/capability, chosen action, candidate/baseline refs and counted verification evidence;
+- `epoch_start` / `direction_selected` / `options_enumerated` / `frontier_mutation` / `candidate_mutation` / `epoch_end` -- bounded-convergence epochs;
+- `operator_question` / `operator_answer` -- the escalation boundary, linking the question id, answer/actor and the run/candidate/export identity it was asked against;
+- `audit_verdict` / `review_selection` / `terminal` / `pause` -- audit and review decisions, plus terminal and resumable-pause reasons;
+- `publication` -- the Pages boundary, recording a blocked/dry-run/rejected/completed publication with the source export fingerprint, sanitized bundle/target fingerprints and the resulting Pages commit/branch/verify status.
+
+A decision boundary that holds no explicit run id (a standalone operator answer/publication) resolves the trace scope from the run manifest's active `run_id` instead of creating a second unscoped file.
+
 The detailed JSONL stays in the run workspace, never in the Stage 4 export tree or the public GitHub Pages bundle. The sanitized `evidence_bundle.json` carries a stable run/path reference plus a compact `controller_trace` summary (event counts, directions, candidate transitions, frontier mutations, terminal/pause reason), so a reviewer can locate and analyze the detail without copying unbounded decision evidence into a publishable artifact.
 
 ## Persistence guarantees

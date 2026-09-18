@@ -455,6 +455,57 @@ def _is_publication_approved_answer(answer: str) -> bool:
     return answer.strip().lower() in _PUBLICATION_APPROVAL_ANSWERS
 
 
+def _emit_publication_trace(
+    work_dir: str,
+    run_id: str,
+    *,
+    status: str,
+    export_dir: str | None = None,
+    export_fingerprint: str | None = None,
+    bundle_fingerprint: str | None = None,
+    target_fingerprint: str | None = None,
+    question_id: str | None = None,
+    result: "CapabilityResult | None" = None,
+    detail: str = "",
+) -> None:
+    """Best-effort controller-trace event for one Pages publication boundary.
+
+    Records blocked (audit-gate/approval) and completed publication alike, so
+    a post-run analysis can answer which audited export/bundle actually became
+    public and the resulting Pages commit/run identity. Promotion is traced
+    separately; this is the boundary that makes the review export reach a
+    public URL. Never fails the publication it describes.
+    """
+    try:
+        from .controller_trace import EVENT_PUBLICATION, ControllerTrace
+
+        fields: dict[str, Any] = {
+            "status": status,
+            "export_dir": export_dir,
+            "export_fingerprint": export_fingerprint or None,
+            "bundle_fingerprint": bundle_fingerprint or None,
+            "target_fingerprint": target_fingerprint or None,
+            "question_id": question_id or None,
+            "detail": detail or None,
+        }
+        if result is not None:
+            payload = result.to_dict()
+            fields.update(
+                pages_commit=_evidence_value(payload, "commit_sha"),
+                pages_branch=_evidence_value(payload, "branch"),
+                verify_status=_evidence_value(payload, "verify_status"),
+                urls=[
+                    str(url)
+                    for url in (payload.get("artifacts") or [])
+                    if isinstance(url, str) and url.startswith("http")
+                ],
+            )
+        ControllerTrace(work_dir, run_id).emit(EVENT_PUBLICATION, **fields)
+    except Exception:
+        # Observability must never fail or roll back a publication decision.
+        pass
+
+
 def _execute_publish_pages(
     *,
     work_dir: str,
@@ -582,9 +633,25 @@ def _execute_publish_pages(
         allow_findings=allow_findings,
     )
     if not bundle_result.is_terminal_success:
+        _emit_publication_trace(
+            work_dir,
+            run_id,
+            status="blocked",
+            export_dir=export_dir,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            detail="public bundle rejected before publication",
+        )
         return bundle_result
 
     if (blocked := _apply_publish_audit_gate(work_dir=work_dir, bundle_result=bundle_result, with_collision_warning=_with_collision_warning)) is not None:
+        _emit_publication_trace(
+            work_dir,
+            run_id,
+            status="blocked",
+            export_dir=export_dir,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            detail="publication audit gate",
+        )
         return blocked
     bundle_fp = pages_publish.bundle_fingerprint(public_bundle_dir)
     target_fp = pages_publish.target_fingerprint(
@@ -618,6 +685,17 @@ def _execute_publish_pages(
 
     if dry_run:
         diff = _raise_preview_question()
+        _emit_publication_trace(
+            work_dir,
+            run_id,
+            status="dry_run",
+            export_dir=export_dir,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            bundle_fingerprint=bundle_fp,
+            target_fingerprint=target_fp,
+            question_id=question.id,
+            detail="preview only; nothing published",
+        )
         return _with_collision_warning(CapabilityResult.ok(
             f"Forhåndsvisning av publisering til '{branch}' — ingen publisering utført "
             f"(+{len(diff['add'])} ~{len(diff['update'])} -{len(diff['remove'])} under /latest/).",
@@ -639,6 +717,17 @@ def _execute_publish_pages(
             if _is_publication_approved_answer(existing.get("answer") or ""):
                 approved_now = True
             else:
+                _emit_publication_trace(
+                    work_dir,
+                    run_id,
+                    status="rejected",
+                    export_dir=export_dir,
+                    export_fingerprint=export_checkpoint.get("export_fingerprint"),
+                    bundle_fingerprint=bundle_fp,
+                    target_fingerprint=target_fp,
+                    question_id=question.id,
+                    detail=f"prior answer rejected: {existing.get('answer')!r}",
+                )
                 return _with_collision_warning(CapabilityResult.blocked(
                     f"Publisering av denne bunten ble avvist tidligere (svar: {existing.get('answer')!r}).",
                     capability="pages_publish",
@@ -648,6 +737,17 @@ def _execute_publish_pages(
                 ))
         else:
             diff = _raise_preview_question()
+            _emit_publication_trace(
+                work_dir,
+                run_id,
+                status="blocked",
+                export_dir=export_dir,
+                export_fingerprint=export_checkpoint.get("export_fingerprint"),
+                bundle_fingerprint=bundle_fp,
+                target_fingerprint=target_fp,
+                question_id=question.id,
+                detail="explicit publication approval required",
+            )
             return _with_collision_warning(CapabilityResult.blocked(
                 f"Publisering krever eksplisitt godkjenning for denne bunten (bunt {bundle_fp[:12]}, "
                 f"mål {target_fp[:12]}).",
@@ -739,7 +839,19 @@ def _execute_publish_pages(
                     verify_result.suggested_actions
                 )
 
-    return _with_collision_warning(publish_result)
+    final_result = _with_collision_warning(publish_result)
+    _emit_publication_trace(
+        work_dir,
+        run_id,
+        status=str(final_result.status),
+        export_dir=export_dir,
+        export_fingerprint=export_checkpoint.get("export_fingerprint"),
+        bundle_fingerprint=bundle_fp,
+        target_fingerprint=target_fp,
+        result=final_result,
+        detail=str(final_result.summary),
+    )
+    return final_result
 
 
 def _last_ok_pages_publish_capability(work_dir: str) -> dict[str, Any] | None:

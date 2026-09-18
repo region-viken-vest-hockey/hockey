@@ -37,9 +37,56 @@ def record_operator_answer(
 ) -> OperatorQuestion:
     """Record a durable answer to a previously-raised operator question."""
 
-    return OperatorQuestion.from_dict(
+    entry = OperatorQuestion.from_dict(
         answer_question(work_dir, question_id, answer, decided_by=decided_by)
     )
+    _trace_operator_answer(work_dir, entry)
+    return entry
+
+
+def _trace_operator_answer(work_dir: str, entry: OperatorQuestion) -> None:
+    """Link one durable operator answer to the run's controller trace.
+
+    Best-effort observability only: the answer is already persisted in the
+    run manifest, so a trace write failure must never fail the decision. The
+    event records the question/answer/actor plus the run and the candidate/
+    export identity the question was asked against, so a post-run analysis can
+    place the human decision on the same timeline as the automatic ones.
+    """
+    try:
+        from ..pipeline.audit_result import current_export_fingerprint
+        from ..pipeline.controller_trace import (
+            EVENT_OPERATOR_ANSWER,
+            ControllerTrace,
+            resolve_trace_run_id,
+        )
+
+        run_id = resolve_trace_run_id(work_dir)
+        candidate_fingerprint = ""
+        try:
+            from .stage3_session_store import Stage3SessionStore
+
+            session = Stage3SessionStore(work_dir).load(expected_run_id=run_id or None)
+            candidate_fingerprint = str(
+                session.finalized_fingerprint or session.candidate_fingerprint or ""
+            )
+        except Exception:
+            candidate_fingerprint = ""
+        ControllerTrace(work_dir, run_id).emit(
+            EVENT_OPERATOR_ANSWER,
+            question_id=entry.id,
+            question_type=entry.type,
+            capability=entry.capability,
+            scope=entry.scope,
+            scope_key=entry.scope_key,
+            answer=entry.answer,
+            decided_by=entry.decided_by,
+            candidate_fingerprint=candidate_fingerprint,
+            export_fingerprint=current_export_fingerprint(work_dir),
+        )
+    except Exception:
+        # Observability must never fail or roll back the recorded answer.
+        pass
 
 
 def promote_operator_question(
