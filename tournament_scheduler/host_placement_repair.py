@@ -404,8 +404,13 @@ def _base(finding: _Finding) -> Dict[str, Any]:
     }
 
 
-def _is_manual_slot_failure(tournament: Mapping[str, Any]) -> bool:
+def is_manual_slot_failure(tournament: Mapping[str, Any]) -> bool:
+    """Public owner predicate: tournament is an unresolved manual placement."""
     return MANUAL_SLOT_FAILURE_MARKER in str(tournament.get("manual_booking_reason") or "")
+
+
+def _is_manual_slot_failure(tournament: Mapping[str, Any]) -> bool:
+    return is_manual_slot_failure(tournament)
 
 
 def _candidate_weekend_bundle(

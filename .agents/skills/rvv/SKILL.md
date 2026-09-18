@@ -49,7 +49,7 @@ scripts/rvv-miniputt season apply --season 2026-2027 --candidate <candidate.json
 scripts/rvv-miniputt season export --season 2026-2027
 ```
 
-For a localized defect (an unresolved hosting obligation, a manual placement, a participation strong-goal deviation), prefer the finding-directed loop over whole-season replanning:
+For a localized defect (an unresolved hosting obligation, a manual placement, a host-controlled movable-ice opportunity, a participation strong-goal deviation), prefer the finding-directed loop over whole-season replanning:
 
 ```text
 season findings            -> fresh, revision-bound facts (never the promoted snapshot)

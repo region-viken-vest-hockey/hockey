@@ -70,6 +70,41 @@ def candidate_fingerprint(candidate: Mapping[str, Any]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def search_dimension_tag(dimensions: Iterable[str]) -> str:
+    """Stable, reconstructible tag for a search option's enabled move dimensions.
+
+    A bounded search result depends on which move kinds were enabled, so two
+    options from the same finding/seed but different dimension sets must have
+    distinct identities. The tag names the deterministic inputs that
+    reconstruct the option rather than embedding a produced-candidate
+    fingerprint (which carries non-reproducible run instrumentation).
+    """
+    keys = sorted({str(dimension) for dimension in dimensions})
+    return "-".join(keys) if keys else "none"
+
+
+_SEARCH_DIMENSION_NAMES = ("date", "host", "participants", "slot")
+
+
+def search_dimensions_from_option_id(option_id: str) -> Optional[Tuple[str, ...]]:
+    """Recover the enabled move dimensions from a search option id.
+
+    The exact inverse of :func:`search_dimension_tag`, so an apply path does
+    not need the caller to remember and repeat the ``--dimensions`` a bounded
+    search was run with. Returns ``None`` for an option id that does not carry
+    a recognizable search tag.
+    """
+    if ":search:" not in option_id:
+        return None
+    tag = option_id.rsplit(":", 1)[-1]
+    if tag == "none":
+        return ()
+    names = tag.split("-")
+    if not names or any(name not in _SEARCH_DIMENSION_NAMES for name in names):
+        return None
+    return tuple(names)
+
+
 def enumerate_host_team_missing_repairs(
     candidate: Mapping[str, Any],
     problem: Mapping[str, Any],

@@ -75,6 +75,7 @@ HARD_VIOLATION = "hard_violation"
 HOSTING = "hosting"
 PARTICIPATION = "participation"
 MANUAL_PLACEMENT = "manual_placement"
+MOVABLE_CAPACITY = "movable_capacity"
 ROSTER_SHAPE = "roster_shape"
 
 
@@ -241,6 +242,15 @@ def apply_repair(
     enumerates) is rejected without touching canonical state.
     """
     resolved_dimensions = tuple(sorted({str(dimension) for dimension in dimensions}))
+    # A bounded search result is reproduced from the dimensions that produced
+    # it, not from whatever the caller happened to pass to ``apply-repair``.
+    # Prefer the option's own stable dimension tag so applying a returned
+    # search option does not require the harness to replay its flags.
+    from .host_team_missing_repair import search_dimensions_from_option_id
+
+    recovered_dimensions = search_dimensions_from_option_id(option_id)
+    if recovered_dimensions is not None:
+        resolved_dimensions = recovered_dimensions
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
     if expected_revision and expected_revision != revision:
@@ -425,7 +435,8 @@ def _findings(
     findings.extend(_hard_findings(plan, verification))
     findings.extend(_hosting_findings(problem, plan))
     findings.extend(_participation_findings(verification, problem))
-    findings.extend(_manual_findings(verification))
+    findings.extend(_manual_findings(plan, verification))
+    findings.extend(_movable_capacity_findings(problem, plan))
     findings.extend(_shape_findings(verification))
     findings.sort(key=lambda entry: (entry["category"], entry["finding_id"]))
     return findings
@@ -543,8 +554,11 @@ def _participation_findings(
     return out
 
 
-def _manual_findings(verification: Mapping[str, Any]) -> List[Dict[str, Any]]:
+def _manual_findings(
+    plan: Mapping[str, Any], verification: Mapping[str, Any]
+) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
+    seen: set = set()
     for key, category in (
         ("manual_participation_placements", "participation"),
         ("manual_calendar_placements", "calendar"),
@@ -552,8 +566,9 @@ def _manual_findings(verification: Mapping[str, Any]) -> List[Dict[str, Any]]:
     ):
         for placement in verification.get(key) or []:
             tournament_id = str(placement.get("tournament_id") or "")
-            if not tournament_id:
+            if not tournament_id or tournament_id in seen:
                 continue
+            seen.add(tournament_id)
             out.append(
                 {
                     "finding_id": f"manual_placement:{tournament_id}",
@@ -567,6 +582,77 @@ def _manual_findings(verification: Mapping[str, Any]) -> List[Dict[str, Any]]:
                     "message": f"{tournament_id} requires manual placement ({category})",
                 }
             )
+    # An unresolved placement the planner marked on the tournament itself is a
+    # plan-level fact verification cannot always rediscover: a manually chosen
+    # slot may be calendar-free while still being an unconfirmed booking. Own
+    # the same stable finding id as ``host_placement_repair`` so its repair
+    # options are reachable without reconstructing the marker in a caller.
+    from .host_placement_repair import is_manual_slot_failure
+
+    for tournament in plan.get("tournaments") or []:
+        tournament_id = str(tournament.get("id") or "")
+        if not tournament_id or tournament_id in seen:
+            continue
+        if not is_manual_slot_failure(tournament):
+            continue
+        seen.add(tournament_id)
+        out.append(
+            {
+                "finding_id": f"manual_placement:{tournament_id}",
+                "code": "manual_placement",
+                "category": MANUAL_PLACEMENT,
+                "severity": "unresolved",
+                "age_group": tournament.get("age_group"),
+                "tournament_id": tournament_id,
+                "host_club": tournament.get("host_club"),
+                "manual_placement_kind": "calendar",
+                "message": (
+                    f"{tournament_id} is scheduled but still marked as an unresolved "
+                    f"manual placement (calendar)"
+                ),
+            }
+        )
+    return out
+
+
+def _movable_capacity_findings(
+    problem: Mapping[str, Any], plan: Mapping[str, Any]
+) -> List[Dict[str, Any]]:
+    """Expose host-controlled ice that is available to a blocked same-host placement.
+
+    The finding is a fact (the responsible host controls movable ice on a
+    candidate date), not a committed placement: it always carries
+    ``requires_host_confirmation`` and the selected repair option still passes
+    full verification. It is deliberately separate from the owning
+    ``manual_placement`` finding so a caller can select the ice opportunity
+    directly instead of reconstructing it from provider options.
+    """
+    from .movable_capacity_repair import movable_capacity_opportunities
+
+    out: List[Dict[str, Any]] = []
+    for opportunity in movable_capacity_opportunities(plan, problem):
+        dates = opportunity.get("movable_dates") or []
+        first = dates[0] if dates else {}
+        out.append(
+            {
+                "finding_id": opportunity["finding_id"],
+                "code": "movable_capacity_opportunity",
+                "category": MOVABLE_CAPACITY,
+                "severity": "opportunity",
+                "age_group": opportunity.get("age_group"),
+                "tournament_id": opportunity.get("tournament_id"),
+                "host_club": opportunity.get("host_club"),
+                "original_date": opportunity.get("original_date"),
+                "movable_date_count": len(dates),
+                "earliest_movable_date": first.get("date"),
+                "requires_host_confirmation": True,
+                "message": (
+                    f"{opportunity['tournament_id']} can use host-controlled ice for "
+                    f"{opportunity.get('host_club')} on {first.get('date')} "
+                    f"(requires host confirmation)"
+                ),
+            }
+        )
     return out
 
 
@@ -602,7 +688,8 @@ def _findings_for_option(findings: List[Dict[str, Any]], option_id: str) -> List
     selected = [
         finding
         for finding in findings
-        if finding["category"] in (HOSTING, PARTICIPATION, HARD_VIOLATION)
+        if finding["category"]
+        in (HOSTING, PARTICIPATION, HARD_VIOLATION, MANUAL_PLACEMENT, MOVABLE_CAPACITY)
     ]
     return selected or findings
 
@@ -619,7 +706,7 @@ def _infer_finding_id(
     matches = [
         finding
         for finding in findings
-        if finding["category"] in (HOSTING, PARTICIPATION)
+        if finding["category"] in (HOSTING, PARTICIPATION, MOVABLE_CAPACITY)
         and finding["finding_id"] in option_id
     ]
     if not matches:
@@ -645,6 +732,8 @@ def _options_for_finding(
         return _hosting_options(plan, problem, finding, allow_search=allow_search, dimensions=dimensions)
     if category == PARTICIPATION:
         return _participation_options(plan, problem, finding, allow_search=allow_search, dimensions=dimensions)
+    if category == MOVABLE_CAPACITY:
+        return _movable_capacity_options(plan, problem, finding)
     return _hard_options(plan, problem, finding, allow_search=allow_search, dimensions=dimensions)
 
 
@@ -666,6 +755,28 @@ def _hosting_options(
         dimensions=dimensions,
     )
     return _collect(repair_set, finding["finding_id"], family="hosting_balance")
+
+
+def _movable_capacity_options(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    finding: Mapping[str, Any],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Expose the movable-capacity provider's verified options for one finding.
+
+    The provider does its own bounded date/slot/roster enumeration, so the
+    caller's ``dimensions`` do not narrow it further: its whole result already
+    is the bounded same-host search for this obligation.
+    """
+    from .movable_capacity_repair import enumerate_movable_capacity_repairs
+
+    repair_set = enumerate_movable_capacity_repairs(plan, problem)
+    return _collect(
+        repair_set,
+        finding["finding_id"],
+        family="movable_capacity",
+        tournament_id=finding.get("tournament_id"),
+    )
 
 
 def _participation_options(
@@ -792,6 +903,12 @@ def _escalation(options: List[Dict[str, Any]], rejected: List[Dict[str, Any]], f
                 "bounded_search_exhausted is not proof of infeasibility; another targeted "
                 "search may be requested"
             ),
+        }
+    if finding["category"] == MOVABLE_CAPACITY:
+        return {
+            "needed": True,
+            "reason": "no_verified_movable_capacity_repair",
+            "next": "inspect rejected_candidates for date/roster reasons",
         }
     return {"needed": True, "reason": "no_cheap_local_option"}
 
@@ -1042,6 +1159,12 @@ def _apply_option(
             expected_fingerprint=fingerprint,
             scope=scope,
             dimensions=option_dimensions,
+        )
+    if family == "movable_capacity":
+        from .movable_capacity_repair import apply_movable_capacity_repair_option
+
+        return apply_movable_capacity_repair_option(
+            plan, problem, option_id=option_id, expected_fingerprint=fingerprint
         )
     from .local_repair_options import apply_local_repair_option
 

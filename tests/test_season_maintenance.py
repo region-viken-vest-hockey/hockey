@@ -264,6 +264,59 @@ def test_search_then_apply_with_explicit_dimensions(tmp_path: Path) -> None:
     assert applied["delta"]["unresolved_hosting_obligations_after"] == 0
 
 
+def test_search_option_identity_is_stable_and_applyable_without_replaying_dimensions(
+    tmp_path: Path,
+) -> None:
+    """A bounded search option is reproducible across enumerations and applyable.
+
+    The option id must not embed the produced candidate's fingerprint: an
+    optimizer result carries wall-clock ``source.timings``, so that id changed
+    on every enumeration and ``apply-repair`` could never reproduce it.
+    """
+    root, _plan_dict, _problem_dict, revision = _two_club_season(tmp_path)
+    dimensions = ("participants", "host", "date", "slot")
+
+    first = search(YEAR, "hosting_balance:U10:Sorby", root=root, dimensions=dimensions)
+    second = search(YEAR, "hosting_balance:U10:Sorby", root=root, dimensions=dimensions)
+
+    assert [option["option_id"] for option in first["options"]] == [
+        option["option_id"] for option in second["options"]
+    ]
+    option = next(entry for entry in first["options"] if entry["action"] == "search")
+    assert option["arguments"]["dimensions"] == sorted(dimensions)
+
+    # The default apply dimensions differ from the search; the option's own
+    # dimension tag is authoritative, so no flag replay is required.
+    applied = apply_repair(
+        YEAR,
+        option["option_id"],
+        revision,
+        root=root,
+        finding_id="hosting_balance:U10:Sorby",
+    )
+
+    assert applied["ok"] is True, applied
+    assert applied["delta"]["unresolved_hosting_obligations_after"] == 0
+
+
+def test_search_dimension_tag_round_trips() -> None:
+    from tournament_scheduler.host_team_missing_repair import (
+        search_dimension_tag,
+        search_dimensions_from_option_id,
+    )
+
+    option_id = f"abc:hosting_balance:U10:Sorby:search:0:{search_dimension_tag(('slot', 'date', 'host', 'participants'))}"
+
+    assert search_dimensions_from_option_id(option_id) == (
+        "date",
+        "host",
+        "participants",
+        "slot",
+    )
+    # A non-search option id carries no dimension tag.
+    assert search_dimensions_from_option_id("abc:hosting_balance:U10:Sorby:rehost:T1") is None
+
+
 def test_repair_options_expose_a_non_dominated_pareto_front(tmp_path: Path) -> None:
     """Every option is measured on the shared vector; equal trade-offs de-duplicate.
 

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
-from .host_team_missing_repair import RepairOption, candidate_fingerprint
+from .host_team_missing_repair import RepairOption, candidate_fingerprint, search_dimension_tag
 from .planning_contract import verify_candidate
 from .stage3_optimizer import optimize_candidate
 
@@ -151,10 +151,14 @@ def enumerate_participation_deviation_repairs(
                 continue
             seen.add(after_fp)
             changed = _changed_ids(candidate, outcome)
+            # Identity is the deterministic request (seed + scope), not the
+            # produced candidate: an optimizer result carries wall-clock
+            # ``source.timings`` and would otherwise get a new id on every
+            # enumeration, making the option unapplyable.
             option_id = (
                 f"{fingerprint[:12]}:{PARTICIPATION_FINDING_PREFIX}:"
                 f"{deviation.get('club')}:{deviation.get('team')}:{deviation.get('scope')}:"
-                f"search:{int(seed)}:{after_fp[:10]}"
+                f"search:{int(seed)}:{search_dimension_tag(dims)}"
             )
             options.append(
                 RepairOption(

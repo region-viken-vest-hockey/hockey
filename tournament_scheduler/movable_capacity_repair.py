@@ -49,6 +49,109 @@ _MAX_REPLACEMENTS = 2
 _MAX_ROSTER_VARIANTS = 32
 _MAX_OPTIONS_PER_FINDING = 12
 
+# Stable finding identity shared by the promoted-season finding surface and
+# this provider's option ids, so a maintenance caller can select "the movable
+# ice opportunity for tournament X" without reconstructing it from raw state.
+MOVABLE_CAPACITY_FINDING_PREFIX = "movable_capacity"
+
+
+def movable_capacity_finding_id(tournament_id: str) -> str:
+    """Stable finding identity shared by findings and option enumeration."""
+    return f"{MOVABLE_CAPACITY_FINDING_PREFIX}:{tournament_id}"
+
+
+def movable_capacity_opportunities(
+    candidate: Mapping[str, Any],
+    problem: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    """Cheap, revision-bound evidence of host-controlled ice for a blocked placement.
+
+    This is deliberately a *fact* surface, not a repair: it never verifies a
+    candidate or mutates anything, so it is cheap enough to run while listing
+    findings. It reuses exactly the normalized availability facts the full
+    provider uses, so an opportunity reported here is the same opportunity the
+    provider will try to turn into a verified option -- the actual placement
+    still has to pass full verification and stays host-confirmation-gated.
+    """
+
+    pinned = {
+        str(item)
+        for item in (problem.get("manual_adjustments") or {}).get(
+            "pinned_tournament_ids", []
+        )
+    }
+    locked_dates = {
+        str(item)
+        for item in (problem.get("manual_adjustments") or {}).get("locked_dates", [])
+    }
+    banned_dates = {
+        str(item)
+        for item in (problem.get("manual_adjustments") or {}).get("banned_dates", [])
+    }
+    busy = _effective_busy_intervals(problem, candidate)
+
+    out: List[Dict[str, Any]] = []
+    for tournament in candidate.get("tournaments", []):
+        if tournament.get("cancelled") or not _is_manual_slot_failure(tournament):
+            continue
+        tournament_id = str(tournament.get("id") or "")
+        host = str(tournament.get("host_club") or "")
+        if not tournament_id or not host or tournament_id in pinned:
+            continue
+        if not _calendar_trusted(problem, host):
+            continue
+        duration = _duration_minutes(tournament, problem)
+        if duration <= 0:
+            continue
+        current_date = _parse_date(str(tournament.get("date") or ""))
+        windows: List[Dict[str, Any]] = []
+        for target_date in _candidate_weekend_dates(problem, current_date)[
+            :_MAX_DATES_PER_FINDING
+        ]:
+            date_iso = target_date.isoformat()
+            if date_iso in banned_dates or date_iso in locked_dates:
+                continue
+            for start_time in _candidate_start_times(tournament):
+                if external_calendar_conflict(
+                    busy, host, target_date, start_time, duration
+                ):
+                    continue
+                opportunity = movable_calendar_opportunity(
+                    busy, host, target_date, start_time, duration
+                )
+                if opportunity is None:
+                    continue
+                windows.append(
+                    {
+                        "date": date_iso,
+                        "start_time": start_time,
+                        "classification_source": opportunity.get(
+                            "classification_source"
+                        )
+                        or "configured",
+                        "calendar_event": opportunity.get("calendar_event", ""),
+                        "host_action_required": opportunity.get("reason")
+                        or (
+                            "host-controlled interval may be moved or replaced "
+                            "for an RVV tournament"
+                        ),
+                    }
+                )
+                break
+        if windows:
+            out.append(
+                {
+                    "finding_id": movable_capacity_finding_id(tournament_id),
+                    "tournament_id": tournament_id,
+                    "host_club": host,
+                    "age_group": str(tournament.get("age_group") or ""),
+                    "original_date": str(tournament.get("date") or ""),
+                    "requires_host_confirmation": True,
+                    "movable_dates": windows,
+                }
+            )
+    return out
+
 
 def enumerate_movable_capacity_repairs(
     candidate: Mapping[str, Any],
@@ -92,7 +195,7 @@ def enumerate_movable_capacity_repairs(
         host = str(tournament.get("host_club") or "")
         age_group = str(tournament.get("age_group") or "")
         original_date = str(tournament.get("date") or "")
-        finding_id = f"movable_capacity:{tournament_id}"
+        finding_id = movable_capacity_finding_id(tournament_id)
         base = {
             "finding_id": finding_id,
             "tournament_id": tournament_id,

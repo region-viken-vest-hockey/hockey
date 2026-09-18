@@ -1,6 +1,8 @@
 """Regression coverage for movable-capacity participant/date repair."""
 
+import json
 from copy import deepcopy
+from pathlib import Path
 
 from tournament_scheduler.local_repair_options import (
     apply_local_repair_option,
@@ -9,6 +11,57 @@ from tournament_scheduler.local_repair_options import (
 from tournament_scheduler.movable_capacity_repair import (
     enumerate_movable_capacity_repairs,
 )
+from tournament_scheduler.season_maintenance import (
+    apply_repair,
+    list_findings,
+    repair_options,
+)
+from tournament_scheduler.season_state import load_schedule, schedule_fingerprint
+
+SEASON = "2026-2027"
+
+
+def _promoted_season(
+    tmp_path: Path, candidate, problem, *, season_root: str = "season"
+) -> tuple[Path, str]:
+    """Promote a candidate/problem pair into canonical season state for tests."""
+
+    root = tmp_path / season_root
+    season_dir = root / SEASON
+    season_dir.mkdir(parents=True, exist_ok=True)
+    revision = schedule_fingerprint(candidate)
+    schedule = {
+        "schema_version": 1,
+        "season": SEASON,
+        "revision": revision,
+        "fingerprint": revision,
+        "plan_schema_version": 1,
+        "plan": candidate,
+        "verification_context": {"problem": problem},
+    }
+    decisions = {
+        "schema_version": 1,
+        "season": SEASON,
+        "schedule_fingerprint": revision,
+        "decisions": {
+            tournament["id"]: {
+                "status": "pending_review",
+                "placement_locked": False,
+                "participants_locked": False,
+                "approved_fingerprint": None,
+            }
+            for tournament in candidate["tournaments"]
+        },
+    }
+    (season_dir / "schedule.json").write_text(
+        json.dumps(schedule, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (season_dir / "decisions.json").write_text(
+        json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return root, revision
 
 
 def _team(club, label, age="U11"):
@@ -184,3 +237,102 @@ def test_generic_repair_boundary_applies_movable_capacity_option_atomically():
     assert repaired["manual_booking_reason"] is None
     assert "Jar Oransje" not in {team["label"] for team in repaired["teams"]}
     assert applied["candidate"]["unresolved_tournament_placements"] == []
+
+
+def test_promoted_season_exposes_movable_capacity_finding_and_applies_atomically(
+    tmp_path: Path,
+) -> None:
+    """The blocked placement and its movable ice are selectable without Stage 1/2."""
+
+    candidate = _candidate()
+    problem = _problem()
+    root, revision = _promoted_season(tmp_path, candidate, problem)
+
+    findings = list_findings(SEASON, root=str(root))
+    by_code = {finding["code"]: finding for finding in findings["findings"]}
+
+    # A plan-level manual marker is a first-class finding even though the
+    # scheduled slot happens to be calendar-free (verification alone cannot
+    # rediscover the unconfirmed booking).
+    manual = by_code["manual_placement"]
+    assert manual["finding_id"] == "manual_placement:k-u11"
+    assert manual["category"] == "manual_placement"
+
+    movable = by_code["movable_capacity_opportunity"]
+    assert movable["category"] == "movable_capacity"
+    assert movable["finding_id"] == "movable_capacity:k-u11"
+    assert movable["tournament_id"] == "k-u11"
+    assert movable["requires_host_confirmation"] is True
+    assert movable["earliest_movable_date"] == "2026-11-21"
+
+    report = repair_options(SEASON, movable["finding_id"], root=str(root))
+    option = next(entry for entry in report["options"] if entry["family"] == "movable_capacity")
+    assert option["evidence"]["availability"] == "movable_busy"
+    assert option["evidence"]["requires_host_confirmation"] is True
+
+    result = apply_repair(
+        SEASON,
+        option["option_id"],
+        findings["revision"],
+        root=str(root),
+        finding_id=movable["finding_id"],
+    )
+
+    assert result["ok"], result
+    assert result["revision_before"] == revision
+    assert result["revision_after"] != revision
+    assert result["delta"]["changed_tournament_count"] == 1
+    assert result["delta"]["changed_tournament_ids"] == ["k-u11"]
+    updated = load_schedule(SEASON, root=str(root))
+    repaired = next(t for t in updated["plan"]["tournaments"] if t["id"] == "k-u11")
+    assert repaired["host_club"] == "Kongsberg"
+    assert repaired["arena"] == "Kongsberghallen"
+    assert repaired["date"] == "2026-11-21"
+    assert repaired["manual_booking_reason"] is None
+    counts = result["fresh_findings"]["counts_by_code"]
+    assert "movable_capacity_opportunity" not in counts
+    assert "manual_placement" not in counts
+
+
+def test_movable_capacity_finding_is_absent_without_trusted_host_calendar(
+    tmp_path: Path,
+) -> None:
+    """An untrusted host calendar yields the manual finding but no ice promise."""
+
+    candidate = _candidate()
+    problem = _problem()
+    problem["club_calendar_status"]["Kongsberg"] = "unknown"
+    root, _revision = _promoted_season(tmp_path, candidate, problem)
+
+    counts = list_findings(SEASON, root=str(root))["counts_by_code"]
+
+    assert counts.get("manual_placement") == 1
+    assert "movable_capacity_opportunity" not in counts
+
+
+def test_stale_movable_capacity_option_is_rejected_without_mutating_state(
+    tmp_path: Path,
+) -> None:
+    candidate = _candidate()
+    problem = _problem()
+    root, _revision = _promoted_season(tmp_path, candidate, problem)
+    findings = list_findings(SEASON, root=str(root))
+    movable = next(
+        finding
+        for finding in findings["findings"]
+        if finding["code"] == "movable_capacity_opportunity"
+    )
+    option = repair_options(SEASON, movable["finding_id"], root=str(root))["options"][0]
+
+    result = apply_repair(
+        SEASON,
+        option["option_id"],
+        "not-the-current-revision",
+        root=str(root),
+        finding_id=movable["finding_id"],
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "stale_canonical_revision"
+    assert result["canonical_revision_unchanged"] is True
+    assert load_schedule(SEASON, root=str(root))["revision"] == findings["revision"]

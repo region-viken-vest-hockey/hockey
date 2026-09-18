@@ -1148,7 +1148,10 @@ def build_parser() -> argparse.ArgumentParser:
     season_apply_repair.add_argument(
         "--dimensions",
         default="participants,host",
-        help="Comma-separated search dimensions the option was produced with (default: participants,host)",
+        help=(
+            "Comma-separated search dimensions fallback for non-search options "
+            "(a search option recovers its own dimensions from its option id)"
+        ),
     )
     season_apply_repair.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_apply_repair.add_argument("--actor", default=None, help="Operator identity for the apply record")

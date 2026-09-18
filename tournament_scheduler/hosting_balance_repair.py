@@ -31,7 +31,7 @@ import copy
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 from .host_representation import clubs_represent_same_club, constituent_clubs, host_represented_in
-from .host_team_missing_repair import RepairOption, candidate_fingerprint
+from .host_team_missing_repair import RepairOption, candidate_fingerprint, search_dimension_tag
 from .hosting_coverage import hosting_balance_matrix
 from .hosting_responsibility import unexplained_responsibility_transfers
 from .planning_contract import verify_candidate
@@ -348,7 +348,16 @@ def _search_options(
             continue
         seen.add(after_fp)
         changed = _changed_ids(candidate, outcome)
-        option_id = f"{fingerprint[:12]}:{HOSTING_FINDING_PREFIX}:{age_group}:{club}:search:{int(seed)}:{after_fp[:10]}"
+        # Option identity is the deterministic request that reconstructs it
+        # (before-fingerprint + finding scope + seed), never the fingerprint of
+        # the produced candidate: a search result carries run instrumentation
+        # (``source.timings``) that differs on every enumeration, so embedding
+        # its fingerprint would make the option unapplyable. Match the scheme
+        # ``search_neighborhood_repair`` already uses.
+        option_id = (
+            f"{fingerprint[:12]}:{HOSTING_FINDING_PREFIX}:{age_group}:{club}:"
+            f"search:{int(seed)}:{search_dimension_tag(dims)}"
+        )
         options.append(
             RepairOption(
                 option_id=option_id,
