@@ -66,5 +66,13 @@ def _cmd_stage3_session(args: argparse.Namespace) -> int:
             f"  ferdigstilt: revisjon {view['finalized_revision']} "
             f"({(view['finalized_fingerprint'] or '-')[:12]})"
         )
+    convergence = view.get("convergence") or {}
+    if convergence:
+        _console.print(
+            f"  konvergens: {convergence.get('terminal_reason') or '(fortsetter)'} "
+            f"(epoke {convergence.get('epoch', 0)})"
+        )
+    if view.get("pareto_frontier_refs"):
+        _console.print(f"  paretofront: {', '.join(view['pareto_frontier_refs'])}")
     _console.print(f"  lovlige overganger: {', '.join(view['legal_transitions']) or '(ingen)'}")
     return 0

@@ -135,7 +135,7 @@ def test_classify_finding_treats_operator_authority_and_acceptance_as_non_action
 
 
 def test_next_direction_prefers_unexplored_then_incomplete_search() -> None:
-    state = ConvergenceState(explored_directions=["hosting"])
+    state = ConvergenceState(explored_findings=["h"])
     controller = ConvergenceController(state, ParetoArchive(max_size=4))
     directions = classify_findings(
         [
@@ -146,9 +146,9 @@ def test_next_direction_prefers_unexplored_then_incomplete_search() -> None:
     chosen = controller.next_direction(directions)
     assert chosen is not None and chosen.finding_id == "p"
 
-    # Once every direction is explored, an incomplete search is re-explored
+    # Once every finding is explored, an incomplete search is re-explored
     # instead of falsely declaring convergence.
-    state.explored_directions = ["hosting", "participants"]
+    state.explored_findings = ["h", "p"]
     chosen = controller.next_direction(directions)
     assert chosen is not None and chosen.finding_id == "h"
 

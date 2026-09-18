@@ -1246,6 +1246,28 @@ def build_parser() -> argparse.ArgumentParser:
     stage3_refine.add_argument("--non-strict", action="store_true", help="Continue on non-fatal export errors")
     stage3_refine.add_argument("--rationale", default="", help="Concise operational rationale")
     stage3_refine.add_argument("--json", action="store_true", help="Print the result as JSON")
+    stage3_converge = stage3_sub.add_parser(
+        "converge",
+        help=(
+            "Autonomously refine a REVIEW_REQUIRED unpromoted candidate toward a "
+            "bounded Pareto-stable frontier instead of escalating immediately"
+        ),
+    )
+    stage3_converge.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
+    stage3_converge.add_argument("--input", default=None, help="Input workbook path (defaults to the run's)")
+    stage3_converge.add_argument("--finding", default=None, help="Force the first epoch to this finding id")
+    stage3_converge.add_argument("--max-epochs", type=int, default=6, help="Bounded controller epoch budget (default: 6)")
+    stage3_converge.add_argument(
+        "--max-no-improvement",
+        type=int,
+        default=2,
+        help="Consecutive epochs without a new non-dominated candidate before plateau (default: 2)",
+    )
+    stage3_converge.add_argument("--frontier-limit", type=int, default=6, help="Bounded frontier size (default: 6)")
+    stage3_converge.add_argument("--no-search", action="store_true", help="Only use cheap repair options, not bounded search")
+    stage3_converge.add_argument("--no-export", action="store_true", help="Mutate candidates without re-running Stage 4")
+    stage3_converge.add_argument("--dry-run", action="store_true", help="Preview the next epoch without mutating")
+    stage3_converge.add_argument("--json", action="store_true", help="Print the convergence report as JSON")
 
     # cancel
     cancel = sub.add_parser("cancel", help="Cancel a tournament and suggest/reschedule makeup dates")

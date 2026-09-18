@@ -173,11 +173,23 @@ class ParetoArchive:
     def refs(self) -> list[str]:
         return [entry.candidate_ref for entry in self.entries]
 
+    def is_duplicate(self, entry: ArchiveEntry) -> bool:
+        return bool(entry.candidate_fingerprint) and entry.candidate_fingerprint in self.fingerprints()
+
+    def dominated_by(self, entry: ArchiveEntry) -> list[str]:
+        """Refs of retained candidates that dominate *entry* (non-mutating)."""
+        return [
+            existing.candidate_ref
+            for existing in self.entries
+            if _comparable(existing.objective_vector, entry.objective_vector)
+            and dominates(existing.objective_vector, entry.objective_vector)
+        ]
+
     def consider(self, entry: ArchiveEntry) -> dict[str, Any]:
         """Fold one candidate into the frontier and report what changed."""
         if not entry.candidate_ref:
             return {"accepted": False, "reason": "missing_candidate_ref"}
-        if entry.candidate_fingerprint and entry.candidate_fingerprint in self.fingerprints():
+        if self.is_duplicate(entry):
             return {
                 "accepted": False,
                 "duplicate": True,
@@ -185,12 +197,7 @@ class ParetoArchive:
                 "dominated_refs": [],
                 "pruned_refs": [],
             }
-        dominated_by = [
-            existing.candidate_ref
-            for existing in self.entries
-            if _comparable(existing.objective_vector, entry.objective_vector)
-            and dominates(existing.objective_vector, entry.objective_vector)
-        ]
+        dominated_by = self.dominated_by(entry)
         if dominated_by:
             return {
                 "accepted": False,
@@ -323,6 +330,7 @@ class ConvergenceState:
     epoch: int = 0
     current_baseline_ref: str = ""
     explored_directions: list[str] = field(default_factory=list)
+    explored_findings: list[str] = field(default_factory=list)
     remaining_findings: list[dict[str, Any]] = field(default_factory=list)
     search_incomplete_directions: list[str] = field(default_factory=list)
     frontier_refs: list[str] = field(default_factory=list)
@@ -336,6 +344,7 @@ class ConvergenceState:
             "epoch": self.epoch,
             "current_baseline_ref": self.current_baseline_ref,
             "explored_directions": list(self.explored_directions),
+            "explored_findings": list(self.explored_findings),
             "remaining_findings": [dict(finding) for finding in self.remaining_findings],
             "search_incomplete_directions": list(self.search_incomplete_directions),
             "frontier_refs": list(self.frontier_refs),
@@ -353,6 +362,7 @@ class ConvergenceState:
             epoch=int(data.get("epoch") or 0),
             current_baseline_ref=str(data.get("current_baseline_ref") or ""),
             explored_directions=[str(item) for item in (data.get("explored_directions") or [])],
+            explored_findings=[str(item) for item in (data.get("explored_findings") or [])],
             remaining_findings=[
                 dict(item) for item in (data.get("remaining_findings") or []) if item
             ],
@@ -430,9 +440,9 @@ class ConvergenceController:
         if self.state.is_terminal():
             return None
         actionable = [d for d in directions if d.actionable]
-        explored = set(self.state.explored_directions)
+        explored_findings = set(self.state.explored_findings)
         for direction in actionable:
-            if direction.direction not in explored:
+            if direction.finding_id not in explored_findings:
                 return direction
         for direction in actionable:
             if direction.search_incomplete:
@@ -463,6 +473,8 @@ class ConvergenceController:
         self.state.last_direction = direction_label
         if direction_label and direction_label not in self.state.explored_directions:
             self.state.explored_directions.append(direction_label)
+        if direction is not None and direction.finding_id and direction.finding_id not in self.state.explored_findings:
+            self.state.explored_findings.append(direction.finding_id)
         self.state.remaining_findings = [d.to_dict() for d in findings]
         self.state.search_incomplete_directions = sorted(
             {str(item) for item in search_incomplete_directions}

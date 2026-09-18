@@ -53,6 +53,19 @@ def _load_state(work_dir: Any, run_id: str | None, frontier_limit: int) -> tuple
     session = store.load(expected_run_id=run_id or None)
     archive = ParetoArchive.from_list(session.pareto_archive, max_size=frontier_limit)
     state = ConvergenceState.from_dict(session.convergence)
+    # A terminal convergence describes the candidate it stopped on. If the
+    # current candidate is no longer on the retained frontier (for example the
+    # harness applied a manual ``stage3 refine`` after convergence), the old
+    # terminal is stale: resume exploration instead of refusing to look at the
+    # changed candidate.
+    current = session.finalized_fingerprint or session.candidate_fingerprint
+    if state.terminal_reason and current and current not in archive.fingerprints():
+        state.terminal_reason = ""
+        state.terminal_detail = ""
+        state.no_improvement_epochs = 0
+        # A manually changed baseline starts a fresh epoch budget; the
+        # previous count described the candidate the loop stopped on.
+        state.epoch = 0
     return store, archive, state
 
 
@@ -187,6 +200,8 @@ def run_bounded_convergence(
                 direction=None, generated=[], findings=directions, search_incomplete_directions=[]
             )
             epochs.append(_epoch_dict(outcome, None))
+            if not dry_run:
+                _persist(store, run_id, archive, state)
             break
 
         report = option_provider(
@@ -225,29 +240,57 @@ def run_bounded_convergence(
         entries, bodies = _measure_frontier(
             candidate, problem, direction, measured, body_provider, tuple(dimensions)
         )
-        chosen = measured[0]
+        # Never commit (and therefore never re-export) a candidate the bounded
+        # frontier already dominates: retain it as evidence for the epoch but
+        # keep exploring another direction.
+        committable = [entry for entry in entries if not archive.dominated_by(entry)]
+        if not committable:
+            log(
+                f"convergence epoch {state.epoch + 1}: every option for "
+                f"{direction.finding_id} is dominated by the retained frontier"
+            )
+            outcome = controller.record_epoch(
+                direction=direction,
+                generated=entries,
+                findings=directions,
+                search_incomplete_directions=coverage_directions,
+            )
+            epochs.append(_epoch_dict(outcome, None))
+            if not dry_run:
+                _persist(store, run_id, archive, state)
+            continue
+        chosen_entry = committable[0]
+        chosen = next(
+            option
+            for option in measured
+            if _ref_for(direction, option) == chosen_entry.candidate_ref
+        )
+        if dry_run:
+            # No mutation and no persistence: return the planned epoch only.
+            for entry in entries:
+                archive.consider(entry)
+            return _report(
+                reason="dry_run",
+                detail="Preview only; no candidate was mutated.",
+                state=state,
+                archive=archive,
+                epochs=[
+                    *epochs,
+                    {"direction": direction.direction, "planned_option": chosen.get("option_id")},
+                ],
+                extra={"planned_entries": [e.to_dict() for e in entries]},
+            )
         result = apply_provider(
             work_dir,
             problem=problem,
             option_id=str(chosen.get("option_id") or ""),
             finding_id=direction.finding_id,
             dimensions=tuple(dimensions),
-            dry_run=dry_run,
-            export=export and not dry_run,
+            dry_run=False,
+            export=export,
             run_id=run_id,
         )
         committed_ref = _ref_for(direction, chosen)
-        if dry_run:
-            # No mutation and no persistence: return the planned epoch only.
-            archive.consider(next((e for e in entries if e.candidate_ref == committed_ref), entries[0]))
-            return _report(
-                reason="dry_run",
-                detail="Preview only; no candidate was mutated.",
-                state=state,
-                archive=archive,
-                epochs=[*epochs, {"direction": direction.direction, "planned_option": chosen.get("option_id")}],
-                extra={"planned_entries": [e.to_dict() for e in entries]},
-            )
         if not result.get("ok"):
             log(
                 f"convergence epoch {state.epoch + 1}: applying {chosen.get('option_id')} "

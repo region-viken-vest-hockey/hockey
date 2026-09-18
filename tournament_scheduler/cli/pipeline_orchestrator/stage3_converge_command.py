@@ -1,0 +1,105 @@
+"""``rvv-miniputt stage3 converge`` — autonomous bounded Pareto convergence.
+
+A hard-valid Stage 4 export plus ``REVIEW_REQUIRED`` is feedback, not
+automatically a human escalation: while repository-owned findings still map to
+a supported repair/search direction, this command keeps refining the exact
+reviewed unpromoted candidate, retaining a bounded non-dominated frontier and
+re-running Stage 4 after every accepted mutation, until the controller reports
+PASS, operator-required, bounded-search-exhausted or Pareto-stable.
+
+It is a thin transport over
+:func:`tournament_scheduler.application.convergence_refinement.run_bounded_convergence`:
+it rebuilds the mid-planning problem from the preserved Stage 1/2 facts and
+renders the returned truthful terminal report. No scheduling rule, repair or
+verifier is implemented here.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from typing import Any
+
+from ._shared import _console
+
+
+def _cmd_stage3_converge(args: argparse.Namespace) -> int:
+    from ...application.convergence_refinement import run_bounded_convergence
+    from ...pipeline.state import PipelineState
+    from .stage3_refine_command import _refinement_problem
+
+    work_dir = getattr(args, "work_dir", ".pipeline")
+    state = PipelineState(work_dir)
+    json_output = bool(getattr(args, "json", False))
+    as_json = lambda payload: json.dumps(payload, indent=2, ensure_ascii=False)  # noqa: E731
+
+    try:
+        _cfg, _scraping, _start, _end, problem = _refinement_problem(state, args)
+    except Exception as exc:
+        if json_output:
+            print(as_json({"ok": False, "reason": str(exc)}))
+        else:
+            _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
+    try:
+        result = run_bounded_convergence(
+            work_dir,
+            problem=problem,
+            max_epochs=int(getattr(args, "max_epochs", 6)),
+            max_no_improvement_epochs=int(getattr(args, "max_no_improvement", 2)),
+            frontier_limit=int(getattr(args, "frontier_limit", 6)),
+            export=not bool(getattr(args, "no_export", False)),
+            dry_run=bool(getattr(args, "dry_run", False)),
+            allow_search=not bool(getattr(args, "no_search", False)),
+            force_finding_id=getattr(args, "finding", None),
+        )
+    except Exception as exc:  # noqa: BLE001 - surfaced as a transport failure
+        if json_output:
+            print(as_json({"ok": False, "reason": str(exc)}))
+        else:
+            _console.print(f"[red]✗[/red] Konvergens feilet: {exc}")
+        return 1
+
+    if result.get("committed_epochs"):
+        # Accepted mutations re-ran Stage 4; refresh the sanitized evidence
+        # bundle so it is bound to the newest export fingerprint (best-effort).
+        try:
+            from ...pipeline.state import StageName
+            from .verification import _write_run_evidence_bundle
+
+            _write_run_evidence_bundle(
+                args, state, _cfg, _scraping, _start, _end,
+                state.read_stage(StageName.PLANNING),
+                lambda message: None,
+            )
+        except Exception:
+            pass
+
+    if json_output:
+        print(as_json(result))
+    else:
+        _render(result)
+    return 0 if result.get("ok") else 1
+
+
+def _render(result: dict[str, Any]) -> None:
+    reason = str(result.get("terminal_reason") or "")
+    detail = str(result.get("terminal_detail") or "")
+    style = "green" if reason == "pass" else "yellow"
+    _console.print(f"[{style}]Konvergens: {reason or '(ukjent)'}[/{style}]")
+    if detail:
+        _console.print(f"  {detail}")
+    _console.print(
+        f"  epoker: {len(result.get('epochs') or [])} "
+        f"(fullførte mutasjoner: {result.get('committed_epochs', 0)})"
+    )
+    frontier = result.get("frontier") or []
+    _console.print(f"  paretofront: {len(frontier)} kandidat(er)")
+    for entry in frontier:
+        _console.print(
+            f"    - {entry.get('candidate_ref')} [{entry.get('direction')}] "
+            f"{(entry.get('candidate_fingerprint') or '')[:12]}"
+        )
+    if result.get("audit_required"):
+        _console.print("  krever ny semantisk revisjon over nyeste eksport: ja")

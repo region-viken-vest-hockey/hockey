@@ -759,6 +759,11 @@ def status_for_session(session: Stage3Session) -> dict[str, Any]:
         "attempts": dict(session.attempts),
         "retained_candidates": session.retained_candidate_view(),
         "retained_candidate_refs": session.retained_candidate_refs(),
+        "pareto_archive": [dict(item) for item in session.pareto_archive],
+        "pareto_frontier_refs": [
+            str(item.get("candidate_ref") or "") for item in session.pareto_archive
+        ],
+        "convergence": dict(session.convergence) if session.convergence else None,
         "search_history": session.search_history(),
         "finalized_revision": session.finalized_revision,
         "finalized_fingerprint": session.finalized_fingerprint,
