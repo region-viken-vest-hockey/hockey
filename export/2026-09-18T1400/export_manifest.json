@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "export_id": "2026-09-18T1400",
+  "generated_at": "2026-09-18T14:00:04+00:00",
+  "export_fingerprint": "6f7b6159197abb4542b5bb90ed6df006360ef4890ec190e7e4601e6056560e5d",
+  "canonical_season": "2026-2027",
+  "canonical_revision": "cfa202ae574ee1c48b545f85ca895ec6a4bbc37ff2761afa8a11b610aa77c8fc",
+  "lifecycle_status": "superseded",
+  "published_at": null,
+  "pages_commit": null,
+  "pages_branch": null,
+  "pages_run_id": null,
+  "pages_bundle_fingerprint": null,
+  "source_run_id": "20260918T135604Z-8d38f146",
+  "supersedes": {
+    "export_dir": "export/2026-09-18T1358",
+    "export_id": "2026-09-18T1358",
+    "export_fingerprint": "7f9cf5aadbe0e043864810127674efdef113733af1868cb61178177a7bf91264"
+  },
+  "superseded_at": "2026-09-18T14:01:26+00:00",
+  "superseded_by": {
+    "export_dir": "export/2026-09-18T1401",
+    "export_id": "2026-09-18T1401",
+    "export_fingerprint": "37e0159867a4861357a14e58271569eeeaee74a05add7d9439695997d1c64978",
+    "candidate_fingerprint": "66f2fc859fc79b74ea9492e9c66bc86077cbe7bb4c477884e1a2a0a87cc5948e"
+  }
+}

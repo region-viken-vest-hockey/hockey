@@ -1,0 +1,1547 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-18T14:27:57+00:00",
+  "run_id": "20260918T142757Z-f6ac6974",
+  "input_fingerprint": {
+    "path": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/input.xlsx",
+    "sha256": "aeda0fb646442df40dbf43b14175413e6976411f8579ab3c17cd700087d3fe54"
+  },
+  "source_summary": {
+    "sources_scanned": 0,
+    "blocked_sources": [],
+    "club_calendar_status": {}
+  },
+  "decision_log": [],
+  "stage3_attempt_log": [],
+  "final_candidate": {
+    "fingerprint": "59d5da70a4177738d2c5c6c0bdeb06104c3d3fa2e4c8a3a6e4ec17c1801ed0ae",
+    "source": null
+  },
+  "final_verify_result": {
+    "ok": true,
+    "violations": [],
+    "waived_violations": [],
+    "skipped": [],
+    "club_controlled_allocations_used": [],
+    "movable_allocations_used": [],
+    "calendar_interpretations_used": [],
+    "unresolved_hosting_obligations": [],
+    "hosting_balance": [
+      {
+        "club": "Kongsberg",
+        "age_group": "U10",
+        "teams": 1,
+        "target": 1,
+        "actual": 1,
+        "delta": 0,
+        "deficit": 0,
+        "excess": 0,
+        "assigned_responsibility": 1,
+        "placed_automatically": 0,
+        "manual_unplaced": 0,
+        "manual_placement_required": 1,
+        "actual_physical_hosting": 1,
+        "responsibility_delta": 0,
+        "responsibility_deficit": 0,
+        "responsibility_excess": 0,
+        "coverage_unresolved": false,
+        "target_unmet_structural": false
+      },
+      {
+        "club": "Skien",
+        "age_group": "U10",
+        "teams": 1,
+        "target": 1,
+        "actual": 1,
+        "delta": 0,
+        "deficit": 0,
+        "excess": 0,
+        "assigned_responsibility": 1,
+        "placed_automatically": 0,
+        "manual_unplaced": 0,
+        "manual_placement_required": 1,
+        "actual_physical_hosting": 1,
+        "responsibility_delta": 0,
+        "responsibility_deficit": 0,
+        "responsibility_excess": 0,
+        "coverage_unresolved": false,
+        "target_unmet_structural": false
+      },
+      {
+        "club": "Ringerike",
+        "age_group": "U10",
+        "teams": 1,
+        "target": 1,
+        "actual": 1,
+        "delta": 0,
+        "deficit": 0,
+        "excess": 0,
+        "assigned_responsibility": 1,
+        "placed_automatically": 0,
+        "manual_unplaced": 0,
+        "manual_placement_required": 1,
+        "actual_physical_hosting": 1,
+        "responsibility_delta": 0,
+        "responsibility_deficit": 0,
+        "responsibility_excess": 0,
+        "coverage_unresolved": false,
+        "target_unmet_structural": false
+      },
+      {
+        "club": "Jar",
+        "age_group": "U10",
+        "teams": 1,
+        "target": 1,
+        "actual": 1,
+        "delta": 0,
+        "deficit": 0,
+        "excess": 0,
+        "assigned_responsibility": 1,
+        "placed_automatically": 0,
+        "manual_unplaced": 0,
+        "manual_placement_required": 1,
+        "actual_physical_hosting": 1,
+        "responsibility_delta": 0,
+        "responsibility_deficit": 0,
+        "responsibility_excess": 0,
+        "coverage_unresolved": false,
+        "target_unmet_structural": false
+      }
+    ],
+    "hosting_balance_imbalances": [],
+    "manual_calendar_placements": [],
+    "manual_external_conflict_placements": [],
+    "manual_participation_placements": [],
+    "participation_deviations": [],
+    "participation_metrics": {
+      "teams_with_season_target": 4,
+      "teams_exact_season_target": 4,
+      "teams_under_season_target": 0,
+      "teams_over_season_target": 0,
+      "season_total_absolute_deviation": 0,
+      "max_team_season_deviation": 0,
+      "teams_with_half_targets": 4,
+      "teams_exact_half_targets": 4,
+      "half_total_absolute_deviation": 0,
+      "max_team_half_deviation": 0,
+      "has_half_split": true,
+      "club_share_deviation": 0.0,
+      "sibling_spread": 0,
+      "deviation_count": 0,
+      "avoidable_deviation_count": 0,
+      "proven_unavoidable_deviation_count": 0,
+      "search_exhausted_deviation_count": 0,
+      "operator_accepted_deviation_count": 0,
+      "cross_half_compensation_opportunity_count": 0,
+      "club_pool_count": 12,
+      "club_pool_intra_distribution_count": 0,
+      "club_pool_minor_shortfall_count": 0,
+      "club_pool_material_shortfall_count": 0,
+      "club_pool_single_team_deviation_count": 0,
+      "club_pool_over_target_count": 0,
+      "club_pool_unresolved_shortfall_count": 0,
+      "club_pool_unresolved_total_absolute_deviation": 0,
+      "club_pool_unresolved_season_total_absolute_deviation": 0,
+      "club_pool_unresolved_max_team_season_deviation": 0,
+      "club_pool_unresolved_half_total_absolute_deviation": 0,
+      "club_pool_unresolved_max_team_half_deviation": 0,
+      "club_pool_unresolved_avoidable_deviation_count": 0
+    },
+    "participation_club_pools": [
+      {
+        "club": "Jar",
+        "age_group": "U10",
+        "scope": "season",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 4,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 4,
+        "club_pool_actual": 4,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Jar U10A",
+            "actual": 4,
+            "target": 4
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Jar",
+        "age_group": "U10",
+        "scope": "before_christmas",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 2,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 2,
+        "club_pool_actual": 2,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Jar U10A",
+            "actual": 2,
+            "target": 2
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Jar",
+        "age_group": "U10",
+        "scope": "after_christmas",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 2,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 2,
+        "club_pool_actual": 2,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Jar U10A",
+            "actual": 2,
+            "target": 2
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Kongsberg",
+        "age_group": "U10",
+        "scope": "season",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 4,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 4,
+        "club_pool_actual": 4,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Kongsberg U10A",
+            "actual": 4,
+            "target": 4
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Kongsberg",
+        "age_group": "U10",
+        "scope": "before_christmas",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 2,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 2,
+        "club_pool_actual": 2,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Kongsberg U10A",
+            "actual": 2,
+            "target": 2
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Kongsberg",
+        "age_group": "U10",
+        "scope": "after_christmas",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 2,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 2,
+        "club_pool_actual": 2,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Kongsberg U10A",
+            "actual": 2,
+            "target": 2
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Ringerike",
+        "age_group": "U10",
+        "scope": "season",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 4,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 4,
+        "club_pool_actual": 4,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Ringerike U10A",
+            "actual": 4,
+            "target": 4
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Ringerike",
+        "age_group": "U10",
+        "scope": "before_christmas",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 2,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 2,
+        "club_pool_actual": 2,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Ringerike U10A",
+            "actual": 2,
+            "target": 2
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Ringerike",
+        "age_group": "U10",
+        "scope": "after_christmas",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 2,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 2,
+        "club_pool_actual": 2,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Ringerike U10A",
+            "actual": 2,
+            "target": 2
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Skien",
+        "age_group": "U10",
+        "scope": "season",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 4,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 4,
+        "club_pool_actual": 4,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Skien U10A",
+            "actual": 4,
+            "target": 4
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Skien",
+        "age_group": "U10",
+        "scope": "before_christmas",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 2,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 2,
+        "club_pool_actual": 2,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Skien U10A",
+            "actual": 2,
+            "target": 2
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      },
+      {
+        "club": "Skien",
+        "age_group": "U10",
+        "scope": "after_christmas",
+        "registered_team_count": 1,
+        "nominal_target_per_team": 2,
+        "minor_shortfall_threshold": null,
+        "club_pool_target": 2,
+        "club_pool_actual": 2,
+        "club_pool_deviation": 0,
+        "team_distribution": [
+          {
+            "team": "Skien U10A",
+            "actual": 2,
+            "target": 2
+          }
+        ],
+        "classification": "complete",
+        "planning_significance": "resolved",
+        "counts_as_unresolved_shortfall": false
+      }
+    ],
+    "participation_club_pool_shortfalls": [],
+    "input_constrained_shapes": [],
+    "stale_approvals": [],
+    "orphaned_approvals": [],
+    "publication_readiness": {
+      "status": "PUBLISHABLE",
+      "publishable": true,
+      "reasons": [],
+      "informational_reasons": []
+    },
+    "publishable": true
+  },
+  "final_score_result": {
+    "participation": {
+      "counts_by_team": {
+        "Kongsberg U10A": 4,
+        "Skien U10A": 4,
+        "Ringerike U10A": 4,
+        "Jar U10A": 4
+      },
+      "spread": 0,
+      "teams_with_season_target": 4,
+      "teams_exact_season_target": 4,
+      "teams_under_season_target": 0,
+      "teams_over_season_target": 0,
+      "season_total_absolute_deviation": 0,
+      "max_team_season_deviation": 0,
+      "teams_with_half_targets": 4,
+      "teams_exact_half_targets": 4,
+      "half_total_absolute_deviation": 0,
+      "max_team_half_deviation": 0,
+      "has_half_split": true,
+      "club_share_deviation": 0.0,
+      "sibling_spread": 0,
+      "deviation_count": 0,
+      "avoidable_deviation_count": 0,
+      "proven_unavoidable_deviation_count": 0,
+      "search_exhausted_deviation_count": 0,
+      "operator_accepted_deviation_count": 0,
+      "cross_half_compensation_opportunity_count": 0,
+      "club_pool_count": 12,
+      "club_pool_intra_distribution_count": 0,
+      "club_pool_minor_shortfall_count": 0,
+      "club_pool_material_shortfall_count": 0,
+      "club_pool_single_team_deviation_count": 0,
+      "club_pool_over_target_count": 0,
+      "club_pool_unresolved_shortfall_count": 0,
+      "club_pool_unresolved_total_absolute_deviation": 0,
+      "club_pool_unresolved_season_total_absolute_deviation": 0,
+      "club_pool_unresolved_max_team_season_deviation": 0,
+      "club_pool_unresolved_half_total_absolute_deviation": 0,
+      "club_pool_unresolved_max_team_half_deviation": 0,
+      "club_pool_unresolved_avoidable_deviation_count": 0
+    },
+    "opponent_diversity": {
+      "unique_pairs": 6,
+      "pairwise_novelty": 0.25,
+      "pair_repeat_distribution": {
+        "4": 6
+      },
+      "pairs_meeting_3_plus": 6,
+      "max_pair_repeat": 4,
+      "inter_club_diversity": 1.0,
+      "same_club_pairing_count": 0,
+      "max_same_club_teams_per_tournament": 1,
+      "club_count_excess_over_2": 0,
+      "tournaments_with_3plus_same_club": 0
+    },
+    "temporal": {
+      "max_gap_days": 35,
+      "offenders_count": 0,
+      "offenders": []
+    },
+    "turnaround": {
+      "min_turnaround_days": 14,
+      "gaps_under_days": {
+        "7": 0,
+        "14": 0
+      }
+    },
+    "hosting": {
+      "counts_by_host": {
+        "Kongsberg": 1,
+        "Skien": 1,
+        "Ringerike": 1,
+        "Jar": 1
+      },
+      "spread": 0,
+      "club_age_group_matrix": [
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "teams": 1,
+          "hosted": 1,
+          "unresolved": false
+        }
+      ],
+      "club_age_group_balance": [
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        }
+      ],
+      "balance_imbalances": [],
+      "unresolved_obligations": [],
+      "by_club": {
+        "Kongsberg": {
+          "hosted": 1,
+          "unresolved": 0
+        },
+        "Skien": {
+          "hosted": 1,
+          "unresolved": 0
+        },
+        "Ringerike": {
+          "hosted": 1,
+          "unresolved": 0
+        },
+        "Jar": {
+          "hosted": 1,
+          "unresolved": 0
+        }
+      },
+      "by_age_group": {
+        "U10": {
+          "hosted": 4,
+          "unresolved": 0
+        }
+      }
+    },
+    "month_distribution": {
+      "2026-11": 1,
+      "2026-12": 1,
+      "2027-01": 2
+    },
+    "half_distribution": {
+      "before_christmas": 2,
+      "after_christmas": 2,
+      "unsplit": 0
+    },
+    "half_deviation_pct": 0.0
+  },
+  "final_operator_evidence": {
+    "run_id": "20260918T142757Z-f6ac6974",
+    "final_candidate_fingerprint": "59d5da70a4177738d2c5c6c0bdeb06104c3d3fa2e4c8a3a6e4ec17c1801ed0ae",
+    "export_fingerprint": "59d5da70a4177738d2c5c6c0bdeb06104c3d3fa2e4c8a3a6e4ec17c1801ed0ae",
+    "final_verify_result": {
+      "ok": true,
+      "violations": [],
+      "waived_violations": [],
+      "skipped": [],
+      "club_controlled_allocations_used": [],
+      "movable_allocations_used": [],
+      "calendar_interpretations_used": [],
+      "unresolved_hosting_obligations": [],
+      "hosting_balance": [
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        }
+      ],
+      "hosting_balance_imbalances": [],
+      "manual_calendar_placements": [],
+      "manual_external_conflict_placements": [],
+      "manual_participation_placements": [],
+      "participation_deviations": [],
+      "participation_metrics": {
+        "teams_with_season_target": 4,
+        "teams_exact_season_target": 4,
+        "teams_under_season_target": 0,
+        "teams_over_season_target": 0,
+        "season_total_absolute_deviation": 0,
+        "max_team_season_deviation": 0,
+        "teams_with_half_targets": 4,
+        "teams_exact_half_targets": 4,
+        "half_total_absolute_deviation": 0,
+        "max_team_half_deviation": 0,
+        "has_half_split": true,
+        "club_share_deviation": 0.0,
+        "sibling_spread": 0,
+        "deviation_count": 0,
+        "avoidable_deviation_count": 0,
+        "proven_unavoidable_deviation_count": 0,
+        "search_exhausted_deviation_count": 0,
+        "operator_accepted_deviation_count": 0,
+        "cross_half_compensation_opportunity_count": 0,
+        "club_pool_count": 12,
+        "club_pool_intra_distribution_count": 0,
+        "club_pool_minor_shortfall_count": 0,
+        "club_pool_material_shortfall_count": 0,
+        "club_pool_single_team_deviation_count": 0,
+        "club_pool_over_target_count": 0,
+        "club_pool_unresolved_shortfall_count": 0,
+        "club_pool_unresolved_total_absolute_deviation": 0,
+        "club_pool_unresolved_season_total_absolute_deviation": 0,
+        "club_pool_unresolved_max_team_season_deviation": 0,
+        "club_pool_unresolved_half_total_absolute_deviation": 0,
+        "club_pool_unresolved_max_team_half_deviation": 0,
+        "club_pool_unresolved_avoidable_deviation_count": 0
+      },
+      "participation_club_pools": [
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "scope": "season",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 4,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 4,
+          "club_pool_actual": 4,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Jar U10A",
+              "actual": 4,
+              "target": 4
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "scope": "before_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Jar U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "scope": "after_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Jar U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "scope": "season",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 4,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 4,
+          "club_pool_actual": 4,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Kongsberg U10A",
+              "actual": 4,
+              "target": 4
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "scope": "before_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Kongsberg U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "scope": "after_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Kongsberg U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "scope": "season",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 4,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 4,
+          "club_pool_actual": 4,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Ringerike U10A",
+              "actual": 4,
+              "target": 4
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "scope": "before_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Ringerike U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "scope": "after_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Ringerike U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "scope": "season",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 4,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 4,
+          "club_pool_actual": 4,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Skien U10A",
+              "actual": 4,
+              "target": 4
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "scope": "before_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Skien U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "scope": "after_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Skien U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        }
+      ],
+      "participation_club_pool_shortfalls": [],
+      "input_constrained_shapes": [],
+      "stale_approvals": [],
+      "orphaned_approvals": [],
+      "publication_readiness": {
+        "status": "PUBLISHABLE",
+        "publishable": true,
+        "reasons": [],
+        "informational_reasons": []
+      },
+      "publishable": true
+    },
+    "publication_readiness": {
+      "status": "PUBLISHABLE",
+      "publishable": true,
+      "reasons": [],
+      "informational_reasons": []
+    },
+    "unresolved_hosting_obligations": [],
+    "hosting_balance": [
+      {
+        "club": "Kongsberg",
+        "age_group": "U10",
+        "teams": 1,
+        "target": 1,
+        "actual": 1,
+        "delta": 0,
+        "deficit": 0,
+        "excess": 0,
+        "assigned_responsibility": 1,
+        "placed_automatically": 0,
+        "manual_unplaced": 0,
+        "manual_placement_required": 1,
+        "actual_physical_hosting": 1,
+        "responsibility_delta": 0,
+        "responsibility_deficit": 0,
+        "responsibility_excess": 0,
+        "coverage_unresolved": false,
+        "target_unmet_structural": false
+      },
+      {
+        "club": "Skien",
+        "age_group": "U10",
+        "teams": 1,
+        "target": 1,
+        "actual": 1,
+        "delta": 0,
+        "deficit": 0,
+        "excess": 0,
+        "assigned_responsibility": 1,
+        "placed_automatically": 0,
+        "manual_unplaced": 0,
+        "manual_placement_required": 1,
+        "actual_physical_hosting": 1,
+        "responsibility_delta": 0,
+        "responsibility_deficit": 0,
+        "responsibility_excess": 0,
+        "coverage_unresolved": false,
+        "target_unmet_structural": false
+      },
+      {
+        "club": "Ringerike",
+        "age_group": "U10",
+        "teams": 1,
+        "target": 1,
+        "actual": 1,
+        "delta": 0,
+        "deficit": 0,
+        "excess": 0,
+        "assigned_responsibility": 1,
+        "placed_automatically": 0,
+        "manual_unplaced": 0,
+        "manual_placement_required": 1,
+        "actual_physical_hosting": 1,
+        "responsibility_delta": 0,
+        "responsibility_deficit": 0,
+        "responsibility_excess": 0,
+        "coverage_unresolved": false,
+        "target_unmet_structural": false
+      },
+      {
+        "club": "Jar",
+        "age_group": "U10",
+        "teams": 1,
+        "target": 1,
+        "actual": 1,
+        "delta": 0,
+        "deficit": 0,
+        "excess": 0,
+        "assigned_responsibility": 1,
+        "placed_automatically": 0,
+        "manual_unplaced": 0,
+        "manual_placement_required": 1,
+        "actual_physical_hosting": 1,
+        "responsibility_delta": 0,
+        "responsibility_deficit": 0,
+        "responsibility_excess": 0,
+        "coverage_unresolved": false,
+        "target_unmet_structural": false
+      }
+    ],
+    "hosting_balance_imbalances": [],
+    "unresolved_external_conflicts": [],
+    "unresolved_participation_shortfalls": [],
+    "unresolved_tournament_placements": [],
+    "operator_waivers": [],
+    "operator_waived_violations": [],
+    "approval_status": null
+  },
+  "export": {
+    "dir": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export",
+    "output_files": {
+      "excel": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/season_plan.xlsx",
+      "ical": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/season_plan.ics",
+      "csv_games": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/season_plan.csv",
+      "csv_overview": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/season_plan_overview.csv",
+      "input_html": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/input.html",
+      "html": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/season_plan.html",
+      "html_report": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/season_plan_report.html",
+      "manual_schedule": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/manual_schedule.html",
+      "spond": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/season_plan_spond.xlsx",
+      "spond_games": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/season_plan_spond_games.xlsx",
+      "review_packets": "/Users/niclasl/src/hockey/cli-smoke-tmp/test_second_invocation_reports0/export/review_packets"
+    },
+    "fingerprint": "59d5da70a4177738d2c5c6c0bdeb06104c3d3fa2e4c8a3a6e4ec17c1801ed0ae",
+    "verify_result": {
+      "ok": true,
+      "violations": [],
+      "waived_violations": [],
+      "skipped": [],
+      "club_controlled_allocations_used": [],
+      "movable_allocations_used": [],
+      "calendar_interpretations_used": [],
+      "unresolved_hosting_obligations": [],
+      "hosting_balance": [
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "teams": 1,
+          "target": 1,
+          "actual": 1,
+          "delta": 0,
+          "deficit": 0,
+          "excess": 0,
+          "assigned_responsibility": 1,
+          "placed_automatically": 0,
+          "manual_unplaced": 0,
+          "manual_placement_required": 1,
+          "actual_physical_hosting": 1,
+          "responsibility_delta": 0,
+          "responsibility_deficit": 0,
+          "responsibility_excess": 0,
+          "coverage_unresolved": false,
+          "target_unmet_structural": false
+        }
+      ],
+      "hosting_balance_imbalances": [],
+      "manual_calendar_placements": [],
+      "manual_external_conflict_placements": [],
+      "manual_participation_placements": [],
+      "participation_deviations": [],
+      "participation_metrics": {
+        "teams_with_season_target": 4,
+        "teams_exact_season_target": 4,
+        "teams_under_season_target": 0,
+        "teams_over_season_target": 0,
+        "season_total_absolute_deviation": 0,
+        "max_team_season_deviation": 0,
+        "teams_with_half_targets": 4,
+        "teams_exact_half_targets": 4,
+        "half_total_absolute_deviation": 0,
+        "max_team_half_deviation": 0,
+        "has_half_split": true,
+        "club_share_deviation": 0.0,
+        "sibling_spread": 0,
+        "deviation_count": 0,
+        "avoidable_deviation_count": 0,
+        "proven_unavoidable_deviation_count": 0,
+        "search_exhausted_deviation_count": 0,
+        "operator_accepted_deviation_count": 0,
+        "cross_half_compensation_opportunity_count": 0,
+        "club_pool_count": 12,
+        "club_pool_intra_distribution_count": 0,
+        "club_pool_minor_shortfall_count": 0,
+        "club_pool_material_shortfall_count": 0,
+        "club_pool_single_team_deviation_count": 0,
+        "club_pool_over_target_count": 0,
+        "club_pool_unresolved_shortfall_count": 0,
+        "club_pool_unresolved_total_absolute_deviation": 0,
+        "club_pool_unresolved_season_total_absolute_deviation": 0,
+        "club_pool_unresolved_max_team_season_deviation": 0,
+        "club_pool_unresolved_half_total_absolute_deviation": 0,
+        "club_pool_unresolved_max_team_half_deviation": 0,
+        "club_pool_unresolved_avoidable_deviation_count": 0
+      },
+      "participation_club_pools": [
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "scope": "season",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 4,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 4,
+          "club_pool_actual": 4,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Jar U10A",
+              "actual": 4,
+              "target": 4
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "scope": "before_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Jar U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Jar",
+          "age_group": "U10",
+          "scope": "after_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Jar U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "scope": "season",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 4,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 4,
+          "club_pool_actual": 4,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Kongsberg U10A",
+              "actual": 4,
+              "target": 4
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "scope": "before_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Kongsberg U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Kongsberg",
+          "age_group": "U10",
+          "scope": "after_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Kongsberg U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "scope": "season",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 4,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 4,
+          "club_pool_actual": 4,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Ringerike U10A",
+              "actual": 4,
+              "target": 4
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "scope": "before_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Ringerike U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Ringerike",
+          "age_group": "U10",
+          "scope": "after_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Ringerike U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "scope": "season",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 4,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 4,
+          "club_pool_actual": 4,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Skien U10A",
+              "actual": 4,
+              "target": 4
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "scope": "before_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Skien U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        },
+        {
+          "club": "Skien",
+          "age_group": "U10",
+          "scope": "after_christmas",
+          "registered_team_count": 1,
+          "nominal_target_per_team": 2,
+          "minor_shortfall_threshold": null,
+          "club_pool_target": 2,
+          "club_pool_actual": 2,
+          "club_pool_deviation": 0,
+          "team_distribution": [
+            {
+              "team": "Skien U10A",
+              "actual": 2,
+              "target": 2
+            }
+          ],
+          "classification": "complete",
+          "planning_significance": "resolved",
+          "counts_as_unresolved_shortfall": false
+        }
+      ],
+      "participation_club_pool_shortfalls": [],
+      "input_constrained_shapes": [],
+      "stale_approvals": [],
+      "orphaned_approvals": []
+    }
+  },
+  "fingerprint_consistent": true
+}

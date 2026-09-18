@@ -1,0 +1,58 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Kongsberg Hockey Scheduler//NO
+CALSCALE:GREGORIAN
+X-WR-CALNAME:RVV Sesongplan
+BEGIN:VEVENT
+SUMMARY:U10 — Kongsberghallen
+DTSTART:20261107T100000Z
+DTEND:20261107T104500Z
+UID:1567d5d8-72fc-5b3b-a11b-e46c1c009cb4
+CATEGORIES:U10
+DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U10\nVert: Kongsberg\nDe
+ ltakende lag (4): Kongsberg U10A\, Skien U10A\, Ringerike U10A\, Jar U10A\
+ n\nKamper:\n  Kongsberg U10A vs Jar U10A\n  Skien U10A vs Ringerike U10A\n
+   Kongsberg U10A vs Ringerike U10A\n  Skien U10A vs Jar U10A\n  Kongsberg 
+ U10A vs Skien U10A\n  Ringerike U10A vs Jar U10A
+LOCATION:Kongsberghallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Skien ishall
+DTSTART:20261212T100000Z
+DTEND:20261212T104500Z
+UID:01792a4e-ddd6-5dd6-b541-c4fc88787e9d
+CATEGORIES:U10
+DESCRIPTION:Arena: Skien ishall\nAldersgruppe: U10\nVert: Skien\nDeltakend
+ e lag (4): Kongsberg U10A\, Skien U10A\, Ringerike U10A\, Jar U10A\n\nKamp
+ er:\n  Kongsberg U10A vs Jar U10A\n  Skien U10A vs Ringerike U10A\n  Kongs
+ berg U10A vs Ringerike U10A\n  Skien U10A vs Jar U10A\n  Kongsberg U10A vs
+  Skien U10A\n  Ringerike U10A vs Jar U10A
+LOCATION:Skien ishall
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Ringerikshallen
+DTSTART:20270109T100000Z
+DTEND:20270109T104500Z
+UID:9412c850-5315-5ce0-a1f8-9c5595a4c201
+CATEGORIES:U10
+DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U10\nVert: Ringerike\nDe
+ ltakende lag (4): Kongsberg U10A\, Skien U10A\, Ringerike U10A\, Jar U10A\
+ n\nKamper:\n  Kongsberg U10A vs Jar U10A\n  Skien U10A vs Ringerike U10A\n
+   Kongsberg U10A vs Ringerike U10A\n  Skien U10A vs Jar U10A\n  Kongsberg 
+ U10A vs Skien U10A\n  Ringerike U10A vs Jar U10A
+LOCATION:Ringerikshallen
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:U10 — Jar Isforum
+DTSTART:20270123T100000Z
+DTEND:20270123T104500Z
+UID:88903933-71d6-561c-b7a6-75b308576a67
+CATEGORIES:U10
+DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U10\nVert: Jar\nDeltakende l
+ ag (4): Kongsberg U10A\, Skien U10A\, Ringerike U10A\, Jar U10A\n\nKamper:
+ \n  Kongsberg U10A vs Jar U10A\n  Skien U10A vs Ringerike U10A\n  Kongsber
+ g U10A vs Ringerike U10A\n  Skien U10A vs Jar U10A\n  Kongsberg U10A vs Sk
+ ien U10A\n  Ringerike U10A vs Jar U10A
+LOCATION:Jar Isforum
+END:VEVENT
+END:VCALENDAR
