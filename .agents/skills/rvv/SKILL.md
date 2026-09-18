@@ -210,6 +210,8 @@ For each pause:
 5. submit a concise operational rationale;
 6. invoke the next canonical command and reassess the new context.
 
+Transport rule: fill the returned `decision_action_template` and pass the **entire resulting JSON object** to `--decision-action` (or `--decision-action-file`). `rationale` is inside that JSON object, and every action-specific parameter is nested under `arguments`; never invent separate flags such as `--rationale` or action-specific CLI options.
+
 Use `.agents/commands/rvv-miniputt/run.md` for the explicit resume contract. Do not infer `--resume-from` from intuition. Do not persist or request hidden/private reasoning; durable records need only the action, relevant facts/outcome and concise rationale.
 
 ## Semantic safety-net audit
