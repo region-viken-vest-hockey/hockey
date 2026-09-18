@@ -158,6 +158,7 @@ def build_run_evidence_bundle(
     export_fingerprint: str | None = None,
     export_verify_result: dict[str, Any] | None = None,
     final_operator_evidence: dict[str, Any] | None = None,
+    controller_trace: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the sanitized evidence bundle for one pipeline run.
 
@@ -216,5 +217,10 @@ def build_run_evidence_bundle(
             "fingerprint": export_fingerprint,
             "verify_result": export_verify_result,
         },
+        # Compact reference + summary of the append-only controller decision
+        # trace. The detailed JSONL stays in the run workspace (never in the
+        # export tree / public bundle); this keeps the bundle self-describing
+        # without copying unbounded decision evidence into it.
+        "controller_trace": controller_trace,
         "fingerprint_consistent": fingerprint_consistent,
     }

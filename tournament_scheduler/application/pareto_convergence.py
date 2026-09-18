@@ -493,6 +493,10 @@ class EpochOutcome:
     frontier_refs: list[str]
     pause_reason: str = ""
     pause_detail: str = ""
+    # Per-generated-candidate frontier outcome (accepted / duplicate /
+    # dominated / pruning), so an observer can record exactly how the bounded
+    # frontier changed without re-deriving it from a post-update snapshot.
+    frontier_mutations: list[dict[str, Any]] = field(default_factory=list)
 
 
 class ConvergenceController:
@@ -518,6 +522,10 @@ class ConvergenceController:
         self.archive = archive or ParetoArchive(max_size=frontier_limit)
         self.max_epochs = max(1, int(max_epochs))
         self.max_no_improvement_epochs = max(1, int(max_no_improvement_epochs))
+        # Concise, explicit reason for the most recent direction choice. This
+        # is decision *input* (fairness/coverage), never model reasoning, and
+        # lets an observer record why one supported direction was selected.
+        self.last_selection_reason = ""
 
     # -- exploration order -------------------------------------------------
 
@@ -568,6 +576,7 @@ class ConvergenceController:
         improvements) monopolize the whole epoch budget. When every actionable
         direction has been explored this round, a fresh round begins in place.
         """
+        self.last_selection_reason = ""
         directions = self.effective_findings(directions)
         if force_finding_id:
             forced = next(
@@ -575,27 +584,36 @@ class ConvergenceController:
                 None,
             )
             if forced is not None:
+                self.last_selection_reason = "forced_finding"
                 return forced
         if self.state.is_terminal():
+            self.last_selection_reason = "terminal"
             return None
         actionable = [d for d in directions if d.actionable]
         if not actionable:
+            self.last_selection_reason = "no_actionable_direction"
             return None
         round_explored = set(self.state.round_explored_directions)
+        began_new_round = False
         untried_directions = [d for d in actionable if d.direction not in round_explored]
         if not untried_directions:
             # Every actionable direction already had an epoch this round: start
             # a fresh, fair round before selecting so the new round is fair from
             # its first pick instead of alternating with the previous round.
             self._begin_new_round()
+            began_new_round = True
             untried_directions = list(actionable)
+        prefix = "new_round:" if began_new_round else ""
         explored_findings = set(self.state.explored_findings)
         for direction in untried_directions:
             if direction.finding_id not in explored_findings:
+                self.last_selection_reason = f"{prefix}unexplored_finding"
                 return direction
         for direction in untried_directions:
             if direction.search_incomplete:
+                self.last_selection_reason = f"{prefix}search_incomplete"
                 return direction
+        self.last_selection_reason = f"{prefix}fair_direction_round"
         return untried_directions[0]
 
     def _begin_new_round(self) -> None:
@@ -617,12 +635,26 @@ class ConvergenceController:
         """Fold one epoch's verified candidates and fresh findings into state."""
         accepted_refs: list[str] = []
         rejected_refs: list[str] = []
+        frontier_mutations: list[dict[str, Any]] = []
         for entry in generated:
             outcome = self.archive.consider(entry)
             if outcome.get("accepted"):
                 accepted_refs.append(entry.candidate_ref)
             else:
                 rejected_refs.append(entry.candidate_ref)
+            frontier_mutations.append(
+                {
+                    "candidate_ref": entry.candidate_ref,
+                    "candidate_fingerprint": entry.candidate_fingerprint,
+                    "direction": entry.direction,
+                    "objective_vector": dict(entry.objective_vector),
+                    "accepted": bool(outcome.get("accepted")),
+                    "duplicate": bool(outcome.get("duplicate")),
+                    "dominated_by": list(outcome.get("dominated_by") or []),
+                    "dominated_refs": list(outcome.get("dominated_refs") or []),
+                    "pruned_refs": list(outcome.get("pruned_refs") or []),
+                }
+            )
 
         # A committed candidate is a new baseline: its recorded coverage and
         # explored-finding set no longer describe it, so both are reset before
@@ -682,6 +714,7 @@ class ConvergenceController:
             frontier_refs=list(self.state.frontier_refs),
             pause_reason=self.state.pause_reason,
             pause_detail=self.state.pause_detail,
+            frontier_mutations=frontier_mutations,
         )
 
     # -- convergence criteria ---------------------------------------------

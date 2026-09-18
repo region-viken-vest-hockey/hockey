@@ -253,6 +253,80 @@ def test_multi_epoch_convergence_retains_frontier_and_detects_plateau(tmp_path: 
     assert session.export_pending is True
 
 
+def test_controller_trace_reconstructs_a_repair_replaced_by_a_later_candidate(
+    tmp_path: Path,
+) -> None:
+    """Acceptance: a repair later replaced by another candidate is reconstructable.
+
+    The trace is the persisted run artifact; the test reads it back after the
+    run and reconstructs the candidate lineage without replaying the harness.
+    """
+    from tournament_scheduler.pipeline.controller_trace import (
+        EVENT_CANDIDATE_MUTATION,
+        EVENT_DIRECTION_SELECTED,
+        EVENT_EPOCH_END,
+        EVENT_EPOCH_START,
+        EVENT_FRONTIER_MUTATION,
+        EVENT_RUN_START,
+        EVENT_TERMINAL,
+        candidate_lineage,
+        read_controller_trace,
+    )
+
+    _seed_finalized(tmp_path)
+    commits: List[str] = []
+    finding_provider, option_provider, body_provider, apply_provider = _providers(commits)
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=6,
+        max_no_improvement_epochs=1,
+        frontier_limit=4,
+        export=False,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        run_id=RUN_ID,
+    )
+
+    events = read_controller_trace(tmp_path, RUN_ID)
+    assert events, "the controller trace must be persisted"
+    assert events[0]["event"] == EVENT_RUN_START
+    assert events[0]["run_id"] == RUN_ID
+    assert any(entry["event"] == EVENT_TERMINAL for entry in events)
+
+    # Every convergence epoch has a structured trace event with a candidate
+    # fingerprint transition.
+    epoch_starts = [entry for entry in events if entry["event"] == EVENT_EPOCH_START]
+    epoch_ends = [entry for entry in events if entry["event"] == EVENT_EPOCH_END]
+    assert len(epoch_starts) == len(epoch_ends) == result["convergence"]["epoch"]
+    assert all(entry.get("candidate_before") for entry in epoch_starts)
+    assert all(entry.get("direction") for entry in events if entry["event"] == EVENT_DIRECTION_SELECTED)
+
+    # Frontier mutations (adds/dominations) are traceable.
+    mutations = [entry for entry in events if entry["event"] == EVENT_FRONTIER_MUTATION]
+    assert mutations, "Pareto frontier mutations must be traceable"
+    assert any(entry.get("accepted") for entry in mutations)
+
+    # The exact repair chain is reconstructable: the first hosting repair is
+    # later replaced as the current candidate by the participants repair.
+    lineage = candidate_lineage(events)
+    assert len(lineage) == len(commits) == 2
+    assert lineage[0]["direction"] == "hosting"
+    assert lineage[1]["direction"] == "participants"
+    assert lineage[0]["candidate_after"] != lineage[0]["candidate_before"]
+    assert lineage[0]["candidate_after"] == lineage[1]["candidate_before"]
+    for transition in lineage:
+        assert transition["hard_verification_ok"] is True
+        assert transition["option_id"]
+    committed = [entry for entry in events if entry["event"] == EVENT_CANDIDATE_MUTATION]
+    assert all(entry.get("rationale") for entry in committed)
+    # No hidden chain-of-thought: only explicit inputs/outputs are recorded.
+    assert all("reasoning" not in entry and "thought" not in entry for entry in events)
+
+
 def test_convergence_resumes_after_a_manual_refine_changed_the_candidate(tmp_path: Path) -> None:
     _seed_finalized(tmp_path)
     commits: List[str] = []

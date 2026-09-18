@@ -69,6 +69,40 @@ def _now_iso() -> str:
     return datetime.now(tz=timezone.utc).isoformat()
 
 
+def _record_promotion_trace(
+    work_dir: str | os.PathLike[str],
+    *,
+    run_id: str | None,
+    season: str,
+    actor: str | None,
+    schedule: dict[str, Any],
+    candidate_fingerprint: str | None,
+    export_fingerprint: str | None,
+) -> None:
+    """Best-effort controller-trace event for a canonical promotion.
+
+    Promotion is the deliberate handoff from an audited review export to the
+    operational baseline. Recording it in the same append-only trace as the
+    convergence decisions lets an analyst link the exact reviewed candidate to
+    the season revision that became canonical, without a second evidence file.
+    """
+    try:
+        from ..pipeline.controller_trace import EVENT_PROMOTION, ControllerTrace
+
+        ControllerTrace(work_dir, run_id).emit(
+            EVENT_PROMOTION,
+            season=season,
+            actor=_operator_identity(actor),
+            schedule_revision=str(schedule.get("revision") or ""),
+            schedule_fingerprint=str(schedule.get("fingerprint") or ""),
+            candidate_fingerprint=str(candidate_fingerprint or ""),
+            export_fingerprint=str(export_fingerprint or ""),
+        )
+    except Exception:
+        # Observability must never fail or roll back a committed promotion.
+        pass
+
+
 def _initial_decisions(plan_dict: dict[str, Any]) -> dict[str, Any]:
     records: dict[str, Any] = {}
     for tournament in plan_dict.get("tournaments", []):
@@ -357,6 +391,15 @@ class CanonicalSeasonService:
             export_context=bound_context.get("public_export_context"),
         )
         committed = self._commit(snapshot, require_absent=not force)
+        _record_promotion_trace(
+            work_dir,
+            run_id=bound_context.get("run_id"),
+            season=resolved_season,
+            actor=actor,
+            schedule=committed.schedule,
+            candidate_fingerprint=bound_context.get("candidate_fingerprint"),
+            export_fingerprint=bound_context.get("export_fingerprint"),
+        )
         return committed.schedule, committed.decisions
 
     # -- schedule-changing mutations --------------------------------------

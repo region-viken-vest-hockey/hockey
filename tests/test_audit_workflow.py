@@ -313,6 +313,22 @@ def test_two_cycle_lifecycle_requires_fresh_audit_until_terminal(tmp_path: Path)
     record_audit_verdict(tmp_path, payload_one, run_id=RUN_ID)
     assert current_workflow(tmp_path, run_id=RUN_ID).phase == PHASE_CONVERGENCE_REQUIRED
 
+    # The operator/harness audit transition is linked to the same run and
+    # export fingerprint in the controller trace.
+    from tournament_scheduler.pipeline.controller_trace import (
+        EVENT_AUDIT_VERDICT,
+        EVENT_STAGE_GATE,
+        read_controller_trace,
+    )
+
+    trace_events = read_controller_trace(tmp_path, RUN_ID)
+    verdicts = [event for event in trace_events if event["event"] == EVENT_AUDIT_VERDICT]
+    assert any(
+        event["status"] == "REVIEW_REQUIRED" and event.get("export_fingerprint") == "fp-1"
+        for event in verdicts
+    )
+    assert any(event["event"] == EVENT_STAGE_GATE for event in trace_events)
+
     # Bounded convergence commits one mutation and re-exports E2.
     commits: List[str] = []
     finding_provider, option_provider, body_provider, apply_provider = _cycle_one_providers(commits)

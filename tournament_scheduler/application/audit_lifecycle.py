@@ -51,6 +51,13 @@ def _active_run_id(work_dir: Any) -> str:
         return ""
 
 
+def _trace(work_dir: Any, run_id: str | None) -> Any:
+    """Best-effort controller trace writer for this run's audit transitions."""
+    from ..pipeline.controller_trace import ControllerTrace
+
+    return ControllerTrace(work_dir, run_id or _active_run_id(work_dir))
+
+
 def _load(work_dir: Any, run_id: str | None) -> Stage3Session:
     return Stage3SessionStore(work_dir).load(expected_run_id=run_id or None)
 
@@ -163,6 +170,17 @@ def mark_audit_required(
         last_audit_status="",
     )
     _persist(work_dir, run_id, workflow)
+    from ..pipeline.controller_trace import EVENT_STAGE_GATE
+
+    _trace(work_dir, run_id).emit(
+        EVENT_STAGE_GATE,
+        gate="audit_required",
+        phase=workflow.phase,
+        candidate_fingerprint=candidate_fingerprint,
+        export_fingerprint=export_fingerprint,
+        export_dir=export_dir,
+        candidate_revision=revision,
+    )
     return workflow
 
 
@@ -181,6 +199,7 @@ def record_audit_verdict(
             last_audit_status=status,
         )
         _persist(work_dir, run_id, workflow)
+        _emit_audit_verdict(work_dir, run_id, workflow, status)
         return workflow
     if status == "PASS":
         workflow.record(
@@ -191,6 +210,7 @@ def record_audit_verdict(
             terminal_detail="The semantic safety-net audit returned PASS for the current export.",
         )
         _persist(work_dir, run_id, workflow)
+        _emit_audit_verdict(work_dir, run_id, workflow, status)
         return workflow
     # FAIL/INCOMPLETE: never complete, keep the run non-terminal.
     workflow.record(
@@ -199,7 +219,25 @@ def record_audit_verdict(
         last_audit_status=status,
     )
     _persist(work_dir, run_id, workflow)
+    _emit_audit_verdict(work_dir, run_id, workflow, status)
     return workflow
+
+
+def _emit_audit_verdict(
+    work_dir: Any, run_id: str | None, workflow: AuditWorkflow, status: str
+) -> None:
+    """Record one operator/harness audit transition against the run/candidate."""
+    from ..pipeline.controller_trace import EVENT_AUDIT_VERDICT
+
+    _trace(work_dir, run_id).emit(
+        EVENT_AUDIT_VERDICT,
+        status=status,
+        phase=workflow.phase,
+        candidate_fingerprint=workflow.candidate_fingerprint,
+        candidate_revision=workflow.candidate_revision,
+        export_fingerprint=workflow.export_fingerprint,
+        terminal_reason=workflow.terminal_reason,
+    )
 
 
 def record_convergence_result(

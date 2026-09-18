@@ -233,3 +233,33 @@ class TestBuildRunEvidenceBundle:
         assert bundle["decision_log"] == []
         assert bundle["stage3_attempt_log"] == []
         assert bundle["source_summary"]["sources_scanned"] == 0
+        assert bundle["controller_trace"] is None
+
+    def test_bundle_references_the_controller_trace_without_copying_events(self, tmp_path):
+        from tournament_scheduler.pipeline.controller_trace import (
+            ControllerTrace,
+            controller_trace_reference,
+        )
+
+        trace = ControllerTrace(tmp_path, "run-123")
+        trace.emit("run_start", phase="convergence")
+        trace.emit("terminal", reason="pass", detail="done")
+
+        bundle = build_run_evidence_bundle(
+            run_id="run-123",
+            input_fingerprint=None,
+            decision_log=None,
+            scraping_checkpoint=None,
+            stage3_attempt_log=None,
+            final_candidate=None,
+            final_verify_result=None,
+            final_score_result=None,
+            export_dir=None,
+            export_output_files=None,
+            controller_trace=controller_trace_reference(tmp_path, "run-123"),
+        )
+        trace_reference = bundle["controller_trace"]
+        assert trace_reference["event_count"] == 2
+        assert trace_reference["summary"]["terminal_reason"] == "pass"
+        # The detailed event list stays out of the bundle.
+        assert "events" not in trace_reference

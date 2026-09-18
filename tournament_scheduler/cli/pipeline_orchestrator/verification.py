@@ -128,6 +128,7 @@ def _write_run_evidence_bundle(
             build_run_evidence_bundle,
             read_stage3_attempt_log,
         )
+        from ...pipeline.controller_trace import controller_trace_reference
         from ...pipeline.run_manifest import RunManifest
         from ...pipeline.state import StageName
         from ...planning_contract import extract_candidate, score_candidate
@@ -183,6 +184,7 @@ def _write_run_evidence_bundle(
             export_fingerprint=export_checkpoint.get("export_fingerprint"),
             export_verify_result=export_checkpoint.get("verify_result"),
             final_operator_evidence=final_operator_evidence,
+            controller_trace=controller_trace_reference(state.work_dir, run_id),
         )
 
         export_dir = export_checkpoint.get("export_dir")

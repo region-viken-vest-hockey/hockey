@@ -71,6 +71,18 @@ Human questions and operator decisions are durable workspace state rather than t
 
 Use the supported operator commands/application capabilities to list, answer, or promote questions. Do not edit `run_manifest.json` manually as the normal workflow.
 
+## Controller decision trace
+
+The manifest `decision_log` and the Stage 3 attempt log are summaries; they do not reconstruct why the bounded convergence controller chose a direction/candidate or which verified improvement a later epoch replaced. Repository code therefore appends a compact, structured, append-only controller trace per run:
+
+```text
+<work_dir>/logs/<run_id>/controller_trace.jsonl
+```
+
+Each JSONL event records only explicit decision inputs/outputs and measurable effects: event family, epoch, direction/finding, candidate-before/after fingerprints, selected option/ref, objective/verification deltas, Pareto-frontier add/prune and terminal/pause reason, plus a concise explicit rationale. It never contains hidden chain-of-thought or raw model reasoning. The file is keyed by `run_id` and sequence number and is appended across process restarts/resume rather than truncated. Read/summarize it with `tournament_scheduler.pipeline.controller_trace.read_controller_trace` / `summarize_controller_trace` / `candidate_lineage`.
+
+The detailed JSONL stays in the run workspace, never in the Stage 4 export tree or the public GitHub Pages bundle. The sanitized `evidence_bundle.json` carries a stable run/path reference plus a compact `controller_trace` summary (event counts, directions, candidate transitions, frontier mutations, terminal/pause reason), so a reviewer can locate and analyze the detail without copying unbounded decision evidence into a publishable artifact.
+
 ## Persistence guarantees
 
 Manifest writes are expected to be atomic and failures must be visible. A corrupted manifest is treated differently from a workspace that has never had one. Approval-required actions must not proceed when the durable audit state cannot be written safely.

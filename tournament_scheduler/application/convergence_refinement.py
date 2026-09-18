@@ -48,6 +48,24 @@ from .pareto_convergence import (
     rank_frontier_for_review,
     recommended_review_candidate_ref,
 )
+from ..pipeline.controller_trace import (
+    EVENT_AUDIT_VERDICT,
+    EVENT_CANDIDATE_MUTATION,
+    EVENT_DIRECTION_SELECTED,
+    EVENT_EPOCH_END,
+    EVENT_EPOCH_START,
+    EVENT_FRONTIER_ADOPTION,
+    EVENT_FRONTIER_MUTATION,
+    EVENT_OPERATOR_QUESTION,
+    EVENT_OPTIONS_ENUMERATED,
+    EVENT_PAUSE,
+    EVENT_REVIEW_SELECTION,
+    EVENT_RUN_START,
+    EVENT_STAGE4_MATERIALIZATION,
+    EVENT_TERMINAL,
+    ControllerTrace,
+    metric_pairs,
+)
 
 DEFAULT_DIMENSIONS = ("participants", "host")
 
@@ -90,6 +108,131 @@ def _exhausted_coverage(
         "proven_infeasible": False,
         "reason": "stale_or_unapplicable_option",
     }
+
+
+def _trace_run_id(store: Any, work_dir: Any, run_id: str | None) -> str:
+    """Resolve the run identity a trace file belongs to.
+
+    Prefers an explicit argument, then the persisted Stage 3 session, then the
+    active run manifest. An unresolved identity still gets a durable
+    ``unscoped`` trace rather than dropping the evidence.
+    """
+    if run_id:
+        return str(run_id)
+    try:
+        session = store.load()
+        if session.run_id:
+            return str(session.run_id)
+    except Exception:
+        pass
+    try:
+        from ..pipeline.run_manifest import RunManifest
+
+        return str(RunManifest(work_dir).read().get("run_id") or "")
+    except Exception:
+        return ""
+
+
+def _current_fingerprint(store: Any, run_id: str | None) -> str:
+    try:
+        session = store.load(expected_run_id=run_id or None)
+    except Exception:
+        return ""
+    return str(session.finalized_fingerprint or session.candidate_fingerprint or "")
+
+
+def _stateless_current_fingerprint(work_dir: Any, run_id: str | None) -> str:
+    from .stage3_session_store import Stage3SessionStore
+
+    return _current_fingerprint(Stage3SessionStore(work_dir), run_id)
+
+
+# Concise labels for the material metrics a convergence mutation can change.
+# The values come straight from the canonical ``season_maintenance`` delta; the
+# labels only make the trace readable to an operator.
+_MATERIAL_METRIC_LABELS: tuple[tuple[str, str], ...] = (
+    ("hard_violations", "hard violations"),
+    ("unresolved_placement_obligations", "unresolved placements"),
+    ("unresolved_hosting_obligations", "unresolved hosting obligations"),
+    ("hosting_balance_imbalances", "hosting balance imbalances"),
+    ("manual_placements", "manual placements"),
+    ("participation_deviations", "participation deviations"),
+    ("avoidable", "avoidable participation deviations"),
+)
+
+
+def _metric_change_summary(delta: Mapping[str, Any] | None) -> str:
+    before, after = metric_pairs(delta)
+    parts: list[str] = []
+    for key, label in _MATERIAL_METRIC_LABELS:
+        start = before.get(key)
+        end = after.get(key)
+        if start is None or end is None or start == end:
+            continue
+        parts.append(f"{label} {start}->{end}")
+    changed = (delta or {}).get("changed_tournament_count")
+    if changed:
+        parts.append(f"changed tournaments {changed}")
+    return "; ".join(parts)
+
+
+def _mutation_rationale(
+    direction: FindingDirection,
+    entry: ArchiveEntry,
+    option: Mapping[str, Any],
+    delta: Mapping[str, Any] | None,
+) -> str:
+    family = str(option.get("family") or (entry.source or {}).get("family") or "repair")
+    summary = _metric_change_summary(delta)
+    base = f"non-dominated {direction.direction} candidate via {family}"
+    return f"{base}; {summary}" if summary else f"{base}; no material metric change"
+
+
+def _emit_epoch_trace(
+    trace: ControllerTrace,
+    outcome: Any,
+    *,
+    selection_reason: str = "",
+    epoch_end_reason: str = "",
+) -> None:
+    """Record one epoch's frontier mutations and its explicit outcome."""
+    for mutation in getattr(outcome, "frontier_mutations", []) or []:
+        trace.emit(EVENT_FRONTIER_MUTATION, epoch=outcome.epoch, **mutation)
+    trace.emit(
+        EVENT_EPOCH_END,
+        epoch=outcome.epoch,
+        direction=outcome.direction,
+        improved=outcome.improved,
+        accepted_refs=list(outcome.accepted_refs),
+        rejected_refs=list(outcome.rejected_refs),
+        frontier_size=outcome.archive_size,
+        frontier_refs=list(outcome.frontier_refs),
+        selection_reason=selection_reason,
+        epoch_end_reason=epoch_end_reason,
+        terminal_reason=outcome.terminal_reason,
+        pause_reason=outcome.pause_reason,
+    )
+
+
+def _emit_convergence_stop(trace: ControllerTrace, state: ConvergenceState) -> None:
+    """Record the final terminal or resumable pause exactly once per report."""
+    if state.terminal_reason:
+        trace.emit(
+            EVENT_TERMINAL,
+            epoch=state.epoch,
+            reason=state.terminal_reason,
+            detail=state.terminal_detail,
+            frontier_refs=list(state.frontier_refs),
+            globally_optimal=False,
+        )
+    elif state.pause_reason:
+        trace.emit(
+            EVENT_PAUSE,
+            epoch=state.epoch,
+            reason=state.pause_reason,
+            detail=state.pause_detail,
+            frontier_refs=list(state.frontier_refs),
+        )
 
 
 def _load_state(work_dir: Any, run_id: str | None, frontier_limit: int) -> tuple[Any, ParetoArchive, ConvergenceState]:
@@ -272,6 +415,19 @@ def run_bounded_convergence(
         state.pause_reason = ""
         state.pause_detail = ""
         state.epoch = 0
+    trace = ControllerTrace(work_dir, _trace_run_id(store, work_dir, run_id))
+    trace.emit(
+        EVENT_RUN_START,
+        phase="convergence",
+        started_epoch=state.epoch,
+        candidate_fingerprint=_current_fingerprint(store, run_id),
+        frontier_refs=archive.refs(),
+        max_epochs=max_epochs,
+        max_no_improvement_epochs=max_no_improvement_epochs,
+        frontier_limit=frontier_limit,
+        audit_status=(audit_payload or {}).get("status") if audit_payload else None,
+        dry_run=bool(dry_run),
+    )
     controller = ConvergenceController(
         state,
         archive,
@@ -284,13 +440,26 @@ def run_bounded_convergence(
     pending_force = force_finding_id
     pending_preferred_option = preferred_option_id
     audit_decision: dict[str, Any] | None = None
+    audit_trace_signature: tuple[Any, ...] | None = None
 
     while not state.is_terminal() and state.epoch < max_epochs:
         from .candidate_refinement import load_finalized_candidate
 
         _session, _checkpoint, candidate = load_finalized_candidate(work_dir, run_id=run_id)
+        candidate_before = str(
+            _session.finalized_fingerprint or _session.candidate_fingerprint or ""
+        )
         findings = finding_provider(candidate, problem)
         directions = classify_findings(findings)
+        trace.emit(
+            EVENT_EPOCH_START,
+            epoch=state.epoch + 1,
+            candidate_before=candidate_before,
+            frontier_size=len(archive.entries),
+            frontier_refs=archive.refs(),
+            actionable_directions=sorted({d.direction for d in directions if d.actionable}),
+            remaining_findings=sorted({d.finding_id for d in directions if not d.accepted}),
+        )
         if audit_payload is not None:
             from .audit_convergence import audit_convergence_decision
 
@@ -303,6 +472,37 @@ def run_bounded_convergence(
                     {d.direction for d in directions} | set(state.explored_directions)
                 ),
             )
+            signature = (
+                audit_decision.get("status"),
+                tuple(audit_decision.get("covered_directions") or []),
+                tuple(
+                    (question.get("item_id"), question.get("finding"))
+                    for question in audit_decision.get("operator_questions") or []
+                ),
+            )
+            if signature != audit_trace_signature:
+                audit_trace_signature = signature
+                trace.emit(
+                    EVENT_AUDIT_VERDICT,
+                    epoch=state.epoch + 1,
+                    candidate_fingerprint=candidate_before,
+                    status=audit_decision.get("status"),
+                    material_count=audit_decision.get("material_count"),
+                    covered_directions=audit_decision.get("covered_directions"),
+                    operator_required=audit_decision.get("operator_required"),
+                    convergence_available=audit_decision.get("convergence_available"),
+                )
+                for question in audit_decision.get("operator_questions") or []:
+                    trace.emit(
+                        EVENT_OPERATOR_QUESTION,
+                        epoch=state.epoch + 1,
+                        candidate_fingerprint=candidate_before,
+                        item_id=question.get("item_id"),
+                        direction=question.get("direction"),
+                        severity=question.get("severity"),
+                        finding=question.get("finding"),
+                        question=question.get("question"),
+                    )
             # An audit finding the repository cannot act on is exactly the
             # question to ask: do not search blindly on its behalf. If nothing
             # automatic remains at all, stop immediately; otherwise carry the
@@ -313,6 +513,7 @@ def run_bounded_convergence(
                 state.terminal_detail = _operator_detail(audit_decision)
                 if not dry_run:
                     _persist(store, run_id, archive, state)
+                _emit_convergence_stop(trace, state)
                 report = _report(
                     reason=state.terminal_reason,
                     detail=state.terminal_detail,
@@ -320,6 +521,7 @@ def run_bounded_convergence(
                     archive=archive,
                     epochs=epochs,
                     extra={"committed_epochs": committed, "audit_decision": audit_decision},
+                    trace=trace,
                 )
                 _materialize_batch_boundary(
                     work_dir,
@@ -334,10 +536,12 @@ def run_bounded_convergence(
                     materialize_provider=materialize_provider,
                     run_id=run_id,
                     log_fn=log,
+                    trace=trace,
                 )
                 _finalize_workflow(work_dir, report, run_id)
                 return report
         direction = controller.next_direction(directions, force_finding_id=pending_force)
+        selection_reason = controller.last_selection_reason
         pending_force = None
         if direction is None:
             outcome = controller.record_epoch(
@@ -347,11 +551,25 @@ def run_bounded_convergence(
                 search_incomplete_directions=[],
                 exploration_exhausted=True,
             )
+            _emit_epoch_trace(trace, outcome, selection_reason=selection_reason)
             epochs.append(_epoch_dict(outcome, None))
             if not dry_run:
                 _persist(store, run_id, archive, state)
             break
 
+        trace.emit(
+            EVENT_DIRECTION_SELECTED,
+            epoch=state.epoch + 1,
+            direction=direction.direction,
+            finding_id=direction.finding_id,
+            category=direction.category,
+            code=direction.code,
+            selection_reason=selection_reason,
+            search_incomplete=direction.search_incomplete,
+            bounded_exhausted=direction.bounded_exhausted,
+            operator_required=direction.operator_required,
+            forced=selection_reason == "forced_finding",
+        )
         report = option_provider(
             candidate,
             problem,
@@ -370,6 +588,22 @@ def run_bounded_convergence(
             for option in (report.get("options") or [])
             if option.get("objectives") and option.get("non_dominated")
         ]
+        trace.emit(
+            EVENT_OPTIONS_ENUMERATED,
+            epoch=state.epoch + 1,
+            direction=direction.direction,
+            finding_id=direction.finding_id,
+            options_considered=report.get("option_count", len(report.get("options") or [])),
+            verified_options=len(measured),
+            rejected_options=len(report.get("rejected_candidates") or []),
+            option_ids=[str(option.get("option_id") or "") for option in (report.get("options") or [])],
+            non_dominated_option_ids=[
+                str(option.get("option_id") or "") for option in measured
+            ],
+            families=list(report.get("families") or []),
+            search_incomplete=bool(direction.search_incomplete),
+            bounded_search_exhausted=bool(direction.bounded_exhausted),
+        )
         if not measured:
             log(f"convergence epoch {state.epoch + 1}: no non-dominated option for {direction.finding_id}")
             outcome = controller.record_epoch(
@@ -377,6 +611,12 @@ def run_bounded_convergence(
                 generated=[],
                 findings=directions,
                 resolved_coverage=resolved_coverage,
+            )
+            _emit_epoch_trace(
+                trace,
+                outcome,
+                selection_reason=selection_reason,
+                epoch_end_reason="no_non_dominated_option",
             )
             epochs.append(_epoch_dict(outcome, None))
             if not dry_run:
@@ -400,6 +640,12 @@ def run_bounded_convergence(
                 generated=entries,
                 findings=directions,
                 resolved_coverage=resolved_coverage,
+            )
+            _emit_epoch_trace(
+                trace,
+                outcome,
+                selection_reason=selection_reason,
+                epoch_end_reason="all_options_dominated",
             )
             epochs.append(_epoch_dict(outcome, None))
             if not dry_run:
@@ -428,6 +674,16 @@ def run_bounded_convergence(
             # No mutation and no persistence: return the planned epoch only.
             for entry in entries:
                 archive.consider(entry)
+            trace.emit(
+                EVENT_TERMINAL,
+                epoch=state.epoch + 1,
+                reason="dry_run",
+                detail="Preview only; no candidate was mutated.",
+                direction=direction.direction,
+                finding_id=direction.finding_id,
+                planned_option=chosen.get("option_id"),
+                planned_candidate_fingerprint=chosen_entry.candidate_fingerprint,
+            )
             report = _report(
                 reason="dry_run",
                 detail="Preview only; no candidate was mutated.",
@@ -438,6 +694,7 @@ def run_bounded_convergence(
                     {"direction": direction.direction, "planned_option": chosen.get("option_id")},
                 ],
                 extra={"planned_entries": [e.to_dict() for e in entries]},
+                trace=trace,
             )
             _materialize_batch_boundary(
                 work_dir,
@@ -452,6 +709,7 @@ def run_bounded_convergence(
                 materialize_provider=materialize_provider,
                 run_id=run_id,
                 log_fn=log,
+                trace=trace,
             )
             _finalize_workflow(work_dir, report, run_id)
             return report
@@ -483,6 +741,12 @@ def run_bounded_convergence(
                     direction.finding_id: _exhausted_coverage(resolved_coverage, direction)
                 },
             )
+            _emit_epoch_trace(
+                trace,
+                outcome,
+                selection_reason=selection_reason,
+                epoch_end_reason="apply_rejected",
+            )
             epochs.append(_epoch_dict(outcome, result))
             _persist(store, run_id, archive, state)
             continue
@@ -499,6 +763,30 @@ def run_bounded_convergence(
             generated=entries,
             findings=fresh,
             candidate_changed=True,
+        )
+        metrics_before, metrics_after = metric_pairs(result.get("delta"))
+        verification = result.get("verification") or {}
+        trace.emit(
+            EVENT_CANDIDATE_MUTATION,
+            epoch=outcome.epoch,
+            direction=direction.direction,
+            finding_id=direction.finding_id,
+            option_id=str(chosen.get("option_id") or ""),
+            family=str(chosen.get("family") or ""),
+            candidate_before=candidate_before,
+            candidate_after=committed_fingerprint,
+            metrics_before=metrics_before,
+            metrics_after=metrics_after,
+            delta=dict(result.get("delta") or {}),
+            objective_vector=dict(chosen_entry.objective_vector),
+            hard_verification_ok=bool(verification.get("ok", True)),
+            rationale=_mutation_rationale(direction, chosen_entry, chosen, result.get("delta")),
+        )
+        _emit_epoch_trace(
+            trace,
+            outcome,
+            selection_reason=selection_reason,
+            epoch_end_reason="committed",
         )
         epochs.append(_epoch_dict(outcome, result))
         _retain_frontier_bodies(store, run_id, entries, bodies)
@@ -530,6 +818,7 @@ def run_bounded_convergence(
         archive=archive,
         epochs=epochs,
         extra={"committed_epochs": committed, "audit_decision": audit_decision},
+        trace=trace,
     )
     report["review_selection"] = _resolve_review_selection(
         work_dir,
@@ -544,6 +833,16 @@ def run_bounded_convergence(
         dry_run=dry_run,
         log_fn=log,
     )
+    _emit_convergence_stop(trace, state)
+    selection = report.get("review_selection") or {}
+    trace.emit(
+        EVENT_REVIEW_SELECTION,
+        selected_ref=selection.get("selected_ref"),
+        recommended_ref=selection.get("recommended_ref"),
+        adopted=bool(selection.get("adopted")),
+        already_current=bool(selection.get("already_current")),
+        reason=selection.get("reason"),
+    )
     _materialize_batch_boundary(
         work_dir,
         report,
@@ -557,6 +856,7 @@ def run_bounded_convergence(
         materialize_provider=materialize_provider,
         run_id=run_id,
         log_fn=log,
+        trace=trace,
     )
     _finalize_workflow(work_dir, report, run_id)
     return report
@@ -641,6 +941,7 @@ def _materialize_batch_boundary(
     materialize_provider: Callable[..., dict[str, Any]],
     run_id: str | None,
     log_fn: Callable[[str], None],
+    trace: ControllerTrace | None = None,
 ) -> dict[str, Any]:
     """Materialize the single Stage 4 review handoff for a convergence batch.
 
@@ -698,6 +999,15 @@ def _materialize_batch_boundary(
                 "export": result.get("export"),
             }
         )
+        if trace is not None:
+            trace.emit(
+                EVENT_STAGE4_MATERIALIZATION,
+                candidate_fingerprint=_stateless_current_fingerprint(work_dir, run_id),
+                export_fingerprint=result.get("export_fingerprint"),
+                export_dir=result.get("export_dir"),
+                committed_epochs=committed,
+                audit_required=True,
+            )
         return report
     report.update(
         {
@@ -750,6 +1060,7 @@ def select_frontier_candidate(
     from .candidate_refinement import commit_refined_candidate, load_finalized_candidate
     from .stage3_session import TRANSITION_SELECT_CANDIDATE
     from .stage3_session_store import (
+        Stage3SessionStore,
         extract_candidate_body,
         fingerprint_plan,
         stage3_checkpoint_facts_fingerprint,
@@ -805,16 +1116,16 @@ def select_frontier_candidate(
             "verification": verification,
         }
     after_fingerprint = fingerprint_plan(body)
-    if after_fingerprint and after_fingerprint == (
-        session.finalized_fingerprint or session.candidate_fingerprint
-    ):
+    before_fingerprint = session.finalized_fingerprint or session.candidate_fingerprint
+    if after_fingerprint and after_fingerprint == before_fingerprint:
         return {"ok": True, "already_current": True, "candidate_ref": candidate_ref}
-    return commit_refined_candidate(
+    trace = ControllerTrace(work_dir, _trace_run_id(Stage3SessionStore(work_dir), work_dir, run_id))
+    result = commit_refined_candidate(
         work_dir,
         session,
         checkpoint=checkpoint,
         candidate=body,
-        before_fingerprint=session.finalized_fingerprint or session.candidate_fingerprint,
+        before_fingerprint=before_fingerprint,
         after_fingerprint=after_fingerprint,
         source="frontier_selection",
         transition=TRANSITION_SELECT_CANDIDATE,
@@ -830,6 +1141,18 @@ def select_frontier_candidate(
         rationale=rationale or f"adopt retained frontier candidate {candidate_ref}",
         log_fn=log,
     )
+    if result.get("ok"):
+        trace.emit(
+            EVENT_FRONTIER_ADOPTION,
+            candidate_ref=candidate_ref,
+            candidate_before=before_fingerprint,
+            candidate_after=str(result.get("candidate_fingerprint_after") or after_fingerprint),
+            hard_verification_ok=bool(verification.get("ok", True)),
+            actor=actor,
+            rationale=rationale or f"adopt retained frontier candidate {candidate_ref}",
+            export_materialized=bool(result.get("export_materialized")),
+        )
+    return result
 
 
 def _pause_reason(state: ConvergenceState, max_epochs: int) -> tuple[str, str]:
@@ -871,6 +1194,7 @@ def _report(
     archive: ParetoArchive,
     epochs: list[dict[str, Any]],
     extra: Mapping[str, Any] | None = None,
+    trace: ControllerTrace | None = None,
 ) -> dict[str, Any]:
     payload = {
         "ok": True,
@@ -891,6 +1215,11 @@ def _report(
         "recommended_review_candidate_ref": recommended_review_candidate_ref(archive.entries),
         "epochs": epochs,
     }
+    if trace is not None:
+        # Stable reference to the detailed, append-only controller trace. The
+        # report stays compact; the analyzable detail lives in the run
+        # workspace trace file, not in the (possibly published) report.
+        payload["controller_trace"] = trace.reference()
     if extra:
         payload.update(dict(extra))
     # Whether a fresh semantic audit is required is decided at the batch
