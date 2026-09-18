@@ -314,6 +314,17 @@ change. Participation acceptance identity includes `age_group`
 (`participation_acceptance:<club>:<label>:<age_group>:<scope>`); legacy ids are
 migrated explicitly.
 
+Verifier-derived plan projections have one owner,
+`plan_derived_state.reconcile_plan_derived_state`. Every canonical write and the
+Stage 4 renderer call it, so hosting coverage/imbalance and repair logs,
+`publication_readiness`, `unresolved_external_conflicts`,
+`unresolved_participation_shortfalls` and the operator-waiver audit rows are
+re-derived from the same verify result that owns the rule and cannot contradict
+it. It only overwrites facts the authoritative source actually carries (a
+partial fixture never clears real plan data) and leaves planner-time facts that
+cannot be reconstructed from the tournaments (for example
+`unresolved_tournament_placements`) untouched.
+
 Once a verified schedule is promoted, normal planning becomes baseline-aware:
 
 - durable tournament IDs survive ordinary moves/rehosting/participant edits;

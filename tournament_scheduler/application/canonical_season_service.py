@@ -466,7 +466,7 @@ class CanonicalSeasonService:
             raise SeasonStateError(
                 f"Refusing canonical mutation: candidate fails hard verification: {messages}"
             )
-        reconcile_plan_derived_state(plan, result)
+        reconcile_plan_derived_state(plan, result, problem=problem)
 
         now = _now_iso()
         fingerprint = schedule_fingerprint(plan)
@@ -582,7 +582,7 @@ class CanonicalSeasonService:
         plan["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
         plan.setdefault("start_date", schedule["plan"].get("start_date"))
         plan.setdefault("end_date", schedule["plan"].get("end_date"))
-        reconcile_plan_derived_state(plan, result)
+        reconcile_plan_derived_state(plan, result, problem=problem)
 
         now = _now_iso()
         fingerprint = schedule_fingerprint(plan)

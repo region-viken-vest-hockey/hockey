@@ -25,6 +25,7 @@ from tournament_scheduler.season_maintenance import (
     accept_finding,
     apply_repair,
     list_findings,
+    load_context,
     repair_options,
     revoke_acceptance,
     search,
@@ -246,6 +247,77 @@ def test_apply_repair_is_revision_bound_and_returns_fresh_delta(tmp_path: Path) 
     # Fresh, revision-consistent evidence: no findings remain on the new revision.
     assert result["fresh_findings"]["revision"] == result["revision_after"]
     assert result["fresh_findings"]["finding_count"] == 0
+
+
+# Persisted plan projection -> the fresh verifier result that owns it.
+_PROJECTION_PAIRS = (
+    ("unresolved_hosting_obligations", "unresolved_hosting_obligations"),
+    ("hosting_balance_imbalances", "hosting_balance_imbalances"),
+    ("unresolved_external_conflicts", "manual_external_conflict_placements"),
+    ("unresolved_participation_shortfalls", "manual_participation_placements"),
+)
+
+
+def _assert_persisted_projections_match_verifier(root: Path) -> None:
+    _schedule, _decisions, plan, problem = load_context(YEAR, root=root)
+    fresh = verify_candidate(plan, problem)
+    for plan_field, verify_field in _PROJECTION_PAIRS:
+        assert len(plan.get(plan_field) or []) == len(fresh.get(verify_field) or []), plan_field
+
+
+def test_canonical_apply_reconciles_every_verifier_projection(tmp_path: Path) -> None:
+    """A canonical mutation cannot persist a projection the verifier disagrees with.
+
+    The plan is seeded with contradictory external-conflict and participation
+    projections; applying a repair must refresh every verifier-derived
+    projection through the one shared reconciliation, not only hosting/readiness.
+    """
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(
+        teams,
+        participation_targets={"U10": {"before_christmas": 3, "after_christmas": 3}},
+    )
+    plan = _plan(
+        [
+            _tournament("T1", "2026-10-10", "Nordby", teams),
+            _tournament("T2", "2026-11-14", "Nordby", teams),
+        ]
+    )
+    plan["unresolved_external_conflicts"] = [
+        {
+            "tournament_id": "ghost",
+            "host_club": "Ghost",
+            "age_group": "U10",
+            "date": "2026-10-10",
+            "reason": "stale",
+        }
+    ]
+    plan["unresolved_participation_shortfalls"] = [
+        {
+            "club": "Ghost",
+            "label": "Ghost 1",
+            "age_group": "U10",
+            "category": "participation_under_target",
+            "reason": "stale",
+        }
+    ]
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    options = repair_options(YEAR, "hosting_balance:U10:Sorby", root=root)
+    result = apply_repair(
+        YEAR,
+        options["options"][0]["option_id"],
+        options["revision"],
+        root=root,
+        finding_id="hosting_balance:U10:Sorby",
+    )
+
+    assert result["ok"] is True, result
+    _assert_persisted_projections_match_verifier(root)
+    _schedule, _decisions, persisted, _loaded_problem = load_context(YEAR, root=root)
+    assert persisted["unresolved_external_conflicts"] == []
+    assert "Ghost" not in {entry["club"] for entry in persisted["unresolved_participation_shortfalls"]}
 
 
 def test_search_then_apply_with_explicit_dimensions(tmp_path: Path) -> None:
