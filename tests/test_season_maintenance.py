@@ -15,8 +15,10 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from tournament_scheduler.participation_deviation_repair import _classification
+from tournament_scheduler.pareto import non_dominated_indices
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_maintenance import (
+    PARETO_DIMENSIONS,
     accept_finding,
     apply_repair,
     list_findings,
@@ -260,6 +262,80 @@ def test_search_then_apply_with_explicit_dimensions(tmp_path: Path) -> None:
     )
     assert applied["ok"] is True
     assert applied["delta"]["unresolved_hosting_obligations_after"] == 0
+
+
+def test_repair_options_expose_a_non_dominated_pareto_front(tmp_path: Path) -> None:
+    """Every option is measured on the shared vector; equal trade-offs de-duplicate.
+
+    Two donor rehosts for the same deficit commit the same candidate vector, so
+    only the first survives the dominance/deduplication step. That is the exact
+    behaviour that keeps a verified option set from being presented as if every
+    legal mutation were an independent trade-off.
+    """
+    root, _plan, _problem_dict, _revision = _two_club_season(tmp_path)
+
+    report = repair_options(YEAR, "hosting_balance:U10:Sorby", root=root)
+
+    pareto = report["pareto"]
+    assert pareto["dimensions"] == list(PARETO_DIMENSIONS)
+    assert pareto["measured_option_count"] == report["option_count"] == 2
+    assert pareto["front_size"] == 1
+    assert set(pareto["representative_option_ids"]) <= set(pareto["non_dominated_option_ids"])
+    for option in report["options"]:
+        assert set(option["objectives"]) == set(PARETO_DIMENSIONS)
+        # The vector describes the candidate the option would actually commit.
+        assert option["objectives"]["unresolved_hosting_obligations"] == 0.0
+        assert option["objectives"]["hosting_balance_imbalances"] == 0.0
+        assert option["objectives"]["changed_tournament_count"] == 1.0
+    assert [option["non_dominated"] for option in report["options"]].count(True) == 1
+
+    # The reported front is exactly the non-dominated set of the measured vectors.
+    vectors = [option["objectives"] for option in report["options"]]
+    expected_front = [report["options"][i]["option_id"] for i in non_dominated_indices(vectors)]
+    assert pareto["non_dominated_option_ids"] == expected_front
+
+
+def test_search_reports_the_same_pareto_surface(tmp_path: Path) -> None:
+    root, _plan_dict, _problem_dict, _revision = _two_club_season(tmp_path)
+
+    result = search(YEAR, "hosting_balance:U10:Sorby", root=root)
+
+    assert "pareto" in result
+    assert result["pareto"]["dimensions"] == list(PARETO_DIMENSIONS)
+    assert result["pareto"]["measured_option_count"] == result["option_count"]
+    for option in result["options"]:
+        assert isinstance(option["non_dominated"], bool)
+        assert option["objectives"] is not None
+
+
+def test_search_measures_bounded_search_options(tmp_path: Path) -> None:
+    """A non-cheap bounded-search option is measured by reproducing its commit.
+
+    The bounded neighborhood option's apply path reruns the seeded search, so
+    this exercises an option family beyond direct rehosts through the shared
+    objective measurement.
+    """
+    teams = _teams(["Nordby", "Sorby", "Tredje"])
+    problem = _problem(teams)
+    participants = teams[:4]
+    plan = _plan(
+        [
+            _tournament("T1", "2026-10-10", "Tredje", participants),
+            _tournament("T2", "2026-11-14", "Nordby", participants),
+        ]
+    )
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    result = search(YEAR, "host_team_missing:T1", root=root)
+
+    assert result["option_count"] >= 1
+    assert "search_neighborhood" in {option["family"] for option in result["options"]}
+    assert result["pareto"]["measured_option_count"] == result["option_count"]
+    assert result["pareto"]["front_size"] >= 1
+    for option in result["options"]:
+        assert set(option["objectives"]) == set(PARETO_DIMENSIONS)
+        assert option["objectives"]["hard_violations"] == 0.0
 
 
 def test_stale_revision_is_rejected_without_mutating_canonical_state(tmp_path: Path) -> None:
@@ -597,6 +673,32 @@ def test_acceptance_stops_applying_when_target_changes(tmp_path: Path) -> None:
     assert stale["target"] == 5
     assert stale["avoidability"] != "operator_accepted"
     assert stale["acceptance_stale"] is True
+
+
+def test_repair_options_cli_reports_the_pareto_surface(tmp_path: Path, capsys) -> None:
+    from tournament_scheduler.cli.rvv_cli import main
+
+    root, _plan_dict, _problem_dict, _revision = _two_club_season(tmp_path)
+
+    rc = main(
+        [
+            "season",
+            "repair-options",
+            "--season",
+            YEAR,
+            "--finding",
+            "hosting_balance:U10:Sorby",
+            "--root",
+            str(root),
+            "--json",
+        ]
+    )
+
+    assert rc == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["pareto"]["dimensions"] == list(PARETO_DIMENSIONS)
+    assert output["pareto"]["front_size"] >= 1
+    assert any(option["non_dominated"] for option in output["options"])
 
 
 def test_accept_deviation_cli_round_trip(tmp_path: Path, capsys) -> None:

@@ -1483,8 +1483,15 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"(revision {str(report['revision'])[:12]})"
                 )
                 for option in report["options"]:
+                    marker = "[magenta]P[/magenta] " if option.get("non_dominated") else "  "
                     _console.print(
-                        f"  [green]•[/green] {option['option_id']} ({option.get('family')})"
+                        f"  {marker}[green]•[/green] {option['option_id']} ({option.get('family')})"
+                    )
+                pareto = report.get("pareto") or {}
+                if pareto.get("non_dominated_option_ids"):
+                    _console.print(
+                        f"  [magenta]P[/magenta] = Pareto-front: "
+                        f"{pareto['front_size']} av {pareto.get('measured_option_count', 0)} målt"
                     )
                 if not report["options"]:
                     _console.print(

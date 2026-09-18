@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 from ...pipeline.run_log_paths import resolve_active_run_log_dir
 from .interactive_state_io import (

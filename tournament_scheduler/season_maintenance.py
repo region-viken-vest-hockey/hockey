@@ -29,6 +29,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 from .canonical_baseline import build_canonical_baseline, change_cost
 from .hosting_balance_repair import hosting_finding_id
 from .local_repair_options import enumerate_local_repair_options
+from .pareto import non_dominated_indices, representative_indices
 from .participation_deviation_repair import participation_finding_id
 from .participation_targets import search_evidence_from_acceptances
 from .planning_contract import verify_candidate
@@ -44,6 +45,29 @@ from .season_state import (
 SEASON_MAINTENANCE_SCHEMA_VERSION = 1
 
 DEFAULT_DIMENSIONS: Tuple[str, ...] = ("participants", "host")
+
+# The objective vector every maintenance option is measured on, oriented
+# "lower is better" so one uniform dominance check applies. Defect and
+# host-confirmation counts come from the same independent verifier that produced
+# the findings; change cost is the number of tournaments whose placement/roster
+# signature changed. An option is only on the front when no other option is at
+# least as good everywhere and strictly better somewhere -- a verified option is
+# not automatically a non-dominated one.
+PARETO_DIMENSIONS: Tuple[str, ...] = (
+    "hard_violations",
+    "unresolved_hosting_obligations",
+    "hosting_balance_imbalances",
+    "manual_placements",
+    "participation_deviations",
+    "avoidable_participation_deviations",
+    "host_confirmation_dependencies",
+    "changed_tournament_count",
+)
+
+# A non-dominated front is still bounded before it is reported: one extreme per
+# objective plus the lowest-cost remaining points, so a caller gets a small
+# representative trade-off set rather than every legal mutation.
+MAX_PARETO_REPRESENTATIVES = 6
 
 # Categories are facts about what kind of finding this is, not a mandatory
 # processing order: the harness may select any finding independently.
@@ -152,6 +176,7 @@ def repair_options(
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=allow_search, dimensions=DEFAULT_DIMENSIONS
     )
+    pareto = _annotate_pareto(plan, problem, options, finding, DEFAULT_DIMENSIONS)
     return {
         "season": season,
         "revision": revision,
@@ -161,6 +186,7 @@ def repair_options(
         "options": options,
         "rejected_candidates": rejected,
         "families": families,
+        "pareto": pareto,
         "escalation": _escalation(options, rejected, finding),
     }
 
@@ -181,6 +207,7 @@ def search(
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=True, dimensions=resolved_dimensions
     )
+    pareto = _annotate_pareto(plan, problem, options, finding, resolved_dimensions)
     return {
         "season": season,
         "revision": revision,
@@ -190,6 +217,7 @@ def search(
         "options": options,
         "rejected_candidates": rejected,
         "families": families,
+        "pareto": pareto,
         "escalation": _escalation(options, rejected, finding),
         "requested_dimensions": list(resolved_dimensions),
     }
@@ -766,6 +794,89 @@ def _escalation(options: List[Dict[str, Any]], rejected: List[Dict[str, Any]], f
             ),
         }
     return {"needed": True, "reason": "no_cheap_local_option"}
+
+
+# ---------------------------------------------------------------------------
+# Pareto / non-dominated alternative set
+# ---------------------------------------------------------------------------
+
+
+def _annotate_pareto(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    options: List[Dict[str, Any]],
+    finding: Mapping[str, Any],
+    dimensions: Iterable[str],
+) -> Dict[str, Any]:
+    """Measure every option on the same objective vector and mark the front.
+
+    Each option is reproduced against the current plan through its own atomic
+    apply path and re-verified, so the vector describes the candidate that
+    option would actually commit -- not a claim derived from the provider's
+    self-reported effects. An option that no longer reproduces is left off the
+    front instead of being reported as a verified trade-off.
+    """
+    measured: List[Tuple[int, Dict[str, float]]] = []
+    for index, option in enumerate(options):
+        applied = _apply_option(plan, problem, option, finding, dimensions)
+        candidate = applied.get("candidate") if applied.get("ok") else None
+        if not isinstance(candidate, Mapping):
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        verification = applied.get("verification") or verify_candidate(
+            dict(candidate), dict(problem)
+        )
+        vector = _objective_vector(candidate, verification, plan)
+        option["objectives"] = vector
+        measured.append((index, vector))
+
+    vectors = [vector for _index, vector in measured]
+    front = non_dominated_indices(vectors)
+    front_option_indices = sorted(measured[local][0] for local in front)
+    front_set = set(front_option_indices)
+    for index, option in enumerate(options):
+        option["non_dominated"] = index in front_set
+
+    front_vectors = [measured[local][1] for local in front]
+    representative = representative_indices(front_vectors, MAX_PARETO_REPRESENTATIVES)
+    return {
+        "dimensions": list(PARETO_DIMENSIONS),
+        "non_dominated_option_ids": [options[index]["option_id"] for index in front_option_indices],
+        "representative_option_ids": [
+            options[front_option_indices[local]]["option_id"] for local in representative
+        ],
+        "front_size": len(front_option_indices),
+        "measured_option_count": len(measured),
+    }
+
+
+def _objective_vector(
+    candidate: Mapping[str, Any],
+    verification: Mapping[str, Any],
+    before_plan: Mapping[str, Any],
+) -> Dict[str, float]:
+    """Extract the uniformly "lower is better" maintenance objective vector."""
+    return {
+        "hard_violations": float(_count(verification, "violations")),
+        "unresolved_hosting_obligations": float(
+            _count(verification, "unresolved_hosting_obligations")
+        ),
+        "hosting_balance_imbalances": float(
+            _count(verification, "hosting_balance_imbalances")
+        ),
+        "manual_placements": float(_manual_count(verification)),
+        "participation_deviations": float(_count(verification, "participation_deviations")),
+        "avoidable_participation_deviations": float(
+            _avoidability_count(verification, "avoidable")
+        ),
+        "host_confirmation_dependencies": float(
+            _count(verification, "movable_allocations_used")
+        ),
+        "changed_tournament_count": float(
+            len(_changed_tournament_ids(before_plan, candidate))
+        ),
+    }
 
 
 # ---------------------------------------------------------------------------

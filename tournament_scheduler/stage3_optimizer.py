@@ -57,6 +57,9 @@ from .canonical_baseline import (
 from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
 from .host_representation import swap_breaks_host_representation as _swap_breaks_host_representation
 from .models import Team
+from .pareto import dominates as _dominates
+from .pareto import representative_indices as _representative_indices
+from .pareto import vectors_equal as _vectors_equal
 from . import planning_half
 from .planning_contract import (
     CANDIDATE_SCHEMA_VERSION,
@@ -1619,19 +1622,6 @@ def _objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
     }
 
 
-def _dominates(a: Dict[str, float], b: Dict[str, float], tol: float = 1e-9) -> bool:
-    """True if objective vector *a* Pareto-dominates *b*: weakly better (or
-    equal, within *tol*) in every dimension, and strictly better in at
-    least one."""
-    at_least_as_good = all(a[key] <= b[key] + tol for key in a)
-    strictly_better = any(a[key] < b[key] - tol for key in a)
-    return at_least_as_good and strictly_better
-
-
-def _vectors_equal(a: Dict[str, float], b: Dict[str, float], tol: float = 1e-9) -> bool:
-    return all(abs(a[key] - b[key]) <= tol for key in a)
-
-
 def _default_pareto_weight_vectors(base_weights: Dict[str, float]) -> List[Dict[str, float]]:
     """Build the default set of search-epoch weight vectors: one "corner"
     per :data:`DEFAULT_WEIGHTS` key (that dimension emphasized, all others
@@ -1647,33 +1637,15 @@ def _default_pareto_weight_vectors(base_weights: Dict[str, float]) -> List[Dict[
 
 
 def _downselect_archive(archive: List[Dict[str, Any]], max_size: int) -> List[Dict[str, Any]]:
-    """Reduce *archive* to at most *max_size* entries, preferring the
-    per-dimension extremes (issue #264 P1: "return a small representative
-    set — extremes plus useful knee/balanced points") over an arbitrary
-    truncation. A no-op when already within budget."""
+    """Reduce *archive* to at most *max_size* entries via the canonical
+    per-dimension-extreme down-select (see ``pareto.representative_indices``),
+    so "return a small representative set — extremes plus useful
+    knee/balanced points" is one shared implementation. A no-op when already
+    within budget."""
     if len(archive) <= max_size or not archive:
         return archive
-
-    chosen: List[int] = []
-    chosen_set: set = set()
-    for dim in archive[0]["vector"]:
-        best_index = min(range(len(archive)), key=lambda i: archive[i]["vector"][dim])
-        if best_index not in chosen_set:
-            chosen_set.add(best_index)
-            chosen.append(best_index)
-        if len(chosen) >= max_size:
-            break
-
-    if len(chosen) < max_size:
-        remaining = [i for i in range(len(archive)) if i not in chosen_set]
-        remaining.sort(key=lambda i: sum(archive[i]["vector"].values()))
-        for index in remaining:
-            if len(chosen) >= max_size:
-                break
-            chosen.append(index)
-            chosen_set.add(index)
-
-    return [archive[i] for i in sorted(chosen)]
+    indices = _representative_indices([entry["vector"] for entry in archive], max_size)
+    return [archive[i] for i in indices]
 
 
 def optimize_candidate_pareto(
