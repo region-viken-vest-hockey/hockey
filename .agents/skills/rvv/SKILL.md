@@ -38,6 +38,8 @@ scripts/rvv-miniputt season findings --season 2026-2027
 scripts/rvv-miniputt season repair-options --season 2026-2027 --finding <finding-id>
 scripts/rvv-miniputt season search --season 2026-2027 --finding <finding-id>
 scripts/rvv-miniputt season apply-repair --season 2026-2027 --option-id <id> --expected-revision <rev>
+scripts/rvv-miniputt season accept-deviation --season 2026-2027 --finding <finding-id> --note "ice unavailable"
+scripts/rvv-miniputt season revoke-acceptance --season 2026-2027 --finding <finding-id>
 scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
 scripts/rvv-miniputt season unapprove --season 2026-2027 --tournament-id <id> --note "booking changed"
 scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
@@ -56,7 +58,7 @@ season search               -> bounded neighborhood search when cheaper options 
 season apply-repair         -> atomic, full-season-verified, revision-bound apply + delta
 ```
 
-Findings are independent facts, not a mandatory queue: select whichever finding matters next. Options and findings are bound to the canonical revision they came from; applying against a changed revision is rejected as stale and leaves canonical state unchanged. A `bounded_search_exhausted` participation deviation is not proof of infeasibility -- request another bounded search rather than recording it as `proven_infeasible`. Repairs must never transfer hosting responsibility to a club that does not owe it, and must never make another club's hosting deficit worse. Respect the repository's repair-cost order: when a tournament's host/date/arena/time are already legal and only the selected roster conflicts, the first options are placement-preserving roster substitutions, so do not move the slot or escalate to a broader search while a verified substitution exists.
+Findings are independent facts, not a mandatory queue: select whichever finding matters next. Options and findings are bound to the canonical revision they came from; applying against a changed revision is rejected as stale and leaves canonical state unchanged. A `bounded_search_exhausted` participation deviation is not proof of infeasibility -- request another bounded search rather than recording it as `proven_infeasible`. A remaining deviation an operator deliberately decides to live with may be persisted with `season accept-deviation` as an explicit `operator_accepted` decision: it never changes the target or the schedule, becomes stale (and re-surfaces the finding) if the target changes or the deviation gets worse, and is reopened with `season revoke-acceptance`. Repairs must never transfer hosting responsibility to a club that does not owe it, and must never make another club's hosting deficit worse. Respect the repository's repair-cost order: when a tournament's host/date/arena/time are already legal and only the selected roster conflicts, the first options are placement-preserving roster substitutions, so do not move the slot or escalate to a broader search while a verified substitution exists.
 
 Never hand-edit canonical season JSON to work around a lock or verifier.
 
@@ -135,6 +137,7 @@ Participation targets are a **strong operational goal with bounded, evidenced re
 - Python resolves the configured per-half/season targets, minimizes deviation, and classifies every material deviation as `avoidable`, `proven_infeasible`, `bounded_search_exhausted` or `operator_accepted` (see `participation_targets.py`);
 - a known-avoidable participation regression must not be selected merely to improve a lower-priority quality metric (travel, opponent diversity, start time, ...);
 - `bounded_search_exhausted` is **not** proof of unavoidability: request another bounded search or escalate before accepting it, and never call it `proven_infeasible`;
+- `operator_accepted` is an explicit, durable operator decision (persisted during promoted-season maintenance), never a planner outcome; it is scope/target/magnitude-bound and never edits the configured target;
 - cross-half compensation (`2 + 4` for a `3 + 3` target) is legal and is recognized as season-total-complete with an explicit half-distribution deviation;
 - an explicit `participation_hard_max` is a separate, genuinely hard rule and is never inferred from the target. Ordinary bounded target deviation never requires an operator waiver.
 

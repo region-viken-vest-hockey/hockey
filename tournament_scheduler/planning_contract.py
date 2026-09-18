@@ -584,6 +584,23 @@ def _duplicate_labels(tournaments: Iterable[Dict[str, Any]]) -> "set[str]":
     return {label for label, identities in seen.items() if len(identities) > 1}
 
 
+def _participation_search_evidence(
+    problem: Optional[Mapping[str, Any]],
+) -> Optional[Mapping[TeamIdentity, Any]]:
+    """Return the per-team search/acceptance evidence carried by *problem*.
+
+    Canonical season maintenance injects persisted operator acceptances here so
+    the same independent verifier that classifies every other deviation also
+    honours an explicit ``operator_accepted`` decision. The field is optional:
+    an ordinary planner problem carries no acceptances and keeps the exact
+    previous classification behaviour.
+    """
+    if not isinstance(problem, Mapping):
+        return None
+    evidence = problem.get("participation_search_evidence")
+    return evidence if isinstance(evidence, Mapping) else None
+
+
 def verify_candidate(
     candidate: Dict[str, Any],
     problem: Optional[Dict[str, Any]] = None,
@@ -1105,7 +1122,9 @@ def verify_candidate(
     # deviation is reported as bounded, evidenced quality evidence instead of
     # blocking verification; see ``participation_targets.py`` for the canonical
     # target/hard-max precedence and avoidability classification.
-    participation_evaluation = evaluate_participation(candidate, problem)
+    participation_evaluation = evaluate_participation(
+        candidate, problem, search_evidence=_participation_search_evidence(problem)
+    )
     participation_deviations = participation_evaluation.deviations
     participation_metrics = participation_evaluation.metrics
     # A team with configured before/after age-group half targets reports its
@@ -1314,7 +1333,11 @@ def score_candidate(
     # single spread scalar a lower-priority objective can outvote.
     participation_metrics: Dict[str, Any] = {"spread": participation_spread}
     if problem is not None:
-        participation_metrics.update(evaluate_participation(candidate, problem).metrics)
+        participation_metrics.update(
+            evaluate_participation(
+                candidate, problem, search_evidence=_participation_search_evidence(problem)
+            ).metrics
+        )
 
     # --- opponent diversity ---------------------------------------------
     pair_counts: Dict[Tuple[TeamIdentity, TeamIdentity], int] = {}

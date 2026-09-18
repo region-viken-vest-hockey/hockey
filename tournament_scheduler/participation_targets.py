@@ -54,6 +54,79 @@ AVOIDABILITY_STATUSES: Tuple[str, ...] = (
 )
 
 
+def _evidence_entries(raw: Any) -> List[Mapping[str, Any]]:
+    """Normalize one identity's search/acceptance evidence into a list.
+
+    A caller may attach a single evidence mapping (the original contract) or a
+    sequence of mappings when the same team has a separate acceptance/outcome per
+    deviation scope (season, before-christmas, after-christmas).
+    """
+    if isinstance(raw, Mapping):
+        return [raw]
+    if isinstance(raw, (list, tuple)):
+        return [entry for entry in raw if isinstance(entry, Mapping)]
+    return []
+
+
+def evidence_covers_deviation(
+    evidence: Mapping[str, Any],
+    *,
+    scope: str,
+    direction: str,
+    actual: int,
+    target: int,
+) -> bool:
+    """True when one evidence/acceptance entry still explains this deviation.
+
+    Coverage is deliberately contextual rather than unconditional. An entry may
+    narrow itself with ``scope``, ``direction``, ``target`` and
+    ``accepted_deviation`` (the signed deviation the operator/search outcome
+    applies to). A target change, a direction flip or a deviation worse than the
+    accepted bound therefore stops the entry applying, instead of silently
+    masking an avoidable regression. Entries that declare none of these fields
+    keep the original unconditional behaviour.
+    """
+    declared_scope = evidence.get("scope")
+    if declared_scope is not None and str(declared_scope) != scope:
+        return False
+    declared_direction = evidence.get("direction")
+    if declared_direction is not None and str(declared_direction) != direction:
+        return False
+    declared_target = evidence.get("target")
+    if isinstance(declared_target, int) and not isinstance(declared_target, bool):
+        if declared_target != target:
+            return False
+    bound = evidence.get("accepted_deviation")
+    if isinstance(bound, int) and not isinstance(bound, bool):
+        if abs(actual - target) > abs(bound):
+            return False
+    return True
+
+
+def search_evidence_from_acceptances(
+    records: Iterable[Mapping[str, Any]],
+) -> Dict[TeamIdentity, List[Dict[str, Any]]]:
+    """Group persisted operator acceptances into verifier ``search_evidence``.
+
+    The acceptance record shape is owned by the canonical season-store layer, but
+    the mapping into the verifier evidence contract (keyed by team identity,
+    each entry a mapping with ``status``/coverage fields) belongs here, next to
+    :func:`evidence_covers_deviation`, so every canonical verification path
+    builds the exact same evidence.
+    """
+    evidence: Dict[TeamIdentity, List[Dict[str, Any]]] = {}
+    for record in records:
+        if not isinstance(record, Mapping):
+            continue
+        identity = (
+            str(record.get("club") or ""),
+            str(record.get("label") or ""),
+            str(record.get("age_group") or ""),
+        )
+        evidence.setdefault(identity, []).append(dict(record))
+    return evidence
+
+
 # ---------------------------------------------------------------------------
 # target / hard-max resolution
 # ---------------------------------------------------------------------------
@@ -226,15 +299,18 @@ def evaluate_participation(
     candidate: Mapping[str, Any],
     problem: Optional[Mapping[str, Any]],
     *,
-    search_evidence: Optional[Mapping[TeamIdentity, Mapping[str, Any]]] = None,
+    search_evidence: Optional[Mapping[TeamIdentity, Any]] = None,
 ) -> ParticipationEvaluation:
     """Evaluate participation target/hard-max compliance for *candidate*.
 
     *search_evidence* (optional) lets a planner attach the outcome of an
-    explicit bounded search per team (``status`` plus free-form coverage
-    notes).  Without it every unproven deviation is classified
-    ``bounded_search_exhausted`` -- a bounded search that ran out of budget is
-    never reported as unavoidable.
+    explicit bounded search -- or a persisted operator acceptance -- per team
+    (``status`` plus optional ``scope``/``direction``/``target``/
+    ``accepted_deviation`` coverage).  Without it every unproven deviation is
+    classified ``bounded_search_exhausted`` -- a bounded search that ran out of
+    budget is never reported as unavoidable.  An ``operator_accepted`` entry is
+    honoured only while it still covers the current deviation, so a target
+    change or a worse deviation re-surfaces it as a genuine finding.
     """
     problem = problem or {}
     tournaments = [t for t in candidate.get("tournaments", []) or [] if not t.get("cancelled")]
@@ -304,11 +380,17 @@ def evaluate_participation(
         *,
         available_tournaments: int,
         target: int,
+        actual: int,
     ) -> Tuple[str, Dict[str, Any]]:
-        evidence = dict(search_evidence.get(identity) or {})
-        explicit_status = evidence.get("status")
-        if explicit_status in AVOIDABILITY_STATUSES:
-            return str(explicit_status), evidence
+        for evidence in _evidence_entries(search_evidence.get(identity)):
+            explicit_status = evidence.get("status")
+            if explicit_status not in AVOIDABILITY_STATUSES:
+                continue
+            if evidence_covers_deviation(
+                evidence, scope=scope, direction=direction, actual=actual, target=target
+            ):
+                return str(explicit_status), dict(evidence)
+        evidence: Dict[str, Any] = {}
         if direction == "under_target" and available_tournaments <= target:
             # No assignment of participants can give a team more participations
             # than there are distinct tournaments in the scope, so within the
@@ -372,7 +454,12 @@ def evaluate_participation(
             direction = "over_target" if season_actual > season_target else "under_target"
             available = age_group_season_tournaments.get(identity[2], 0)
             status, coverage = _classify(
-                identity, SEASON_SCOPE, direction, available_tournaments=available, target=season_target
+                identity,
+                SEASON_SCOPE,
+                direction,
+                available_tournaments=available,
+                target=season_target,
+                actual=season_actual,
             )
             deviations.append(
                 {
@@ -405,7 +492,12 @@ def evaluate_participation(
                 direction = "over_target" if half_actual > half_target else "under_target"
                 available = age_group_half_tournaments.get((identity[2], half), 0)
                 status, coverage = _classify(
-                    identity, half, direction, available_tournaments=available, target=half_target
+                    identity,
+                    half,
+                    direction,
+                    available_tournaments=available,
+                    target=half_target,
+                    actual=half_actual,
                 )
                 # Cross-half compensation: an under-target half whose sibling
                 # half still has tournaments is a bounded relaxation candidate
@@ -555,6 +647,8 @@ __all__ = [
     "SEASON_SCOPE",
     "ParticipationEvaluation",
     "evaluate_participation",
+    "evidence_covers_deviation",
+    "search_evidence_from_acceptances",
     "resolve_hard_max",
     "resolve_half_target",
     "resolve_season_target",

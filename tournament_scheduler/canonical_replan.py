@@ -25,9 +25,11 @@ from tournament_scheduler.canonical_baseline import (
     verify_canonical_locks,
 )
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.participation_targets import search_evidence_from_acceptances
 from tournament_scheduler.season_state import (
     DEFAULT_SEASON_ROOT,
     load_decisions,
+    load_participation_acceptances,
     load_schedule,
 )
 from tournament_scheduler.stage3_engine import DEFAULT_ENGINE, run_planner
@@ -66,6 +68,12 @@ def replan_around_baseline(
         end_date,
         waivers=waivers,
         canonical_baseline=baseline,
+    )
+    # A persisted operator acceptance is a durable canonical decision, not a
+    # property of the transient config: the replan verifier must honour it too,
+    # so escalation cannot silently "fix" an accepted deviation.
+    problem["participation_search_evidence"] = search_evidence_from_acceptances(
+        load_participation_acceptances(season, root=root)
     )
     candidate = run_planner(
         engine=engine,

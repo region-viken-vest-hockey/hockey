@@ -1527,6 +1527,42 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     )
             return 0
 
+        if args.season_command in ("accept-deviation", "revoke-acceptance"):
+            from ..season_maintenance import accept_finding, revoke_acceptance
+
+            if args.season_command == "accept-deviation":
+                result = accept_finding(
+                    args.season,
+                    args.finding,
+                    root=args.root,
+                    actor=args.actor,
+                    note=args.note,
+                )
+                record = result["acceptance"]
+                verb = "Aksepterte"
+            else:
+                result = revoke_acceptance(
+                    args.season,
+                    args.finding,
+                    root=args.root,
+                    actor=args.actor,
+                    note=args.note,
+                )
+                record = result["revoked"]
+                verb = "Tilbakekalte aksept for"
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] {verb} {args.finding} "
+                    f"(revisjon {str(result.get('revision'))[:12]})"
+                )
+                _console.print(
+                    f"  avvik {record.get('accepted_deviation')} mot mål {record.get('target')} "
+                    f"i {record.get('scope')}"
+                )
+            return 0
+
         if args.season_command == "replan":
             from datetime import date as _date
 

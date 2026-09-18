@@ -30,8 +30,16 @@ from .canonical_baseline import build_canonical_baseline, change_cost
 from .hosting_balance_repair import hosting_finding_id
 from .local_repair_options import enumerate_local_repair_options
 from .participation_deviation_repair import participation_finding_id
+from .participation_targets import search_evidence_from_acceptances
 from .planning_contract import verify_candidate
-from .season_state import DEFAULT_SEASON_ROOT, load_decisions, load_schedule
+from .season_state import (
+    DEFAULT_SEASON_ROOT,
+    load_decisions,
+    load_participation_acceptances,
+    load_schedule,
+    record_participation_acceptance,
+    revoke_participation_acceptance,
+)
 
 SEASON_MAINTENANCE_SCHEMA_VERSION = 1
 
@@ -77,7 +85,35 @@ def load_context(
     decisions = load_decisions(season, root=root)
     problem = _problem_from_schedule(schedule)
     problem["canonical_baseline"] = build_canonical_baseline(schedule, decisions)
+    # A persisted operator acceptance is injected as verifier search evidence so
+    # the same independent verifier that classifies every other deviation also
+    # honours an explicit operator_accepted decision -- and stops honouring it
+    # once the target changes or the deviation gets worse.
+    problem["participation_search_evidence"] = search_evidence_from_acceptances(
+        load_participation_acceptances(season, root=root)
+    )
     return schedule, decisions, dict(schedule.get("plan") or {}), problem
+
+
+def _acceptances_by_scope(
+    problem: Mapping[str, Any],
+) -> Dict[Tuple[str, str, str, str], Dict[str, Any]]:
+    """Index the problem's operator acceptances by ``(club, label, age, scope)``."""
+    out: Dict[Tuple[str, str, str, str], Dict[str, Any]] = {}
+    evidence = problem.get("participation_search_evidence")
+    if not isinstance(evidence, Mapping):
+        return out
+    for identity, entries in evidence.items():
+        if not isinstance(identity, tuple) or len(identity) != 3:
+            continue
+        for entry in entries if isinstance(entries, (list, tuple)) else [entries]:
+            if not isinstance(entry, Mapping):
+                continue
+            if str(entry.get("status") or "") != "operator_accepted":
+                continue
+            scope = str(entry.get("scope") or "")
+            out[(str(identity[0]), str(identity[1]), str(identity[2]), scope)] = dict(entry)
+    return out
 
 
 def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, Any]:
@@ -266,6 +302,87 @@ def apply_repair(
     }
 
 
+# The participation integration's ``operator_accepted`` state is not proven by
+# the verifier -- it is an explicit, durable operator decision. These two entry
+# points own that decision: acceptance never edits the schedule or the target,
+# and it stops applying by itself once the target changes or the deviation gets
+# worse (see ``participation_targets.evidence_covers_deviation``).
+def accept_finding(
+    season: str,
+    finding_id: str,
+    *,
+    root: str = DEFAULT_SEASON_ROOT,
+    actor: Optional[str] = None,
+    note: str = "",
+) -> Dict[str, Any]:
+    """Persist an explicit operator acceptance of one participation finding."""
+    schedule, _decisions, plan, problem = load_context(season, root=root)
+    revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    findings = _findings(plan, problem, verify_candidate(plan, problem))
+    finding = _require_finding(findings, finding_id)
+    if finding["category"] != PARTICIPATION:
+        raise SeasonMaintenanceError(
+            f"Only participation findings can be accepted; {finding_id} is {finding['category']}"
+        )
+    record = record_participation_acceptance(
+        season=season,
+        club=str(finding["club"]),
+        label=str(finding["team"]),
+        age_group=str(finding.get("age_group") or ""),
+        scope=str(finding["scope"]),
+        direction=str(finding.get("direction") or ""),
+        actual=int(finding.get("actual", 0)),
+        target=int(finding.get("target") or 0),
+        root=root,
+        actor=actor,
+        note=note,
+    )
+    return {
+        "season": season,
+        "ok": True,
+        "finding": finding,
+        "revision": revision,
+        "acceptance": record,
+        "fresh_findings": list_findings(season, root=root),
+    }
+
+
+def revoke_acceptance(
+    season: str,
+    finding_id: str,
+    *,
+    root: str = DEFAULT_SEASON_ROOT,
+    actor: Optional[str] = None,
+    note: str = "",
+) -> Dict[str, Any]:
+    """Revoke the active operator acceptance for one participation finding."""
+    schedule, _decisions, plan, problem = load_context(season, root=root)
+    revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    findings = _findings(plan, problem, verify_candidate(plan, problem))
+    finding = _require_finding(findings, finding_id)
+    if finding["category"] != PARTICIPATION:
+        raise SeasonMaintenanceError(
+            f"Only participation findings carry an acceptance; {finding_id} is {finding['category']}"
+        )
+    record = revoke_participation_acceptance(
+        season=season,
+        club=str(finding["club"]),
+        label=str(finding["team"]),
+        scope=str(finding["scope"]),
+        root=root,
+        actor=actor,
+        note=note,
+    )
+    return {
+        "season": season,
+        "ok": True,
+        "finding": finding,
+        "revision": revision,
+        "revoked": record,
+        "fresh_findings": list_findings(season, root=root),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Findings
 # ---------------------------------------------------------------------------
@@ -279,7 +396,7 @@ def _findings(
     findings: List[Dict[str, Any]] = []
     findings.extend(_hard_findings(plan, verification))
     findings.extend(_hosting_findings(problem, plan))
-    findings.extend(_participation_findings(verification))
+    findings.extend(_participation_findings(verification, problem))
     findings.extend(_manual_findings(verification))
     findings.extend(_shape_findings(verification))
     findings.sort(key=lambda entry: (entry["category"], entry["finding_id"]))
@@ -349,34 +466,52 @@ def _hosting_findings(problem: Mapping[str, Any], plan: Mapping[str, Any]) -> Li
     return out
 
 
-def _participation_findings(verification: Mapping[str, Any]) -> List[Dict[str, Any]]:
+def _participation_findings(
+    verification: Mapping[str, Any], problem: Mapping[str, Any]
+) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
+    acceptances = _acceptances_by_scope(problem)
     for deviation in verification.get("participation_deviations") or []:
         club = str(deviation.get("club") or "")
         team = str(deviation.get("team") or "")
         scope = str(deviation.get("scope") or "")
         avoidability = str(deviation.get("avoidability") or "")
-        out.append(
-            {
-                "finding_id": participation_finding_id(club, team, scope),
-                "code": "participation_deviation",
-                "category": PARTICIPATION,
-                "severity": "strong_goal",
-                "age_group": deviation.get("age_group"),
-                "club": club,
-                "team": team,
-                "scope": scope,
-                "deviation": int(deviation.get("deviation", 0)),
-                "avoidability": avoidability,
-                "proven_infeasible": avoidability == "proven_infeasible",
-                "searchable": True,
-                "message": (
-                    f"{team} ({club}, {deviation.get('age_group')}) is {deviation.get('direction')} "
-                    f"by {abs(int(deviation.get('deviation', 0)))} in {scope} "
-                    f"({avoidability or 'unclassified'})"
-                ),
-            }
-        )
+        finding: Dict[str, Any] = {
+            "finding_id": participation_finding_id(club, team, scope),
+            "code": "participation_deviation",
+            "category": PARTICIPATION,
+            "severity": "strong_goal",
+            "age_group": deviation.get("age_group"),
+            "club": club,
+            "team": team,
+            "scope": scope,
+            "direction": deviation.get("direction"),
+            "actual": int(deviation.get("actual", 0)),
+            "target": deviation.get("target"),
+            "deviation": int(deviation.get("deviation", 0)),
+            "avoidability": avoidability,
+            "proven_infeasible": avoidability == "proven_infeasible",
+            "searchable": True,
+            "message": (
+                f"{team} ({club}, {deviation.get('age_group')}) is {deviation.get('direction')} "
+                f"by {abs(int(deviation.get('deviation', 0)))} in {scope} "
+                f"({avoidability or 'unclassified'})"
+            ),
+        }
+        acceptance = acceptances.get((club, team, str(deviation.get("age_group") or ""), scope))
+        if acceptance is not None:
+            finding["acceptance_id"] = acceptance.get("id")
+            if avoidability == "operator_accepted":
+                finding["accepted"] = True
+                finding["acceptance"] = dict(acceptance)
+            else:
+                # The persisted acceptance exists but no longer explains the
+                # current deviation (target changed or deviation got worse), so
+                # it is surfaced as stale rather than silently masking a finding.
+                finding["accepted"] = False
+                finding["acceptance_stale"] = True
+                finding["acceptance"] = dict(acceptance)
+        out.append(finding)
     return out
 
 

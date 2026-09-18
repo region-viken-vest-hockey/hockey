@@ -23,6 +23,7 @@ from tournament_scheduler.pipeline.verification_context import (
     VerificationContextError,
     resolve_promotion_verification_context,
 )
+from tournament_scheduler.participation_targets import OPERATOR_ACCEPTED
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
@@ -37,6 +38,14 @@ DEFAULT_SEASON_ROOT = Path("season")
 APPROVED_STATUS = "approved"
 STALE_APPROVAL_STATUS = "stale_approval"
 PENDING_REVIEW_STATUS = "pending_review"
+
+# Top-level decisions.json section for explicit operator acceptance of a
+# participation strong-goal deviation. These are durable operator decisions,
+# not schedule facts: accepting one never edits the schedule or the configured
+# target, and it stops applying by itself once the target changes or the
+# deviation becomes worse (see ``participation_targets.evidence_covers_deviation``).
+PARTICIPATION_ACCEPTANCES_KEY = "participation_acceptances"
+PARTICIPATION_ACCEPTANCE_PREFIX = "participation_acceptance"
 
 
 class SeasonStateError(RuntimeError):
@@ -736,6 +745,125 @@ def unapprove_tournament(
     )
     _write_json_atomic(decisions_path(season, root=root), decisions)
     return decisions
+
+
+def participation_acceptance_id(club: str, label: str, scope: str) -> str:
+    """Stable identity for one accepted team/scope participation deviation."""
+    return f"{PARTICIPATION_ACCEPTANCE_PREFIX}:{club}:{label}:{scope}"
+
+
+def load_participation_acceptances(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+) -> list[dict[str, Any]]:
+    """Return the active (non-revoked) operator participation acceptances."""
+    decisions = load_decisions(season, root=root)
+    records = decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or []
+    if not isinstance(records, list):
+        return []
+    return [
+        dict(record)
+        for record in records
+        if isinstance(record, dict) and not record.get("revoked_at")
+    ]
+
+
+def record_participation_acceptance(
+    *,
+    season: str,
+    club: str,
+    label: str,
+    age_group: str,
+    scope: str,
+    direction: str,
+    actual: int,
+    target: int,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Persist an explicit operator acceptance of one participation deviation.
+
+    Acceptance records provenance (who/when/why, the accepted deviation and its
+    target) and never changes the schedule or the configured target. Re-accepting
+    the same team/scope supersedes the earlier active record; the deviation's
+    sign and magnitude are stored so the acceptance deterministically stops
+    applying if the target or deviation later change.
+    """
+    if not club or not label or not scope:
+        raise SeasonStateError(
+            "Refusing participation acceptance: club, team label and scope are required"
+        )
+    schedule = load_schedule(season, root=root)
+    decisions = load_decisions(season, root=root)
+    now = datetime.now(tz=timezone.utc).isoformat()
+    resolved_actor = actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator"
+    acceptance_id = participation_acceptance_id(club, label, scope)
+    record = {
+        "id": acceptance_id,
+        "club": club,
+        "label": label,
+        "age_group": age_group,
+        "scope": scope,
+        "direction": direction,
+        "target": int(target),
+        "actual": int(actual),
+        "accepted_deviation": int(actual) - int(target),
+        "status": OPERATOR_ACCEPTED,
+        "accepted_at": now,
+        "accepted_by": resolved_actor,
+        "note": note or "",
+        "schedule_fingerprint": schedule.get("fingerprint"),
+    }
+    existing = decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or []
+    if not isinstance(existing, list):
+        existing = []
+    # Supersede any earlier active record for the exact same scope while keeping
+    # its audit trail: an acceptance is a current decision, not an append-only log.
+    kept = [entry for entry in existing if not isinstance(entry, dict) or entry.get("id") != acceptance_id]
+    kept.append(record)
+    updated = {**decisions, PARTICIPATION_ACCEPTANCES_KEY: kept, "updated_at": now}
+    _write_json_atomic(decisions_path(season, root=root), updated)
+    return record
+
+
+def revoke_participation_acceptance(
+    *,
+    season: str,
+    club: str,
+    label: str,
+    scope: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Revoke one active participation acceptance, preserving its audit trail."""
+    decisions = load_decisions(season, root=root)
+    now = datetime.now(tz=timezone.utc).isoformat()
+    resolved_actor = actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator"
+    acceptance_id = participation_acceptance_id(club, label, scope)
+    records = decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or []
+    if not isinstance(records, list):
+        records = []
+    updated_records: list[dict[str, Any]] = []
+    revoked: dict[str, Any] | None = None
+    for record in records:
+        if isinstance(record, dict) and record.get("id") == acceptance_id and not record.get("revoked_at"):
+            revoked = {
+                **record,
+                "revoked_at": now,
+                "revoked_by": resolved_actor,
+                "revoke_note": note or "",
+            }
+            updated_records.append(revoked)
+        else:
+            updated_records.append(record)
+    if revoked is None:
+        raise SeasonStateError(f"No active participation acceptance for {acceptance_id!r}")
+    updated = {**decisions, PARTICIPATION_ACCEPTANCES_KEY: updated_records, "updated_at": now}
+    _write_json_atomic(decisions_path(season, root=root), updated)
+    return revoked
 
 
 def approval_report(

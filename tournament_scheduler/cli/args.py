@@ -1157,6 +1157,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     season_apply_repair.add_argument("--json", action="store_true", help="Print the apply result/delta as JSON")
 
+    season_accept_deviation = season_sub.add_parser(
+        "accept-deviation",
+        help="Persist explicit operator acceptance of one participation strong-goal deviation",
+    )
+    season_accept_deviation.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_accept_deviation.add_argument(
+        "--finding", required=True, help="Participation finding id from 'season findings'"
+    )
+    season_accept_deviation.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_accept_deviation.add_argument("--actor", default=None, help="Operator identity for the acceptance record")
+    season_accept_deviation.add_argument("--note", default="", help="Why this deviation is accepted")
+    season_accept_deviation.add_argument("--json", action="store_true", help="Print the acceptance result as JSON")
+
+    season_revoke_acceptance = season_sub.add_parser(
+        "revoke-acceptance",
+        help="Revoke an active operator participation acceptance",
+    )
+    season_revoke_acceptance.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_revoke_acceptance.add_argument(
+        "--finding", required=True, help="Participation finding id from 'season findings'"
+    )
+    season_revoke_acceptance.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_revoke_acceptance.add_argument("--actor", default=None, help="Operator identity for the revoke record")
+    season_revoke_acceptance.add_argument("--note", default="", help="Why the acceptance is revoked")
+    season_revoke_acceptance.add_argument("--json", action="store_true", help="Print the revoke result as JSON")
+
     # stage3
     stage3 = sub.add_parser(
         "stage3",

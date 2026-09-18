@@ -15,11 +15,14 @@ from tournament_scheduler.operator_waivers import scope_fingerprint
 from tournament_scheduler.participation_targets import (
     AVOIDABLE,
     BOUNDED_SEARCH_EXHAUSTED,
+    OPERATOR_ACCEPTED,
     PROVEN_INFEASIBLE,
     evaluate_participation,
+    evidence_covers_deviation,
     resolve_half_target,
     resolve_hard_max,
     resolve_season_target,
+    search_evidence_from_acceptances,
 )
 from tournament_scheduler.planning_contract import verify_candidate
 
@@ -297,3 +300,98 @@ def test_worse_participation_blocks_dominance_over_a_quality_gain():
     assert "participation.season_total_absolute_deviation" in participation_regressions
     assert report["dominates_baseline"] is False
     assert report["production_ready"] is False
+
+
+# ---------------------------------------------------------------------------
+# Operator acceptance / search-evidence coverage (issue #378)
+# ---------------------------------------------------------------------------
+
+
+def test_evidence_covers_deviation_is_scope_and_magnitude_bound() -> None:
+    acceptance = {
+        "status": OPERATOR_ACCEPTED,
+        "scope": "before_christmas",
+        "direction": "under_target",
+        "target": 3,
+        "accepted_deviation": -1,
+    }
+
+    assert evidence_covers_deviation(
+        acceptance, scope="before_christmas", direction="under_target", actual=2, target=3
+    )
+    # Same deviation, but a different scope for the same team does not apply.
+    assert not evidence_covers_deviation(
+        acceptance, scope="after_christmas", direction="under_target", actual=2, target=3
+    )
+    # An improvement is still covered; a worse deviation is not.
+    assert evidence_covers_deviation(
+        acceptance, scope="before_christmas", direction="under_target", actual=3, target=3
+    )
+    assert not evidence_covers_deviation(
+        acceptance, scope="before_christmas", direction="under_target", actual=1, target=3
+    )
+    # A target change or direction flip invalidates the old acceptance.
+    assert not evidence_covers_deviation(
+        acceptance, scope="before_christmas", direction="under_target", actual=2, target=4
+    )
+    assert not evidence_covers_deviation(
+        acceptance, scope="before_christmas", direction="over_target", actual=4, target=3
+    )
+    # An entry that declares no coverage fields keeps the original unconditional
+    # behaviour for callers that attach a plain status.
+    assert evidence_covers_deviation(
+        {"status": OPERATOR_ACCEPTED},
+        scope="season",
+        direction="over_target",
+        actual=9,
+        target=1,
+    )
+
+
+def test_operator_acceptance_reclassifies_a_deviation_through_the_verifier() -> None:
+    a = _team("Nordby", "Nordby 1")
+    b = _team("Sorby", "Sorby 1")
+    candidate = {"tournaments": [_tournament("t1", "2025-09-06", [a, b])]}
+    problem: dict[str, Any] = {
+        "teams": [a, b],
+        "age_groups": [U11],
+        "target_tournament_count": 3,
+    }
+    identity = ("Nordby", "Nordby 1", U11)
+
+    baseline = evaluate_participation(candidate, problem).deviations
+    assert baseline
+    assert all(deviation["avoidability"] != OPERATOR_ACCEPTED for deviation in baseline)
+
+    evidence = search_evidence_from_acceptances(
+        [
+            {
+                "status": OPERATOR_ACCEPTED,
+                "club": "Nordby",
+                "label": "Nordby 1",
+                "age_group": U11,
+                "scope": "season",
+                "direction": "under_target",
+                "target": 3,
+                "accepted_deviation": -3,
+            }
+        ]
+    )
+    assert set(evidence) == {identity}
+
+    accepted = evaluate_participation(candidate, problem, search_evidence=evidence).deviations
+    season = next(deviation for deviation in accepted if deviation["scope"] == "season")
+    assert season["avoidability"] == OPERATOR_ACCEPTED
+    assert season["evidence"]["scope"] == "season"
+    assert season["evidence"]["accepted_deviation"] == -3
+    # A persisted acceptance therefore also reclassifies through verify_candidate
+    # when it is injected into the planning problem.
+    verification = verify_candidate(
+        candidate, {**problem, "participation_search_evidence": evidence}
+    )
+    injected = next(
+        deviation
+        for deviation in verification["participation_deviations"]
+        if deviation["scope"] == "season"
+    )
+    assert injected["avoidability"] == OPERATOR_ACCEPTED

@@ -17,12 +17,17 @@ from typing import Any, Dict, Iterable, List, Optional
 from tournament_scheduler.participation_deviation_repair import _classification
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_maintenance import (
+    accept_finding,
     apply_repair,
     list_findings,
     repair_options,
+    revoke_acceptance,
     search,
 )
-from tournament_scheduler.season_state import schedule_fingerprint
+from tournament_scheduler.season_state import (
+    load_participation_acceptances,
+    schedule_fingerprint,
+)
 
 YEAR = "2026-2027"
 
@@ -436,3 +441,204 @@ def test_promoted_season_exposes_placement_preserving_roster_repair(tmp_path: Pa
     assert repaired["host_club"] == "Nordby"
     assert repaired["start_time"] == "10:00"
     assert "Sorby 1" not in {team["label"] for team in repaired["teams"]}
+
+
+# ---------------------------------------------------------------------------
+# Explicit operator acceptance of a participation strong-goal deviation
+# ---------------------------------------------------------------------------
+
+
+def _participation_season(tmp_path: Path, *, scope_team: str = "Nordby 1"):
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(
+        teams,
+        participation_targets={"U10": {"before_christmas": 3, "after_christmas": 3}},
+    )
+    plan = _plan(
+        [
+            _tournament("T1", "2026-10-10", "Nordby", teams),
+            _tournament("T2", "2026-11-14", "Nordby", teams),
+        ]
+    )
+    root = tmp_path / "season"
+    revision = _write_season(root, plan, problem)
+    return root, plan, problem, revision
+
+
+def _participation_finding(findings: Dict[str, Any], **scope: Any) -> Dict[str, Any]:
+    return next(
+        finding
+        for finding in findings["findings"]
+        if finding["category"] == "participation"
+        and all(finding.get(key) == value for key, value in scope.items())
+    )
+
+
+def _rewrite_plan(root: Path, plan: Dict[str, Any], problem: Dict[str, Any]) -> str:
+    """Replace only the canonical plan/verification context, keeping decisions."""
+    schedule_path = root / YEAR / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    revision = schedule_fingerprint(plan)
+    schedule["plan"] = plan
+    schedule["revision"] = revision
+    schedule["fingerprint"] = revision
+    schedule["verification_context"] = {"problem": problem}
+    schedule_path.write_text(
+        json.dumps(schedule, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return revision
+
+
+def test_operator_acceptance_persists_and_reclassifies_only_that_scope(tmp_path: Path) -> None:
+    root, _plan_dict, _problem_dict, revision = _participation_season(tmp_path)
+
+    before = list_findings(YEAR, root=root)
+    finding = _participation_finding(
+        before, club="Nordby", team="Nordby 1", scope="before_christmas"
+    )
+    assert finding["avoidability"] != "operator_accepted"
+    assert "accepted" not in finding
+
+    result = accept_finding(
+        YEAR,
+        finding["finding_id"],
+        root=root,
+        actor="operator",
+        note="ice unavailable",
+    )
+
+    record = result["acceptance"]
+    assert record["status"] == "operator_accepted"
+    assert record["accepted_deviation"] == finding["deviation"]
+    assert record["target"] == finding["target"]
+    assert record["scope"] == "before_christmas"
+    assert record["accepted_by"] == "operator"
+    assert record["note"] == "ice unavailable"
+    # Accepting is a decision record, not a schedule mutation.
+    assert result["revision"] == revision
+    assert [entry["id"] for entry in load_participation_acceptances(YEAR, root=root)] == [record["id"]]
+
+    after = list_findings(YEAR, root=root)
+    accepted = _participation_finding(
+        after, club="Nordby", team="Nordby 1", scope="before_christmas"
+    )
+    assert accepted["avoidability"] == "operator_accepted"
+    assert accepted["accepted"] is True
+    assert accepted["acceptance_id"] == record["id"]
+    # The acceptance is scoped: a different scope for the same team is untouched.
+    season_scope = _participation_finding(
+        after, club="Nordby", team="Nordby 1", scope="season"
+    )
+    assert season_scope["avoidability"] != "operator_accepted"
+
+
+def test_revoke_acceptance_restores_the_finding(tmp_path: Path) -> None:
+    root, _plan_dict, _problem_dict, _revision = _participation_season(tmp_path)
+    finding = _participation_finding(
+        list_findings(YEAR, root=root), club="Nordby", team="Nordby 1", scope="before_christmas"
+    )
+    accept_finding(YEAR, finding["finding_id"], root=root, note="accepted")
+
+    result = revoke_acceptance(YEAR, finding["finding_id"], root=root, note="reopen")
+
+    assert result["ok"] is True
+    assert result["revoked"]["revoked_at"]
+    assert load_participation_acceptances(YEAR, root=root) == []
+    restored = _participation_finding(
+        list_findings(YEAR, root=root), club="Nordby", team="Nordby 1", scope="before_christmas"
+    )
+    assert restored["avoidability"] == finding["avoidability"]
+    assert "accepted" not in restored
+
+
+def test_acceptance_stops_applying_when_deviation_gets_worse(tmp_path: Path) -> None:
+    root, plan, problem, _revision = _participation_season(tmp_path)
+    finding = _participation_finding(
+        list_findings(YEAR, root=root), club="Nordby", team="Nordby 1", scope="before_christmas"
+    )
+    accept_finding(YEAR, finding["finding_id"], root=root, note="accepted")
+
+    # Remove one Nordby 1 participation: the team falls further below target, so
+    # the persisted acceptance must stop explaining the worse deviation.
+    worse_plan = json.loads(json.dumps(plan))
+    t1 = next(tournament for tournament in worse_plan["tournaments"] if tournament["id"] == "T1")
+    t1["teams"] = [team for team in t1["teams"] if team["label"] != "Nordby 1"]
+    _rewrite_plan(root, worse_plan, problem)
+
+    findings = list_findings(YEAR, root=root)
+    stale = _participation_finding(
+        findings, club="Nordby", team="Nordby 1", scope="before_christmas"
+    )
+    assert stale["deviation"] < finding["deviation"]
+    assert stale["avoidability"] != "operator_accepted"
+    assert stale["accepted"] is False
+    assert stale["acceptance_stale"] is True
+    assert stale["acceptance_id"]
+
+
+def test_acceptance_stops_applying_when_target_changes(tmp_path: Path) -> None:
+    root, plan, problem, _revision = _participation_season(tmp_path)
+    finding = _participation_finding(
+        list_findings(YEAR, root=root), club="Nordby", team="Nordby 1", scope="before_christmas"
+    )
+    accept_finding(YEAR, finding["finding_id"], root=root, note="accepted")
+
+    # A target change (for example a registration/fairness recompute) invalidates
+    # the old acceptance rather than silently covering the new target.
+    retargeted = json.loads(json.dumps(problem))
+    retargeted["participation_targets_by_age_group"]["U10"]["before_christmas"] = 5
+    _rewrite_plan(root, plan, retargeted)
+
+    findings = list_findings(YEAR, root=root)
+    stale = _participation_finding(
+        findings, club="Nordby", team="Nordby 1", scope="before_christmas"
+    )
+    assert stale["target"] == 5
+    assert stale["avoidability"] != "operator_accepted"
+    assert stale["acceptance_stale"] is True
+
+
+def test_accept_deviation_cli_round_trip(tmp_path: Path, capsys) -> None:
+    from tournament_scheduler.cli.rvv_cli import main
+
+    root, _plan_dict, _problem_dict, _revision = _participation_season(tmp_path)
+    finding = _participation_finding(
+        list_findings(YEAR, root=root), club="Nordby", team="Nordby 1", scope="before_christmas"
+    )
+
+    rc = main(
+        [
+            "season",
+            "accept-deviation",
+            "--season",
+            YEAR,
+            "--finding",
+            finding["finding_id"],
+            "--root",
+            str(root),
+            "--note",
+            "ice unavailable",
+            "--json",
+        ]
+    )
+    assert rc == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["acceptance"]["status"] == "operator_accepted"
+
+    rc = main(
+        [
+            "season",
+            "revoke-acceptance",
+            "--season",
+            YEAR,
+            "--finding",
+            finding["finding_id"],
+            "--root",
+            str(root),
+            "--json",
+        ]
+    )
+    assert rc == 0
+    assert json.loads(capsys.readouterr().out)["revoked"]["revoked_at"]
+    assert load_participation_acceptances(YEAR, root=root) == []
