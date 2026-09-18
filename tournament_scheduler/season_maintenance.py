@@ -73,6 +73,7 @@ MAINTENANCE_DEFECT_DIMENSIONS: Tuple[str, ...] = (
     "unresolved_hosting_obligations",
     "hosting_balance_imbalances",
     "manual_placements",
+    "unresolved_placement_obligations",
     "participation_deviations",
     "avoidable_participation_deviations",
     "host_confirmation_dependencies",
@@ -468,7 +469,7 @@ def _findings(
     findings.extend(_hosting_findings(problem, plan))
     findings.extend(_participation_findings(verification, problem))
     findings.extend(_manual_findings(plan, verification))
-    findings.extend(_unplaced_findings(plan))
+    findings.extend(_unplaced_findings(plan, problem))
     findings.extend(_movable_capacity_findings(problem, plan))
     findings.extend(_shape_findings(verification))
     findings.sort(key=lambda entry: (entry["category"], entry["finding_id"]))
@@ -648,7 +649,9 @@ def _manual_findings(
     return out
 
 
-def _unplaced_findings(plan: Mapping[str, Any]) -> List[Dict[str, Any]]:
+def _unplaced_findings(
+    plan: Mapping[str, Any], problem: Optional[Mapping[str, Any]] = None
+) -> List[Dict[str, Any]]:
     """Findings for genuine unplaced obligations (no tournament exists).
 
     A tournament the deterministic slot search could not place is not a
@@ -670,6 +673,9 @@ def _unplaced_findings(plan: Mapping[str, Any]) -> List[Dict[str, Any]]:
                 f"unplaced_placement:{entry.get('age_group') or '?'}:"
                 f"{entry.get('date') or '?'}"
             )
+        from .unplaced_placement_repair import obligation_search_coverage
+
+        coverage = obligation_search_coverage(plan, problem or {}, entry, allow_search=False)
         out.append(
             {
                 "finding_id": finding_id,
@@ -683,6 +689,11 @@ def _unplaced_findings(plan: Mapping[str, Any]) -> List[Dict[str, Any]]:
                 "reason": entry.get("reason"),
                 "search_attempted": bool(entry.get("search_attempted")),
                 "bounded_repair_exhausted": bool(entry.get("bounded_repair_exhausted")),
+                # The planner's own ``bounded_repair_exhausted`` flag describes
+                # only the search it actually ran. The supported ladder is
+                # broader, so report what this capability can still attempt
+                # instead of letting that flag read as global infeasibility.
+                "search_coverage": coverage,
                 "message": (
                     f"{entry.get('age_group') or '?'} on {entry.get('date') or '?'} could not be "
                     f"placed automatically; responsible host {entry.get('responsible_host') or 'unknown'} "
@@ -784,7 +795,10 @@ def _infer_finding_id(
     matches = [
         finding
         for finding in findings
-        if finding["category"] in (HOSTING, PARTICIPATION, MOVABLE_CAPACITY)
+        if (
+            finding["category"] in (HOSTING, PARTICIPATION, MOVABLE_CAPACITY)
+            or finding.get("code") == "unplaced_tournament_placement"
+        )
         and finding["finding_id"] in option_id
     ]
     if not matches:
@@ -805,6 +819,8 @@ def _options_for_finding(
     allow_search: bool,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    if finding.get("code") == "unplaced_tournament_placement":
+        return _unplaced_options(plan, problem, finding, allow_search=allow_search)
     category = finding["category"]
     if category == HOSTING:
         return _hosting_options(plan, problem, finding, allow_search=allow_search, dimensions=dimensions)
@@ -833,6 +849,45 @@ def _hosting_options(
         dimensions=dimensions,
     )
     return _collect(repair_set, finding["finding_id"], family="hosting_balance")
+
+
+def _unplaced_options(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    finding: Mapping[str, Any],
+    *,
+    allow_search: bool,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Materialization options for one genuine unplaced obligation.
+
+    The provider owns the whole repair ladder (same-date start time, same-host
+    date, roster reselection, capacity release, coupled cross-age exchange).
+    Its per-obligation coverage is folded back onto the finding so the caller
+    can tell ``option_available``/``search_incomplete``/
+    ``bounded_search_exhausted`` apart.
+    """
+    from .unplaced_placement_repair import enumerate_unplaced_placement_repairs
+
+    repair_set = enumerate_unplaced_placement_repairs(
+        plan,
+        problem,
+        finding_ids=[finding["finding_id"]],
+        allow_search=allow_search,
+    )
+    options, rejected, _families = _collect(
+        repair_set, finding["finding_id"], family="unplaced_placement"
+    )
+    coverage = dict((repair_set.get("coverage") or {}).get(finding["finding_id"]) or {})
+    if coverage:
+        finding["search_coverage"] = coverage
+    families = {
+        "unplaced_placement": {
+            "option_count": len(options),
+            "rejected_count": len(rejected),
+            "search_coverage": coverage,
+        }
+    }
+    return options, rejected, families
 
 
 def _movable_capacity_options(
@@ -988,6 +1043,18 @@ def _escalation(options: List[Dict[str, Any]], rejected: List[Dict[str, Any]], f
             "reason": "no_verified_movable_capacity_repair",
             "next": "inspect rejected_candidates for date/roster reasons",
         }
+    if finding.get("code") == "unplaced_tournament_placement":
+        coverage = finding.get("search_coverage") or {}
+        return {
+            "needed": True,
+            "reason": coverage.get("status") or "no_verified_materialization",
+            "untried_dimensions": list(coverage.get("untried") or []),
+            "next": (
+                "request bounded search for the untried dimensions"
+                if coverage.get("status") == "search_incomplete"
+                else "inspect rejected_candidates for the deterministic rejection reasons"
+            ),
+        }
     return {"needed": True, "reason": "no_cheap_local_option"}
 
 
@@ -1082,6 +1149,9 @@ def _objective_vector(
             _count(verification, "hosting_balance_imbalances")
         ),
         "manual_placements": float(_manual_count(verification)),
+        "unresolved_placement_obligations": float(
+            len(candidate.get("unresolved_tournament_placements") or [])
+        ),
         "participation_deviations": float(_count(verification, "participation_deviations")),
         "avoidable_participation_deviations": float(
             _avoidability_count(verification, "avoidable")
@@ -1152,6 +1222,12 @@ def _metric_delta(
         "hosting_balance_imbalances_after": _count(after, "hosting_balance_imbalances"),
         "manual_placements_before": _manual_count(before_verification),
         "manual_placements_after": _manual_count(after),
+        "unresolved_placement_obligations_before": len(
+            before_plan.get("unresolved_tournament_placements") or []
+        ),
+        "unresolved_placement_obligations_after": len(
+            after_plan.get("unresolved_tournament_placements") or []
+        ),
         "participation_deviations_before": _count(before_verification, "participation_deviations"),
         "participation_deviations_after": _count(after, "participation_deviations"),
         "bounded_search_exhausted_before": _avoidability_count(before_verification, "bounded_search_exhausted"),
@@ -1338,6 +1414,19 @@ def _apply_option(
 
         return apply_movable_capacity_repair_option(
             plan, problem, option_id=option_id, expected_fingerprint=fingerprint
+        )
+    if family == "unplaced_placement":
+        from .unplaced_placement_repair import apply_unplaced_placement_repair_option
+
+        return apply_unplaced_placement_repair_option(
+            plan,
+            problem,
+            option_id=option_id,
+            expected_fingerprint=fingerprint,
+            # The option's own self-contained mutation plan is passed through
+            # so annotating/applying it does not replay the whole bounded
+            # coupled search for every option.
+            arguments=dict(option.get("arguments") or {}) or None,
         )
     from .local_repair_options import apply_local_repair_option
 
