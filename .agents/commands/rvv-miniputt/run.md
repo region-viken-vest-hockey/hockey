@@ -12,6 +12,24 @@ scripts/rvv-miniputt run --interactive --input input.xlsx <user-args>
 
 When a matching canonical season already exists, Stage 3 is baseline-aware by default and adopts that durable schedule rather than regenerating the season from scratch.
 
+### Do not mix transient pipeline candidates with promoted-season maintenance
+
+A Stage 1–4 run may produce/export a candidate that differs from the currently promoted canonical season. Until that candidate is deliberately promoted, these are **different state scopes**:
+
+```
+.pipeline / Stage 3 + Stage 4 export
+    = candidate currently being reviewed
+
+season/<season>/schedule.json + decisions.json
+    = previously promoted operational truth
+```
+
+After a fresh pipeline run/export, do **not** run `season findings`, `season repair-options`, `season search` or other canonical-season maintenance commands and then describe those results as findings of the just-generated candidate unless that exact candidate has first been promoted.
+
+Use the current run's `DecisionContext`, Stage3Session, verification/evidence bundle, audit context and generated `manual_schedule.html` to analyze the unpromoted candidate. Use `season ...` only when intentionally inspecting or modifying the promoted canonical season.
+
+Before switching scopes, compare the candidate/export fingerprint with the canonical schedule/state revision. If they differ, name which state is being analyzed rather than blending their counts/findings.
+
 At each pause:
 
 1. treat the returned `DecisionContext` as authoritative;
