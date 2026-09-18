@@ -239,6 +239,34 @@ class Tournament:
         return bye_map
 
 
+def tournament_chronological_key(tournament: Tournament) -> Tuple[str, str, str, str, str, str]:
+    """Return the canonical presentation-order key for a tournament.
+
+    Schedule views (HTML export, reports, calendar) must render tournaments in
+    a deterministic chronological order that is independent of the incidental
+    order of ``SeasonPlan.tournaments``, which candidate refinement, repair and
+    adoption can permute without changing any scheduling fact.
+
+    Ordering is by full ISO date (so a season crossing New Year stays
+    chronological), then by start time, age group, arena, host club and finally
+    the stable tournament id so same-day tournaments have a deterministic and
+    stable order across regenerated exports.
+    """
+    return (
+        tournament.date.isoformat(),
+        tournament.start_time or "",
+        tournament.age_group or "",
+        tournament.arena or "",
+        tournament.host_club or "",
+        tournament.id or "",
+    )
+
+
+def chronological_tournaments(tournaments: Collection[Tournament]) -> List[Tournament]:
+    """Return *tournaments* in the canonical chronological presentation order."""
+    return sorted(tournaments, key=tournament_chronological_key)
+
+
 @dataclass
 class SeasonPlan:
     """A full proposed season plan: an ordered sequence of tournaments plus metadata."""

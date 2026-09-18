@@ -287,3 +287,157 @@ class TestRulesModelBugFixes:
         html = _export_report_html(tmp_path)
         assert "Deltakelsesmål må ikke overskrides" in html
         assert "Lag under sitt mål for antall turneringsdeltakelser" in html
+
+
+# ---------------------------------------------------------------------------
+# Chronological presentation ordering
+# ---------------------------------------------------------------------------
+
+def _plan_with_tournaments(specs: list[dict]) -> SeasonPlan:
+    """Build a plan with tournaments in exactly the given (possibly shuffled) order."""
+    tournaments = []
+    for spec in specs:
+        teams = spec.get(
+            "teams",
+            [
+                {"club": spec.get("host_club", "Kongsberg"), "label": "Vert U10A", "age_group": spec.get("age_group", "U10")},
+                {"club": "Skien", "label": "Skien U10A", "age_group": spec.get("age_group", "U10")},
+            ],
+        )
+        tournaments.append(
+            {
+                "id": spec["id"],
+                "date": spec["date"],
+                "arena": spec.get("arena", "Kongsberghallen"),
+                "age_group": spec.get("age_group", "U10"),
+                "host_club": spec.get("host_club", "Kongsberg"),
+                "start_time": spec.get("start_time"),
+                "cancelled": spec.get("cancelled", False),
+                "requires_host_confirmation": spec.get("requires_host_confirmation", False),
+                "teams": teams,
+                "games": [
+                    {
+                        "home": teams[0]["label"],
+                        "away": teams[1]["label"],
+                        "parallel_slot": 0,
+                        "round_number": 1,
+                    }
+                ],
+            }
+        )
+    plan_dict = {
+        "start_date": "2026-10-01",
+        "end_date": "2027-03-31",
+        "diversity_score": 1.0,
+        "pairwise_matchup_score": 1.0,
+        "month_balance_score": 1.0,
+        "arena_counts": {},
+        "fairness_gate": {"status": "pass", "score": 100, "metrics": []},
+        "tournaments": tournaments,
+    }
+    return season_plan_from_dict(plan_dict)
+
+
+def _team_key(team: dict) -> str:
+    return "\u001f".join([team.get("c") or "", team.get("g") or "", team.get("l") or ""])
+
+
+def _filter_embedded(tournaments: list[dict], *, age: str = "", club: str = "", team: str = "") -> list[dict]:
+    """Mirror the browser filter predicates so ordering can be asserted in Python."""
+
+    def has_club(t: dict) -> bool:
+        if not club:
+            return True
+        if t.get("h") == club:
+            return True
+        return any((p.get("c") or "") == club for p in t.get("p", []))
+
+    def has_team(t: dict) -> bool:
+        if not team:
+            return True
+        return any(_team_key(p) == team for p in t.get("p", []))
+
+    result = []
+    for t in tournaments:
+        if age and t.get("g") != age:
+            continue
+        if not has_club(t):
+            continue
+        if not has_team(t):
+            continue
+        result.append(t)
+    return result
+
+
+class TestChronologicalTournamentOrdering:
+    """season_plan.html must not depend on incidental plan.tournaments order."""
+
+    def test_shuffled_input_renders_chronologically(self, tmp_path):
+        shuffled = [
+            {"id": "t-mar", "date": "2027-03-14"},
+            {"id": "t-nov", "date": "2026-11-08"},
+            {"id": "t-jan", "date": "2027-01-10"},
+            {"id": "t-oct", "date": "2026-10-18"},
+        ]
+        html = _export_schedule_html(_plan_with_tournaments(shuffled), tmp_path)
+        dates = [t["d"] for t in _embedded_tournaments(html)]
+        assert dates == ["2026-10-18", "2026-11-08", "2027-01-10", "2027-03-14"]
+
+    def test_dec_sorts_before_jan_and_jan_before_mar_of_next_year(self, tmp_path):
+        specs = [
+            {"id": "t-mar", "date": "2027-03-14"},
+            {"id": "t-jan", "date": "2027-01-10"},
+            {"id": "t-dec", "date": "2026-12-05"},
+        ]
+        html = _export_schedule_html(_plan_with_tournaments(specs), tmp_path)
+        dates = [t["d"] for t in _embedded_tournaments(html)]
+        assert dates.index("2026-12-05") < dates.index("2027-01-10") < dates.index("2027-03-14")
+
+    def test_filtered_results_stay_chronological(self, tmp_path):
+        specs = [
+            {"id": "t1", "date": "2027-03-14", "age_group": "U10", "host_club": "Kongsberg"},
+            {"id": "t2", "date": "2026-11-08", "age_group": "U11", "host_club": "Skien"},
+            {"id": "t3", "date": "2027-01-10", "age_group": "U10", "host_club": "Skien"},
+            {"id": "t4", "date": "2026-10-18", "age_group": "U10", "host_club": "Kongsberg"},
+        ]
+        tournaments = _embedded_tournaments(_export_schedule_html(_plan_with_tournaments(specs), tmp_path))
+
+        for kwargs in ({"age": "U10"}, {"club": "Kongsberg"}, {"age": "U10", "club": "Kongsberg"}):
+            filtered = _filter_embedded(tournaments, **kwargs)
+            dates = [t["d"] for t in filtered]
+            assert dates == sorted(dates), f"filter {kwargs} broke chronological order: {dates}"
+
+        team_key = _team_key(tournaments[-1]["p"][0])
+        filtered = _filter_embedded(tournaments, team=team_key)
+        dates = [t["d"] for t in filtered]
+        assert dates == sorted(dates)
+
+    def test_same_date_order_is_deterministic(self, tmp_path):
+        specs = [
+            {"id": "b", "date": "2026-11-08", "start_time": "10:00", "age_group": "U10", "arena": "Alfa"},
+            {"id": "c", "date": "2026-11-08", "start_time": "09:00", "age_group": "U10", "arena": "Beta"},
+            {"id": "a", "date": "2026-11-08", "start_time": "09:00", "age_group": "U10", "arena": "Alfa"},
+        ]
+        plan = _plan_with_tournaments(specs)
+        first = [t["id"] for t in _embedded_tournaments(_export_schedule_html(plan, tmp_path))]
+        second = [t["id"] for t in _embedded_tournaments(_export_schedule_html(plan, tmp_path))]
+        assert first == ["a", "c", "b"]
+        assert first == second
+
+    def test_cancelled_and_confirmation_required_use_same_date_order(self, tmp_path):
+        specs = [
+            {"id": "later", "date": "2027-03-14"},
+            {"id": "cancelled", "date": "2026-11-08", "cancelled": True},
+            {"id": "confirm", "date": "2026-10-18", "requires_host_confirmation": True},
+        ]
+        html = _export_schedule_html(_plan_with_tournaments(specs), tmp_path)
+        tournaments = _embedded_tournaments(html)
+        ids = [t["id"] for t in tournaments]
+        assert ids == ["confirm", "cancelled", "later"]
+        assert tournaments[0].get("rhc") is True
+        assert tournaments[1].get("cx") is True
+
+    def test_browser_has_defensive_chronological_sort(self, tmp_path):
+        html = _export_schedule_html(_plan_with_tournaments([{"id": "x", "date": "2026-10-18"}]), tmp_path)
+        assert "function compareTournaments(a, b)" in html
+        assert "TOURNAMENTS.sort(compareTournaments)" in html

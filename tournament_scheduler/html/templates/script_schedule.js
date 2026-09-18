@@ -2,6 +2,19 @@
 const MONTHS = ["jan","feb","mar","apr","mai","jun","jul","aug","sep","okt","nov","des"];
 const WEEKDAYS = ["son","man","tir","ons","tor","fre","lor"];
 
+// The exporter serializes tournaments in canonical chronological order, but
+// sort defensively so the timeline never depends on the JSON array order.
+// ISO YYYY-MM-DD strings compare correctly across year boundaries.
+function compareTournaments(a, b) {
+  return (a.d || '').localeCompare(b.d || '') ||
+    (a.ts || '').localeCompare(b.ts || '') ||
+    (a.g || '').localeCompare(b.g || '') ||
+    (a.a || '').localeCompare(b.a || '') ||
+    (a.h || '').localeCompare(b.h || '') ||
+    (a.id || '').localeCompare(b.id || '');
+}
+TOURNAMENTS.sort(compareTournaments);
+
 function parseDate(s) {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y, m - 1, d);

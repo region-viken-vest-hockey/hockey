@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from tournament_scheduler.club_distances import furthest_traveling_team
-from ..models import SeasonPlan
+from ..models import SeasonPlan, chronological_tournaments
 from ..occupancy import tournament_end_time
 
 from .data_computation import (
@@ -401,7 +401,10 @@ class HtmlExporter:
         ice_time_for_age_group = ice_time_for_age_group or {}
         approval_by_tournament = approval_by_tournament or {}
         data = []
-        for t in plan.tournaments:
+        # Presentation order is canonical and independent of the incidental
+        # order of ``plan.tournaments`` (candidate refinement/repair/adoption
+        # can permute it without changing any date).
+        for t in chronological_tournaments(plan.tournaments):
             games = [
                 [g.home.label, g.away.label, g.parallel_slot, g.round_number]
                 for g in t.games
@@ -413,6 +416,7 @@ class HtmlExporter:
             travel = furthest_traveling_team(t)
             travel_str = f"{travel[0].label} ~{travel[1]} km" if travel else ""
             entry: dict[str, object] = {
+                "id": t.id,
                 "d": t.date.isoformat(),
                 "a": t.arena,
                 "g": t.age_group,
