@@ -17,11 +17,16 @@ lifecycle in :mod:`tournament_scheduler.application.audit_lifecycle`):
              PASS              -> COMPLETE (pass)
              REVIEW_REQUIRED   -> CONVERGENCE_REQUIRED
         -> bounded convergence
-             candidate changed -> AUDIT_REQUIRED (fresh export fingerprint)
-             terminal reached  -> COMPLETE (pareto_stable /
+             internal revisions -> CONVERGENCE_REQUIRED (prior audit kept;
+                                   no new Stage 4 handoff yet)
+             batch export       -> AUDIT_REQUIRED (fresh export fingerprint)
+             export owed        -> CONVERGENCE_REQUIRED (export_required;
+                                   candidate persisted, not yet auditable)
+             terminal reached   -> COMPLETE (pareto_stable /
                                             bounded_search_exhausted /
-                                            operator_required)
-             budget paused     -> CONVERGENCE_REQUIRED (resumable, not complete)
+                                            operator_required) when no
+                                            handoff is owed
+             budget paused      -> CONVERGENCE_REQUIRED (resumable, not complete)
 
 A run must not be considered complete while ``AUDIT_REQUIRED`` or
 ``CONVERGENCE_REQUIRED`` is pending, and a stale audit can never satisfy a newer
@@ -75,7 +80,8 @@ _NEXT_STEP_TEXT = {
     ),
     PHASE_CONVERGENCE_REQUIRED: (
         "Continue the bounded Pareto convergence over the reviewed candidate "
-        "('stage3 converge'); a candidate mutation re-exports and requires a fresh audit."
+        "('stage3 converge'); the batch materializes one Stage 4 review export that "
+        "requires a fresh audit."
     ),
     PHASE_COMPLETE: "No further automatic transition is pending.",
 }

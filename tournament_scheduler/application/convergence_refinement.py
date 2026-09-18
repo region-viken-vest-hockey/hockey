@@ -3,12 +3,19 @@
 This is the outer loop the repository was missing: an audited
 ``REVIEW_REQUIRED`` candidate is no longer automatically a human escalation.
 While repository-owned findings still map to a supported repair/search
-direction, the driver keeps generating independently verified candidates,
-folding them into the bounded non-dominated frontier and re-exporting each
-accepted mutation, until the controller reports PASS, operator-required,
-bounded-search-exhausted or Pareto-stable. A configured epoch budget may pause
-the loop instead; the pause is persisted as resumable state (never a terminal),
-so a later invocation with a larger budget continues from the saved epoch.
+direction, the driver keeps generating independently verified candidates and
+folding them into the bounded non-dominated frontier, until the controller
+reports PASS, operator-required, bounded-search-exhausted or Pareto-stable. A
+configured epoch budget may pause the loop instead; the pause is persisted as
+resumable state (never a terminal), so a later invocation with a larger budget
+continues from the saved epoch.
+
+Internal epochs are the optimizer's planning state, not review handoffs: every
+accepted mutation is still independently verified and persisted as a new
+candidate revision/frontier entry, but the driver does not materialize a
+Stage 4 bundle per epoch. Exactly one timestamped Stage 4 export is produced at
+the batch boundary (the single auditable handoff), and the prior semantic audit
+is invalidated only by that materialization.
 
 The deterministic providers/verifiers own legality, mutation and measurement;
 :class:`~tournament_scheduler.application.pareto_convergence.ConvergenceController`
@@ -192,6 +199,9 @@ def run_bounded_convergence(
     max_no_improvement_epochs: int = DEFAULT_MAX_NO_IMPROVEMENT_EPOCHS,
     frontier_limit: int = DEFAULT_FRONTIER_LIMIT,
     export: bool = True,
+    export_dir: str | None = None,
+    timestamped_export: bool = True,
+    strict: bool = True,
     dry_run: bool = False,
     allow_search: bool = True,
     reconcile_budget: bool = True,
@@ -203,6 +213,7 @@ def run_bounded_convergence(
     option_provider: Callable[..., dict[str, Any]] | None = None,
     apply_provider: Callable[..., dict[str, Any]] | None = None,
     body_provider: Callable[..., dict[str, Any]] | None = None,
+    materialize_provider: Callable[..., dict[str, Any]] | None = None,
     log_fn: Optional[Callable[[str], None]] = None,
 ) -> dict[str, Any]:
     """Run the bounded convergence loop over one reviewed unpromoted candidate.
@@ -213,6 +224,13 @@ def run_bounded_convergence(
     or ``paused``) with ``paused``/``resumable`` true and an empty terminal, and
     ``terminal_detail``/``pause_detail`` never claim global optimality.
     ``frontier`` is the bounded non-dominated set the harness may select from.
+
+    Export lifecycle: internal epochs commit verified candidate revisions with
+    no Stage 4 bundle. At the batch boundary the driver materializes exactly one
+    Stage 4 review export when ``export`` is requested (and, on resume, when a
+    previous batch left one owed). ``export_materialized``/``audit_required``
+    mean a fresh handoff exists; ``export_required`` means the verified
+    candidate is persisted but not yet materialized as an auditable export.
     """
     log = log_fn or (lambda _message: None)
     if finding_provider is None or option_provider is None or apply_provider is None:
@@ -229,6 +247,10 @@ def run_bounded_convergence(
         from ..season_maintenance import apply_repair_to_plan
 
         body_provider = apply_repair_to_plan
+    if materialize_provider is None:
+        from .candidate_refinement import materialize_review_export
+
+        materialize_provider = materialize_review_export
 
     store, archive, state = _load_state(work_dir, run_id, frontier_limit)
     # A fresh REVIEW_REQUIRED audit verdict demands re-evaluation of the current
@@ -295,6 +317,20 @@ def run_bounded_convergence(
                     archive=archive,
                     epochs=epochs,
                     extra={"committed_epochs": committed, "audit_decision": audit_decision},
+                )
+                _materialize_batch_boundary(
+                    work_dir,
+                    report,
+                    problem=problem,
+                    export=export,
+                    committed=committed,
+                    dry_run=dry_run,
+                    export_dir=export_dir,
+                    timestamped_export=timestamped_export,
+                    strict=strict,
+                    materialize_provider=materialize_provider,
+                    run_id=run_id,
+                    log_fn=log,
                 )
                 _finalize_workflow(work_dir, report, run_id)
                 return report
@@ -400,6 +436,20 @@ def run_bounded_convergence(
                 ],
                 extra={"planned_entries": [e.to_dict() for e in entries]},
             )
+            _materialize_batch_boundary(
+                work_dir,
+                report,
+                problem=problem,
+                export=export,
+                committed=committed,
+                dry_run=dry_run,
+                export_dir=export_dir,
+                timestamped_export=timestamped_export,
+                strict=strict,
+                materialize_provider=materialize_provider,
+                run_id=run_id,
+                log_fn=log,
+            )
             _finalize_workflow(work_dir, report, run_id)
             return report
         result = apply_provider(
@@ -409,7 +459,11 @@ def run_bounded_convergence(
             finding_id=direction.finding_id,
             dimensions=tuple(dimensions),
             dry_run=False,
-            export=export,
+            # An internal convergence epoch is a verified planning state, not a
+            # review handoff: it persists the candidate revision without
+            # materializing a Stage 4 bundle. The batch boundary owns the single
+            # export below.
+            export=False,
             run_id=run_id,
         )
         committed_ref = _ref_for(direction, chosen)
@@ -473,6 +527,20 @@ def run_bounded_convergence(
         archive=archive,
         epochs=epochs,
         extra={"committed_epochs": committed, "audit_decision": audit_decision},
+    )
+    _materialize_batch_boundary(
+        work_dir,
+        report,
+        problem=problem,
+        export=export,
+        committed=committed,
+        dry_run=dry_run,
+        export_dir=export_dir,
+        timestamped_export=timestamped_export,
+        strict=strict,
+        materialize_provider=materialize_provider,
+        run_id=run_id,
+        log_fn=log,
     )
     _finalize_workflow(work_dir, report, run_id)
     return report
@@ -540,6 +608,89 @@ def _finalize_workflow(work_dir: Any, report: dict[str, Any], run_id: str | None
             report["workflow"] = view
     except Exception:
         pass
+    return report
+
+
+def _materialize_batch_boundary(
+    work_dir: Any,
+    report: dict[str, Any],
+    *,
+    problem: Mapping[str, Any],
+    export: bool,
+    committed: int,
+    dry_run: bool,
+    export_dir: str | None,
+    timestamped_export: bool,
+    strict: bool,
+    materialize_provider: Callable[..., dict[str, Any]],
+    run_id: str | None,
+    log_fn: Callable[[str], None],
+) -> dict[str, Any]:
+    """Materialize the single Stage 4 review handoff for a convergence batch.
+
+    Internal epochs commit verified candidate revisions without exporting; the
+    batch boundary turns the selected candidate into exactly one review export.
+    A pending export left by an earlier invocation is materialized even when
+    this invocation committed nothing, so a failed or ``--no-export`` batch can
+    always be completed later without duplicating an already-materialized
+    handoff. The report always distinguishes a real handoff
+    (``export_materialized``/``audit_required``) from an owed but unmaterialized
+    one (``export_required``).
+    """
+    from .candidate_refinement import export_is_pending
+
+    if dry_run:
+        report.update({"export_materialized": False, "audit_required": False, "export_required": False})
+        return report
+
+    pending = export_is_pending(work_dir, run_id=run_id)
+    if not export:
+        owed = bool(committed) or pending
+        report.update(
+            {
+                "export_materialized": False,
+                "audit_required": False,
+                "export_required": owed,
+            }
+        )
+        return report
+    if not committed and not pending:
+        # The current candidate already is the reviewed export: no redundant
+        # handoff just because the controller ended another batch.
+        report.update(
+            {"export_materialized": False, "audit_required": False, "export_required": False}
+        )
+        return report
+
+    result = materialize_provider(
+        work_dir,
+        problem=problem,
+        export_dir=export_dir,
+        timestamped_export=timestamped_export,
+        strict=strict,
+        log_fn=log_fn,
+        run_id=run_id,
+    )
+    if result.get("ok"):
+        report.update(
+            {
+                "export_materialized": True,
+                "audit_required": True,
+                "export_required": False,
+                "export_dir": result.get("export_dir"),
+                "export_fingerprint": result.get("export_fingerprint"),
+                "export": result.get("export"),
+            }
+        )
+        return report
+    report.update(
+        {
+            "export_materialized": False,
+            "audit_required": False,
+            "export_required": True,
+            "export_error": result.get("reason") or "export_failed",
+        }
+    )
     return report
 
 
@@ -721,10 +872,12 @@ def _report(
     }
     if extra:
         payload.update(dict(extra))
-    # A fresh semantic audit is required whenever the reviewed export was
-    # superseded by an accepted mutation. A pure PASS with no mutation keeps
-    # the caller's existing audit authority.
-    payload["audit_required"] = bool(payload.get("committed_epochs"))
+    # Whether a fresh semantic audit is required is decided at the batch
+    # boundary (``_materialize_batch_boundary``): only a *materialized* Stage 4
+    # handoff invalidates the prior audit. A report that only committed
+    # internal revisions stays explicitly non-auditable.
+    payload.setdefault("audit_required", False)
+    payload.setdefault("export_required", False)
     return payload
 
 

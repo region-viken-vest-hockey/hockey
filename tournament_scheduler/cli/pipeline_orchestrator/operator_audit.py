@@ -154,9 +154,16 @@ def _render_convergence_summary(convergence: dict[str, Any]) -> None:
             f"  [yellow]operatørspørsmål[/yellow] (item {question.get('item_id')}): "
             f"{question.get('finding') or question.get('question')}"
         )
-    if convergence.get("committed_epochs"):
+    if convergence.get("export_required"):
         _console.print(
-            "  ny eksport krever frisk semantisk revisjon: ja "
+            "  [yellow]eksport kreves[/yellow]: kandidaten er verifisert og lagret, "
+            "men ikke materialisert som revisjonshåndtrykk "
+            f"({convergence.get('committed_epochs')} mutasjon(er))"
+        )
+    elif convergence.get("export_materialized"):
+        _console.print(
+            "  én revisjonseksport materialisert ved batchgrensen: "
+            f"{convergence.get('export_fingerprint')} "
             f"({convergence.get('committed_epochs')} mutasjon(er))"
         )
 

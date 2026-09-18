@@ -1271,6 +1271,9 @@ def build_parser() -> argparse.ArgumentParser:
     stage3_converge.add_argument("--frontier-limit", type=int, default=6, help="Bounded frontier size (default: 6)")
     stage3_converge.add_argument("--no-search", action="store_true", help="Only use cheap repair options, not bounded search")
     stage3_converge.add_argument("--no-export", action="store_true", help="Mutate candidates without re-running Stage 4")
+    stage3_converge.add_argument("--export-dir", default=None, help="Export root for the batch review exports (defaults to the reviewed export's root)")
+    stage3_converge.add_argument("--flat-export", action="store_true", help="Write the batch export flat instead of timestamped")
+    stage3_converge.add_argument("--non-strict", action="store_true", help="Continue on non-fatal export errors")
     stage3_converge.add_argument("--dry-run", action="store_true", help="Preview the next epoch without mutating")
     stage3_converge.add_argument(
         "--ignore-audit",

@@ -217,8 +217,19 @@ def record_convergence_result(
         return None
     if not result.get("ok") or result.get("dry_run"):
         return workflow
-    if result.get("audit_required") or result.get("committed_epochs"):
+    if result.get("export_materialized") or result.get("audit_required"):
+        # A new Stage 4 review handoff exists, so the prior audit can no longer
+        # satisfy the current candidate/export.
         return mark_audit_required(work_dir, run_id=run_id, at=at)
+    if result.get("committed_epochs") or result.get("export_required"):
+        # Verified candidate revisions were committed without materializing a
+        # review export (``--no-export`` or a failed generation). The candidate
+        # advanced, so the run is neither complete nor auditable: it stays
+        # pending and still owes exactly one Stage 4 handoff. Invalidating the
+        # prior audit here would bind a fresh audit to a stale export.
+        workflow.record(PHASE_CONVERGENCE_REQUIRED, at=at or _now())
+        _persist(work_dir, run_id, workflow)
+        return workflow
     reason = str(result.get("terminal_reason") or "")
     if reason in TERMINAL_REASONS:
         workflow.record(

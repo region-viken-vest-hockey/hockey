@@ -55,6 +55,9 @@ def _cmd_stage3_converge(args: argparse.Namespace) -> int:
             max_no_improvement_epochs=int(getattr(args, "max_no_improvement", 2)),
             frontier_limit=int(getattr(args, "frontier_limit", 6)),
             export=not bool(getattr(args, "no_export", False)),
+            export_dir=getattr(args, "export_dir", None),
+            timestamped_export=not bool(getattr(args, "flat_export", False)),
+            strict=not bool(getattr(args, "non_strict", False)),
             dry_run=bool(getattr(args, "dry_run", False)),
             allow_search=not bool(getattr(args, "no_search", False)),
             force_finding_id=getattr(args, "finding", None),
@@ -68,9 +71,10 @@ def _cmd_stage3_converge(args: argparse.Namespace) -> int:
             _console.print(f"[red]✗[/red] Konvergens feilet: {exc}")
         return 1
 
-    if result.get("committed_epochs"):
-        # Accepted mutations re-ran Stage 4; refresh the sanitized evidence
-        # bundle so it is bound to the newest export fingerprint (best-effort).
+    if result.get("committed_epochs") or result.get("export_materialized"):
+        # The batch boundary materialized (or refreshed) the review export;
+        # refresh the sanitized evidence bundle so it is bound to the newest
+        # export fingerprint (best-effort).
         try:
             from ...pipeline.state import StageName
             from .verification import _write_run_evidence_bundle
@@ -182,6 +186,16 @@ def _render(result: dict[str, Any]) -> None:
         _console.print(
             f"  [yellow]operatørspørsmål[/yellow] (item {question.get('item_id')}): "
             f"{question.get('finding') or question.get('question')}"
+        )
+    if result.get("export_required"):
+        _console.print(
+            "  [yellow]eksport kreves[/yellow]: kandidaten er verifisert og lagret, "
+            "men ikke materialisert som revisjonshåndtrykk"
+        )
+    elif result.get("export_materialized"):
+        _console.print(
+            f"  ny revisjonseksport: {result.get('export_dir')} "
+            f"({result.get('export_fingerprint')})"
         )
     if result.get("audit_required"):
         _console.print("  krever ny semantisk revisjon over nyeste eksport: ja")

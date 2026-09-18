@@ -19,7 +19,9 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from tournament_scheduler.application.candidate_refinement import (
     RefinementError,
+    export_is_pending,
     load_finalized_candidate,
+    materialize_review_export,
     refinement_findings,
     refinement_options,
     refine_finalized_candidate,
@@ -281,6 +283,125 @@ def test_refine_requires_finalized_session(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # Export provenance
 # ---------------------------------------------------------------------------
+
+
+def test_refine_without_export_marks_one_review_handoff_pending(tmp_path: Path) -> None:
+    work_dir, plan, problem = _refinement_fixture(tmp_path)
+    report = refinement_options(plan, problem, FINDING)
+    option_id = report["options"][0]["option_id"]
+
+    result = refine_finalized_candidate(
+        work_dir,
+        problem=problem,
+        option_id=option_id,
+        finding_id=FINDING,
+        export=False,
+        run_id="run-1",
+    )
+
+    assert result["ok"] is True
+    assert result["export_required"] is True
+    session = Stage3SessionStore(str(work_dir)).load(expected_run_id="run-1")
+    assert session.is_finalized() is True
+    assert session.export_pending is True
+    assert export_is_pending(str(work_dir), run_id="run-1") is True
+
+
+def test_materialize_review_export_produces_one_fingerprint_bound_handoff(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from tournament_scheduler.pipeline import stage4_export as stage4_module
+
+    work_dir, plan, problem = _refinement_fixture(tmp_path)
+    prior_dir = _seed_prior_export(work_dir)
+    report = refinement_options(plan, problem, FINDING)
+    option_id = report["options"][0]["option_id"]
+
+    # Batched convergence commits the verified revision without exporting.
+    committed = refine_finalized_candidate(
+        work_dir,
+        problem=problem,
+        option_id=option_id,
+        finding_id=FINDING,
+        export=False,
+        run_id="run-1",
+    )
+    assert committed["ok"] is True
+    assert export_is_pending(str(work_dir), run_id="run-1") is True
+
+    def _fake_stage4(plan_checkpoint, state, **kwargs):
+        new_dir = Path(kwargs["export_dir"]) / "2026-10-01T1200"
+        new_dir.mkdir(parents=True, exist_ok=True)
+        manifest = write_draft_manifest(
+            new_dir,
+            export_id=new_dir.name,
+            generated_at="2026-10-01T12:00:00+00:00",
+            export_fingerprint="fp-batch",
+            source_run_id="run-1",
+            supersedes=kwargs.get("supersedes"),
+        )
+        return {
+            "export_dir": str(new_dir),
+            "export_fingerprint": "fp-batch",
+            "export_lifecycle": manifest,
+            "output_files": {},
+        }
+
+    monkeypatch.setattr(stage4_module, "run", _fake_stage4)
+
+    result = materialize_review_export(work_dir, problem=problem, run_id="run-1")
+
+    assert result["ok"] is True, result
+    assert result["export_fingerprint"] == "fp-batch"
+    assert result["export_required"] is False
+    # The candidate is still the exact verified revision that was committed.
+    session = Stage3SessionStore(str(work_dir)).load(expected_run_id="run-1")
+    assert session.finalized_fingerprint == committed["candidate_fingerprint_after"]
+    assert session.export_pending is False
+    assert export_is_pending(str(work_dir), run_id="run-1") is False
+    # The prior reviewed export is superseded exactly once, by the new handoff.
+    prior_manifest = read_export_manifest(prior_dir)
+    assert prior_manifest["lifecycle_status"] == SUPERSEDED_STATUS
+    assert prior_manifest["superseded_by"]["export_fingerprint"] == "fp-batch"
+    assert read_export_manifest(result["export_dir"])["supersedes"]["export_id"] == prior_dir.name
+
+
+def test_export_is_pending_reconciles_with_an_already_materialized_export(tmp_path: Path) -> None:
+    from tournament_scheduler.application.stage3_session_store import extract_candidate_body
+    from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+
+    work_dir, plan, problem = _refinement_fixture(tmp_path)
+    report = refinement_options(plan, problem, FINDING)
+    option_id = report["options"][0]["option_id"]
+    refine_finalized_candidate(
+        work_dir,
+        problem=problem,
+        option_id=option_id,
+        finding_id=FINDING,
+        export=False,
+        run_id="run-1",
+    )
+    # Simulate a crash after Stage 4 wrote the new export but before the session
+    # cleared ``export_pending``: the owed handoff already exists on disk.
+    body = extract_candidate_body(
+        PipelineState(str(work_dir)).read_stage(StageName.PLANNING)
+    )
+    export_dir = work_dir / "export" / "2026-10-01T1200"
+    export_dir.mkdir(parents=True)
+    PipelineState(str(work_dir)).write_stage(
+        StageName.EXPORT,
+        {
+            "export_dir": str(export_dir),
+            "export_fingerprint": stable_payload_sha256(body.get("tournaments", [])),
+        },
+        status=StageStatus.DONE,
+    )
+    store = Stage3SessionStore(str(work_dir))
+    session = store.load(expected_run_id="run-1")
+    session.export_pending = True
+    store.save(session)
+
+    assert export_is_pending(str(work_dir), run_id="run-1") is False
 
 
 def test_refine_reexport_links_new_export_to_superseded_prior(tmp_path: Path, monkeypatch) -> None:

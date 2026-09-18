@@ -51,7 +51,12 @@ def _seed_finalized(tmp_path: Path) -> None:
 
 
 def _commit(work_dir: Path, body: Dict[str, Any]) -> str:
-    """Simulate a repository-owned commit: new checkpoint + re-finalized session."""
+    """Simulate a repository-owned internal commit: new checkpoint + re-finalized session.
+
+    Mirrors the real batched convergence commit boundary: the candidate revision
+    advances without a Stage 4 export, so the session records that exactly one
+    review handoff is still owed.
+    """
     state = PipelineState(str(work_dir))
     checkpoint = {"plan": body, "source": "convergence_repair"}
     state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
@@ -70,8 +75,30 @@ def _commit(work_dir: Path, body: Dict[str, Any]) -> str:
     session.finalize(
         transition="apply_repair", action_id="apply_repair", rationale="test commit", at="T"
     )
+    session.export_pending = True
     store.save(session)
     return fingerprint
+
+
+def _materialize_stub(materializations: List[Dict[str, Any]], *, ok: bool = True):
+    """A boundary export stub that records calls and clears the pending flag."""
+
+    def materialize(work_dir: Path, **kwargs: Any) -> Dict[str, Any]:
+        materializations.append({"work_dir": str(work_dir)})
+        store = Stage3SessionStore(str(work_dir))
+        session = store.load(expected_run_id=RUN_ID)
+        if ok:
+            session.export_pending = False
+        store.save(session)
+        if not ok:
+            return {"ok": False, "reason": "export_failed", "export_required": True}
+        return {
+            "ok": True,
+            "export_dir": str(Path(work_dir) / "export" / "batch"),
+            "export_fingerprint": "fp-batch",
+        }
+
+    return materialize
 
 
 # ---------------------------------------------------------------------------
@@ -219,8 +246,11 @@ def test_multi_epoch_convergence_retains_frontier_and_detects_plateau(tmp_path: 
     assert session.convergence["terminal_reason"] == TERMINAL_PARETO_STABLE
     assert "hosting" in session.convergence["explored_directions"]
     assert "participants" in session.convergence["explored_directions"]
-    # A re-audit is required because accepted mutations superseded the export.
-    assert result["audit_required"] is True
+    # Internal epochs committed verified revisions without a Stage 4 handoff,
+    # so no audit can bind yet: the batch owes exactly one export first.
+    assert result["audit_required"] is False
+    assert result["export_required"] is True
+    assert session.export_pending is True
 
 
 def test_convergence_resumes_after_a_manual_refine_changed_the_candidate(tmp_path: Path) -> None:
@@ -876,3 +906,159 @@ def test_hosting_cannot_monopolize_the_convergence_budget(tmp_path: Path) -> Non
     assert directions[0] == "hosting"
     assert directions[1] == "participants"
     assert directions.count("hosting") <= 2
+
+
+# ---------------------------------------------------------------------------
+# Batched export materialization boundary (#387)
+# ---------------------------------------------------------------------------
+
+
+def test_accepted_epochs_materialize_exactly_one_review_export(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+    commits: List[str] = []
+    materializations: List[Dict[str, Any]] = []
+    finding_provider, option_provider, body_provider, apply_provider = _providers(commits)
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=6,
+        max_no_improvement_epochs=1,
+        export=True,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        materialize_provider=_materialize_stub(materializations),
+        run_id=RUN_ID,
+    )
+
+    assert len(commits) >= 2
+    assert len(materializations) == 1
+    assert result["export_materialized"] is True
+    assert result["audit_required"] is True
+    assert result["export_required"] is False
+    assert result["export_fingerprint"] == "fp-batch"
+
+
+def test_zero_accepted_epochs_produce_no_redundant_export(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+    materializations: List[Dict[str, Any]] = []
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        export=True,
+        finding_provider=lambda candidate, problem: [],
+        option_provider=lambda *a, **k: {"finding": {}, "options": []},
+        body_provider=lambda *a, **k: {"ok": False},
+        apply_provider=lambda *a, **k: {"ok": False, "reason": "should_not_run"},
+        materialize_provider=_materialize_stub(materializations),
+        run_id=RUN_ID,
+    )
+
+    assert result["committed_epochs"] == 0
+    assert materializations == []
+    assert result["export_materialized"] is False
+    assert result["export_required"] is False
+    assert result["audit_required"] is False
+
+
+def test_failed_batch_export_keeps_verified_candidate_and_reports_export_required(
+    tmp_path: Path,
+) -> None:
+    _seed_finalized(tmp_path)
+    commits: List[str] = []
+    materializations: List[Dict[str, Any]] = []
+    finding_provider, option_provider, body_provider, apply_provider = _providers(commits)
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=6,
+        max_no_improvement_epochs=1,
+        export=True,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        materialize_provider=_materialize_stub(materializations, ok=False),
+        run_id=RUN_ID,
+    )
+
+    assert len(materializations) == 1
+    assert result["ok"] is True
+    assert result["export_materialized"] is False
+    assert result["export_required"] is True
+    assert result["audit_required"] is False
+    # The independently verified candidate survives a failed export and is
+    # still flagged as owing exactly one Stage 4 handoff.
+    session = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    assert session.is_finalized() is True
+    assert session.finalized_fingerprint == commits[-1]
+    assert session.export_pending is True
+
+
+def test_resume_materializes_a_pending_handoff_once_without_duplicate_churn(
+    tmp_path: Path,
+) -> None:
+    _seed_finalized(tmp_path)
+    commits: List[str] = []
+    materializations: List[Dict[str, Any]] = []
+    finding_provider, option_provider, body_provider, apply_provider = _providers(commits)
+    materialize = _materialize_stub(materializations)
+
+    # First batch: internal revisions only, no export (``--no-export``).
+    first = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=6,
+        max_no_improvement_epochs=1,
+        export=False,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        materialize_provider=materialize,
+        run_id=RUN_ID,
+    )
+    assert first["export_required"] is True
+    assert first["terminal_reason"] == TERMINAL_PARETO_STABLE
+    assert materializations == []
+
+    # A later invocation with no new commits still owes one handoff and
+    # materializes it exactly once.
+    second = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=6,
+        max_no_improvement_epochs=1,
+        export=True,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        materialize_provider=materialize,
+        run_id=RUN_ID,
+    )
+    assert second["committed_epochs"] == 0
+    assert second["export_materialized"] is True
+    assert len(materializations) == 1
+
+    # Once materialized, another idle invocation must not re-export.
+    third = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=6,
+        max_no_improvement_epochs=1,
+        export=True,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        materialize_provider=materialize,
+        run_id=RUN_ID,
+    )
+    assert third["committed_epochs"] == 0
+    assert third["export_materialized"] is False
+    assert len(materializations) == 1

@@ -40,6 +40,7 @@ from tournament_scheduler.pipeline.audit_workflow import (
     PHASE_CONVERGENCE_REQUIRED,
     TERMINAL_BOUNDED_SEARCH_EXHAUSTED,
     TERMINAL_OPERATOR_REQUIRED,
+    TERMINAL_PARETO_STABLE,
     TERMINAL_PASS,
     AuditWorkflow,
     completion_blockers as workflow_completion_blockers,
@@ -84,7 +85,8 @@ def _seed_finalized(tmp_path: Path, *, export_fingerprint: str = "fp-1") -> None
     mark_audit_required(tmp_path, run_id=RUN_ID)
 
 
-def _commit(work_dir: Path, body: Dict[str, Any], export_fingerprint: str) -> str:
+def _commit(work_dir: Path, body: Dict[str, Any]) -> str:
+    """Simulate an internal convergence commit: new revision, no export."""
     state = PipelineState(str(work_dir))
     checkpoint = {"plan": body, "source": "convergence_repair"}
     state.write_stage(StageName.PLANNING, checkpoint, status=StageStatus.DONE)
@@ -103,8 +105,8 @@ def _commit(work_dir: Path, body: Dict[str, Any], export_fingerprint: str) -> st
     session.finalize(
         transition="apply_repair", action_id="apply_repair", rationale="test commit", at="T"
     )
+    session.export_pending = True
     store.save(session)
-    _write_export(work_dir, export_fingerprint)
     return fingerprint
 
 
@@ -188,15 +190,25 @@ def _cycle_one_providers(commits: List[str]):
         return {"ok": True, "candidate": _body(1)}
 
     def apply_provider(work_dir: Path, **kwargs: Any) -> Dict[str, Any]:
-        fingerprint = _commit(work_dir, _body(1), "fp-2")
+        fingerprint = _commit(work_dir, _body(1))
         commits.append(fingerprint)
-        return {
-            "ok": True,
-            "candidate_fingerprint_after": fingerprint,
-            "export_fingerprint": "fp-2",
-        }
+        return {"ok": True, "candidate_fingerprint_after": fingerprint}
 
     return finding_provider, option_provider, body_provider, apply_provider
+
+
+def _materialize_export_stub(work_dir: Path, *, fingerprint: str = "fp-2", **kwargs: Any) -> Dict[str, Any]:
+    """The batch boundary's single Stage 4 handoff, as a test stub."""
+    _write_export(work_dir, fingerprint)
+    store = Stage3SessionStore(str(work_dir))
+    session = store.load(expected_run_id=RUN_ID)
+    session.export_pending = False
+    store.save(session)
+    return {
+        "ok": True,
+        "export_dir": str(work_dir / "export" / fingerprint),
+        "export_fingerprint": fingerprint,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +270,33 @@ def test_budget_pause_is_not_a_terminal_and_keeps_the_workflow_pending(tmp_path:
 # ---------------------------------------------------------------------------
 
 
+def test_internal_revisions_keep_the_prior_audit_valid(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+    record_audit_verdict(tmp_path, _review_payload(2), run_id=RUN_ID)
+    assert current_workflow(tmp_path, run_id=RUN_ID).phase == PHASE_CONVERGENCE_REQUIRED
+
+    # A batch committed internal verified revisions but materialized no Stage 4
+    # handoff (``--no-export``): the prior reviewed export/audit is untouched and
+    # the run stays pending instead of completing on a stale export.
+    record_convergence_result(
+        tmp_path,
+        {
+            "ok": True,
+            "terminal_reason": TERMINAL_PARETO_STABLE,
+            "committed_epochs": 3,
+            "export_materialized": False,
+            "export_required": True,
+            "audit_required": False,
+        },
+        run_id=RUN_ID,
+    )
+    workflow = current_workflow(tmp_path, run_id=RUN_ID)
+    assert workflow.phase == PHASE_CONVERGENCE_REQUIRED
+    assert workflow.export_fingerprint == "fp-1"
+    assert workflow.last_audit_status == "REVIEW_REQUIRED"
+    assert completion_blockers(tmp_path, run_id=RUN_ID)
+
+
 def test_two_cycle_lifecycle_requires_fresh_audit_until_terminal(tmp_path: Path) -> None:
     _seed_finalized(tmp_path)
 
@@ -282,15 +321,17 @@ def test_two_cycle_lifecycle_requires_fresh_audit_until_terminal(tmp_path: Path)
         problem={},
         max_epochs=4,
         max_no_improvement_epochs=1,
-        export=False,
+        export=True,
         audit_payload=payload_one,
         finding_provider=finding_provider,
         option_provider=option_provider,
         body_provider=body_provider,
         apply_provider=apply_provider,
+        materialize_provider=_materialize_export_stub,
         run_id=RUN_ID,
     )
     assert first["committed_epochs"] == 1
+    assert first["export_materialized"] is True
     assert len(commits) == 1  # a dominated/redundant option never commits twice
     # The report itself exposes the canonical next transition.
     assert first["workflow"]["phase"] == PHASE_AUDIT_REQUIRED

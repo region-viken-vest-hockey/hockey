@@ -48,9 +48,12 @@ from typing import Any, Mapping
 # instead of falling through to human escalation. Schema 7 adds
 # ``audit_workflow``: the explicit persisted audit -> convergence -> re-audit
 # phase (``pipeline.audit_workflow``), so an interactive harness cannot treat
-# its own ``REVIEW_REQUIRED`` conclusion as a terminal run result. Older
-# payloads load unchanged because every added field defaults to empty.
-STAGE3_SESSION_SCHEMA_VERSION = 7
+# its own ``REVIEW_REQUIRED`` conclusion as a terminal run result. Schema 8
+# adds ``export_pending``: a verified candidate revision exists that is not yet
+# materialized as the current Stage 4 review export, so a later invocation
+# knows exactly one review handoff is still owed. Older payloads load
+# unchanged because every added field defaults to empty.
+STAGE3_SESSION_SCHEMA_VERSION = 8
 
 # Bounded retention window for the verified-attempt portfolio. Deliberately
 # small: it exists so the controller can pick the better of a few recently
@@ -194,6 +197,13 @@ class Stage3Session:
     # descends from and the export it supersedes. Provenance, not a second
     # candidate authority.
     refinement: dict[str, Any] | None = None
+    # True when one or more verified candidate revisions were committed without
+    # producing a matching Stage 4 review export. The candidate is persisted and
+    # independently verified, but it is not yet an auditable review handoff, so
+    # the lifecycle owes exactly one export before a fresh semantic audit can be
+    # bound. Cleared by a successful Stage 4 materialization; never by an
+    # internal convergence epoch.
+    export_pending: bool = False
     decision_history: list[dict[str, Any]] = field(default_factory=list)
     attempts: dict[str, Any] = field(default_factory=dict)
     # Bounded, stable-ref portfolio of independently verified Stage 3 attempt
@@ -639,6 +649,7 @@ class Stage3Session:
             "pending_decision": self.pending_decision,
             "operator_request": self.operator_request,
             "refinement": dict(self.refinement) if self.refinement else None,
+            "export_pending": bool(self.export_pending),
             "decision_history": list(self.decision_history),
             "attempts": dict(self.attempts),
             "candidate_attempts": [dict(item) for item in self.candidate_attempts],
@@ -695,6 +706,7 @@ class Stage3Session:
             refinement=(
                 dict(data["refinement"]) if isinstance(data.get("refinement"), dict) else None
             ),
+            export_pending=bool(data.get("export_pending")),
             decision_history=[dict(item) for item in (data.get("decision_history") or [])],
             attempts=dict(data.get("attempts") or {}),
             candidate_attempts=[dict(item) for item in (data.get("candidate_attempts") or [])],

@@ -30,6 +30,11 @@ Semantic audit is not re-run here: the repository owns audit *context*
 assembly, and the semantic verdict belongs to the active harness. The result
 reports ``audit_required`` plus the fresh export fingerprint so the caller
 re-runs the same audit boundary over the new export.
+
+A candidate commit and a Stage 4 export are separable: internal convergence
+epochs commit verified revisions with ``export=False`` (recording
+``export_pending`` on the session) and :func:`materialize_review_export` turns
+the selected candidate into exactly one review handoff at the batch boundary.
 """
 
 from __future__ import annotations
@@ -438,6 +443,13 @@ def commit_refined_candidate(
         rationale=rationale or "refinement re-finalized",
         at=_now(),
     )
+    # A commit without an export advances the candidate but leaves the reviewed
+    # export behind: the lifecycle now owes exactly one Stage 4 handoff. A
+    # commit *with* an export clears/keeps that flag through
+    # :func:`_materialize_candidate_export`, which owns the successful
+    # materialization boundary.
+    if not export:
+        session.export_pending = True
     Stage3SessionStore(work_dir).save(session)
 
     result: dict[str, Any] = {
@@ -453,12 +465,54 @@ def commit_refined_candidate(
     }
 
     if not export:
+        result["export_required"] = True
         return result
 
+    return _materialize_candidate_export(
+        work_dir,
+        session,
+        new_checkpoint,
+        problem=problem,
+        prior_export=prior_export,
+        export_dir=export_dir,
+        timestamped_export=timestamped_export,
+        strict=strict,
+        log_fn=log_fn,
+        result=result,
+    )
+
+
+def _materialize_candidate_export(
+    work_dir: str | Path,
+    session: Any,
+    checkpoint: Mapping[str, Any],
+    *,
+    problem: Mapping[str, Any],
+    prior_export: Mapping[str, Any],
+    export_dir: str | None,
+    timestamped_export: bool,
+    strict: bool,
+    log_fn: Callable[[str], None],
+    result: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Materialize the current candidate as exactly one Stage 4 review export.
+
+    Shared by option-based refinement (which exports inline) and batched
+    convergence (which commits many internal revisions and exports once at the
+    batch boundary). The verified candidate is already persisted before this
+    runs, so a failed export never loses it; the session keeps
+    ``export_pending`` set so a later invocation knows one handoff is still
+    owed, and the prior reviewed export is never superseded by a failed
+    generation.
+    """
+    from ..pipeline.state import PipelineState
+
+    payload: dict[str, Any] = dict(result or {})
+    state = PipelineState(work_dir)
     try:
         export_result = _reexport_refined_candidate(
             state,
-            new_checkpoint,
+            checkpoint,
             problem=dict(problem),
             prior_export=prior_export,
             export_dir=export_dir,
@@ -467,7 +521,9 @@ def commit_refined_candidate(
             log_fn=log_fn,
         )
     except Exception as exc:  # noqa: BLE001 - the committed candidate survives
-        result.update(
+        session.export_pending = True
+        Stage3SessionStore(work_dir).save(session)
+        payload.update(
             {
                 "ok": False,
                 "reason": "export_failed",
@@ -476,10 +532,12 @@ def commit_refined_candidate(
                 "export_required": True,
             }
         )
-        return result
+        return payload
 
     if export_result.get("errors"):
-        result.update(
+        session.export_pending = True
+        Stage3SessionStore(work_dir).save(session)
+        payload.update(
             {
                 "ok": False,
                 "reason": "export_failed",
@@ -488,20 +546,27 @@ def commit_refined_candidate(
                 "export_required": True,
             }
         )
-        return result
+        return payload
 
-    result["export"] = export_result
-    result["export_dir"] = export_result.get("export_dir")
-    result["export_fingerprint"] = export_result.get("export_fingerprint")
+    session.export_pending = False
     session.refinement = {
         **(session.refinement or {}),
         "result_export": {
             "export_dir": export_result.get("export_dir"),
             "export_fingerprint": export_result.get("export_fingerprint"),
-            "candidate_fingerprint": after_fingerprint,
+            "candidate_fingerprint": fingerprint_plan(checkpoint),
         },
     }
     Stage3SessionStore(work_dir).save(session)
+    payload.update(
+        {
+            "ok": True,
+            "export": export_result,
+            "export_dir": export_result.get("export_dir"),
+            "export_fingerprint": export_result.get("export_fingerprint"),
+            "export_required": False,
+        }
+    )
     # A successfully re-exported candidate is a new reviewed revision: the
     # persisted audit/convergence workflow must re-enter ``audit_required`` for
     # the new export fingerprint so the run cannot complete on the superseded
@@ -513,7 +578,133 @@ def commit_refined_candidate(
         mark_audit_required(work_dir, run_id=session.run_id or None)
     except Exception:
         pass
-    return result
+    return payload
+
+
+def materialize_review_export(
+    work_dir: str | Path,
+    *,
+    problem: Mapping[str, Any],
+    export_dir: str | None = None,
+    timestamped_export: bool = True,
+    strict: bool = True,
+    log_fn: Callable[[str], None] | None = None,
+    run_id: str | None = None,
+) -> dict[str, Any]:
+    """Materialize exactly one Stage 4 review export for the current candidate.
+
+    This is the batch/audit boundary: internal convergence revisions advance
+    the verified candidate without exporting, and this function turns the
+    selected candidate fingerprint into the single review handoff that the next
+    semantic audit binds to. It never mutates the candidate, so a failed export
+    leaves the verified revision persisted and reports ``export_required``.
+    """
+    log = log_fn or (lambda _message: None)
+    store = Stage3SessionStore(work_dir)
+    session = store.load(expected_run_id=run_id or None)
+    if not session.is_finalized():
+        return {
+            "ok": False,
+            "reason": "candidate_not_finalized",
+            "export_required": True,
+        }
+    candidate_fingerprint = session.finalized_fingerprint or session.candidate_fingerprint
+    checkpoint = _current_candidate_checkpoint(work_dir, session, candidate_fingerprint)
+    if checkpoint is None:
+        return {
+            "ok": False,
+            "reason": "candidate_checkpoint_mismatch",
+            "export_required": True,
+        }
+    prior_export = _prior_export_provenance(work_dir)
+    if prior_export.get("lifecycle_status") == "published":
+        return {
+            "ok": False,
+            "reason": "reviewed_export_published",
+            "candidate_committed": True,
+            "export_required": True,
+        }
+    return _materialize_candidate_export(
+        work_dir,
+        session,
+        checkpoint,
+        problem=problem,
+        prior_export=prior_export,
+        export_dir=export_dir,
+        timestamped_export=timestamped_export,
+        strict=strict,
+        log_fn=log,
+    )
+
+
+def export_is_pending(work_dir: str | Path, *, run_id: str | None = None) -> bool:
+    """True when the finalized candidate is not yet the current review export.
+
+    The canonical, process-boundary-safe trigger for the batched convergence
+    materialization boundary: a candidate committed without an export leaves
+    ``export_pending`` set, so a later invocation (even with zero new commits)
+    knows exactly one handoff is still owed instead of either skipping it or
+    re-materializing an already-exported candidate.
+
+    The flag is reconciled against the live Stage 4 export: a crash after Stage
+    4 committed the new export but before the session cleared the flag must not
+    make the next invocation write a duplicate bundle.
+    """
+    session = Stage3SessionStore(work_dir).load(expected_run_id=run_id or None)
+    if not session.export_pending:
+        return False
+    candidate_fingerprint = session.finalized_fingerprint or session.candidate_fingerprint
+    checkpoint = _current_candidate_checkpoint(work_dir, session, candidate_fingerprint)
+    if checkpoint is not None and _candidate_matches_current_export(work_dir, checkpoint):
+        return False
+    return True
+
+
+def _candidate_matches_current_export(work_dir: str | Path, checkpoint: Mapping[str, Any]) -> bool:
+    """True when the current Stage 4 export already materializes this candidate.
+
+    Uses the same canonical candidate-payload comparison the promotion boundary
+    uses (the export's content fingerprint is the hash of the candidate's
+    tournament payload), so the two boundaries can never disagree about whether
+    a candidate is the reviewed export.
+    """
+    from ..pipeline.fingerprints import stable_payload_sha256
+    from ..pipeline.state import PipelineState, StageName
+
+    export_fingerprint = str(
+        (PipelineState(work_dir).read_stage(StageName.EXPORT) or {}).get("export_fingerprint") or ""
+    )
+    if not export_fingerprint:
+        return False
+    body = extract_candidate_body(checkpoint)
+    if body is None:
+        return False
+    return stable_payload_sha256(body.get("tournaments", [])) == export_fingerprint
+
+
+def _current_candidate_checkpoint(
+    work_dir: str | Path, session: Any, candidate_fingerprint: str
+) -> dict[str, Any] | None:
+    """Return the checkpoint for the session's current finalized candidate.
+
+    The Stage 3 checkpoint on disk is preferred (it is what Stage 4 exported)
+    but only when it still matches the finalized fingerprint; otherwise the
+    session's own candidate is used. Never falls back to a different candidate.
+    """
+    from ..pipeline.state import PipelineState, StageName
+
+    disk = PipelineState(work_dir).read_stage(StageName.PLANNING) or {}
+    if disk and fingerprint_plan(disk) == candidate_fingerprint:
+        return dict(disk)
+    if session.candidate is not None and fingerprint_plan(session.candidate) == candidate_fingerprint:
+        # Stage 4 expects a Stage 3 checkpoint envelope, not a bare candidate
+        # body, so the session fallback is wrapped the same way
+        # ``commit_refined_candidate`` writes it.
+        return {
+            "plan": dict(session.candidate),
+            "source": session.candidate_source or "convergence_repair",
+        }
+    return None
 
 
 def _reexport_refined_candidate(
