@@ -427,6 +427,13 @@ def test_inapplicable_reselection_terminates_search_coverage(tmp_path: Path) -> 
     ]
     assert bounded["escalation"]["reason"] == SEARCH_BOUNDED_EXHAUSTED
     assert bounded["escalation"]["untried_dimensions"] == []
+    # Repeated searches are stable: the resolved dimension is not re-advertised
+    # as retryable and the read-only search never mutates canonical state.
+    repeated = search(YEAR, "unplaced_placement:U10:2026-10-10:1", root=root)
+    assert repeated["revision"] == bounded["revision"]
+    assert repeated["option_count"] == 0
+    assert repeated["finding"]["search_coverage"]["status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert repeated["finding"]["search_coverage"]["untried"] == []
 
 
 # ---------------------------------------------------------------------------
