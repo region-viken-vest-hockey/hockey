@@ -73,8 +73,9 @@ def _cmd_stage3_session(args: argparse.Namespace) -> int:
         )
     convergence = view.get("convergence") or {}
     if convergence:
+        reason = convergence.get("terminal_reason") or convergence.get("pause_reason")
         _console.print(
-            f"  konvergens: {convergence.get('terminal_reason') or '(fortsetter)'} "
+            f"  konvergens: {reason or '(fortsetter)'} "
             f"(epoke {convergence.get('epoch', 0)})"
         )
     workflow = view.get("audit_workflow") or {}

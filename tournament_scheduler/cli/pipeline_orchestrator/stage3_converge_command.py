@@ -152,11 +152,20 @@ def _cmd_stage3_adopt(args: argparse.Namespace) -> int:
 
 def _render(result: dict[str, Any]) -> None:
     reason = str(result.get("terminal_reason") or "")
+    pause = str(result.get("pause_reason") or "")
     detail = str(result.get("terminal_detail") or "")
-    style = "green" if reason == "pass" else "yellow"
-    _console.print(f"[{style}]Konvergens: {reason or '(ukjent)'}[/{style}]")
+    if reason:
+        style = "green" if reason == "pass" else "yellow"
+        _console.print(f"[{style}]Konvergens: {reason}[/{style}]")
+    elif pause:
+        _console.print(f"[yellow]Konvergens satt på pause: {pause}[/yellow]")
+        detail = str(result.get("pause_detail") or detail)
+    else:
+        _console.print("[yellow]Konvergens: (ukjent)[/yellow]")
     if detail:
         _console.print(f"  {detail}")
+    if result.get("resumable"):
+        _console.print("  kan gjenopptas med større --max-epochs (ingen manuell nullstilling)")
     _console.print(
         f"  epoker: {len(result.get('epochs') or [])} "
         f"(fullførte mutasjoner: {result.get('committed_epochs', 0)})"

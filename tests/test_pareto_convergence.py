@@ -10,7 +10,7 @@ own scheduling rules.
 from __future__ import annotations
 
 from tournament_scheduler.application.pareto_convergence import (
-    TERMINAL_BOUNDED_BUDGET,
+    PAUSE_BUDGET_EXHAUSTED,
     TERMINAL_BOUNDED_SEARCH_EXHAUSTED,
     TERMINAL_NONE,
     TERMINAL_OPERATOR_REQUIRED,
@@ -23,6 +23,7 @@ from tournament_scheduler.application.pareto_convergence import (
     archive_entry_from_option,
     classify_finding,
     classify_findings,
+    describe_pause,
     describe_terminal,
 )
 
@@ -217,12 +218,14 @@ def test_search_incomplete_prevents_false_plateau_convergence() -> None:
     assert first.terminal_reason == TERMINAL_NONE
     second = _run_epoch(controller, findings=findings, incomplete=["hosting"])
     assert second.terminal_reason == TERMINAL_NONE
-    # At the configured epoch budget it stops truthfully as bounded budget,
-    # never as proof of optimality.
+    # At the configured epoch budget it pauses truthfully as a resumable
+    # budget stop, never as proof of optimality.
     third = _run_epoch(controller, findings=findings, incomplete=["hosting"])
     fourth = _run_epoch(controller, findings=findings, incomplete=["hosting"])
-    assert fourth.terminal_reason == TERMINAL_BOUNDED_BUDGET
-    assert "not proof of global pareto optimality" in fourth.terminal_detail.lower()
+    assert fourth.terminal_reason == ""
+    assert fourth.pause_reason == PAUSE_BUDGET_EXHAUSTED
+    assert controller.state.is_paused() is True
+    assert "not completed convergence" in fourth.pause_detail.lower()
 
 
 def test_plateau_detected_when_a_complete_epoch_adds_nothing_useful() -> None:
@@ -266,12 +269,16 @@ def test_describe_terminal_never_claims_global_optimality() -> None:
         TERMINAL_PASS,
         TERMINAL_OPERATOR_REQUIRED,
         TERMINAL_BOUNDED_SEARCH_EXHAUSTED,
-        TERMINAL_BOUNDED_BUDGET,
         TERMINAL_PARETO_STABLE,
     ):
         text = describe_terminal(reason).lower()
         assert "globally" not in text
         assert "global optimum" not in text
+    # A budget pause is not a terminal; its wording is bounded-search evidence
+    # and names the resumable budget rather than claiming convergence.
+    pause_text = describe_pause(PAUSE_BUDGET_EXHAUSTED).lower()
+    assert "not completed convergence" in pause_text
+    assert "globally" not in pause_text
 
 
 def test_later_dominated_attempt_cannot_drop_an_earlier_frontier_candidate() -> None:
@@ -336,8 +343,11 @@ def test_candidate_change_clears_recorded_coverage_and_explored_findings() -> No
         resolved_coverage={"h": {"status": "bounded_search_exhausted"}},
     )
     assert controller.state.explored_findings == ["h"]
+    assert controller.state.search_coverage["h"]["status"] == "bounded_search_exhausted"
+    assert controller.state.round_explored_directions == ["hosting"]
     # A committed candidate is a new baseline: the old search evidence no
-    # longer describes it, so the next epoch may search it again.
+    # longer describes it, so the next epoch may search it again. The
+    # controller-round fairness history is *not* candidate-scoped and survives.
     controller.record_epoch(
         direction=None,
         generated=[],
@@ -346,6 +356,82 @@ def test_candidate_change_clears_recorded_coverage_and_explored_findings() -> No
     )
     assert controller.state.search_coverage == {}
     assert controller.state.explored_findings == []
+    assert controller.state.round_explored_directions == ["hosting"]
+    assert "hosting" in controller.state.explored_directions
+
+
+def test_budget_exhaustion_is_a_resumable_pause_not_a_terminal() -> None:
+    controller = ConvergenceController(
+        ConvergenceState(), ParetoArchive(max_size=8), max_epochs=1
+    )
+    finding = classify_findings([{"finding_id": "h", "category": "hosting"}])[0]
+
+    first = controller.record_epoch(
+        direction=finding,
+        generated=[_entry("a", {"x": 1.0, "y": 5.0})],
+        findings=[finding],
+    )
+    assert first.epoch == 1
+    assert first.terminal_reason == ""
+    assert first.pause_reason == PAUSE_BUDGET_EXHAUSTED
+    assert controller.state.is_terminal() is False
+    assert controller.state.is_paused() is True
+
+    # A larger budget resumes from the persisted epoch in place, without a
+    # candidate mutation, forced finding or state edit.
+    controller.max_epochs = 4
+    assert controller.next_direction([finding]) is not None
+    second = controller.record_epoch(
+        direction=finding,
+        generated=[_entry("b", {"x": 2.0, "y": 4.0})],
+        findings=[finding],
+    )
+    assert second.epoch == 2
+    assert second.terminal_reason == ""
+    assert second.pause_reason == ""
+    assert controller.state.is_paused() is False
+    # The archive survived the pause.
+    assert controller.archive.refs() == ["a", "b"]
+
+
+def test_direction_fairness_round_robin_survives_candidate_mutation() -> None:
+    controller = ConvergenceController(
+        ConvergenceState(), ParetoArchive(max_size=16), max_epochs=8, max_no_improvement_epochs=8
+    )
+    findings = classify_findings(
+        [
+            {"finding_id": "h", "category": "hosting"},
+            {"finding_id": "m", "category": "manual_placement"},
+            {"finding_id": "p", "category": "participation"},
+            {"finding_id": "r", "category": "roster_shape"},
+        ]
+    )
+
+    def explore_round() -> list[str]:
+        order: list[str] = []
+        for _ in range(4):
+            direction = controller.next_direction(findings)
+            assert direction is not None
+            order.append(direction.direction)
+            # Every successful mutation refreshes candidate-scoped evidence but
+            # must not reset the controller round back to the first sorted
+            # direction (nor let hosting monopolize the budget).
+            controller.record_epoch(
+                direction=direction,
+                generated=[_entry(f"e{direction.direction}", {"x": 1.0, "y": -1.0})],
+                findings=findings,
+                candidate_changed=True,
+            )
+        return order
+
+    expected = ["hosting", "placement", "participants", "roster_shape"]
+    assert explore_round() == expected
+    assert controller.state.explored_findings == ["r"]
+    # A full round of successful mutations never let one direction monopolize:
+    # the next round continues fairly instead of restarting from hosting on
+    # every mutation.
+    assert explore_round() == expected
+    assert "hosting" in controller.state.explored_directions
 
 
 def test_exploration_exhausted_reports_bounded_plateau_not_budget() -> None:

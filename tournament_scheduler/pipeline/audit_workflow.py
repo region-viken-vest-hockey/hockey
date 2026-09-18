@@ -21,6 +21,7 @@ lifecycle in :mod:`tournament_scheduler.application.audit_lifecycle`):
              terminal reached  -> COMPLETE (pareto_stable /
                                             bounded_search_exhausted /
                                             operator_required)
+             budget paused     -> CONVERGENCE_REQUIRED (resumable, not complete)
 
 A run must not be considered complete while ``AUDIT_REQUIRED`` or
 ``CONVERGENCE_REQUIRED`` is pending, and a stale audit can never satisfy a newer
@@ -48,16 +49,20 @@ TERMINAL_PASS = "pass"
 TERMINAL_OPERATOR_REQUIRED = "operator_required"
 TERMINAL_BOUNDED_SEARCH_EXHAUSTED = "bounded_search_exhausted"
 TERMINAL_PARETO_STABLE = "pareto_stable"
-TERMINAL_BOUNDED_BUDGET = "bounded_budget_exhausted"
 TERMINAL_REASONS = frozenset(
     {
         TERMINAL_PASS,
         TERMINAL_OPERATOR_REQUIRED,
         TERMINAL_BOUNDED_SEARCH_EXHAUSTED,
         TERMINAL_PARETO_STABLE,
-        TERMINAL_BOUNDED_BUDGET,
     }
 )
+
+# Resumable pause reasons. A budget pause keeps the workflow pending in
+# ``CONVERGENCE_REQUIRED``; it must never be recorded as a completed workflow.
+PAUSE_BUDGET_EXHAUSTED = "budget_exhausted"
+PAUSE_PAUSED = "paused"
+PAUSE_REASONS = frozenset({PAUSE_BUDGET_EXHAUSTED, PAUSE_PAUSED})
 
 # Bounded transition log; the workflow only needs enough provenance to explain
 # how the current phase was reached, not an unbounded audit trail.
@@ -251,6 +256,11 @@ def terminal_is_distinct(reason: str) -> bool:
     return str(reason) in TERMINAL_REASONS
 
 
+def is_pause_reason(reason: str) -> bool:
+    """True for a resumable budget pause (never a completed workflow)."""
+    return str(reason) in PAUSE_REASONS
+
+
 def phase_transitions(workflow: "AuditWorkflow | None") -> Sequence[str]:
     return [str(item.get("phase") or "") for item in (workflow.transitions if workflow else [])]
 
@@ -258,17 +268,20 @@ def phase_transitions(workflow: "AuditWorkflow | None") -> Sequence[str]:
 __all__ = [
     "ALL_PHASES",
     "AuditWorkflow",
+    "PAUSE_BUDGET_EXHAUSTED",
+    "PAUSE_PAUSED",
+    "PAUSE_REASONS",
     "PENDING_PHASES",
     "PHASE_AUDIT_REQUIRED",
     "PHASE_COMPLETE",
     "PHASE_CONVERGENCE_REQUIRED",
-    "TERMINAL_BOUNDED_BUDGET",
     "TERMINAL_BOUNDED_SEARCH_EXHAUSTED",
     "TERMINAL_OPERATOR_REQUIRED",
     "TERMINAL_PARETO_STABLE",
     "TERMINAL_PASS",
     "TERMINAL_REASONS",
     "completion_blockers",
+    "is_pause_reason",
     "next_command",
     "phase_transitions",
     "terminal_is_distinct",

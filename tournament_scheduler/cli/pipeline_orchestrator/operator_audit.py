@@ -138,10 +138,17 @@ def _render_convergence_summary(convergence: dict[str, Any]) -> None:
         )
         return
     reason = str(convergence.get("terminal_reason") or "")
-    style = "green" if reason == "pass" else "yellow"
-    _console.print(
-        f"[{style}]Konvergens: {reason}[/{style}] {convergence.get('terminal_detail') or ''}".rstrip()
-    )
+    pause = str(convergence.get("pause_reason") or "")
+    if reason:
+        style = "green" if reason == "pass" else "yellow"
+        _console.print(
+            f"[{style}]Konvergens: {reason}[/{style}] {convergence.get('terminal_detail') or ''}".rstrip()
+        )
+    elif pause:
+        _console.print(
+            f"[yellow]Konvergens satt på pause: {pause}[/yellow] "
+            f"{convergence.get('pause_detail') or ''}".rstrip()
+        )
     for question in (convergence.get("audit_decision") or {}).get("operator_questions") or []:
         _console.print(
             f"  [yellow]operatørspørsmål[/yellow] (item {question.get('item_id')}): "

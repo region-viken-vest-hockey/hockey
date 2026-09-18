@@ -16,6 +16,7 @@ from tournament_scheduler.application.convergence_refinement import (
     run_bounded_convergence,
 )
 from tournament_scheduler.application.pareto_convergence import (
+    PAUSE_BUDGET_EXHAUSTED,
     TERMINAL_OPERATOR_REQUIRED,
     TERMINAL_PARETO_STABLE,
 )
@@ -706,3 +707,172 @@ def test_preferred_option_chooses_the_next_exploration_baseline(tmp_path: Path) 
 
     body = extract_candidate_body(PipelineState(str(tmp_path)).read_stage(StageName.PLANNING))
     assert body["stage"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Resumable budget pauses and direction fairness (#386)
+# ---------------------------------------------------------------------------
+
+
+def test_budget_pause_resumes_across_processes_with_a_larger_budget(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+    commits: List[str] = []
+
+    def finding_provider(candidate: Dict[str, Any], problem: Dict[str, Any]) -> List[Dict[str, Any]]:
+        stage = int(candidate.get("stage", 0))
+        return [
+            {
+                "finding_id": f"H{stage}",
+                "category": "hosting",
+                "search_coverage": {"status": "search_incomplete"},
+            }
+        ]
+
+    def option_provider(plan, problem, finding_id, *, allow_search, dimensions):
+        stage = int(plan.get("stage", 0))
+        return {
+            "finding": {
+                "finding_id": finding_id,
+                "category": "hosting",
+                "search_coverage": {"status": "option_available"},
+            },
+            "options": [
+                {
+                    "option_id": f"o{stage}",
+                    "finding_id": finding_id,
+                    "family": "hosting_balance",
+                    "objectives": {
+                        "hard_violations": 0.0,
+                        "x": float(stage + 1),
+                        "y": float(-(stage + 1)),
+                    },
+                    "non_dominated": True,
+                }
+            ],
+        }
+
+    def body_provider(plan, problem, option_id, *, finding_id, dimensions):
+        return {"ok": True, "candidate": {"tournaments": [], "stage": int(plan.get("stage", 0)) + 1}}
+
+    def apply_provider(work_dir, **kwargs):
+        stage = int(kwargs["option_id"][1:]) + 1
+        fingerprint = _commit(work_dir, {"tournaments": [], "stage": stage})
+        commits.append(fingerprint)
+        return {
+            "ok": True,
+            "candidate_fingerprint_after": fingerprint,
+            "export_fingerprint": f"e{fingerprint}",
+        }
+
+    def run(max_epochs: int) -> Dict[str, Any]:
+        return run_bounded_convergence(
+            tmp_path,
+            problem={},
+            max_epochs=max_epochs,
+            max_no_improvement_epochs=8,
+            export=False,
+            finding_provider=finding_provider,
+            option_provider=option_provider,
+            body_provider=body_provider,
+            apply_provider=apply_provider,
+            run_id=RUN_ID,
+        )
+
+    first = run(max_epochs=2)
+    assert first["committed_epochs"] == 2
+    assert first["terminal_reason"] == ""
+    assert first["pause_reason"] == PAUSE_BUDGET_EXHAUSTED
+    assert first["paused"] is True and first["resumable"] is True
+    assert "not completed convergence" in first["pause_detail"].lower()
+    assert len(first["frontier"]) == 2
+
+    session = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    assert session.convergence["epoch"] == 2
+    assert session.convergence["terminal_reason"] == ""
+    assert session.convergence["pause_reason"] == PAUSE_BUDGET_EXHAUSTED
+    assert len(session.pareto_archive) == 2
+
+    # A new process with a larger budget resumes from the persisted epoch
+    # without a candidate mutation, forced finding or manual state edit.
+    second = run(max_epochs=4)
+    assert second["committed_epochs"] == 2  # epochs 3 and 4 only
+    assert second["epochs"][0]["epoch"] == 3
+    assert second["terminal_reason"] == ""
+    assert second["pause_reason"] == PAUSE_BUDGET_EXHAUSTED
+    # The bounded Pareto archive survived the pause and grew.
+    assert len(second["frontier"]) == 4
+    session = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    assert session.convergence["epoch"] == 4
+    assert len(session.pareto_archive) == 4
+
+
+def test_hosting_cannot_monopolize_the_convergence_budget(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+    commits: List[str] = []
+    counter = {"n": 0}
+
+    def finding_provider(candidate: Dict[str, Any], problem: Dict[str, Any]) -> List[Dict[str, Any]]:
+        return [
+            {
+                "finding_id": "h",
+                "category": "hosting",
+                "search_coverage": {"status": "search_incomplete"},
+            },
+            {
+                "finding_id": "p",
+                "category": "participation",
+                "search_coverage": {"status": "search_incomplete"},
+            },
+        ]
+
+    def option_provider(plan, problem, finding_id, *, allow_search, dimensions):
+        counter["n"] += 1
+        n = counter["n"]
+        return {
+            "finding": {
+                "finding_id": finding_id,
+                "category": "hosting" if finding_id == "h" else "participation",
+                "search_coverage": {"status": "option_available"},
+            },
+            "options": [
+                {
+                    "option_id": f"o{n}",
+                    "finding_id": finding_id,
+                    "family": "f",
+                    "objectives": {"hard_violations": 0.0, "x": float(n), "y": float(-n)},
+                    "non_dominated": True,
+                }
+            ],
+        }
+
+    def body_provider(plan, problem, option_id, *, finding_id, dimensions):
+        return {"ok": True, "candidate": {"tournaments": [], "stage": int(option_id[1:])}}
+
+    def apply_provider(work_dir, **kwargs):
+        body = {"tournaments": [], "stage": int(kwargs["option_id"][1:])}
+        fingerprint = _commit(work_dir, body)
+        commits.append(fingerprint)
+        return {
+            "ok": True,
+            "candidate_fingerprint_after": fingerprint,
+            "export_fingerprint": f"e{fingerprint}",
+        }
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=4,
+        max_no_improvement_epochs=8,
+        export=False,
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        run_id=RUN_ID,
+    )
+
+    directions = [epoch["direction"] for epoch in result["epochs"] if epoch["direction"]]
+    # A successful hosting mutation must not reset fairness back to hosting.
+    assert directions[0] == "hosting"
+    assert directions[1] == "participants"
+    assert directions.count("hosting") <= 2

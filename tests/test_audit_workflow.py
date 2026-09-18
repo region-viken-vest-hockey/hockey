@@ -20,6 +20,7 @@ from tournament_scheduler.application.audit_lifecycle import (
     current_workflow,
     mark_audit_required,
     record_audit_verdict,
+    record_convergence_result,
     request_completion,
     workflow_snapshot,
 )
@@ -33,6 +34,7 @@ from tournament_scheduler.application.stage3_session_store import (
 )
 from tournament_scheduler.pipeline.audit_result import audit_is_fresh, write_audit_result
 from tournament_scheduler.pipeline.audit_workflow import (
+    PAUSE_BUDGET_EXHAUSTED,
     PHASE_AUDIT_REQUIRED,
     PHASE_COMPLETE,
     PHASE_CONVERGENCE_REQUIRED,
@@ -41,7 +43,9 @@ from tournament_scheduler.pipeline.audit_workflow import (
     TERMINAL_PASS,
     AuditWorkflow,
     completion_blockers as workflow_completion_blockers,
+    is_pause_reason,
     next_command,
+    terminal_is_distinct,
 )
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
@@ -221,6 +225,32 @@ def test_completion_blockers_refuse_pending_phases() -> None:
     assert workflow_completion_blockers(
         AuditWorkflow(phase=PHASE_COMPLETE, terminal_reason=TERMINAL_PASS)
     ) == []
+
+
+def test_budget_pause_is_not_a_terminal_and_keeps_the_workflow_pending(tmp_path: Path) -> None:
+    _seed_finalized(tmp_path)
+    record_audit_verdict(tmp_path, _review_payload(2), run_id=RUN_ID)
+    assert current_workflow(tmp_path, run_id=RUN_ID).phase == PHASE_CONVERGENCE_REQUIRED
+
+    # A budget pause is resumable bounded-search evidence, not a terminal: it
+    # must not complete the workflow (which would end the outer loop).
+    assert is_pause_reason(PAUSE_BUDGET_EXHAUSTED)
+    assert terminal_is_distinct(PAUSE_BUDGET_EXHAUSTED) is False
+    record_convergence_result(
+        tmp_path,
+        {
+            "ok": True,
+            "terminal_reason": "",
+            "pause_reason": PAUSE_BUDGET_EXHAUSTED,
+            "resumable": True,
+            "committed_epochs": 0,
+        },
+        run_id=RUN_ID,
+    )
+    workflow = current_workflow(tmp_path, run_id=RUN_ID)
+    assert workflow.phase == PHASE_CONVERGENCE_REQUIRED
+    assert request_completion(tmp_path, run_id=RUN_ID)["ok"] is False
+    assert completion_blockers(tmp_path, run_id=RUN_ID)
 
 
 # ---------------------------------------------------------------------------

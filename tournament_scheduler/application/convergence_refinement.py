@@ -6,7 +6,9 @@ While repository-owned findings still map to a supported repair/search
 direction, the driver keeps generating independently verified candidates,
 folding them into the bounded non-dominated frontier and re-exporting each
 accepted mutation, until the controller reports PASS, operator-required,
-bounded-search-exhausted or Pareto-stable.
+bounded-search-exhausted or Pareto-stable. A configured epoch budget may pause
+the loop instead; the pause is persisted as resumable state (never a terminal),
+so a later invocation with a larger budget continues from the saved epoch.
 
 The deterministic providers/verifiers own legality, mutation and measurement;
 :class:`~tournament_scheduler.application.pareto_convergence.ConvergenceController`
@@ -24,6 +26,8 @@ from .pareto_convergence import (
     DEFAULT_FRONTIER_LIMIT,
     DEFAULT_MAX_EPOCHS,
     DEFAULT_MAX_NO_IMPROVEMENT_EPOCHS,
+    PAUSE_BUDGET_EXHAUSTED,
+    PAUSE_PAUSED,
     ArchiveEntry,
     ConvergenceController,
     ConvergenceState,
@@ -32,6 +36,7 @@ from .pareto_convergence import (
     archive_entry_from_option,
     classify_finding,
     classify_findings,
+    describe_pause,
     describe_terminal,
 )
 
@@ -85,15 +90,29 @@ def _load_state(work_dir: Any, run_id: str | None, frontier_limit: int) -> tuple
     session = store.load(expected_run_id=run_id or None)
     archive = ParetoArchive.from_list(session.pareto_archive, max_size=frontier_limit)
     state = ConvergenceState.from_dict(session.convergence)
-    # A terminal convergence describes the candidate it stopped on. If the
-    # current candidate is no longer on the retained frontier (for example the
-    # harness applied a manual ``stage3 refine`` after convergence), the old
-    # terminal is stale: resume exploration instead of refusing to look at the
-    # changed candidate.
+    if state.terminal_reason:
+        # A terminal dominates any (stale) pause reason: phrase the report from
+        # the terminal, never from a superseded budget stop.
+        state.pause_reason = ""
+        state.pause_detail = ""
     current = session.finalized_fingerprint or session.candidate_fingerprint
-    if state.terminal_reason and current and current not in archive.fingerprints():
+    off_frontier = bool(current) and current not in archive.fingerprints()
+    if off_frontier:
+        # The current baseline was not produced by this convergence frontier
+        # (for example the harness applied a manual ``stage3 refine``): all
+        # candidate-scoped search evidence is stale. Controller-round fairness
+        # history is deliberately retained.
+        state.search_coverage = {}
+        state.explored_findings = []
+    if state.terminal_reason and off_frontier:
+        # A terminal convergence describes the candidate it stopped on. If the
+        # current candidate is no longer on the retained frontier, the old
+        # terminal is stale: resume exploration instead of refusing to look at
+        # the changed candidate.
         state.terminal_reason = ""
         state.terminal_detail = ""
+        state.pause_reason = ""
+        state.pause_detail = ""
         state.no_improvement_epochs = 0
         # A manually changed baseline starts a fresh epoch budget; the
         # previous count described the candidate the loop stopped on.
@@ -189,8 +208,10 @@ def run_bounded_convergence(
     """Run the bounded convergence loop over one reviewed unpromoted candidate.
 
     Returns a truthful terminal report: ``terminal_reason`` distinguishes PASS,
-    operator-required, bounded-search-exhausted, bounded-budget and
-    Pareto-stable, and ``terminal_detail`` never claims global optimality.
+    operator-required, bounded-search-exhausted and Pareto-stable; a resumable
+    budget stop is reported separately as ``pause_reason`` (``budget_exhausted``
+    or ``paused``) with ``paused``/``resumable`` true and an empty terminal, and
+    ``terminal_detail``/``pause_detail`` never claim global optimality.
     ``frontier`` is the bounded non-dominated set the harness may select from.
     """
     log = log_fn or (lambda _message: None)
@@ -223,6 +244,8 @@ def run_bounded_convergence(
     ):
         state.terminal_reason = ""
         state.terminal_detail = ""
+        state.pause_reason = ""
+        state.pause_detail = ""
         state.epoch = 0
     controller = ConvergenceController(
         state,
@@ -431,8 +454,8 @@ def run_bounded_convergence(
             break
 
     if not state.is_terminal():
-        reason, detail = _stalled_reason(state)
-        state.terminal_reason, state.terminal_detail = reason, detail
+        reason, detail = _pause_reason(state, max_epochs)
+        state.pause_reason, state.pause_detail = reason, detail
         _persist(store, run_id, archive, state)
 
     # Uncovered material audit findings are asked as questions even when the
@@ -642,10 +665,16 @@ def select_frontier_candidate(
     )
 
 
-def _stalled_reason(state: ConvergenceState) -> tuple[str, str]:
-    from .pareto_convergence import TERMINAL_BOUNDED_BUDGET
+def _pause_reason(state: ConvergenceState, max_epochs: int) -> tuple[str, str]:
+    """Reason for a non-terminal stop: a resumable budget pause.
 
-    return TERMINAL_BOUNDED_BUDGET, describe_terminal(TERMINAL_BOUNDED_BUDGET)
+    An epoch-budget stop is ``budget_exhausted``; any other early stop (for
+    example a single-epoch ``reconcile_budget=False`` invocation) is the
+    generic resumable ``paused``. Neither is a convergence terminal.
+    """
+    if state.epoch >= max_epochs:
+        return PAUSE_BUDGET_EXHAUSTED, describe_pause(PAUSE_BUDGET_EXHAUSTED)
+    return PAUSE_PAUSED, describe_pause(PAUSE_PAUSED)
 
 
 def _epoch_dict(outcome: Any, apply_result: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -680,6 +709,10 @@ def _report(
         "ok": True,
         "terminal_reason": reason,
         "terminal_detail": detail,
+        "pause_reason": state.pause_reason,
+        "pause_detail": state.pause_detail or describe_pause(state.pause_reason),
+        "paused": state.is_paused(),
+        "resumable": state.is_paused(),
         "globally_optimal": False,
         "convergence": state.to_dict(),
         "frontier": archive.to_list(),

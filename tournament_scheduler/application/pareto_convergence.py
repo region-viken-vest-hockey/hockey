@@ -38,12 +38,40 @@ DEFAULT_MAX_EPOCHS = 6
 DEFAULT_MAX_NO_IMPROVEMENT_EPOCHS = 2
 
 # Terminal reasons. ``TERMINAL_NONE`` means the controller may still explore.
+# A terminal reason is a truthful convergence outcome: the bounded automatic
+# search has genuinely stopped exploring this candidate.
 TERMINAL_NONE = ""
 TERMINAL_PASS = "pass"
 TERMINAL_OPERATOR_REQUIRED = "operator_required"
 TERMINAL_BOUNDED_SEARCH_EXHAUSTED = "bounded_search_exhausted"
-TERMINAL_BOUNDED_BUDGET = "bounded_budget_exhausted"
 TERMINAL_PARETO_STABLE = "pareto_stable"
+TERMINAL_REASONS = frozenset(
+    {
+        TERMINAL_PASS,
+        TERMINAL_OPERATOR_REQUIRED,
+        TERMINAL_BOUNDED_SEARCH_EXHAUSTED,
+        TERMINAL_PARETO_STABLE,
+    }
+)
+
+# Resumable pause reasons. A pause ends the current invocation because a
+# configured budget ran out; it is truthful bounded-search evidence but not a
+# convergence result. The controller keeps its epoch, frontier and
+# direction-round state, so a later invocation with a larger budget continues
+# instead of re-searching or refusing to look at the unchanged candidate.
+PAUSE_BUDGET_EXHAUSTED = "budget_exhausted"
+PAUSE_PAUSED = "paused"
+PAUSE_REASONS = frozenset({PAUSE_BUDGET_EXHAUSTED, PAUSE_PAUSED})
+
+
+def is_terminal_reason(reason: str) -> bool:
+    """True for a genuine, irreversible convergence terminal."""
+    return str(reason) in TERMINAL_REASONS
+
+
+def is_pause_reason(reason: str) -> bool:
+    """True for a resumable invocation/epoch budget pause."""
+    return str(reason) in PAUSE_REASONS
 
 # Canonical supported direction per finding category/code. The mapping is a
 # *label* for the controller's explored-direction bookkeeping, not a routing
@@ -336,6 +364,14 @@ class ConvergenceState:
     epoch: int = 0
     current_baseline_ref: str = ""
     explored_directions: list[str] = field(default_factory=list)
+    # Controller-round fairness state. ``explored_directions`` is the durable
+    # all-time history; ``round_explored_directions`` is the current round in
+    # which every actionable direction family gets one epoch before any family
+    # gets a second. It is *not* candidate-scoped: a committed mutation
+    # refreshes finding/search evidence but must not let the first sorted
+    # direction monopolize the budget.
+    round_explored_directions: list[str] = field(default_factory=list)
+    direction_round: int = 1
     explored_findings: list[str] = field(default_factory=list)
     remaining_findings: list[dict[str, Any]] = field(default_factory=list)
     search_incomplete_directions: list[str] = field(default_factory=list)
@@ -351,12 +387,18 @@ class ConvergenceState:
     last_direction: str = ""
     terminal_reason: str = ""
     terminal_detail: str = ""
+    # A pause is not a terminal: it records *why* the current invocation
+    # stopped while the state stays resumable.
+    pause_reason: str = ""
+    pause_detail: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "epoch": self.epoch,
             "current_baseline_ref": self.current_baseline_ref,
             "explored_directions": list(self.explored_directions),
+            "round_explored_directions": list(self.round_explored_directions),
+            "direction_round": self.direction_round,
             "explored_findings": list(self.explored_findings),
             "remaining_findings": [dict(finding) for finding in self.remaining_findings],
             "search_incomplete_directions": list(self.search_incomplete_directions),
@@ -366,6 +408,8 @@ class ConvergenceState:
             "last_direction": self.last_direction,
             "terminal_reason": self.terminal_reason,
             "terminal_detail": self.terminal_detail,
+            "pause_reason": self.pause_reason,
+            "pause_detail": self.pause_detail,
         }
 
     @classmethod
@@ -376,6 +420,10 @@ class ConvergenceState:
             epoch=int(data.get("epoch") or 0),
             current_baseline_ref=str(data.get("current_baseline_ref") or ""),
             explored_directions=[str(item) for item in (data.get("explored_directions") or [])],
+            round_explored_directions=[
+                str(item) for item in (data.get("round_explored_directions") or [])
+            ],
+            direction_round=int(data.get("direction_round") or 1),
             explored_findings=[str(item) for item in (data.get("explored_findings") or [])],
             remaining_findings=[
                 dict(item) for item in (data.get("remaining_findings") or []) if item
@@ -393,10 +441,15 @@ class ConvergenceState:
             last_direction=str(data.get("last_direction") or ""),
             terminal_reason=str(data.get("terminal_reason") or ""),
             terminal_detail=str(data.get("terminal_detail") or ""),
+            pause_reason=str(data.get("pause_reason") or ""),
+            pause_detail=str(data.get("pause_detail") or ""),
         )
 
     def is_terminal(self) -> bool:
         return bool(self.terminal_reason)
+
+    def is_paused(self) -> bool:
+        return bool(self.pause_reason) and not self.terminal_reason
 
 
 @dataclass
@@ -410,6 +463,8 @@ class EpochOutcome:
     terminal_detail: str
     archive_size: int
     frontier_refs: list[str]
+    pause_reason: str = ""
+    pause_detail: str = ""
 
 
 class ConvergenceController:
@@ -464,11 +519,17 @@ class ConvergenceController:
     ) -> FindingDirection | None:
         """Choose the next supported direction to explore, or ``None``.
 
-        Priority: an explicitly forced finding, then an actionable finding
-        never explored before, then an actionable finding whose supported
-        search is still incomplete (``search_incomplete`` must drive further
-        exploration rather than false convergence). A terminal controller
-        returns ``None``.
+        Priority: an explicitly forced finding, then a fair controller round
+        over actionable *direction families* -- every actionable direction gets
+        one epoch before any direction gets a second -- preferring a finding
+        whose supported search has not been resolved on the current candidate.
+        A terminal controller returns ``None``.
+
+        Fairness is controller-round state, not candidate state: a successful
+        mutation refreshes finding-level coverage but must not let the first
+        sorted direction (or a direction that keeps producing small
+        improvements) monopolize the whole epoch budget. When every actionable
+        direction has been explored this round, a fresh round begins in place.
         """
         directions = self.effective_findings(directions)
         if force_finding_id:
@@ -481,14 +542,28 @@ class ConvergenceController:
         if self.state.is_terminal():
             return None
         actionable = [d for d in directions if d.actionable]
+        if not actionable:
+            return None
+        round_explored = set(self.state.round_explored_directions)
+        untried_directions = [d for d in actionable if d.direction not in round_explored]
+        if not untried_directions:
+            # Every actionable direction already had an epoch this round: start
+            # a fresh, fair round before selecting so the new round is fair from
+            # its first pick instead of alternating with the previous round.
+            self._begin_new_round()
+            untried_directions = list(actionable)
         explored_findings = set(self.state.explored_findings)
-        for direction in actionable:
+        for direction in untried_directions:
             if direction.finding_id not in explored_findings:
                 return direction
-        for direction in actionable:
+        for direction in untried_directions:
             if direction.search_incomplete:
                 return direction
-        return None
+        return untried_directions[0]
+
+    def _begin_new_round(self) -> None:
+        self.state.direction_round += 1
+        self.state.round_explored_directions = []
 
     def record_epoch(
         self,
@@ -528,6 +603,8 @@ class ConvergenceController:
         self.state.last_direction = direction_label
         if direction_label and direction_label not in self.state.explored_directions:
             self.state.explored_directions.append(direction_label)
+        if direction_label and direction_label not in self.state.round_explored_directions:
+            self.state.round_explored_directions.append(direction_label)
         if direction is not None and direction.finding_id and direction.finding_id not in self.state.explored_findings:
             self.state.explored_findings.append(direction.finding_id)
         effective = self.effective_findings(findings)
@@ -543,9 +620,19 @@ class ConvergenceController:
         self.state.current_baseline_ref = self.state.frontier_refs[-1] if improved else self.state.current_baseline_ref
 
         limit = max_epochs if max_epochs is not None else self.max_epochs
-        self.state.terminal_reason, self.state.terminal_detail = self._terminal_for(
+        reason, detail = self._terminal_for(
             effective, limit=limit, exploration_exhausted=exploration_exhausted
         )
+        # A pause is a resumable stop, never a terminal: keep the two scopes
+        # mutually exclusive so a later larger budget resumes exploration.
+        self.state.terminal_reason = ""
+        self.state.terminal_detail = ""
+        self.state.pause_reason = ""
+        self.state.pause_detail = ""
+        if is_pause_reason(reason):
+            self.state.pause_reason, self.state.pause_detail = reason, detail
+        else:
+            self.state.terminal_reason, self.state.terminal_detail = reason, detail
         return EpochOutcome(
             epoch=self.state.epoch,
             direction=direction_label,
@@ -556,6 +643,8 @@ class ConvergenceController:
             terminal_detail=self.state.terminal_detail,
             archive_size=len(self.archive.entries),
             frontier_refs=list(self.state.frontier_refs),
+            pause_reason=self.state.pause_reason,
+            pause_detail=self.state.pause_detail,
         )
 
     # -- convergence criteria ---------------------------------------------
@@ -593,10 +682,21 @@ class ConvergenceController:
                 TERMINAL_BOUNDED_SEARCH_EXHAUSTED
             )
         if self.state.epoch >= limit:
-            return TERMINAL_BOUNDED_BUDGET, describe_terminal(TERMINAL_BOUNDED_BUDGET)
-        if self.state.no_improvement_epochs >= self.max_no_improvement_epochs:
+            return PAUSE_BUDGET_EXHAUSTED, describe_pause(PAUSE_BUDGET_EXHAUSTED)
+        if (
+            self.state.no_improvement_epochs >= self.max_no_improvement_epochs
+            and self._round_complete(actionable)
+        ):
+            # A bounded plateau is only declared after a *complete* controller
+            # round produced no new non-dominated candidate: every currently
+            # actionable direction family had a fair exploration opportunity.
             return TERMINAL_PARETO_STABLE, describe_terminal(TERMINAL_PARETO_STABLE)
         return TERMINAL_NONE, ""
+
+    def _round_complete(self, actionable: Sequence[FindingDirection]) -> bool:
+        """True when every currently actionable direction had an epoch this round."""
+        explored = set(self.state.round_explored_directions)
+        return bool(actionable) and all(d.direction in explored for d in actionable)
 
 
 def describe_terminal(reason: str) -> str:
@@ -619,16 +719,32 @@ def describe_terminal(reason: str) -> str:
             "configured budgets: every remaining supported direction reported bounded "
             "exhaustion. Zero options from a bounded search is not proof of infeasibility."
         )
-    if reason == TERMINAL_BOUNDED_BUDGET:
-        return (
-            "Stopped at the configured bounded epoch budget; this is bounded convergence, "
-            "not proof of global Pareto optimality."
-        )
     if reason == TERMINAL_PARETO_STABLE:
         return (
             "Pareto-stable with respect to the explored repair/search neighborhoods and "
             "configured budgets: a complete controller epoch produced no new useful "
             "non-dominated candidate."
+        )
+    return ""
+
+
+def describe_pause(reason: str) -> str:
+    """Truthful operator-facing wording for a resumable pause.
+
+    A pause is bounded-search evidence, not a convergence result: it never
+    claims optimality and always names the budget that can be increased.
+    """
+    if reason == PAUSE_BUDGET_EXHAUSTED:
+        return (
+            "Paused at the configured bounded epoch budget. This is bounded-search "
+            "evidence, not completed convergence; increase the budget (for example "
+            "--max-epochs) to resume from the persisted epoch. No candidate mutation "
+            "or manual reset is required."
+        )
+    if reason == PAUSE_PAUSED:
+        return (
+            "Paused before the configured budget was reached; exploration can resume "
+            "from the persisted state without a candidate mutation."
         )
     return ""
 
