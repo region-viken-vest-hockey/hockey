@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "audit_id": "audit-kongsberg-u9-clustering-repair-20260919",
+  "generated_at": "2026-09-19T18:55:00+00:00",
+  "run_id": "20260918T135604Z-8d38f146",
+  "export_fingerprint": "c0407b0a64ee8dcb489a52eb39a7aa62af0b005e4aa3b1aa48bb5f63c89a1bc8",
+  "audit_context_fingerprint": "e906cc0270e530df657aae610835ea5c1c5185b3e635648566a592a95f191cfd",
+  "status": "PASS",
+  "operator_assessment": {
+    "operator_summary": "Targeted repair of the Kongsberg U9 temporal_clustering finding: rvv-0184 moved from 2027-02-20 to 2027-02-14 (swapped date/time only with the U11 tournament rvv-0145 at Holmen; both keep their own arena/host), bringing Kongsberg U9's spacing to a 7-day minimum gap (was 1 day) across rvv-0184 (Feb 14), rvv-0156 (Feb 21, restored to its valid pre-experiment slot), and rvv-0142 (Feb 28). Deterministic hard verification passes with zero violations, no new fixed-busy/manual/host-confirmation placement was introduced, and export formats are internally consistent.",
+    "key_tradeoffs": [
+      {
+        "title": "Ringerike 2 (U11) loses a participation slot in the displaced tournament",
+        "summary": "Moving rvv-0145 to 2027-02-20 double-booked Ringerike 2, so the bounded same-age roster repair substituted Frisk Asker 1 for Ringerike 2. This resolves a pre-existing Frisk Asker 1 season shortfall but creates a new Ringerike 2 under-target-by-1 deviation (after_christmas and season scope), classified bounded_search_exhausted (a strong-goal deviation, not a hard-rule violation). The repository's own consequence check (consequence_acceptable) confirms this does not cross the materiality thresholds for spacing, coverage, opponent repetition, or travel.",
+        "severity": "minor"
+      },
+      {
+        "title": "New same-club-triple in rvv-0145 (3 Frisk Asker teams)",
+        "summary": "The roster substitution raises Frisk Asker's count in rvv-0145 from 2 to 3 teams, which the exported audit evidence classifies as a visible-exception case under the '3 teams from one club is a visible exception' rule (checklist item 7), not a hard violation.",
+        "severity": "minor"
+      }
+    ],
+    "remaining_actions": [
+      {
+        "title": "Pre-existing season-wide findings are unchanged and out of scope for this fix",
+        "summary": "hosting_balance_imbalances (12), external_calendar_conflicts (2), movable_host_confirmation_required (1, rvv-0053 Kongsberg U12 open-ice), participation_shortfalls (101) and other temporal_clustering findings (72 remaining) are pre-existing and were not targeted by this Kongsberg U9 repair. Publication readiness remains REVIEW_REQUIRED for these unrelated reasons.",
+        "category": "participation"
+      }
+    ],
+    "limitations": [
+      "This audit focused on verifying the Kongsberg U9 repair introduced no new operational regression; it did not re-review the full season's pre-existing open findings, which are unchanged by this change."
+    ]
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Kongsberg U9 now plays rvv-0184 (Feb 14), rvv-0156 (Feb 21), rvv-0142 (Feb 28) with 7-day gaps throughout, resolving the prior 1-day clustering. Pre-existing per-club/age participation shortfalls elsewhere (e.g. other Kongsberg age groups, Ringerike 2 U11) are unchanged in kind by this fix except the one deliberate roster substitution described below.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "Hosting responsibility unchanged: rvv-0184 stays hosted by Kongsberg at Kongsberghallen, rvv-0145 stays hosted by Holmen at Holmen ishall. Only date/start_time were exchanged between the two tournaments.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "rvv-0184 (155 min, 5 rounds, 20 games) and rvv-0145 (140 min, 5 rounds, 15 games) durations are unchanged from before the swap; only the calendar date/time moved.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "Repository operational-acceptability re-check at the apply boundary reports zero regressions: fixed_busy_placement, manual_calendar_placement and host_confirmation_dependency counts are unchanged before/after (2, 0, 1 respectively), and rvv-0184/rvv-0145's new date/arena/time combinations do not fall inside any fixed_busy or untrusted-calendar interval.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "Kongsberg participates in its own hosted rvv-0184 (unchanged), and Holmen participates in its own hosted rvv-0145 (unchanged).",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "No team is double-booked by this change: the roster repair specifically replaced Ringerike 2 in rvv-0145 because it would otherwise have played twice on 2027-02-20, substituting Frisk Asker 1 (verified free on that date).",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "The Ringerike 2 -> Frisk Asker 1 substitution raises Frisk Asker's count in rvv-0145 from 2 to 3 teams. This is flagged by the exported evidence as a visible 3-team exception (checklist item 7), not a hard violation, and is a direct, explained consequence of the coupled repair's bounded same-age roster substitution.",
+      "severity": "minor",
+      "confidence": "high"
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "export_consistency_summary reports no mismatches: csv_games, csv_overview, csv_team_counts, ical and excel row/event counts all match the plan (178 tournaments, 2269 games, 51 pause rows).",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "No new material problem was found beyond the two already-flagged trade-offs (items 6/7 consequence and the new Ringerike 2 season/half participation shortfall, which mirrors a shortfall Frisk Asker 1 previously had and which is now resolved). Pre-existing season-wide findings (hosting balance imbalances, external calendar conflicts, other temporal_clustering clusters, broad participation shortfalls) are unrelated to and unchanged by this targeted repair.",
+      "severity": "info",
+      "confidence": "medium"
+    }
+  ],
+  "potential_missing_rule": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "c0407b0a64ee8dcb489a52eb39a7aa62af0b005e4aa3b1aa48bb5f63c89a1bc8",
+  "publication_gate_status": "clear"
+}
