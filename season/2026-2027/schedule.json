@@ -4,7 +4,7 @@
     "previous_revision": "1107b38e4f4d07df03deaa0a1c3743b76e879fc6d4eec8ec69a7809b8a0187d1"
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
+  "fingerprint": "c283bc0581dbb4b48343c7f457a01ec65c6c8bf47b22a538d6976694485f5d98",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -10933,7 +10933,7 @@
         },
         {
           "code": "external_calendar_conflicts",
-          "count": 2
+          "count": 3
         },
         {
           "code": "movable_host_confirmation_required",
@@ -27009,7 +27009,7 @@
       {
         "age_group": "U9",
         "arena": "Tonsberghallen",
-        "date": "2027-02-21",
+        "date": "2027-03-13",
         "games": [
           {
             "away": "Kongsberg",
@@ -32796,6 +32796,13 @@
         "host_club": "Jar",
         "reason": "external calendar conflict requires manual resolution",
         "tournament_id": "rvv-0057"
+      },
+      {
+        "age_group": "U9",
+        "date": "2027-03-13",
+        "host_club": "Tønsberg",
+        "reason": "external calendar conflict requires manual resolution",
+        "tournament_id": "rvv-0156"
       },
       {
         "age_group": "U9",
@@ -39741,10 +39748,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
+  "revision": "c283bc0581dbb4b48343c7f457a01ec65c6c8bf47b22a538d6976694485f5d98",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-19T12:09:15.540238+00:00",
+  "updated_at": "2026-09-19T15:14:27.780733+00:00",
   "verification_context": {
     "candidate_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
     "problem": {
