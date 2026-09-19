@@ -7,6 +7,31 @@ from .args_audit import add_operator_audit_subparsers as _add_operator_audit_sub
 from ..operator_waivers import WAIVABLE_RULE_IDS
 
 
+MANUAL_PLACEMENT_OPT_IN_HELP = (
+    "Explicitly allow this action to introduce a known manual/fixed-busy placement "
+    "or unresolved placement work (provisional placement); not the default"
+)
+HOST_CONFIRMATION_OPT_IN_HELP = (
+    "Explicitly allow a new host-confirmation dependency (movable_busy allocation) "
+    "for this action; not the default"
+)
+
+
+def _add_operational_opt_in_flags(parser: argparse.ArgumentParser) -> None:
+    """Add the shared explicit opt-ins for provisional/manual canonical placements."""
+
+    parser.add_argument(
+        "--allow-manual-placement",
+        action="store_true",
+        help=MANUAL_PLACEMENT_OPT_IN_HELP,
+    )
+    parser.add_argument(
+        "--allow-host-confirmation",
+        action="store_true",
+        help=HOST_CONFIRMATION_OPT_IN_HELP,
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="rvv-miniputt",
@@ -1068,6 +1093,7 @@ def build_parser() -> argparse.ArgumentParser:
     season_move.add_argument("--note", default="", help="Move note/reason for decisions history")
     season_move.add_argument("--request-id", default=None, help="Stable source/request id recorded on automatic change protections")
     season_move.add_argument("--dry-run", action="store_true", help="Validate and preview the move without writing canonical state")
+    _add_operational_opt_in_flags(season_move)
     season_move.add_argument(
         "--allow-cross-half",
         action="store_true",
@@ -1293,6 +1319,7 @@ def build_parser() -> argparse.ArgumentParser:
     season_apply.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_apply.add_argument("--actor", default=None, help="Operator identity for the apply record")
     season_apply.add_argument("--json", action="store_true", help="Print schedule/decisions/change-cost as JSON")
+    _add_operational_opt_in_flags(season_apply)
 
     season_diff = season_sub.add_parser(
         "diff",
@@ -1322,6 +1349,7 @@ def build_parser() -> argparse.ArgumentParser:
     season_replan.add_argument("--move-slots", action="store_true", help="Allow reassigning start times")
     season_replan.add_argument("--apply", action="store_true", help="Apply the verified result to canonical state")
     season_replan.add_argument("--json", action="store_true", help="Print the replan result as JSON")
+    _add_operational_opt_in_flags(season_replan)
 
     season_findings = season_sub.add_parser(
         "findings",
@@ -1345,6 +1373,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Also run the bounded finding-directed search",
     )
     season_repair.add_argument("--json", action="store_true", help="Print options as JSON")
+    _add_operational_opt_in_flags(season_repair)
 
     season_search = season_sub.add_parser(
         "search",
@@ -1359,6 +1388,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Comma-separated search dimensions (default: participants,host)",
     )
     season_search.add_argument("--json", action="store_true", help="Print search result as JSON")
+    _add_operational_opt_in_flags(season_search)
 
     season_apply_repair = season_sub.add_parser(
         "apply-repair",
@@ -1386,6 +1416,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Validate and preview the repair without writing canonical state"
     )
     season_apply_repair.add_argument("--json", action="store_true", help="Print the apply result/delta as JSON")
+    _add_operational_opt_in_flags(season_apply_repair)
 
     season_accept_deviation = season_sub.add_parser(
         "accept-deviation",

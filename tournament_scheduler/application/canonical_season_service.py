@@ -84,6 +84,10 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
     season_id_from_plan,
 )
+from tournament_scheduler.operational_acceptability import (
+    check_operational_acceptability,
+    required_opt_in_flags,
+)
 from tournament_scheduler.participation_targets import OPERATOR_ACCEPTED
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
@@ -785,8 +789,17 @@ class CanonicalSeasonService:
         allow_cross_half: bool = False,
         run_id: str | None = None,
         request_id: str | None = None,
+        allow_manual_placement: bool = False,
+        allow_host_confirmation: bool = False,
     ) -> dict[str, Any]:
-        """Apply or preview a bounded placement mutation to canonical state."""
+        """Apply or preview a bounded placement mutation to canonical state.
+
+        A direct operator move and an automatic repair are semantically
+        different, so a move onto known ``fixed_busy`` ice, an untrusted host
+        calendar, or a host-controlled (``movable_busy``) slot is refused by
+        default. The operator may opt in explicitly for a deliberate provisional
+        placement with ``allow_manual_placement`` / ``allow_host_confirmation``.
+        """
 
         if not any(value is not None for value in (date, arena, host_club, start_time)):
             raise SeasonStateError(
@@ -880,6 +893,19 @@ class CanonicalSeasonService:
             raise SeasonStateError(
                 f"Refusing canonical mutation: candidate fails hard verification: {messages}"
             )
+        before_verification = (
+            verify_candidate(dict(schedule.get("plan") or {}), problem)
+            if problem
+            else verify_candidate(dict(schedule.get("plan") or {}))
+        )
+        operational_acceptability = check_operational_acceptability(
+            schedule.get("plan") or {},
+            before_verification,
+            plan,
+            result,
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+        )
         reconcile_plan_derived_state(plan, result, problem=problem)
         existing_protection_violations = protection_violations(plan, decisions)
         constraint_violations = request_constraint_violations(plan, decisions)
@@ -925,11 +951,22 @@ class CanonicalSeasonService:
                 "change_protection_acceptable": not existing_protection_violations,
                 "request_constraint_violations": constraint_violations,
                 "request_constraint_acceptable": not constraint_violations,
+                "operational_acceptability": operational_acceptability,
                 "protections_to_add": new_protections,
                 "request_id": str(request_id or ""),
             }
             return updated_schedule
 
+        if not operational_acceptability["ok"]:
+            messages = "; ".join(
+                str(item.get("message")) for item in operational_acceptability["regressions"]
+            )
+            flags = ", ".join(required_opt_in_flags(operational_acceptability))
+            raise SeasonStateError(
+                "Refusing canonical move: it newly introduces operational placement work: "
+                f"{messages}"
+                + (f"; pass {flags} only for an explicit provisional placement" if flags else "")
+            )
         if existing_protection_violations:
             messages = "; ".join(
                 str(item.get("message")) for item in existing_protection_violations
@@ -968,6 +1005,7 @@ class CanonicalSeasonService:
                 "after_fingerprint": fingerprint,
                 "before_canonical_revision": before_canonical_revision,
                 "verification_result": result,
+                "operational_acceptability": operational_acceptability,
                 "run_id": run_id,
             },
         )
@@ -1308,8 +1346,16 @@ class CanonicalSeasonService:
         allow_guest_slot_changes: bool = False,
         _history_event: Mapping[str, Any] | None = None,
         _new_change_protections: list[dict[str, Any]] | None = None,
+        allow_manual_placement: bool = False,
+        allow_host_confirmation: bool = False,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-        """Apply a verified replan candidate to canonical season state."""
+        """Apply a verified replan candidate to canonical season state.
+
+        Hard verification is necessary but not sufficient: the candidate must
+        also not newly introduce fixed-busy/manual placement work or a
+        host-confirmation dependency relative to the current canonical plan,
+        unless the operator explicitly opted in for a provisional placement.
+        """
 
         from tournament_scheduler.canonical_baseline import (
             build_canonical_baseline,
@@ -1375,6 +1421,31 @@ class CanonicalSeasonService:
                 f"Refusing canonical apply: candidate fails hard verification: {messages}"
             )
 
+        before_plan = schedule.get("plan") or {}
+        before_verification = (
+            verify_candidate(dict(before_plan), problem)
+            if problem
+            else verify_candidate(dict(before_plan))
+        )
+        operational_acceptability = check_operational_acceptability(
+            before_plan,
+            before_verification,
+            normalized_candidate,
+            result,
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+        )
+        if not operational_acceptability["ok"]:
+            messages = "; ".join(
+                str(item.get("message")) for item in operational_acceptability["regressions"]
+            )
+            flags = ", ".join(required_opt_in_flags(operational_acceptability))
+            raise SeasonStateError(
+                "Refusing canonical apply: candidate newly introduces operational placement "
+                f"work: {messages}"
+                + (f"; pass {flags} only for an explicit provisional placement" if flags else "")
+            )
+
         if problem:
             from tournament_scheduler.hosting_responsibility import (
                 unexplained_responsibility_transfers,
@@ -1408,6 +1479,7 @@ class CanonicalSeasonService:
             "applied_from": {
                 "previous_revision": schedule.get("revision"),
                 "actor": _operator_identity(actor),
+                "operational_acceptability": operational_acceptability,
             },
         }
         updated_decisions = {

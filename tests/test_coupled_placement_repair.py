@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, List
 
 import pytest
 
@@ -342,6 +342,110 @@ def test_clustering_finding_enumerates_coupled_repair_and_applies_canonically(
         for finding in fresh["findings"]
         if finding["category"] == "temporal_clustering" and finding["club"] == "Kongsberg"
     ]
+
+
+def _busy_problem() -> Dict[str, Any]:
+    """Same coupling scene, but Kongsberg's own arena is ``fixed_busy`` on the
+    date a coupled exchange would move its clustered U9 tournament to."""
+
+    problem = _problem()
+    problem["club_calendar_status"] = {
+        club: "known"
+        for club in ("Kongsberg", "Solberg", "Tønsberg", "Frisk", "Holmen", "Jar")
+    }
+    problem["club_busy_intervals"] = {
+        "Kongsberg": [{"date": "2027-03-14", "start": "07:00", "end": "14:00"}]
+    }
+    return problem
+
+
+def _busy_season(tmp_path: Path):
+    root = tmp_path / "season"
+    plan = _coupled_plan()
+    problem = _busy_problem()
+    _write_season(root, plan, problem)
+    return root, plan, problem
+
+
+def _clustering_finding(root: Path) -> Dict[str, Any]:
+    return next(
+        entry
+        for entry in list_findings(YEAR, root=root)["findings"]
+        if entry["category"] == "temporal_clustering" and entry["club"] == "Kongsberg"
+    )
+
+
+def _coupled_exchange_option(report: Dict[str, Any]) -> Dict[str, Any]:
+    return next(
+        option
+        for option in report["options"]
+        if (option.get("effects") or {}).get("swapped_tournament_ids")
+        == ["rvv-0156", "rvv-0172"]
+    )
+
+
+def test_coupled_candidate_on_fixed_busy_ice_is_classified_and_rejected_at_apply(
+    tmp_path: Path,
+) -> None:
+    """A coupled exchange can be hard-valid yet newly place a tournament on
+    known fixed_busy ice (represented as manual work). It must be classified as
+    requiring an explicit opt-in, kept off the auto-applicable Pareto front,
+    and refused at the apply boundary."""
+
+    root, _plan_dict, _problem_dict = _busy_season(tmp_path)
+    finding = _clustering_finding(root)
+
+    report = repair_options(YEAR, finding["finding_id"], root=root)
+    option = _coupled_exchange_option(report)
+    # Hard-valid (the option would not reproduce otherwise) but not acceptable
+    # as an automatic repair: it moves rvv-0156 onto Kongsberg's fixed_busy ice.
+    assert option["operational_acceptable"] is False
+    assert option["operational_work_added"] == {"fixed_busy_placement": ["rvv-0156"]}
+    assert option["requires_operational_opt_in"] == ["allow_manual_placement"]
+    assert option["option_id"] in report["pareto"]["operational_rejected_option_ids"]
+    assert option["option_id"] not in report["pareto"]["non_dominated_option_ids"]
+
+    schedule_file = root / YEAR / "schedule.json"
+    before = schedule_file.read_bytes()
+    result = apply_repair(
+        YEAR,
+        option["option_id"],
+        report["revision"],
+        root=root,
+        finding_id=finding["finding_id"],
+    )
+    assert result["ok"] is False
+    assert result["reason"] == "operational_acceptability_regression"
+    assert result["required_opt_in_flags"] == ["allow_manual_placement"]
+    assert schedule_file.read_bytes() == before
+
+
+def test_coupled_candidate_can_be_opted_into_explicitly(tmp_path: Path) -> None:
+    root, _plan_dict, _problem_dict = _busy_season(tmp_path)
+    finding = _clustering_finding(root)
+
+    report = repair_options(
+        YEAR,
+        finding["finding_id"],
+        root=root,
+        allow_manual_placement=True,
+    )
+    option = _coupled_exchange_option(report)
+    assert option["operational_acceptable"] is True
+    assert option["option_id"] in report["pareto"]["non_dominated_option_ids"]
+
+    result = apply_repair(
+        YEAR,
+        option["option_id"],
+        report["revision"],
+        root=root,
+        finding_id=finding["finding_id"],
+        allow_manual_placement=True,
+    )
+    assert result["ok"] is True, result
+    schedule = load_schedule(YEAR, root=root)
+    by_id = {t["id"]: t for t in schedule["plan"]["tournaments"]}
+    assert by_id["rvv-0156"]["date"] == "2027-03-14"
 
 
 def test_bounded_search_reports_exhaustion_not_infeasibility(

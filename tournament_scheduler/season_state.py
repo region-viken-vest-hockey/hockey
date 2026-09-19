@@ -171,6 +171,8 @@ def move_tournament(
     allow_cross_half: bool = False,
     run_id: str | None = None,
     request_id: str | None = None,
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
 ) -> dict[str, Any]:
     """Apply or preview a bounded placement mutation to canonical state."""
 
@@ -188,6 +190,8 @@ def move_tournament(
         allow_cross_half=allow_cross_half,
         run_id=run_id,
         request_id=request_id,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
     )
 
 
@@ -365,6 +369,8 @@ def apply_candidate(
     actor: str | None = None,
     change_weights: dict[str, float] | None = None,
     allow_guest_slot_changes: bool = False,
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     """Apply a verified replan candidate to canonical season state."""
 
@@ -375,6 +381,8 @@ def apply_candidate(
         actor=actor,
         change_weights=change_weights,
         allow_guest_slot_changes=allow_guest_slot_changes,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
     )
 
 

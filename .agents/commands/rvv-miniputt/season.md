@@ -61,6 +61,8 @@ Accepted swaps and moves create granular protections in canonical `decisions.jso
 2. if the new request **explicitly supersedes or reverses** the earlier request, release only the relevant earlier protection(s), recording the newer request in the note;
 3. if the relationship is ambiguous and no safe alternative exists, ask for the real-world clarification rather than silently releasing the earlier request.
 
+Keep evaluating the operator's *original outcome* across intermediate mutations. A finding disappearing after a temporary/partial change does not prove the real problem is resolved (a clustered team moved onto unusable ice can clear a `temporal_clustering` finding while failing "produce a usable, better-spaced schedule"). Prefer `current canonical state -> repository search -> final coupled candidate -> one atomic apply` over chains of temporary canonical moves used only to unlock a later search. If a temporary mutation is genuinely necessary, treat it as temporary and release only the protections that operation created -- never unrelated accepted protections.
+
 Explicit supersession:
 
 ```bash
@@ -104,13 +106,15 @@ scripts/rvv-miniputt season add-constraint --season <season> \
 
 Scopes use stable team identity (club + label + age group). Constraint ids are deterministic from the semantic payload plus `--request-id`, so retrying the same request is idempotent. Malformed/ambiguous definitions (unknown or ambiguous team identity, inverted date range, non-positive gap, a team avoiding itself, unsupported type) are rejected at creation time.
 
+Persist a typed constraint only from a *concrete durable semantic requirement*: "Kongsberg U9 must have at least 7 days between tournaments" -> `minimum_gap`; "Kongsberg cannot play 21 February" -> `team_unavailable`. Do **not** invent a numeric threshold from vague wording such as "three tournaments in eight days is a problem": preserve that as the operator's intent and address it through findings/search unless the operator states the actual policy threshold.
+
 `season add-constraint` is a decision-only write and is **allowed even when the current schedule violates the new constraint**. It persists the validated constraint, reports its current structured violation(s), and advances the canonical-state revision (invalidating previously generated repair/search options). Confirm the recorded status with:
 
 ```bash
 scripts/rvv-miniputt season constraints --season <season> --json
 ```
 
-Each active constraint reports `satisfied` plus any `violations`. Then reach a legal state through the ordinary capabilities (`season move`, `season swap-participants`, `repair-options`/`search`/`apply-repair`, `season replan`/`apply`). The repository enforces the full active constraint set at the canonical apply boundary; previews/`repair-options` also report constraint violations instead of hiding them. Search for a result satisfying **all** active constraints -- never auto-release a constraint because it blocks an easy candidate.
+Each active constraint reports `satisfied` plus any `violations`. Then reach a legal state through the ordinary capabilities (`season move`, `season swap-participants`, `repair-options`/`search`/`apply-repair`, `season replan`/`apply`). The repository enforces the full active constraint set at the canonical apply boundary; previews/`repair-options` also report constraint violations instead of hiding them. Search for a result satisfying **all** active constraints -- never auto-release a constraint because it blocks an easy candidate. Schedule-changing commits are additionally checked for operational acceptability (see **Repair a localized finding**): a candidate must not newly place a tournament on `fixed_busy`/untrusted/external-conflict ice or introduce manual/host-confirmation work merely because it satisfies the typed constraints.
 
 Release only when a newer request explicitly supersedes/revokes it:
 
@@ -167,6 +171,8 @@ scripts/rvv-miniputt season move \
 
 Do not alter participants or unrelated tournaments to make a targeted move fit unless the operator instead asked for replanning. A rejected move must leave canonical state unchanged.
 
+A move is refused by default when it would newly place the tournament inside the host's `fixed_busy`/external-calendar interval, at a host with no trustworthy calendar, or in a host-controlled (`movable_busy`) slot that needs host confirmation -- even though `verify_candidate` may report such a placement as hard-valid manual work. This is deliberately stricter than hard validity: an automatic maintenance move must not trade a usable placement for known manual work. Use `--dry-run` to inspect `move_preview.operational_acceptability` (`regressions`, `requires_operational_opt_in`). Only when the operator explicitly asks for that exact provisional placement, repeat the command with `--allow-manual-placement` and/or `--allow-host-confirmation`; the opt-in is recorded in `decisions.json` history. Never infer the opt-in from a technically-successful verification.
+
 Reapprove only when the new placement is actually confirmed/booked.
 
 
@@ -219,6 +225,10 @@ scripts/rvv-miniputt season apply-repair --season <season> \
   --expected-revision <revision> \
   [--finding <finding-id>]
 ```
+
+Every option (including the `coupled_placement` and `movable_capacity` families) is checked against the repository-owned operational-acceptability predicate in addition to hard verification: relative to the current canonical baseline it may not *newly* introduce a `fixed_busy`/manual external-calendar placement, a host with an untrusted calendar, unresolved/manual placement work, or a host-confirmation (`movable_busy`) dependency. Such options carry `operational_acceptable: false` and `requires_operational_opt_in`, are listed under `pareto.operational_rejected_option_ids`, and are kept out of the auto-applicable `pareto.non_dominated_option_ids`. Pareto scoring alone is not protection -- an option that fixes one defect while introducing a manual placement can remain non-dominated.
+
+The apply boundary re-runs the predicate independently of the provider: a provider self-report never bypasses it. A refused option returns `reason: operational_acceptability_regression` with `required_opt_in_flags` and leaves canonical state byte-unchanged. Only when the operator explicitly accepts the provisional/manual placement, repeat the apply with `--allow-manual-placement` and/or `--allow-host-confirmation` (also accepted by `season repair-options`/`search` to keep such options on the reported Pareto front). Do not use the opt-in to make an ordinary automatic improvement look acceptable.
 
 `--expected-revision` is the `revision` reported by `season findings`/`repair-options`. An apply against a changed revision is rejected as stale and leaves canonical state byte-unchanged. A successful apply is atomic, full-season verified, returns the new revision and a deterministic before/after delta, and re-derives findings from the new revision. For an `unplaced_tournament_placement` finding, `repair-options`/`search` return materialization options that build a real verified `Tournament` (the responsible host's arena, a verified date/start time, the final roster and regenerated games) and remove the obligation; the escalating dimensions are same-date start time, same-host date, bounded participant reselection, capacity release (move a scheduled tournament off the shared arena/time, including across age groups) and the full bounded neighborhood. Applying one commits the placement (and any paired blocker move) atomically. The finding's `search_coverage` distinguishes `option_available`/`search_incomplete`/`bounded_search_exhausted` and never claims `proven_infeasible`; when dimensions remain untried, request `season search` rather than treating the obligation as infeasible. A supported dimension whose hard precondition is unmet for this obligation (participant reselection when the roster collides on no tried date) is reported under `inapplicable`, not `untried`, so it never keeps the finding `search_incomplete` and requestable forever; reselection applicability is checked against the source date and every alternate date it would run on. A bounded `search` option carries its own dimension tag, so applying it does not require repeating the `--dimensions` it was produced with. Hosting responsibility stays authoritative: a repair may draw down a deficit only from a surplus, never by relocating the shortfall or transferring burden to a club that does not owe it. A `bounded_search_exhausted` participation deviation is never proof of infeasibility. Respect the repair-cost order: when a tournament's host/date/arena/start time are already valid and only the selected roster conflicts, the first options are verified placement-preserving participant substitutions -- do not move the slot or request a broader search while such a substitution exists.
 

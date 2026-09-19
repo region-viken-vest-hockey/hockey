@@ -1563,6 +1563,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 allow_cross_half=args.allow_cross_half,
                 run_id=move_run_id,
                 request_id=args.request_id,
+                allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
+                allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
             )
             if args.json:
                 print(_json.dumps(schedule, ensure_ascii=False, indent=2, sort_keys=True))
@@ -1908,10 +1910,22 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     for part in str(args.dimensions or "").split(",")
                     if part.strip()
                 ]
-                report = search(args.season, args.finding, root=args.root, dimensions=dimensions)
+                report = search(
+                    args.season,
+                    args.finding,
+                    root=args.root,
+                    dimensions=dimensions,
+                    allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
+                    allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
+                )
             else:
                 report = repair_options(
-                    args.season, args.finding, root=args.root, allow_search=bool(args.allow_search)
+                    args.season,
+                    args.finding,
+                    root=args.root,
+                    allow_search=bool(args.allow_search),
+                    allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
+                    allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
                 )
             if args.json:
                 print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
@@ -1954,6 +1968,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     for part in str(getattr(args, "dimensions", "") or "").split(",")
                     if part.strip()
                 ],
+                allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
+                allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
             )
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
@@ -2073,6 +2089,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     candidate=result["candidate"],
                     root=args.root,
                     problem=result["problem"],
+                    allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
+                    allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
                 )
 
             if args.json:
@@ -2153,6 +2171,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 root=args.root,
                 problem=verify_problem,
                 actor=args.actor,
+                allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
+                allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
             )
             if args.json:
                 print(

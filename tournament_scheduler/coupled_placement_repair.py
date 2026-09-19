@@ -48,6 +48,10 @@ from .hosting_responsibility import (
     unexplained_responsibility_transfers,
 )
 from .movable_capacity_repair import _roster_variants
+from .operational_acceptability import (
+    check_operational_acceptability,
+    required_opt_in_flags,
+)
 from .pipeline.fingerprints import stable_payload_sha256
 from .planning_contract import verify_candidate
 from .team_schedule_quality import TeamIdentity, compare_team_schedule_consequence
@@ -412,10 +416,16 @@ def _build_coupled_option(
     focus_team: Optional[TeamIdentity],
     baseline: Optional[Mapping[str, Any]],
     max_roster_combinations: int,
+    before_verification: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[Optional[RepairOption], Dict[str, Any]]:
     """Build, roster-repair and verify one coupled placement candidate.
 
-    Returns ``(option, rejection)`` where exactly one is populated.
+    Returns ``(option, rejection)`` where exactly one is populated. A candidate
+    that is hard-valid but newly introduces fixed-busy/manual placement work or
+    a host-confirmation dependency is classified with deterministic evidence
+    (``operational_acceptable: false`` / ``requires_operational_opt_in``) and
+    kept out of the auto-applicable Pareto set rather than presented as an
+    ordinary automatic repair.
     """
 
     placement_candidate = apply_placement_swap(
@@ -470,6 +480,26 @@ def _build_coupled_option(
             }
         candidate = repaired
         roster_repaired_ids = conflicting_ids
+
+    # The candidate is hard-valid, but "hard-valid" is not "acceptable as an
+    # ordinary automatic repair". A candidate that is verified only because a
+    # new external-calendar collision is represented as manual work (or that
+    # newly depends on host confirmation) is classified explicitly here -- with
+    # deterministic evidence -- and kept out of the auto-applicable Pareto set
+    # by ``season_maintenance`` unless the operator opts in.
+    operational_acceptability: Optional[Dict[str, Any]] = None
+    if problem:
+        final_verification = (
+            placement_verification
+            if not roster_repaired_ids
+            else verify_candidate(dict(candidate), dict(problem))
+        )
+        operational_acceptability = check_operational_acceptability(
+            plan,
+            before_verification if before_verification is not None else verify_candidate(dict(plan), dict(problem)),
+            candidate,
+            final_verification,
+        )
 
     total_roster_replacements = sum(
         len(variant.get("removed") or []) for variant in applied_variants.values()
@@ -578,6 +608,20 @@ def _build_coupled_option(
         "focus_team": focus_summary or None,
         "consequence_acceptable": consequences["consequence_acceptable"],
     }
+    evidence: Dict[str, Any] = {
+        "verification_ok": True,
+        "placement_only_verification": placement_verification,
+        "change_cost": cost,
+        "consequences": consequences,
+        "hosting": hosting_evidence,
+        "roster_rejections": roster_rejections,
+    }
+    if operational_acceptability is not None:
+        effects["operational_acceptable"] = bool(operational_acceptability["ok"])
+        effects["requires_operational_opt_in"] = required_opt_in_flags(
+            operational_acceptability
+        )
+        evidence["operational_acceptability"] = operational_acceptability
     option = RepairOption(
         option_id=_option_id(arguments),
         finding_id=finding_id,
@@ -586,14 +630,7 @@ def _build_coupled_option(
         arguments=arguments,
         hard_feasible=True,
         effects=effects,
-        evidence={
-            "verification_ok": True,
-            "placement_only_verification": placement_verification,
-            "change_cost": cost,
-            "consequences": consequences,
-            "hosting": hosting_evidence,
-            "roster_rejections": roster_rejections,
-        },
+        evidence=evidence,
     )
     return option, {}
 
@@ -650,6 +687,9 @@ def enumerate_coupled_placement_repairs(
     rejected: List[Dict[str, Any]] = []
     seen_ids: set[str] = set()
     seen_pairs: set[Tuple[str, str]] = set()
+    # The non-regression baseline is the same for every candidate in this
+    # enumeration, so it is verified once rather than per candidate.
+    before_verification = verify_candidate(dict(plan), dict(problem))
     attempts = 0
     for target_id in targets:
         if target_id not in by_id or target_id not in scheduled_ids:
@@ -689,6 +729,7 @@ def enumerate_coupled_placement_repairs(
                 focus_team=focus_team,
                 baseline=baseline,
                 max_roster_combinations=max_roster_combinations,
+                before_verification=before_verification,
             )
             if option is None:
                 rejected.append(rejection)
@@ -720,10 +761,17 @@ def enumerate_coupled_placement_repairs(
     }
 
 
-def _option_rank(option: RepairOption) -> Tuple[float, int, int, str]:
-    """Prefer the smallest verified change, then the best target spacing."""
+def _option_rank(option: RepairOption) -> Tuple[int, float, int, int, str]:
+    """Prefer automatically acceptable repairs, then the smallest change.
+
+    A candidate that requires an explicit operator opt-in is ranked after every
+    automatically acceptable candidate so it can never crowd a normal repair
+    out of the bounded option set (it is still classified and returned for a
+    deliberate opt-in apply).
+    """
 
     effects = option.effects or {}
+    requires_opt_in = 1 if effects.get("requires_operational_opt_in") else 0
     cost = effects.get("change_cost_total")
     try:
         cost_value = float(cost)
@@ -737,7 +785,7 @@ def _option_rank(option: RepairOption) -> Tuple[float, int, int, str]:
     improvement = 0
     if isinstance(min_gap_after, int) and isinstance(before, int):
         improvement = min_gap_after - before
-    return (cost_value, -improvement, -int(min_gap_after), option.option_id)
+    return (requires_opt_in, cost_value, -improvement, -int(min_gap_after), option.option_id)
 
 
 def _date_distance(left: str, right: str) -> int:

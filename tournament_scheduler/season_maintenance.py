@@ -29,6 +29,10 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 from .canonical_baseline import build_canonical_baseline, change_cost
 from .hosting_balance_repair import hosting_finding_id
 from .local_repair_options import enumerate_local_repair_options
+from .operational_acceptability import (
+    check_operational_acceptability,
+    required_opt_in_flags,
+)
 from .pareto import non_dominated_indices, representative_indices
 from .participation_deviation_repair import participation_finding_id
 from .participation_targets import INTRA_CLUB_DISTRIBUTION, search_evidence_from_acceptances
@@ -320,6 +324,8 @@ def repair_options(
     *,
     root: str = DEFAULT_SEASON_ROOT,
     allow_search: bool = False,
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
 ) -> Dict[str, Any]:
     """Enumerate deterministic repair options for one selected finding."""
     schedule, decisions, plan, problem = load_context(season, root=root)
@@ -337,6 +343,8 @@ def repair_options(
         finding,
         DEFAULT_DIMENSIONS,
         active_constraints=constraints,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
     )
     return {
         "season": season,
@@ -359,6 +367,8 @@ def search(
     *,
     root: str = DEFAULT_SEASON_ROOT,
     dimensions: Iterable[str] = ("participants", "host"),
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
 ) -> Dict[str, Any]:
     """Run the bounded finding-directed search and return verified non-dominated options."""
     resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
@@ -377,6 +387,8 @@ def search(
         finding,
         resolved_dimensions,
         active_constraints=constraints,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
     )
     return {
         "season": season,
@@ -404,12 +416,18 @@ def apply_repair(
     dry_run: bool = False,
     finding_id: Optional[str] = None,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
 ) -> Dict[str, Any]:
     """Atomically apply one verified option to canonical state and return the delta.
 
     The option is reproduced from the current canonical revision and fully
     re-verified before any write. A stale revision (or an option that no longer
-    enumerates) is rejected without touching canonical state.
+    enumerates) is rejected without touching canonical state. The option's
+    provider self-report is never trusted for operational acceptability: the
+    apply boundary independently re-checks that the candidate does not newly
+    introduce fixed-busy/manual placement work or host-confirmation
+    dependencies unless the operator explicitly opted in.
     """
     resolved_dimensions = tuple(sorted({str(dimension) for dimension in dimensions}))
     # A bounded search result is reproduced from the dimensions that produced
@@ -480,6 +498,24 @@ def apply_repair(
             verification=verification,
             delta=_metric_delta(plan, before_verification),
         )
+    acceptability = check_operational_acceptability(
+        plan,
+        before_verification,
+        result_candidate,
+        verification,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
+    )
+    if not acceptability["ok"]:
+        return _rejected_delta(
+            season,
+            revision,
+            "operational_acceptability_regression",
+            option_id=option_id,
+            verification=verification,
+            operational_acceptability=acceptability,
+            required_opt_in_flags=required_opt_in_flags(acceptability),
+        )
     preview = _metric_delta(
         plan, before_verification, candidate=result_candidate, after_verification=verification, problem=problem
     )
@@ -495,6 +531,7 @@ def apply_repair(
             "option_id": option_id,
             "finding": resolved_finding,
             "delta": preview,
+            "operational_acceptability": acceptability,
         }
 
     from .season_state import apply_candidate
@@ -505,6 +542,8 @@ def apply_repair(
         root=root,
         problem=problem,
         actor=actor,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
     )
     new_revision = canonical_state_revision(updated_schedule, updated_decisions)
     fresh_verification = verify_candidate(dict(updated_schedule.get("plan") or {}), problem)
@@ -523,6 +562,7 @@ def apply_repair(
         "revision_before": revision,
         "revision_after": new_revision,
         "delta": delta,
+        "operational_acceptability": acceptability,
         "fresh_findings": list_findings(season, root=root),
     }
 
@@ -649,6 +689,8 @@ def repair_options_for_plan(
     *,
     allow_search: bool = False,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
 ) -> Dict[str, Any]:
     """Enumerate deterministic repair options for one finding on a bare plan."""
     resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
@@ -657,7 +699,15 @@ def repair_options_for_plan(
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=allow_search, dimensions=resolved_dimensions
     )
-    pareto = _annotate_pareto(plan, problem, options, finding, resolved_dimensions)
+    pareto = _annotate_pareto(
+        plan,
+        problem,
+        options,
+        finding,
+        resolved_dimensions,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
+    )
     return {
         "candidate_fingerprint": _plan_fingerprint(plan),
         "finding": finding,
@@ -678,11 +728,16 @@ def apply_repair_to_plan(
     finding_id: Optional[str] = None,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
     baseline: Optional[Mapping[str, Any]] = None,
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
 ) -> Dict[str, Any]:
     """Atomically reproduce and apply one verified option to a bare plan.
 
     Returns the mutated candidate plus the same before/after metric delta the
-    canonical boundary returns; it never writes any canonical state.
+    canonical boundary returns; it never writes any canonical state. The same
+    operational-acceptability boundary the canonical apply uses is applied
+    here, so an unpromoted candidate cannot admit a repair the promoted path
+    would reject.
     """
     resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
     findings = findings_for_plan(plan, problem)
@@ -724,6 +779,23 @@ def apply_repair_to_plan(
             "option_id": option_id,
             "verification": verification,
         }
+    acceptability = check_operational_acceptability(
+        plan,
+        before_verification,
+        result_candidate,
+        verification,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
+    )
+    if not acceptability["ok"]:
+        return {
+            "ok": False,
+            "reason": "operational_acceptability_regression",
+            "option_id": option_id,
+            "verification": verification,
+            "operational_acceptability": acceptability,
+            "required_opt_in_flags": required_opt_in_flags(acceptability),
+        }
     delta = _metric_delta(
         plan,
         before_verification,
@@ -742,6 +814,7 @@ def apply_repair_to_plan(
         "family": match.get("family"),
         "candidate": result_candidate,
         "verification": verification,
+        "operational_acceptability": acceptability,
         "delta": delta,
     }
 
@@ -1603,6 +1676,8 @@ def _annotate_pareto(
     dimensions: Iterable[str],
     *,
     active_constraints: Iterable[Mapping[str, Any]] = (),
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
 ) -> Dict[str, Any]:
     """Measure every option on the same objective vector and mark the front.
 
@@ -1611,10 +1686,18 @@ def _annotate_pareto(
     option would actually commit -- not a claim derived from the provider's
     self-reported effects. An option that no longer reproduces is left off the
     front instead of being reported as a verified trade-off.
+
+    An option that newly introduces operational work (fixed-busy/manual
+    placement, or a host-confirmation dependency) is classified as requiring an
+    explicit operator opt-in and kept off the auto-applicable Pareto front.
+    Pareto scoring alone is not protection here: an option that fixes one defect
+    while introducing a manual placement can stay non-dominated, so this is a
+    hard filter rather than a weight.
     """
     constraints = list(active_constraints)
     measured: List[Tuple[int, Dict[str, float]]] = []
     before_score = with_unresolved_obligations_count(score_candidate(dict(plan), problem=dict(problem)))
+    before_verification = verify_candidate(dict(plan), dict(problem))
     for index, option in enumerate(options):
         applied = _apply_option(plan, problem, option, finding, dimensions)
         candidate = applied.get("candidate") if applied.get("ok") else None
@@ -1640,6 +1723,22 @@ def _annotate_pareto(
         verification = applied.get("verification") or verify_candidate(
             dict(candidate), dict(problem)
         )
+        acceptability = check_operational_acceptability(
+            plan,
+            before_verification,
+            candidate,
+            verification,
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+        )
+        option["operational_acceptable"] = acceptability["ok"]
+        option["operational_regressions"] = acceptability["regressions"]
+        option["operational_work_added"] = acceptability["added_by_category"]
+        option["requires_operational_opt_in"] = required_opt_in_flags(acceptability)
+        if not acceptability["ok"]:
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
         score = score_candidate(dict(candidate), problem=dict(problem))
         travel = _travel_metrics(candidate)
         vector = _objective_vector(
@@ -1677,6 +1776,13 @@ def _annotate_pareto(
             for option in options
             if option.get("request_constraint_acceptable") is False
         ],
+        "operational_rejected_option_ids": [
+            option["option_id"]
+            for option in options
+            if option.get("operational_acceptable") is False
+        ],
+        "allow_manual_placement": bool(allow_manual_placement),
+        "allow_host_confirmation": bool(allow_host_confirmation),
     }
 
 

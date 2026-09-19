@@ -270,12 +270,33 @@ def test_promoted_season_exposes_movable_capacity_finding_and_applies_atomically
     assert option["evidence"]["availability"] == "movable_busy"
     assert option["evidence"]["requires_host_confirmation"] is True
 
+    # A host-confirmation dependency is not an ordinary automatic improvement:
+    # it is classified as requiring an explicit opt-in, kept off the
+    # auto-applicable Pareto front, and refused by default at the apply
+    # boundary (the provider's self-report is not trusted).
+    assert option["operational_acceptable"] is False
+    assert option["requires_operational_opt_in"] == ["allow_host_confirmation"]
+    assert option["option_id"] in report["pareto"]["operational_rejected_option_ids"]
+    assert option["option_id"] not in report["pareto"]["non_dominated_option_ids"]
+
+    refused = apply_repair(
+        SEASON,
+        option["option_id"],
+        findings["revision"],
+        root=str(root),
+        finding_id=movable["finding_id"],
+    )
+    assert refused["ok"] is False
+    assert refused["reason"] == "operational_acceptability_regression"
+    assert load_schedule(SEASON, root=str(root))["revision"] == revision
+
     result = apply_repair(
         SEASON,
         option["option_id"],
         findings["revision"],
         root=str(root),
         finding_id=movable["finding_id"],
+        allow_host_confirmation=True,
     )
 
     assert result["ok"], result
