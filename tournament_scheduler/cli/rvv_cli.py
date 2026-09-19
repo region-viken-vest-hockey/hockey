@@ -1374,6 +1374,15 @@ def _cmd_season(args: argparse.Namespace) -> int:
             from ..pipeline.state import StageName, StageStatus
             state.write_stage(StageName.EXPORT, result, status=StageStatus.DONE)
             _write_canonical_export_evidence(schedule, result)
+            # Mark audit-required explicitly rather than relying only on lazy
+            # export-fingerprint reconciliation: a re-export of unchanged
+            # canonical state produces the same content fingerprint, which
+            # would otherwise leave a workflow recorded before this export
+            # (e.g. one predating the canonical-season scoping above) stale
+            # and un-rescoped forever.
+            from ..application.audit_lifecycle import mark_audit_required
+
+            mark_audit_required(args.work_dir)
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
             else:
