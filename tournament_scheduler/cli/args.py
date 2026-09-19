@@ -1075,6 +1075,27 @@ def build_parser() -> argparse.ArgumentParser:
     season_move.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_move.add_argument("--json", action="store_true", help="Print updated schedule.json as JSON")
 
+
+    season_swap = season_sub.add_parser(
+        "swap-participants",
+        help="Swap one participant between two same-age canonical tournaments and verify the full season",
+    )
+    season_swap.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_swap.add_argument("--tournament-a", required=True, help="First durable tournament id")
+    season_swap.add_argument("--team-a", required=True, help="Participant label to remove from tournament A")
+    season_swap.add_argument("--tournament-b", required=True, help="Second durable tournament id")
+    season_swap.add_argument("--team-b", required=True, help="Participant label to remove from tournament B")
+    season_swap.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_swap.add_argument("--actor", default=None, help="Operator identity")
+    season_swap.add_argument("--note", default="", help="Swap note/reason for decisions history")
+    season_swap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and preview the swap without writing canonical state",
+    )
+    season_swap.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
+    season_swap.add_argument("--json", action="store_true", help="Print swap result as JSON")
+
     season_guest_report = season_sub.add_parser(
         "guest-report",
         help="Show reserved guest places and their open/filled/released lifecycle status",

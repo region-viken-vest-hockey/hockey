@@ -73,6 +73,7 @@ __all__ = [
     "load_participation_acceptances",
     "load_schedule",
     "move_tournament",
+    "swap_participants",
     "participation_acceptance_id",
     "planning_checkpoint_from_schedule",
     "promote_from_stage3",
@@ -180,6 +181,34 @@ def move_tournament(
         dry_run=dry_run,
         allow_cross_half=allow_cross_half,
         run_id=run_id,
+    )
+
+
+def swap_participants(
+    *,
+    season: str,
+    tournament_a_id: str,
+    team_a_label: str,
+    tournament_b_id: str,
+    team_b_label: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Swap one participant between two same-age canonical tournaments."""
+
+    return _service(root).swap_participants(
+        season=season,
+        tournament_a_id=tournament_a_id,
+        team_a_label=team_a_label,
+        tournament_b_id=tournament_b_id,
+        team_b_label=team_b_label,
+        problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
     )
 
 

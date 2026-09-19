@@ -43,6 +43,7 @@ scripts/rvv-miniputt season revoke-acceptance --season 2026-2027 --finding <find
 scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
 scripts/rvv-miniputt season unapprove --season 2026-2027 --tournament-id <id> --note "booking changed"
 scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
+scripts/rvv-miniputt season swap-participants --season 2026-2027 --tournament-a <id> --team-a "<team>" --tournament-b <id> --team-b "<team>" --dry-run
 scripts/rvv-miniputt season guest-report --season 2026-2027
 scripts/rvv-miniputt season guest-candidates --season 2026-2027 --age-groups JU10,JU12
 scripts/rvv-miniputt season guest-reserve --season 2026-2027 --tournament-id <id> --note "external league team may apply"
@@ -54,6 +55,8 @@ scripts/rvv-miniputt season diff --season 2026-2027 --candidate <candidate.json>
 scripts/rvv-miniputt season apply --season 2026-2027 --candidate <candidate.json>
 scripts/rvv-miniputt season export --season 2026-2027
 ```
+
+An explicit operator-requested roster exchange does not need an existing finding. Use `season swap-participants` rather than hand-editing canonical JSON or refusing because no repair finding exists. The command only swaps two participants between same-age tournaments, keeps both placements/hosts fixed, regenerates both game schedules, respects participant locks and guest reservations, and runs the full canonical hard-verification/hosting-responsibility boundary. Use `--dry-run` to evaluate candidate swaps before applying one; compare the soft impact on both teams before selecting a candidate.
 
 For a localized defect (an unresolved hosting obligation, a manual placement, a host-controlled movable-ice opportunity, a participation strong-goal deviation), prefer the finding-directed loop over whole-season replanning:
 

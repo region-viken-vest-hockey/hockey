@@ -668,6 +668,252 @@ class CanonicalSeasonService:
         committed = self._commit(snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions))
         return committed.schedule
 
+
+    def swap_participants(
+        self,
+        *,
+        season: str,
+        tournament_a_id: str,
+        team_a_label: str,
+        tournament_b_id: str,
+        team_b_label: str,
+        problem: dict[str, Any] | None = None,
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Swap one RVV participant between two same-age canonical tournaments.
+
+        This is a narrow operator mutation for an already-promoted season. It
+        deliberately keeps both placements/hosts fixed, regenerates the games
+        for both rosters, and validates the whole season through the same
+        canonical lock, guest-slot, hard-verification and hosting-responsibility
+        gates used by apply_candidate.
+        """
+
+        if tournament_a_id == tournament_b_id:
+            raise SeasonStateError("Participant swap requires two different tournaments")
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        resolved_problem = _resolve_plan_problem(schedule, problem)
+        plan = copy.deepcopy(schedule["plan"])
+        tournaments = plan.get("tournaments", []) or []
+        by_id = {
+            str(tournament.get("id") or ""): tournament
+            for tournament in tournaments
+            if tournament.get("id")
+        }
+        tournament_a = by_id.get(tournament_a_id)
+        tournament_b = by_id.get(tournament_b_id)
+        if tournament_a is None:
+            raise SeasonStateError(
+                f"Unknown tournament id in canonical schedule: {tournament_a_id}"
+            )
+        if tournament_b is None:
+            raise SeasonStateError(
+                f"Unknown tournament id in canonical schedule: {tournament_b_id}"
+            )
+        for tournament_id, tournament in (
+            (tournament_a_id, tournament_a),
+            (tournament_b_id, tournament_b),
+        ):
+            if tournament.get("cancelled"):
+                raise SeasonStateError(
+                    f"Tournament {tournament_id} is cancelled and cannot participate in a roster swap"
+                )
+            resolved = resolve_approval(
+                decisions.get("decisions", {}).get(tournament_id, {}),
+                tournament,
+            )
+            if resolved["participants_locked"]:
+                raise SeasonStateError(
+                    f"Tournament {tournament_id} has an active participant lock; "
+                    "unapprove it explicitly first"
+                )
+
+        age_group_a = str(tournament_a.get("age_group") or "")
+        age_group_b = str(tournament_b.get("age_group") or "")
+        if not age_group_a or age_group_a != age_group_b:
+            raise SeasonStateError(
+                "Participant swap requires tournaments in the same age group; "
+                f"got {age_group_a or '<missing>'} and {age_group_b or '<missing>'}"
+            )
+
+        def locate_team(
+            tournament: dict[str, Any],
+            *,
+            tournament_id: str,
+            label: str,
+        ) -> tuple[int, dict[str, Any]]:
+            matches = [
+                (index, team)
+                for index, team in enumerate(tournament.get("teams", []) or [])
+                if str(team.get("label") or "") == label
+            ]
+            if not matches:
+                raise SeasonStateError(
+                    f"Team {label!r} is not a participant in tournament {tournament_id}"
+                )
+            if len(matches) > 1:
+                raise SeasonStateError(
+                    f"Team label {label!r} is ambiguous in tournament {tournament_id}"
+                )
+            index, team = matches[0]
+            if bool(team.get("guest", False)):
+                raise SeasonStateError(
+                    f"Team {label!r} in tournament {tournament_id} is a guest participant; "
+                    "use the guest-slot lifecycle instead"
+                )
+            return index, team
+
+        index_a, team_a = locate_team(
+            tournament_a,
+            tournament_id=tournament_a_id,
+            label=team_a_label,
+        )
+        index_b, team_b = locate_team(
+            tournament_b,
+            tournament_id=tournament_b_id,
+            label=team_b_label,
+        )
+
+        def team_identity(team: Mapping[str, Any], fallback_age_group: str) -> tuple[str, str, str]:
+            return (
+                str(team.get("club") or ""),
+                str(team.get("label") or ""),
+                str(team.get("age_group") or fallback_age_group),
+            )
+
+        identity_a = team_identity(team_a, age_group_a)
+        identity_b = team_identity(team_b, age_group_b)
+        if identity_a == identity_b:
+            raise SeasonStateError("Participant swap would be a no-op")
+
+        for index, existing in enumerate(tournament_a.get("teams", []) or []):
+            if index != index_a and team_identity(existing, age_group_a) == identity_b:
+                raise SeasonStateError(
+                    f"Cannot swap {team_b_label!r} into {tournament_a_id}: "
+                    "that team already participates there"
+                )
+        for index, existing in enumerate(tournament_b.get("teams", []) or []):
+            if index != index_b and team_identity(existing, age_group_b) == identity_a:
+                raise SeasonStateError(
+                    f"Cannot swap {team_a_label!r} into {tournament_b_id}: "
+                    "that team already participates there"
+                )
+
+        before_fingerprint_a = approval_fingerprint(tournament_a)
+        before_fingerprint_b = approval_fingerprint(tournament_b)
+        tournament_a["teams"][index_a] = copy.deepcopy(team_b)
+        tournament_b["teams"][index_b] = copy.deepcopy(team_a)
+        _regenerate_tournament_games(tournament_a, resolved_problem)
+        _regenerate_tournament_games(tournament_b, resolved_problem)
+
+        from tournament_scheduler.canonical_baseline import (
+            build_canonical_baseline,
+            change_cost,
+            verify_canonical_locks,
+        )
+
+        baseline = build_canonical_baseline(schedule, decisions)
+        lock_violations = verify_canonical_locks(baseline, plan)
+        if lock_violations:
+            messages = "; ".join(str(v.get("message")) for v in lock_violations)
+            raise SeasonStateError(
+                f"Refusing canonical participant swap: candidate violates canonical locks: {messages}"
+            )
+
+        result = (
+            verify_candidate(plan, resolved_problem)
+            if resolved_problem
+            else verify_candidate(plan)
+        )
+        if not result.get("ok", True):
+            messages = "; ".join(
+                str(v.get("message") or v.get("code"))
+                for v in result.get("violations", [])
+            )
+            raise SeasonStateError(
+                f"Refusing canonical participant swap: candidate fails hard verification: {messages}"
+            )
+
+        if resolved_problem:
+            from tournament_scheduler.hosting_responsibility import (
+                unexplained_responsibility_transfers,
+            )
+
+            transfers = unexplained_responsibility_transfers(
+                schedule.get("plan"),
+                plan,
+                resolved_problem,
+            )
+            if transfers:
+                messages = "; ".join(str(entry.get("message")) for entry in transfers)
+                raise SeasonStateError(
+                    "Refusing canonical participant swap: candidate transfers hosting "
+                    f"responsibility: {messages}"
+                )
+
+        reconcile_plan_derived_state(plan, result, problem=resolved_problem)
+        candidate_revision = schedule_fingerprint(plan)
+        cost = change_cost(baseline, plan)
+        details = {
+            "tournament_a_id": tournament_a_id,
+            "tournament_b_id": tournament_b_id,
+            "age_group": age_group_a,
+            "team_a": {
+                "club": identity_a[0],
+                "label": identity_a[1],
+            },
+            "team_b": {
+                "club": identity_b[0],
+                "label": identity_b[1],
+            },
+            "tournament_a_date": tournament_a.get("date"),
+            "tournament_b_date": tournament_b.get("date"),
+            "before_fingerprint_a": before_fingerprint_a,
+            "before_fingerprint_b": before_fingerprint_b,
+            "candidate_revision": candidate_revision,
+        }
+
+        if dry_run:
+            return {
+                "season": season,
+                "dry_run": True,
+                "current_revision": schedule.get("revision"),
+                "candidate_revision": candidate_revision,
+                "verification_result": result,
+                "change_cost": cost,
+                "swap": details,
+            }
+
+        updated_schedule, updated_decisions, applied_cost = self.apply_candidate(
+            season=season,
+            candidate=plan,
+            problem=resolved_problem,
+            actor=actor,
+            _history_event={
+                "event": "participant_swap",
+                "tournament_id": tournament_a_id,
+                "previous_fingerprint": before_fingerprint_a,
+                "note": note,
+                "details": details,
+            },
+        )
+        return {
+            "season": season,
+            "dry_run": False,
+            "revision": updated_schedule.get("revision"),
+            "canonical_state_revision": canonical_state_revision(
+                updated_schedule,
+                updated_decisions,
+            ),
+            "verification_result": result,
+            "change_cost": applied_cost,
+            "swap": details,
+        }
+
     def apply_candidate(
         self,
         *,
@@ -677,6 +923,7 @@ class CanonicalSeasonService:
         actor: str | None = None,
         change_weights: dict[str, float] | None = None,
         allow_guest_slot_changes: bool = False,
+        _history_event: Mapping[str, Any] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
         """Apply a verified replan candidate to canonical season state."""
 
@@ -766,6 +1013,39 @@ class CanonicalSeasonService:
             "schedule_fingerprint": fingerprint,
             "decisions": _reconcile_decisions(decisions.get("decisions", {}), plan, now=now),
         }
+        if _history_event:
+            history_tournament_id = str(_history_event.get("tournament_id") or "")
+            history_tournament = next(
+                (
+                    tournament
+                    for tournament in plan.get("tournaments", []) or []
+                    if str(tournament.get("id") or "") == history_tournament_id
+                ),
+                None,
+            )
+            _append_decision_history(
+                updated_decisions,
+                event=str(_history_event.get("event") or "apply_candidate"),
+                tournament_id=history_tournament_id,
+                actor=actor,
+                now=now,
+                tournament_fingerprint=(
+                    approval_fingerprint(history_tournament)
+                    if history_tournament is not None
+                    else None
+                ),
+                previous_fingerprint=(
+                    str(_history_event.get("previous_fingerprint"))
+                    if _history_event.get("previous_fingerprint")
+                    else None
+                ),
+                note=str(_history_event.get("note") or ""),
+                details=(
+                    dict(_history_event.get("details") or {})
+                    if isinstance(_history_event.get("details"), Mapping)
+                    else None
+                ),
+            )
         cost = change_cost(baseline, plan, weights=change_weights)
         committed = self._commit(
             snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)

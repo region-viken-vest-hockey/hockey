@@ -1290,6 +1290,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         release_guest_slot,
         reserve_guest_slot,
         schedule_path,
+        swap_participants,
         unapprove_tournament,
     )
     from ..season_maintenance import SeasonMaintenanceError
@@ -1565,6 +1566,34 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"[green]✓[/green] {action} {args.tournament_id} in {args.season}; "
                     f"revision {schedule.get('revision')}"
                 )
+            return 0
+
+
+        if args.season_command == "swap-participants":
+            result = swap_participants(
+                season=args.season,
+                tournament_a_id=args.tournament_a,
+                team_a_label=args.team_a,
+                tournament_b_id=args.tournament_b,
+                team_b_label=args.team_b,
+                root=args.root,
+                problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
+                actor=args.actor,
+                note=args.note,
+                dry_run=bool(args.dry_run),
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                action = "Validated participant-swap preview" if result["dry_run"] else "Swapped participants"
+                swap = result["swap"]
+                _console.print(
+                    f"[green]✓[/green] {action}: "
+                    f"{swap['team_a']['label']} ({swap['tournament_a_id']}) ↔ "
+                    f"{swap['team_b']['label']} ({swap['tournament_b_id']})"
+                )
+                revision = result.get("candidate_revision") if result["dry_run"] else result.get("revision")
+                _console.print(f"  revision: {revision}")
             return 0
 
         if args.season_command == "guest-report":

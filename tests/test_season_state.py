@@ -14,6 +14,7 @@ from tournament_scheduler.season_state import (
     load_decisions,
     load_schedule,
     move_tournament,
+    swap_participants,
     normalize_placements,
     planning_checkpoint_from_schedule,
     promote_from_stage3,
@@ -381,3 +382,124 @@ def test_normalize_placements_is_a_noop_for_a_valid_plan(tmp_path: Path) -> None
 
     assert after["plan"]["tournaments"] == before["plan"]["tournaments"]
     assert (root / "2026-2027" / "schedule.json").read_bytes() == before_bytes
+
+
+def test_participant_swap_is_verified_atomic_and_dry_runnable(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    candidate = _candidate()
+
+    def four_team_games(labels: list[str]) -> list[dict]:
+        return [
+            {"home": labels[0], "away": labels[1], "parallel_slot": 0, "round_number": 1},
+            {"home": labels[2], "away": labels[3], "parallel_slot": 1, "round_number": 1},
+            {"home": labels[0], "away": labels[2], "parallel_slot": 0, "round_number": 2},
+            {"home": labels[1], "away": labels[3], "parallel_slot": 1, "round_number": 2},
+            {"home": labels[0], "away": labels[3], "parallel_slot": 0, "round_number": 3},
+            {"home": labels[1], "away": labels[2], "parallel_slot": 1, "round_number": 3},
+        ]
+
+    tournament_b = {
+        "id": "u10-b-20260920",
+        "date": "2026-09-20",
+        "arena": "Arena B",
+        "age_group": "U10",
+        "host_club": "B",
+        "teams": [
+            {"club": "B", "label": "B2", "age_group": "U10"},
+            {"club": "E", "label": "E1", "age_group": "U10"},
+            {"club": "F", "label": "F1", "age_group": "U10"},
+            {"club": "G", "label": "G1", "age_group": "U10"},
+        ],
+        "games": four_team_games(["B2", "E1", "F1", "G1"]),
+        "start_time": "12:00",
+    }
+    candidate["tournaments"].append(tournament_b)
+    _stage_plan(state, candidate)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    before_schedule = (root / "2026-2027" / "schedule.json").read_bytes()
+    before_decisions = (root / "2026-2027" / "decisions.json").read_bytes()
+    preview = swap_participants(
+        season="2026-2027",
+        tournament_a_id="u10-a-20260912",
+        team_a_label="D1",
+        tournament_b_id="u10-b-20260920",
+        team_b_label="E1",
+        root=root,
+        actor="tester",
+        note="spread dates",
+        dry_run=True,
+    )
+    assert preview["dry_run"] is True
+    assert preview["verification_result"]["ok"] is True
+    assert preview["candidate_revision"] != preview["current_revision"]
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before_schedule
+    assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions
+
+    result = swap_participants(
+        season="2026-2027",
+        tournament_a_id="u10-a-20260912",
+        team_a_label="D1",
+        tournament_b_id="u10-b-20260920",
+        team_b_label="E1",
+        root=root,
+        actor="tester",
+        note="spread dates",
+    )
+    assert result["dry_run"] is False
+    assert result["verification_result"]["ok"] is True
+
+    updated = load_schedule("2026-2027", root=root)
+    by_id = {tournament["id"]: tournament for tournament in updated["plan"]["tournaments"]}
+    assert {team["label"] for team in by_id["u10-a-20260912"]["teams"]} == {
+        "A1",
+        "B1",
+        "C1",
+        "E1",
+    }
+    assert {team["label"] for team in by_id["u10-b-20260920"]["teams"]} == {
+        "B2",
+        "D1",
+        "F1",
+        "G1",
+    }
+    assert all(
+        game["home"] != "D1" and game["away"] != "D1"
+        for game in by_id["u10-a-20260912"]["games"]
+    )
+    assert any(
+        game["home"] == "D1" or game["away"] == "D1"
+        for game in by_id["u10-b-20260920"]["games"]
+    )
+
+    decisions = load_decisions("2026-2027", root=root)
+    events = [
+        event
+        for event in decisions.get("history", [])
+        if event.get("event") == "participant_swap"
+    ]
+    assert len(events) == 1
+    assert events[0]["actor"] == "tester"
+    assert events[0]["note"] == "spread dates"
+    assert events[0]["details"]["tournament_b_id"] == "u10-b-20260920"
+
+    approve_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        actor="booker",
+        participants_locked=True,
+    )
+    locked_schedule = (root / "2026-2027" / "schedule.json").read_bytes()
+    with pytest.raises(SeasonStateError, match="participant lock"):
+        swap_participants(
+            season="2026-2027",
+            tournament_a_id="u10-a-20260912",
+            team_a_label="E1",
+            tournament_b_id="u10-b-20260920",
+            team_b_label="D1",
+            root=root,
+        )
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == locked_schedule
