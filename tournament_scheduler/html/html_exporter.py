@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from tournament_scheduler.club_distances import furthest_traveling_team
+from ..guest_slots import guest_slot_summary
 from ..models import SeasonPlan, chronological_tournaments
 from ..occupancy import tournament_end_time
 
@@ -432,13 +433,30 @@ class HtmlExporter:
                 "g": t.age_group,
                 "h": t.host_club or "",
                 "p": [
-                    {"c": team.club, "l": team.label, "g": team.age_group}
+                    {
+                        "c": team.club,
+                        "l": team.label,
+                        "g": team.age_group,
+                        **({"guest": True} if team.guest else {}),
+                    }
                     for team in t.teams
                 ],
                 "m": games,
                 "b": bye_data,
                 "tr": travel_str,
             }
+            guest_summary = guest_slot_summary(t)
+            if guest_summary["reserved"] or guest_summary["released"]:
+                # Explicit, visible reservation state: an open place reads as
+                # "1 ledig gjesteplass" and a filled place as a guest team, so
+                # a guest reservation is never mistaken for an underfilled
+                # tournament.
+                entry["gs"] = {
+                    "o": guest_summary["open"],
+                    "f": guest_summary["filled"],
+                    "r": guest_summary["reserved"],
+                    "rel": guest_summary["released"],
+                }
             if t.start_time:
                 entry["ts"] = t.start_time
                 end_time = tournament_end_time(t, ice_time_for_age_group)

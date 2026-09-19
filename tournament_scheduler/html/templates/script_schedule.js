@@ -236,6 +236,13 @@ function render() {
     var confirmationBadge = (!manual && confirmationRequired)
       ? '<div class="manual-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>KREVER VERTSSBEKREFTELSE</div>'
       : '';
+    var guestBadge = '';
+    if (t.gs && (t.gs.o || t.gs.f)) {
+      var guestParts = [];
+      if (t.gs.o) guestParts.push(t.gs.o === 1 ? '1 ledig gjesteplass' : t.gs.o + ' ledige gjesteplasser');
+      if (t.gs.f) guestParts.push(t.gs.f === 1 ? '1 gjesteplass fylt' : t.gs.f + ' gjesteplasser fylt');
+      guestBadge = '<div class="guest-badge">' + guestParts.join(' \u00b7 ') + '</div>';
+    }
     var approvalBadge = '';
     if (t.ap === 'approved') {
       approvalBadge = '<div class="approval-badge' + (t.apl ? ' approval-badge--locked' : '') + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>GODKJENT' + (t.apl ? ' · LÅST' : '') + '</div>';
@@ -244,6 +251,7 @@ function render() {
     }
     html += '<div class="tournament-card' + cancelledClass + manualClass + '" onclick="this.classList.toggle(\'expanded\')">' +
       approvalBadge +
+      guestBadge +
       manualBadge +
       confirmationBadge +
       cancelledBadge +

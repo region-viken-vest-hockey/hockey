@@ -20,6 +20,34 @@ SEASON_PLAN_SCHEMA_VERSION = 1
 logger = logging.getLogger(__name__)
 
 
+def _decode_guest_slots(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Decode a tournament's reserved guest places from a persisted payload.
+
+    ``guest_slots`` is authoritative. A payload that only carries the legacy
+    integer ``reserved_guest_slots`` is normalized into that many ``open``
+    reservations so the simple operator-facing shape and the richer record
+    list never disagree.
+    """
+
+    raw = data.get("guest_slots")
+    if isinstance(raw, list):
+        records: list[dict[str, Any]] = []
+        for record in raw:
+            if isinstance(record, dict):
+                records.append(dict(record))
+        if records:
+            return records
+    legacy = data.get("reserved_guest_slots", 0)
+    try:
+        count = int(legacy)
+    except (TypeError, ValueError):
+        count = 0
+    return [
+        {"id": f"guest:{index + 1}", "status": "open"}
+        for index in range(max(0, count))
+    ]
+
+
 class SeasonPlanCodec:
     """Public codec for stable ``SeasonPlan <-> dict`` conversion."""
 
@@ -38,6 +66,11 @@ class SeasonPlanCodec:
         for tournament in plan.tournaments:
             known_tournament_ids.update(tournament.derived_from or [])
             for team in tournament.teams:
+                # A filled guest place is a game participant but not an RVV
+                # season participation, so it must never enter the
+                # participation projection.
+                if team.guest:
+                    continue
                 participations[team.label] = participations.get(team.label, 0) + 1
 
         checkpoint: dict[str, Any] = {
@@ -131,6 +164,8 @@ class SeasonPlanCodec:
         payload: dict[str, Any] = {"club": team.club, "label": team.label, "age_group": team.age_group}
         if team.target_tournament_count is not None:
             payload["target_tournament_count"] = team.target_tournament_count
+        if team.guest:
+            payload["guest"] = True
         return payload
 
     @classmethod
@@ -160,6 +195,17 @@ class SeasonPlanCodec:
             payload["requires_host_confirmation"] = True
         if tournament.host_confirmation_reason:
             payload["host_confirmation_reason"] = tournament.host_confirmation_reason
+        if tournament.guest_slots:
+            # `guest_slots` is authoritative; `reserved_guest_slots` is a
+            # derived readability convenience so an operator can see at a
+            # glance how many places are reserved.
+            payload["guest_slots"] = [dict(record) for record in tournament.guest_slots]
+            active = [
+                record
+                for record in tournament.guest_slots
+                if str(record.get("status") or "open") in ("open", "filled")
+            ]
+            payload["reserved_guest_slots"] = len(active)
         return payload
 
     @staticmethod
@@ -219,6 +265,7 @@ class SeasonPlanCodec:
             "manual_booking_reason": data.get("manual_booking_reason"),
             "requires_host_confirmation": bool(data.get("requires_host_confirmation", False)),
             "host_confirmation_reason": data.get("host_confirmation_reason"),
+            "guest_slots": _decode_guest_slots(data),
         }
         return Tournament(**kwargs)
 
@@ -229,6 +276,7 @@ class SeasonPlanCodec:
             label=data["label"],
             age_group=data["age_group"],
             target_tournament_count=data.get("target_tournament_count"),
+            guest=bool(data.get("guest", False)),
         )
 
 

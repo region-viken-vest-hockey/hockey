@@ -558,6 +558,11 @@ def evaluate_participation(
         for team in tournament.get("teams", []) or []:
             if not isinstance(team, Mapping) or not team.get("label"):
                 continue
+            # A filled guest place is a game participant, not an RVV season
+            # participation: it must never enter the counts the fairness and
+            # target-deviation evidence is derived from.
+            if team.get("guest"):
+                continue
             identity = (
                 str(team.get("club") or ""),
                 str(team.get("label") or ""),

@@ -90,6 +90,21 @@ def capacity_and_config_rule_entries(planner) -> List[Dict[str, str]]:
         })
 
     entries.append({
+        "regel": "Reserverte gjesteplasser teller som kapasitet, ikke som RVV-deltakelse",
+        "forklaring": (
+            "En turnering kan reservere én eller flere plasser til et gjestelag fra en annen liga/region. "
+            "En reservert plass teller med i turneringens kapasitet, rundeantall og istidsform, men "
+            "aldri som et RVV-lag: den påvirker ikke deltakelsesmål, hjemmeturneringsfordeling, "
+            "reise- eller fairnesstall. En åpen reservering er derfor en bevisst avtalt plass, ikke en "
+            "underfylt turnering -- og deltakeroptimalisering/repair kan ikke fylle den med et RVV-lag. "
+            "Vertsrepresentasjon krever fortsatt et reelt deltakende lag fra vertsklubben. "
+            "Et fylt gjestelag lagres som gjest (ikke et registrert sesonglag) og kampene regenereres når "
+            "plassen fylles eller friggis."
+        ),
+        "kategori": "Hard krav",
+    })
+
+    entries.append({
         "regel": "Sesongen deles i to uavhengige planleggingshalvdeler (før/etter jul)",
         "forklaring": (
             f"Nyttårsskillet ({planning_half.half_label('before_christmas')}/"

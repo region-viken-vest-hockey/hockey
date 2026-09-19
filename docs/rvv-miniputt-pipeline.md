@@ -137,6 +137,11 @@ scripts/rvv-miniputt season revoke-acceptance --season 2026-2027 --finding <find
 scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
 scripts/rvv-miniputt season unapprove --season 2026-2027 --tournament-id <id> --note "booking changed"
 scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
+scripts/rvv-miniputt season guest-report --season 2026-2027
+scripts/rvv-miniputt season guest-candidates --season 2026-2027 --age-groups JU10,JU12
+scripts/rvv-miniputt season guest-reserve --season 2026-2027 --tournament-id <id> --note "external league team may apply"
+scripts/rvv-miniputt season guest-fill --season 2026-2027 --tournament-id <id> --external-club "<club>" --external-label "<team>"
+scripts/rvv-miniputt season guest-release --season 2026-2027 --tournament-id <id> --replacement-label "<rvv team>"
 scripts/rvv-miniputt season replan --season 2026-2027 --iterations 4000
 scripts/rvv-miniputt season diff --season 2026-2027 --candidate <candidate.json>
 scripts/rvv-miniputt season apply --season 2026-2027 --candidate <candidate.json>
@@ -170,6 +175,18 @@ Approval lives in `decisions.json`, separate from schedule facts.
 ### Targeted changes
 
 Use `season move` for one known placement change. It preserves durable ID and rejects locked tournaments until explicitly unapproved. The move clones canonical state, applies only the requested date/arena/host/start-time fields, rejects default cross-half moves, verifies the complete candidate before writing, and records old/new placement plus before/after fingerprints in decisions history. Add `--dry-run` to perform the same validation without mutating `schedule.json` or `decisions.json`.
+
+### Reserved guest places
+
+A tournament may reserve one or more places for a team from another league/region. A reservation is first-class canonical state (`guest_slots` records with an `open`/`filled`/`released` lifecycle plus a derived `reserved_guest_slots` count): it counts toward capacity/ice-time shape, but never as an RVV season participant, so participation targets, hosting, fairness, travel and team counts are unaffected. An open reservation is therefore an intentional place, not an underfilled tournament, and participant optimization/repair cannot consume it.
+
+- `season guest-candidates` returns deterministic per-tournament facts (free places, existing reservations, half, approval/lock state, displaceable participants) and a spread-aware ranking -- the operator/harness chooses which legal tournaments receive reservations, and the choice is recorded in the controller/decision evidence.
+- `season guest-reserve` reserves spare capacity without removing a real team. On a full tournament no participant is dropped arbitrarily: the caller must name displaced team(s) from the candidate facts, and host representation must survive independent verification. A resulting participation shortfall stays explicit.
+- `season guest-fill` accepts an external team into an open reservation. The team is stored as a `guest` participant, never a registered RVV season team; games and derived state are regenerated and independently verified.
+- `season guest-release` withdraws a reservation, optionally filling it with a real RVV team (`--replacement-label`). A release that would leave an unverifiable underfilled tournament is refused.
+- `season guest-report` shows every reservation and its open/filled/released status.
+
+Reservations respect approval/participant locks: a locked tournament must be explicitly unapproved first. They survive later replanning/repair -- `season apply` refuses a candidate that would silently change or drop a reservation -- until deliberately filled or released. `season_plan.html` shows an open place as "N ledige gjesteplasser" and a filled place as a guest participant, and the semantic-audit evidence carries a `guest_reservations` category.
 
 For broader quality/placement repair, use `season replan`, inspect `season diff`, then `season apply`. Search starts from canonical state, honors locks and includes weighted change cost so published-but-unapproved tournaments are not churned gratuitously.
 

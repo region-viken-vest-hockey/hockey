@@ -164,6 +164,12 @@ EVIDENCE_CATEGORIES: dict[str, dict[str, Any]] = {
         "unresolved": False,
         "severity": "info",
     },
+    "guest_reservations": {
+        "description": "Reserved guest places and their open/filled/released lifecycle status.",
+        "checklist_item": 3,
+        "unresolved": False,
+        "severity": "info",
+    },
     "underfilled_tournaments": {
         "description": "Tournaments below their configured full-capacity game count.",
         "checklist_item": 4,
@@ -572,6 +578,26 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
                 summary=(
                     f"{_tournament_label(row)}: input-constrained shape "
                     f"(effective_team_count={row.get('effective_team_count')})"
+                ),
+                detail=row,
+                tournament_id=row.get("id"),
+                age_group=row.get("age_group"),
+            )
+        )
+
+    for row in _as_list(facts.get("guest_reservations")):
+        if not isinstance(row, dict):
+            continue
+        slots = _as_list(row.get("slots"))
+        open_count = sum(1 for slot in slots if isinstance(slot, dict) and slot.get("status") == "open")
+        filled_count = sum(1 for slot in slots if isinstance(slot, dict) and slot.get("status") == "filled")
+        released_count = sum(1 for slot in slots if isinstance(slot, dict) and slot.get("status") == "released")
+        records.append(
+            _record(
+                category="guest_reservations",
+                summary=(
+                    f"{_tournament_label(row)}: {open_count} open, {filled_count} filled, "
+                    f"{released_count} released guest place(s)"
                 ),
                 detail=row,
                 tournament_id=row.get("id"),

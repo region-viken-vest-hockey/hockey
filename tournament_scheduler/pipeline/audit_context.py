@@ -19,6 +19,14 @@ from pathlib import Path
 from typing import Any
 
 from ..effective_tournament_shape import compute_effective_tournament_shape, shape_violation
+from ..guest_slots import (
+    active_guest_slot_count,
+    guest_slot_records,
+    has_open_guest_slots,
+    is_guest_team,
+    open_guest_slot_count,
+    rvv_team_count,
+)
 from ..host_representation import clubs_represent_same_club
 from ..plan_derived_state import (
     publication_readiness_with_plan_placements,
@@ -365,7 +373,13 @@ def _collect_plan_audit_facts(
             }
         )
         teams = [team for team in tournament.get("teams") or [] if isinstance(team, dict)]
-        team_count = len(teams)
+        rvv_teams = [team for team in teams if not is_guest_team(team)]
+        # Capacity/fullness counts real RVV participants plus active guest
+        # reservations; a guest is never an RVV participant. An open
+        # reservation deliberately leaves a place unfilled, so it is reported
+        # as provisional rather than as an accidental underfilled tournament.
+        team_count = rvv_team_count(tournament) + active_guest_slot_count(tournament)
+        open_reservations = open_guest_slot_count(tournament)
         configured_capacity = None
         if isinstance(config_checkpoint, dict):
             pg = (config_checkpoint.get("parallel_games") or {}).get(age_group)
@@ -377,12 +391,21 @@ def _collect_plan_audit_facts(
         utilisation_row = {
             **_tournament_ref(tournament),
             "team_count": team_count,
+            "rvv_team_count": rvv_team_count(tournament),
+            "reserved_guest_slots": active_guest_slot_count(tournament),
+            "open_guest_slots": open_reservations,
             "game_count": len(games),
             "configured_parallel_game_capacity": configured_capacity,
             "full_capacity_game_count": max_full_game_count,
             "bye_rounds": {str(k): v for k, v in bye_rounds.items()},
             "pause_team_count": sum(len(v) for v in bye_rounds.values()),
-            "underfilled": bool(team_count and max_full_game_count and len(games) < max_full_game_count),
+            "provisional_games": bool(open_reservations),
+            "underfilled": bool(
+                not open_reservations
+                and team_count
+                and max_full_game_count
+                and len(games) < max_full_game_count
+            ),
         }
         utilisation_examples.append(utilisation_row)
         if utilisation_row["underfilled"]:
@@ -394,7 +417,8 @@ def _collect_plan_audit_facts(
                 configured_rounds=rounds_per_tournament.get(age_group),
                 parallel_game_capacity=configured_capacity // 2 if configured_capacity else None,
             )
-            bye_round_count = len(bye_rounds)
+            # A reservation's byes are intentional, matching the verifier.
+            bye_round_count = 0 if has_open_guest_slots(tournament) else len(bye_rounds)
             if shape_violation(shape, team_count, bye_round_count):
                 blocking_byes.append({**utilisation_row, "required_team_count": shape.effective_team_count})
             elif shape.input_constrained and team_count == shape.effective_team_count:
@@ -411,8 +435,11 @@ def _collect_plan_audit_facts(
     team_day_counts: Counter[tuple[str, str]] = Counter()
     for tournament in tournaments:
         teams = [team for team in tournament.get("teams") or [] if isinstance(team, dict)]
+        rvv_teams = [team for team in teams if not is_guest_team(team)]
         host_club = tournament.get("host_club")
-        participant_clubs = [team.get("club") for team in teams]
+        # Host representation, club clustering and same-date double-booking are
+        # RVV-roster facts: an external guest is deliberately excluded.
+        participant_clubs = [team.get("club") for team in rvv_teams]
         if host_club and not any(
             clubs_represent_same_club(str(participant_club), str(host_club))
             for participant_club in participant_clubs
@@ -425,7 +452,7 @@ def _collect_plan_audit_facts(
                 }
             )
 
-        club_counts = Counter(str(team.get("club") or "") for team in teams if team.get("club"))
+        club_counts = Counter(str(team.get("club") or "") for team in rvv_teams if team.get("club"))
         if club_counts:
             max_count = max(club_counts.values())
             max_club_count_by_tournament[max_count] += 1
@@ -441,7 +468,7 @@ def _collect_plan_audit_facts(
                 )
 
         date = str(tournament.get("date") or "")
-        for team in teams:
+        for team in rvv_teams:
             team_day_counts[(_team_key(team), date)] += 1
 
     duplicate_team_days = [
@@ -450,6 +477,22 @@ def _collect_plan_audit_facts(
         if date and count > 1
     ]
     duplicate_team_days.sort(key=lambda item: (-int(item["participations"]), item["date"], item["team"]))
+
+    # Reserved guest places, open/filled/released, so the semantic audit can
+    # tell an intentional guest reservation apart from an underfilled
+    # tournament and verify the lifecycle evidence is internally consistent.
+    guest_reservations: list[dict[str, Any]] = []
+    for tournament in tournaments:
+        records = guest_slot_records(tournament)
+        if not records:
+            continue
+        guest_reservations.append(
+            {
+                **_tournament_ref(tournament),
+                "rvv_team_count": rvv_team_count(tournament),
+                "slots": records,
+            }
+        )
 
     duration_examples.sort(
         key=lambda item: (
@@ -472,6 +515,7 @@ def _collect_plan_audit_facts(
         "blocking_byes": blocking_byes,
         "input_constrained_shape_examples": input_constrained_shape_examples,
         "underfilled_by_age": dict(sorted(underfilled_by_age.items())),
+        "guest_reservations": guest_reservations,
         "host_missing": host_missing,
         "duplicate_team_days": duplicate_team_days,
         "club_count_over_two": club_count_over_two,
@@ -570,6 +614,23 @@ def _summarize_plan_facts(facts: dict[str, Any]) -> dict[str, Any]:
             "underfilled_count": sum(1 for row in facts["utilisation_examples"] if row.get("underfilled")),
             "examples": facts["utilisation_examples"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
             "evidence_ref": "operator audit-evidence --category blocking_byes",
+        },
+        "guest_reservation_summary": {
+            "reserved_tournament_count": len(facts["guest_reservations"]),
+            "open_slots": sum(
+                1
+                for row in facts["guest_reservations"]
+                for slot in row.get("slots", [])
+                if isinstance(slot, dict) and slot.get("status") == "open"
+            ),
+            "filled_slots": sum(
+                1
+                for row in facts["guest_reservations"]
+                for slot in row.get("slots", [])
+                if isinstance(slot, dict) and slot.get("status") == "filled"
+            ),
+            "examples": facts["guest_reservations"][:audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
+            "evidence_ref": "operator audit-evidence --category guest_reservations",
         },
         "duration_summary": {
             "min_minutes": min(duration_values) if duration_values else None,

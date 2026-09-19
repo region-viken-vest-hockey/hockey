@@ -64,6 +64,9 @@ __all__ = [
     "decisions_path",
     "effective_config_from_verification_problem",
     "export_context_path",
+    "fill_guest_slot",
+    "guest_slot_candidates",
+    "guest_slot_report",
     "load_decisions",
     "load_export_context",
     "load_json",
@@ -74,6 +77,8 @@ __all__ = [
     "planning_checkpoint_from_schedule",
     "promote_from_stage3",
     "record_participation_acceptance",
+    "release_guest_slot",
+    "reserve_guest_slot",
     "revoke_participation_acceptance",
     "schedule_fingerprint",
     "schedule_path",
@@ -225,6 +230,7 @@ def apply_candidate(
     problem: dict[str, Any] | None = None,
     actor: str | None = None,
     change_weights: dict[str, float] | None = None,
+    allow_guest_slot_changes: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     """Apply a verified replan candidate to canonical season state."""
 
@@ -234,6 +240,7 @@ def apply_candidate(
         problem=problem,
         actor=actor,
         change_weights=change_weights,
+        allow_guest_slot_changes=allow_guest_slot_changes,
     )
 
 
@@ -245,6 +252,111 @@ def approval_report(
     """Read-only approval/lock status for every canonical tournament."""
 
     return _service(root).approval_report(season)
+
+
+
+def guest_slot_report(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+) -> dict[str, Any]:
+    """Read-only lifecycle status of every reserved guest place."""
+
+    return _service(root).guest_slot_report(season)
+
+
+def guest_slot_candidates(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    age_groups: list[str] | tuple[str, ...] | None = None,
+    max_per_tournament: int = 1,
+    problem: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Deterministic candidate facts for a policy-level reservation request."""
+
+    return _service(root).guest_slot_candidates(
+        season=season,
+        age_groups=age_groups,
+        max_per_tournament=max_per_tournament,
+        problem=problem,
+    )
+
+
+def reserve_guest_slot(
+    *,
+    season: str,
+    tournament_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    count: int = 1,
+    displaced_teams: list[str] | None = None,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Reserve one or more guest places on one canonical tournament."""
+
+    return _service(root).reserve_guest_slot(
+        season=season,
+        tournament_id=tournament_id,
+        count=count,
+        displaced_teams=displaced_teams,
+        problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+    )
+
+
+def fill_guest_slot(
+    *,
+    season: str,
+    tournament_id: str,
+    slot_id: str | None,
+    external_team: dict[str, Any],
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Accept an external team into a reserved place and regenerate games."""
+
+    return _service(root).fill_guest_slot(
+        season=season,
+        tournament_id=tournament_id,
+        slot_id=slot_id,
+        external_team=external_team,
+        problem=problem,
+        actor=actor,
+        note=note,
+    )
+
+
+def release_guest_slot(
+    *,
+    season: str,
+    tournament_id: str,
+    slot_id: str | None = None,
+    replacement_team: dict[str, Any] | None = None,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Release a reservation, optionally filling it with a real RVV team."""
+
+    return _service(root).release_guest_slot(
+        season=season,
+        tournament_id=tournament_id,
+        slot_id=slot_id,
+        replacement_team=replacement_team,
+        problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+    )
 
 
 def normalize_placements(

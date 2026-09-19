@@ -72,6 +72,11 @@ class Team:
     label: str  # e.g. "Jar 1", "Jar 2"
     age_group: str  # e.g. "U10", "JU11"
     target_tournament_count: Optional[int] = None  # per-team override for the tournament-count target (None = use default)
+    # True when this is an external guest participant that filled a reserved
+    # guest slot. A guest is a real game participant, but it is deliberately
+    # NOT part of the registered RVV season roster, so participation,
+    # hosting, fairness and travel metrics must exclude it.
+    guest: bool = False
 
     @property
     def name(self) -> str:
@@ -179,6 +184,20 @@ class Tournament:
     # Human-readable explanation of what must be moved (the movable event
     # title and the configured reason), for review/audit output.
     host_confirmation_reason: Optional[str] = None
+    # First-class reserved guest places on this tournament (see
+    # `guest_slots.py`). Each record is one place with a lifecycle status
+    # (open/filled/released) plus optional external-team metadata. An active
+    # reservation counts toward the tournament's capacity/ice-time shape but
+    # never toward RVV participation, hosting or fairness.
+    guest_slots: List[Dict[str, object]] = field(default_factory=list)
+
+    @property
+    def reserved_guest_slots(self) -> int:
+        """Number of active (open or filled) reserved guest places."""
+
+        from tournament_scheduler.guest_slots import active_guest_slot_count
+
+        return active_guest_slot_count(self)
 
     def duration_minutes(self, round_length: int) -> int:
         """Return the total tournament play time in minutes.

@@ -120,7 +120,7 @@ def _normalized_approval_payload(tournament: Dict[str, Any]) -> Dict[str, Any]:
         for game in tournament.get("games", []) or []
         if isinstance(game, dict)
     )
-    return {
+    payload = {
         "id": str(tournament.get("id") or ""),
         "age_group": tournament.get("age_group"),
         "date": tournament.get("date"),
@@ -130,6 +130,20 @@ def _normalized_approval_payload(tournament: Dict[str, Any]) -> Dict[str, Any]:
         "teams": [list(identity) for identity in teams],
         "games": [list(game) for game in games],
     }
+    # A reserved guest place is durable capacity state, so an approval must be
+    # invalidated by a reservation change even when the provisional game list
+    # happens to be identical (an open place does not change the RVV games).
+    # Only added when reservations exist, so pre-existing approvals keep the
+    # exact same fingerprint.
+    active_reservations = sorted(
+        (str(record.get("id") or ""), str(record.get("status") or "open"))
+        for record in (tournament.get("guest_slots") or [])
+        if isinstance(record, dict)
+        and str(record.get("status") or "open") in ("open", "filled")
+    )
+    if active_reservations:
+        payload["guest_slots"] = [list(entry) for entry in active_reservations]
+    return payload
 
 
 def approval_fingerprint(tournament: Dict[str, Any]) -> str:

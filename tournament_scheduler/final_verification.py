@@ -14,6 +14,7 @@ from typing import Any
 
 from tournament_scheduler.host_representation import constituent_clubs
 from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
+from tournament_scheduler.guest_slots import capacity_places, has_open_guest_slots
 from tournament_scheduler.limited_rounds import minimum_same_club_games_for_limited_rounds
 from tournament_scheduler.models import Team
 from tournament_scheduler.participation_targets import INTRA_CLUB_DISTRIBUTION
@@ -56,6 +57,12 @@ def _check_games(
         return violations
 
     age_group = str(tournament.get("age_group") or "")
+    # While a guest place is still open the pairings against that unknown team
+    # cannot exist yet, so the games are explicitly provisional: participant
+    # and round integrity of the games that DO exist is still verified, but a
+    # missing pair or an unfinished round count is not a defect until the
+    # slot is filled (or released).
+    provisional = has_open_guest_slots(tournament)
     rounds_per_tournament = (problem or {}).get("rounds_per_tournament") or {}
     configured_rounds = rounds_per_tournament.get(age_group)
     limited_rounds = isinstance(configured_rounds, int) and configured_rounds > 0
@@ -105,10 +112,16 @@ def _check_games(
             continue
 
         actual[tuple(sorted((home, away)))] += 1
-        home_club = str(team_by_label.get(home, {}).get("club") or "")
-        away_club = str(team_by_label.get(away, {}).get("club") or "")
+        home_team = team_by_label.get(home, {})
+        away_team = team_by_label.get(away, {})
+        home_club = str(home_team.get("club") or "")
+        away_club = str(away_team.get("club") or "")
+        # A guest is not part of the RVV club-clustering picture, so a guest
+        # sharing a club name with an RVV participant is not a same-club game.
         if (
-            home_club
+            not home_team.get("guest")
+            and not away_team.get("guest")
+            and home_club
             and away_club
             and set(constituent_clubs(home_club)) & set(constituent_clubs(away_club))
         ):
@@ -159,7 +172,7 @@ def _check_games(
             for g in (tournament.get("games") or [])
             if isinstance(g, dict)
         }
-        if actual_rounds and max(actual_rounds) != expected_limited_rounds:
+        if not provisional and actual_rounds and max(actual_rounds) != expected_limited_rounds:
             _add(
                 violations,
                 "configured_round_count_mismatch",
@@ -183,14 +196,14 @@ def _check_games(
                 int(parallel),
                 int(expected_limited_rounds or configured_rounds),
             )
-            if same_club_count > min_same:
+            if not provisional and same_club_count > min_same:
                 _add(
                     violations,
                     "avoidable_same_club_matchup",
                     f"Tournament {tid} has {same_club_count} same-club game(s); minimum is {min_same}",
                     tid,
                 )
-    elif missing:
+    elif missing and not provisional:
         _add(
             violations,
             "round_robin_missing_pair",
@@ -320,7 +333,7 @@ def verify_final_candidate(
             continue
         tid = str(tournament.get("id") or "?")
         age_group = str(tournament.get("age_group") or "")
-        team_count = len(tournament.get("teams") or [])
+        team_count = capacity_places(tournament)
         if (
             registered_by_age.get(age_group, 0) >= MIN_TEAMS_PER_TOURNAMENT
             and team_count < MIN_TEAMS_PER_TOURNAMENT

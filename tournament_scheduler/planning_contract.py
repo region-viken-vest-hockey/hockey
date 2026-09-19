@@ -51,6 +51,12 @@ from tournament_scheduler.date_policy import (
     problem_date_exclusions as _problem_date_exclusions,
 )
 from tournament_scheduler.host_representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
+from tournament_scheduler.guest_slots import (
+    capacity_places as _capacity_places,
+    has_open_guest_slots as _has_open_guest_slots,
+    is_guest_team as _is_guest_team,
+    rvv_teams as _rvv_teams,
+)
 from tournament_scheduler.effective_tournament_shape import (
     NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP,
     compute_effective_tournament_shape,
@@ -754,13 +760,21 @@ def verify_candidate(
                     f"{t_id} age group {t.get('age_group')}",
                     t_id,
                 )
+            # A filled guest place is a real game participant but not an RVV
+            # season participant: it must not count toward participation
+            # fairness, same-date double-booking or the club-team ceiling.
+            if _is_guest_team(team):
+                continue
             participations[identity] = participations.get(identity, 0) + 1
             team_dates.setdefault(identity, []).append((t_date, t_id))
             club = identity[0]
             if club:
                 club_counts_this_tournament[club] = club_counts_this_tournament.get(club, 0) + 1
 
-        team_count = len(t.get("teams", []))
+        # Capacity/shape counts real RVV participants plus every active
+        # reserved guest place (open or filled); a guest reservation does not
+        # add an RVV participant but does occupy a place.
+        team_count = _capacity_places(t)
         team_labels = [
             str(team.get("label"))
             for team in t.get("teams", [])
@@ -792,7 +806,10 @@ def verify_candidate(
         if problem is None:
             required_team_count = NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP.get(str(t.get("age_group") or ""))
             invalid_exact_count = required_team_count is not None and team_count != required_team_count
-            if team_count % 2 == 1 or bye_rounds or invalid_exact_count:
+            # An open reservation intentionally leaves a place unfilled, so the
+            # byes it produces are not avoidable underscheduling.
+            avoidable_byes = bye_rounds and not _has_open_guest_slots(t)
+            if team_count % 2 == 1 or avoidable_byes or invalid_exact_count:
                 requirement = (
                     f"exactly {required_team_count} teams"
                     if required_team_count is not None
@@ -805,7 +822,9 @@ def verify_candidate(
                     t_id,
                 )
         else:
-            bye_round_shapes.setdefault(t_id, len(bye_rounds))
+            bye_round_shapes.setdefault(
+                t_id, 0 if _has_open_guest_slots(t) else len(bye_rounds)
+            )
 
         # issue #326: a hard ceiling, independent of any fairness/host/
         # objective trade-off -- 4+ teams from one club in one tournament is
@@ -920,6 +939,8 @@ def verify_candidate(
             continue
         t_id = str(t.get("id", "?"))
         for team in t.get("teams", []):
+            if _is_guest_team(team):
+                continue
             identity = _team_identity(team)
             participation_ids_by_half[half].setdefault(identity, []).append(t_id)
 
@@ -1089,7 +1110,7 @@ def verify_candidate(
             configured_rounds=rounds_per_tournament.get(shape_age_group),
             parallel_game_capacity=parallel_games_capacity.get(shape_age_group),
         )
-        actual_team_count = len(t.get("teams", []))
+        actual_team_count = _capacity_places(t)
         actual_bye_round_count = bye_round_shapes.get(t_id, 0)
         if shape_violation(shape, actual_team_count, actual_bye_round_count):
             requirement = (
@@ -1116,7 +1137,7 @@ def verify_candidate(
         # already independently catches any regression in host/participant
         # derivation upstream (baseline planner, Stage 3 optimizer, CP-SAT)
         # without needing a second, separate check for the same invariant.
-        if host_club and _host_eligible_teams(problem.get("teams", []), host_club, (age_group := t.get("age_group"))) and not _host_represented_in(t.get("teams", []), host_club):
+        if host_club and _host_eligible_teams(problem.get("teams", []), host_club, (age_group := t.get("age_group"))) and not _host_represented_in(_rvv_teams(t), host_club):
             _violate("host_team_missing", f"Tournament {t_id} host {host_club!r} has an eligible team in {age_group} but none participates", t_id)
 
         # A host club with no trustworthy calendar evidence this run
@@ -1141,7 +1162,7 @@ def verify_candidate(
             )
 
         max_teams = parallel_games.get(t.get("age_group"))
-        team_count = len(t.get("teams", []))
+        team_count = _capacity_places(t)
         if isinstance(max_teams, int) and max_teams > 0 and team_count > max_teams * 2:
             _violate(
                 "tournament_over_capacity",
@@ -1152,6 +1173,10 @@ def verify_candidate(
 
         for team in t.get("teams", []):
             identity = _team_identity(team)
+            if _is_guest_team(team):
+                # A guest is deliberately not a registered RVV season team, so
+                # it must not be rejected as `unregistered_team`.
+                continue
             if valid_teams and identity not in valid_teams:
                 _violate(
                     "unregistered_team",
@@ -1403,7 +1428,7 @@ def score_candidate(
     participations: Dict[TeamIdentity, int] = {}
     for t in tournaments:
         for team in t.get("teams", []):
-            if team.get("label"):
+            if team.get("label") and not _is_guest_team(team):
                 identity = _team_identity(team)
                 participations[identity] = participations.get(identity, 0) + 1
     counts = list(participations.values())
@@ -1434,7 +1459,7 @@ def score_candidate(
     teams_by_age_group: Dict[Optional[str], set[TeamIdentity]] = {}
 
     for t in tournaments:
-        teams = t.get("teams", [])
+        teams = [team for team in t.get("teams", []) if not _is_guest_team(team)]
         age_group = t.get("age_group")
         teams_by_age_group.setdefault(age_group, set()).update(_team_identity(tm) for tm in teams)
 
@@ -1482,6 +1507,8 @@ def score_candidate(
     for t in tournaments:
         club_counts: Dict[str, int] = {}
         for team in t.get("teams", []):
+            if _is_guest_team(team):
+                continue
             club = team.get("club")
             if club:
                 club_counts[club] = club_counts.get(club, 0) + 1
