@@ -1559,6 +1559,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 dry_run=args.dry_run,
                 allow_cross_half=args.allow_cross_half,
                 run_id=move_run_id,
+                request_id=args.request_id,
             )
             if args.json:
                 print(_json.dumps(schedule, ensure_ascii=False, indent=2, sort_keys=True))

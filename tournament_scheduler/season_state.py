@@ -167,6 +167,7 @@ def move_tournament(
     dry_run: bool = False,
     allow_cross_half: bool = False,
     run_id: str | None = None,
+    request_id: str | None = None,
 ) -> dict[str, Any]:
     """Apply or preview a bounded placement mutation to canonical state."""
 
@@ -183,6 +184,7 @@ def move_tournament(
         dry_run=dry_run,
         allow_cross_half=allow_cross_half,
         run_id=run_id,
+        request_id=request_id,
     )
 
 

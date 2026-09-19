@@ -1066,6 +1066,7 @@ def build_parser() -> argparse.ArgumentParser:
     season_move.add_argument("--start-time", default=None, help="New start time/placement value")
     season_move.add_argument("--actor", default=None, help="Operator identity")
     season_move.add_argument("--note", default="", help="Move note/reason for decisions history")
+    season_move.add_argument("--request-id", default=None, help="Stable source/request id recorded on automatic change protections")
     season_move.add_argument("--dry-run", action="store_true", help="Validate and preview the move without writing canonical state")
     season_move.add_argument(
         "--allow-cross-half",

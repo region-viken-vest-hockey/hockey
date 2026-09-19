@@ -45,6 +45,7 @@ from tournament_scheduler.change_protections import (
     RELEASED as CHANGE_PROTECTION_RELEASED,
     active_change_protections,
     append_change_protections,
+    build_move_protections,
     build_swap_protections,
     protection_violations,
 )
@@ -533,6 +534,7 @@ class CanonicalSeasonService:
         dry_run: bool = False,
         allow_cross_half: bool = False,
         run_id: str | None = None,
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         """Apply or preview a bounded placement mutation to canonical state."""
 
@@ -629,9 +631,25 @@ class CanonicalSeasonService:
                 f"Refusing canonical mutation: candidate fails hard verification: {messages}"
             )
         reconcile_plan_derived_state(plan, result, problem=problem)
+        existing_protection_violations = protection_violations(plan, decisions)
 
         now = _now_iso()
         fingerprint = schedule_fingerprint(plan)
+        new_placement = new_placement
+        changed_placement_fields = {
+            field: new_placement.get(field)
+            for field in ("date", "arena", "host_club", "start_time")
+            if original_placement.get(field) != new_placement.get(field)
+        }
+        new_protections = build_move_protections(
+            tournament_id=tournament_id,
+            changed_fields=changed_placement_fields,
+            request_id=str(request_id or ""),
+            actor=_operator_identity(actor),
+            note=note,
+            created_at=now,
+            source_revision=before_canonical_revision,
+        )
         updated_schedule = dict(schedule)
         updated_schedule.update(
             {
@@ -646,14 +664,26 @@ class CanonicalSeasonService:
             updated_schedule["move_preview"] = {
                 "tournament_id": tournament_id,
                 "old_placement": original_placement,
-                "new_placement": _placement_snapshot(moved_tournament or target),
+                "new_placement": new_placement,
                 "before_fingerprint": before_fingerprint,
                 "after_fingerprint": fingerprint,
                 "before_canonical_revision": before_canonical_revision,
                 "verification_result": result,
                 "run_id": run_id,
+                "existing_change_protection_violations": existing_protection_violations,
+                "change_protection_acceptable": not existing_protection_violations,
+                "protections_to_add": new_protections,
+                "request_id": str(request_id or ""),
             }
             return updated_schedule
+
+        if existing_protection_violations:
+            messages = "; ".join(
+                str(item.get("message")) for item in existing_protection_violations
+            )
+            raise SeasonStateError(
+                "Refusing canonical move: it would undo an accepted change: " + messages
+            )
 
         updated_decisions = dict(decisions)
         updated_decisions["schedule_fingerprint"] = fingerprint
@@ -661,6 +691,7 @@ class CanonicalSeasonService:
         updated_decisions["decisions"] = _reconcile_decisions(
             updated_decisions.get("decisions", {}), plan, now=now
         )
+        append_change_protections(updated_decisions, new_protections)
         _append_decision_history(
             updated_decisions,
             event="move",
@@ -672,7 +703,7 @@ class CanonicalSeasonService:
             note=note,
             details={
                 "old_placement": original_placement,
-                "new_placement": _placement_snapshot(moved_tournament or target),
+                "new_placement": new_placement,
                 "before_fingerprint": before_fingerprint,
                 "after_fingerprint": fingerprint,
                 "before_canonical_revision": before_canonical_revision,
@@ -909,6 +940,7 @@ class CanonicalSeasonService:
             actor=_operator_identity(actor),
             note=note,
             created_at=protection_created_at,
+            source_revision=canonical_state_revision(schedule, decisions),
         )
         details = {
             "tournament_a_id": tournament_a_id,

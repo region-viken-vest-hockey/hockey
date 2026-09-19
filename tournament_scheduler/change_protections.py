@@ -16,6 +16,7 @@ ACTIVE = "active"
 RELEASED = "released"
 MUST_PARTICIPATE = "must_participate"
 MUST_NOT_PARTICIPATE = "must_not_participate"
+PLACEMENT_FIELD = "placement_field"
 
 
 def team_identity(team: Mapping[str, Any], fallback_age_group: str = "") -> tuple[str, str, str]:
@@ -32,7 +33,7 @@ def _protection_id(
     team: Mapping[str, Any],
     tournament_id: str,
     request_id: str,
-    created_at: str,
+    source_revision: str,
 ) -> str:
     digest = stable_payload_sha256(
         {
@@ -44,7 +45,7 @@ def _protection_id(
             },
             "tournament_id": tournament_id,
             "request_id": request_id,
-            "created_at": created_at,
+            "source_revision": source_revision,
         }
     )
     return f"change:{digest[:16]}"
@@ -60,6 +61,7 @@ def build_swap_protections(
     actor: str,
     note: str,
     created_at: str,
+    source_revision: str,
 ) -> list[dict[str, Any]]:
     """Protect both sides of an accepted A<->B roster swap."""
 
@@ -92,9 +94,55 @@ def build_swap_protections(
                 team=record["team"],
                 tournament_id=tournament_id,
                 request_id=request_id,
-                created_at=created_at,
+                source_revision=source_revision,
             )
             records.append(record)
+    return records
+
+
+def build_move_protections(
+    *,
+    tournament_id: str,
+    changed_fields: Mapping[str, Any],
+    request_id: str,
+    actor: str,
+    note: str,
+    created_at: str,
+    source_revision: str,
+) -> list[dict[str, Any]]:
+    """Protect only the placement fields an accepted move intentionally changed."""
+
+    records: list[dict[str, Any]] = []
+    for field in ("date", "arena", "host_club", "start_time"):
+        if field not in changed_fields:
+            continue
+        value = changed_fields[field]
+        synthetic_team = {
+            "club": "",
+            "label": f"{tournament_id}:{field}",
+            "age_group": "",
+        }
+        record = {
+            "kind": PLACEMENT_FIELD,
+            "status": ACTIVE,
+            "team": synthetic_team,
+            "tournament_id": tournament_id,
+            "field": field,
+            "value": value,
+            "request_id": request_id,
+            "created_at": created_at,
+            "created_by": actor,
+            "note": note or "",
+            "source_event": "move",
+        }
+        record["id"] = _protection_id(
+            kind=f"{PLACEMENT_FIELD}:{field}:{value}",
+            team=synthetic_team,
+            tournament_id=tournament_id,
+            request_id=request_id,
+            source_revision=source_revision,
+        )
+        records.append(record)
     return records
 
 
@@ -132,11 +180,20 @@ def protection_violations(
             )
         )
         kind = str(protection.get("kind") or "")
-        violated = (
-            kind == MUST_PARTICIPATE and not present
-        ) or (
-            kind == MUST_NOT_PARTICIPATE and present
-        )
+        if kind == PLACEMENT_FIELD:
+            field = str(protection.get("field") or "")
+            expected = protection.get("value")
+            actual = tournament.get(field) if tournament is not None else None
+            violated = tournament is None or actual != expected
+        else:
+            field = ""
+            expected = None
+            actual = None
+            violated = (
+                kind == MUST_PARTICIPATE and not present
+            ) or (
+                kind == MUST_NOT_PARTICIPATE and present
+            )
         if violated:
             violations.append(
                 {
@@ -146,9 +203,12 @@ def protection_violations(
                     "kind": kind,
                     "team": dict(team),
                     "tournament_id": tournament_id,
+                    "field": field or None,
+                    "expected": expected,
+                    "actual": actual,
                     "message": (
                         f"Accepted change protection {protection.get('id')} "
-                        f"({kind}) would be undone for {identity[1]} in {tournament_id}"
+                        f"({kind}) would be undone in {tournament_id}"
                     ),
                 }
             )
@@ -176,9 +236,11 @@ __all__ = [
     "ACTIVE",
     "MUST_NOT_PARTICIPATE",
     "MUST_PARTICIPATE",
+    "PLACEMENT_FIELD",
     "RELEASED",
     "active_change_protections",
     "append_change_protections",
+    "build_move_protections",
     "build_swap_protections",
     "protection_violations",
     "team_identity",

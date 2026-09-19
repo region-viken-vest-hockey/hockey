@@ -602,3 +602,62 @@ def test_participant_swap_protects_request_intent_until_explicit_release(tmp_pat
     )
     assert reversed_result["dry_run"] is False
     assert change_protection_report("2026-2027", root=root)["active_count"] == 4
+
+
+def test_move_protects_requested_placement_until_explicit_release(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    _stage_plan(state)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    moved = move_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        date="2026-09-13",
+        actor="tester",
+        request_id="club-move-1",
+        note="club cannot play 12 September",
+    )
+    assert moved["plan"]["tournaments"][0]["date"] == "2026-09-13"
+    report = change_protection_report("2026-2027", root=root)
+    assert report["active_count"] == 1
+    assert report["protections"][0]["kind"] == "placement_field"
+    assert report["protections"][0]["field"] == "date"
+    assert report["protections"][0]["value"] == "2026-09-13"
+
+    preview = move_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        date="2026-09-14",
+        dry_run=True,
+    )
+    assert preview["move_preview"]["change_protection_acceptable"] is False
+
+    with pytest.raises(SeasonStateError, match="undo an accepted change"):
+        move_tournament(
+            season="2026-2027",
+            tournament_id="u10-a-20260912",
+            root=root,
+            date="2026-09-14",
+        )
+
+    release_change_protections(
+        season="2026-2027",
+        root=root,
+        request_id="club-move-1",
+        actor="tester",
+        note="superseded by club-move-2",
+    )
+    moved_again = move_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        date="2026-09-14",
+        actor="tester",
+        request_id="club-move-2",
+        note="replacement request",
+    )
+    assert moved_again["plan"]["tournaments"][0]["date"] == "2026-09-14"
