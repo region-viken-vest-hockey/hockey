@@ -86,6 +86,14 @@ _NEXT_STEP_TEXT = {
     PHASE_COMPLETE: "No further automatic transition is pending.",
 }
 
+_CANONICAL_SEASON_CONVERGENCE_STEP = (
+    "The audited export is the promoted canonical season's own export, not an "
+    "unpromoted Stage 3 candidate: 'stage3 converge' has no candidate to converge "
+    "and must not be used here. Continue promoted-season maintenance with "
+    "'season findings' -> 'season repair-options' / bounded 'season search' -> "
+    "'season apply-repair' for one selected finding, then re-export and re-audit."
+)
+
 
 @dataclass
 class AuditWorkflow:
@@ -105,6 +113,14 @@ class AuditWorkflow:
     terminal_detail: str = ""
     updated_at: str = ""
     transitions: list[dict[str, Any]] = field(default_factory=list)
+    # Non-empty exactly when the current export is the promoted canonical
+    # season's own export (produced through `season export`), never a Stage 3
+    # pipeline candidate -- even one that happened to adopt the same season as
+    # its baseline. `season export` never touches the Stage3Session/candidate
+    # store, so `candidate_revision`/`candidate_fingerprint` above describe a
+    # *different*, unrelated run whenever this is set; a harness/command must
+    # not resume/converge that candidate on this workflow's behalf.
+    canonical_season: str = ""
 
     @property
     def is_pending(self) -> bool:
@@ -124,6 +140,7 @@ class AuditWorkflow:
         candidate_revision: int | None = None,
         candidate_fingerprint: str | None = None,
         last_audit_status: str | None = None,
+        canonical_season: str | None = None,
         terminal_reason: str = "",
         terminal_detail: str = "",
     ) -> "AuditWorkflow":
@@ -139,6 +156,8 @@ class AuditWorkflow:
             self.candidate_fingerprint = str(candidate_fingerprint)
         if last_audit_status is not None:
             self.last_audit_status = str(last_audit_status)
+        if canonical_season is not None:
+            self.canonical_season = str(canonical_season)
         # A non-terminal phase never carries a stale terminal reason.
         if phase == PHASE_COMPLETE:
             self.terminal_reason = str(terminal_reason or self.terminal_reason)
@@ -173,6 +192,7 @@ class AuditWorkflow:
             "terminal_detail": self.terminal_detail,
             "updated_at": self.updated_at,
             "transitions": [dict(item) for item in self.transitions],
+            "canonical_season": self.canonical_season,
         }
 
     @classmethod
@@ -191,19 +211,26 @@ class AuditWorkflow:
             terminal_detail=str(data.get("terminal_detail") or ""),
             updated_at=str(data.get("updated_at") or ""),
             transitions=[dict(item) for item in (data.get("transitions") or []) if item],
+            canonical_season=str(data.get("canonical_season") or ""),
         )
 
 
-def next_command(phase: str, work_dir: Any) -> str | None:
+def next_command(phase: str, work_dir: Any, *, canonical_season: str = "") -> str | None:
     """Canonical repository command for the mandatory next transition.
 
     ``None`` for a completed workflow. The command is derived from the phase
-    only; it is never persisted so it cannot drift from the state machine.
+    (and, for ``CONVERGENCE_REQUIRED``, whether the audited export is the
+    promoted canonical season's own export) so it cannot drift from the state
+    machine. A canonical-season-scoped export never has a Stage 3 candidate to
+    converge, so it is routed to promoted-season maintenance instead of
+    ``stage3 converge``.
     """
     work_dir = str(work_dir)
     if phase == PHASE_AUDIT_REQUIRED:
         return f"scripts/rvv-miniputt operator audit-context --work-dir {work_dir}"
     if phase == PHASE_CONVERGENCE_REQUIRED:
+        if canonical_season:
+            return f"scripts/rvv-miniputt season findings --season {canonical_season}"
         return f"scripts/rvv-miniputt stage3 converge --work-dir {work_dir} --json"
     return None
 
@@ -233,8 +260,15 @@ def workflow_view(
         "terminal_reason": resolved.terminal_reason,
         "terminal_detail": resolved.terminal_detail,
         "updated_at": resolved.updated_at,
-        "next_command": next_command(resolved.phase, work_dir),
-        "next_step": _NEXT_STEP_TEXT.get(resolved.phase, ""),
+        "canonical_season": resolved.canonical_season,
+        "next_command": next_command(
+            resolved.phase, work_dir, canonical_season=resolved.canonical_season
+        ),
+        "next_step": (
+            _CANONICAL_SEASON_CONVERGENCE_STEP
+            if resolved.phase == PHASE_CONVERGENCE_REQUIRED and resolved.canonical_season
+            else _NEXT_STEP_TEXT.get(resolved.phase, "")
+        ),
     }
     return view
 

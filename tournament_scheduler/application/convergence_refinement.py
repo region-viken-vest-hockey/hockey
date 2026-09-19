@@ -379,6 +379,30 @@ def run_bounded_convergence(
     candidate is persisted but not yet materialized as an auditable export.
     """
     log = log_fn or (lambda _message: None)
+    from .audit_lifecycle import current_workflow as _current_audit_workflow
+
+    pending_workflow = _current_audit_workflow(work_dir, run_id=run_id)
+    if pending_workflow is not None and pending_workflow.canonical_season:
+        # The audited export is the promoted canonical season's own export
+        # (`season export` never advances the Stage3Session/candidate store),
+        # so any retained Stage 3 candidate in this workspace is unrelated and
+        # must never be committed/exported on this workflow's behalf --
+        # doing so would silently diverge from the promoted canonical
+        # baseline (issue #397). Route the caller to promoted-season
+        # maintenance instead.
+        season = pending_workflow.canonical_season
+        return {
+            "ok": False,
+            "reason": "canonical_season_scoped",
+            "canonical_season": season,
+            "message": (
+                f"The current export is season {season!r}'s promoted canonical export, "
+                "not an unpromoted Stage 3 candidate: 'stage3 converge' has no candidate "
+                "to converge here. Use 'season findings' -> 'season repair-options' / "
+                "bounded 'season search' -> 'season apply-repair' for promoted-season "
+                "maintenance instead."
+            ),
+        }
     if finding_provider is None or option_provider is None or apply_provider is None:
         from .candidate_refinement import (
             refinement_findings,

@@ -71,6 +71,25 @@ def _current_export(work_dir: Any) -> tuple[str, str]:
     return fingerprint, str(checkpoint.get("export_dir") or "")
 
 
+def _current_canonical_season(work_dir: Any) -> str:
+    """Season id when the current EXPORT checkpoint is the promoted canonical
+    season's own export (via `season export`), else ``""``.
+
+    Distinct from the merely informational `canonical_season` field the
+    ordinary Stage 4 exporter also sets when Stage 3 adopted a promoted season
+    as its baseline: only the canonical `season export` CLI path stamps the
+    authoritative `is_canonical_season_export` marker, because that is the only
+    path where the EXPORT checkpoint is guaranteed to have no corresponding
+    Stage3Session candidate (`season export` never touches that store).
+    """
+    from ..pipeline.state import PipelineState, StageName
+
+    checkpoint = PipelineState(work_dir).read_stage(StageName.EXPORT) or {}
+    if not checkpoint.get("is_canonical_season_export"):
+        return ""
+    return str(checkpoint.get("canonical_season") or "")
+
+
 def _session_identity(session: Stage3Session) -> tuple[int | None, str, str]:
     fingerprint = session.finalized_fingerprint or session.candidate_fingerprint
     revision = (
@@ -96,6 +115,13 @@ def current_workflow(
     stored = AuditWorkflow.from_dict(session.audit_workflow)
     revision, candidate_fingerprint, _ = _session_identity(session)
     export_fingerprint, export_dir = _current_export(work_dir)
+    canonical_season = _current_canonical_season(work_dir)
+    # The Stage3Session's own candidate identity describes an unrelated run
+    # whenever the current export is the promoted canonical season's own
+    # export (`season export` never advances that session), so it must never
+    # be attached to a canonical-season-scoped workflow.
+    if canonical_season:
+        revision, candidate_fingerprint = None, ""
 
     if not stored.phase:
         if not export_fingerprint:
@@ -106,6 +132,7 @@ def current_workflow(
             export_dir=export_dir,
             candidate_revision=revision,
             candidate_fingerprint=candidate_fingerprint,
+            canonical_season=canonical_season,
         )
 
     if reconcile and export_fingerprint and stored.export_fingerprint != export_fingerprint:
@@ -117,6 +144,7 @@ def current_workflow(
             candidate_fingerprint=candidate_fingerprint,
             last_audit_status=stored.last_audit_status,
             transitions=list(stored.transitions),
+            canonical_season=canonical_season,
         )
     return stored
 
@@ -136,16 +164,23 @@ def mark_audit_required(
     session = _load(work_dir, run_id)
     stored = AuditWorkflow.from_dict(session.audit_workflow)
     revision, candidate_fingerprint, _ = _session_identity(session)
+    canonical_season = _current_canonical_season(work_dir)
+    if canonical_season:
+        # See `current_workflow`: the Stage3Session's candidate identity is
+        # unrelated to a canonical-season export and must not be attached.
+        revision, candidate_fingerprint = None, ""
     if (
         stored.is_complete
         and stored.export_fingerprint == export_fingerprint
         and stored.candidate_fingerprint == candidate_fingerprint
+        and stored.canonical_season == canonical_season
     ):
         return stored
     if (
         stored.phase == PHASE_AUDIT_REQUIRED
         and stored.export_fingerprint == export_fingerprint
         and stored.candidate_fingerprint == candidate_fingerprint
+        and stored.canonical_season == canonical_season
     ):
         # Already awaiting the (same) audit: do not append a duplicate
         # transition or rewrite identical state.
@@ -159,7 +194,16 @@ def mark_audit_required(
         candidate_revision=revision,
         candidate_fingerprint=candidate_fingerprint,
         last_audit_status="",
+        canonical_season=canonical_season,
     )
+    if canonical_season:
+        # `record()` treats `None`/`""` as "leave unchanged" for these two
+        # fields (most callers only ever touch phase/status), but here they
+        # must be explicitly cleared: a stored candidate identity from a prior,
+        # unrelated (non-canonical) export must never linger onto a
+        # canonical-season-scoped workflow.
+        workflow.candidate_revision = None
+        workflow.candidate_fingerprint = ""
     _persist(work_dir, run_id, workflow)
     from ..pipeline.controller_trace import EVENT_STAGE_GATE
 

@@ -1362,6 +1362,15 @@ def _cmd_season(args: argparse.Namespace) -> int:
             )
             result["canonical_season"] = args.season
             result["canonical_revision"] = schedule.get("revision")
+            # Distinct from the informational `canonical_season`/`canonical_revision`
+            # fields above (which the ordinary Stage 4 exporter also sets whenever
+            # Stage 3 adopted a promoted season as its baseline): this marker is
+            # authoritative and set *only* here, because this code path converts
+            # `season/<season>/schedule.json` directly into a Stage 4 export and
+            # never touches the Stage3Session/candidate store. The audit/convergence
+            # lifecycle uses it to avoid ever routing a promoted-season audit back
+            # into an unrelated Stage 3 candidate (issue #397).
+            result["is_canonical_season_export"] = True
             from ..pipeline.state import StageName, StageStatus
             state.write_stage(StageName.EXPORT, result, status=StageStatus.DONE)
             _write_canonical_export_evidence(schedule, result)

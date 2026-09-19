@@ -85,6 +85,33 @@ def _seed_finalized(tmp_path: Path, *, export_fingerprint: str = "fp-1") -> None
     mark_audit_required(tmp_path, run_id=RUN_ID)
 
 
+def _write_canonical_season_export(
+    work_dir: Path, fingerprint: str, *, season: str = "2026-2027"
+) -> None:
+    """Simulate the promoted canonical `season export` CLI path (issue #397).
+
+    Unlike `_write_export`/`_seed_finalized`, this never touches the
+    PLANNING checkpoint or the Stage3Session/candidate store -- exactly like
+    the real `season export` command, which converts
+    `season/<season>/schedule.json` directly into a Stage 4 export.
+    """
+    export_dir = work_dir / "export" / fingerprint
+    export_dir.mkdir(parents=True, exist_ok=True)
+    (export_dir / "evidence_bundle.json").write_text("{}", encoding="utf-8")
+    PipelineState(str(work_dir)).write_stage(
+        StageName.EXPORT,
+        {
+            "export_dir": str(export_dir),
+            "output_files": {"html": str(export_dir / "season_plan.html")},
+            "export_fingerprint": fingerprint,
+            "canonical_season": season,
+            "canonical_revision": fingerprint,
+            "is_canonical_season_export": True,
+        },
+        status=StageStatus.DONE,
+    )
+
+
 def _commit(work_dir: Path, body: Dict[str, Any]) -> str:
     """Simulate an internal convergence commit: new revision, no export."""
     state = PipelineState(str(work_dir))
@@ -584,3 +611,149 @@ def test_headless_audit_run_uses_the_same_workflow_phases(tmp_path: Path) -> Non
     # convergence-pending phase instead of silently completing.
     assert rc == 1
     assert current_workflow(tmp_path, run_id=RUN_ID).phase == PHASE_CONVERGENCE_REQUIRED
+
+
+# --- Promoted-season audit/convergence scoping (issue #397) ----------------
+#
+# `season export` converts `season/<season>/schedule.json` directly into a
+# Stage 4 export and never advances the Stage3Session/candidate store. A
+# `REVIEW_REQUIRED` verdict on that export must never route the harness back
+# into `stage3 converge`: this workspace's Stage3Session candidate (if any)
+# describes a different, unrelated run.
+
+
+def test_unpromoted_stage3_convergence_remains_valid_after_review_required(tmp_path: Path) -> None:
+    """Regression 1: an ordinary unpromoted Stage 3 audit is unaffected."""
+    _seed_finalized(tmp_path)
+    record_audit_verdict(tmp_path, _review_payload(1), run_id=RUN_ID)
+
+    workflow = current_workflow(tmp_path, run_id=RUN_ID)
+    assert workflow.phase == PHASE_CONVERGENCE_REQUIRED
+    assert workflow.canonical_season == ""
+
+    snapshot = workflow_snapshot(tmp_path, run_id=RUN_ID)
+    assert snapshot["next_command"] == f"scripts/rvv-miniputt stage3 converge --work-dir {tmp_path} --json"
+
+    commits: List[str] = []
+    finding_provider, option_provider, body_provider, apply_provider = _cycle_one_providers(commits)
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=4,
+        max_no_improvement_epochs=1,
+        export=True,
+        audit_payload=_review_payload(1),
+        finding_provider=finding_provider,
+        option_provider=option_provider,
+        body_provider=body_provider,
+        apply_provider=apply_provider,
+        materialize_provider=_materialize_export_stub,
+        run_id=RUN_ID,
+    )
+    assert result["ok"] is True
+    assert result["committed_epochs"] == 1
+
+
+def test_promoted_season_audit_never_recommends_stage3_converge(tmp_path: Path) -> None:
+    """Regression 2: a canonical-season export's REVIEW_REQUIRED routes to
+    promoted-season maintenance, never to a stale `stage3 converge`."""
+    # A leftover Stage3Session candidate from a completely unrelated earlier
+    # pipeline run sits in this workspace, exactly like the real defect.
+    _seed_finalized(tmp_path, export_fingerprint="unrelated-fp")
+
+    _write_canonical_season_export(tmp_path, "canonical-fp-1", season="2026-2027")
+    workflow = mark_audit_required(tmp_path, run_id=RUN_ID)
+    assert workflow.phase == PHASE_AUDIT_REQUIRED
+    assert workflow.canonical_season == "2026-2027"
+    # The unrelated Stage3Session candidate identity must not leak in.
+    assert workflow.candidate_fingerprint == ""
+    assert workflow.candidate_revision is None
+
+    record_audit_verdict(tmp_path, _review_payload(1), run_id=RUN_ID)
+    workflow = current_workflow(tmp_path, run_id=RUN_ID)
+    assert workflow.phase == PHASE_CONVERGENCE_REQUIRED
+    assert workflow.canonical_season == "2026-2027"
+
+    snapshot = workflow_snapshot(tmp_path, run_id=RUN_ID)
+    # The actionable next command is the contract: it must be a promoted-season
+    # maintenance command, never `stage3 converge`.
+    assert snapshot["next_command"] == "scripts/rvv-miniputt season findings --season 2026-2027"
+    assert "stage3 converge" not in snapshot["next_command"]
+    assert "season findings" in snapshot["next_step"]
+
+
+def test_canonical_promoted_revision_unchanged_without_a_valid_improvement(tmp_path: Path) -> None:
+    """Regression 3: refusing `stage3 converge` leaves canonical state (and
+    every other piece of workspace state) byte-for-byte untouched."""
+    _seed_finalized(tmp_path, export_fingerprint="unrelated-fp")
+    _write_canonical_season_export(tmp_path, "canonical-fp-1", season="2026-2027")
+    mark_audit_required(tmp_path, run_id=RUN_ID)
+    record_audit_verdict(tmp_path, _review_payload(1), run_id=RUN_ID)
+
+    state = PipelineState(str(tmp_path))
+    planning_before = state.read_stage(StageName.PLANNING)
+    export_before = state.read_stage(StageName.EXPORT)
+    session_before = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=4,
+        finding_provider=lambda *a, **k: (_ for _ in ()).throw(
+            AssertionError("must not search for repairs against a canonical-season export")
+        ),
+        option_provider=lambda *a, **k: (_ for _ in ()).throw(AssertionError("unreachable")),
+        apply_provider=lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not apply")),
+        run_id=RUN_ID,
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "canonical_season_scoped"
+    assert result["canonical_season"] == "2026-2027"
+
+    assert state.read_stage(StageName.PLANNING) == planning_before
+    assert state.read_stage(StageName.EXPORT) == export_before
+    session_after = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    assert session_after.candidate_fingerprint == session_before.candidate_fingerprint
+    assert session_after.finalized_fingerprint == session_before.finalized_fingerprint
+    # The pending workflow itself is unaffected by the refused call.
+    assert current_workflow(tmp_path, run_id=RUN_ID).phase == PHASE_CONVERGENCE_REQUIRED
+
+
+def test_stale_stage3_candidate_cannot_replace_the_promoted_baseline(tmp_path: Path) -> None:
+    """Regression 4: a stale retained Stage 3 candidate is never committed or
+    exported on behalf of a promoted canonical-season audit."""
+    # Seed a *materially different* leftover candidate to prove it is never
+    # touched: if convergence ran against it, this fingerprint would change.
+    _seed_finalized(tmp_path, export_fingerprint="stale-unrelated-fp")
+    stale_session = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    stale_candidate_fingerprint = stale_session.candidate_fingerprint
+    stale_finalized_fingerprint = stale_session.finalized_fingerprint
+    assert stale_finalized_fingerprint  # sanity: a real leftover candidate exists
+
+    _write_canonical_season_export(tmp_path, "canonical-fp-2", season="2026-2027")
+    mark_audit_required(tmp_path, run_id=RUN_ID)
+    record_audit_verdict(tmp_path, _review_payload(1), run_id=RUN_ID)
+
+    result = run_bounded_convergence(
+        tmp_path,
+        problem={},
+        max_epochs=4,
+        review_candidate_ref=None,
+        finding_provider=lambda *a, **k: [],
+        option_provider=lambda *a, **k: {"finding": {}, "options": []},
+        apply_provider=lambda *a, **k: {"ok": False},
+        run_id=RUN_ID,
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "canonical_season_scoped"
+
+    # The stale candidate is exactly as it was: nothing was adopted, and no
+    # new Stage 4 export was materialized from it.
+    session_after = Stage3SessionStore(str(tmp_path)).load(expected_run_id=RUN_ID)
+    assert session_after.candidate_fingerprint == stale_candidate_fingerprint
+    assert session_after.finalized_fingerprint == stale_finalized_fingerprint
+    export_checkpoint = PipelineState(str(tmp_path)).read_stage(StageName.EXPORT)
+    assert export_checkpoint.get("export_fingerprint") == "canonical-fp-2"
+    assert export_checkpoint.get("is_canonical_season_export") is True
