@@ -42,6 +42,10 @@ from .participation_deviation_repair import (
     apply_participation_deviation_repair_option,
     enumerate_participation_deviation_repairs,
 )
+from .coupled_placement_repair import (
+    apply_coupled_placement_repair_option,
+    enumerate_coupled_placement_repairs,
+)
 from .placement_preserving_roster_repair import (
     apply_placement_preserving_roster_repair_option,
     enumerate_placement_preserving_roster_repairs,
@@ -82,6 +86,7 @@ REPAIR_PROVIDERS: Tuple[Tuple[str, EnumerateFn, ApplyFn], ...] = (
         apply_participation_deviation_repair_option,
     ),
     ("movable_capacity", enumerate_movable_capacity_repairs, apply_movable_capacity_repair_option),
+    ("coupled_placement", enumerate_coupled_placement_repairs, apply_coupled_placement_repair_option),
     ("search_neighborhood", enumerate_search_neighborhood_repairs, apply_search_neighborhood_repair_option),
 )
 
@@ -98,7 +103,7 @@ BROAD_REPAIR_FAMILIES = frozenset({"search_neighborhood"})
 # order in which a bounded search is offered -- is unchanged. The apply
 # dispatcher still includes them, so an explicitly selected goal option id can
 # always be applied through the common boundary.
-GOAL_REPAIR_FAMILIES = frozenset({"hosting_balance", "participation_deviation"})
+GOAL_REPAIR_FAMILIES = frozenset({"hosting_balance", "participation_deviation", "coupled_placement"})
 
 
 def enumerate_local_repair_options(

@@ -111,6 +111,7 @@ PARTICIPATION = "participation"
 MANUAL_PLACEMENT = "manual_placement"
 MOVABLE_CAPACITY = "movable_capacity"
 ROSTER_SHAPE = "roster_shape"
+TEMPORAL_CLUSTERING = "temporal_clustering"
 
 # Canonical search-coverage vocabulary shared by every finding family. A
 # finding always carries ``search_coverage`` so a caller can tell apart
@@ -142,6 +143,7 @@ SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
     MOVABLE_CAPACITY: ("host",),
     HARD_VIOLATION: ("participants", "host"),
     ROSTER_SHAPE: (),
+    TEMPORAL_CLUSTERING: ("date",),
 }
 
 
@@ -762,6 +764,7 @@ def _findings(
     findings.extend(_unplaced_findings(plan, problem))
     findings.extend(_movable_capacity_findings(problem, plan))
     findings.extend(_shape_findings(verification))
+    findings.extend(_spacing_findings(problem, plan))
     findings.sort(key=lambda entry: (entry["category"], entry["finding_id"]))
     # Every finding carries a coverage view so a controller never has to infer
     # "untried dimensions remain" from the absence of options. The unplaced
@@ -1070,6 +1073,144 @@ def _shape_findings(verification: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
+def _spacing_findings(
+    problem: Mapping[str, Any], plan: Mapping[str, Any]
+) -> List[Dict[str, Any]]:
+    """Actionable temporal-clustering findings for teams with a tight local cluster.
+
+    A team whose own tournaments fall within a few days of each other is a real
+    schedule-quality defect. The finding names the cluster and, crucially,
+    allows the bounded search to enumerate *cross-age* placement exchanges for
+    the clustered tournaments instead of concluding the cluster is
+    structurally unavoidable because same-age moves failed.
+    """
+
+    from .team_schedule_quality import (
+        CLOSE_GAP_DAYS,
+        PREFERRED_GAP_DAYS,
+        team_schedule_profile,
+    )
+
+    out: List[Dict[str, Any]] = []
+    tournaments = [
+        dict(tournament)
+        for tournament in plan.get("tournaments", []) or []
+        if not tournament.get("cancelled")
+    ]
+    for team in problem.get("teams") or []:
+        identity = (
+            str(team.get("club") or ""),
+            str(team.get("label") or ""),
+            str(team.get("age_group") or ""),
+        )
+        if not identity[0] or not identity[1]:
+            continue
+        profile = team_schedule_profile(plan, identity, problem=problem)
+        gaps = profile.get("spacing") or {}
+        min_gap = gaps.get("min_gap_days")
+        if min_gap is None or int(min_gap) >= CLOSE_GAP_DAYS:
+            continue
+        cluster_dates = _clustered_dates(
+            profile.get("tournament_dates") or [],
+            close_gap=CLOSE_GAP_DAYS,
+            neighbor_gap=PREFERRED_GAP_DAYS,
+        )
+        if len(cluster_dates) < 2:
+            continue
+        cluster = set(cluster_dates)
+        tournament_ids = sorted(
+            str(tournament.get("id") or "")
+            for tournament in tournaments
+            if str(tournament.get("date") or "") in cluster
+            and any(
+                str(member.get("club") or "") == identity[0]
+                and str(member.get("label") or "") == identity[1]
+                and not bool(member.get("guest", False))
+                for member in tournament.get("teams", []) or []
+            )
+        )
+        if len(tournament_ids) < 2:
+            continue
+        out.append(
+            {
+                "finding_id": f"temporal_clustering:{identity[0]}:{identity[1]}:{identity[2]}",
+                "code": "temporal_clustering",
+                "category": TEMPORAL_CLUSTERING,
+                "severity": "strong_goal",
+                "age_group": identity[2],
+                "club": identity[0],
+                "team": identity[1],
+                "team_identity": {
+                    "club": identity[0],
+                    "label": identity[1],
+                    "age_group": identity[2],
+                },
+                "clustered_dates": sorted(cluster),
+                "tournament_ids": tournament_ids,
+                "tournament_id": tournament_ids[0],
+                "min_gap_days": int(min_gap),
+                "message": (
+                    f"{identity[0]} {identity[1]} plays {len(profile.get('tournament_dates') or [])} "
+                    f"tournaments with a {int(min_gap)}-day minimum gap; the cluster around "
+                    f"{', '.join(sorted(cluster))} may be repairable by a placement exchange"
+                ),
+            }
+        )
+    return out
+
+
+def _clustered_dates(
+    dates: Iterable[str],
+    *,
+    close_gap: int,
+    neighbor_gap: int,
+) -> List[str]:
+    """Return the tight local cluster around a team's closest tournament dates.
+
+    A cluster is a run of dates whose consecutive gaps are strictly under
+    ``close_gap``. Only the tightest such run is reported, widened once to
+    include neighbours within ``neighbor_gap`` days of a cluster member, so a
+    tight pair plus a tournament a few days later (the eight-day three-in-a-row
+    case) is named together without chaining the team's entire season.
+    """
+
+    from datetime import date as _date
+
+    parsed: List[tuple[_date, str]] = []
+    for value in dates:
+        try:
+            parsed.append((_date.fromisoformat(str(value)), str(value)))
+        except (TypeError, ValueError):
+            continue
+    parsed.sort()
+    components: List[List[tuple[_date, str]]] = []
+    run: List[tuple[_date, str]] = []
+    for item in parsed:
+        if run and (item[0] - run[-1][0]).days < close_gap:
+            run.append(item)
+            continue
+        if len(run) >= 2:
+            components.append(run)
+        run = [item]
+    if len(run) >= 2:
+        components.append(run)
+    if not components:
+        return []
+    tightest = min(
+        components,
+        key=lambda component: (
+            min((b[0] - a[0]).days for a, b in zip(component, component[1:])),
+            component[0][0],
+        ),
+    )
+    member_dates = [day for day, _value in tightest]
+    return [
+        value
+        for day, value in parsed
+        if any(abs((day - member).days) <= neighbor_gap for member in member_dates)
+    ]
+
+
 def _require_finding(findings: List[Dict[str, Any]], finding_id: str) -> Dict[str, Any]:
     finding = next((entry for entry in findings if entry["finding_id"] == finding_id), None)
     if finding is None:
@@ -1139,6 +1280,8 @@ def _options_for_finding(
         )
     elif category == MOVABLE_CAPACITY:
         options, rejected, families = _movable_capacity_options(plan, problem, finding)
+    elif category == TEMPORAL_CLUSTERING:
+        options, rejected, families = _coupled_placement_options(plan, problem, finding)
     else:
         options, rejected, families = _hard_options(
             plan, problem, finding, allow_search=allow_search, dimensions=dimensions
@@ -1213,6 +1356,43 @@ def _unplaced_options(
         }
     }
     return options, rejected, families
+
+
+def _coupled_placement_options(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    finding: Mapping[str, Any],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Expose verified coupled placement + roster repair options for a cluster.
+
+    The target tournaments are the clustered ones from the finding, and the
+    provider pairs each with every other scheduled tournament -- including
+    other age groups -- so a repair is not declared unavailable merely because
+    same-age moves fail. When a placement exchange double-books a team, the
+    provider additionally searches same-age roster reselection for the affected
+    tournament instead of rejecting the candidate. Every option is the fully
+    coupled, independently verified candidate.
+    """
+
+    from .coupled_placement_repair import enumerate_coupled_placement_repairs
+
+    identity = finding.get("team_identity") or {}
+    focus_team = (
+        str(identity.get("club") or finding.get("club") or ""),
+        str(identity.get("label") or finding.get("team") or ""),
+        str(identity.get("age_group") or finding.get("age_group") or ""),
+    )
+    targets = list(finding.get("tournament_ids") or [])
+    if finding.get("tournament_id"):
+        targets.append(str(finding["tournament_id"]))
+    repair_set = enumerate_coupled_placement_repairs(
+        plan,
+        problem,
+        target_tournament_ids=targets,
+        focus_team=focus_team,
+        finding_id=finding["finding_id"],
+    )
+    return _collect(repair_set, finding["finding_id"], family="coupled_placement")
 
 
 def _movable_capacity_options(
@@ -1367,6 +1547,15 @@ def _escalation(options: List[Dict[str, Any]], rejected: List[Dict[str, Any]], f
             "needed": True,
             "reason": "no_verified_movable_capacity_repair",
             "next": "inspect rejected_candidates for date/roster reasons",
+        }
+    if finding["category"] == TEMPORAL_CLUSTERING:
+        return {
+            "needed": True,
+            "reason": "no_verified_coupled_placement_repair",
+            "next": (
+                "inspect rejected_candidates; cross-age placement exchanges and same-age "
+                "roster rotations were enumerated before treating the cluster as unavoidable"
+            ),
         }
     if finding.get("code") == "unplaced_tournament_placement":
         coverage = finding.get("search_coverage") or {}
@@ -1814,6 +2003,16 @@ def _apply_option(
 
         return apply_movable_capacity_repair_option(
             plan, problem, option_id=option_id, expected_fingerprint=fingerprint
+        )
+    if family == "coupled_placement":
+        from .coupled_placement_repair import apply_coupled_placement_repair_option
+
+        return apply_coupled_placement_repair_option(
+            plan,
+            problem,
+            option_id=option_id,
+            expected_fingerprint=fingerprint,
+            arguments=dict(arguments) or None,
         )
     if family == "unplaced_placement":
         from .unplaced_placement_repair import apply_unplaced_placement_repair_option
