@@ -858,6 +858,29 @@ class CanonicalSeasonService:
         reconcile_plan_derived_state(plan, result, problem=resolved_problem)
         candidate_revision = schedule_fingerprint(plan)
         cost = change_cost(baseline, plan)
+
+        from tournament_scheduler.team_schedule_quality import (
+            compare_team_schedule_consequence,
+        )
+
+        team_consequences = {
+            "team_a": compare_team_schedule_consequence(
+                schedule.get("plan") or {},
+                plan,
+                identity_a,
+                problem=resolved_problem,
+            ),
+            "team_b": compare_team_schedule_consequence(
+                schedule.get("plan") or {},
+                plan,
+                identity_b,
+                problem=resolved_problem,
+            ),
+        }
+        consequence_acceptable = all(
+            analysis.get("acceptable", False)
+            for analysis in team_consequences.values()
+        )
         details = {
             "tournament_a_id": tournament_a_id,
             "tournament_b_id": tournament_b_id,
@@ -875,6 +898,8 @@ class CanonicalSeasonService:
             "before_fingerprint_a": before_fingerprint_a,
             "before_fingerprint_b": before_fingerprint_b,
             "candidate_revision": candidate_revision,
+            "team_consequences": team_consequences,
+            "consequence_acceptable": consequence_acceptable,
         }
 
         if dry_run:
@@ -887,6 +912,18 @@ class CanonicalSeasonService:
                 "change_cost": cost,
                 "swap": details,
             }
+
+        if not consequence_acceptable:
+            regressions = []
+            for team_name, analysis in team_consequences.items():
+                for regression in analysis.get("material_regressions", []):
+                    regressions.append(
+                        f"{team_name}:{regression.get('code')}"
+                    )
+            raise SeasonStateError(
+                "Refusing canonical participant swap: it materially worsens an affected "
+                "team's schedule: " + ", ".join(regressions)
+            )
 
         updated_schedule, updated_decisions, applied_cost = self.apply_candidate(
             season=season,

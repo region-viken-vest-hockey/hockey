@@ -434,6 +434,9 @@ def test_participant_swap_is_verified_atomic_and_dry_runnable(tmp_path: Path) ->
     )
     assert preview["dry_run"] is True
     assert preview["verification_result"]["ok"] is True
+    assert preview["swap"]["consequence_acceptable"] is True
+    assert preview["swap"]["team_consequences"]["team_a"]["acceptable"] is True
+    assert preview["swap"]["team_consequences"]["team_b"]["acceptable"] is True
     assert preview["candidate_revision"] != preview["current_revision"]
     assert (root / "2026-2027" / "schedule.json").read_bytes() == before_schedule
     assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions
