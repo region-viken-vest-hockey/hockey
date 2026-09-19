@@ -2110,26 +2110,6 @@ DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U9\nVert: Kongsberg\nDel
 LOCATION:Kongsberghallen
 END:VEVENT
 BEGIN:VEVENT
-SUMMARY:U9 — Tonsberghallen
-DTSTART:20270221T100000Z
-DTEND:20270221T123500Z
-UID:cdbc6823-904d-554b-9c5a-4517ca923e85
-CATEGORIES:U9
-DESCRIPTION:Arena: Tonsberghallen\nAldersgruppe: U9\nVert: Tønsberg\nDelt
- akende lag (8): Tønsberg\, Holmen Hockey Rød\, Holmen Hockey Sort\, Kong
- sberg\, Jutul Grønn\, Sandefjord\, Skien\, Frisk Asker 2\n\nKamper:\n  Ho
- lmen Hockey Rød vs Kongsberg\n  Jutul Grønn vs Skien\n  Sandefjord vs Fr
- isk Asker 2\n  Tønsberg vs Holmen Hockey Sort\n  Holmen Hockey Rød vs Sk
- ien\n  Holmen Hockey Sort vs Sandefjord\n  Kongsberg vs Frisk Asker 2\n  T
- ønsberg vs Jutul Grønn\n  Holmen Hockey Rød vs Frisk Asker 2\n  Holmen 
- Hockey Sort vs Jutul Grønn\n  Kongsberg vs Sandefjord\n  Tønsberg vs Ski
- en\n  Holmen Hockey Rød vs Jutul Grønn\n  Holmen Hockey Sort vs Frisk As
- ker 2\n  Kongsberg vs Skien\n  Tønsberg vs Sandefjord\n  Holmen Hockey R
- ød vs Sandefjord\n  Holmen Hockey Sort vs Skien\n  Kongsberg vs Jutul Gr
- ønn\n  Tønsberg vs Frisk Asker 2
-LOCATION:Tonsberghallen
-END:VEVENT
-BEGIN:VEVENT
 SUMMARY:U10 — Kongsberghallen
 DTSTART:20270227T103000Z
 DTEND:20270227T125000Z
