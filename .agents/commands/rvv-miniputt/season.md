@@ -29,6 +29,49 @@ scripts/rvv-miniputt season approvals --season <season>
 
 Treat `season/<season>/schedule.json` and `decisions.json` as the current operational truth. `.pipeline` remains transient run/search/evidence state.
 
+
+## Process incoming club/operator change requests
+
+Treat each accepted feedback item as durable intent that later maintenance must preserve.
+
+Before a manual placement or participant change:
+
+```bash
+scripts/rvv-miniputt season status --season <season>
+scripts/rvv-miniputt season approvals --season <season> --json
+scripts/rvv-miniputt season protections --season <season> --json
+```
+
+Give the incoming request a stable `request_id`. Prefer an existing external/message/request id when one exists. Otherwise synthesize a deterministic local id from the source and intent (for example `club-feedback:<club>:<date>:<short-purpose>`) and check `season protections` so it does not collide. The operator should not need to invent this internal id.
+
+Classify the requested outcome before choosing a command:
+
+- **specific date/arena/host/time change** -> use the targeted `season move --request-id <id>` flow below;
+- **specific participant/roster exchange** -> evaluate `season swap-participants --dry-run --request-id <id>`; an existing finding is not required;
+- **general request to improve participation/placement** -> use current findings/repair-options/search first, then the smallest verified change;
+- **broader rebalance** -> only then escalate to baseline-aware `season replan` / `diff` / verified `apply`.
+
+For a participant swap, preview alternatives before applying. The repository reports before/after consequences for **both** affected teams (spacing, temporal coverage, opponent repetition/diversity and travel), and applying a materially regressive swap is refused. Do not optimize the requesting club by treating the displaced team as free capacity.
+
+Accepted swaps and moves create granular protections in canonical `decisions.json`. A later candidate that would undo one is a conflict with prior accepted intent, not permission to discard it. When a protection blocks a candidate:
+
+1. prefer another legal candidate that preserves all accepted requests;
+2. if the new request **explicitly supersedes or reverses** the earlier request, release only the relevant earlier protection(s), recording the newer request in the note;
+3. if the relationship is ambiguous and no safe alternative exists, ask for the real-world clarification rather than silently releasing the earlier request.
+
+Explicit supersession:
+
+```bash
+scripts/rvv-miniputt season release-protection \
+  --season <season> \
+  --request-id <old-request-id> \
+  --note "superseded by <new-request-id>"
+```
+
+Then apply the newer change with `--request-id <new-request-id>`. Never release a protection merely to make an optimizer or convenient swap candidate fit. Generic `season apply` is also protection-aware, so a broader replan cannot quietly reverse accepted feedback.
+
+After any accepted mutation, re-run `season protections --json` and report which prior requests remain protected and which new protections were added.
+
 ## Approve / lock booked ice
 
 When the operator says a tournament placement is confirmed/booked, use:
@@ -64,12 +107,33 @@ scripts/rvv-miniputt season move \
   [--date YYYY-MM-DD] \
   [--arena "..."] \
   [--host-club "..."] \
-  [--start-time HH:MM]
+  [--start-time HH:MM] \
+  --request-id <request-id>
 ```
 
 Do not alter participants or unrelated tournaments to make a targeted move fit unless the operator instead asked for replanning. A rejected move must leave canonical state unchanged.
 
 Reapprove only when the new placement is actually confirmed/booked.
+
+
+## Swap tournament participants safely
+
+When the operator wants one team moved out of a tournament and another team exchanged into it, use the first-class canonical swap capability rather than hand-editing rosters:
+
+```bash
+scripts/rvv-miniputt season swap-participants \
+  --season <season> \
+  --tournament-a <id> --team-a "<team>" \
+  --tournament-b <id> --team-b "<team>" \
+  --request-id <request-id> \
+  --dry-run --json
+```
+
+Use `--dry-run` to compare plausible exchange partners. A preview may be returned even when the candidate is poor; inspect `change_protection_acceptable`, `existing_change_protection_violations`, `consequence_acceptable`, and the per-team `team_consequences`. Apply only a candidate that preserves earlier accepted requests and does not materially worsen either affected team's schedule.
+
+Once selected, repeat the same command without `--dry-run`. The repository regenerates both tournaments' games, runs full hard verification, preserves hosting responsibility/guest reservations/locks, and writes durable protections for both resulting assignments.
+
+If all otherwise-good candidates are blocked by a prior accepted request, do not release that request automatically. Follow the supersession rules in **Process incoming club/operator change requests**.
 
 ## Repair a localized finding against the promoted season
 

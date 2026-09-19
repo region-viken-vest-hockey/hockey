@@ -24,7 +24,9 @@ Require at least one concrete requested placement change:
 
 If the operator only says "move it somewhere else" without a concrete target, do not invent a slot. Use the canonical replanning workflow instead.
 
-Before mutation, snapshot the target tournament's current placement and the current approval/lock record. Also record the canonical revision so the result can be verified.
+Before mutation, snapshot the target tournament's current placement and the current approval/lock record. Also record the canonical revision so the result can be verified. Inspect `scripts/rvv-miniputt season protections --season <season> --json` so the requested move does not unknowingly reverse an earlier accepted change.
+
+Assign the incoming change a stable `request_id`. Prefer an external/message/request id when available; otherwise synthesize a deterministic local id from the club/source/date/purpose and ensure it does not collide with existing protections. Do not ask the operator to choose this internal id.
 
 ## 2. Inspect approval/lock state
 
@@ -59,10 +61,11 @@ scripts/rvv-miniputt season move \
   [--arena "..."] \
   [--host-club "..."] \
   [--start-time HH:MM] \
+  --request-id <request-id> \
   --work-dir <work-dir>
 ```
 
-Do not change participants or unrelated tournaments to make the move fit. If the requested placement violates a hard rule, let repository verification reject it and report the concrete violation.
+Do not change participants or unrelated tournaments to make the move fit. If the requested placement violates a hard rule, let repository verification reject it and report the concrete violation. If it conflicts with an existing accepted-change protection, do not release that protection merely to make the move work. Only an explicitly superseding newer request authorizes `season release-protection`; otherwise preserve the earlier request and report/seek another legal solution.
 
 The move must preserve the tournament's durable id.
 
@@ -96,6 +99,7 @@ Compare the target tournament before/after and require:
 - fields not requested by the operator remain unchanged unless the repository necessarily normalizes representation;
 - unrelated tournaments are unchanged;
 - canonical revision changed;
+- the move added protections for only the placement fields actually changed, and existing protections remain satisfied;
 - a previously approved tournament is now unapproved/pending review unless the operator explicitly confirmed the **new** placement too.
 
 Do not silently reapprove the new placement. A move means the old booking confirmation is no longer valid. If the operator also says the new slot is confirmed/booked, delegate the final approval step to `.agents/skills/rvv-confirm-tournament/SKILL.md` after the move verifies successfully.

@@ -64,6 +64,9 @@ def test_move_tournament_skill_unlocks_safely_and_does_not_silently_reapprove() 
     assert "unrelated tournaments are unchanged" in text
     assert "Move tournament <tournament-id>" in text
     assert "does **not** authorize public GitHub Pages publication" in text
+    assert "--request-id <request-id>" in text
+    assert "season protections" in text
+    assert "release-protection" in text
 
 
 def test_shared_guide_routes_promoted_season_without_pi_special_case() -> None:
@@ -73,6 +76,9 @@ def test_shared_guide_routes_promoted_season_without_pi_special_case() -> None:
     assert "season promote" in text
     assert "season approve" in text
     assert "season replan" in text
+    assert "season protections" in text
+    assert "swap-participants" in text
+    assert "release-protection" in text
     assert "Pi may provide its own" not in text
 
 
