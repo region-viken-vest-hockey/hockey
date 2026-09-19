@@ -26,6 +26,7 @@ from tournament_scheduler.models import Team, Tournament
 from tournament_scheduler.participation_targets import evaluate_participation
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.review.review_packet_exporter import ReviewPacketExporter
 from tournament_scheduler.serialization.season_plan import season_plan_from_dict, season_plan_to_dict
 from tournament_scheduler.season_state import (
     SeasonStateError,
@@ -501,3 +502,67 @@ def test_cli_guest_operations_round_trip(tmp_path: Path, capsys) -> None:
 
     report = run("guest-report", "--season", "2026-2027")
     assert report["open_total"] == 1
+
+
+def test_review_packet_workbook_shows_guest_places(tmp_path: Path) -> None:
+    import datetime as _dt
+
+    open_tournament = Tournament(
+        id="ju12-open",
+        date=_dt.date(2026, 10, 10),
+        arena="Arena A",
+        age_group="JU12",
+        host_club="A",
+        teams=[
+            Team(club="A", label="A1", age_group="JU12"),
+            Team(club="B", label="B1", age_group="JU12"),
+        ],
+        games=[],
+        guest_slots=[{"id": "guest:1", "status": "open"}],
+    )
+    filled_tournament = Tournament(
+        id="ju12-filled",
+        date=_dt.date(2026, 11, 14),
+        arena="Arena A",
+        age_group="JU12",
+        host_club="A",
+        teams=[
+            Team(club="A", label="A1", age_group="JU12"),
+            Team(club="B", label="B1", age_group="JU12"),
+            Team(club="External IF", label="External IF 1", age_group="JU12", guest=True),
+        ],
+        games=[],
+        guest_slots=[
+            {
+                "id": "guest:1",
+                "status": "filled",
+                "external_team": {"club": "External IF", "label": "External IF 1"},
+            }
+        ],
+    )
+    from tournament_scheduler.models import SeasonPlan
+
+    plan = SeasonPlan(
+        tournaments=[open_tournament, filled_tournament],
+        start_date=_dt.date(2026, 9, 1),
+        end_date=_dt.date(2027, 4, 30),
+    )
+    exporter = ReviewPacketExporter()
+    paths = exporter.export(plan, tmp_path / "packets", clubs=["A"])
+    workbook = Path(paths["A"]) / "club_review.xlsx"
+
+    import openpyxl
+
+    wb = openpyxl.load_workbook(workbook)
+    sheet = wb["Turneringer"]
+    header = [cell.value for cell in sheet[1]]
+    guest_column = header.index("Gjesteplasser")
+    rows = {
+        sheet.cell(row=row, column=1).value: [cell.value for cell in sheet[row]]
+        for row in range(2, sheet.max_row + 1)
+    }
+    labels = {row[guest_column] for row in rows.values()}
+    assert "1 ledig gjesteplass" in labels
+    assert "1 fylt gjesteplass" in labels
+    participating = " ".join(str(row[header.index("Deltakende lag")]) for row in rows.values())
+    assert "External IF 1 (gjest)" in participating

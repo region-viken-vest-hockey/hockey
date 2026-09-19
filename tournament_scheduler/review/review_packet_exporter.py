@@ -13,9 +13,27 @@ from openpyxl.worksheet.worksheet import Worksheet
 from rich.console import Console
 
 from ..club_distances import compute_team_travel_distances
+from ..guest_slots import guest_slot_summary
 from ..models import SeasonPlan, Tournament, find_duplicate_labels, team_key
 from ..occupancy import tournament_end_time
 from ..spond.spond_exporter import SpondExporter
+
+
+def _guest_slot_label(tournament: Tournament) -> str:
+    """Human-readable guest-place status for the review workbook."""
+
+    summary = guest_slot_summary(tournament)
+    parts: list[str] = []
+    if summary["open"]:
+        count = int(summary["open"])
+        parts.append(f"{count} ledig gjesteplass" if count == 1 else f"{count} ledige gjesteplasser")
+    if summary["filled"]:
+        count = int(summary["filled"])
+        parts.append(f"{count} fylt gjesteplass" if count == 1 else f"{count} fylte gjesteplasser")
+    if summary["released"]:
+        count = int(summary["released"])
+        parts.append(f"{count} frigitt gjesteplass" if count == 1 else f"{count} frigitte gjesteplasser")
+    return ", ".join(parts)
 
 console = Console()
 
@@ -292,6 +310,7 @@ class ReviewPacketExporter:
             "Slutt",
             "Vertsklubb",
             "Deltakende lag",
+            "Gjesteplasser",
         ])
         for tournament in tournaments:
             start_time = tournament.start_time or ""
@@ -309,7 +328,11 @@ class ReviewPacketExporter:
                 start_time,
                 end_time,
                 tournament.host_club or "",
-                ", ".join(team.label for team in tournament.teams),
+                ", ".join(
+                    team.label + (" (gjest)" if team.guest else "")
+                    for team in tournament.teams
+                ),
+                _guest_slot_label(tournament),
             ])
 
     def _write_hosting_sheet(
