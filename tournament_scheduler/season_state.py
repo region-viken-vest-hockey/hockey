@@ -61,6 +61,7 @@ __all__ = [
     "approval_report",
     "approve_tournament",
     "canonical_state_revision",
+    "change_protection_report",
     "decisions_path",
     "effective_config_from_verification_problem",
     "export_context_path",
@@ -78,6 +79,7 @@ __all__ = [
     "planning_checkpoint_from_schedule",
     "promote_from_stage3",
     "record_participation_acceptance",
+    "release_change_protections",
     "release_guest_slot",
     "reserve_guest_slot",
     "revoke_participation_acceptance",
@@ -196,6 +198,7 @@ def swap_participants(
     actor: str | None = None,
     note: str = "",
     dry_run: bool = False,
+    request_id: str | None = None,
 ) -> dict[str, Any]:
     """Swap one participant between two same-age canonical tournaments."""
 
@@ -209,6 +212,41 @@ def swap_participants(
         actor=actor,
         note=note,
         dry_run=dry_run,
+        request_id=request_id,
+    )
+
+
+def change_protection_report(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    include_released: bool = False,
+) -> dict[str, Any]:
+    """Return accepted-change protections for a canonical season."""
+
+    return _service(root).change_protection_report(
+        season,
+        include_released=include_released,
+    )
+
+
+def release_change_protections(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    protection_ids: list[str] | None = None,
+    request_id: str | None = None,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Release protections when a newer request explicitly supersedes them."""
+
+    return _service(root).release_change_protections(
+        season=season,
+        protection_ids=protection_ids,
+        request_id=request_id,
+        actor=actor,
+        note=note,
     )
 
 

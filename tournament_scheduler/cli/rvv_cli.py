@@ -1275,6 +1275,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         SeasonStateError,
         approval_report,
         approve_tournament,
+        change_protection_report,
         decisions_path,
         fill_guest_slot,
         guest_slot_candidates,
@@ -1287,6 +1288,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         effective_config_from_verification_problem,
         planning_checkpoint_from_schedule,
         promote_from_stage3,
+        release_change_protections,
         release_guest_slot,
         reserve_guest_slot,
         schedule_path,
@@ -1581,6 +1583,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 actor=args.actor,
                 note=args.note,
                 dry_run=bool(args.dry_run),
+                request_id=args.request_id,
             )
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
@@ -1594,6 +1597,49 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
                 revision = result.get("candidate_revision") if result["dry_run"] else result.get("revision")
                 _console.print(f"  revision: {revision}")
+            return 0
+
+
+        if args.season_command == "protections":
+            report = change_protection_report(
+                args.season,
+                root=args.root,
+                include_released=bool(args.all),
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Accepted-change protections {args.season}[/bold] "
+                    f"({report['active_count']} active)"
+                )
+                for protection in report["protections"]:
+                    status = protection.get("status") or "active"
+                    team = protection.get("team") or {}
+                    request = protection.get("request_id") or "-"
+                    _console.print(
+                        f"  {protection.get('id')} [{status}] "
+                        f"{team.get('label')} {protection.get('kind')} "
+                        f"{protection.get('tournament_id')} request={request}"
+                    )
+            return 0
+
+        if args.season_command == "release-protection":
+            result = release_change_protections(
+                season=args.season,
+                root=args.root,
+                protection_ids=list(args.protection_ids or []),
+                request_id=args.request_id,
+                actor=args.actor,
+                note=args.note,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] Released {len(result['released_protection_ids'])} "
+                    f"change protection(s); {result['active_count']} remain active"
+                )
             return 0
 
         if args.season_command == "guest-report":

@@ -1088,6 +1088,7 @@ def build_parser() -> argparse.ArgumentParser:
     season_swap.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_swap.add_argument("--actor", default=None, help="Operator identity")
     season_swap.add_argument("--note", default="", help="Swap note/reason for decisions history")
+    season_swap.add_argument("--request-id", default=None, help="Stable source/request id recorded on automatic change protections")
     season_swap.add_argument(
         "--dry-run",
         action="store_true",
@@ -1095,6 +1096,38 @@ def build_parser() -> argparse.ArgumentParser:
     )
     season_swap.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_swap.add_argument("--json", action="store_true", help="Print swap result as JSON")
+
+
+    season_protections = season_sub.add_parser(
+        "protections",
+        help="List team-specific accepted-change guards that later maintenance must preserve",
+    )
+    season_protections.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_protections.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_protections.add_argument("--all", action="store_true", help="Include released protections")
+    season_protections.add_argument("--json", action="store_true", help="Print protection report as JSON")
+
+    season_release_protection = season_sub.add_parser(
+        "release-protection",
+        help="Explicitly release accepted-change guards when a newer request supersedes them",
+    )
+    season_release_protection.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_release_protection.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_release_protection.add_argument(
+        "--protection-id",
+        dest="protection_ids",
+        action="append",
+        default=None,
+        help="Protection id to release (repeatable)",
+    )
+    season_release_protection.add_argument(
+        "--request-id",
+        default=None,
+        help="Release all active protections created by this earlier request id",
+    )
+    season_release_protection.add_argument("--actor", default=None, help="Operator identity")
+    season_release_protection.add_argument("--note", default="", help="Why this protection is being superseded")
+    season_release_protection.add_argument("--json", action="store_true", help="Print release result as JSON")
 
     season_guest_report = season_sub.add_parser(
         "guest-report",

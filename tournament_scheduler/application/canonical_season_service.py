@@ -32,12 +32,21 @@ from typing import Any, Mapping
 from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
 from tournament_scheduler.canonical_state import (
     CANONICAL_STATE_REVISION_KEY,
+    CHANGE_PROTECTIONS_KEY,
     PARTICIPATION_ACCEPTANCES_KEY,
     canonical_state_revision,
     compute_canonical_state_revision,
     migrate_participation_acceptance_ids,
     participation_acceptance_id,
     schedule_fingerprint,
+)
+from tournament_scheduler.change_protections import (
+    ACTIVE as CHANGE_PROTECTION_ACTIVE,
+    RELEASED as CHANGE_PROTECTION_RELEASED,
+    active_change_protections,
+    append_change_protections,
+    build_swap_protections,
+    protection_violations,
 )
 from tournament_scheduler.guest_slots import (
     DEFAULT_GUEST_AGE_GROUPS,
@@ -391,6 +400,12 @@ class CanonicalSeasonService:
 
         decisions = dict(snapshot.decisions)
         migrate_participation_acceptance_ids(decisions)
+        guard_violations = protection_violations(snapshot.schedule.get("plan") or {}, decisions)
+        if guard_violations:
+            messages = "; ".join(str(item.get("message")) for item in guard_violations)
+            raise SeasonStateError(
+                "Refusing canonical commit: it would undo an accepted change: " + messages
+            )
         decisions[CANONICAL_STATE_REVISION_KEY] = compute_canonical_state_revision(
             snapshot.schedule, decisions
         )
@@ -681,6 +696,7 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
         dry_run: bool = False,
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         """Swap one RVV participant between two same-age canonical tournaments.
 
@@ -856,6 +872,7 @@ class CanonicalSeasonService:
                 )
 
         reconcile_plan_derived_state(plan, result, problem=resolved_problem)
+        existing_protection_violations = protection_violations(plan, decisions)
         candidate_revision = schedule_fingerprint(plan)
         cost = change_cost(baseline, plan)
 
@@ -881,6 +898,18 @@ class CanonicalSeasonService:
             analysis.get("acceptable", False)
             for analysis in team_consequences.values()
         )
+        protection_request_id = str(request_id or "")
+        protection_created_at = _now_iso()
+        new_protections = build_swap_protections(
+            team_a=team_a,
+            tournament_a_id=tournament_a_id,
+            team_b=team_b,
+            tournament_b_id=tournament_b_id,
+            request_id=protection_request_id,
+            actor=_operator_identity(actor),
+            note=note,
+            created_at=protection_created_at,
+        )
         details = {
             "tournament_a_id": tournament_a_id,
             "tournament_b_id": tournament_b_id,
@@ -900,6 +929,10 @@ class CanonicalSeasonService:
             "candidate_revision": candidate_revision,
             "team_consequences": team_consequences,
             "consequence_acceptable": consequence_acceptable,
+            "existing_change_protection_violations": existing_protection_violations,
+            "change_protection_acceptable": not existing_protection_violations,
+            "protections_to_add": new_protections,
+            "request_id": protection_request_id,
         }
 
         if dry_run:
@@ -912,6 +945,15 @@ class CanonicalSeasonService:
                 "change_cost": cost,
                 "swap": details,
             }
+
+        if existing_protection_violations:
+            messages = "; ".join(
+                str(item.get("message")) for item in existing_protection_violations
+            )
+            raise SeasonStateError(
+                "Refusing canonical participant swap: it would undo an accepted change: "
+                + messages
+            )
 
         if not consequence_acceptable:
             regressions = []
@@ -930,6 +972,7 @@ class CanonicalSeasonService:
             candidate=plan,
             problem=resolved_problem,
             actor=actor,
+            _new_change_protections=new_protections,
             _history_event={
                 "event": "participant_swap",
                 "tournament_id": tournament_a_id,
@@ -961,6 +1004,7 @@ class CanonicalSeasonService:
         change_weights: dict[str, float] | None = None,
         allow_guest_slot_changes: bool = False,
         _history_event: Mapping[str, Any] | None = None,
+        _new_change_protections: list[dict[str, Any]] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
         """Apply a verified replan candidate to canonical season state."""
 
@@ -989,6 +1033,15 @@ class CanonicalSeasonService:
                     "Refusing canonical apply: it would change reserved guest slots on "
                     f"{changed}; use reserve/fill/release explicitly"
                 )
+        accepted_change_violations = protection_violations(normalized_candidate, decisions)
+        if accepted_change_violations:
+            messages = "; ".join(
+                str(item.get("message")) for item in accepted_change_violations
+            )
+            raise SeasonStateError(
+                "Refusing canonical apply: it would undo an accepted change: " + messages
+            )
+
         lock_violations = verify_canonical_locks(baseline, normalized_candidate)
         if lock_violations:
             messages = "; ".join(str(v.get("message")) for v in lock_violations)
@@ -1050,6 +1103,8 @@ class CanonicalSeasonService:
             "schedule_fingerprint": fingerprint,
             "decisions": _reconcile_decisions(decisions.get("decisions", {}), plan, now=now),
         }
+        if _new_change_protections:
+            append_change_protections(updated_decisions, _new_change_protections)
         if _history_event:
             history_tournament_id = str(_history_event.get("tournament_id") or "")
             history_tournament = next(
@@ -1762,6 +1817,105 @@ class CanonicalSeasonService:
         return committed.schedule
 
     # -- decision-only mutations ------------------------------------------
+
+
+    def change_protection_report(
+        self,
+        season: str,
+        *,
+        include_released: bool = False,
+    ) -> dict[str, Any]:
+        """Return durable accepted-change guards for a promoted season."""
+
+        snapshot = self.load(season)
+        records = [
+            dict(record)
+            for record in snapshot.decisions.get(CHANGE_PROTECTIONS_KEY, []) or []
+            if isinstance(record, Mapping)
+            and (
+                include_released
+                or str(record.get("status") or CHANGE_PROTECTION_ACTIVE)
+                == CHANGE_PROTECTION_ACTIVE
+            )
+        ]
+        return {
+            "season": season,
+            "canonical_state_revision": canonical_state_revision(
+                snapshot.schedule, snapshot.decisions
+            ),
+            "active_count": sum(
+                1
+                for record in records
+                if str(record.get("status") or CHANGE_PROTECTION_ACTIVE)
+                == CHANGE_PROTECTION_ACTIVE
+            ),
+            "protections": records,
+        }
+
+    def release_change_protections(
+        self,
+        *,
+        season: str,
+        protection_ids: list[str] | None = None,
+        request_id: str | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        """Release accepted-change guards for an explicitly superseding request."""
+
+        wanted_ids = {str(value) for value in (protection_ids or []) if str(value)}
+        wanted_request = str(request_id or "")
+        if not wanted_ids and not wanted_request:
+            raise SeasonStateError(
+                "Refusing protection release: provide --protection-id and/or --request-id"
+            )
+
+        snapshot = self.load(season)
+        decisions = copy.deepcopy(snapshot.decisions)
+        records = decisions.get(CHANGE_PROTECTIONS_KEY, []) or []
+        now = _now_iso()
+        resolved_actor = _operator_identity(actor)
+        released: list[str] = []
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            if str(record.get("status") or CHANGE_PROTECTION_ACTIVE) != CHANGE_PROTECTION_ACTIVE:
+                continue
+            matches_id = str(record.get("id") or "") in wanted_ids
+            matches_request = bool(wanted_request) and str(record.get("request_id") or "") == wanted_request
+            if not (matches_id or matches_request):
+                continue
+            record["status"] = CHANGE_PROTECTION_RELEASED
+            record["released_at"] = now
+            record["released_by"] = resolved_actor
+            record["release_reason"] = note or ""
+            released.append(str(record.get("id") or ""))
+
+        if not released:
+            raise SeasonStateError("No active change protections matched the release request")
+
+        decisions["updated_at"] = now
+        _append_decision_history(
+            decisions,
+            event="release_change_protection",
+            tournament_id="",
+            actor=resolved_actor,
+            now=now,
+            note=note,
+            details={
+                "released_protection_ids": released,
+                "request_id": wanted_request,
+            },
+        )
+        committed = self._commit(snapshot.with_decisions(decisions))
+        return {
+            "season": season,
+            "canonical_state_revision": canonical_state_revision(
+                committed.schedule, committed.decisions
+            ),
+            "released_protection_ids": released,
+            "active_count": len(active_change_protections(committed.decisions)),
+        }
 
     def approve_tournament(
         self,

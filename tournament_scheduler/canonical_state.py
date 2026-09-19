@@ -30,6 +30,7 @@ from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 CANONICAL_STATE_REVISION_KEY = "canonical_state_revision"
 
+CHANGE_PROTECTIONS_KEY = "change_protections"
 PARTICIPATION_ACCEPTANCES_KEY = "participation_acceptances"
 PARTICIPATION_ACCEPTANCE_PREFIX = "participation_acceptance"
 
@@ -55,6 +56,7 @@ def compute_canonical_state_revision(
         "schedule_fingerprint": schedule_fingerprint(schedule.get("plan") or {}),
         "decisions": decisions.get("decisions") or {},
         "participation_acceptances": decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or [],
+        "change_protections": decisions.get(CHANGE_PROTECTIONS_KEY) or [],
         "verification_context": schedule.get("verification_context"),
     }
     return stable_payload_sha256(payload)
@@ -122,6 +124,7 @@ def migrate_participation_acceptance_ids(decisions: dict[str, Any]) -> list[str]
 
 __all__ = [
     "CANONICAL_STATE_REVISION_KEY",
+    "CHANGE_PROTECTIONS_KEY",
     "PARTICIPATION_ACCEPTANCES_KEY",
     "PARTICIPATION_ACCEPTANCE_PREFIX",
     "canonical_state_revision",

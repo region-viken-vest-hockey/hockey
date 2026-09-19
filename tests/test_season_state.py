@@ -11,6 +11,7 @@ from tournament_scheduler.season_state import (
     SeasonStateError,
     approve_tournament,
     canonical_state_revision,
+    change_protection_report,
     load_decisions,
     load_schedule,
     move_tournament,
@@ -18,6 +19,7 @@ from tournament_scheduler.season_state import (
     normalize_placements,
     planning_checkpoint_from_schedule,
     promote_from_stage3,
+    release_change_protections,
 )
 
 
@@ -506,3 +508,97 @@ def test_participant_swap_is_verified_atomic_and_dry_runnable(tmp_path: Path) ->
             root=root,
         )
     assert (root / "2026-2027" / "schedule.json").read_bytes() == locked_schedule
+
+
+def test_participant_swap_protects_request_intent_until_explicit_release(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    candidate = _candidate()
+    second = {
+        "id": "u10-b-20260920",
+        "date": "2026-09-20",
+        "arena": "Arena B",
+        "age_group": "U10",
+        "host_club": "B",
+        "teams": [
+            {"club": "B", "label": "B2", "age_group": "U10"},
+            {"club": "E", "label": "E1", "age_group": "U10"},
+            {"club": "F", "label": "F1", "age_group": "U10"},
+            {"club": "G", "label": "G1", "age_group": "U10"},
+        ],
+        "games": [],
+        "start_time": "12:00",
+    }
+    candidate["tournaments"].append(second)
+    _stage_plan(state, candidate)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    first = swap_participants(
+        season="2026-2027",
+        tournament_a_id="u10-a-20260912",
+        team_a_label="D1",
+        tournament_b_id="u10-b-20260920",
+        team_b_label="E1",
+        root=root,
+        actor="tester",
+        note="club asked to spread dates",
+        request_id="club-request-17",
+    )
+    assert first["dry_run"] is False
+    report = change_protection_report("2026-2027", root=root)
+    assert report["active_count"] == 4
+    assert {item["request_id"] for item in report["protections"]} == {"club-request-17"}
+
+    preview = swap_participants(
+        season="2026-2027",
+        tournament_a_id="u10-a-20260912",
+        team_a_label="E1",
+        tournament_b_id="u10-b-20260920",
+        team_b_label="D1",
+        root=root,
+        dry_run=True,
+    )
+    assert preview["swap"]["change_protection_acceptable"] is False
+    assert preview["swap"]["existing_change_protection_violations"]
+
+    with pytest.raises(SeasonStateError, match="undo an accepted change"):
+        swap_participants(
+            season="2026-2027",
+            tournament_a_id="u10-a-20260912",
+            team_a_label="E1",
+            tournament_b_id="u10-b-20260920",
+            team_b_label="D1",
+            root=root,
+        )
+
+    released = release_change_protections(
+        season="2026-2027",
+        root=root,
+        request_id="club-request-17",
+        actor="tester",
+        note="superseded by club-request-18",
+    )
+    assert len(released["released_protection_ids"]) == 4
+    assert released["active_count"] == 0
+    all_report = change_protection_report(
+        "2026-2027",
+        root=root,
+        include_released=True,
+    )
+    assert len(all_report["protections"]) == 4
+    assert {item["status"] for item in all_report["protections"]} == {"released"}
+
+    reversed_result = swap_participants(
+        season="2026-2027",
+        tournament_a_id="u10-a-20260912",
+        team_a_label="E1",
+        tournament_b_id="u10-b-20260920",
+        team_b_label="D1",
+        root=root,
+        actor="tester",
+        request_id="club-request-18",
+        note="new request explicitly supersedes the earlier change",
+    )
+    assert reversed_result["dry_run"] is False
+    assert change_protection_report("2026-2027", root=root)["active_count"] == 4

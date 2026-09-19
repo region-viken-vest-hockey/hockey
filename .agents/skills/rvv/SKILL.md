@@ -43,7 +43,9 @@ scripts/rvv-miniputt season revoke-acceptance --season 2026-2027 --finding <find
 scripts/rvv-miniputt season approve --season 2026-2027 --tournament-id <id> --note "ice booked"
 scripts/rvv-miniputt season unapprove --season 2026-2027 --tournament-id <id> --note "booking changed"
 scripts/rvv-miniputt season move --season 2026-2027 --tournament-id <id> --date 2026-10-18
-scripts/rvv-miniputt season swap-participants --season 2026-2027 --tournament-a <id> --team-a "<team>" --tournament-b <id> --team-b "<team>" --dry-run
+scripts/rvv-miniputt season swap-participants --season 2026-2027 --tournament-a <id> --team-a "<team>" --tournament-b <id> --team-b "<team>" --request-id <request-id> --dry-run
+scripts/rvv-miniputt season protections --season 2026-2027
+scripts/rvv-miniputt season release-protection --season 2026-2027 --request-id <superseded-request-id> --note "superseded by <new-request-id>"
 scripts/rvv-miniputt season guest-report --season 2026-2027
 scripts/rvv-miniputt season guest-candidates --season 2026-2027 --age-groups JU10,JU12
 scripts/rvv-miniputt season guest-reserve --season 2026-2027 --tournament-id <id> --note "external league team may apply"
@@ -57,6 +59,8 @@ scripts/rvv-miniputt season export --season 2026-2027
 ```
 
 An explicit operator-requested roster exchange does not need an existing finding. Use `season swap-participants` rather than hand-editing canonical JSON or refusing because no repair finding exists. The command only swaps two participants between same-age tournaments, keeps both placements/hosts fixed, regenerates both game schedules, respects participant locks and guest reservations, and runs the full canonical hard-verification/hosting-responsibility boundary. It also computes per-team before/after consequences for **both** swapped teams (spacing, full-season temporal coverage, opponent repetition/diversity and travel). `--dry-run` returns these facts even for a poor candidate; applying a swap is refused when either affected team gets a deterministic material regression (additional <7/<14-day gap, materially worse >60-day season coverage, additional opponent-repeat excess above two meetings, or travel increase of at least 50 km and 25%). Evaluate alternatives with `--dry-run` and choose a candidate that improves the target without materially degrading the displaced team.
+
+Every accepted participant swap also writes granular, team-specific **change protections** into canonical `decisions.json`: each team must remain in the tournament it was moved to and must remain out of the tournament it was deliberately removed from. These guards are part of the canonical-state revision and are enforced by later swaps and generic `season apply`, so a later request/optimizer cannot unknowingly undo an earlier accepted change. Pass a stable source identifier with `--request-id` whenever available. Inspect guards with `season protections`. A later club request that intentionally supersedes an earlier one must first use `season release-protection` with the earlier protection/request id and an audit note naming the superseding request; never release a protection merely to make an optimizer candidate fit. The protection is team-specific rather than a whole-roster lock, so unrelated teams in the same tournaments remain editable.
 
 For a localized defect (an unresolved hosting obligation, a manual placement, a host-controlled movable-ice opportunity, a participation strong-goal deviation), prefer the finding-directed loop over whole-season replanning:
 
