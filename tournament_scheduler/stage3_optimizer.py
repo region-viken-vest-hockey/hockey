@@ -50,6 +50,7 @@ from itertools import combinations
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from .game_generation import generate_tournament_games
+from .date_policy import problem_date_exclusions as _problem_date_exclusions
 from .canonical_baseline import (
     DEFAULT_CHANGE_COST_SCALE,
     DEFAULT_CHANGE_WEIGHTS,
@@ -828,9 +829,17 @@ def _date_swap_is_valid(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
     split_date: Optional[date] = None,
     allow_cross_half_moves: bool = False,
+    problem: Optional[Dict[str, Any]] = None,
 ) -> bool:
     a, b = slots[slot_a], slots[slot_b]
     new_a_date, new_b_date = b.date, a.date
+
+    # Canonical date-admissibility: a swap moves each tournament onto the
+    # other's date, so neither may land on an excluded holiday date.
+    if _problem_date_exclusions(problem):
+        excluded = _problem_date_exclusions(problem)
+        if new_a_date in excluded or new_b_date in excluded:
+            return False
 
     # issue #293: a date swap is a date *move* for both slots (each ends up
     # on the other's date) -- reject it if that would carry either
@@ -940,6 +949,11 @@ def _within_half_date_move_candidates(
     new_date = half_start + timedelta(days=rng.randrange(span + 1))
     if new_date == slot.date:
         return None
+    if new_date in _problem_date_exclusions(problem):
+        # An excluded holiday date is never a legal relocation target; skip it
+        # here so the local search does not waste proposals on a date the
+        # independent verifier would reject anyway.
+        return None
     return index, new_date
 
 
@@ -949,8 +963,12 @@ def _within_half_date_move_is_valid(
     new_date: date,
     state: Optional["_SearchState"] = None,
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]] = None,
+    problem: Optional[Dict[str, Any]] = None,
 ) -> bool:
     slot = slots[index]
+
+    if new_date in _problem_date_exclusions(problem):
+        return False
 
     if external_calendar_conflict(
         club_busy_intervals, slot.host_club, new_date, slot.start_time, slot.duration_minutes
@@ -1383,6 +1401,7 @@ def optimize_candidate(
                         club_busy_intervals=club_busy_intervals,
                         split_date=split_date,
                         allow_cross_half_moves=allow_cross_half_moves,
+                        problem=problem,
                     )
                 ):
                     step += 1
@@ -1410,6 +1429,7 @@ def optimize_candidate(
                         *within_half_move,
                         state=state,
                         club_busy_intervals=club_busy_intervals,
+                        problem=problem,
                     )
                 ):
                     step += 1

@@ -92,7 +92,7 @@ def _three_team_candidate() -> tuple[dict, dict]:
             _tournament("t1", "2026-01-10", [a1, b1, c1, d1]),
             _tournament("t2", "2026-02-10", [a1, b1, c1, d1]),
             _tournament("t3", "2026-03-10", [a1, b1, c1, d1]),
-            _tournament("t4", "2026-04-10", [a1, e1, f1, g1]),
+            _tournament("t4", "2026-04-15", [a1, e1, f1, g1]),
         ],
     }
     problem = _problem([a1, b1, c1, d1, e1, f1, g1, h1], targets={"before_christmas": 3, "after_christmas": 3})
@@ -193,7 +193,7 @@ def test_waiver_scoped_to_absent_tournament_does_not_suppress():
 def test_stale_waiver_wrong_allowed_value_does_not_suppress():
     candidate, problem = _three_team_candidate()
     # Team reaches 5, but the waiver only authorizes 4.
-    extra = _tournament("t5", "2026-05-10", [_team("A", "A 1"), _team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1")])
+    extra = _tournament("t5", "2026-05-24", [_team("A", "A 1"), _team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1")])
     candidate["tournaments"].append(extra)
     problem["operator_waivers"] = [_matching_waiver(candidate, problem)]
     result = verify_candidate(candidate, problem)
@@ -208,9 +208,9 @@ def test_moving_the_extra_participation_makes_the_waiver_stale():
     problem["operator_waivers"] = [_matching_waiver(candidate, problem, tournament_id="t4")]
     # Keep A 1 at 4 tournaments, but move the authorized participation out of
     # t4 into a new t5.
-    candidate["tournaments"][3] = _tournament("t4", "2026-04-10", [_team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1"), _team("H", "H 1")])
+    candidate["tournaments"][3] = _tournament("t4", "2026-04-15", [_team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1"), _team("H", "H 1")])
     candidate["tournaments"].append(
-        _tournament("t5", "2026-05-10", [_team("A", "A 1"), _team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1")])
+        _tournament("t5", "2026-05-24", [_team("A", "A 1"), _team("E", "E 1"), _team("F", "F 1"), _team("G", "G 1")])
     )
     result = verify_candidate(candidate, problem)
     assert result["ok"] is False

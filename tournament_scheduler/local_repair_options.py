@@ -17,6 +17,10 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, Mapping, Tuple
 
+from .date_policy_relocation import (
+    apply_date_policy_relocation_option,
+    enumerate_date_policy_relocations,
+)
 from .host_placement_repair import (
     apply_host_placement_repair_option,
     enumerate_host_placement_repairs,
@@ -66,6 +70,11 @@ REPAIR_PROVIDERS: Tuple[Tuple[str, EnumerateFn, ApplyFn], ...] = (
         apply_placement_preserving_roster_repair_option,
     ),
     ("host_placement", enumerate_host_placement_repairs, apply_host_placement_repair_option),
+    (
+        "date_policy_relocation",
+        enumerate_date_policy_relocations,
+        apply_date_policy_relocation_option,
+    ),
     ("hosting_balance", enumerate_hosting_balance_repairs, apply_hosting_balance_repair_option),
     (
         "participation_deviation",

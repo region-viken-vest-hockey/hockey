@@ -45,6 +45,11 @@ from tournament_scheduler.canonical_baseline import (
     pinned_tournament_ids as _canonical_pinned_tournament_ids,
     verify_canonical_locks as _verify_canonical_locks,
 )
+from tournament_scheduler.date_policy import (
+    HOLIDAY_POLICY_SOURCE,
+    holiday_exclusions as _holiday_exclusions,
+    problem_date_exclusions as _problem_date_exclusions,
+)
 from tournament_scheduler.host_representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
 from tournament_scheduler.effective_tournament_shape import (
     NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP,
@@ -154,6 +159,22 @@ def build_planning_problem(
         if isinstance(p, dict)
     ]
 
+    # Canonical holiday/date-admissibility policy: the dates the initial
+    # scheduler would never choose are carried explicitly in the normalized
+    # problem so every repair/optimizer/verifier path reads the same facts
+    # instead of re-deriving (or forgetting) the holiday rule. These are kept
+    # separate from operator ``manual_adjustments.banned_dates`` because they
+    # are a fixed domain policy, not an operator preference.
+    holiday_exclusions = _holiday_exclusions(start_date, end_date)
+    date_exclusions = [
+        {
+            "date": excluded.isoformat(),
+            "reason": reason,
+            "source": HOLIDAY_POLICY_SOURCE,
+        }
+        for excluded, reason in sorted(holiday_exclusions.items())
+    ]
+
     club_busy_dates: Dict[str, List[str]] = {}
     for club, events in events_by_club.items():
         dates = sorted({event.datetime.date().isoformat() for event in events})
@@ -207,6 +228,11 @@ def build_planning_problem(
             else {}
         ),
         "manual_adjustments": manual_adjustments,
+        # Canonical date-admissibility policy facts (holiday weeks + the
+        # weekend before a holiday). Exposed separately from
+        # ``manual_adjustments`` so the verifier and every automatic date
+        # search share one rule and the audit can surface the active policy.
+        "date_exclusions": date_exclusions,
         "date_preferences": date_preferences,
         "club_busy_dates": club_busy_dates,
         "club_calendar_status": club_calendar_status,
@@ -1004,6 +1030,13 @@ def verify_candidate(
     locked_dates = {_parse_date(d) for d in manual.get("locked_dates", [])}
     excluded_host_clubs = set(manual.get("excluded_host_clubs", []))
     pinned_ids = set(manual.get("pinned_tournament_ids", []))
+    # Canonical date-admissibility policy: derived independently from the
+    # planning window (and any explicit policy exclusions the problem
+    # carries), not trusted from the planner that produced the candidate. A
+    # candidate that a later optimizer/repair moved onto an excluded holiday
+    # date therefore fails final verification regardless of which path
+    # created it.
+    policy_excluded_dates = _problem_date_exclusions(problem)
 
     scheduled_dates: set[date] = set()
     for t in tournaments:
@@ -1019,6 +1052,16 @@ def verify_candidate(
                 f"Tournament {t_id} on {t_date.isoformat()} is outside the planning "
                 f"window {window_start.isoformat()}..{window_end.isoformat()}",
                 t_id,
+            )
+
+        if t_date in policy_excluded_dates:
+            _violate(
+                "holiday_date_used",
+                f"Tournament {t_id} is scheduled on excluded holiday date "
+                f"{t_date.isoformat()} ({policy_excluded_dates[t_date]})",
+                t_id,
+                date=t_date.isoformat(),
+                reason=policy_excluded_dates[t_date],
             )
 
         if t_date in banned_dates:

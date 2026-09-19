@@ -46,6 +46,9 @@ REASON_ARENA_CONFLICT = "arena_conflict_no_alternative"
 REASON_CALENDAR_UNAVAILABLE = "calendar_unavailable"
 REASON_HOST_CONFIRMATION_REQUIRED = "host_confirmation_required"
 REASON_APPROVED = "operator_approved"
+# A canonical date policy (for example a holiday week) excludes the date, so
+# the placement cannot be kept; the obligation is retained for relocation.
+REASON_EXCLUDED_DATE = "excluded_date_policy"
 
 
 def _is_operator_confirmed(record: Optional[Mapping[str, Any]]) -> bool:

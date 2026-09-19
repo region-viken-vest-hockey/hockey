@@ -488,6 +488,51 @@ def _date_window_rule(plan: SeasonPlan) -> dict[str, Any]:
     }
 
 
+def _holiday_date_rule(plan: SeasonPlan) -> dict[str, Any]:
+    """Hard rule: no tournament on a canonical holiday-excluded date.
+
+    The active excluded dates are derived from the canonical
+    :mod:`tournament_scheduler.date_policy` and surfaced directly here, so the
+    operator/audit can see the policy actually being enforced rather than only
+    its violations.
+    """
+    from tournament_scheduler.date_policy import holiday_exclusions
+
+    active = _active_tournaments(plan)
+    excluded: dict[Any, str] = {}
+    if plan.start_date and plan.end_date:
+        excluded = holiday_exclusions(plan.start_date, plan.end_date)
+    used = sorted(
+        f"{tournament.id} ({tournament.date.isoformat()})"
+        for tournament in active
+        if tournament.date in excluded
+    )
+    excluded_weekends = sorted(
+        excluded_date.isoformat()
+        for excluded_date in excluded
+        if excluded_date.weekday() in (5, 6)
+    )
+    return {
+        "id": "holiday_dates_not_used",
+        "title": "Helligdagsdatoer må ikke brukes",
+        "type": "hard",
+        "scope": "dato",
+        "owner": "deterministic_verifier",
+        "description": (
+            "Turneringer skal ikke legges i ferie-/helligdagshelger eller helgen rett "
+            "foran en helligdag."
+        ),
+        "configured_value": (
+            f"{len(excluded_weekends)} sperret(e) helgedato(er)"
+            if excluded_weekends
+            else "Ingen i vinduet"
+        ),
+        "excluded_dates": excluded_weekends,
+        "status": "Oppfylt" if not used else f"{len(used)} avvik: {', '.join(used)}",
+        "ok": not used,
+    }
+
+
 def _manual_adjustment_rules(plan: SeasonPlan) -> list[dict[str, Any]]:
     """Hard rules sourced from ``plan.manual_adjustments`` (operator restrictions)."""
     manual = plan.manual_adjustments or {}
@@ -737,6 +782,7 @@ def build_rules_model(plan: SeasonPlan) -> list[dict[str, Any]]:
     rules.append(_age_group_exact_match_rule(plan))
     rules.append(_no_double_participation_rule(plan))
     rules.append(_date_window_rule(plan))
+    rules.append(_holiday_date_rule(plan))
     rules.append(_arena_collision_rule(plan))
     rules.extend(_manual_adjustment_rules(plan))
     rules.append(_calendar_trust_rule(plan))

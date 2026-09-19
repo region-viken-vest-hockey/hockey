@@ -121,7 +121,7 @@ def test_over_target_with_available_capacity_is_only_search_exhausted():
     a, b = _team("Jar", "Jar 1"), _team("Kongsberg", "Kongsberg 1")
     candidate = {
         "tournaments": [
-            _tournament(f"t{i}", f"2026-0{i}-10", [a, b]) for i in range(1, 5)
+            _tournament(f"t{i}", f"2026-0{i}-15", [a, b]) for i in range(1, 5)
         ]
     }
     problem = _problem(teams=[a, b], targets={"before_christmas": 1, "after_christmas": 1})
@@ -135,7 +135,7 @@ def test_explicit_hard_max_is_a_separate_hard_rule():
     a, b = _team("Jar", "Jar 1"), _team("Kongsberg", "Kongsberg 1")
     candidate = {
         "tournaments": [
-            _tournament(f"t{i}", f"2026-0{i}-10", [a, b]) for i in range(1, 5)
+            _tournament(f"t{i}", f"2026-0{i}-15", [a, b]) for i in range(1, 5)
         ]
     }
     problem = _problem(
@@ -158,7 +158,7 @@ def test_matching_hard_max_waiver_downgrades_only_that_violation():
             _tournament("t1", "2026-01-10", [a, b]),
             _tournament("t2", "2026-02-10", [a, b]),
             _tournament("t3", "2026-03-10", [a, b]),
-            _tournament("t4", "2026-04-10", [a, c]),
+            _tournament("t4", "2026-04-15", [a, c]),
         ]
     }
     problem = _problem(

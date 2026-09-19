@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import math
-from datetime import date, timedelta
+from datetime import date
 from typing import Dict, List, Optional, Sequence, Set
-
-import holidays
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.html.data_computation import canonical_rvv_club_name
@@ -33,29 +31,19 @@ def compute_game_counts(planner, tournaments: Sequence[Tournament]) -> None:
 
 
 def holiday_heavy_weekend_dates(start_date: date, end_date: date) -> Set[date]:
-    """Return weekend dates that sit in holiday weeks or just before holidays."""
-    holiday_calendar = holidays.Norway()
-    heavy_dates: Set[date] = set()
-    extended_end = end_date + timedelta(days=10)
+    """Return weekend dates that sit in holiday weeks or just before holidays.
 
-    current = start_date
-    while current <= extended_end:
-        if current in holiday_calendar:
-            week_start = current - timedelta(days=current.weekday())
-            for i in range(7):
-                week_day = week_start + timedelta(days=i)
-                if start_date <= week_day <= end_date and week_day.weekday() in (5, 6):
-                    heavy_dates.add(week_day)
+    Delegates to the canonical :mod:`tournament_scheduler.date_policy` so this
+    fairness diagnostic and the initial scheduler enforce the identical
+    holiday policy.
+    """
+    from tournament_scheduler.date_policy import holiday_excluded_dates
 
-            days_since_monday = current.weekday()
-            saturday = current - timedelta(days=days_since_monday + 2)
-            sunday = current - timedelta(days=days_since_monday + 1)
-            for weekend_day in (saturday, sunday):
-                if start_date <= weekend_day <= end_date and weekend_day.weekday() in (5, 6):
-                    heavy_dates.add(weekend_day)
-        current += timedelta(days=1)
-
-    return heavy_dates
+    return {
+        excluded
+        for excluded in holiday_excluded_dates(start_date, end_date)
+        if excluded.weekday() in (5, 6)
+    }
 
 
 def hosting_weekend_balance_breakdown(planner, plan: SeasonPlan) -> Dict[str, object]:

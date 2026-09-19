@@ -45,6 +45,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 from . import planning_half
 from .application.decisions import DecisionContext
 from .candidate_weekends import enumerate_candidate_weekends, season_weekend_dates
+from .date_policy import problem_date_exclusions as _problem_date_exclusions
 from .host_representation import constituent_clubs
 from .host_team_missing_repair import (
     RepairOption,
@@ -208,6 +209,17 @@ def _finding_for_tournament(tournament: Mapping[str, Any]) -> _Finding:
     )
 
 
+def _finding_for_holiday_tournament(tournament: Mapping[str, Any]) -> _Finding:
+    tournament_id = str(tournament.get("id"))
+    return _Finding(
+        finding_id=f"holiday_date_used:{tournament_id}",
+        tournament_id=tournament_id,
+        host_club=str(tournament.get("host_club") or ""),
+        age_group=str(tournament.get("age_group") or ""),
+        original_date=str(tournament.get("date") or ""),
+    )
+
+
 def enumerate_host_placement_repairs(
     candidate: Mapping[str, Any],
     problem: Mapping[str, Any],
@@ -229,9 +241,16 @@ def enumerate_host_placement_repairs(
         candidate, problem, occupancy=occupancy, team_labels=team_labels
     )
     for tournament in candidate.get("tournaments", []):
-        if tournament.get("cancelled") or not _is_manual_slot_failure(tournament):
+        if tournament.get("cancelled"):
             continue
-        finding = _finding_for_tournament(tournament)
+        holiday_date = _parse_date(tournament.get("date")) in _problem_date_exclusions(problem)
+        if not _is_manual_slot_failure(tournament) and not holiday_date:
+            continue
+        finding = (
+            _finding_for_holiday_tournament(tournament)
+            if holiday_date
+            else _finding_for_tournament(tournament)
+        )
         tournament_id = finding.tournament_id
         host_club = finding.host_club
         if not host_club:
@@ -245,6 +264,25 @@ def enumerate_host_placement_repairs(
             continue
         if len(options) >= _MAX_OPTIONS:
             rejected.append({**_base(finding), "reason": "bounded_search_budget_exhausted"})
+            continue
+        if holiday_date:
+            # A same-date start-time or interpretation option cannot make an
+            # excluded date admissible, so only a genuine date move is offered.
+            date_options, date_rejected = _date_options(
+                candidate, problem, tournament, finding, fingerprint
+            )
+            options.extend(date_options)
+            rejected.extend(date_rejected)
+            if not date_options:
+                rejected.append(
+                    {
+                        **_base(finding),
+                        "reason": "no_same_host_date_found",
+                        "dates_checked": sorted(
+                            {entry.get("date") for entry in date_rejected if entry.get("date")}
+                        ),
+                    }
+                )
             continue
         time_options, time_rejected = _start_time_options(
             candidate, problem, tournament, finding, fingerprint
@@ -526,10 +564,12 @@ def _candidate_weekend_dates(
     split = _parse_date(problem.get("christmas_split_date"))
     allow_cross_half = bool(problem.get("allow_cross_half_moves"))
     current_half = planning_half.tournament_half(on_date, split) if on_date else None
+    excluded_dates = set(_problem_date_exclusions(problem))
     dates = [
         candidate_date
         for candidate_date in season_weekend_dates(problem)
         if candidate_date != on_date
+        and candidate_date not in excluded_dates
         and (
             allow_cross_half
             or current_half is None
@@ -1031,13 +1071,19 @@ def _candidate_dates(
     split = _parse_date(problem.get("christmas_split_date"))
     allow_cross_half = bool(problem.get("allow_cross_half_moves"))
     current_half = planning_half.tournament_half(current_date, split) if current_date else None
+    excluded_dates = set(_problem_date_exclusions(problem))
     seen = set()
     dates: List[date] = []
     for tournament in candidate.get("tournaments", []):
         if tournament.get("cancelled"):
             continue
         candidate_date = _parse_date(tournament.get("date"))
-        if candidate_date is None or candidate_date == current_date or candidate_date in seen:
+        if (
+            candidate_date is None
+            or candidate_date == current_date
+            or candidate_date in seen
+            or candidate_date in excluded_dates
+        ):
             continue
         seen.add(candidate_date)
         if not allow_cross_half and current_half is not None:

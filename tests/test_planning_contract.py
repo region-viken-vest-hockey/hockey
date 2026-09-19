@@ -426,7 +426,7 @@ class TestVerifyCandidateWithProblem:
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         candidate = {
             "tournaments": [
-                _tournament(f"t{i}", f"2026-0{i}-01", "Jar Isforum", "U10", teams) for i in range(1, 5)
+                _tournament(f"t{i}", f"2026-0{i}-15", "Jar Isforum", "U10", teams) for i in range(1, 5)
             ]
         }
         problem = self._problem(target_tournament_count=3)
@@ -434,6 +434,7 @@ class TestVerifyCandidateWithProblem:
         codes = {v["code"] for v in result["violations"]}
         assert "participation_target_exceeded" not in codes
         assert "participation_hard_max_exceeded" not in codes
+        assert "holiday_date_used" not in codes
         assert result["ok"] is True
         over = [d for d in result["participation_deviations"] if d["direction"] == "over_target"]
         assert over
@@ -509,7 +510,7 @@ class TestVerifyCandidateWithProblem:
                 _tournament("t1", "2026-01-10", "Jar Isforum", "U11", teams),
                 _tournament("t2", "2026-02-10", "Jar Isforum", "U11", teams),
                 _tournament("t3", "2026-03-10", "Jar Isforum", "U11", teams),
-                _tournament("t4", "2026-04-10", "Jar Isforum", "U11", teams),
+                _tournament("t4", "2026-04-15", "Jar Isforum", "U11", teams),
             ]
         }
         problem = self._problem(

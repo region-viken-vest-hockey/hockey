@@ -287,7 +287,7 @@ class TestTemporalCoverageInPlanSelection:
         clustered = self._spread_candidate("2026-09-12", "2026-09-19")
         # Spread: same pairings/turnaround gap (28 days), just positioned
         # later so the lead/finish boundary gaps shrink substantially.
-        spread = self._spread_candidate("2026-11-30", "2026-12-07")
+        spread = self._spread_candidate("2026-10-12", "2026-10-19")
 
         report = build_ab_report(clustered, spread, problem=self._SEASON_PROBLEM)
 
@@ -309,7 +309,7 @@ class TestTemporalCoverageInPlanSelection:
         assert report["production_ready"]
 
     def test_clustered_schedule_is_flagged_as_temporal_regression(self):
-        spread = self._spread_candidate("2026-11-30", "2026-12-07")
+        spread = self._spread_candidate("2026-10-12", "2026-10-19")
         clustered = self._spread_candidate("2026-09-12", "2026-09-19")
 
         # Selecting the clustered plan over the already-spread baseline must

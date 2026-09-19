@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "0c7c362f74eacd1f2d719deacdbf215a5f1ad159fdff880e41af7c24e94a30cd",
+  "canonical_state_revision": "a71e64d4382347a2bbc98848fdcdd09efd902c54ca45ad4ba612909d7d1a40e6",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -67,15 +67,6 @@
       "status": "pending_review"
     },
     "rvv-0008": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0009": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -193,15 +184,6 @@
       "status": "pending_review"
     },
     "rvv-0025": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0026": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -543,15 +525,6 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0069": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0070": {
       "approved_at": null,
       "approved_by": null,
@@ -660,25 +633,7 @@
       "placement_locked": false,
       "status": "pending_review"
     },
-    "rvv-0084": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
     "rvv-0085": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0086": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -841,15 +796,6 @@
       "status": "pending_review"
     },
     "rvv-0104": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
-      "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
-    },
-    "rvv-0105": {
       "approved_at": null,
       "approved_by": null,
       "approved_fingerprint": null,
@@ -1579,8 +1525,8 @@
       "status": "pending_review"
     }
   },
-  "schedule_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
+  "schedule_fingerprint": "4f005cfaa564d9496442478830c2e417d54438270be42d9cb755c4258f7d2246",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-18T19:44:06.643372+00:00"
+  "updated_at": "2026-09-19T07:17:47.207668+00:00"
 }

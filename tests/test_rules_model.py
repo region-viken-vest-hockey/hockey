@@ -29,6 +29,7 @@ def test_build_rules_model_is_empty_for_bare_plan():
         "participation_target_deviation",
         "arena_day_collisions",
         "date_within_planning_window",
+        "holiday_dates_not_used",
         "banned_dates_not_used",
         "excluded_host_clubs_not_used",
         "locked_dates_preserved",

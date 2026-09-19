@@ -63,8 +63,16 @@ SEARCHABLE_VIOLATION_CODES = frozenset(
         "duplicate_participation_same_date",
         "duplicate_team_in_tournament",
         "arena_interval_conflict",
+        # A tournament on a canonical holiday-excluded date is repairable by
+        # moving it to another verified date for the same responsible host.
+        "holiday_date_used",
     }
 )
+
+# Violations whose repair requires moving a tournament to a genuinely new
+# date rather than reshuffling existing dates, so the search must enable the
+# within-half date-move dimension for them.
+DATE_MOVE_VIOLATION_CODES = frozenset({"holiday_date_used"})
 
 
 def findings_are_locally_searchable(codes: Iterable[str]) -> bool:
@@ -138,6 +146,7 @@ def enumerate_search_neighborhood_repairs(
     before_codes = Counter(_codes(verification))
     seen_after: set[str] = set()
     resolved_dimensions = {str(dimension) for dimension in dimensions}
+    needs_new_date = bool(codes & DATE_MOVE_VIOLATION_CODES) or "date" in resolved_dimensions
     for seed in seeds:
         search_result = optimize_candidate(
             dict(candidate),
@@ -146,6 +155,7 @@ def enumerate_search_neighborhood_repairs(
             seed=int(seed),
             move_hosts="host" in resolved_dimensions,
             move_dates="date" in resolved_dimensions,
+            move_dates_within_half=needs_new_date,
             move_slots="slot" in resolved_dimensions,
             frozen_tournament_ids=list(neighborhood.frozen_tournament_ids),
         )
