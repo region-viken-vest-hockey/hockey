@@ -456,9 +456,7 @@
     (function () {
       const THEME_KEY = 'rvv-theme';
       const saved = localStorage.getItem(THEME_KEY);
-      if (saved === 'light' || saved === 'dark') {
-        document.documentElement.dataset.theme = saved;
-      }
+      document.documentElement.dataset.theme = saved === 'dark' ? 'dark' : 'light';
       const toggle = document.getElementById('themeToggle');
       if (toggle) {
         toggle.addEventListener('click', function () {

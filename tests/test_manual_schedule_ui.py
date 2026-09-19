@@ -22,6 +22,7 @@ def test_manual_schedule_uses_complete_navbar_and_persisted_theme_toggle() -> No
     assert 'href="input.html"' in html
     assert 'id="themeToggle"' in html
     assert "localStorage.getItem('rvv-theme')" in html
+    assert "document.documentElement.dataset.theme = saved === 'dark' ? 'dark' : 'light';" in html
     assert "localStorage.setItem(THEME_KEY, next)" in html
 
 

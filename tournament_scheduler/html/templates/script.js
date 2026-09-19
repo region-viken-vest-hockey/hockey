@@ -2,9 +2,7 @@
 // (e.g. heatmap club palette) pick the correct variant on first paint.
 (function() {
   var saved = localStorage.getItem('rvv-theme');
-  if (saved === 'light' || saved === 'dark') {
-    document.documentElement.dataset.theme = saved;
-  }
+  document.documentElement.dataset.theme = saved === 'dark' ? 'dark' : 'light';
 })();
 
 // Data embedded as JSON
