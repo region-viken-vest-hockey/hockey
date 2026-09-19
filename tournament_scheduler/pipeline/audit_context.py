@@ -815,7 +815,18 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
     planning_checkpoint = state.read_stage(StageName.PLANNING)
     config_checkpoint = state.read_stage(StageName.CONFIG)
     scraping_checkpoint = state.read_stage(StageName.SCRAPING)
-    plan_dict = planning_checkpoint.get("plan") if isinstance(planning_checkpoint, dict) else None
+    # The audit must describe the plan the current export fingerprint is
+    # actually bound to. Stage 4 records that exact projection as
+    # `reviewed_plan`, and a canonical `season export` writes only the EXPORT
+    # stage, so the Stage 3 planning checkpoint can still hold an older run's
+    # plan (missing later canonical tournaments and guest reservations). Prefer
+    # the exported projection and fall back to the planning checkpoint only
+    # when a run has not exported yet.
+    reviewed_plan = export_checkpoint.get("reviewed_plan") if isinstance(export_checkpoint, dict) else None
+    if isinstance(reviewed_plan, dict) and reviewed_plan.get("tournaments") is not None:
+        plan_dict = reviewed_plan
+    else:
+        plan_dict = planning_checkpoint.get("plan") if isinstance(planning_checkpoint, dict) else None
 
     manifest = RunManifest(work_dir).read()
     export_dir = export_checkpoint.get("export_dir")

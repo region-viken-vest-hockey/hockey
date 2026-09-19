@@ -424,3 +424,79 @@ def test_context_records_prompt_and_runbook_version(tmp_path):
 def test_context_without_any_export_has_no_fingerprint(tmp_path):
     context = build_audit_context(work_dir=tmp_path)
     assert context["export_fingerprint"] is None
+
+
+def test_context_plan_comes_from_the_exported_projection_not_a_stale_planning_stage(tmp_path):
+    """A canonical `season export` writes only the EXPORT stage.
+
+    The audit overview must describe the plan the export fingerprint is
+    actually bound to (the reviewed/exported projection), never a Stage 3
+    planning checkpoint left behind by an earlier run. Otherwise guest
+    reservations and later canonical tournaments are invisible to the audit and
+    the export-consistency check compares the export against the wrong plan.
+    """
+    stale_plan = {
+        "tournaments": [
+            {
+                "id": "stale-1",
+                "date": "2026-10-10",
+                "age_group": "U10",
+                "arena": "Stale ishall",
+                "host_club": "Stale",
+                "start_time": "10:00",
+                "teams": [{"label": "Stale 1", "club": "Stale", "age_group": "U10"}],
+                "games": [],
+            }
+        ]
+    }
+    PipelineState(tmp_path).write_stage(
+        StageName.PLANNING, {"plan": stale_plan}, status=StageStatus.DONE
+    )
+
+    exported_plan = {
+        "tournaments": [
+            {
+                "id": "rvv-0007",
+                "date": "2026-10-11",
+                "age_group": "JU10",
+                "arena": "Skien ishall",
+                "host_club": "Skien",
+                "start_time": "10:00",
+                "teams": [{"label": "Skien", "club": "Skien", "age_group": "JU10"}],
+                "games": [],
+                "guest_slots": [
+                    {"id": "guest:rvv-0007:1", "status": "open", "note": "external team"}
+                ],
+                "reserved_guest_slots": 1,
+            },
+            {
+                "id": "rvv-0008",
+                "date": "2026-10-11",
+                "age_group": "U11",
+                "arena": "Tonsberghallen",
+                "host_club": "Tønsberg",
+                "start_time": "10:00",
+                "teams": [{"label": "Tønsberg 1", "club": "Tønsberg", "age_group": "U11"}],
+                "games": [],
+            },
+        ]
+    }
+    export_dir = tmp_path / "export"
+    export_dir.mkdir(exist_ok=True)
+    PipelineState(tmp_path).write_stage(
+        StageName.EXPORT,
+        {
+            "export_dir": str(export_dir),
+            "output_files": {},
+            "verify_result": {"ok": True, "violations": []},
+            "export_fingerprint": "fp-canonical",
+            "reviewed_plan": exported_plan,
+        },
+        status=StageStatus.DONE,
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+    summary = context["plan_audit_summary"]
+    assert summary["tournament_count"] == 2
+    assert summary["guest_reservation_summary"]["reserved_tournament_count"] == 1
+    assert summary["guest_reservation_summary"]["open_slots"] == 1
