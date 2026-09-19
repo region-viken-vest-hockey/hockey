@@ -133,6 +133,7 @@ Scheduling rules must have one authoritative implementation and remain valid acr
 | Input/configured policy | controlled workbook/config parsing | participation targets, season window, source configuration |
 | Domain facts and reusable rule math | small planner-independent deterministic modules | hosting targets, coverage and responsibility facts (`hosting_coverage`, `hosting_responsibility`), placement state classification/normalization across every path and stable unresolved-placement finding identity (`placement_normalization`, `placement_findings`: placed/provisional vs unplaced), participation target/hard-max resolution, deviation metrics and avoidability classification (`participation_targets`), canonical holiday/date admissibility (`date_policy`), participant eligibility, availability facts |
 | Hard/required verification | canonical verifier | host representation, explicit participation hard maxima, collisions, required obligations, unexplained responsibility transfer, canonical excluded/holiday dates |
+| Durable semantic request constraints | planner-independent `request_constraints` model/verifier + canonical-season application boundary | typed identity/validation and derived satisfaction for `team_unavailable`/`minimum_gap`/`opponent_avoidance`, enforced at every schedule-changing canonical commit (`move`/`swap`/`apply`/guest lifecycle) until an operator explicitly releases them |
 | Soft deterministic measurements | scorecard/fairness measurement | hosting deviation, bounded participation target deviation/avoidability, temporal spacing; the shared `quality_objectives` module owns which soft quality metrics are compared and in which direction |
 | Feasible repair/action enumeration | canonical application/decision capability | common `local_repair_options` boundary over small planner-neutral providers: `rehost_tournament`/`remove_tournament`/participant repair for `host_team_missing`, `fill_participant`/`swap_participant` for an underfilled roster, `move_same_host_date`/`move_same_host_start_time`/`swap_compatible_tournament_placement`/`interpret_calendar_event_as_movable` for a manual placement, same-age rehost for a hosting-balance/coverage deficit (`hosting_balance_repair`), `replace_participants` roster substitution that keeps an already-valid placement for a double-booked/duplicated participant (`placement_preserving_roster_repair`), bounded participant/host search for a participation strong-goal deviation (`participation_deviation_repair`), `move_to_movable_capacity`/`move_to_movable_capacity_reselect_participants` for verified host-controlled ice, ranked conflict-aware manual candidate weekends (`candidate_weekends`) as read-only evidence, materialization of a genuine unplaced obligation into a verified tournament (`unplaced_placement_repair`) with its coupled capacity-release/cross-age dimensions and per-finding search coverage, bounded neighborhood search (`search_neighborhood_repair`) for a locally searchable hard finding no direct option repairs, batch relocation of tournaments off canonical excluded dates (`date_policy_relocation`), manual-placement fallback |
 | Multi-objective comparison | canonical `pareto` module and shared `quality_objectives` | the one dominance relation and bounded per-objective-extreme down-select shared by Stage 3's multi-objective search and promoted-season maintenance, plus the one planner-independent quality objective vector/comparison derived from `score_candidate`; callers own only how they combine their own defect dimensions with the shared quality vector |
@@ -331,10 +332,12 @@ Two identities are kept distinct:
 
 - `schedule_fingerprint` is the tournament-content identity;
 - `canonical_state_revision` (persisted in `decisions.json`) additionally covers
-decisions, participation acceptances and the promoted verification/problem
-context. Findings, repair options and applies bind to it, so a decision
-change invalidates options generated before it even though the schedule did not
-change. Participation acceptance identity includes `age_group`
+decisions, participation acceptances, accepted-change protections, typed
+request constraints and the promoted verification/problem context. Findings,
+repair options and applies bind to it, so a decision change (including
+recording a new request constraint) invalidates options generated before it
+even though the schedule did not change. Participation acceptance identity
+includes `age_group`
 (`participation_acceptance:<club>:<label>:<age_group>:<scope>`); legacy ids are
 migrated explicitly.
 
@@ -357,6 +360,19 @@ Once a verified schedule is promoted, normal planning becomes baseline-aware:
 - unapproved schedule changes receive weighted change-cost pressure to minimize churn;
 - `season move` handles targeted changes;
 - `season replan` + `season diff` + `season apply` handles bounded refinement;
+- `season constraints` / `season add-constraint` / `season release-constraint`
+  owns durable typed **request constraints** (a team unavailable on a date or
+  inclusive range, a minimum gap between a team's tournaments, opponent
+  avoidance within a date range). They live in `decisions.json`, participate in
+  the canonical-state revision, and are enforced by `request_constraints` (the
+  planner-independent verifier) at every schedule-changing canonical
+  application boundary until explicitly released. Recording one is a
+  decision-only write deliberately allowed while the current plan still
+  violates it; the derived `satisfied`/`violations` report is recomputed from
+  the current plan rather than stored, so a later change can satisfy the same
+  active constraint without rewriting its record. Granular change protections
+  still guard the exact result of one accepted mutation; the semantic request
+  remains authoritative above them;
 - `season approve` / `season unapprove` owns the approval lifecycle;
 - changed approval fingerprints become `stale_approval` and require explicit reapproval;
 - `season export` projects the exact current canonical revision before audit/publication.

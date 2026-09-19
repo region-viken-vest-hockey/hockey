@@ -1273,6 +1273,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
     from ..pipeline.state import PipelineState
     from ..season_state import (
         SeasonStateError,
+        add_request_constraint,
         approval_report,
         approve_tournament,
         change_protection_report,
@@ -1290,6 +1291,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
         promote_from_stage3,
         release_change_protections,
         release_guest_slot,
+        release_request_constraints,
+        request_constraint_report,
         reserve_guest_slot,
         schedule_path,
         swap_participants,
@@ -1640,6 +1643,114 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(
                     f"[green]✓[/green] Released {len(result['released_protection_ids'])} "
                     f"change protection(s); {result['active_count']} remain active"
+                )
+            return 0
+
+        if args.season_command == "constraints":
+            report = request_constraint_report(
+                args.season,
+                root=args.root,
+                include_released=bool(args.all),
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Request constraints {args.season}[/bold] "
+                    f"({report['active_count']} active, "
+                    f"{report['unsatisfied_count']} unresolved)"
+                )
+                for constraint in report["constraints"]:
+                    status = constraint.get("status") or "active"
+                    satisfied = constraint.get("satisfied")
+                    marker = (
+                        "[green]✓[/green]"
+                        if satisfied
+                        else ("[yellow]⚠[/yellow]" if satisfied is False else "[dim]·[/dim]")
+                    )
+                    teams = ", ".join(
+                        str(team.get("label") or "") for team in constraint.get("teams") or []
+                    )
+                    window = constraint.get("date_from") or ""
+                    if constraint.get("date_to") and constraint.get("date_to") != constraint.get("date_from"):
+                        window = f"{window}..{constraint['date_to']}"
+                    if constraint.get("min_days"):
+                        window = f">={constraint['min_days']}d"
+                    _console.print(
+                        f"  {marker} {constraint.get('id')} [{status}] "
+                        f"{constraint.get('type')} {teams} {window} "
+                        f"request={constraint.get('request_id') or '-'}"
+                    )
+                    for violation in constraint.get("violations") or []:
+                        _console.print(f"      [yellow]⚠[/yellow] {violation.get('message')}")
+            return 0
+
+        if args.season_command == "add-constraint":
+            teams = [
+                {
+                    "club": args.team_club,
+                    "label": args.team_label,
+                    "age_group": args.team_age_group,
+                }
+            ]
+            if args.type == "opponent_avoidance":
+                teams.append(
+                    {
+                        "club": args.team2_club,
+                        "label": args.team2_label,
+                        "age_group": args.team2_age_group,
+                    }
+                )
+            result = add_request_constraint(
+                season=args.season,
+                type=args.type,
+                request_id=args.request_id,
+                teams=teams,
+                date_from=args.date_from,
+                date_to=args.date_to,
+                min_days=args.min_days,
+                root=args.root,
+                actor=args.actor,
+                note=args.note,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                constraint = result["constraint"]
+                verb = "Recorded" if result["created"] else "Already recorded"
+                _console.print(
+                    f"[green]✓[/green] {verb} constraint {constraint.get('id')} "
+                    f"({constraint.get('type')}) for {args.season}"
+                )
+                if constraint.get("satisfied"):
+                    _console.print("  current schedule satisfies this constraint")
+                elif constraint.get("satisfied") is False:
+                    _console.print(
+                        "  [yellow]⚠[/yellow] current schedule violates this constraint; "
+                        "repair or release it before the next schedule-changing commit"
+                    )
+                    for violation in constraint.get("violations") or []:
+                        _console.print(f"      {violation.get('message')}")
+                _console.print(
+                    f"  canonical revision: {result['canonical_state_revision']}"
+                )
+            return 0
+
+        if args.season_command == "release-constraint":
+            result = release_request_constraints(
+                season=args.season,
+                root=args.root,
+                constraint_ids=list(args.constraint_ids or []),
+                request_id=args.request_id,
+                actor=args.actor,
+                note=args.note,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] Released {len(result['released_constraint_ids'])} "
+                    f"request constraint(s); {result['active_count']} remain active"
                 )
             return 0
 

@@ -39,6 +39,11 @@ from .quality_objectives import (
     quality_objective_vector,
     with_unresolved_obligations_count,
 )
+from .request_constraints import (
+    active_request_constraints,
+    constraint_violations,
+    request_constraint_report,
+)
 from .season_state import (
     DEFAULT_SEASON_ROOT,
     canonical_state_revision,
@@ -303,6 +308,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
         "finding_count": len(findings),
         "counts_by_code": counts,
         "findings": findings,
+        "request_constraints": _request_constraint_context(plan, decisions),
     }
 
 
@@ -321,7 +327,15 @@ def repair_options(
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=allow_search, dimensions=DEFAULT_DIMENSIONS
     )
-    pareto = _annotate_pareto(plan, problem, options, finding, DEFAULT_DIMENSIONS)
+    constraints = active_request_constraints(decisions)
+    pareto = _annotate_pareto(
+        plan,
+        problem,
+        options,
+        finding,
+        DEFAULT_DIMENSIONS,
+        active_constraints=constraints,
+    )
     return {
         "season": season,
         "revision": revision,
@@ -333,6 +347,7 @@ def repair_options(
         "families": families,
         "pareto": pareto,
         "escalation": _escalation(options, rejected, finding),
+        "request_constraints": _request_constraint_context(plan, decisions),
     }
 
 
@@ -352,7 +367,15 @@ def search(
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=True, dimensions=resolved_dimensions
     )
-    pareto = _annotate_pareto(plan, problem, options, finding, resolved_dimensions)
+    constraints = active_request_constraints(decisions)
+    pareto = _annotate_pareto(
+        plan,
+        problem,
+        options,
+        finding,
+        resolved_dimensions,
+        active_constraints=constraints,
+    )
     return {
         "season": season,
         "revision": revision,
@@ -365,6 +388,7 @@ def search(
         "pareto": pareto,
         "escalation": _escalation(options, rejected, finding),
         "requested_dimensions": list(resolved_dimensions),
+        "request_constraints": _request_constraint_context(plan, decisions),
     }
 
 
@@ -430,6 +454,19 @@ def apply_repair(
             verification=applied.get("verification"),
         )
     result_candidate = applied["candidate"]
+    option_constraint_violations = [
+        violation
+        for constraint in active_request_constraints(decisions)
+        for violation in constraint_violations(result_candidate, constraint)
+    ]
+    if option_constraint_violations:
+        return _rejected_delta(
+            season,
+            revision,
+            "request_constraint_violation",
+            option_id=option_id,
+            request_constraint_violations=option_constraint_violations,
+        )
     before_verification = verify_candidate(plan, problem)
     verification = applied.get("verification") or verify_candidate(dict(result_candidate), dict(problem))
     if not verification.get("ok"):
@@ -1351,12 +1388,32 @@ def _escalation(options: List[Dict[str, Any]], rejected: List[Dict[str, Any]], f
 # ---------------------------------------------------------------------------
 
 
+def _request_constraint_context(
+    plan: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Return the active request constraints plus their derived current status."""
+
+    constraints = request_constraint_report(plan, decisions)
+    return {
+        "active_count": sum(1 for item in constraints if item.get("status") == "active"),
+        "unsatisfied_count": sum(
+            1
+            for item in constraints
+            if item.get("status") == "active" and not item.get("satisfied")
+        ),
+        "constraints": constraints,
+    }
+
+
 def _annotate_pareto(
     plan: Mapping[str, Any],
     problem: Mapping[str, Any],
     options: List[Dict[str, Any]],
     finding: Mapping[str, Any],
     dimensions: Iterable[str],
+    *,
+    active_constraints: Iterable[Mapping[str, Any]] = (),
 ) -> Dict[str, Any]:
     """Measure every option on the same objective vector and mark the front.
 
@@ -1366,12 +1423,28 @@ def _annotate_pareto(
     self-reported effects. An option that no longer reproduces is left off the
     front instead of being reported as a verified trade-off.
     """
+    constraints = list(active_constraints)
     measured: List[Tuple[int, Dict[str, float]]] = []
     before_score = with_unresolved_obligations_count(score_candidate(dict(plan), problem=dict(problem)))
     for index, option in enumerate(options):
         applied = _apply_option(plan, problem, option, finding, dimensions)
         candidate = applied.get("candidate") if applied.get("ok") else None
         if not isinstance(candidate, Mapping):
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        # Active request constraints are hard maintenance requirements, not
+        # soft weights: a candidate that violates one is reported as rejected
+        # evidence instead of being offered as a Pareto trade-off, and the
+        # canonical apply boundary re-checks the full active set regardless.
+        option_violations = [
+            violation
+            for constraint in constraints
+            for violation in constraint_violations(candidate, constraint)
+        ]
+        option["request_constraint_violations"] = option_violations
+        option["request_constraint_acceptable"] = not option_violations
+        if option_violations:
             option["objectives"] = None
             option["non_dominated"] = False
             continue
@@ -1410,6 +1483,11 @@ def _annotate_pareto(
         ],
         "front_size": len(front_option_indices),
         "measured_option_count": len(measured),
+        "request_constraint_rejected_option_ids": [
+            option["option_id"]
+            for option in options
+            if option.get("request_constraint_acceptable") is False
+        ],
     }
 
 

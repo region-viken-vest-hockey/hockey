@@ -57,6 +57,7 @@ __all__ = [
     "SEASON_STATE_SCHEMA_VERSION",
     "STALE_APPROVAL_STATUS",
     "SeasonStateError",
+    "add_request_constraint",
     "apply_candidate",
     "approval_report",
     "approve_tournament",
@@ -81,6 +82,8 @@ __all__ = [
     "record_participation_acceptance",
     "release_change_protections",
     "release_guest_slot",
+    "release_request_constraints",
+    "request_constraint_report",
     "reserve_guest_slot",
     "revoke_participation_acceptance",
     "schedule_fingerprint",
@@ -246,6 +249,68 @@ def release_change_protections(
     return _service(root).release_change_protections(
         season=season,
         protection_ids=protection_ids,
+        request_id=request_id,
+        actor=actor,
+        note=note,
+    )
+
+
+def request_constraint_report(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    include_released: bool = False,
+) -> dict[str, Any]:
+    """Return typed request constraints with their derived satisfaction status."""
+
+    return _service(root).request_constraint_report(
+        season,
+        include_released=include_released,
+    )
+
+
+def add_request_constraint(
+    *,
+    season: str,
+    type: str,
+    request_id: str,
+    teams: list[dict[str, Any]] | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    min_days: int | None = None,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Persist one validated typed request constraint as a decision-only write."""
+
+    return _service(root).add_request_constraint(
+        season=season,
+        type=type,
+        request_id=request_id,
+        teams=teams,
+        date_from=date_from,
+        date_to=date_to,
+        min_days=min_days,
+        actor=actor,
+        note=note,
+    )
+
+
+def release_request_constraints(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    constraint_ids: list[str] | None = None,
+    request_id: str | None = None,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Release request constraints when a newer request explicitly supersedes them."""
+
+    return _service(root).release_request_constraints(
+        season=season,
+        constraint_ids=constraint_ids,
         request_id=request_id,
         actor=actor,
         note=note,

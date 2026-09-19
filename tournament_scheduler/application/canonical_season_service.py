@@ -34,6 +34,7 @@ from tournament_scheduler.canonical_state import (
     CANONICAL_STATE_REVISION_KEY,
     CHANGE_PROTECTIONS_KEY,
     PARTICIPATION_ACCEPTANCES_KEY,
+    REQUEST_CONSTRAINTS_KEY,
     canonical_state_revision,
     compute_canonical_state_revision,
     migrate_participation_acceptance_ids,
@@ -48,6 +49,17 @@ from tournament_scheduler.change_protections import (
     build_move_protections,
     build_swap_protections,
     protection_violations,
+)
+from tournament_scheduler.request_constraints import (
+    ACTIVE as REQUEST_CONSTRAINT_ACTIVE,
+    RELEASED as REQUEST_CONSTRAINT_RELEASED,
+    RequestConstraintError,
+    active_request_constraints,
+    append_request_constraints,
+    request_constraint_records,
+    request_constraint_report,
+    request_constraint_violations,
+    validate_and_normalize as normalize_request_constraint,
 )
 from tournament_scheduler.guest_slots import (
     DEFAULT_GUEST_AGE_GROUPS,
@@ -414,6 +426,244 @@ class CanonicalSeasonService:
         self.store.write(committed, require_absent=require_absent)
         return committed
 
+    def _assert_request_constraints_satisfied(
+        self,
+        plan: Mapping[str, Any],
+        decisions: Mapping[str, Any],
+        *,
+        action: str,
+    ) -> None:
+        """Refuse a schedule-changing commit that violates an active constraint.
+
+        Request constraints are hard maintenance requirements: every canonical
+        schedule-changing entry point calls this at its application boundary, so
+        a generator/search that already considered the constraints is still
+        re-checked against the authoritative active set. Decision-only writes
+        (recording a new request, approval, release) deliberately do not.
+        """
+
+        violations = request_constraint_violations(plan, decisions)
+        if not violations:
+            return
+        messages = "; ".join(str(item.get("message")) for item in violations)
+        raise SeasonStateError(
+            f"Refusing canonical {action}: it violates an active request constraint: {messages}"
+        )
+
+    # -- request constraints ----------------------------------------------
+
+    def request_constraint_report(
+        self,
+        season: str,
+        *,
+        include_released: bool = False,
+    ) -> dict[str, Any]:
+        """Read-only lifecycle + derived satisfaction of request constraints."""
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        constraints = request_constraint_report(
+            schedule.get("plan") or {},
+            decisions,
+            include_released=include_released,
+        )
+        return {
+            "season": season,
+            "revision": schedule.get("revision"),
+            "canonical_state_revision": canonical_state_revision(schedule, decisions),
+            "active_count": sum(
+                1 for item in constraints if item.get("status") == REQUEST_CONSTRAINT_ACTIVE
+            ),
+            "unsatisfied_count": sum(
+                1
+                for item in constraints
+                if item.get("status") == REQUEST_CONSTRAINT_ACTIVE and not item.get("satisfied")
+            ),
+            "constraints": constraints,
+        }
+
+    def add_request_constraint(
+        self,
+        *,
+        season: str,
+        type: str,
+        request_id: str,
+        teams: list[Mapping[str, Any]] | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        min_days: int | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        """Persist one validated typed request constraint (decision-only write).
+
+        Recording a real club/operator request may intentionally leave the
+        current schedule non-conforming. This write is therefore always allowed
+        when the definition itself is valid: it persists the constraint, reports
+        its current structured violation(s), and advances the canonical-state
+        revision so every previously generated repair/search option is stale.
+        The schedule is not touched.
+        """
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        plan = schedule.get("plan") or {}
+        try:
+            normalized = normalize_request_constraint(
+                {
+                    "type": type,
+                    "request_id": request_id,
+                    "teams": [dict(team) for team in (teams or [])],
+                    "date_from": date_from,
+                    "date_to": date_to,
+                    "min_days": min_days,
+                },
+                plan,
+            )
+        except RequestConstraintError as exc:
+            raise SeasonStateError(str(exc)) from exc
+
+        now = _now_iso()
+        resolved_actor = _operator_identity(actor)
+        record = {
+            **normalized,
+            "status": REQUEST_CONSTRAINT_ACTIVE,
+            "created_at": now,
+            "created_by": resolved_actor,
+            "note": note or "",
+            "source_revision": canonical_state_revision(schedule, decisions),
+        }
+        existing = request_constraint_records(decisions, include_released=True)
+        stored = next(
+            (item for item in existing if str(item.get("id") or "") == record["id"]),
+            None,
+        )
+        if stored is not None:
+            # Idempotent retry: return the already-stored constraint with its
+            # current derived status instead of creating a conflicting copy.
+            is_active = str(stored.get("status") or REQUEST_CONSTRAINT_ACTIVE) == REQUEST_CONSTRAINT_ACTIVE
+            violations = (
+                [
+                    violation
+                    for violation in request_constraint_violations(plan, decisions)
+                    if str(violation.get("constraint_id") or "") == record["id"]
+                ]
+                if is_active
+                else []
+            )
+            return {
+                "season": season,
+                "created": False,
+                "constraint": {
+                    **stored,
+                    "satisfied": (not violations) if is_active else None,
+                    "violations": violations,
+                },
+                "canonical_state_revision": canonical_state_revision(schedule, decisions),
+            }
+        append_request_constraints(decisions, [record])
+
+        _append_decision_history(
+            decisions,
+            event="add_request_constraint",
+            tournament_id="",
+            actor=resolved_actor,
+            now=now,
+            note=note,
+            details={
+                "constraint_id": record["id"],
+                "type": record["type"],
+                "request_id": record["request_id"],
+                "teams": record["teams"],
+                "date_from": record.get("date_from"),
+                "date_to": record.get("date_to"),
+                "min_days": record.get("min_days"),
+            },
+        )
+        updated = {**decisions, "updated_at": now}
+        committed = self._commit(snapshot.with_decisions(updated))
+        violations = [
+            violation
+            for violation in request_constraint_violations(
+                committed.schedule.get("plan") or {}, committed.decisions
+            )
+            if str(violation.get("constraint_id") or "") == record["id"]
+        ]
+        return {
+            "season": season,
+            "created": True,
+            "constraint": {
+                **record,
+                "satisfied": not violations,
+                "violations": violations,
+            },
+            "canonical_state_revision": canonical_state_revision(
+                committed.schedule, committed.decisions
+            ),
+        }
+
+    def release_request_constraints(
+        self,
+        *,
+        season: str,
+        constraint_ids: list[str] | None = None,
+        request_id: str | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        """Explicitly release/supersede request constraints with audit history."""
+
+        wanted_ids = {str(value) for value in (constraint_ids or []) if str(value)}
+        wanted_request = str(request_id or "")
+        if not wanted_ids and not wanted_request:
+            raise SeasonStateError(
+                "Refusing constraint release: provide --constraint-id and/or --request-id"
+            )
+
+        snapshot = self.load(season)
+        decisions = copy.deepcopy(snapshot.decisions)
+        records = decisions.get(REQUEST_CONSTRAINTS_KEY, []) or []
+        now = _now_iso()
+        resolved_actor = _operator_identity(actor)
+        released: list[str] = []
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            if str(record.get("status") or REQUEST_CONSTRAINT_ACTIVE) != REQUEST_CONSTRAINT_ACTIVE:
+                continue
+            matches_id = str(record.get("id") or "") in wanted_ids
+            matches_request = bool(wanted_request) and str(record.get("request_id") or "") == wanted_request
+            if not (matches_id or matches_request):
+                continue
+            record["status"] = REQUEST_CONSTRAINT_RELEASED
+            record["released_at"] = now
+            record["released_by"] = resolved_actor
+            record["release_reason"] = note or ""
+            released.append(str(record.get("id") or ""))
+
+        if not released:
+            raise SeasonStateError("No active request constraints matched the release request")
+
+        decisions["updated_at"] = now
+        _append_decision_history(
+            decisions,
+            event="release_request_constraint",
+            tournament_id="",
+            actor=resolved_actor,
+            now=now,
+            note=note,
+            details={"released_constraint_ids": released, "request_id": wanted_request},
+        )
+        committed = self._commit(snapshot.with_decisions(decisions))
+        return {
+            "season": season,
+            "canonical_state_revision": canonical_state_revision(
+                committed.schedule, committed.decisions
+            ),
+            "released_constraint_ids": released,
+            "active_count": len(active_request_constraints(committed.decisions)),
+        }
+
     # -- promotion ---------------------------------------------------------
 
     def promote(
@@ -632,6 +882,7 @@ class CanonicalSeasonService:
             )
         reconcile_plan_derived_state(plan, result, problem=problem)
         existing_protection_violations = protection_violations(plan, decisions)
+        constraint_violations = request_constraint_violations(plan, decisions)
 
         now = _now_iso()
         fingerprint = schedule_fingerprint(plan)
@@ -672,6 +923,8 @@ class CanonicalSeasonService:
                 "run_id": run_id,
                 "existing_change_protection_violations": existing_protection_violations,
                 "change_protection_acceptable": not existing_protection_violations,
+                "request_constraint_violations": constraint_violations,
+                "request_constraint_acceptable": not constraint_violations,
                 "protections_to_add": new_protections,
                 "request_id": str(request_id or ""),
             }
@@ -683,6 +936,13 @@ class CanonicalSeasonService:
             )
             raise SeasonStateError(
                 "Refusing canonical move: it would undo an accepted change: " + messages
+            )
+        if constraint_violations:
+            messages = "; ".join(
+                str(item.get("message")) for item in constraint_violations
+            )
+            raise SeasonStateError(
+                "Refusing canonical move: it violates an active request constraint: " + messages
             )
 
         updated_decisions = dict(decisions)
@@ -904,6 +1164,7 @@ class CanonicalSeasonService:
 
         reconcile_plan_derived_state(plan, result, problem=resolved_problem)
         existing_protection_violations = protection_violations(plan, decisions)
+        constraint_violations = request_constraint_violations(plan, decisions)
         candidate_revision = schedule_fingerprint(plan)
         cost = change_cost(baseline, plan)
 
@@ -963,6 +1224,8 @@ class CanonicalSeasonService:
             "consequence_acceptable": consequence_acceptable,
             "existing_change_protection_violations": existing_protection_violations,
             "change_protection_acceptable": not existing_protection_violations,
+            "request_constraint_violations": constraint_violations,
+            "request_constraint_acceptable": not constraint_violations,
             "protections_to_add": new_protections,
             "request_id": protection_request_id,
         }
@@ -984,6 +1247,14 @@ class CanonicalSeasonService:
             )
             raise SeasonStateError(
                 "Refusing canonical participant swap: it would undo an accepted change: "
+                + messages
+            )
+        if constraint_violations:
+            messages = "; ".join(
+                str(item.get("message")) for item in constraint_violations
+            )
+            raise SeasonStateError(
+                "Refusing canonical participant swap: it violates an active request constraint: "
                 + messages
             )
 
@@ -1072,6 +1343,16 @@ class CanonicalSeasonService:
             )
             raise SeasonStateError(
                 "Refusing canonical apply: it would undo an accepted change: " + messages
+            )
+        active_constraint_violations = request_constraint_violations(
+            normalized_candidate, decisions
+        )
+        if active_constraint_violations:
+            messages = "; ".join(
+                str(item.get("message")) for item in active_constraint_violations
+            )
+            raise SeasonStateError(
+                "Refusing canonical apply: it violates an active request constraint: " + messages
             )
 
         lock_violations = verify_canonical_locks(baseline, normalized_candidate)
@@ -1228,6 +1509,10 @@ class CanonicalSeasonService:
                 f"Refusing placement normalization: candidate fails hard verification: {messages}"
             )
         reconcile_plan_derived_state(plan, result, problem=resolved_problem)
+        if not dry_run:
+            self._assert_request_constraints_satisfied(
+                plan, decisions, action="placement normalization"
+            )
 
         now = _now_iso()
         fingerprint = schedule_fingerprint(plan)
@@ -1558,6 +1843,10 @@ class CanonicalSeasonService:
                 f"Refusing canonical guest reservation: candidate fails hard verification: {messages}"
             )
         reconcile_plan_derived_state(plan, result, problem=resolved_problem)
+        if not dry_run:
+            self._assert_request_constraints_satisfied(
+                plan, decisions, action="guest reservation"
+            )
 
         fingerprint = schedule_fingerprint(plan)
         details = {
@@ -1677,6 +1966,7 @@ class CanonicalSeasonService:
                 f"Refusing canonical guest fill: candidate fails hard verification: {messages}"
             )
         reconcile_plan_derived_state(plan, result, problem=resolved_problem)
+        self._assert_request_constraints_satisfied(plan, decisions, action="guest fill")
 
         fingerprint = schedule_fingerprint(plan)
         updated_schedule = {
@@ -1805,6 +2095,10 @@ class CanonicalSeasonService:
                 f"Refusing canonical guest release: candidate fails hard verification: {messages}"
             )
         reconcile_plan_derived_state(plan, result, problem=resolved_problem)
+        if not dry_run:
+            self._assert_request_constraints_satisfied(
+                plan, decisions, action="guest release"
+            )
 
         fingerprint = schedule_fingerprint(plan)
         details = {

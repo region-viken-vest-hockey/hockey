@@ -40,12 +40,14 @@ Before a manual placement or participant change:
 scripts/rvv-miniputt season status --season <season>
 scripts/rvv-miniputt season approvals --season <season> --json
 scripts/rvv-miniputt season protections --season <season> --json
+scripts/rvv-miniputt season constraints --season <season> --json
 ```
 
 Give the incoming request a stable `request_id`. Prefer an existing external/message/request id when one exists. Otherwise synthesize a deterministic local id from the source and intent (for example `club-feedback:<club>:<date>:<short-purpose>`) and check `season protections` so it does not collide. The operator should not need to invent this internal id.
 
 Classify the requested outcome before choosing a command:
 
+- **semantic constraint, not an exact placement** (a team unavailable on a date/range, a minimum gap between a team's tournaments, an opponent to avoid within a date range) -> record a typed request constraint first (see **Record semantic request constraints** below), then search for any legal result satisfying all active constraints;
 - **specific date/arena/host/time change** -> use the targeted `season move --request-id <id>` flow below;
 - **specific participant/roster exchange** -> evaluate `season swap-participants --dry-run --request-id <id>`; an existing finding is not required;
 - **general request to improve participation/placement** -> use current findings/repair-options/search first, then the smallest verified change;
@@ -70,7 +72,59 @@ scripts/rvv-miniputt season release-protection \
 
 Then apply the newer change with `--request-id <new-request-id>`. Never release a protection merely to make an optimizer or convenient swap candidate fit. Generic `season apply` is also protection-aware, so a broader replan cannot quietly reverse accepted feedback.
 
-After any accepted mutation, re-run `season protections --json` and report which prior requests remain protected and which new protections were added.
+After any accepted mutation, re-run `season protections --json` and `season constraints --json`, and report which prior requests remain protected and which new protections/constraints were added.
+
+## Record semantic request constraints
+
+Club feedback frequently states intent rather than an exact replacement schedule. Do not collapse it into an exact placement lock. Translate it into the narrowest supported canonical typed constraint and record it **before** searching or mutating:
+
+```bash
+# team cannot play a date or inclusive range
+scripts/rvv-miniputt season add-constraint --season <season> \
+  --type team_unavailable \
+  --team-club <club> --team-label <label> --team-age-group <age> \
+  --date-from <YYYY-MM-DD> [--date-to <YYYY-MM-DD>] \
+  --request-id <request-id> --note "<club wording>"
+
+# at least N days between a team's tournaments
+scripts/rvv-miniputt season add-constraint --season <season> \
+  --type minimum_gap \
+  --team-club <club> --team-label <label> --team-age-group <age> \
+  --min-days <N> \
+  --request-id <request-id>
+
+# two teams must not meet within a date range
+scripts/rvv-miniputt season add-constraint --season <season> \
+  --type opponent_avoidance \
+  --team-club <club> --team-label <label> --team-age-group <age> \
+  --team2-club <club2> --team2-label <label2> --team2-age-group <age2> \
+  --date-from <YYYY-MM-DD> [--date-to <YYYY-MM-DD>] \
+  --request-id <request-id>
+```
+
+Scopes use stable team identity (club + label + age group). Constraint ids are deterministic from the semantic payload plus `--request-id`, so retrying the same request is idempotent. Malformed/ambiguous definitions (unknown or ambiguous team identity, inverted date range, non-positive gap, a team avoiding itself, unsupported type) are rejected at creation time.
+
+`season add-constraint` is a decision-only write and is **allowed even when the current schedule violates the new constraint**. It persists the validated constraint, reports its current structured violation(s), and advances the canonical-state revision (invalidating previously generated repair/search options). Confirm the recorded status with:
+
+```bash
+scripts/rvv-miniputt season constraints --season <season> --json
+```
+
+Each active constraint reports `satisfied` plus any `violations`. Then reach a legal state through the ordinary capabilities (`season move`, `season swap-participants`, `repair-options`/`search`/`apply-repair`, `season replan`/`apply`). The repository enforces the full active constraint set at the canonical apply boundary; previews/`repair-options` also report constraint violations instead of hiding them. Search for a result satisfying **all** active constraints -- never auto-release a constraint because it blocks an easy candidate.
+
+Release only when a newer request explicitly supersedes/revokes it:
+
+```bash
+scripts/rvv-miniputt season release-constraint --season <season> \
+  --constraint-id <id> \
+  --note "superseded by <new-request-id>"
+# or release every active constraint created by an earlier request:
+scripts/rvv-miniputt season release-constraint --season <season> \
+  --request-id <old-request-id> \
+  --note "superseded by <new-request-id>"
+```
+
+If the semantic request cannot be represented by a supported type, surface that capability gap instead of silently reducing it to an exact placement lock. A request constraint stays authoritative after a successful repair: the granular change protections may still guard the exact accepted result, but they never replace the higher-level request.
 
 ## Approve / lock booked ice
 

@@ -33,6 +33,7 @@ CANONICAL_STATE_REVISION_KEY = "canonical_state_revision"
 CHANGE_PROTECTIONS_KEY = "change_protections"
 PARTICIPATION_ACCEPTANCES_KEY = "participation_acceptances"
 PARTICIPATION_ACCEPTANCE_PREFIX = "participation_acceptance"
+REQUEST_CONSTRAINTS_KEY = "request_constraints"
 
 
 def schedule_fingerprint(plan_dict: Mapping[str, Any]) -> str:
@@ -57,6 +58,7 @@ def compute_canonical_state_revision(
         "decisions": decisions.get("decisions") or {},
         "participation_acceptances": decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or [],
         "change_protections": decisions.get(CHANGE_PROTECTIONS_KEY) or [],
+        "request_constraints": decisions.get(REQUEST_CONSTRAINTS_KEY) or [],
         "verification_context": schedule.get("verification_context"),
     }
     return stable_payload_sha256(payload)
@@ -127,6 +129,7 @@ __all__ = [
     "CHANGE_PROTECTIONS_KEY",
     "PARTICIPATION_ACCEPTANCES_KEY",
     "PARTICIPATION_ACCEPTANCE_PREFIX",
+    "REQUEST_CONSTRAINTS_KEY",
     "canonical_state_revision",
     "compute_canonical_state_revision",
     "migrate_participation_acceptance_ids",
