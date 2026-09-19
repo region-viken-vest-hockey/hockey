@@ -952,6 +952,123 @@ def _metrics(
     }
 
 
+#: Relative planning severity of the club-pool classifications, used only to
+#: decide whether one candidate's pool state is materially worse than another.
+_CLUB_POOL_SIGNIFICANCE_RANK: Dict[str, int] = {
+    "resolved": 0,
+    "informational": 0,
+    "minor": 1,
+    "material": 2,
+}
+
+
+def _club_pool_worse(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """Whether *after* is a material participation regression of *before*.
+
+    A repair may rotate participation between a club's sibling teams, but it
+    may not deepen the club's aggregate player-pool deficit. A pool is worse
+    when it becomes an unresolved shortfall, when an existing unresolved
+    shortfall grows, or when its planning significance escalates. A larger
+    over-target surplus is informational, not a regression.
+    """
+
+    before_rank = _CLUB_POOL_SIGNIFICANCE_RANK.get(
+        str(before.get("planning_significance") or ""), 0
+    )
+    after_rank = _CLUB_POOL_SIGNIFICANCE_RANK.get(
+        str(after.get("planning_significance") or ""), 0
+    )
+    if after_rank > before_rank:
+        return True
+    before_unresolved = bool(before.get("counts_as_unresolved_shortfall"))
+    after_unresolved = bool(after.get("counts_as_unresolved_shortfall"))
+    if after_unresolved and not before_unresolved:
+        return True
+    if after_unresolved and before_unresolved:
+        before_actual = int(before.get("club_pool_actual") or 0)
+        after_actual = int(after.get("club_pool_actual") or 0)
+        before_deviation = abs(int(before.get("club_pool_deviation") or 0))
+        after_deviation = abs(int(after.get("club_pool_deviation") or 0))
+        return after_actual < before_actual or after_deviation > before_deviation
+    return False
+
+
+def club_pool_participation_regressions(
+    before: ParticipationEvaluation,
+    after: ParticipationEvaluation,
+    *,
+    club_age_pairs: Optional[Iterable[Tuple[str, str]]] = None,
+) -> List[Dict[str, Any]]:
+    """Return club-pool participation views that materially worsened.
+
+    Scoped to ``club_age_pairs`` when given (the clubs/age groups a repair
+    actually touched). Uses the canonical club-pool classification so a repair
+    that merely redistributes participation between sibling teams keeps the
+    aggregate pool unchanged, while a repair that deepens or introduces an
+    aggregate deficit is reported as a regression.
+    """
+
+    scope = {tuple(pair) for pair in (club_age_pairs or [])} or None
+    before_index = {
+        (pool.get("club"), pool.get("age_group"), pool.get("scope")): pool
+        for pool in before.club_pools
+    }
+    regressions: List[Dict[str, Any]] = []
+    for pool in after.club_pools:
+        key = (pool.get("club"), pool.get("age_group"), pool.get("scope"))
+        if scope is not None and (key[0], key[1]) not in scope:
+            continue
+        prior = before_index.get(key)
+        if prior is None:
+            continue
+        if not _club_pool_worse(prior, pool):
+            continue
+        regressions.append(
+            {
+                "club": pool.get("club"),
+                "age_group": pool.get("age_group"),
+                "scope": pool.get("scope"),
+                "registered_team_count": pool.get("registered_team_count"),
+                "club_pool_target": pool.get("club_pool_target"),
+                "club_pool_actual_before": prior.get("club_pool_actual"),
+                "club_pool_actual_after": pool.get("club_pool_actual"),
+                "club_pool_deviation_before": prior.get("club_pool_deviation"),
+                "club_pool_deviation_after": pool.get("club_pool_deviation"),
+                "classification_before": prior.get("classification"),
+                "classification_after": pool.get("classification"),
+            }
+        )
+    return regressions
+
+
+def club_pool_snapshot(
+    evaluation: ParticipationEvaluation,
+    *,
+    club_age_pairs: Optional[Iterable[Tuple[str, str]]] = None,
+) -> List[Dict[str, Any]]:
+    """Bounded club-pool evidence for the clubs/age groups a repair touched."""
+
+    scope = {tuple(pair) for pair in (club_age_pairs or [])} or None
+    rows: List[Dict[str, Any]] = []
+    for pool in evaluation.club_pools:
+        if scope is not None and (pool.get("club"), pool.get("age_group")) not in scope:
+            continue
+        rows.append(
+            {
+                "club": pool.get("club"),
+                "age_group": pool.get("age_group"),
+                "scope": pool.get("scope"),
+                "registered_team_count": pool.get("registered_team_count"),
+                "club_pool_target": pool.get("club_pool_target"),
+                "club_pool_actual": pool.get("club_pool_actual"),
+                "club_pool_deviation": pool.get("club_pool_deviation"),
+                "classification": pool.get("classification"),
+                "counts_as_unresolved_shortfall": pool.get("counts_as_unresolved_shortfall"),
+            }
+        )
+    return rows
+
+
 __all__ = [
     "AVOIDABLE",
     "PROVEN_INFEASIBLE",
@@ -970,6 +1087,8 @@ __all__ = [
     "CLUB_POOL_SIGNIFICANCE",
     "UNRESOLVED_CLUB_POOL_CLASSIFICATIONS",
     "ParticipationEvaluation",
+    "club_pool_participation_regressions",
+    "club_pool_snapshot",
     "counts_as_unresolved_shortfall",
     "evaluate_participation",
     "evidence_covers_deviation",

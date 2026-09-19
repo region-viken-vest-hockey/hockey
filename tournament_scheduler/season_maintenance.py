@@ -128,8 +128,9 @@ SEARCH_COVERAGE_BOUNDED_EXHAUSTED = "bounded_search_exhausted"
 SEARCH_COVERAGE_PROVEN_INFEASIBLE = "proven_infeasible"
 
 # Bump when a generic maintenance provider's search semantics change without a
-# parameter change, so prior exhaustion evidence is invalidated.
-MAINTENANCE_SEARCH_VERSION = "2"
+# parameter change, so prior exhaustion evidence is invalidated. Version 3 adds
+# the same-club sibling substitution to the temporal-clustering coupled repair.
+MAINTENANCE_SEARCH_VERSION = "3"
 
 # Findings that require a genuine date move (not just participant/host
 # reselection) to repair. Kept in sync with
@@ -147,7 +148,7 @@ SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
     MOVABLE_CAPACITY: ("host",),
     HARD_VIOLATION: ("participants", "host"),
     ROSTER_SHAPE: (),
-    TEMPORAL_CLUSTERING: ("date",),
+    TEMPORAL_CLUSTERING: ("date", "participants"),
 }
 
 

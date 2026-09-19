@@ -946,3 +946,233 @@ def test_option_rank_orders_acceptability_before_cost() -> None:
         "rejected-auto",
         "rejected-opt-in",
     ]
+
+
+# -- soft consequence-driven same-club sibling repair ------------------------
+
+
+def _u9_problem() -> Dict[str, Any]:
+    """One-team Kongsberg plus a three-team Jar U9 pool.
+
+    The participation target is intentionally small so the sibling pool exists
+    as an operational fact without adding unrelated per-team shortfalls.
+    """
+
+    teams = [
+        {"club": "Kongsberg", "label": "K9-1", "age_group": "U9"},
+        {"club": "Solberg", "label": "S9-1", "age_group": "U9"},
+        {"club": "Tønsberg", "label": "T9-1", "age_group": "U9"},
+        {"club": "Frisk", "label": "F9-1", "age_group": "U9"},
+        {"club": "Jar", "label": "Jar Rød", "age_group": "U9"},
+        {"club": "Jar", "label": "Jar Blå", "age_group": "U9"},
+        {"club": "Jar", "label": "Jar Hvit", "age_group": "U9"},
+    ]
+    config: Dict[str, Any] = {
+        "teams": teams,
+        "age_groups": ["U9"],
+        "parallel_games": {"U9": 2},
+        "round_length_minutes": {"U9": 30},
+        "ice_time_minutes": {"U9": 90},
+        "rounds_per_tournament": {"U9": 3},
+    }
+    problem = build_planning_problem(config, None, date(2026, 9, 1), date(2027, 4, 30))
+    problem["clubs"] = {
+        club: f"{club} Arena"
+        for club in ("Kongsberg", "Solberg", "Tønsberg", "Frisk", "Jar")
+    }
+    problem["participation_targets_by_age_group"] = {
+        "U9": {"before_christmas": 1, "after_christmas": 1}
+    }
+    return problem
+
+
+def _u9_plan(problem: Dict[str, Any], *, siblings_busy: bool) -> Dict[str, Any]:
+    """Kongsberg's own U9 cluster plus a Jar tournament that moves into it.
+
+    Swapping ``rvv-K2`` (2027-02-21) with ``rvv-J1`` (2027-02-07) spreads
+    Kongsberg's cluster to 2027-02-07/20/28, but gives Jar Blå a 2027-02-15 /
+    2027-02-21 / 2027-02-27 schedule with two sub-7-day gaps. Jar's siblings
+    are free in the positive scene and already clustered in the negative one.
+    """
+
+    from tournament_scheduler.host_team_missing_repair import _regenerate_games
+
+    def team(club: str, label: str) -> Dict[str, str]:
+        return {"club": club, "label": label, "age_group": "U9"}
+
+    k, s = team("Kongsberg", "K9-1"), team("Solberg", "S9-1")
+    t, f = team("Tønsberg", "T9-1"), team("Frisk", "F9-1")
+    rod = team("Jar", "Jar Rød")
+    bla = team("Jar", "Jar Blå")
+    hvit = team("Jar", "Jar Hvit")
+
+    def tournament(tournament_id: str, day: str, host: str, roster: List[Dict[str, str]]) -> Dict[str, Any]:
+        payload = {
+            "id": tournament_id,
+            "date": day,
+            "arena": f"{host} Arena",
+            "age_group": "U9",
+            "host_club": host,
+            "teams": [dict(member) for member in roster],
+            "start_time": "10:00",
+        }
+        _regenerate_games(payload, problem)
+        return payload
+
+    jar_second = [bla, rod, s, t] if siblings_busy else [bla, s, t, f]
+    jar_third = [bla, hvit, t, f] if siblings_busy else [bla, s, t, f]
+    return {
+        "schema_version": 1,
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "tournaments": [
+            tournament("rvv-K1", "2027-02-20", "Kongsberg", [k, s, t, f]),
+            tournament("rvv-K2", "2027-02-21", "Kongsberg", [k, s, t, f]),
+            tournament("rvv-K3", "2027-02-28", "Kongsberg", [k, s, t, f]),
+            tournament("rvv-J1", "2027-02-07", "Jar", [bla, s, t, f]),
+            tournament("rvv-J2", "2027-02-15", "Jar", jar_second),
+            tournament("rvv-J3", "2027-02-27", "Jar", jar_third),
+        ],
+    }
+
+
+def _u9_season(tmp_path: Path, *, siblings_busy: bool):
+    root = tmp_path / "season"
+    problem = _u9_problem()
+    plan = _u9_plan(problem, siblings_busy=siblings_busy)
+    assert verify_candidate(plan, problem)["ok"] is True
+    _write_season(root, plan, problem)
+    return root, plan, problem
+
+
+def _pair_option(report: Dict[str, Any], pair: List[str]) -> Dict[str, Any]:
+    return next(
+        option
+        for option in report["options"]
+        if (option.get("effects") or {}).get("swapped_tournament_ids") == pair
+    )
+
+
+def _kong_clustering_finding(root: Path) -> Dict[str, Any]:
+    return next(
+        entry
+        for entry in list_findings(YEAR, root=root)["findings"]
+        if entry["category"] == "temporal_clustering" and entry["club"] == "Kongsberg"
+    )
+
+
+def test_soft_consequence_regression_is_repaired_by_same_club_sibling(
+    tmp_path: Path,
+) -> None:
+    """The placement exchange alone gives Jar Blå two sub-7-day gaps; the
+    provider rotates the load to a free same-club, same-age sibling instead of
+    rejecting the repair or relaxing the gap rule."""
+
+    root, plan, problem = _u9_season(tmp_path, siblings_busy=False)
+    finding = _kong_clustering_finding(root)
+    report = repair_options(YEAR, finding["finding_id"], root=root)
+    option = _pair_option(report, ["rvv-K2", "rvv-J1"])
+
+    effects = option["effects"]
+    assert effects["placement_only_verified"] is True
+    assert effects["roster_repair_trigger"] == "consequence_regression"
+    assert effects["roster_repair_applied"] is True
+    assert effects["consequence_acceptable"] is True
+    assert option["operational_acceptable"] is True
+    # Acceptability, not Pareto membership, is what must hold: this specific
+    # exchange may be dominated by a cheaper acceptable alternative.
+    assert option.get("objectives") is not None
+    assert option["option_id"] not in report["pareto"]["consequence_rejected_option_ids"]
+
+    # The substituted team is a same-club, same-age sibling, and the
+    # single-team Kongsberg side is untouched.
+    substitution = effects["sibling_substitution"]
+    assert substitution["outcome"] == "sibling_repaired"
+    applied = substitution["applied"]["rvv-J1"]
+    assert applied["removed"] == [
+        {"club": "Jar", "label": "Jar Blå", "age_group": "U9"}
+    ]
+    assert applied["added"][0]["club"] == "Jar"
+    assert applied["added"][0]["age_group"] == "U9"
+    assert applied["added"][0]["label"] in {"Jar Rød", "Jar Hvit"}
+    assert effects["roster_repair_applied"] is True
+    assert "rvv-K2" not in substitution["applied"]
+    assert {tuple(pair) for pair in substitution["affected_club_age_pairs"]} == {
+        ("Jar", "U9")
+    }
+    assert substitution["registered_sibling_counts"]["rvv-J1"][0][
+        "available_sibling_count"
+    ] == 2
+
+    # Before/after club-pool evidence is reported and not materially worsened.
+    before_pool = {
+        (row["scope"]): (row["club_pool_actual"], row["classification"])
+        for row in effects["club_pool_before"]
+    }
+    after_pool = {
+        (row["scope"]): (row["club_pool_actual"], row["classification"])
+        for row in effects["club_pool_after"]
+    }
+    assert before_pool == after_pool
+    assert before_pool["season"] == (3, "material_club_pool_shortfall")
+
+    # The complete changed-team consequence evidence is retained.
+    consequences = option["evidence"]["consequences"]
+    assert consequences["consequence_acceptable"] is True
+    assert "Jar Blå" in {
+        row["label"] for row in consequences["affected_teams"]
+    }
+
+    result = apply_repair(
+        YEAR,
+        option["option_id"],
+        report["revision"],
+        root=root,
+        finding_id=finding["finding_id"],
+    )
+    assert result["ok"] is True, result
+    schedule = load_schedule(YEAR, root=root)
+    by_id = {tournament["id"]: tournament for tournament in schedule["plan"]["tournaments"]}
+    assert by_id["rvv-K2"]["date"] == "2027-02-07"
+    assert by_id["rvv-J1"]["date"] == "2027-02-21"
+    labels = {team["label"] for team in by_id["rvv-J1"]["teams"]}
+    assert "Jar Blå" not in labels
+    assert labels & {"Jar Rød", "Jar Hvit"}
+
+
+def test_soft_repair_is_rejected_when_no_sibling_can_absorb(
+    tmp_path: Path,
+) -> None:
+    """If every Jar sibling would itself become materially regressive, the
+    candidate stays consequence-rejected rather than being accepted by
+    relaxing the individual teams' temporal rule."""
+
+    root, _plan, _problem = _u9_season(tmp_path, siblings_busy=True)
+    finding = _kong_clustering_finding(root)
+    report = repair_options(YEAR, finding["finding_id"], root=root)
+    option = _pair_option(report, ["rvv-K2", "rvv-J1"])
+
+    effects = option["effects"]
+    assert effects["placement_only_verified"] is True
+    assert effects["consequence_acceptable"] is False
+    assert effects["roster_repair_applied"] is False
+    substitution = effects["sibling_substitution"]
+    assert substitution["outcome"] == "no_acceptable_sibling_substitution"
+    assert substitution["registered_sibling_counts"]["rvv-J1"][0][
+        "available_sibling_count"
+    ] == 2
+    assert option["option_id"] in report["pareto"]["consequence_rejected_option_ids"]
+    assert option["option_id"] not in report["pareto"]["non_dominated_option_ids"]
+
+    schedule_file = root / YEAR / "schedule.json"
+    before = schedule_file.read_bytes()
+    result = apply_repair(
+        YEAR,
+        option["option_id"],
+        report["revision"],
+        root=root,
+        finding_id=finding["finding_id"],
+    )
+    assert result["ok"] is False
+    assert result["reason"] == "team_schedule_regression"
+    assert schedule_file.read_bytes() == before

@@ -38,19 +38,26 @@ from .canonical_baseline import PLACEMENT_FIELDS, change_cost
 from .host_team_missing_repair import (
     RepairOption,
     _identity,
+    _participation_counts,
     _regenerate_games,
     _same_date_identities,
     _team_ref,
     candidate_fingerprint,
 )
+from .host_representation import clubs_represent_same_club
 from .hosting_responsibility import (
     hosting_responsibility_facts,
     unexplained_responsibility_transfers,
 )
-from .movable_capacity_repair import _roster_variants
+from .movable_capacity_repair import _replacement_rank, _roster_variants
 from .operational_acceptability import (
     check_operational_acceptability,
     required_opt_in_flags,
+)
+from .participation_targets import (
+    club_pool_participation_regressions,
+    club_pool_snapshot,
+    evaluate_participation,
 )
 from .pipeline.fingerprints import stable_payload_sha256
 from .planning_contract import verify_candidate
@@ -85,6 +92,15 @@ DEFAULT_MAX_OPTIONS = 6
 DEFAULT_MAX_PARTNERS = 40
 DEFAULT_MAX_CANDIDATES = 200
 DEFAULT_MAX_ROSTER_COMBINATIONS = 16
+
+# Bounds for the soft, consequence-driven same-club sibling substitution. It is
+# strictly narrower than the hard-conflict roster repair above: only same-club,
+# same-age siblings are eligible, because this repair exists to redistribute a
+# multi-team club's temporal load rather than to relax an individual team's
+# schedule. A single-team club therefore has no substitution capacity and keeps
+# the material regression.
+DEFAULT_MAX_SIBLING_VARIANTS = 12
+DEFAULT_MAX_SIBLING_ATTEMPTS = 24
 
 
 class CoupledPlacementRepairError(ValueError):
@@ -478,6 +494,312 @@ def _roster_repaired_candidate(
     return None, {}
 
 
+def _locate_participant(
+    plan: Mapping[str, Any],
+    identity: TeamIdentity,
+    tournament_ids: Sequence[str],
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Return the (tournament id, team dict) of one participant, if present."""
+
+    by_id = _tournaments_by_id(plan)
+    for tournament_id in tournament_ids:
+        tournament = by_id.get(tournament_id)
+        if tournament is None:
+            continue
+        for team in tournament.get("teams", []) or []:
+            if _identity(team) == identity:
+                return tournament_id, team
+    return None
+
+
+def _sibling_substitution_variants(
+    placement_candidate: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    tournament: Mapping[str, Any],
+    teams_to_replace: Sequence[Mapping[str, Any]],
+    *,
+    max_variants: int,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Bounded same-club, same-age sibling substitutions for one tournament.
+
+    Each replaced team is swapped for a *registered same-club, same-age* team
+    that is neither already in the tournament nor already busy on the
+    tournament's own date. Host representation, the participation hard maximum
+    and the complete per-team consequence set are left to the full hard
+    verifier and the consequence/participation checks that consume these
+    variants -- this function only enumerates the bounded same-club substitution
+    neighborhood that distinguishes a multi-team club's rotation capacity from
+    a single-team club's fixed load.
+    """
+
+    tournament_id = str(tournament.get("id") or "")
+    age_group = str(tournament.get("age_group") or "")
+    tournament_date = _parse_date(tournament.get("date"))
+    occupied = (
+        _same_date_identities(
+            placement_candidate,
+            tournament_date,
+            except_tournament_id=tournament_id,
+        )
+        if tournament_date is not None
+        else set()
+    )
+    current = [dict(team) for team in tournament.get("teams", []) or []]
+    replace_ids = {_identity(team) for team in teams_to_replace}
+    fixed = [team for team in current if _identity(team) not in replace_ids]
+    fixed_ids = {_identity(team) for team in fixed}
+    present_ids = {_identity(team) for team in current}
+    counts = _participation_counts(placement_candidate)
+
+    candidates_per_team: List[List[Dict[str, Any]]] = []
+    pool_evidence: List[Dict[str, Any]] = []
+    for team in teams_to_replace:
+        identity = _identity(team)
+        club = identity[0]
+        pool: List[Dict[str, Any]] = []
+        for registered in problem.get("teams", []) or []:
+            if not isinstance(registered, Mapping):
+                continue
+            registered_identity = _identity(registered)
+            if registered_identity == identity:
+                continue
+            if str(registered.get("age_group") or "") != age_group:
+                continue
+            if not clubs_represent_same_club(str(registered.get("club") or ""), club):
+                continue
+            if (
+                registered_identity in occupied
+                or registered_identity in fixed_ids
+                or registered_identity in present_ids
+            ):
+                continue
+            pool.append(dict(registered))
+        pool.sort(key=lambda entry: _replacement_rank(problem, entry, counts))
+        pool_evidence.append(
+            {
+                "removed": _team_ref(team),
+                "club": club,
+                "age_group": age_group,
+                "available_sibling_count": len(pool),
+                "available_siblings": [_team_ref(entry) for entry in pool],
+            }
+        )
+        candidates_per_team.append(pool)
+
+    if not all(candidates_per_team):
+        return [], {
+            "reason": "no_same_club_sibling_available",
+            "pool": pool_evidence,
+            "variant_count": 0,
+        }
+
+    variants: List[Dict[str, Any]] = []
+    examined = 0
+    for combination in product(*candidates_per_team):
+        examined += 1
+        if examined > max(1, int(max_variants)):
+            break
+        replacements = [dict(entry) for entry in combination]
+        roster = [*fixed, *replacements]
+        if len({_identity(entry) for entry in roster}) != len(roster):
+            continue
+        variants.append(
+            {
+                "teams": roster,
+                "removed": [_team_ref(team) for team in teams_to_replace],
+                "added": [_team_ref(team) for team in replacements],
+            }
+        )
+    return variants, {
+        "reason": "sibling_variants_enumerated",
+        "pool": pool_evidence,
+        "variant_count": len(variants),
+    }
+
+
+def _sibling_repair_candidate(
+    before_plan: Mapping[str, Any],
+    placement_candidate: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    tournament_a_id: str,
+    tournament_b_id: str,
+    *,
+    consequences: Mapping[str, Any],
+    before_verification: Optional[Mapping[str, Any]],
+    focus_team: Optional[TeamIdentity],
+    max_variants: int = DEFAULT_MAX_SIBLING_VARIANTS,
+    max_attempts: int = DEFAULT_MAX_SIBLING_ATTEMPTS,
+) -> Tuple[Optional[Dict[str, Any]], Dict[str, Dict[str, Any]], Dict[str, Any]]:
+    """Repair a hard-valid but consequence-rejected placement candidate.
+
+    The placement exchange itself stays fixed; only a bounded same-club,
+    same-age sibling substitution is considered for the moved tournament(s)
+    whose individual teams would otherwise gain a material temporal regression.
+    A candidate is accepted only when the substitution restores the complete
+    ``#402`` changed-team consequence set, keeps the candidate operationally
+    acceptable (``#401``) and does not materially worsen the affected club-pool
+    participation. A single-team club has no sibling pool, so its candidate is
+    left rejected rather than relaxed.
+    """
+
+    tournament_ids = (tournament_a_id, tournament_b_id)
+    by_id = _tournaments_by_id(placement_candidate)
+    teams_by_tournament: Dict[str, List[Dict[str, Any]]] = {}
+    for _key, analysis in (consequences.get("team_consequences") or {}).items():
+        if analysis.get("membership_role") == "removed":
+            continue
+        if not analysis.get("material_regressions"):
+            continue
+        team = analysis.get("team") or {}
+        identity = (
+            str(team.get("club") or ""),
+            str(team.get("label") or ""),
+            str(team.get("age_group") or ""),
+        )
+        located = _locate_participant(placement_candidate, identity, tournament_ids)
+        if located is None:
+            continue
+        located_id, located_team = located
+        teams_by_tournament.setdefault(located_id, []).append(dict(located_team))
+
+    evidence: Dict[str, Any] = {
+        "trigger": "consequence_regression",
+        "material_team_regressions": consequences.get("material_team_regressions") or [],
+        "affected_tournament_ids": sorted(teams_by_tournament),
+    }
+    if not teams_by_tournament:
+        evidence["outcome"] = "no_retained_regression_to_repair"
+        return None, {}, evidence
+
+    affected_pairs = {
+        (str(team.get("club") or ""), str(team.get("age_group") or ""))
+        for teams in teams_by_tournament.values()
+        for team in teams
+    }
+    evidence["affected_club_age_pairs"] = sorted(affected_pairs)
+
+    variants_by_tournament: Dict[str, List[Dict[str, Any]]] = {}
+    sibling_pools: Dict[str, Any] = {}
+    for tournament_id, teams_to_replace in teams_by_tournament.items():
+        tournament = by_id.get(tournament_id)
+        if tournament is None:
+            continue
+        variants, pool_info = _sibling_substitution_variants(
+            placement_candidate,
+            problem,
+            tournament,
+            teams_to_replace,
+            max_variants=max_variants,
+        )
+        sibling_pools[tournament_id] = pool_info
+        if not variants:
+            evidence["outcome"] = "no_same_club_sibling_available"
+            evidence["sibling_pools"] = sibling_pools
+            return None, {}, evidence
+        variants_by_tournament[tournament_id] = variants
+    evidence["sibling_pools"] = sibling_pools
+
+    before_evaluation = evaluate_participation(before_plan, problem)
+    before_snapshot = club_pool_snapshot(before_evaluation, club_age_pairs=affected_pairs)
+
+    ordered_ids = sorted(variants_by_tournament)
+    variant_lists = [variants_by_tournament[tournament_id] for tournament_id in ordered_ids]
+    attempts: List[Dict[str, Any]] = []
+    examined = 0
+    for combination in product(*variant_lists):
+        examined += 1
+        if examined > max(1, int(max_attempts)):
+            break
+        trial = copy.deepcopy(dict(placement_candidate))
+        trial_by_id = _tournaments_by_id(trial)
+        applied: Dict[str, Dict[str, Any]] = {}
+        for tournament_id, variant in zip(ordered_ids, combination):
+            tournament = trial_by_id[tournament_id]
+            tournament["teams"] = [dict(team) for team in variant["teams"]]
+            _regenerate_games(tournament, problem)
+            applied[tournament_id] = variant
+        verification = verify_candidate(dict(trial), dict(problem))
+        if not verification.get("ok", True):
+            attempts.append(
+                {
+                    "outcome": "hard_verification_failed",
+                    "violations": _violation_codes(verification),
+                }
+            )
+            continue
+        trial_consequences = placement_swap_consequences(
+            before_plan,
+            trial,
+            tournament_a_id,
+            tournament_b_id,
+            problem=problem,
+            focus_team=focus_team,
+        )
+        if not trial_consequences["consequence_acceptable"]:
+            attempts.append(
+                {
+                    "outcome": "still_consequence_rejected",
+                    "material_team_regressions": trial_consequences.get(
+                        "material_team_regressions"
+                    )
+                    or [],
+                }
+            )
+            continue
+        if before_verification is not None:
+            acceptability = check_operational_acceptability(
+                before_plan,
+                before_verification,
+                trial,
+                verification,
+            )
+            if not acceptability["ok"]:
+                attempts.append(
+                    {
+                        "outcome": "operational_acceptability_regression",
+                        "required_opt_in_flags": required_opt_in_flags(acceptability),
+                    }
+                )
+                continue
+        after_evaluation = evaluate_participation(trial, problem)
+        pool_regressions = club_pool_participation_regressions(
+            before_evaluation,
+            after_evaluation,
+            club_age_pairs=affected_pairs,
+        )
+        if pool_regressions:
+            attempts.append(
+                {
+                    "outcome": "club_pool_participation_regression",
+                    "regressions": pool_regressions,
+                }
+            )
+            continue
+        evidence.update(
+            {
+                "outcome": "sibling_repaired",
+                "applied": {
+                    tournament_id: {
+                        "removed": list(variant.get("removed") or []),
+                        "added": list(variant.get("added") or []),
+                    }
+                    for tournament_id, variant in applied.items()
+                },
+                "club_pool_before": before_snapshot,
+                "club_pool_after": club_pool_snapshot(
+                    after_evaluation, club_age_pairs=affected_pairs
+                ),
+                "examined_combinations": examined,
+            }
+        )
+        return trial, applied, evidence
+
+    evidence["outcome"] = "no_acceptable_sibling_substitution"
+    evidence["attempts"] = attempts[-8:]
+    evidence["examined_combinations"] = examined
+    return None, {}, evidence
+
+
 def _option_id(arguments: Mapping[str, Any]) -> str:
     digest = stable_payload_sha256(dict(arguments))[:12]
     return (
@@ -518,6 +840,7 @@ def _build_coupled_option(
     roster_repaired_ids: List[str] = []
     roster_rejections: List[Dict[str, Any]] = []
     applied_variants: Dict[str, Dict[str, Any]] = {}
+    roster_repair_trigger: Optional[str] = None
     candidate: Mapping[str, Any] = placement_candidate
 
     if not placement_ok:
@@ -562,6 +885,50 @@ def _build_coupled_option(
             }
         candidate = repaired
         roster_repaired_ids = conflicting_ids
+        roster_repair_trigger = "hard_conflict"
+
+    consequences = placement_swap_consequences(
+        plan,
+        candidate,
+        tournament_a_id,
+        tournament_b_id,
+        problem=problem,
+        focus_team=focus_team,
+    )
+    # A hard-valid placement candidate can still be consequence-rejected because
+    # a retained participant of a multi-team club would gain a material
+    # temporal regression. Rather than relaxing that individual team's rule,
+    # try a bounded same-club, same-age sibling substitution in the affected
+    # moved tournament so the club's player pool carries the nearby load
+    # without overloading one team.
+    sibling_evidence: Optional[Dict[str, Any]] = None
+    if problem and not consequences["consequence_acceptable"]:
+        sibling_candidate, sibling_variants, sibling_evidence = _sibling_repair_candidate(
+            plan,
+            candidate,
+            problem,
+            tournament_a_id,
+            tournament_b_id,
+            consequences=consequences,
+            before_verification=before_verification,
+            focus_team=focus_team,
+            max_variants=max_roster_combinations,
+        )
+        if sibling_candidate is not None:
+            candidate = sibling_candidate
+            applied_variants.update(sibling_variants)
+            roster_repaired_ids = list(
+                dict.fromkeys([*roster_repaired_ids, *sibling_variants])
+            )
+            roster_repair_trigger = "consequence_regression"
+            consequences = placement_swap_consequences(
+                plan,
+                candidate,
+                tournament_a_id,
+                tournament_b_id,
+                problem=problem,
+                focus_team=focus_team,
+            )
 
     # The candidate is hard-valid, but "hard-valid" is not "acceptable as an
     # ordinary automatic repair". A candidate that is verified only because a
@@ -573,7 +940,7 @@ def _build_coupled_option(
     if problem:
         final_verification = (
             placement_verification
-            if not roster_repaired_ids
+            if not applied_variants
             else verify_candidate(dict(candidate), dict(problem))
         )
         operational_acceptability = check_operational_acceptability(
@@ -596,15 +963,6 @@ def _build_coupled_option(
                 "transfers": transfers,
                 "roster_repair_attempted": bool(roster_repaired_ids),
             }
-
-    consequences = placement_swap_consequences(
-        plan,
-        candidate,
-        tournament_a_id,
-        tournament_b_id,
-        problem=problem,
-        focus_team=focus_team,
-    )
     focus_analysis: Optional[Mapping[str, Any]] = None
     if focus_team is not None:
         key = f"{focus_team[0]}|{focus_team[1]}|{focus_team[2]}"
@@ -684,6 +1042,7 @@ def _build_coupled_option(
         "fields": list(fields),
         "placement_only_verified": placement_ok,
         "roster_repair_applied": bool(roster_repaired_ids),
+        "roster_repair_trigger": roster_repair_trigger,
         "roster_repair_tournament_ids": roster_repaired_ids,
         "participant_replacements": total_roster_replacements,
         "change_cost_total": cost.get("total"),
@@ -700,6 +1059,26 @@ def _build_coupled_option(
         "hosting": hosting_evidence,
         "roster_rejections": roster_rejections,
     }
+    if sibling_evidence is not None:
+        effects["sibling_substitution"] = {
+            "outcome": sibling_evidence.get("outcome"),
+            "applied": sibling_evidence.get("applied") or {},
+            "affected_club_age_pairs": sibling_evidence.get("affected_club_age_pairs")
+            or [],
+            "registered_sibling_counts": {
+                tournament_id: [
+                    {
+                        "removed": entry.get("removed"),
+                        "available_sibling_count": entry.get("available_sibling_count"),
+                    }
+                    for entry in (pool.get("pool") or [])
+                ]
+                for tournament_id, pool in (sibling_evidence.get("sibling_pools") or {}).items()
+            },
+        }
+        effects["club_pool_before"] = sibling_evidence.get("club_pool_before") or []
+        effects["club_pool_after"] = sibling_evidence.get("club_pool_after") or []
+        evidence["sibling_repair"] = sibling_evidence
     if operational_acceptability is not None:
         effects["operational_acceptable"] = bool(operational_acceptability["ok"])
         effects["requires_operational_opt_in"] = required_opt_in_flags(

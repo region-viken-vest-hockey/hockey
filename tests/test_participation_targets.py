@@ -14,6 +14,8 @@ from typing import Any
 from tournament_scheduler.operator_waivers import scope_fingerprint
 from tournament_scheduler.participation_targets import (
     AVOIDABLE,
+    club_pool_participation_regressions,
+    club_pool_snapshot,
     BOUNDED_SEARCH_EXHAUSTED,
     CLUB_POOL_COMPLETE,
     INTRA_CLUB_DISTRIBUTION,
@@ -615,3 +617,67 @@ def test_publication_readiness_is_publishable_when_only_intra_club_distribution_
         {"code": "intra_club_participation_distribution", "count": 1}
     ]
 
+
+
+def test_club_pool_participation_regressions_detects_worsened_aggregate():
+    """A repair may rotate participation between siblings, but deepening the
+    club's aggregate pool deficit is a regression."""
+
+    a, b, c = _team("Jar", "Jar Hvit", _JU10), _team("Jar", "Jar Blå", _JU10), _team(
+        "Kongsberg", "Kongsberg 1", _JU10
+    )
+    problem = _after_christmas_problem(a, b, c)
+    complete = evaluate_participation(
+        _after_christmas_candidate(a, b, c, a_count=4, b_count=4), problem
+    )
+    redistributed = evaluate_participation(
+        _after_christmas_candidate(a, b, c, a_count=5, b_count=3), problem
+    )
+    shortfall = evaluate_participation(
+        _after_christmas_candidate(a, b, c, a_count=3, b_count=3), problem
+    )
+
+    # Pure sibling rotation (same aggregate) is not a club-pool regression.
+    assert (
+        club_pool_participation_regressions(
+            complete, redistributed, club_age_pairs=[("Jar", _JU10)]
+        )
+        == []
+    )
+
+    regressions = club_pool_participation_regressions(
+        complete, shortfall, club_age_pairs=[("Jar", _JU10)]
+    )
+    assert regressions
+    season = next(row for row in regressions if row["scope"] == "season")
+    assert season["club"] == "Jar"
+    assert season["club_pool_actual_before"] == 8
+    assert season["club_pool_actual_after"] == 6
+    assert season["classification_before"] == CLUB_POOL_COMPLETE
+    assert season["classification_after"] == MINOR_CLUB_POOL_SHORTFALL
+
+    # Scoping excludes clubs a caller did not touch.
+    assert (
+        club_pool_participation_regressions(
+            complete, shortfall, club_age_pairs=[("Kongsberg", _JU10)]
+        )
+        == []
+    )
+
+
+def test_club_pool_snapshot_reports_bounded_scoped_pools():
+    a, b, c = _team("Jar", "Jar Hvit", _JU10), _team("Jar", "Jar Blå", _JU10), _team(
+        "Kongsberg", "Kongsberg 1", _JU10
+    )
+    problem = _after_christmas_problem(a, b, c)
+    evaluation = evaluate_participation(
+        _after_christmas_candidate(a, b, c, a_count=4, b_count=4), problem
+    )
+    snapshot = club_pool_snapshot(evaluation, club_age_pairs=[("Jar", _JU10)])
+    assert snapshot
+    assert {row["club"] for row in snapshot} == {"Jar"}
+    season = next(row for row in snapshot if row["scope"] == "season")
+    assert season["club_pool_actual"] == 8
+    assert season["club_pool_target"] == 8
+    assert season["classification"] == CLUB_POOL_COMPLETE
+    assert season["counts_as_unresolved_shortfall"] is False
