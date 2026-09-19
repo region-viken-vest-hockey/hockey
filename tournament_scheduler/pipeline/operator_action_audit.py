@@ -200,16 +200,34 @@ def execute_submit_audit_result(*, work_dir: str, result: dict[str, Any]) -> "Ca
 
 
 def current_hard_violations(work_dir: str) -> list[str]:
-    """Independently re-verify the currently selected plan against the final
-    hard verifier, mirroring
+    """Independently re-verify the plan the current export actually
+    represents against the final hard verifier, mirroring
     ``cli.pipeline_orchestrator.hard_verification_gate._baseline_hard_violations_for_plan``
     without importing across the pipeline/cli layering boundary — a harness
     ``PASS`` audit result must never be able to override an actual
-    deterministic hard failure."""
+    deterministic hard failure.
+
+    Prefers the EXPORT checkpoint's own ``reviewed_plan`` (the exact plan
+    Stage 4 serialized for the export fingerprint being published) over the
+    Stage 3 PLANNING checkpoint. A canonical `season export` writes only the
+    EXPORT stage, so PLANNING can still hold an older, unrelated run's plan
+    (for example one predating a later canonical repair or the holiday-date
+    migration) -- checking it here would report false hard violations against
+    a plan that was never published (issue #398) and would let a stale one
+    silently reintroduce a fixed hard-violation date/roster into the gate.
+    """
     from .state import PipelineState, StageName
 
-    planning_checkpoint = PipelineState(work_dir).read_stage(StageName.PLANNING)
-    plan = planning_checkpoint.get("plan") if isinstance(planning_checkpoint, dict) else None
+    state = PipelineState(work_dir)
+    export_checkpoint = state.read_stage(StageName.EXPORT)
+    reviewed_plan = (
+        export_checkpoint.get("reviewed_plan") if isinstance(export_checkpoint, dict) else None
+    )
+    if isinstance(reviewed_plan, dict) and reviewed_plan.get("tournaments") is not None:
+        plan = reviewed_plan
+    else:
+        planning_checkpoint = state.read_stage(StageName.PLANNING)
+        plan = planning_checkpoint.get("plan") if isinstance(planning_checkpoint, dict) else None
     if not isinstance(plan, dict):
         return []
     try:

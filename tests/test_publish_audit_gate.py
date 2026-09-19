@@ -140,6 +140,87 @@ class TestDeterministicHardFailTakesPrecedence:
         assert "hard verifisering" in result.summary.lower()
 
 
+def _hard_invalid_plan() -> dict:
+    """A plan with a duplicate-participation-style hard violation: the same
+    team playing itself/twice on the same date within one tournament."""
+    return {
+        "schema_version": 1,
+        "source": {"planner": "test"},
+        "tournaments": [
+            {
+                "id": "t1",
+                "date": "2026-01-05",
+                "arena": "Jar Isforum",
+                "age_group": "U10",
+                "host_club": "Jar",
+                "teams": [{"club": "Jar", "label": "Jar 1", "age_group": "U10"}],
+                "games": [{"home": "Jar 1", "away": "Jar 1", "parallel_slot": 0, "round_number": 1}],
+            }
+        ],
+    }
+
+
+def _hard_valid_plan() -> dict:
+    """A minimal, hard-valid plan: two distinct teams, one legal game."""
+    return {
+        "schema_version": 1,
+        "source": {"planner": "test"},
+        "tournaments": [
+            {
+                "id": "t1",
+                "date": "2026-01-05",
+                "arena": "Jar Isforum",
+                "age_group": "U10",
+                "host_club": "Jar",
+                "teams": [
+                    {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
+                    {"club": "Skien", "label": "Skien", "age_group": "U10"},
+                ],
+                "games": [{"home": "Jar 1", "away": "Skien", "parallel_slot": 0, "round_number": 1}],
+            }
+        ],
+    }
+
+
+class TestPublishGateReadsTheExportedPlanNotStalePlanning:
+    """A canonical `season export` writes only the EXPORT stage; the gate
+    must never re-verify an unrelated, stale PLANNING checkpoint left behind
+    by an earlier, different run (issue #398)."""
+
+    def test_stale_planning_checkpoint_never_blocks_a_hard_valid_export(self, tmp_path):
+        _init_repo(tmp_path)
+        _write_export(tmp_path)
+        _write_audit(tmp_path, status="PASS")
+
+        # The EXPORT checkpoint's own reviewed_plan is hard-valid...
+        export_checkpoint = PipelineState(tmp_path).read_stage(StageName.EXPORT)
+        export_checkpoint["reviewed_plan"] = _hard_valid_plan()
+        PipelineState(tmp_path).write_stage(StageName.EXPORT, export_checkpoint, status=StageStatus.DONE)
+
+        # ...but a stale, unrelated PLANNING checkpoint is hard-invalid.
+        PipelineState(tmp_path).write_stage(
+            StageName.PLANNING, {"plan": _hard_invalid_plan()}, status=StageStatus.DONE
+        )
+
+        result = _publish(tmp_path)
+
+        assert result.status != "blocked" or "hard verifisering" not in result.summary.lower()
+
+    def test_hard_invalid_reviewed_plan_still_blocks(self, tmp_path):
+        _init_repo(tmp_path)
+        _write_export(tmp_path)
+        _write_audit(tmp_path, status="PASS")
+
+        export_checkpoint = PipelineState(tmp_path).read_stage(StageName.EXPORT)
+        export_checkpoint["reviewed_plan"] = _hard_invalid_plan()
+        PipelineState(tmp_path).write_stage(StageName.EXPORT, export_checkpoint, status=StageStatus.DONE)
+
+        result = _publish(tmp_path)
+
+        assert result.status == "blocked"
+        assert "hard verifisering" in result.summary.lower()
+
+
 class TestAuditFailBlocksPublication:
     def test_fail_status_blocks(self, tmp_path):
         _init_repo(tmp_path)
