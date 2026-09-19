@@ -635,7 +635,7 @@ class CanonicalSeasonService:
 
         now = _now_iso()
         fingerprint = schedule_fingerprint(plan)
-        new_placement = new_placement
+        new_placement = _placement_snapshot(moved_tournament or target)
         changed_placement_fields = {
             field: new_placement.get(field)
             for field in ("date", "arena", "host_club", "start_time")
