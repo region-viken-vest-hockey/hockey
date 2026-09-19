@@ -17,8 +17,10 @@ import pytest
 
 from tournament_scheduler.coupled_placement_repair import (
     CoupledPlacementRepairError,
+    apply_coupled_placement_repair_option,
     apply_placement_swap,
     enumerate_coupled_placement_repairs,
+    placement_swap_consequences,
     resolve_swap_fields,
 )
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
@@ -483,3 +485,349 @@ def test_bounded_search_reports_exhaustion_not_infeasibility(
     assert coverage["status"] == "bounded_search_exhausted"
     assert coverage["proven_infeasible"] is False
     assert report["rejected_candidates"][0]["roster_repair_attempted"] is True
+
+
+# -- production-shaped consequence coverage ----------------------------------
+
+
+def _production_u9_teams() -> List[Dict[str, str]]:
+    return (
+        _teams("Kongsberg", "K9-", "U9", 1)
+        + _teams("Solberg", "S9-", "U9", 1)
+        + _teams("Tønsberg", "T9-", "U9", 1)
+        + _teams("Frisk", "F9-", "U9", 1)
+        + _teams("Holmen", "H9-", "U9", 1)
+        + _teams("Jar", "J9-", "U9", 1)
+        + _teams("Jutul", "JU9-", "U9", 1)
+        + _teams("Ringerike", "R9-", "U9", 1)
+    )
+
+
+def _production_u11_fixed() -> List[Dict[str, str]]:
+    return [
+        {"club": "Holmen", "label": "Holmen Rød", "age_group": "U11"},
+        {"club": "Frisk", "label": "Frisk Asker 3", "age_group": "U11"},
+        {"club": "Frisk", "label": "Frisk Asker 4", "age_group": "U11"},
+        {"club": "Jar", "label": "Jar Hvit", "age_group": "U11"},
+        {"club": "Jar", "label": "Jar Blå", "age_group": "U11"},
+        {"club": "Ringerike", "label": "Ringerike 2", "age_group": "U11"},
+    ]
+
+
+def _production_u11_busy() -> List[Dict[str, str]]:
+    """U11 teams already booked on 2027-02-20, so moving rvv-0145 there
+    double-books Ringerike 2 and leaves Frisk Asker 1 as the only free
+    same-age replacement."""
+
+    return [
+        {"club": "Ringerike", "label": "Ringerike 2", "age_group": "U11"},
+        {"club": "Ringerike", "label": "Ringerike 1", "age_group": "U11"},
+        {"club": "Jar", "label": "Jar Rød", "age_group": "U11"},
+        {"club": "Holmen", "label": "Holmen Hvit", "age_group": "U11"},
+        {"club": "Tønsberg", "label": "Tønsberg 1", "age_group": "U11"},
+        {"club": "Tønsberg", "label": "Tønsberg 2", "age_group": "U11"},
+    ]
+
+
+def _production_problem() -> Dict[str, Any]:
+    teams = (
+        _production_u9_teams()
+        + _production_u11_fixed()
+        + _production_u11_busy()
+        + [{"club": "Frisk", "label": "Frisk Asker 1", "age_group": "U11"}]
+    )
+    config: Dict[str, Any] = {
+        "teams": teams,
+        "age_groups": ["U9", "U11"],
+        "parallel_games": {"U9": 4, "U11": 3},
+        "round_length_minutes": {"U9": 30, "U11": 30},
+        "ice_time_minutes": {"U9": 120, "U11": 120},
+        "rounds_per_tournament": {"U9": 3, "U11": 3},
+    }
+    problem = build_planning_problem(config, None, date(2026, 9, 1), date(2027, 4, 30))
+    problem["clubs"] = {
+        club: f"{club} Arena" for club in {team["club"] for team in teams}
+    }
+    problem["participation_targets_by_age_group"] = {
+        "U9": {"before_christmas": 2, "after_christmas": 2},
+        "U11": {"before_christmas": 2, "after_christmas": 2},
+    }
+    return problem
+
+
+def _production_plan(problem: Dict[str, Any]) -> Dict[str, Any]:
+    from tournament_scheduler.host_team_missing_repair import _regenerate_games
+
+    u9 = _production_u9_teams()
+    u11_fixed = _production_u11_fixed()
+    u11_busy = _production_u11_busy()
+    union = {team["label"]: team for team in (*u11_fixed, *u11_busy)}
+
+    def pick(labels: List[str]) -> List[Dict[str, str]]:
+        return [union[label] for label in labels]
+
+    def tournament(tournament_id, day, age_group, host, roster):
+        payload = {
+            "id": tournament_id,
+            "date": day,
+            "arena": f"{host} Arena",
+            "age_group": age_group,
+            "host_club": host,
+            "teams": [dict(team) for team in roster],
+            "start_time": "10:00",
+        }
+        _regenerate_games(payload, problem)
+        return payload
+
+    return {
+        "schema_version": 1,
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "tournaments": [
+            tournament("rvv-0184", "2027-02-20", "U9", "Kongsberg", u9),
+            tournament("rvv-0156", "2027-02-21", "U9", "Kongsberg", u9),
+            tournament("rvv-0142", "2027-02-28", "U9", "Kongsberg", u9),
+            tournament("rvv-0145", "2027-02-14", "U11", "Holmen", u11_fixed),
+            tournament(
+                "rvv-0200",
+                "2027-02-21",
+                "U11",
+                "Frisk",
+                pick(
+                    [
+                        "Frisk Asker 3",
+                        "Jar Blå",
+                        "Jar Hvit",
+                        "Frisk Asker 4",
+                        "Holmen Rød",
+                        "Ringerike 1",
+                    ]
+                ),
+            ),
+            tournament("rvv-0201", "2027-02-20", "U11", "Jar", u11_busy),
+            tournament(
+                "rvv-0202",
+                "2027-02-07",
+                "U11",
+                "Holmen",
+                pick(
+                    [
+                        "Frisk Asker 3",
+                        "Jar Rød",
+                        "Ringerike 1",
+                        "Holmen Hvit",
+                        "Tønsberg 1",
+                        "Tønsberg 2",
+                    ]
+                ),
+            ),
+            tournament(
+                "rvv-0203",
+                "2027-02-27",
+                "U11",
+                "Tønsberg",
+                pick(
+                    [
+                        "Frisk Asker 3",
+                        "Jar Blå",
+                        "Jar Hvit",
+                        "Frisk Asker 4",
+                        "Tønsberg 1",
+                        "Holmen Hvit",
+                    ]
+                ),
+            ),
+            tournament(
+                "rvv-0204",
+                "2027-01-30",
+                "U11",
+                "Holmen",
+                pick(
+                    [
+                        "Jar Blå",
+                        "Frisk Asker 3",
+                        "Frisk Asker 4",
+                        "Holmen Rød",
+                        "Tønsberg 1",
+                        "Tønsberg 2",
+                    ]
+                ),
+            ),
+            # Two before-Christmas tournaments make Ringerike 2 exactly on
+            # target before the repair, so losing rvv-0145 creates a genuine
+            # participation shortfall.
+            tournament(
+                "rvv-0205",
+                "2026-10-17",
+                "U11",
+                "Ringerike",
+                pick(
+                    [
+                        "Ringerike 2",
+                        "Ringerike 1",
+                        "Jar Rød",
+                        "Holmen Hvit",
+                        "Tønsberg 1",
+                        "Tønsberg 2",
+                    ]
+                ),
+            ),
+            tournament(
+                "rvv-0206",
+                "2026-11-14",
+                "U11",
+                "Ringerike",
+                pick(
+                    [
+                        "Ringerike 2",
+                        "Ringerike 1",
+                        "Jar Rød",
+                        "Holmen Hvit",
+                        "Tønsberg 1",
+                        "Tønsberg 2",
+                    ]
+                ),
+            ),
+        ],
+    }
+
+
+def _production_roster_repaired_after(
+    plan: Dict[str, Any], problem: Dict[str, Any]
+) -> Dict[str, Any]:
+    """The production coupled mutation: swap rvv-0184/rvv-0145 and repair the
+    double-booked U11 roster by replacing Ringerike 2 with Frisk Asker 1."""
+
+    from tournament_scheduler.host_team_missing_repair import _regenerate_games
+
+    after = apply_placement_swap(plan, "rvv-0184", "rvv-0145")
+    by_id = {tournament["id"]: tournament for tournament in after["tournaments"]}
+    u11 = by_id["rvv-0145"]
+    u11["teams"] = [team for team in u11["teams"] if team["label"] != "Ringerike 2"]
+    u11["teams"].append({"club": "Frisk", "label": "Frisk Asker 1", "age_group": "U11"})
+    _regenerate_games(u11, problem)
+    return after
+
+
+def _production_season(tmp_path: Path):
+    root = tmp_path / "season"
+    problem = _production_problem()
+    plan = _production_plan(problem)
+    assert verify_candidate(plan, problem)["ok"] is True
+    _write_season(root, plan, problem)
+    return root, plan, problem
+
+
+def test_production_shaped_consequences_cover_added_removed_and_all_teams() -> None:
+    problem = _production_problem()
+    plan = _production_plan(problem)
+    after = _production_roster_repaired_after(plan, problem)
+
+    consequences = placement_swap_consequences(
+        plan,
+        after,
+        "rvv-0184",
+        "rvv-0145",
+        problem=problem,
+        focus_team=("Kongsberg", "K9-1", "U9"),
+    )
+
+    assert consequences["consequence_acceptable"] is False
+    # Eight U9 participants, six pre-repair U11 participants and the one U11
+    # identity introduced only by the roster repair.
+    assert consequences["team_consequence_count"] == 15
+
+    u11 = {key.split("|")[1]: value for key, value in consequences["team_consequences"].items()}
+
+    def codes(label: str) -> set[str]:
+        return {regression["code"] for regression in u11[label]["material_regressions"]}
+
+    assert "more_gaps_under_7_days" in codes("Frisk Asker 3")
+    assert "more_gaps_under_7_days" in codes("Jar Blå")
+    assert u11["Ringerike 2"]["membership_role"] == "removed"
+    assert "participation_shortfall_worsened" in codes("Ringerike 2")
+    assert u11["Frisk Asker 1"]["membership_role"] == "added"
+    assert "Frisk Asker 1" in u11
+
+    # A display bound may truncate the rendered detail, but never the set the
+    # acceptance decision is computed from.
+    capped = placement_swap_consequences(
+        plan,
+        after,
+        "rvv-0184",
+        "rvv-0145",
+        problem=problem,
+        focus_team=("Kongsberg", "K9-1", "U9"),
+        max_teams=1,
+    )
+    assert capped["consequence_acceptable"] is False
+    assert capped["team_consequence_count"] == 15
+    assert capped["display_team_keys"] == ["Kongsberg|K9-1|U9"]
+
+
+def test_production_shaped_coupled_repair_is_classified_and_rejected(
+    tmp_path: Path,
+) -> None:
+    root, _plan, _problem_dict = _production_season(tmp_path)
+
+    finding = next(
+        entry
+        for entry in list_findings(YEAR, root=root)["findings"]
+        if entry["category"] == "temporal_clustering" and entry["club"] == "Kongsberg"
+    )
+    report = repair_options(YEAR, finding["finding_id"], root=root)
+    option = next(
+        entry
+        for entry in report["options"]
+        if entry.get("family") == "coupled_placement"
+        and (entry.get("effects") or {}).get("swapped_tournament_ids")
+        == ["rvv-0184", "rvv-0145"]
+    )
+    assert option["effects"]["consequence_acceptable"] is False
+    assert option["effects"]["roster_repair_applied"] is True
+    assert option["option_id"] in report["pareto"]["consequence_rejected_option_ids"]
+    assert option["option_id"] not in report["pareto"]["non_dominated_option_ids"]
+
+    schedule_file = root / YEAR / "schedule.json"
+    before = schedule_file.read_bytes()
+    result = apply_repair(
+        YEAR,
+        option["option_id"],
+        report["revision"],
+        root=root,
+        finding_id=finding["finding_id"],
+    )
+    assert result["ok"] is False
+    assert result["reason"] == "team_schedule_regression"
+    assert schedule_file.read_bytes() == before
+
+
+def test_production_apply_rejects_material_team_regression_directly() -> None:
+    problem = _production_problem()
+    plan = _production_plan(problem)
+    after = _production_roster_repaired_after(plan, problem)
+    after_by_id = {tournament["id"]: tournament for tournament in after["tournaments"]}
+    arguments = {
+        "tournament_a_id": "rvv-0184",
+        "tournament_b_id": "rvv-0145",
+        "fields": ["date", "start_time"],
+        "roster_changes": {
+            "rvv-0145": {
+                "teams": [dict(team) for team in after_by_id["rvv-0145"]["teams"]],
+                "removed": ["Ringerike 2"],
+                "added": ["Frisk Asker 1"],
+            }
+        },
+    }
+    from tournament_scheduler.host_team_missing_repair import candidate_fingerprint
+
+    applied = apply_coupled_placement_repair_option(
+        plan,
+        problem,
+        option_id="coupled_placement:test",
+        expected_fingerprint=candidate_fingerprint(plan),
+        arguments=arguments,
+    )
+    assert applied["ok"] is False
+    assert applied["reason"] == "team_schedule_regression"
+    assert applied["consequences"]["consequence_acceptable"] is False

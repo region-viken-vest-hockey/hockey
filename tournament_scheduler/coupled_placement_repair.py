@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import copy
 from itertools import product
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .canonical_baseline import PLACEMENT_FIELDS, change_cost
 from .host_team_missing_repair import (
@@ -54,7 +54,10 @@ from .operational_acceptability import (
 )
 from .pipeline.fingerprints import stable_payload_sha256
 from .planning_contract import verify_candidate
-from .team_schedule_quality import TeamIdentity, compare_team_schedule_consequence
+from .team_schedule_quality import (
+    TeamIdentity,
+    compare_changed_team_schedule_consequence,
+)
 
 # A repair always exchanges at least the concrete booking day/time. ``arena``
 # and ``host_club`` move only when the caller explicitly asks for the full
@@ -205,6 +208,43 @@ def affected_team_identities(
     return list(identities)
 
 
+def changed_team_identities(
+    before_plan: Mapping[str, Any],
+    after_plan: Mapping[str, Any],
+    tournament_a_id: str,
+    tournament_b_id: str,
+) -> List[TeamIdentity]:
+    """Return every team whose season schedule changed across both plans.
+
+    A coupled placement + roster repair changes a tournament's roster as well
+    as its placement, so the affected set is the *union* of the participants of
+    both exchanged tournaments before and after the repair. Relying on the
+    before roster alone silently drops identities that only the roster repair
+    introduced (``added``) and, with a display cap, can drop the entire second
+    tournament.
+    """
+
+    identities: Dict[TeamIdentity, None] = {}
+    for plan in (before_plan, after_plan):
+        for identity in affected_team_identities(plan, tournament_a_id, tournament_b_id):
+            identities[identity] = None
+    return list(identities)
+
+
+def _membership_role(
+    before_ids: Optional[Collection[TeamIdentity]],
+    after_ids: Optional[Collection[TeamIdentity]],
+    identity: TeamIdentity,
+) -> str:
+    in_before = before_ids is not None and identity in before_ids
+    in_after = after_ids is not None and identity in after_ids
+    if in_before and in_after:
+        return "retained"
+    if in_before:
+        return "removed"
+    return "added"
+
+
 def placement_swap_consequences(
     before_plan: Mapping[str, Any],
     after_plan: Mapping[str, Any],
@@ -215,26 +255,49 @@ def placement_swap_consequences(
     max_teams: int = 8,
     focus_team: Optional[TeamIdentity] = None,
 ) -> Dict[str, Any]:
-    """Deterministic before/after schedule consequences for the affected teams."""
+    """Deterministic before/after schedule consequences for *every* changed team.
 
-    identities = affected_team_identities(before_plan, tournament_a_id, tournament_b_id)
+    Acceptance is computed over the complete changed-team set (the union of
+    both tournaments' rosters before and after the coupled repair, including
+    identities only the roster repair added or removed). ``max_teams`` bounds a
+    display sample only and never participates in the acceptance decision.
+    """
+
+    before_ids = set(
+        affected_team_identities(before_plan, tournament_a_id, tournament_b_id)
+    )
+    after_ids = set(
+        affected_team_identities(after_plan, tournament_a_id, tournament_b_id)
+    )
+    all_identities = changed_team_identities(
+        before_plan, after_plan, tournament_a_id, tournament_b_id
+    )
     ordered: List[TeamIdentity] = []
-    if focus_team is not None and focus_team in identities:
+    if focus_team is not None and focus_team in all_identities:
         ordered.append(focus_team)
-    for identity in identities:
+    for identity in all_identities:
         if identity not in ordered:
             ordered.append(identity)
-    measured = ordered[: max(1, int(max_teams))]
 
     team_consequences: Dict[str, Any] = {}
-    for identity in measured:
+    for identity in ordered:
+        role = _membership_role(before_ids, after_ids, identity)
         key = f"{identity[0]}|{identity[1]}|{identity[2]}"
         team_consequences[key] = {
             "team": {"club": identity[0], "label": identity[1], "age_group": identity[2]},
-            **compare_team_schedule_consequence(
-                before_plan, after_plan, identity, problem=problem
+            **compare_changed_team_schedule_consequence(
+                before_plan,
+                after_plan,
+                identity,
+                problem=problem,
+                membership_role=role,
             ),
         }
+
+    sample_size = max(1, int(max_teams))
+    display_keys = [
+        f"{identity[0]}|{identity[1]}|{identity[2]}" for identity in ordered[:sample_size]
+    ]
 
     before_by_id = _tournaments_by_id(before_plan)
     after_by_id = _tournaments_by_id(after_plan)
@@ -250,14 +313,33 @@ def placement_swap_consequences(
             },
         },
         "affected_teams": [
-            {"club": identity[0], "label": identity[1], "age_group": identity[2]}
+            {
+                "club": identity[0],
+                "label": identity[1],
+                "age_group": identity[2],
+                "membership_role": team_consequences[
+                    f"{identity[0]}|{identity[1]}|{identity[2]}"
+                ].get("membership_role"),
+            }
             for identity in ordered
         ],
         "team_consequences": team_consequences,
         "team_consequence_count": len(team_consequences),
+        # Display-only sample so a rendered report can stay bounded; acceptance
+        # below always covers the complete set.
+        "display_team_keys": display_keys,
         "consequence_acceptable": all(
             analysis.get("acceptable", False) for analysis in team_consequences.values()
         ),
+        "material_team_regressions": [
+            {
+                "team": analysis["team"],
+                "membership_role": analysis.get("membership_role"),
+                "regressions": analysis.get("material_regressions") or [],
+            }
+            for analysis in team_consequences.values()
+            if analysis.get("material_regressions")
+        ],
     }
 
 
@@ -607,6 +689,8 @@ def _build_coupled_option(
         "change_cost_total": cost.get("total"),
         "focus_team": focus_summary or None,
         "consequence_acceptable": consequences["consequence_acceptable"],
+        "consequence_team_count": consequences["team_consequence_count"],
+        "material_team_regressions": consequences["material_team_regressions"],
     }
     evidence: Dict[str, Any] = {
         "verification_ok": True,
@@ -864,6 +948,26 @@ def apply_coupled_placement_repair_option(
             "reason": "verification_failed",
             "verification": verification,
         }
+    # Hard-valid is not the same as an acceptable automatic repair. A coupled
+    # placement + roster repair may not materially regress any changed team's
+    # own schedule, so the apply boundary independently re-evaluates the
+    # complete changed-team consequence set rather than trusting the provider's
+    # self-report.
+    if problem:
+        consequences = placement_swap_consequences(
+            candidate,
+            trial,
+            tournament_a_id,
+            tournament_b_id,
+            problem=problem,
+        )
+        if not consequences["consequence_acceptable"]:
+            return {
+                "ok": False,
+                "reason": "team_schedule_regression",
+                "option_id": option_id,
+                "consequences": consequences,
+            }
     if problem:
         transfers = unexplained_responsibility_transfers(candidate, trial, problem)
         if transfers:
@@ -888,6 +992,7 @@ __all__ = [
     "affected_team_identities",
     "apply_coupled_placement_repair_option",
     "apply_placement_swap",
+    "changed_team_identities",
     "enumerate_coupled_placement_repairs",
     "placement_swap_consequences",
     "placement_tuple",

@@ -1739,6 +1739,16 @@ def _annotate_pareto(
             option["objectives"] = None
             option["non_dominated"] = False
             continue
+        # A coupled placement + roster repair may be hard-valid and
+        # operationally acceptable yet still materially regress an affected
+        # team's own schedule. That is a deterministic rejection owned by the
+        # consequence policy, not a Pareto trade-off: keep it off the
+        # auto-applicable front and let the apply boundary refuse it.
+        if (option.get("effects") or {}).get("consequence_acceptable") is False:
+            option["consequence_acceptable"] = False
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
         score = score_candidate(dict(candidate), problem=dict(problem))
         travel = _travel_metrics(candidate)
         vector = _objective_vector(
@@ -1780,6 +1790,11 @@ def _annotate_pareto(
             option["option_id"]
             for option in options
             if option.get("operational_acceptable") is False
+        ],
+        "consequence_rejected_option_ids": [
+            option["option_id"]
+            for option in options
+            if (option.get("effects") or {}).get("consequence_acceptable") is False
         ],
         "allow_manual_placement": bool(allow_manual_placement),
         "allow_host_confirmation": bool(allow_host_confirmation),

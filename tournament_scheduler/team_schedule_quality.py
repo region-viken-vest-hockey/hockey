@@ -24,6 +24,13 @@ from typing import Any, Mapping
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.club_distances import arena_to_club, distance
+from tournament_scheduler.participation_targets import (
+    HALVES,
+    resolve_half_target,
+    resolve_hard_max,
+    resolve_season_target,
+    split_date_for,
+)
 from tournament_scheduler.temporal_coverage import (
     DEFAULT_TEMPORAL_COVERAGE_THRESHOLD_DAYS,
     team_temporal_coverage,
@@ -302,9 +309,157 @@ def compare_team_schedule_consequence(
     return compare_team_schedule_profiles(before, after)
 
 
+def _half_counts(dates: list[str], split: date | None) -> dict[str, int]:
+    counts = {half: 0 for half in HALVES}
+    for value in dates:
+        parsed = _parse_date(value)
+        if parsed is None:
+            continue
+        half = planning_half.tournament_half(parsed, split)
+        if half in HALVES:
+            counts[half] += 1
+    return counts
+
+
+def team_participation_effect(
+    identity: TeamIdentity,
+    before: Mapping[str, Any],
+    after: Mapping[str, Any],
+    *,
+    problem: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Explicit per-half participation effect of a roster-membership change.
+
+    A roster repair deliberately adds or removes a team, so a raw
+    ``tournament_count`` change is not by itself a material regression. This
+    resolves the canonical targets/hard maximum and reports the shortfall the
+    membership change causes (or fails to cause), so the participation effect
+    is evaluated the same way the planner's targets are.
+    """
+
+    split = split_date_for(problem)
+    before_dates = [str(item) for item in (before.get("tournament_dates") or [])]
+    after_dates = [str(item) for item in (after.get("tournament_dates") or [])]
+    before_half = _half_counts(before_dates, split)
+    after_half = _half_counts(after_dates, split)
+    half_targets = {half: resolve_half_target(identity, problem, half) for half in HALVES}
+
+    def shortfall(counts: Mapping[str, int]) -> int:
+        total = 0
+        for half in HALVES:
+            target = half_targets.get(half)
+            if isinstance(target, int):
+                total += max(0, target - int(counts.get(half, 0) or 0))
+        return total
+
+    return {
+        "before_count": len(before_dates),
+        "after_count": len(after_dates),
+        "before_half_counts": before_half,
+        "after_half_counts": after_half,
+        "half_targets": half_targets,
+        "season_target": resolve_season_target(identity, problem),
+        "hard_max": resolve_hard_max(identity, problem),
+        "before_shortfall": shortfall(before_half),
+        "after_shortfall": shortfall(after_half),
+    }
+
+
+def compare_changed_team_schedule_consequence(
+    before_plan: Mapping[str, Any],
+    after_plan: Mapping[str, Any],
+    identity: TeamIdentity,
+    *,
+    problem: Mapping[str, Any] | None = None,
+    membership_role: str = "retained",
+) -> dict[str, Any]:
+    """Compare one team's before/after schedule for a *membership-aware* change.
+
+    ``membership_role`` is ``"retained"`` (the team is a participant of a moved
+    tournament in both plans), ``"removed"`` (a roster repair dropped it) or
+    ``"added"`` (a roster repair introduced it). Retained teams keep the full
+    material-regression policy. A deliberate membership change is evaluated
+    explicitly against the canonical participation targets/hard maximum instead
+    of being condemned by a generic ``tournament_count`` change:
+
+    * an added team gains participation, which is not a regression of its own
+      schedule; only a new hard-maximum violation is material, and the extra
+      travel to the gained tournament is the cost of that participation rather
+      than a regression;
+    * a removed team is material only when it creates or widens a participation
+      shortfall (or crosses the hard maximum).
+
+    Spacing, temporal coverage and opponent-repetition regressions stay
+    material for every role, because a new too-close pair or a new long gap is
+    a genuine schedule regression regardless of how the team entered/left the
+    tournament.
+    """
+
+    analysis = compare_team_schedule_consequence(
+        before_plan, after_plan, identity, problem=problem
+    )
+    role = str(membership_role or "retained")
+    if role not in {"retained", "added", "removed"}:
+        raise ValueError(f"Unknown membership role: {membership_role!r}")
+    if role == "retained":
+        result = dict(analysis)
+        result["membership_role"] = role
+        return result
+
+    material = [
+        dict(regression)
+        for regression in analysis.get("material_regressions") or []
+        if regression.get("code") != "participation_count_changed"
+    ]
+    effect = team_participation_effect(
+        identity, analysis.get("before") or {}, analysis.get("after") or {}, problem=problem
+    )
+    hard_max = effect.get("hard_max")
+    before_count = int(effect.get("before_count") or 0)
+    after_count = int(effect.get("after_count") or 0)
+
+    if role == "removed":
+        if int(effect["after_shortfall"]) > int(effect["before_shortfall"]):
+            material.append(
+                {
+                    "code": "participation_shortfall_worsened",
+                    "before_shortfall": effect["before_shortfall"],
+                    "after_shortfall": effect["after_shortfall"],
+                    "before_half_counts": effect["before_half_counts"],
+                    "after_half_counts": effect["after_half_counts"],
+                    "half_targets": effect["half_targets"],
+                }
+            )
+    else:  # added
+        # Gaining a tournament is not a regression of the team's own schedule,
+        # but it must still not cross a genuinely hard maximum, and the travel
+        # it adds is the cost of the gained participation rather than a
+        # regression relative to a pre-existing schedule.
+        material = [regression for regression in material if regression.get("code") != "travel_materially_worse"]
+
+    if isinstance(hard_max, int) and after_count > hard_max and before_count <= hard_max:
+        material.append(
+            {
+                "code": "participation_hard_max_exceeded",
+                "hard_max": hard_max,
+                "before_count": before_count,
+                "after_count": after_count,
+            }
+        )
+
+    result = dict(analysis)
+    result["membership_role"] = role
+    result["material_regressions"] = material
+    result["acceptable"] = not material
+    result["participation_effect"] = effect
+    return result
+
+
 __all__ = [
     "TeamIdentity",
+    "compare_changed_team_schedule_consequence",
     "compare_team_schedule_consequence",
     "compare_team_schedule_profiles",
+    "team_participation_effect",
     "team_schedule_profile",
 ]
