@@ -8,12 +8,15 @@ Stage 4 export so a committed export can be reviewed without `.pipeline`.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .fingerprints import stable_payload_sha256
 from .state import PipelineState, StageName
 
 SEMANTIC_AUDIT_FILENAME = "semantic_audit.json"
+AUDIT_CONTEXT_FILENAME = "audit_context.json"
 PUBLICATION_APPROVAL_FILENAME = "publication_approval.json"
 
 _EXPORT_AUDIT_FIELDS = (
@@ -22,12 +25,14 @@ _EXPORT_AUDIT_FIELDS = (
     "generated_at",
     "run_id",
     "export_fingerprint",
+    "audit_context_fingerprint",
     "source_fingerprints",
     "prompt_version",
     "runbook_version",
     "backend",
     "execution_mode",
     "status",
+    "operator_assessment",
     "audit_metrics",
     "checklist_findings",
     "potential_missing_rule",
@@ -60,8 +65,8 @@ def _resolve_export_context(
     work_dir: str | Path,
     *,
     export_fingerprint: str,
-) -> tuple[Path, str] | None:
-    """Return ``(export_dir, candidate_fingerprint)`` for the current export.
+) -> tuple[Path, str, dict[str, Any]] | None:
+    """Return ``(export_dir, candidate_fingerprint, checkpoint)`` for the current export.
 
     ``None`` means there is no materialized export directory yet. A present
     export with mismatched provenance is an error rather than a best-effort
@@ -95,7 +100,81 @@ def _resolve_export_context(
     export_dir = Path(raw_export_dir)
     if not export_dir.is_absolute():
         export_dir = Path(work_dir).parent / export_dir
-    return export_dir, candidate_fp
+    return export_dir, candidate_fp, checkpoint
+
+
+def _now_iso() -> str:
+    return datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat()
+
+
+def context_fingerprint(context: dict[str, Any]) -> str:
+    """Deterministic fingerprint of a canonical audit context."""
+    return stable_payload_sha256(context)
+
+
+def materialize_audit_context(
+    work_dir: str | Path,
+    context: dict[str, Any],
+) -> Path | None:
+    """Persist the exact sanitized audit context into the matching export dir.
+
+    This is the immutable analysis record of *what evidence the auditor
+    actually saw*. The mutable/rebuildable copy (if any) is never reused as
+    authority; this file is read back verbatim when binding the audit result
+    to its context fingerprint.
+    """
+    export_fp = str(context.get("export_fingerprint") or "")
+    resolved = _resolve_export_context(work_dir, export_fingerprint=export_fp)
+    if resolved is None:
+        return None
+    export_dir, candidate_fp, _checkpoint = resolved
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    artifact = {
+        "schema_version": 1,
+        "artifact_type": "semantic_audit_context",
+        "generated_at": _now_iso(),
+        "run_id": context.get("run_id"),
+        "export_fingerprint": export_fp,
+        "selected_candidate_fingerprint": candidate_fp,
+        "context_fingerprint": context_fingerprint(context),
+        "context": context,
+    }
+    path = export_dir / AUDIT_CONTEXT_FILENAME
+    path.write_text(
+        json.dumps(artifact, indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8",
+    )
+    return path
+
+
+def load_materialized_audit_context(
+    work_dir: str | Path,
+    *,
+    export_fingerprint: str,
+) -> dict[str, Any] | None:
+    """Return the committed audit context for *export_fingerprint*, if any.
+
+    Returns ``None`` when no context artifact exists. Raises ``ValueError``
+    when a Stage 4 export exists but its fingerprint is different — a stale
+    context must never be silently returned for another export.
+    """
+    resolved = _resolve_export_context(work_dir, export_fingerprint=export_fingerprint)
+    if resolved is None:
+        return None
+    export_dir, _candidate_fp, _checkpoint = resolved
+    path = export_dir / AUDIT_CONTEXT_FILENAME
+    if not path.exists():
+        return None
+    try:
+        artifact = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(artifact, dict):
+        return None
+    if str(artifact.get("export_fingerprint") or "") != export_fingerprint:
+        return None
+    return artifact
 
 
 def materialize_audit_result(
@@ -107,7 +186,7 @@ def materialize_audit_result(
     context = _resolve_export_context(work_dir, export_fingerprint=export_fp)
     if context is None:
         return None
-    export_dir, candidate_fp = context
+    export_dir, candidate_fp, checkpoint = context
     export_dir.mkdir(parents=True, exist_ok=True)
 
     artifact = {key: payload[key] for key in _EXPORT_AUDIT_FIELDS if key in payload}
@@ -123,7 +202,36 @@ def materialize_audit_result(
         json.dumps(artifact, indent=2, ensure_ascii=False, default=str),
         encoding="utf-8",
     )
+    _apply_assessment_to_season_plan(export_dir, artifact, checkpoint)
     return path
+
+
+def _apply_assessment_to_season_plan(
+    export_dir: Path,
+    artifact: dict[str, Any],
+    checkpoint: dict[str, Any],
+) -> None:
+    """Best-effort projection of the submitted assessment into the exported HTML.
+
+    The Stage 4 ``season_plan.html`` carries a stable placeholder; audit
+    materialization deterministically replaces only that marked section with
+    the same fingerprint-bound conclusion persisted in ``semantic_audit.json``.
+    A failure here must never reject an otherwise valid audit submission.
+    """
+    output_files = checkpoint.get("output_files")
+    html_path = output_files.get("html") if isinstance(output_files, dict) else None
+    if not html_path or not Path(str(html_path)).exists():
+        html_path = str(export_dir / "season_plan.html")
+    try:
+        from .audit_assessment import apply_harness_assessment
+
+        apply_harness_assessment(
+            artifact,
+            html_path=html_path,
+            manual_schedule_available=(export_dir / "manual_schedule.html").exists(),
+        )
+    except Exception:  # noqa: BLE001 - projection is not a validation gate
+        return
 
 
 def materialize_review_approval(
@@ -139,7 +247,7 @@ def materialize_review_approval(
     context = _resolve_export_context(work_dir, export_fingerprint=export_fp)
     if context is None:
         raise ValueError("cannot persist publication approval without a Stage 4 export directory")
-    export_dir, candidate_fp = context
+    export_dir, candidate_fp, _checkpoint = context
     export_dir.mkdir(parents=True, exist_ok=True)
 
     artifact = {

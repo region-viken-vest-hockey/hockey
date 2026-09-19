@@ -210,6 +210,35 @@ def _do_re_export(work_dir: str, export_dir: str, *, timestamped_export: bool = 
         return 1
 
 
+def _write_canonical_export_evidence(schedule: dict, export_checkpoint: dict) -> None:
+    """Write the immutable evidence bundle for a canonical ``season export``.
+
+    Best-effort layered provenance: a bundle failure must never fail or roll
+    back an otherwise-successful export, but when it succeeds the committed
+    export directory can be reviewed without the original working directory.
+    """
+    from pathlib import Path
+
+    import json as _json
+
+    from ..pipeline.canonical_export_evidence import build_canonical_export_evidence
+
+    export_dir = export_checkpoint.get("export_dir")
+    if not export_dir:
+        return
+    try:
+        bundle = build_canonical_export_evidence(
+            schedule=schedule, export_checkpoint=export_checkpoint
+        )
+        target = Path(str(export_dir))
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "evidence_bundle.json").write_text(
+            _json.dumps(bundle, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
+        )
+    except Exception as exc:  # noqa: BLE001 - evidence is not an export dependency
+        _console.print(f"  [yellow]⚠[/yellow] Kunne ikke skrive evidence-bundle: {exc}")
+
+
 def _load_plan_and_updater(work_dir: str):
     """Load the season plan and return (plan, updater, state). Raises SystemExit on error."""
     from ..pipeline.state import PipelineState
@@ -1335,6 +1364,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
             result["canonical_revision"] = schedule.get("revision")
             from ..pipeline.state import StageName, StageStatus
             state.write_stage(StageName.EXPORT, result, status=StageStatus.DONE)
+            _write_canonical_export_evidence(schedule, result)
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
             else:

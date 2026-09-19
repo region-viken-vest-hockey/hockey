@@ -227,6 +227,7 @@ def _cmd_operator_audit_run(args: argparse.Namespace) -> int:
     from ...llm_judge.harness import is_harness_active
     from ...pipeline.audit_context import build_audit_context, build_audit_evidence_index
     from ...pipeline.operator_action import DEFAULT_REGISTRY, UnknownActionError
+    from ...pipeline.operator_action_audit import materialize_audit_context
 
     if is_harness_active() and not getattr(args, "force", False):
         _console.print(
@@ -246,6 +247,10 @@ def _cmd_operator_audit_run(args: argparse.Namespace) -> int:
         if not context.get("export_fingerprint"):
             _console.print("[red]✗[/red] Ingen Stage 4-eksport funnet — kjør eksport før revisjon.")
             return 1
+
+        # Snapshot the exact context the judge sees, so the committed export
+        # can reconstruct evidence -> audit input -> audit judgment later.
+        materialize_audit_context(args.work_dir, context)
 
         evidence_index = build_audit_evidence_index(work_dir=args.work_dir)
         result = run_headless_audit(context, args.backend, evidence_index=evidence_index)

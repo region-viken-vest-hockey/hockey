@@ -654,6 +654,7 @@ def run(
         "input_file": Path(input_path).name,
         "canonical_season": canonical_season,
         "canonical_revision": canonical_revision,
+        "export_fingerprint": export_fingerprint,
         "approval_status": approval_status,
     }
     # Immutable public/source presentation context. The normal pipeline captures

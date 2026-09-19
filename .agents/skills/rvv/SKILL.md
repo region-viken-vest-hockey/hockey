@@ -286,7 +286,22 @@ Audit checklist:
 8. Er eksportformatene konsistente?
 9. Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?
 
-Submit the harness verdict through `operator audit-submit`. When no interactive harness is active, the documented headless `operator audit-run --backend <name>` path may call an LLM backend instead.
+Submit the harness verdict through `operator audit-submit`. The submitted payload must also carry a concise structured `operator_assessment`, so the operator-facing conclusion is bound to the same export/context fingerprint as the verdict rather than living only in terminal history:
+
+```json
+{
+  "status": "PASS|REVIEW_REQUIRED|FAIL|INCOMPLETE",
+  "export_fingerprint": "<from audit-context>",
+  "operator_assessment": {
+    "operator_summary": "2–4 sentences on whether the plan is usable and why.",
+    "key_tradeoffs": [{"title": "...", "summary": "what was accepted and why", "severity": "info|minor|major"}],
+    "remaining_actions": [{"title": "...", "summary": "what RVV/the club must still do", "category": "manual_placement|participation|hosting|..."}],
+    "limitations": ["what the harness could not independently establish"]
+  }
+}
+```
+
+The repository materializes the exact submitted assessment into `semantic_audit.json` and the `season_plan.html` “Vurdering fra planleggingsassistent” section, both bound to the same export fingerprint and context fingerprint. Generate your final chat/terminal summary from this same structured assessment so the verdict, trade-offs, remaining actions and limitations cannot contradict the export. Hard counts and validity still come only from deterministic repository evidence; the assessment is a conclusion, not a second rule engine. When no interactive harness is active, the documented headless `operator audit-run --backend <name>` path may call an LLM backend instead.
 
 A harness `FAIL` or `REVIEW_REQUIRED` may occur even when deterministic checks pass. It can never override a deterministic hard `FAIL`; an incomplete audit is never `PASS`.
 

@@ -119,7 +119,51 @@ def validate_audit_result(payload: dict[str, Any]) -> list[str]:
         if not isinstance(finding, dict) or "description" not in finding:
             errors.append("potential_missing_rule entries must be objects with a 'description' field")
 
+    context_fingerprint = payload.get("audit_context_fingerprint")
+    if context_fingerprint is not None and not isinstance(context_fingerprint, str):
+        errors.append("audit_context_fingerprint must be a string when present")
+
+    if "operator_assessment" in payload and payload.get("operator_assessment") is not None:
+        _validate_operator_assessment(payload.get("operator_assessment"), errors)
+
     return errors
+
+
+def _validate_operator_assessment(assessment: Any, errors: list[str]) -> None:
+    """Validate the optional structured harness assessment projection.
+
+    The assessment is the operator-facing conclusion the harness submits with
+    its verdict; it is explicitly not a second rule engine, so this only
+    enforces a small, stable shape (there is exactly one source of truth for
+    counts/validity: the deterministic evidence).
+    """
+    if not isinstance(assessment, dict):
+        errors.append("operator_assessment must be an object")
+        return
+    summary = assessment.get("operator_summary")
+    if not isinstance(summary, str) or not summary.strip():
+        errors.append("operator_assessment.operator_summary must be a non-empty string")
+    for key in ("key_tradeoffs", "remaining_actions", "limitations"):
+        value = assessment.get(key)
+        if value is not None and not isinstance(value, list):
+            errors.append(f"operator_assessment.{key} must be a list when present")
+    for entry in assessment.get("key_tradeoffs") or []:
+        if not isinstance(entry, dict) or not entry.get("title") or not entry.get("summary"):
+            errors.append("operator_assessment.key_tradeoffs entries must have title and summary")
+            continue
+        severity = entry.get("severity")
+        if severity is not None and severity not in _VALID_SEVERITIES:
+            errors.append(f"operator_assessment.key_tradeoffs entry has invalid severity {severity!r}")
+    for entry in assessment.get("remaining_actions") or []:
+        if not isinstance(entry, dict) or not entry.get("title") or not entry.get("summary"):
+            errors.append("operator_assessment.remaining_actions entries must have title and summary")
+            continue
+        category = entry.get("category")
+        if category is not None and not isinstance(category, str):
+            errors.append("operator_assessment.remaining_actions entry category must be a string")
+    for entry in assessment.get("limitations") or []:
+        if not isinstance(entry, str):
+            errors.append("operator_assessment.limitations entries must be strings")
 
 
 def read_audit_result(work_dir: "str | Path") -> dict[str, Any] | None:

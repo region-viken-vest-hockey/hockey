@@ -66,11 +66,58 @@ def execute_get_audit_context(
         return CapabilityResult.failed(
             "Ingen Stage 4-eksport funnet — kjør eksport før revisjon.", capability="llm_audit"
         )
+    materialize_audit_context(work_dir, context)
     return CapabilityResult.ok(
         "Revisjonskontekst satt sammen.",
         capability="llm_audit",
         evidence=[json.dumps(context, ensure_ascii=False, default=str)],
     )
+
+
+def materialize_audit_context(work_dir: str, context: dict[str, Any]) -> None:
+    """Best-effort immutable snapshot of the exact context the auditor saw.
+
+    The committed ``audit_context.json`` is the analysis record that lets a
+    reviewer reconstruct evidence -> audit input -> audit judgment from one
+    export directory. A provenance mismatch is a real error, but a missing
+    export directory (e.g. an audit against a workspace without a
+    materialized export) simply has nothing to attach to.
+    """
+    from .audit_export_artifact import materialize_audit_context as _materialize
+
+    try:
+        _materialize(work_dir, context)
+    except (OSError, ValueError):
+        return
+
+
+def _ensure_context_fingerprint(work_dir: str, *, export_fingerprint: str) -> str | None:
+    """Resolve (materializing when needed) the context fingerprint for one export.
+
+    A harness that read ``audit-context`` already wrote the artifact. When a
+    caller submits without reading it first, the context is rebuilt
+    deterministically from the same persisted Stage 4 artifacts and written
+    now, so every stored verdict still carries the fingerprint of the exact
+    context bound to its export.
+    """
+    from .audit_export_artifact import load_materialized_audit_context
+
+    try:
+        artifact = load_materialized_audit_context(work_dir, export_fingerprint=export_fingerprint)
+        if artifact is None:
+            from .audit_context import build_audit_context
+
+            context = build_audit_context(work_dir=work_dir)
+            if str(context.get("export_fingerprint") or "") != export_fingerprint:
+                return None
+            materialize_audit_context(work_dir, context)
+            artifact = load_materialized_audit_context(
+                work_dir, export_fingerprint=export_fingerprint
+            )
+    except (OSError, ValueError):
+        return None
+    fingerprint = artifact.get("context_fingerprint") if isinstance(artifact, dict) else None
+    return str(fingerprint) if fingerprint else None
 
 
 def execute_get_audit_evidence(
@@ -134,6 +181,10 @@ def execute_submit_audit_result(*, work_dir: str, result: dict[str, Any]) -> "Ca
             suggested_actions=["Hent ny kontekst med 'operator audit-context' og send inn på nytt."],
         )
 
+    result = dict(result)
+    context_fp = _ensure_context_fingerprint(work_dir, export_fingerprint=current_fp)
+    if context_fp:
+        result["audit_context_fingerprint"] = context_fp
     result = with_resolved_audit_id(result)
     errors = write_audit_result(work_dir, result)
     if errors:

@@ -222,9 +222,11 @@ scripts/rvv-miniputt operator audit-evidence --category participation_shortfalls
 scripts/rvv-miniputt operator audit-evidence --unresolved
 ```
 
-The harness then submits PASS / REVIEW_REQUIRED / FAIL through `operator audit-submit`. Detailed evidence is fingerprint-bound to the same export/run as the bounded overview. The interactive harness must not create another nested model/audit implementation. Headless CI may use the documented `operator audit-run --backend <name>` path instead.
+The harness then submits PASS / REVIEW_REQUIRED / FAIL through `operator audit-submit`. The submitted payload also carries a concise structured `operator_assessment` (overall summary, accepted trade-offs, remaining operator/club actions, limitations). Detailed evidence is fingerprint-bound to the same export/run as the bounded overview. The interactive harness must not create another nested model/audit implementation. Headless CI may use the documented `operator audit-run --backend <name>` path instead.
 
 The audit is an independent semantic safety net, not a second Python rules engine. It looks for suspicious operational patterns, missing rules, export inconsistency and defects the deterministic verifier may share with the scheduler.
+
+One committed export directory is self-describing: `evidence_bundle.json` holds the reconciled run/selected-plan evidence, `audit_context.json` is the exact sanitized context the auditor saw (with a deterministic `context_fingerprint`), and `semantic_audit.json` is the verdict bound to both the export fingerprint and that context fingerprint (plus the submitted `operator_assessment`). A regenerated export therefore invalidates its predecessor's audit rather than silently reusing it, and retrospective analysis can reconstruct evidence -> audit input -> audit judgment without the original `.pipeline` workspace. The same structured assessment is projected into the `season_plan.html` "Vurdering fra planleggingsassistent" section, so the terminal summary, the persisted verdict and the exported HTML are renderings of one conclusion.
 
 A `REVIEW_REQUIRED` verdict raises a distinct operator-review question. That question is bound to the reviewed export's fingerprint and audit id, so an approval given for one export never satisfies the review of a later export with different content; each new export needs its own review approval.
 
