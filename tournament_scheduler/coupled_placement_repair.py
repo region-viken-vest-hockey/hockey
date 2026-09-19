@@ -845,16 +845,26 @@ def enumerate_coupled_placement_repairs(
     }
 
 
-def _option_rank(option: RepairOption) -> Tuple[int, float, int, int, str]:
+def _option_rank(option: RepairOption) -> Tuple[int, int, float, int, int, str]:
     """Prefer automatically acceptable repairs, then the smallest change.
 
-    A candidate that requires an explicit operator opt-in is ranked after every
-    automatically acceptable candidate so it can never crowd a normal repair
-    out of the bounded option set (it is still classified and returned for a
-    deliberate opt-in apply).
+    Automatic acceptability must participate in ranking, not only the Pareto
+    annotation applied afterwards: the ranked list is truncated to the display
+    bound, so a consequence-rejected candidate ordered first on cost/focus
+    would consume a returned slot and hide a generated safe candidate. The
+    ordering is therefore:
+
+    1. ``consequence_acceptable: true`` + operationally acceptable;
+    2. consequence acceptable but requiring an explicit operational opt-in;
+    3. consequence rejected (material team-schedule regression).
+
+    Within a class the existing change-cost / focus-improvement ordering
+    applies. A rejected candidate is still generated and returned when space
+    remains, so it stays visible as evidence.
     """
 
     effects = option.effects or {}
+    consequence_rejected = 0 if effects.get("consequence_acceptable", True) else 1
     requires_opt_in = 1 if effects.get("requires_operational_opt_in") else 0
     cost = effects.get("change_cost_total")
     try:
@@ -869,7 +879,14 @@ def _option_rank(option: RepairOption) -> Tuple[int, float, int, int, str]:
     improvement = 0
     if isinstance(min_gap_after, int) and isinstance(before, int):
         improvement = min_gap_after - before
-    return (requires_opt_in, cost_value, -improvement, -int(min_gap_after), option.option_id)
+    return (
+        consequence_rejected,
+        requires_opt_in,
+        cost_value,
+        -improvement,
+        -int(min_gap_after),
+        option.option_id,
+    )
 
 
 def _date_distance(left: str, right: str) -> int:

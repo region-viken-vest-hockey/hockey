@@ -831,3 +831,118 @@ def test_production_apply_rejects_material_team_regression_directly() -> None:
     assert applied["ok"] is False
     assert applied["reason"] == "team_schedule_regression"
     assert applied["consequences"]["consequence_acceptable"] is False
+
+
+# -- bounded selection / ranking --------------------------------------------
+
+
+def test_bounded_selection_keeps_safe_candidate_ahead_of_rejected(
+    tmp_path: Path, monkeypatch
+) -> None:
+    # The provider truncates to a bounded display set after ranking, so the
+    # ranking itself must prefer automatic acceptability: a cheaper, larger
+    # focus-improvement candidate that is consequence-rejected must never take
+    # the slot a generated safe candidate needs.
+    import tournament_scheduler.coupled_placement_repair as module
+    from tournament_scheduler.host_team_missing_repair import RepairOption
+
+    _root, plan, problem = _season(tmp_path)
+    calls = {"n": 0}
+
+    def fake_build(_plan, _problem, **kwargs):
+        calls["n"] += 1
+        safe = calls["n"] == 1
+        tournament_a_id = kwargs["tournament_a_id"]
+        tournament_b_id = kwargs["tournament_b_id"]
+        return (
+            RepairOption(
+                option_id=f"coupled_placement:{tournament_a_id}:{tournament_b_id}",
+                finding_id=kwargs.get("finding_id", ""),
+                action="coupled_placement_repair",
+                tournament_id=tournament_a_id,
+                arguments={},
+                hard_feasible=True,
+                effects={
+                    "consequence_acceptable": safe,
+                    # The rejected candidates are cheaper and improve the focus
+                    # team more, so cost/focus ordering alone would rank every
+                    # one of them ahead of the safe candidate.
+                    "change_cost_total": 100.0 if safe else 1.0,
+                    "focus_team": {
+                        "min_gap_before": 0,
+                        "min_gap_after": 30 if safe else 60,
+                    },
+                },
+                evidence={},
+            ),
+            {},
+        )
+
+    monkeypatch.setattr(module, "_build_coupled_option", fake_build)
+    result = module.enumerate_coupled_placement_repairs(
+        plan,
+        problem,
+        target_tournament_ids=[t["id"] for t in plan["tournaments"]],
+        finding_id="finding-1",
+        max_options=6,
+    )
+
+    # More verified candidates than the display bound, so truncation order is
+    # what decides membership.
+    assert result["verified_candidate_count"] > 6
+    assert len(result["options"]) == 6
+
+    safe = [
+        option
+        for option in result["options"]
+        if option["effects"]["consequence_acceptable"] is True
+    ]
+    assert len(safe) == 1
+    assert safe[0]["effects"]["rank"] == 1
+
+    # Rejected candidates stay visible as evidence inside the bound rather than
+    # being hidden, but they cannot crowd the safe choice out.
+    assert any(
+        option["effects"]["consequence_acceptable"] is False
+        for option in result["options"]
+    )
+
+
+def test_option_rank_orders_acceptability_before_cost() -> None:
+    # The full class ordering: automatic-acceptability dominates the #401
+    # operational opt-in class, which in turn dominates consequence-rejected
+    # candidates even when those are cheaper and improve the focus team more.
+    import tournament_scheduler.coupled_placement_repair as module
+    from tournament_scheduler.host_team_missing_repair import RepairOption
+
+    def option(name: str, *, consequence: bool, opt_in: bool) -> RepairOption:
+        return RepairOption(
+            option_id=name,
+            finding_id="finding-1",
+            action="coupled_placement_repair",
+            tournament_id="rvv-0001",
+            arguments={},
+            hard_feasible=True,
+            effects={
+                "consequence_acceptable": consequence,
+                "requires_operational_opt_in": opt_in,
+                "change_cost_total": 1.0,
+                "focus_team": {"min_gap_before": 0, "min_gap_after": 60},
+            },
+        )
+
+    ranked = sorted(
+        [
+            option("rejected-opt-in", consequence=False, opt_in=True),
+            option("rejected-auto", consequence=False, opt_in=False),
+            option("safe-opt-in", consequence=True, opt_in=True),
+            option("safe-auto", consequence=True, opt_in=False),
+        ],
+        key=module._option_rank,
+    )
+    assert [entry.option_id for entry in ranked] == [
+        "safe-auto",
+        "safe-opt-in",
+        "rejected-auto",
+        "rejected-opt-in",
+    ]
