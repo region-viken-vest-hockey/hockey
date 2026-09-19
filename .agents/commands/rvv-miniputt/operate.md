@@ -1,0 +1,62 @@
+# RVV Miniputt: operate
+
+This is the single operator-facing entry point for RVV Miniputt work. The operator states the desired outcome in ordinary language; the active harness determines the lifecycle, loads the relevant shared procedures, and uses repository-owned capabilities to carry it out.
+
+Read `AGENTS.md`, `.agents/skills/rvv/SKILL.md`, and this repository's internal routing guide `.agents/commands/rvv-miniputt/guide.md` before acting. The other files in this directory are internal shared procedures, not separate commands the operator should need to remember.
+
+## Operator contract
+
+1. Treat the operator's current request/command arguments as **intent**, not as instructions for which CLI/action to use.
+2. Establish the current lifecycle and authoritative state before mutating anything:
+   - initial/unpromoted pipeline candidate;
+   - promoted canonical season;
+   - approvals/locks;
+   - current findings where relevant;
+   - current export/audit/publication revision where relevant.
+3. Classify and compose the request. One request may require several internal procedures; do not stop after the first mechanical change if the requested outcome requires repair, verification, export or audit.
+4. Load only the relevant internal shared procedures under `.agents/commands/rvv-miniputt/` and follow their canonical boundaries. Do not recreate their policy in the harness.
+5. Prefer the smallest hard-valid change that satisfies the intent:
+   - preserve approved/locked tournaments;
+   - preserve unrelated tournaments;
+   - prefer placement-preserving participant repair when placement is already valid;
+   - prefer finding-directed repair/search before whole-season replanning;
+   - preserve hosting responsibility;
+   - use current revision-bound options and refresh them after canonical state changes.
+6. Never hand-edit canonical season JSON, checkpoints, decisions, generated exports or public output to work around a missing action or failed verifier.
+7. Never treat bounded-search exhaustion as proof of infeasibility.
+8. Do not ask the operator to choose an internal command, action id, repair family or resume stage. Ask only for a genuinely missing real-world fact or authority that materially blocks the requested outcome.
+9. If the intent changes schedule, roster/participants, placements, guest reservations, or durable decisions, run the appropriate canonical verification. Refresh findings after mutations. By default regenerate the canonical export and perform the semantic safety-net audit before handing off a changed schedule for review.
+10. Publication is a separate authority boundary. **Never publish unless the operator explicitly asks to publish.**
+11. If the repository lacks a canonical capability for the requested intent, do not improvise a state edit. Use the authoritative existing input/workflow when one exists; otherwise report the missing capability clearly so it can be implemented at the correct layer.
+
+## Intent routing
+
+Use `.agents/commands/rvv-miniputt/guide.md` as the routing guide and then load the relevant internal procedure(s). Typical intents include:
+
+- **schedule/create a season** -> `run.md` and the canonical Stage 1–4 interactive flow; audit before any promotion/publication.
+- **review/improve the current schedule** -> `season.md`; inspect fresh findings, direct repair options and bounded search, preserving approvals and minimizing churn.
+- **move a tournament** -> `season.md` plus the move-tournament skill when applicable; resolve the durable tournament, respect approval lifecycle, apply a targeted verified move.
+- **confirm/book/lock a tournament** -> `season.md` plus the confirmation skill; verify then approve/lock.
+- **change tournament participants / make room for a team** -> `season.md`; prefer legal roster/capacity repair and the smallest verified coupled change before moving unrelated tournaments.
+- **add/remove a registered team or change the season team set** -> change the authoritative controlled registration/input through its supported path, then reconcile/replan around the canonical baseline while preserving booked commitments. If no supported canonical/operator path exists, surface that capability gap rather than editing schedule JSON.
+- **reserve/fill/release guest places** -> `season.md` guest capabilities; use repository-generated guest candidates for policy-level placement choices.
+- **repair unresolved placement/participation/hosting findings** -> `season.md`; findings -> repair-options -> bounded search as needed -> verified revision-bound apply.
+- **broader replan** -> `season.md`; keep approvals hard-preserved, generate a candidate, inspect diff/change cost, and apply only through the verified boundary.
+- **calendar/source recovery** -> `calendars.md`, `scrape.md`, and/or `scrape-llm.md` as appropriate, then return to the canonical pipeline.
+- **inspect status/evidence/logs** -> `status.md`, `logs.md`, and repository-owned evidence commands as appropriate.
+- **export/audit** -> `season.md` plus the semantic audit contract in the RVV skill.
+- **publish/rollback** -> `publish.md`, only after the exact current canonical export has a current semantic audit and the operator explicitly requested the public action.
+
+## Completion standard
+
+Report the result in operator terms:
+
+- what changed and why;
+- what was deliberately preserved;
+- meaningful before/after schedule-quality facts where available;
+- unresolved findings or required host/operator confirmations;
+- verification and semantic-audit result;
+- resulting canonical/export revision or fingerprint when relevant;
+- whether the result is ready for review or publication.
+
+Do not claim global optimality unless the repository actually proves it.

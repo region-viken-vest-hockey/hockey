@@ -30,6 +30,8 @@ If an active document contradicts current code or the controlled workbook, fix t
 
 ## RVV Miniputt command surface
 
+The **operator-facing harness surface is intentionally one command**: `.agents/commands/rvv-miniputt/operate.md`. Claude, Codex, ChatGPT and future harness UIs should expose only an `operate` alias for RVV work. The operator describes the desired outcome in natural language; `operate` routes that intent to the internal shared procedures below. Files such as `run.md`, `season.md`, `publish.md`, `scrape.md` and `status.md` remain reusable agent procedures, not separate operator commands.
+
 `.agents/skills/rvv/SKILL.md` owns shared RVV policy. `.agents/commands/rvv-miniputt/` owns shared command procedures. Claude, Codex, ChatGPT, Pi and future agent harnesses should consume the same files and execute the same repository-local command transport.
 
 The canonical launcher for agent operation is:

@@ -14,6 +14,7 @@ ADAPTER_DIRS = (
     REPO_ROOT / ".codex" / "commands" / "rvv-miniputt",
     REPO_ROOT / ".chatgpt" / "commands" / "rvv-miniputt",
 )
+OPERATOR_ENTRYPOINT = "operate.md"
 
 
 def _adapter_files():
@@ -34,6 +35,15 @@ def test_skill_md_documents_the_audit_execution_model():
     assert "audit-context" in text
     assert "audit-submit" in text
     assert "audit-run" in text
+
+
+def test_harnesses_expose_only_the_single_operator_entrypoint():
+    for adapter_dir in ADAPTER_DIRS:
+        if not adapter_dir.exists():
+            continue
+        assert [path.name for path in sorted(adapter_dir.glob("*.md"))] == [
+            OPERATOR_ENTRYPOINT
+        ]
 
 
 def test_no_adapter_file_duplicates_the_checklist_or_defines_its_own_policy():
