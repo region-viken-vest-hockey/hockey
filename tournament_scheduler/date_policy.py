@@ -162,3 +162,33 @@ def is_excluded_date(problem: Optional[Mapping[str, Any]], on_date: Optional[dat
     if on_date is None:
         return None
     return problem_date_exclusions(problem).get(on_date)
+
+
+def problem_forbidden_dates(problem: Optional[Mapping[str, Any]]) -> Dict[date, str]:
+    """Every date a schedule must not place a tournament on.
+
+    Composes the canonical holiday/date-policy exclusions with the operator
+    ``manual_adjustments.banned_dates`` (the existing banned-date read path).
+    Automatic date-changing paths -- the optimizer, candidate-weekend
+    enumeration and repair relocation -- read this so they never propose a date
+    the independent verifier would reject as a holiday or an operator-banned
+    date. It is a pure union over existing facts; it derives no new policy and
+    is not a second verifier.
+    """
+
+    out: Dict[date, str] = dict(problem_date_exclusions(problem))
+    if isinstance(problem, Mapping):
+        manual = problem.get("manual_adjustments") or {}
+        for value in manual.get("banned_dates") or []:
+            parsed = _parse_date(value)
+            if parsed is not None:
+                out.setdefault(parsed, "banned by operator")
+    return out
+
+
+def is_forbidden_date(problem: Optional[Mapping[str, Any]], on_date: Optional[date]) -> Optional[str]:
+    """Return the forbidden reason (holiday or operator ban) for *on_date*."""
+
+    if on_date is None:
+        return None
+    return problem_forbidden_dates(problem).get(on_date)

@@ -34,6 +34,7 @@ CHANGE_PROTECTIONS_KEY = "change_protections"
 PARTICIPATION_ACCEPTANCES_KEY = "participation_acceptances"
 PARTICIPATION_ACCEPTANCE_PREFIX = "participation_acceptance"
 REQUEST_CONSTRAINTS_KEY = "request_constraints"
+BANNED_DATES_KEY = "banned_dates"
 
 
 def schedule_fingerprint(plan_dict: Mapping[str, Any]) -> str:
@@ -59,6 +60,7 @@ def compute_canonical_state_revision(
         "participation_acceptances": decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or [],
         "change_protections": decisions.get(CHANGE_PROTECTIONS_KEY) or [],
         "request_constraints": decisions.get(REQUEST_CONSTRAINTS_KEY) or [],
+        "banned_dates": decisions.get(BANNED_DATES_KEY) or [],
         "verification_context": schedule.get("verification_context"),
     }
     return stable_payload_sha256(payload)
@@ -125,6 +127,7 @@ def migrate_participation_acceptance_ids(decisions: dict[str, Any]) -> list[str]
 
 
 __all__ = [
+    "BANNED_DATES_KEY",
     "CANONICAL_STATE_REVISION_KEY",
     "CHANGE_PROTECTIONS_KEY",
     "PARTICIPATION_ACCEPTANCES_KEY",

@@ -266,6 +266,13 @@ def load_context(
     decisions = load_decisions(season, root=root)
     problem = _problem_from_schedule(schedule)
     problem["canonical_baseline"] = build_canonical_baseline(schedule, decisions)
+    # Active canonical operator banned dates are projected into the existing
+    # ``manual_adjustments.banned_dates`` read path so findings, repair options,
+    # bounded search and candidate-weekend enumeration all respect them from one
+    # authoritative source instead of a second date-policy implementation.
+    from .canonical_banned_dates import project_banned_dates_into_problem
+
+    problem = project_banned_dates_into_problem(problem, decisions)
     # A persisted operator acceptance is injected as verifier search evidence so
     # the same independent verifier that classifies every other deviation also
     # honours an explicit operator_accepted decision -- and stops honouring it

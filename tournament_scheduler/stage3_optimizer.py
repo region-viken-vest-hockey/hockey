@@ -50,7 +50,7 @@ from itertools import combinations
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from .game_generation import generate_tournament_games
-from .date_policy import problem_date_exclusions as _problem_date_exclusions
+from .date_policy import problem_forbidden_dates as _problem_forbidden_dates
 from .canonical_baseline import (
     DEFAULT_CHANGE_COST_SCALE,
     DEFAULT_CHANGE_WEIGHTS,
@@ -835,9 +835,10 @@ def _date_swap_is_valid(
     new_a_date, new_b_date = b.date, a.date
 
     # Canonical date-admissibility: a swap moves each tournament onto the
-    # other's date, so neither may land on an excluded holiday date.
-    if _problem_date_exclusions(problem):
-        excluded = _problem_date_exclusions(problem)
+    # other's date, so neither may land on an excluded holiday or operator
+    # banned date.
+    if _problem_forbidden_dates(problem):
+        excluded = _problem_forbidden_dates(problem)
         if new_a_date in excluded or new_b_date in excluded:
             return False
 
@@ -949,10 +950,10 @@ def _within_half_date_move_candidates(
     new_date = half_start + timedelta(days=rng.randrange(span + 1))
     if new_date == slot.date:
         return None
-    if new_date in _problem_date_exclusions(problem):
-        # An excluded holiday date is never a legal relocation target; skip it
-        # here so the local search does not waste proposals on a date the
-        # independent verifier would reject anyway.
+    if new_date in _problem_forbidden_dates(problem):
+        # An excluded holiday or operator banned date is never a legal
+        # relocation target; skip it here so the local search does not waste
+        # proposals on a date the independent verifier would reject anyway.
         return None
     return index, new_date
 
@@ -967,7 +968,7 @@ def _within_half_date_move_is_valid(
 ) -> bool:
     slot = slots[index]
 
-    if new_date in _problem_date_exclusions(problem):
+    if new_date in _problem_forbidden_dates(problem):
         return False
 
     if external_calendar_conflict(

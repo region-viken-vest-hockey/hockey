@@ -42,7 +42,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, 
 
 from . import planning_half
 from .candidate_weekends import season_weekend_dates
-from .date_policy import problem_date_exclusions as _problem_date_exclusions
+from .date_policy import problem_forbidden_dates as _problem_forbidden_dates
 from .host_representation import clubs_represent_same_club, constituent_clubs
 from .host_team_missing_repair import (
     GENERATED_START_TIMES,
@@ -754,7 +754,7 @@ def _candidate_dates(problem: Mapping[str, Any], on_date: str) -> List[str]:
     split = _parse_date(problem.get("christmas_split_date"))
     allow_cross_half = bool(problem.get("allow_cross_half_moves"))
     anchor_half = planning_half.tournament_half(anchor, split) if anchor else None
-    excluded_dates = set(_problem_date_exclusions(problem))
+    excluded_dates = set(_problem_forbidden_dates(problem))
     dates = [
         candidate
         for candidate in season_weekend_dates(problem)

@@ -69,6 +69,14 @@ def replan_around_baseline(
         waivers=waivers,
         canonical_baseline=baseline,
     )
+    # Active canonical operator banned dates are canonical decisions, not
+    # transient config: project them into the existing banned_dates read path so
+    # the optimizer and its verifier respect them.
+    from tournament_scheduler.canonical_banned_dates import (
+        project_banned_dates_into_problem,
+    )
+
+    problem = project_banned_dates_into_problem(problem, decisions)
     # A persisted operator acceptance is a durable canonical decision, not a
     # property of the transient config: the replan verifier must honour it too,
     # so escalation cannot silently "fix" an accepted deviation.

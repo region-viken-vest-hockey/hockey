@@ -57,10 +57,12 @@ __all__ = [
     "SEASON_STATE_SCHEMA_VERSION",
     "STALE_APPROVAL_STATUS",
     "SeasonStateError",
+    "add_banned_date",
     "add_request_constraint",
     "apply_candidate",
     "approval_report",
     "approve_tournament",
+    "banned_date_report",
     "batch_maintenance",
     "canonical_state_revision",
     "change_protection_report",
@@ -81,6 +83,7 @@ __all__ = [
     "planning_checkpoint_from_schedule",
     "promote_from_stage3",
     "record_participation_acceptance",
+    "release_banned_dates",
     "release_change_protections",
     "release_guest_slot",
     "release_request_constraints",
@@ -349,6 +352,62 @@ def release_request_constraints(
         request_id=request_id,
         actor=actor,
         note=note,
+    )
+
+
+def add_banned_date(
+    *,
+    season: str,
+    date: str,
+    request_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Persist one global operator date ban as a policy/decision-only write."""
+
+    return _service(root).add_banned_date(
+        season=season,
+        date=date,
+        request_id=request_id,
+        actor=actor,
+        note=note,
+    )
+
+
+def release_banned_dates(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    date_ids: list[str] | None = None,
+    dates: list[str] | None = None,
+    request_id: str | None = None,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Explicitly remove active operator banned dates with audit history."""
+
+    return _service(root).release_banned_dates(
+        season=season,
+        date_ids=date_ids,
+        dates=dates,
+        request_id=request_id,
+        actor=actor,
+        note=note,
+    )
+
+
+def banned_date_report(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    include_released: bool = False,
+) -> dict[str, Any]:
+    """Return active operator banned dates with affected tournament ids."""
+
+    return _service(root).banned_date_report(
+        season,
+        include_released=include_released,
     )
 
 

@@ -1263,6 +1263,60 @@ def build_parser() -> argparse.ArgumentParser:
     season_release_constraint.add_argument("--note", default="", help="Why this constraint is being superseded")
     season_release_constraint.add_argument("--json", action="store_true", help="Print release result as JSON")
 
+    season_ban_date = season_sub.add_parser(
+        "ban-date",
+        help="Record a global operator date ban (policy/decision write; schedule repair is separate)",
+    )
+    season_ban_date.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_ban_date.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_ban_date.add_argument("--date", required=True, help="Date to ban globally (YYYY-MM-DD)")
+    season_ban_date.add_argument(
+        "--request-id",
+        required=True,
+        help="Stable operator/request id recorded as provenance",
+    )
+    season_ban_date.add_argument("--actor", default=None, help="Operator identity")
+    season_ban_date.add_argument("--note", default="", help="Reason/source note for decisions history")
+    season_ban_date.add_argument("--json", action="store_true", help="Print the banned date report as JSON")
+
+    season_unban_date = season_sub.add_parser(
+        "unban-date",
+        help="Remove one or more active operator banned dates with audit history",
+    )
+    season_unban_date.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_unban_date.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_unban_date.add_argument(
+        "--date",
+        dest="dates",
+        action="append",
+        default=None,
+        help="Banned date to remove (repeatable)",
+    )
+    season_unban_date.add_argument(
+        "--ban-id",
+        dest="date_ids",
+        action="append",
+        default=None,
+        help="Banned-date record id to remove (repeatable)",
+    )
+    season_unban_date.add_argument(
+        "--request-id",
+        default=None,
+        help="Remove all active bans created by this earlier request id",
+    )
+    season_unban_date.add_argument("--actor", default=None, help="Operator identity")
+    season_unban_date.add_argument("--note", default="", help="Why the ban is being removed")
+    season_unban_date.add_argument("--json", action="store_true", help="Print release result as JSON")
+
+    season_banned_dates = season_sub.add_parser(
+        "banned-dates",
+        help="List active operator banned dates and the tournaments that currently violate them",
+    )
+    season_banned_dates.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_banned_dates.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_banned_dates.add_argument("--all", action="store_true", help="Include released bans")
+    season_banned_dates.add_argument("--json", action="store_true", help="Print the banned date report as JSON")
+
     season_guest_report = season_sub.add_parser(
         "guest-report",
         help="Show reserved guest places and their open/filled/released lifecycle status",

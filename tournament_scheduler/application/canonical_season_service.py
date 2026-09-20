@@ -31,6 +31,7 @@ from typing import Any, Mapping
 
 from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
 from tournament_scheduler.canonical_state import (
+    BANNED_DATES_KEY,
     CANONICAL_STATE_REVISION_KEY,
     CHANGE_PROTECTIONS_KEY,
     PARTICIPATION_ACCEPTANCES_KEY,
@@ -49,6 +50,16 @@ from tournament_scheduler.change_protections import (
     build_move_protections,
     build_swap_protections,
     protection_violations,
+)
+from tournament_scheduler.canonical_banned_dates import (
+    ACTIVE as BANNED_DATE_ACTIVE,
+    RELEASED as BANNED_DATE_RELEASED,
+    BannedDateError,
+    active_banned_date_records,
+    append_banned_dates,
+    banned_date_report as build_banned_date_report,
+    project_banned_dates_into_problem,
+    validate_and_normalize as normalize_banned_date,
 )
 from tournament_scheduler.request_constraints import (
     ACTIVE as REQUEST_CONSTRAINT_ACTIVE,
@@ -308,21 +319,29 @@ def _attributable_blockers(
 def _resolve_plan_problem(
     schedule: Mapping[str, Any],
     problem: dict[str, Any] | None,
+    decisions: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Return the verification problem for a canonical plan mutation.
 
     Callers may pass it explicitly; otherwise the promoted verification
-    context is the durable owner of the normalized planning problem.
+    context is the durable owner of the normalized planning problem. Active
+    canonical operator banned dates are always projected into the problem's
+    existing ``manual_adjustments.banned_dates`` read path, so every
+    schedule-changing boundary and every repair/search consumer sees the same
+    authoritative ban set.
     """
 
     if isinstance(problem, Mapping):
-        return dict(problem)
-    context = schedule.get("verification_context")
-    if isinstance(context, Mapping):
-        candidate_problem = context.get("problem")
-        if isinstance(candidate_problem, Mapping):
-            return dict(candidate_problem)
-    return None
+        resolved: dict[str, Any] | None = dict(problem)
+    else:
+        context = schedule.get("verification_context")
+        candidate_problem = context.get("problem") if isinstance(context, Mapping) else None
+        resolved = dict(candidate_problem) if isinstance(candidate_problem, Mapping) else None
+    if resolved is None:
+        return None
+    if decisions is not None:
+        return project_banned_dates_into_problem(resolved, decisions)
+    return resolved
 
 
 def _configured_capacity(problem: Mapping[str, Any] | None, age_group: str) -> int | None:
@@ -1005,6 +1024,202 @@ class CanonicalSeasonService:
             "active_count": len(active_request_constraints(committed.decisions)),
         }
 
+    # -- banned dates ------------------------------------------------------
+
+    def banned_date_report(
+        self,
+        season: str,
+        *,
+        include_released: bool = False,
+    ) -> dict[str, Any]:
+        """Read-only lifecycle + derived satisfaction of operator banned dates."""
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        plan = schedule.get("plan") or {}
+        entries = build_banned_date_report(plan, decisions, include_released=include_released)
+        active = [entry for entry in entries if entry.get("status") == BANNED_DATE_ACTIVE]
+        return {
+            "season": season,
+            "revision": schedule.get("revision"),
+            "canonical_state_revision": canonical_state_revision(schedule, decisions),
+            "active_count": len(active),
+            "unsatisfied_count": sum(1 for entry in active if not entry.get("satisfied")),
+            "affected_tournament_ids": sorted(
+                {
+                    tournament_id
+                    for entry in active
+                    for tournament_id in entry.get("affected_tournament_ids") or []
+                }
+            ),
+            "banned_dates": entries,
+        }
+
+    def add_banned_date(
+        self,
+        *,
+        season: str,
+        date: str,
+        request_id: str,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        """Persist one global operator date ban (policy/decision-only write).
+
+        Recording a real-world date restriction is allowed even when the
+        current schedule still has tournaments on that date, exactly like
+        ``season add-constraint``: the ban is persisted, its current structured
+        violation(s) are reported, and the canonical-state revision advances so
+        every stale maintenance/search/batch option is invalidated. The
+        schedule itself is not touched -- repair is a separate operation.
+        """
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        plan = schedule.get("plan") or {}
+        try:
+            normalized = normalize_banned_date(
+                {"date": date, "request_id": request_id, "note": note}
+            )
+        except BannedDateError as exc:
+            raise SeasonStateError(str(exc)) from exc
+
+        existing = active_banned_date_records(decisions)
+        stored = next(
+            (
+                record
+                for record in existing
+                if str(record.get("date") or "") == normalized["date"]
+            ),
+            None,
+        )
+        if stored is not None:
+            entry = next(
+                entry
+                for entry in build_banned_date_report(plan, decisions)
+                if str(entry.get("id") or "") == str(stored.get("id") or "")
+            )
+            return {
+                "season": season,
+                "created": False,
+                "banned_date": entry,
+                "canonical_state_revision": canonical_state_revision(schedule, decisions),
+            }
+
+        now = _now_iso()
+        resolved_actor = _operator_identity(actor)
+        record = {
+            **normalized,
+            "status": BANNED_DATE_ACTIVE,
+            "created_at": now,
+            "created_by": resolved_actor,
+            "source_revision": canonical_state_revision(schedule, decisions),
+        }
+        updated = dict(decisions)
+        append_banned_dates(updated, [record])
+        _append_decision_history(
+            updated,
+            event="ban_date",
+            tournament_id="",
+            actor=resolved_actor,
+            now=now,
+            note=note,
+            details={
+                "banned_date_id": record["id"],
+                "date": record["date"],
+                "request_id": record["request_id"],
+            },
+        )
+        updated["updated_at"] = now
+        committed = self._commit(snapshot.with_decisions(updated))
+        entry = next(
+            entry
+            for entry in build_banned_date_report(
+                committed.schedule.get("plan") or {}, committed.decisions
+            )
+            if str(entry.get("id") or "") == record["id"]
+        )
+        return {
+            "season": season,
+            "created": True,
+            "banned_date": entry,
+            "canonical_state_revision": canonical_state_revision(
+                committed.schedule, committed.decisions
+            ),
+        }
+
+    def release_banned_dates(
+        self,
+        *,
+        season: str,
+        date_ids: list[str] | None = None,
+        dates: list[str] | None = None,
+        request_id: str | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        """Explicitly remove one or more active banned dates with audit history."""
+
+        wanted_ids = {str(value) for value in (date_ids or []) if str(value)}
+        wanted_dates = {str(value) for value in (dates or []) if str(value)}
+        wanted_request = str(request_id or "")
+        if not wanted_ids and not wanted_dates and not wanted_request:
+            raise SeasonStateError(
+                "Refusing ban release: provide --date, --ban-id and/or --request-id"
+            )
+
+        snapshot = self.load(season)
+        decisions = copy.deepcopy(snapshot.decisions)
+        records = decisions.get(BANNED_DATES_KEY, []) or []
+        now = _now_iso()
+        resolved_actor = _operator_identity(actor)
+        released: list[str] = []
+        released_dates: list[str] = []
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            if str(record.get("status") or BANNED_DATE_ACTIVE) != BANNED_DATE_ACTIVE:
+                continue
+            matches_id = str(record.get("id") or "") in wanted_ids
+            matches_date = str(record.get("date") or "") in wanted_dates
+            matches_request = bool(wanted_request) and str(record.get("request_id") or "") == wanted_request
+            if not (matches_id or matches_date or matches_request):
+                continue
+            record["status"] = BANNED_DATE_RELEASED
+            record["released_at"] = now
+            record["released_by"] = resolved_actor
+            record["release_reason"] = note or ""
+            released.append(str(record.get("id") or ""))
+            released_dates.append(str(record.get("date") or ""))
+
+        if not released:
+            raise SeasonStateError("No active banned dates matched the release request")
+
+        decisions["updated_at"] = now
+        _append_decision_history(
+            decisions,
+            event="unban_date",
+            tournament_id="",
+            actor=resolved_actor,
+            now=now,
+            note=note,
+            details={
+                "released_banned_date_ids": released,
+                "released_dates": released_dates,
+                "request_id": wanted_request,
+            },
+        )
+        committed = self._commit(snapshot.with_decisions(decisions))
+        return {
+            "season": season,
+            "canonical_state_revision": canonical_state_revision(
+                committed.schedule, committed.decisions
+            ),
+            "released_banned_date_ids": released,
+            "released_dates": sorted(set(released_dates)),
+            "active_count": len(active_banned_date_records(committed.decisions)),
+        }
+
     # -- promotion ---------------------------------------------------------
 
     def promote(
@@ -1146,6 +1361,7 @@ class CanonicalSeasonService:
         schedule, decisions = snapshot.schedule, snapshot.decisions
         before_fingerprint = str(schedule.get("revision") or schedule.get("fingerprint") or "")
         before_canonical_revision = canonical_state_revision(schedule, decisions)
+        resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
         plan = dict(schedule["plan"])
         tournaments = [dict(t) for t in plan.get("tournaments", [])]
         plan["tournaments"] = tournaments
@@ -1169,7 +1385,7 @@ class CanonicalSeasonService:
             arena=arena,
             host_club=host_club,
             start_time=start_time,
-            problem=problem,
+            problem=resolved_problem,
             allow_cross_half=allow_cross_half,
         )
         if not move_result["changed"]:
@@ -1178,7 +1394,7 @@ class CanonicalSeasonService:
         original_placement = move_result["original_placement"]
         original_tournament_fingerprint = move_result["original_fingerprint"]
 
-        result = verify_candidate(plan, problem) if problem else verify_candidate(plan)
+        result = verify_candidate(plan, resolved_problem) if resolved_problem else verify_candidate(plan)
         if not result.get("ok", True):
             messages = "; ".join(
                 str(v.get("message") or v.get("code")) for v in result.get("violations", [])
@@ -1187,8 +1403,8 @@ class CanonicalSeasonService:
                 f"Refusing canonical mutation: candidate fails hard verification: {messages}"
             )
         before_verification = (
-            verify_candidate(dict(schedule.get("plan") or {}), problem)
-            if problem
+            verify_candidate(dict(schedule.get("plan") or {}), resolved_problem)
+            if resolved_problem
             else verify_candidate(dict(schedule.get("plan") or {}))
         )
         operational_acceptability = check_operational_acceptability(
@@ -1199,7 +1415,7 @@ class CanonicalSeasonService:
             allow_manual_placement=allow_manual_placement,
             allow_host_confirmation=allow_host_confirmation,
         )
-        reconcile_plan_derived_state(plan, result, problem=problem)
+        reconcile_plan_derived_state(plan, result, problem=resolved_problem)
         existing_protection_violations = protection_violations(plan, decisions)
         constraint_violations = request_constraint_violations(plan, decisions)
 
@@ -1334,7 +1550,7 @@ class CanonicalSeasonService:
 
         snapshot = self.load(season)
         schedule, decisions = snapshot.schedule, snapshot.decisions
-        resolved_problem = _resolve_plan_problem(schedule, problem)
+        resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
         plan = copy.deepcopy(schedule["plan"])
 
         by_id = {
@@ -1624,7 +1840,7 @@ class CanonicalSeasonService:
 
         snapshot = self.load(season)
         schedule, decisions = snapshot.schedule, snapshot.decisions
-        resolved_problem = _resolve_plan_problem(schedule, problem)
+        resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
         before_plan = schedule.get("plan") or {}
         before_fingerprint = str(schedule.get("revision") or schedule.get("fingerprint") or "")
         before_canonical_revision = canonical_state_revision(schedule, decisions)
@@ -2336,7 +2552,7 @@ class CanonicalSeasonService:
 
         snapshot = self.load(season)
         schedule, decisions = snapshot.schedule, snapshot.decisions
-        resolved_problem = _resolve_plan_problem(schedule, problem)
+        resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
         allowed = {str(group) for group in (age_groups or DEFAULT_GUEST_AGE_GROUPS)}
         records = decisions.get("decisions", {}) or {}
         from tournament_scheduler import planning_half
@@ -2481,7 +2697,7 @@ class CanonicalSeasonService:
             raise SeasonStateError("Refusing guest reservation: count must be at least 1")
         snapshot = self.load(season)
         schedule, decisions = snapshot.schedule, snapshot.decisions
-        resolved_problem = _resolve_plan_problem(schedule, problem)
+        resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
         plan = dict(schedule["plan"])
         tournaments = [dict(t) for t in plan.get("tournaments", [])]
         target = next((t for t in tournaments if str(t.get("id")) == tournament_id), None)
@@ -2637,7 +2853,7 @@ class CanonicalSeasonService:
             raise SeasonStateError("Refusing guest fill: an external team label is required")
         snapshot = self.load(season)
         schedule, decisions = snapshot.schedule, snapshot.decisions
-        resolved_problem = _resolve_plan_problem(schedule, problem)
+        resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
         plan = dict(schedule["plan"])
         tournaments = [dict(t) for t in plan.get("tournaments", [])]
         target = next((t for t in tournaments if str(t.get("id")) == tournament_id), None)
@@ -2750,7 +2966,7 @@ class CanonicalSeasonService:
 
         snapshot = self.load(season)
         schedule, decisions = snapshot.schedule, snapshot.decisions
-        resolved_problem = _resolve_plan_problem(schedule, problem)
+        resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
         plan = dict(schedule["plan"])
         tournaments = [dict(t) for t in plan.get("tournaments", [])]
         target = next((t for t in tournaments if str(t.get("id")) == tournament_id), None)

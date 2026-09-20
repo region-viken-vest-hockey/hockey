@@ -47,6 +47,7 @@ Give the incoming request a stable `request_id`. Prefer an existing external/mes
 
 Classify the requested outcome before choosing a command:
 
+- **global date unusable for every tournament** (ice hall closed, a holiday/weekend nobody can host or play) -> record a canonical **banned date** (`season ban-date`), not a per-team request constraint;
 - **semantic constraint, not an exact placement** (a team unavailable on a date/range, a minimum gap between a team's tournaments, an opponent to avoid within a date range) -> record a typed request constraint first (see **Record semantic request constraints** below), then search for any legal result satisfying all active constraints;
 - **specific date/arena/host/time change** -> use the targeted `season move --request-id <id>` flow below;
 - **specific participant/roster exchange** -> evaluate `season swap-participants --dry-run --request-id <id>`; an existing finding is not required;
@@ -77,6 +78,48 @@ Then apply the newer change with `--request-id <new-request-id>`. Never release 
 After any accepted mutation, re-run `season protections --json` and `season constraints --json`, and report which prior requests remain protected and which new protections/constraints were added.
 
 ## Record semantic request constraints
+
+### Date scope first: global ban vs. team constraint
+
+Choose the narrowest canonical representation that matches the real-world fact:
+
+```text
+Global date unavailable for all tournaments
+    -> canonical banned date (`season ban-date`)
+
+Specific club/team cannot participate
+    -> typed request constraint (`season add-constraint`)
+```
+
+A **banned date** is a global planning restriction: no tournament may be scheduled on it, regardless of host or participants. It reuses the existing `banned_dates` rule the planner, verifier, candidate-weekend enumeration, repair/search, optimizer and the `season batch` boundary all read -- there is no separate date-policy engine. Record it through:
+
+```bash
+scripts/rvv-miniputt season ban-date \
+  --season <season> \
+  --date 2027-02-27 \
+  --request-id operator:vinterferie-2027 \
+  --note "winter break - no ice"
+```
+
+`season ban-date` is a **policy/decision-only write**. It is deliberately allowed even when tournaments are already scheduled on that date, exactly like `season add-constraint`: the ban is persisted, the command reports the currently affected tournament ids, and the canonical-state revision advances so every stale maintenance/search/batch option is invalidated. Policy mutation and schedule repair stay separate operations.
+
+```text
+New banned date already contains tournaments
+    -> record the ban first (`season ban-date`)
+    -> derive the affected tournament ids (`season banned-dates --json`)
+    -> repair them with one scoped atomic batch (`season batch`)
+```
+
+Inspect and remove bans with:
+
+```bash
+scripts/rvv-miniputt season banned-dates --season <season> --json
+scripts/rvv-miniputt season unban-date --season <season> --date 2027-02-27 --note "winter break over"
+```
+
+`season banned-dates --json` returns each active date, its source/request id, whether it is currently satisfied, and the exact `affected_tournament_ids`, so the repair scope comes from one authoritative read path. Do not duplicate the ban as a per-team request constraint, do not store it only in plan/decisions free text, and do not hand-edit JSON. A banned date blocks `season move`, `season batch` moves, generated repair/search options, candidate-weekend recommendations, optimizer/replan moves and final canonical verification until it is repaired or explicitly unbanned.
+
+### Record semantic request constraints
 
 Club feedback frequently states intent rather than an exact replacement schedule. Do not collapse it into an exact placement lock. Translate it into the narrowest supported canonical typed constraint and record it **before** searching or mutating:
 

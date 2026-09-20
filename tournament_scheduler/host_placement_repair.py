@@ -46,6 +46,7 @@ from . import planning_half
 from .application.decisions import DecisionContext
 from .candidate_weekends import enumerate_candidate_weekends, season_weekend_dates
 from .date_policy import problem_date_exclusions as _problem_date_exclusions
+from .date_policy import problem_forbidden_dates as _problem_forbidden_dates
 from .host_representation import constituent_clubs
 from .host_team_missing_repair import (
     RepairOption,
@@ -564,7 +565,7 @@ def _candidate_weekend_dates(
     split = _parse_date(problem.get("christmas_split_date"))
     allow_cross_half = bool(problem.get("allow_cross_half_moves"))
     current_half = planning_half.tournament_half(on_date, split) if on_date else None
-    excluded_dates = set(_problem_date_exclusions(problem))
+    excluded_dates = set(_problem_forbidden_dates(problem))
     dates = [
         candidate_date
         for candidate_date in season_weekend_dates(problem)
@@ -1071,7 +1072,7 @@ def _candidate_dates(
     split = _parse_date(problem.get("christmas_split_date"))
     allow_cross_half = bool(problem.get("allow_cross_half_moves"))
     current_half = planning_half.tournament_half(current_date, split) if current_date else None
-    excluded_dates = set(_problem_date_exclusions(problem))
+    excluded_dates = set(_problem_forbidden_dates(problem))
     seen = set()
     dates: List[date] = []
     for tournament in candidate.get("tournaments", []):

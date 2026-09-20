@@ -1273,9 +1273,11 @@ def _cmd_season(args: argparse.Namespace) -> int:
     from ..pipeline.state import PipelineState
     from ..season_state import (
         SeasonStateError,
+        add_banned_date,
         add_request_constraint,
         approval_report,
         approve_tournament,
+        banned_date_report,
         batch_maintenance,
         change_protection_report,
         decisions_path,
@@ -1292,6 +1294,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         promote_from_stage3,
         release_change_protections,
         release_guest_slot,
+        release_banned_dates,
         release_request_constraints,
         request_constraint_report,
         reserve_guest_slot,
@@ -1814,6 +1817,85 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"[green]✓[/green] Released {len(result['released_constraint_ids'])} "
                     f"request constraint(s); {result['active_count']} remain active"
                 )
+            return 0
+
+        if args.season_command == "ban-date":
+            result = add_banned_date(
+                season=args.season,
+                date=args.date,
+                request_id=args.request_id,
+                root=args.root,
+                actor=args.actor,
+                note=args.note,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                banned = result["banned_date"]
+                verb = "Recorded" if result["created"] else "Already banned"
+                _console.print(
+                    f"[green]✓[/green] {verb} {banned.get('date')} for {args.season} "
+                    f"(request {banned.get('request_id')})"
+                )
+                affected = banned.get("affected_tournament_ids") or []
+                if affected:
+                    _console.print(
+                        "  [yellow]⚠[/yellow] current schedule uses this date: "
+                        + ", ".join(affected)
+                        + " — repair with a scoped atomic batch"
+                    )
+                else:
+                    _console.print("  current schedule does not use this date")
+                _console.print(
+                    f"  canonical revision: {result['canonical_state_revision']}"
+                )
+            return 0
+
+        if args.season_command == "unban-date":
+            result = release_banned_dates(
+                season=args.season,
+                root=args.root,
+                date_ids=list(args.date_ids or []),
+                dates=list(args.dates or []),
+                request_id=args.request_id,
+                actor=args.actor,
+                note=args.note,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] Removed {len(result['released_banned_date_ids'])} "
+                    f"banned date(s); {result['active_count']} remain active"
+                )
+            return 0
+
+        if args.season_command == "banned-dates":
+            report = banned_date_report(
+                args.season, root=args.root, include_released=bool(args.all)
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Banned dates {args.season}[/bold] "
+                    f"({report['active_count']} active, "
+                    f"{report['unsatisfied_count']} currently used)"
+                )
+                for entry in report["banned_dates"]:
+                    status = entry.get("status") or "active"
+                    satisfied = entry.get("satisfied")
+                    marker = (
+                        "[green]✓[/green]"
+                        if satisfied
+                        else ("[yellow]⚠[/yellow]" if satisfied is False else "[dim]·[/dim]")
+                    )
+                    _console.print(
+                        f"  {marker} {entry.get('date')} [{status}] "
+                        f"request={entry.get('request_id') or '-'}"
+                    )
+                    for tournament_id in entry.get("affected_tournament_ids") or []:
+                        _console.print(f"      [yellow]⚠[/yellow] {tournament_id} is scheduled here")
             return 0
 
         if args.season_command == "guest-report":
