@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "artifact_type": "publication_approval",
+  "audit_id": "audit-20260920-ringerike-u12-home-repair",
+  "audit_verdict": "REVIEW_REQUIRED",
+  "run_id": "20260918T135604Z-8d38f146",
+  "export_fingerprint": "7dbd34cdb9af6cb3b785aa6caf87512ea41a37e5ce4c75291d440c582b9cbdf4",
+  "selected_candidate_fingerprint": "7dbd34cdb9af6cb3b785aa6caf87512ea41a37e5ce4c75291d440c582b9cbdf4",
+  "approved": true,
+  "question_id": "52bc8ae076ef95f5",
+  "answer": "godkjenn revisjon",
+  "answered_at": null
+}
