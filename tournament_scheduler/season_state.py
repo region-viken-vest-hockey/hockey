@@ -61,6 +61,7 @@ __all__ = [
     "apply_candidate",
     "approval_report",
     "approve_tournament",
+    "batch_maintenance",
     "canonical_state_revision",
     "change_protection_report",
     "decisions_path",
@@ -222,6 +223,36 @@ def swap_participants(
         note=note,
         dry_run=dry_run,
         request_id=request_id,
+    )
+
+
+def batch_maintenance(
+    *,
+    season: str,
+    operations: list[dict[str, Any]],
+    scope: list[str] | None = None,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+    request_id: str | None = None,
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
+) -> dict[str, Any]:
+    """Atomically compose several scoped canonical mutations in one commit."""
+
+    return _service(root).batch_maintenance(
+        season=season,
+        operations=operations,
+        scope=scope,
+        problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+        request_id=request_id,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
     )
 
 

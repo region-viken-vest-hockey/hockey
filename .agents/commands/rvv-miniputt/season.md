@@ -114,7 +114,34 @@ Persist a typed constraint only from a *concrete durable semantic requirement*: 
 scripts/rvv-miniputt season constraints --season <season> --json
 ```
 
-Each active constraint reports `satisfied` plus any `violations`. Then reach a legal state through the ordinary capabilities (`season move`, `season swap-participants`, `repair-options`/`search`/`apply-repair`, `season replan`/`apply`). The repository enforces the full active constraint set at the canonical apply boundary; previews/`repair-options` also report constraint violations instead of hiding them. Search for a result satisfying **all** active constraints -- never auto-release a constraint because it blocks an easy candidate. Schedule-changing commits are additionally checked for operational acceptability (see **Repair a localized finding**): a candidate must not newly place a tournament on `fixed_busy`/untrusted/external-conflict ice or introduce manual/host-confirmation work merely because it satisfies the typed constraints.
+Each active constraint reports `satisfied` plus any `violations`. A single isolated violation is repaired through the ordinary capabilities (`season move`, `season swap-participants`, `repair-options`/`search`/`apply-repair`, `season replan`/`apply`). The repository enforces the full active constraint set at the canonical apply boundary; previews/`repair-options` also report constraint violations instead of hiding them. Search for a result satisfying **all** active constraints -- never auto-release a constraint because it blocks an easy candidate. Schedule-changing commits are additionally checked for operational acceptability (see **Repair a localized finding**): a candidate must not newly place a tournament on `fixed_busy`/untrusted/external-conflict ice or introduce manual/host-confirmation work merely because it satisfies the typed constraints.
+
+### Repair several simultaneous violations atomically
+
+When one operator request records **several independent constraints** that invalidate several tournaments at once, no individual schedule-changing commit can make progress: every `move`/`swap`/`apply` still has to satisfy the whole active set, so the first repair is refused because the other pre-existing violations remain. Do **not** release valid constraints just to allow an intermediate mutation, do **not** hand-edit canonical JSON, and do **not** use approvals or a broad `season replan` to fence the work.
+
+Use the atomic scoped batch boundary instead. It applies several operations to one in-memory copy of the current canonical plan, runs the complete authoritative gates once on the final candidate, and commits exactly once. Nothing is written unless the entire batch is valid:
+
+```bash
+cat > /tmp/batch.json <<'JSON'
+[
+  {"op": "move", "tournament_id": "rvv-0147", "date": "2027-02-27"},
+  {"op": "swap_participants",
+   "tournament_a": "rvv-0158", "team_a": "K9",
+   "tournament_b": "rvv-0162", "team_b": "J9"}
+]
+JSON
+scripts/rvv-miniputt season batch \
+  --season <season> \
+  --operations /tmp/batch.json \
+  --scope rvv-0147 --scope rvv-0158 --scope rvv-0162 \
+  --request-id <request-id> \
+  --dry-run --json
+```
+
+`--scope` declares the affected tournament ids; every operation must reference only in-scope ids, and any tournament that changes outside the scope refuses the whole batch. Supported operations are `move` (any placement fields, `allow_cross_half` as needed), `swap_participants` (same-age roster exchange using the ordinary safe roster semantics) and `cancel` (mark a tournament cancelled). The dry-run report returns the declared scope, the ids actually changed, any changed ids outside scope (must be empty), the requested operations, the remaining request-constraint violations, the hard-verification and operational-acceptability verdicts, protection/approval/lock conflicts, guest-reservation integrity, the hosting-responsibility verdict, before/after canonical fingerprints/revisions, and per-team consequences where participants change. Repeat the same command without `--dry-run` to commit once. A batch that fixes only some of the pre-existing violations is refused without writing anything.
+
+Use this path only when several independent active constraints genuinely require a combined repair. One isolated violation still goes through the ordinary `season move` / `season swap-participants` commands, whose full-season constraint gate is unchanged.
 
 Release only when a newer request explicitly supersedes/revokes it:
 

@@ -1125,6 +1125,46 @@ def build_parser() -> argparse.ArgumentParser:
     season_swap.add_argument("--json", action="store_true", help="Print swap result as JSON")
 
 
+    season_batch = season_sub.add_parser(
+        "batch",
+        help=(
+            "Atomically compose several scoped canonical mutations in one candidate and commit once; "
+            "use when several recorded request constraints can only be fixed together"
+        ),
+    )
+    season_batch.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_batch.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_batch.add_argument(
+        "--operations",
+        required=True,
+        help=(
+            "Path to a JSON file with an array of operations, e.g. "
+            "[{\"op\": \"move\", \"tournament_id\": \"rvv-0147\", \"date\": \"2027-02-27\"}, "
+            "{\"op\": \"swap_participants\", ...}, {\"op\": \"cancel\", ...}]"
+        ),
+    )
+    season_batch.add_argument(
+        "--scope",
+        action="append",
+        default=None,
+        help="Affected tournament id (repeatable, comma-separated accepted); all other tournaments are frozen",
+    )
+    season_batch.add_argument("--actor", default=None, help="Operator identity")
+    season_batch.add_argument("--note", default="", help="Batch note/reason for decisions history")
+    season_batch.add_argument(
+        "--request-id",
+        required=True,
+        help="Stable request id recorded for the whole batch",
+    )
+    season_batch.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and report every gate without writing canonical state",
+    )
+    _add_operational_opt_in_flags(season_batch)
+    season_batch.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
+    season_batch.add_argument("--json", action="store_true", help="Print the batch report as JSON")
+
     season_protections = season_sub.add_parser(
         "protections",
         help="List team-specific accepted-change guards that later maintenance must preserve",

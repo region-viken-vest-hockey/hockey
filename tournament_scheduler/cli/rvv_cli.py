@@ -1276,6 +1276,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         add_request_constraint,
         approval_report,
         approve_tournament,
+        batch_maintenance,
         change_protection_report,
         decisions_path,
         fill_guest_slot,
@@ -1605,6 +1606,65 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(f"  revision: {revision}")
             return 0
 
+
+        if args.season_command == "batch":
+            from pathlib import Path
+
+            operations_path = Path(args.operations)
+            try:
+                operations_payload = _json.loads(operations_path.read_text(encoding="utf-8"))
+            except FileNotFoundError as exc:
+                raise SeasonStateError(
+                    f"Batch operations file not found: {operations_path}"
+                ) from exc
+            except _json.JSONDecodeError as exc:
+                raise SeasonStateError(
+                    f"Invalid JSON in batch operations file {operations_path}: {exc}"
+                ) from exc
+            if isinstance(operations_payload, dict):
+                operations = operations_payload.get("operations") or []
+                declared_scope = operations_payload.get("scope") or []
+            else:
+                operations = operations_payload
+                declared_scope = []
+            scope: list[str] = []
+            for item in list(args.scope or []) + list(declared_scope or []):
+                scope.extend(part.strip() for part in str(item).split(",") if part.strip())
+            report = batch_maintenance(
+                season=args.season,
+                operations=list(operations),
+                scope=scope,
+                root=args.root,
+                problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
+                actor=args.actor,
+                note=args.note,
+                dry_run=bool(args.dry_run),
+                request_id=args.request_id,
+                allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
+                allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                action = "Validated atomic-batch preview for" if report["dry_run"] else "Applied atomic batch to"
+                revision = report.get("revision") or report.get("candidate_schedule_revision")
+                _console.print(
+                    f"[green]✓[/green] {action} {args.season}; revision {revision}"
+                )
+                _console.print(
+                    f"  operations: {len(report['operations'])} · "
+                    f"changed: {len(report['changed_tournament_ids'])} · "
+                    f"outside scope: {len(report['changed_outside_scope'])}"
+                )
+                _console.print(
+                    f"  request-constraint violations remaining: "
+                    f"{len(report['remaining_request_constraint_violations'])}"
+                )
+                if report.get("refused"):
+                    _console.print(
+                        "  [yellow]⚠[/yellow] refused: " + "; ".join(report["refusal_reasons"])
+                    )
+            return 0
 
         if args.season_command == "protections":
             report = change_protection_report(
