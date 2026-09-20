@@ -1,6 +1,63 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "b2fe633c288c56ff834ba7fcea0c0abaa1476e8da6f6ff80215fb3b8ca477dba",
+  "banned_dates": [
+    {
+      "created_at": "2026-09-20T09:34:18.079920+00:00",
+      "created_by": "niclasl",
+      "date": "2026-10-23",
+      "id": "banned-date:179e8b6ac5dead01",
+      "note": "Regionalt sperret helg 23.-25. oktober 2026",
+      "request_id": "operator:regional-block:2026-10-23_25",
+      "source_revision": "b2fe633c288c56ff834ba7fcea0c0abaa1476e8da6f6ff80215fb3b8ca477dba",
+      "status": "active",
+      "type": "banned_date"
+    },
+    {
+      "created_at": "2026-09-20T09:34:20.292020+00:00",
+      "created_by": "niclasl",
+      "date": "2026-10-24",
+      "id": "banned-date:210c60c2d002662e",
+      "note": "Regionalt sperret helg 23.-25. oktober 2026",
+      "request_id": "operator:regional-block:2026-10-23_25",
+      "source_revision": "e2d98ded8e5683c590c9a9882d539005a16c9d45838ea5d74fd16a1d0d16a417",
+      "status": "active",
+      "type": "banned_date"
+    },
+    {
+      "created_at": "2026-09-20T09:34:22.677553+00:00",
+      "created_by": "niclasl",
+      "date": "2026-10-25",
+      "id": "banned-date:ddf03915f170dd41",
+      "note": "Regionalt sperret helg 23.-25. oktober 2026",
+      "request_id": "operator:regional-block:2026-10-23_25",
+      "source_revision": "ce05caa0987185935f0b619ad8c84b6261f2e8b7e3ec4280a83c3883c7507a3d",
+      "status": "active",
+      "type": "banned_date"
+    },
+    {
+      "created_at": "2026-09-20T09:34:24.894286+00:00",
+      "created_by": "niclasl",
+      "date": "2027-02-27",
+      "id": "banned-date:410a573ca10d2895",
+      "note": "Vinterferie 2027 - helgen mellom uke 8 og 9",
+      "request_id": "operator:vinterferie-2027:middle-weekend",
+      "source_revision": "ebff28fce1e74b51898524d08352c66f5fe6b0d128d58c27aa11d14f34ec7e2c",
+      "status": "active",
+      "type": "banned_date"
+    },
+    {
+      "created_at": "2026-09-20T09:34:27.401063+00:00",
+      "created_by": "niclasl",
+      "date": "2027-02-28",
+      "id": "banned-date:7574e6dc8df2af7f",
+      "note": "Vinterferie 2027 - helgen mellom uke 8 og 9",
+      "request_id": "operator:vinterferie-2027:middle-weekend",
+      "source_revision": "8ac89da5c47ba23de0f247566b6681390bc84a983a128eab1deaddd11b6b60f9",
+      "status": "active",
+      "type": "banned_date"
+    }
+  ],
+  "canonical_state_revision": "587d859720953e1333dad6df983ecd5a46f9b22853222d47a9a35cb4e3b179dd",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -18,6 +75,474 @@
         "label": "rvv-0156:date"
       },
       "tournament_id": "rvv-0156",
+      "value": "2027-02-21"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:61f7a20fed873592",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0020:date"
+      },
+      "tournament_id": "rvv-0020",
+      "value": "2026-11-29"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:b6e2f182deb65ad9",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0021:date"
+      },
+      "tournament_id": "rvv-0021",
+      "value": "2026-10-18"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:fe5ae4d8f8dd59d6",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0022:date"
+      },
+      "tournament_id": "rvv-0022",
+      "value": "2026-10-18"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:a6bf58905769f035",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0023:date"
+      },
+      "tournament_id": "rvv-0023",
+      "value": "2026-10-11"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:f80152a65033d4bd",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0024:date"
+      },
+      "tournament_id": "rvv-0024",
+      "value": "2026-10-31"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:c241c6639219ebc8",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0025:date"
+      },
+      "tournament_id": "rvv-0025",
+      "value": "2026-11-08"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:ef6dc8ff521eff02",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0028:date"
+      },
+      "tournament_id": "rvv-0028",
+      "value": "2026-10-18"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:c60f811828a5a526",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0028:start_time"
+      },
+      "tournament_id": "rvv-0028",
+      "value": "09:30"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:e02aaea166aeae04",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0029:date"
+      },
+      "tournament_id": "rvv-0029",
+      "value": "2026-10-11"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:1f02ad48db665760",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0032:date"
+      },
+      "tournament_id": "rvv-0032",
+      "value": "2026-11-08"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:ac57e2aac3947e02",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0142:date"
+      },
+      "tournament_id": "rvv-0142",
+      "value": "2027-03-06"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:8b464dcbd5f23d3a",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0142:start_time"
+      },
+      "tournament_id": "rvv-0142",
+      "value": "12:00"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:4e2bbbee45ba08ca",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0143:date"
+      },
+      "tournament_id": "rvv-0143",
+      "value": "2027-01-23"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:50e2d3a8257c15ee",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0143:start_time"
+      },
+      "tournament_id": "rvv-0143",
+      "value": "17:00"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:f237f8f6f55202cb",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0157:date"
+      },
+      "tournament_id": "rvv-0157",
+      "value": "2027-03-14"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:36fdefa79acf721d",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0157:start_time"
+      },
+      "tournament_id": "rvv-0157",
+      "value": "17:00"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:72e2720c6be378df",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0158:date"
+      },
+      "tournament_id": "rvv-0158",
+      "value": "2027-02-21"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:c0163c9164be60ac",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0161:date"
+      },
+      "tournament_id": "rvv-0161",
+      "value": "2027-01-24"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:c3212a9d63b74873",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0161:start_time"
+      },
+      "tournament_id": "rvv-0161",
+      "value": "17:00"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:7ce27a1ea13c68ac",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0162:date"
+      },
+      "tournament_id": "rvv-0162",
+      "value": "2027-03-14"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:2d1727a140cd576b",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0164:date"
+      },
+      "tournament_id": "rvv-0164",
+      "value": "2027-03-14"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:ac65f9f3c41b628e",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0165:date"
+      },
+      "tournament_id": "rvv-0165",
+      "value": "2027-03-06"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:9a03784aa300a213",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0165:start_time"
+      },
+      "tournament_id": "rvv-0165",
+      "value": "17:30"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:14e90082913fffc0",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0166:date"
+      },
+      "tournament_id": "rvv-0166",
+      "value": "2027-02-14"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:14b3d44a6b51b18a",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0167:date"
+      },
+      "tournament_id": "rvv-0167",
+      "value": "2027-03-07"
+    },
+    {
+      "created_at": "2026-09-20T10:20:48.830939+00:00",
+      "created_by": "niclasl",
+      "field": "date",
+      "id": "change:171525bd249117ef",
+      "kind": "placement_field",
+      "note": "",
+      "request_id": "operator:global-date-exclusions:2026-2027-repair",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0168:date"
+      },
+      "tournament_id": "rvv-0168",
       "value": "2027-02-21"
     }
   ],
@@ -81229,10 +81754,721 @@
       "schedule_fingerprint": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
       "tournament_fingerprint": "bde935786e954b5734821271830cc89ea52b620a7ee2cbcf0a532d54c43a74be",
       "tournament_id": "rvv-0156"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-20T09:34:18.079920+00:00",
+      "details": {
+        "banned_date_id": "banned-date:179e8b6ac5dead01",
+        "date": "2026-10-23",
+        "request_id": "operator:regional-block:2026-10-23_25"
+      },
+      "event": "ban_date",
+      "note": "Regionalt sperret helg 23.-25. oktober 2026",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-20T09:34:20.292020+00:00",
+      "details": {
+        "banned_date_id": "banned-date:210c60c2d002662e",
+        "date": "2026-10-24",
+        "request_id": "operator:regional-block:2026-10-23_25"
+      },
+      "event": "ban_date",
+      "note": "Regionalt sperret helg 23.-25. oktober 2026",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-20T09:34:22.677553+00:00",
+      "details": {
+        "banned_date_id": "banned-date:ddf03915f170dd41",
+        "date": "2026-10-25",
+        "request_id": "operator:regional-block:2026-10-23_25"
+      },
+      "event": "ban_date",
+      "note": "Regionalt sperret helg 23.-25. oktober 2026",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-20T09:34:24.894286+00:00",
+      "details": {
+        "banned_date_id": "banned-date:410a573ca10d2895",
+        "date": "2027-02-27",
+        "request_id": "operator:vinterferie-2027:middle-weekend"
+      },
+      "event": "ban_date",
+      "note": "Vinterferie 2027 - helgen mellom uke 8 og 9",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-20T09:34:27.401063+00:00",
+      "details": {
+        "banned_date_id": "banned-date:7574e6dc8df2af7f",
+        "date": "2027-02-28",
+        "request_id": "operator:vinterferie-2027:middle-weekend"
+      },
+      "event": "ban_date",
+      "note": "Vinterferie 2027 - helgen mellom uke 8 og 9",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-20T10:20:48.830939+00:00",
+      "details": {
+        "after_schedule_revision": "0135ae7fb5b88e68c20357eab830a942d17a23991d77286f24359f3b3fa3b7c9",
+        "before_canonical_revision": "bcb34c9957e6287cf4669b2e8c04637cae47aceb03749fc1e6ffe512bb905a75",
+        "before_schedule_revision": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
+        "cancellations": [
+          {
+            "age_group": "U11",
+            "original_date": "2026-10-25",
+            "reason": "Regionalt sperret helg 23.-25. oktober 2026",
+            "tournament_id": "rvv-0027"
+          },
+          {
+            "age_group": "U12",
+            "original_date": "2027-02-27",
+            "reason": "Vinterferie 2027 - helgen mellom uke 8 og 9",
+            "tournament_id": "rvv-0163"
+          },
+          {
+            "age_group": "U11",
+            "original_date": "2027-02-27",
+            "reason": "Vinterferie 2027 - helgen mellom uke 8 og 9",
+            "tournament_id": "rvv-0186"
+          }
+        ],
+        "changed_tournament_ids": [
+          "rvv-0020",
+          "rvv-0021",
+          "rvv-0022",
+          "rvv-0023",
+          "rvv-0024",
+          "rvv-0025",
+          "rvv-0027",
+          "rvv-0028",
+          "rvv-0029",
+          "rvv-0032",
+          "rvv-0142",
+          "rvv-0143",
+          "rvv-0157",
+          "rvv-0158",
+          "rvv-0161",
+          "rvv-0162",
+          "rvv-0163",
+          "rvv-0164",
+          "rvv-0165",
+          "rvv-0166",
+          "rvv-0167",
+          "rvv-0168",
+          "rvv-0186"
+        ],
+        "declared_scope": [
+          "rvv-0020",
+          "rvv-0021",
+          "rvv-0022",
+          "rvv-0023",
+          "rvv-0024",
+          "rvv-0025",
+          "rvv-0027",
+          "rvv-0028",
+          "rvv-0029",
+          "rvv-0032",
+          "rvv-0142",
+          "rvv-0143",
+          "rvv-0157",
+          "rvv-0158",
+          "rvv-0161",
+          "rvv-0162",
+          "rvv-0163",
+          "rvv-0164",
+          "rvv-0165",
+          "rvv-0166",
+          "rvv-0167",
+          "rvv-0168",
+          "rvv-0186"
+        ],
+        "moves": [
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Skien ishall",
+              "date": "2026-11-29",
+              "host_club": "Skien",
+              "start_time": "11:45"
+            },
+            "old_placement": {
+              "arena": "Skien ishall",
+              "date": "2026-10-25",
+              "host_club": "Skien",
+              "start_time": "11:45"
+            },
+            "tournament_id": "rvv-0020"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Holmen ishall",
+              "date": "2026-10-18",
+              "host_club": "Holmen",
+              "start_time": "11:30"
+            },
+            "old_placement": {
+              "arena": "Holmen ishall",
+              "date": "2026-10-24",
+              "host_club": "Holmen",
+              "start_time": "11:30"
+            },
+            "tournament_id": "rvv-0021"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Baerum ishall",
+              "date": "2026-10-18",
+              "host_club": "Jutul",
+              "start_time": "10:00"
+            },
+            "old_placement": {
+              "arena": "Baerum ishall",
+              "date": "2026-10-24",
+              "host_club": "Jutul",
+              "start_time": "10:00"
+            },
+            "tournament_id": "rvv-0022"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Askerhallen",
+              "date": "2026-10-11",
+              "host_club": "Frisk Asker",
+              "start_time": "13:50"
+            },
+            "old_placement": {
+              "arena": "Askerhallen",
+              "date": "2026-10-24",
+              "host_club": "Frisk Asker",
+              "start_time": "13:50"
+            },
+            "tournament_id": "rvv-0023"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Bugården ishall",
+              "date": "2026-10-31",
+              "host_club": "Sandefjord Penguins",
+              "start_time": "15:00"
+            },
+            "old_placement": {
+              "arena": "Bugården ishall",
+              "date": "2026-10-24",
+              "host_club": "Sandefjord Penguins",
+              "start_time": "15:00"
+            },
+            "tournament_id": "rvv-0024"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Ringerikshallen",
+              "date": "2026-11-08",
+              "host_club": "Ringerike",
+              "start_time": "10:00"
+            },
+            "old_placement": {
+              "arena": "Ringerikshallen",
+              "date": "2026-10-25",
+              "host_club": "Ringerike",
+              "start_time": "10:00"
+            },
+            "tournament_id": "rvv-0025"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Holmen ishall",
+              "date": "2026-10-18",
+              "host_club": "Holmen",
+              "start_time": "09:30"
+            },
+            "old_placement": {
+              "arena": "Holmen ishall",
+              "date": "2026-10-25",
+              "host_club": "Holmen",
+              "start_time": "10:00"
+            },
+            "tournament_id": "rvv-0028"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Kongsberghallen",
+              "date": "2026-10-11",
+              "host_club": "Kongsberg",
+              "start_time": "15:30"
+            },
+            "old_placement": {
+              "arena": "Kongsberghallen",
+              "date": "2026-10-24",
+              "host_club": "Kongsberg",
+              "start_time": "15:30"
+            },
+            "tournament_id": "rvv-0029"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Ringerikshallen",
+              "date": "2026-11-08",
+              "host_club": "Ringerike",
+              "start_time": "12:30"
+            },
+            "old_placement": {
+              "arena": "Ringerikshallen",
+              "date": "2026-10-25",
+              "host_club": "Ringerike",
+              "start_time": "12:30"
+            },
+            "tournament_id": "rvv-0032"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Askerhallen",
+              "date": "2027-03-06",
+              "host_club": "Frisk Asker",
+              "start_time": "12:00"
+            },
+            "old_placement": {
+              "arena": "Askerhallen",
+              "date": "2027-02-28",
+              "host_club": "Frisk Asker",
+              "start_time": "12:30"
+            },
+            "tournament_id": "rvv-0142"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Askerhallen",
+              "date": "2027-01-23",
+              "host_club": "Frisk Asker",
+              "start_time": "17:00"
+            },
+            "old_placement": {
+              "arena": "Askerhallen",
+              "date": "2027-02-28",
+              "host_club": "Frisk Asker",
+              "start_time": "15:30"
+            },
+            "tournament_id": "rvv-0143"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Askerhallen",
+              "date": "2027-03-14",
+              "host_club": "Frisk Asker",
+              "start_time": "17:00"
+            },
+            "old_placement": {
+              "arena": "Askerhallen",
+              "date": "2027-02-27",
+              "host_club": "Frisk Asker",
+              "start_time": "11:50"
+            },
+            "tournament_id": "rvv-0157"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Kongsberghallen",
+              "date": "2027-02-21",
+              "host_club": "Kongsberg",
+              "start_time": "10:30"
+            },
+            "old_placement": {
+              "arena": "Kongsberghallen",
+              "date": "2027-02-27",
+              "host_club": "Kongsberg",
+              "start_time": "10:30"
+            },
+            "tournament_id": "rvv-0158"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Jar Isforum",
+              "date": "2027-01-24",
+              "host_club": "Jar",
+              "start_time": "17:00"
+            },
+            "old_placement": {
+              "arena": "Jar Isforum",
+              "date": "2027-02-27",
+              "host_club": "Jar",
+              "start_time": "14:20"
+            },
+            "tournament_id": "rvv-0161"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Kongsberghallen",
+              "date": "2027-03-14",
+              "host_club": "Kongsberg",
+              "start_time": "14:00"
+            },
+            "old_placement": {
+              "arena": "Kongsberghallen",
+              "date": "2027-02-27",
+              "host_club": "Kongsberg",
+              "start_time": "14:00"
+            },
+            "tournament_id": "rvv-0162"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Ringerikshallen",
+              "date": "2027-03-14",
+              "host_club": "Ringerike",
+              "start_time": "10:30"
+            },
+            "old_placement": {
+              "arena": "Ringerikshallen",
+              "date": "2027-02-28",
+              "host_club": "Ringerike",
+              "start_time": "10:30"
+            },
+            "tournament_id": "rvv-0164"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Jar Isforum",
+              "date": "2027-03-06",
+              "host_club": "Jar",
+              "start_time": "17:30"
+            },
+            "old_placement": {
+              "arena": "Jar Isforum",
+              "date": "2027-02-28",
+              "host_club": "Jar",
+              "start_time": "11:00"
+            },
+            "tournament_id": "rvv-0165"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Jar Isforum",
+              "date": "2027-02-14",
+              "host_club": "Jar",
+              "start_time": "13:25"
+            },
+            "old_placement": {
+              "arena": "Jar Isforum",
+              "date": "2027-02-28",
+              "host_club": "Jar",
+              "start_time": "13:25"
+            },
+            "tournament_id": "rvv-0166"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Baerum ishall",
+              "date": "2027-03-07",
+              "host_club": "Jutul",
+              "start_time": "11:30"
+            },
+            "old_placement": {
+              "arena": "Baerum ishall",
+              "date": "2027-02-28",
+              "host_club": "Jutul",
+              "start_time": "11:30"
+            },
+            "tournament_id": "rvv-0167"
+          },
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Holmen ishall",
+              "date": "2027-02-21",
+              "host_club": "Holmen",
+              "start_time": "15:00"
+            },
+            "old_placement": {
+              "arena": "Holmen ishall",
+              "date": "2027-02-28",
+              "host_club": "Holmen",
+              "start_time": "15:00"
+            },
+            "tournament_id": "rvv-0168"
+          }
+        ],
+        "operational_acceptable": true,
+        "operations": [
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2026-11-29",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0020"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2026-10-18",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0021"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2026-10-18",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0022"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2026-10-11",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0023"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2026-10-31",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0024"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2026-11-08",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0025"
+          },
+          {
+            "op": "cancel",
+            "reason": "Regionalt sperret helg 23.-25. oktober 2026",
+            "tournament_id": "rvv-0027"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2026-10-18",
+            "host_club": null,
+            "op": "move",
+            "start_time": "09:30",
+            "tournament_id": "rvv-0028"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2026-10-11",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0029"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2026-11-08",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0032"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-03-06",
+            "host_club": null,
+            "op": "move",
+            "start_time": "12:00",
+            "tournament_id": "rvv-0142"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-01-23",
+            "host_club": null,
+            "op": "move",
+            "start_time": "17:00",
+            "tournament_id": "rvv-0143"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-03-14",
+            "host_club": null,
+            "op": "move",
+            "start_time": "17:00",
+            "tournament_id": "rvv-0157"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-02-21",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0158"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-01-24",
+            "host_club": null,
+            "op": "move",
+            "start_time": "17:00",
+            "tournament_id": "rvv-0161"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-03-14",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0162"
+          },
+          {
+            "op": "cancel",
+            "reason": "Vinterferie 2027 - helgen mellom uke 8 og 9",
+            "tournament_id": "rvv-0163"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-03-14",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0164"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-03-06",
+            "host_club": null,
+            "op": "move",
+            "start_time": "17:30",
+            "tournament_id": "rvv-0165"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-02-14",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0166"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-03-07",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0167"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": "2027-02-21",
+            "host_club": null,
+            "op": "move",
+            "start_time": null,
+            "tournament_id": "rvv-0168"
+          },
+          {
+            "op": "cancel",
+            "reason": "Vinterferie 2027 - helgen mellom uke 8 og 9",
+            "tournament_id": "rvv-0186"
+          }
+        ],
+        "protections_added": [
+          "change:61f7a20fed873592",
+          "change:b6e2f182deb65ad9",
+          "change:fe5ae4d8f8dd59d6",
+          "change:a6bf58905769f035",
+          "change:f80152a65033d4bd",
+          "change:c241c6639219ebc8",
+          "change:ef6dc8ff521eff02",
+          "change:c60f811828a5a526",
+          "change:e02aaea166aeae04",
+          "change:1f02ad48db665760",
+          "change:ac57e2aac3947e02",
+          "change:8b464dcbd5f23d3a",
+          "change:4e2bbbee45ba08ca",
+          "change:50e2d3a8257c15ee",
+          "change:f237f8f6f55202cb",
+          "change:36fdefa79acf721d",
+          "change:72e2720c6be378df",
+          "change:c0163c9164be60ac",
+          "change:c3212a9d63b74873",
+          "change:7ce27a1ea13c68ac",
+          "change:2d1727a140cd576b",
+          "change:ac65f9f3c41b628e",
+          "change:9a03784aa300a213",
+          "change:14e90082913fffc0",
+          "change:14b3d44a6b51b18a",
+          "change:171525bd249117ef"
+        ],
+        "request_id": "operator:global-date-exclusions:2026-2027-repair",
+        "swaps": [],
+        "verification_ok": true
+      },
+      "event": "batch_maintenance",
+      "note": "",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "0135ae7fb5b88e68c20357eab830a942d17a23991d77286f24359f3b3fa3b7c9",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
-  "schedule_fingerprint": "2cf718a1711019a4b4c3cd0e95fc72c45dc2ef74dc818f607dcf8b9b5327181b",
+  "schedule_fingerprint": "0135ae7fb5b88e68c20357eab830a942d17a23991d77286f24359f3b3fa3b7c9",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-19T20:18:18.423362+00:00"
+  "updated_at": "2026-09-20T10:20:48.830939+00:00"
 }
