@@ -1,10 +1,80 @@
 {
   "applied_from": {
     "actor": "niclasl",
-    "previous_revision": "1107b38e4f4d07df03deaa0a1c3743b76e879fc6d4eec8ec69a7809b8a0187d1"
+    "operational_acceptability": {
+      "added_by_category": {},
+      "after_counts": {
+        "fixed_busy_placement": 2,
+        "host_confirmation_dependency": 1,
+        "manual_calendar_placement": 0,
+        "unresolved_placement_obligation": 12
+      },
+      "after_profile": {
+        "fixed_busy_placement": [
+          "rvv-0033",
+          "rvv-0057"
+        ],
+        "host_confirmation_dependency": [
+          "rvv-0053"
+        ],
+        "manual_calendar_placement": [],
+        "unresolved_placement_obligation": [
+          "unplaced_placement:U10:2026-12-19:1",
+          "unplaced_placement:U10:2026-12-26:1",
+          "unplaced_placement:U10:2026-12-27:1",
+          "unplaced_placement:U11:2026-10-31:1",
+          "unplaced_placement:U11:2026-11-07:1",
+          "unplaced_placement:U11:2026-12-06:1",
+          "unplaced_placement:U11:2027-02-20:1",
+          "unplaced_placement:U12:2026-10-17:1",
+          "unplaced_placement:U12:2026-12-19:1",
+          "unplaced_placement:U12:2026-12-27:1",
+          "unplaced_placement:U12:2027-03-14:1",
+          "unplaced_placement:U9:2026-11-28:1"
+        ]
+      },
+      "allowed": {
+        "allow_host_confirmation": false,
+        "allow_manual_placement": false
+      },
+      "before_counts": {
+        "fixed_busy_placement": 2,
+        "host_confirmation_dependency": 1,
+        "manual_calendar_placement": 0,
+        "unresolved_placement_obligation": 12
+      },
+      "before_profile": {
+        "fixed_busy_placement": [
+          "rvv-0033",
+          "rvv-0057"
+        ],
+        "host_confirmation_dependency": [
+          "rvv-0053"
+        ],
+        "manual_calendar_placement": [],
+        "unresolved_placement_obligation": [
+          "unplaced_placement:U10:2026-12-19:1",
+          "unplaced_placement:U10:2026-12-26:1",
+          "unplaced_placement:U10:2026-12-27:1",
+          "unplaced_placement:U11:2026-10-31:1",
+          "unplaced_placement:U11:2026-11-07:1",
+          "unplaced_placement:U11:2026-12-06:1",
+          "unplaced_placement:U11:2027-02-20:1",
+          "unplaced_placement:U12:2026-10-17:1",
+          "unplaced_placement:U12:2026-12-19:1",
+          "unplaced_placement:U12:2026-12-27:1",
+          "unplaced_placement:U12:2027-03-14:1",
+          "unplaced_placement:U9:2026-11-28:1"
+        ]
+      },
+      "ok": true,
+      "regressions": [],
+      "schema_version": 1
+    },
+    "previous_revision": "0135ae7fb5b88e68c20357eab830a942d17a23991d77286f24359f3b3fa3b7c9"
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "0135ae7fb5b88e68c20357eab830a942d17a23991d77286f24359f3b3fa3b7c9",
+  "fingerprint": "26666ca8a96b5fdad593ceb6d1d4111fefab754c8058cfbf3aa5028f2c48c839",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -19408,37 +19478,37 @@
         "date": "2027-01-16",
         "games": [
           {
-            "away": "Jar Rød",
+            "away": "Ringerike 2",
             "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
-            "away": "Ringerike 1",
+            "away": "Jar Rød",
             "home": "Jutul Grønn",
             "parallel_slot": 1,
             "round_number": 1
           },
           {
-            "away": "Frisk Asker 2",
-            "home": "Jutul Grønn",
+            "away": "Ringerike 2",
+            "home": "Jar Rød",
             "parallel_slot": 0,
             "round_number": 2
           },
           {
-            "away": "Jar Rød",
-            "home": "Ringerike 1",
+            "away": "Frisk Asker 2",
+            "home": "Jutul Grønn",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Ringerike 1",
+            "away": "Jar Rød",
             "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
-            "away": "Jar Rød",
+            "away": "Ringerike 2",
             "home": "Jutul Grønn",
             "parallel_slot": 1,
             "round_number": 3
@@ -19460,13 +19530,13 @@
           },
           {
             "age_group": "U12",
-            "club": "Ringerike",
-            "label": "Ringerike 1"
+            "club": "Jar",
+            "label": "Jar Rød"
           },
           {
             "age_group": "U12",
-            "club": "Jar",
-            "label": "Jar Rød"
+            "club": "Ringerike",
+            "label": "Ringerike 2"
           }
         ]
       },
@@ -20284,8 +20354,8 @@
         "date": "2027-01-23",
         "games": [
           {
-            "away": "Jar Svart",
-            "home": "Ringerike 2",
+            "away": "Ringerike 1",
+            "home": "Jar Svart",
             "parallel_slot": 0,
             "round_number": 1
           },
@@ -20296,25 +20366,25 @@
             "round_number": 1
           },
           {
-            "away": "Jutul Grønn",
-            "home": "Jar Svart",
+            "away": "Ringerike 1",
+            "home": "Jutul Grønn",
             "parallel_slot": 0,
             "round_number": 2
           },
           {
-            "away": "Tønsberg Hvit",
-            "home": "Ringerike 2",
+            "away": "Jar Svart",
+            "home": "Tønsberg Hvit",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
             "away": "Jutul Grønn",
-            "home": "Ringerike 2",
+            "home": "Jar Svart",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
-            "away": "Jar Svart",
+            "away": "Ringerike 1",
             "home": "Tønsberg Hvit",
             "parallel_slot": 1,
             "round_number": 3
@@ -20324,11 +20394,6 @@
         "id": "rvv-0114",
         "start_time": "11:45",
         "teams": [
-          {
-            "age_group": "U12",
-            "club": "Ringerike",
-            "label": "Ringerike 2"
-          },
           {
             "age_group": "U12",
             "club": "Tønsberg",
@@ -20343,6 +20408,11 @@
             "age_group": "U12",
             "club": "Jutul",
             "label": "Jutul Grønn"
+          },
+          {
+            "age_group": "U12",
+            "club": "Ringerike",
+            "label": "Ringerike 1"
           }
         ]
       },
@@ -24381,13 +24451,13 @@
             "round_number": 1
           },
           {
-            "away": "Ringerike 1",
+            "away": "Ringerike 2",
             "home": "Tønsberg Hvit",
             "parallel_slot": 1,
             "round_number": 1
           },
           {
-            "away": "Ringerike 1",
+            "away": "Ringerike 2",
             "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 2
@@ -24399,7 +24469,7 @@
             "round_number": 2
           },
           {
-            "away": "Ringerike 1",
+            "away": "Ringerike 2",
             "home": "Kongsberg",
             "parallel_slot": 0,
             "round_number": 3
@@ -24433,7 +24503,7 @@
           {
             "age_group": "U12",
             "club": "Ringerike",
-            "label": "Ringerike 1"
+            "label": "Ringerike 2"
           }
         ]
       },
@@ -26340,37 +26410,37 @@
         "date": "2027-03-13",
         "games": [
           {
-            "away": "Jar Hvit",
-            "home": "Ringerike 2",
+            "away": "Ringerike 1",
+            "home": "Tønsberg Hvit",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
-            "away": "Tønsberg Hvit",
+            "away": "Jar Hvit",
             "home": "Tønsberg Rød",
             "parallel_slot": 1,
             "round_number": 1
           },
           {
-            "away": "Tønsberg Rød",
-            "home": "Ringerike 2",
+            "away": "Ringerike 1",
+            "home": "Jar Hvit",
             "parallel_slot": 0,
+            "round_number": 2
+          },
+          {
+            "away": "Tønsberg Hvit",
+            "home": "Tønsberg Rød",
+            "parallel_slot": 1,
             "round_number": 2
           },
           {
             "away": "Jar Hvit",
             "home": "Tønsberg Hvit",
-            "parallel_slot": 1,
-            "round_number": 2
-          },
-          {
-            "away": "Tønsberg Hvit",
-            "home": "Ringerike 2",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
-            "away": "Jar Hvit",
+            "away": "Ringerike 1",
             "home": "Tønsberg Rød",
             "parallel_slot": 1,
             "round_number": 3
@@ -26380,11 +26450,6 @@
         "id": "rvv-0182",
         "start_time": "11:45",
         "teams": [
-          {
-            "age_group": "U12",
-            "club": "Ringerike",
-            "label": "Ringerike 2"
-          },
           {
             "age_group": "U12",
             "club": "Tønsberg",
@@ -26399,6 +26464,11 @@
             "age_group": "U12",
             "club": "Jar",
             "label": "Jar Hvit"
+          },
+          {
+            "age_group": "U12",
+            "club": "Ringerike",
+            "label": "Ringerike 1"
           }
         ]
       },
@@ -40071,10 +40141,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "0135ae7fb5b88e68c20357eab830a942d17a23991d77286f24359f3b3fa3b7c9",
+  "revision": "26666ca8a96b5fdad593ceb6d1d4111fefab754c8058cfbf3aa5028f2c48c839",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-20T10:20:48.830939+00:00",
+  "updated_at": "2026-09-20T15:09:52.586017+00:00",
   "verification_context": {
     "candidate_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
     "problem": {

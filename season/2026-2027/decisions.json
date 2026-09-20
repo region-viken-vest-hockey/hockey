@@ -57,7 +57,7 @@
       "type": "banned_date"
     }
   ],
-  "canonical_state_revision": "587d859720953e1333dad6df983ecd5a46f9b22853222d47a9a35cb4e3b179dd",
+  "canonical_state_revision": "77ec19db0b37a66015e96ceffcd0c8cf6db6e5b13940dcb056a914778786a317",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -82467,8 +82467,8 @@
       "tournament_id": ""
     }
   ],
-  "schedule_fingerprint": "0135ae7fb5b88e68c20357eab830a942d17a23991d77286f24359f3b3fa3b7c9",
+  "schedule_fingerprint": "26666ca8a96b5fdad593ceb6d1d4111fefab754c8058cfbf3aa5028f2c48c839",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-20T10:20:48.830939+00:00"
+  "updated_at": "2026-09-20T15:09:52.586017+00:00"
 }
