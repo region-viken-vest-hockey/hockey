@@ -73,8 +73,129 @@
     },
     "previous_revision": "1a27fbf70d0d0d3c846e09f65b4225d35b64f162ce2ddf7e82e123fd6f3b1981"
   },
+  "arena_normalization": {
+    "changed": true,
+    "changed_count": 23,
+    "changes": [
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0010"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0012"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0025"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0054"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0059"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0068"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0073"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0081"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0083"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0085"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0099"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0114"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0126"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0140"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0149"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0152"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0164"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0170"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0178"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0182"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0056"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0006"
+      },
+      {
+        "from": "Ringerikshallen",
+        "to": "Schjongshallen",
+        "tournament_id": "rvv-0032"
+      }
+    ]
+  },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "3c4992c872a81f120f84ab2e68828ecc3614e5153940adbdb67925bd54c46b47",
+  "fingerprint": "e3721636d8719be1a008a5ab7347add1e7ece4ad7220f6d52dd4c3e57e358737",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -83,7 +204,7 @@
       "Holmen ishall": 21,
       "Jar Isforum": 42,
       "Kongsberghallen": 9,
-      "Ringerikshallen": 21,
+      "Schjongshallen": 21,
       "Skien ishall": 7,
       "Tonsberghallen": 19,
       "_age_group_overlap_collisions": 16
@@ -12290,7 +12411,7 @@
       },
       {
         "age_group": "U12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-10-11",
         "games": [
           {
@@ -12530,7 +12651,7 @@
       },
       {
         "age_group": "U10",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-10-11",
         "games": [
           {
@@ -13607,7 +13728,7 @@
       },
       {
         "age_group": "JU12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-11-08",
         "games": [
           {
@@ -15561,7 +15682,7 @@
       },
       {
         "age_group": "JU8",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-11-21",
         "games": [
           {
@@ -16030,7 +16151,7 @@
       },
       {
         "age_group": "U10",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-11-22",
         "games": [
           {
@@ -16802,7 +16923,7 @@
       },
       {
         "age_group": "JU12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-11-29",
         "games": [
           {
@@ -17006,7 +17127,7 @@
       },
       {
         "age_group": "U10",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-12-05",
         "games": [
           {
@@ -17642,7 +17763,7 @@
       },
       {
         "age_group": "U8",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-11-29",
         "games": [
           {
@@ -17986,7 +18107,7 @@
       },
       {
         "age_group": "JU10",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-12-12",
         "games": [
           {
@@ -18096,7 +18217,7 @@
       },
       {
         "age_group": "U11",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-12-12",
         "games": [
           {
@@ -19069,7 +19190,7 @@
       },
       {
         "age_group": "JU12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-01-10",
         "games": [
           {
@@ -20350,7 +20471,7 @@
       },
       {
         "age_group": "U12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-01-23",
         "games": [
           {
@@ -21626,7 +21747,7 @@
       },
       {
         "age_group": "U10",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-01-31",
         "games": [
           {
@@ -22829,7 +22950,7 @@
       },
       {
         "age_group": "U11",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-02-13",
         "games": [
           {
@@ -23493,7 +23614,7 @@
       },
       {
         "age_group": "U12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-02-20",
         "games": [
           {
@@ -23905,7 +24026,7 @@
       },
       {
         "age_group": "JU12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-02-21",
         "games": [
           {
@@ -24579,7 +24700,7 @@
       },
       {
         "age_group": "U10",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-03-14",
         "games": [
           {
@@ -25365,7 +25486,7 @@
       },
       {
         "age_group": "JU12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-03-06",
         "games": [
           {
@@ -26005,7 +26126,7 @@
       },
       {
         "age_group": "U9",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-03-07",
         "games": [
           {
@@ -26406,7 +26527,7 @@
       },
       {
         "age_group": "U12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2027-03-13",
         "games": [
           {
@@ -28412,7 +28533,7 @@
       },
       {
         "age_group": "U11",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-11-21",
         "games": [
           {
@@ -30130,7 +30251,7 @@
       },
       {
         "age_group": "U12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-11-07",
         "games": [
           {
@@ -30266,7 +30387,7 @@
       },
       {
         "age_group": "U12",
-        "arena": "Ringerikshallen",
+        "arena": "Schjongshallen",
         "date": "2026-11-08",
         "games": [
           {
@@ -40141,10 +40262,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "3c4992c872a81f120f84ab2e68828ecc3614e5153940adbdb67925bd54c46b47",
+  "revision": "e3721636d8719be1a008a5ab7347add1e7ece4ad7220f6d52dd4c3e57e358737",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-20T18:27:33.062281+00:00",
+  "updated_at": "2026-09-20T19:13:25.194843+00:00",
   "verification_context": {
     "candidate_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
     "problem": {
@@ -42057,7 +42178,7 @@
           },
           {
             "age_group": "U10",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-10-11",
             "host_club": "Ringerike",
             "id": "rvv-0012",
@@ -42432,7 +42553,7 @@
           },
           {
             "age_group": "JU12",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-10-25",
             "host_club": "Ringerike",
             "id": "rvv-0025",
@@ -43112,7 +43233,7 @@
           },
           {
             "age_group": "JU8",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-11-21",
             "host_club": "Ringerike",
             "id": "rvv-0054",
@@ -43267,7 +43388,7 @@
           },
           {
             "age_group": "U10",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-11-22",
             "host_club": "Ringerike",
             "id": "rvv-0059",
@@ -43527,7 +43648,7 @@
           },
           {
             "age_group": "JU12",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-11-29",
             "host_club": "Ringerike",
             "id": "rvv-0068",
@@ -43617,7 +43738,7 @@
           },
           {
             "age_group": "U10",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-12-05",
             "host_club": "Ringerike",
             "id": "rvv-0073",
@@ -43697,7 +43818,7 @@
           },
           {
             "age_group": "U12",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-12-05",
             "host_club": "Ringerike",
             "id": "rvv-0075",
@@ -43847,7 +43968,7 @@
           },
           {
             "age_group": "U8",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-11-29",
             "host_club": "Ringerike",
             "id": "rvv-0081",
@@ -43947,7 +44068,7 @@
           },
           {
             "age_group": "JU10",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-12-12",
             "host_club": "Ringerike",
             "id": "rvv-0083",
@@ -43987,7 +44108,7 @@
           },
           {
             "age_group": "U11",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2026-12-12",
             "host_club": "Ringerike",
             "id": "rvv-0085",
@@ -44302,7 +44423,7 @@
           },
           {
             "age_group": "JU12",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-01-10",
             "host_club": "Ringerike",
             "id": "rvv-0099",
@@ -44727,7 +44848,7 @@
           },
           {
             "age_group": "U12",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-01-23",
             "host_club": "Ringerike",
             "id": "rvv-0114",
@@ -45147,7 +45268,7 @@
           },
           {
             "age_group": "U10",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-01-31",
             "host_club": "Ringerike",
             "id": "rvv-0126",
@@ -45512,7 +45633,7 @@
           },
           {
             "age_group": "U11",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-02-13",
             "host_club": "Ringerike",
             "id": "rvv-0140",
@@ -45732,7 +45853,7 @@
           },
           {
             "age_group": "U12",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-02-20",
             "host_club": "Ringerike",
             "id": "rvv-0149",
@@ -45862,7 +45983,7 @@
           },
           {
             "age_group": "JU12",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-02-21",
             "host_club": "Ringerike",
             "id": "rvv-0152",
@@ -46162,7 +46283,7 @@
           },
           {
             "age_group": "U10",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-02-28",
             "host_club": "Ringerike",
             "id": "rvv-0164",
@@ -46412,7 +46533,7 @@
           },
           {
             "age_group": "JU12",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-03-06",
             "host_club": "Ringerike",
             "id": "rvv-0170",
@@ -46632,7 +46753,7 @@
           },
           {
             "age_group": "U9",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-03-07",
             "host_club": "Ringerike",
             "id": "rvv-0178",
@@ -46757,7 +46878,7 @@
           },
           {
             "age_group": "U12",
-            "arena": "Ringerikshallen",
+            "arena": "Schjongshallen",
             "date": "2027-03-13",
             "host_club": "Ringerike",
             "id": "rvv-0182",
@@ -112549,7 +112670,7 @@
         "Jar": "Jar Isforum",
         "Jutul": "Baerum ishall",
         "Kongsberg": "Kongsberghallen",
-        "Ringerike": "Ringerikshallen",
+        "Ringerike": "Schjongshallen",
         "Sandefjord Penguins": "Bugården ishall",
         "Skien": "Skien ishall",
         "Tønsberg": "Tonsberghallen"
@@ -174212,7 +174333,7 @@
         }
       ]
     },
-    "problem_fingerprint": "fbc7947ead7ad341725a81f50101423b5e98ae37bf7457fa9f09b6b987d2dce7",
+    "problem_fingerprint": "7935fef4d353af0d5c51fde8fcee0ff0273d2755b94aaefaa5a33f388e8d6bce",
     "run_id": "20260918T135604Z-8d38f146",
     "schema_version": 1,
     "verify_ok": true

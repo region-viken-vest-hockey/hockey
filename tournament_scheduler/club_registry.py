@@ -129,6 +129,13 @@ class ClubCalendarSource:
     # written into `arena` itself, since `arena` is what the season planner
     # and Stage 3 treat as schedulable.
     non_schedulable_arena_aliases: Tuple[str, ...] = field(default_factory=tuple)
+    # Former names for this club's *same* schedulable arena. Unlike
+    # `non_schedulable_arena_aliases` these are historical labels for the
+    # venue `arena` already names, not a different physical venue: they are
+    # accepted as normalization input (including legacy canonical schedules),
+    # resolve back to this club, and are always rewritten to the canonical
+    # `arena` before any schedulable output. Never emit a legacy alias.
+    legacy_arena_aliases: Tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def is_known(self) -> bool:
@@ -140,7 +147,11 @@ class ClubCalendarSource:
 CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
     "Ringerike": ClubCalendarSource(
         club="Ringerike",
-        arena="Ringerikshallen",
+        arena="Schjongshallen",
+        # `Ringerikshallen` is the venue's former name. It stays a recognized
+        # normalization input so historical calendars/schedules resolve to
+        # Ringerike, but canonical schedulable output is always Schjongshallen.
+        legacy_arena_aliases=("Ringerikshallen",),
         kind=CalendarSourceKind.ICAL,
         # The public calendar page is the operator-audit view; Teamup exposes
         # the actual machine-readable iCal export at ics.teamup.com using the
@@ -308,6 +319,32 @@ def club_for_source_name(source_name: str) -> Optional[str]:
     return None
 
 
+def canonical_arena_name(arena_name: str) -> Optional[str]:
+    """Return the schedulable, canonical arena string for *arena_name*.
+
+    Resolves a registry arena to itself and a ``legacy_arena_aliases`` entry to
+    its club's canonical :attr:`ClubCalendarSource.arena`. Returns ``None`` for
+    an unrecognized name (including ``non_schedulable_arena_aliases``, which
+    name real but non-schedulable venues and must never be silently rewritten).
+
+    This is the single normalization input for canonical maintenance that needs
+    to re-emit arena identity: an already-canonical name is returned unchanged,
+    so the operation is idempotent and can never convert Schjongshallen back to
+    a legacy alias.
+    """
+    lowered = arena_name.strip().lower()
+    for entry in CLUB_REGISTRY.values():
+        entry_lower = entry.arena.lower()
+        if entry_lower == lowered:
+            return entry.arena
+        parts = [part.strip() for part in entry_lower.split("/")]
+        if lowered in parts:
+            return entry.arena
+        if lowered in (alias.strip().lower() for alias in entry.legacy_arena_aliases):
+            return entry.arena
+    return None
+
+
 def club_for_arena(arena_name: str) -> Optional[str]:
     """Return the club name that owns *arena_name*, or ``None`` if not found.
 
@@ -326,6 +363,11 @@ def club_for_arena(arena_name: str) -> Optional[str]:
     schedulable RVV tournament arenas (e.g. Varner Arena for Frisk Asker).
     This lets ownership/reverse-lookup callers keep working without ever
     making the alias a schedulable ``arena``.
+
+    Also resolves ``legacy_arena_aliases`` (former names of the club's own
+    schedulable arena, e.g. Ringerikshallen for Ringerike) so historical
+    schedules/evidence still resolve to the owning club even though canonical
+    output never emits the legacy label.
     """
     lowered = arena_name.strip().lower()
     for club_name, entry in CLUB_REGISTRY.items():
@@ -336,6 +378,8 @@ def club_for_arena(arena_name: str) -> Optional[str]:
         if lowered in parts:
             return club_name
         if lowered in (alias.strip().lower() for alias in entry.non_schedulable_arena_aliases):
+            return club_name
+        if lowered in (alias.strip().lower() for alias in entry.legacy_arena_aliases):
             return club_name
     return None
 

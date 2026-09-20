@@ -40,7 +40,7 @@ _CLUB_COORDINATES: Dict[str, Tuple[float, float]] = {
     "Jar": (59.8989, 10.5722),
     # Holmen - Holmen ishall (Asker)
     "Holmen": (59.8434, 10.4569),
-    # Ringerike - Ringerikshallen (Hønefoss)
+    # Ringerike - Schjongshallen (Hønefoss)
     "Ringerike": (60.1690, 10.2580),
     # Skien - Skien ishall
     "Skien": (59.2096, 9.6080),
@@ -102,6 +102,7 @@ _ARENA_TO_CLUB: Dict[str, str] = {
     "Jar Isforum": "Jar",
     "Holmen ishall": "Holmen",
     "Schjongshallen": "Ringerike",
+    "Ringerikshallen": "Ringerike",
     "Skien ishall": "Skien",
     "Bærum ishall": "Jutul",
     "Varner Arena": "Frisk Asker",

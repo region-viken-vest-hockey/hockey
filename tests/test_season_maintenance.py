@@ -36,6 +36,7 @@ from tournament_scheduler.season_state import (
     load_decisions,
     load_participation_acceptances,
     load_schedule,
+    normalize_arena_identities,
     record_participation_acceptance,
     revoke_participation_acceptance,
     schedule_fingerprint,
@@ -1223,3 +1224,114 @@ def test_intra_club_distribution_is_not_an_actionable_participation_finding() ->
     assert clubs == {"Kongsberg"}
     assert _unresolved_participation_deviation_count(verification) == 1
     assert _manual_count(verification) == 1
+
+
+def _ringerike_season(tmp_path: Path):
+    """Promoted season with one legacy Ringerikshallen tournament.
+
+    The arena label is the venue's former name; everything else (ids, dates,
+    hosts, participants, games, approvals, guards) must survive normalization.
+    """
+
+    from tournament_scheduler.canonical_baseline import approval_fingerprint
+
+    teams = _teams(["Ringerike", "Nordby"])
+    problem = _problem(teams)
+    plan = _plan(
+        [
+            _tournament("T1", "2026-10-10", "Ringerike", teams),
+            _tournament("T2", "2026-11-14", "Nordby", teams),
+        ]
+    )
+    plan["tournaments"][0]["arena"] = "Ringerikshallen"
+    plan["arena_counts"] = {"Ringerikshallen": 1, "Nordby Arena": 1}
+    problem["clubs"] = {"Ringerike": "Ringerikshallen", "Nordby": "Nordby Arena"}
+    problem["canonical_baseline"] = {
+        "tournaments": [
+            {"id": "T1", "arena": "Ringerikshallen", "host_club": "Ringerike"},
+            {"id": "T2", "arena": "Nordby Arena", "host_club": "Nordby"},
+        ]
+    }
+    root = tmp_path / "season"
+    revision = _write_season(root, plan, problem, approved=["T2"])
+
+    decisions_path = root / YEAR / "decisions.json"
+    decisions = json.loads(decisions_path.read_text(encoding="utf-8"))
+    decisions["decisions"]["T1"]["status"] = "approved"
+    decisions["decisions"]["T1"]["placement_locked"] = True
+    decisions["decisions"]["T1"]["approved_fingerprint"] = approval_fingerprint(
+        plan["tournaments"][0]
+    )
+    decisions["change_protections"] = [
+        {
+            "id": "change:test-arena-guard",
+            "kind": "placement_field",
+            "status": "active",
+            "team": {"club": "", "label": "T1:arena", "age_group": ""},
+            "tournament_id": "T1",
+            "field": "arena",
+            "value": "Ringerikshallen",
+            "request_id": "test-request",
+            "created_at": "2026-09-01T00:00:00+00:00",
+            "created_by": "tester",
+            "note": "",
+            "source_event": "move",
+        }
+    ]
+    decisions_path.write_text(
+        json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return root, plan, problem, revision
+
+
+def test_normalize_arena_identities_changes_only_the_ringerike_arena(tmp_path: Path) -> None:
+    root, plan, _problem_dict, revision = _ringerike_season(tmp_path)
+
+    schedule, decisions = normalize_arena_identities(season=YEAR, root=root, actor="tester")
+
+    report = schedule["arena_normalization"]
+    assert report["changed"] is True
+    assert report["changed_count"] == 1
+    assert report["changes"] == [
+        {"tournament_id": "T1", "from": "Ringerikshallen", "to": "Schjongshallen"}
+    ]
+
+    after = {t["id"]: t for t in schedule["plan"]["tournaments"]}
+    # Only the Ringerike arena label changed; every other field is preserved.
+    for key in ("date", "start_time", "host_club", "teams", "games", "age_group"):
+        assert after["T1"][key] == plan["tournaments"][0][key]
+    assert after["T1"]["arena"] == "Schjongshallen"
+    assert after["T2"] == plan["tournaments"][1]
+    assert schedule["plan"]["arena_counts"] == {"Schjongshallen": 1, "Nordby Arena": 1}
+    assert schedule["revision"] != revision
+    assert schedule["verification_context"]["problem"]["clubs"]["Ringerike"] == "Schjongshallen"
+    # The accepted arena placement guard follows the venue to its new label.
+    guards = [
+        record
+        for record in decisions["change_protections"]
+        if record["id"] == "change:test-arena-guard"
+    ]
+    assert guards and guards[0]["value"] == "Schjongshallen"
+    # The approved Ringerike tournament stays approved (same venue, new label).
+    assert decisions["decisions"]["T1"]["status"] == "approved"
+    assert decisions["decisions"]["T1"]["placement_locked"] is True
+    # Normalization is durable and idempotent.
+    reloaded = load_schedule(YEAR, root=root)
+    assert reloaded["plan"]["tournaments"][0]["arena"] == "Schjongshallen"
+    again, _ = normalize_arena_identities(season=YEAR, root=root, actor="tester")
+    assert again["arena_normalization"]["changed"] is False
+
+
+def test_normalize_arena_identities_is_a_noop_without_legacy_labels(tmp_path: Path) -> None:
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams)
+    plan = _plan([_tournament("T1", "2026-10-10", "Nordby", teams)])
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+    before = (root / YEAR / "schedule.json").read_bytes()
+
+    schedule, _ = normalize_arena_identities(season=YEAR, root=root, actor="tester")
+
+    assert schedule["plan"]["tournaments"][0]["arena"] == "Nordby Arena"
+    assert (root / YEAR / "schedule.json").read_bytes() == before

@@ -3648,7 +3648,7 @@ class TestSlotAwareScheduling:
         ])
         club_arenas = {
             "Frisk Asker": "Varner Arena",
-            "Ringerike": "Ringerikshallen",
+            "Ringerike": "Schjongshallen",
             "Holmen": "Holmen ishall",
             "Jar": "Jar Isforum",
         }
@@ -3721,7 +3721,7 @@ class TestSlotAwareScheduling:
         ])
         club_arenas = {
             "Frisk Asker": "Varner Arena",
-            "Ringerike": "Ringerikshallen",
+            "Ringerike": "Schjongshallen",
             "Tønsberg": "Tønsberg ishall",
             "Holmen": "Holmen ishall",
         }

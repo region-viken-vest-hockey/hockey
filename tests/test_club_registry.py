@@ -6,7 +6,9 @@ from tournament_scheduler.club_registry import (
     CLUB_REGISTRY,
     CalendarSourceKind,
     build_data_source,
+    canonical_arena_name,
     canonicalize_club_name,
+    club_for_arena,
     get_club,
     known_clubs,
     missing_clubs,
@@ -112,6 +114,41 @@ class TestClubRegistry:
 
     def test_known_and_missing_partition_the_registry(self):
         assert len(known_clubs()) + len(missing_clubs()) == len(CLUB_REGISTRY)
+
+
+class TestRingerikeArenaIdentity:
+    """Schjongshallen is the one canonical Ringerike schedulable arena."""
+
+    def test_canonical_capability_reports_schjongshallen(self):
+        assert get_club("Ringerike").arena == "Schjongshallen"
+
+    def test_reverse_lookup_resolves_both_names(self):
+        assert club_for_arena("Schjongshallen") == "Ringerike"
+        assert club_for_arena("Ringerikshallen") == "Ringerike"
+
+    def test_canonical_arena_name_is_idempotent(self):
+        # A legacy alias normalizes to the canonical name...
+        assert canonical_arena_name("Ringerikshallen") == "Schjongshallen"
+        # ...and the canonical name can never be rewritten back.
+        assert canonical_arena_name("Schjongshallen") == "Schjongshallen"
+
+    def test_legacy_alias_is_not_a_schedulable_arena(self):
+        entry = get_club("Ringerike")
+        assert "Ringerikshallen" in entry.legacy_arena_aliases
+        assert entry.arena not in entry.legacy_arena_aliases
+
+    def test_non_schedulable_venue_aliases_are_not_rewritten(self):
+        # Varner Arena is a real, different venue -- it must never be silently
+        # rewritten to Askerhallen by the identity normalizer.
+        assert canonical_arena_name("Varner Arena") is None
+        assert canonical_arena_name("Unknown Hall") is None
+
+    def test_existing_ringerike_calendar_source_is_unchanged(self):
+        entry = get_club("Ringerike")
+        assert entry.source == "https://ics.teamup.com/feed/ksr8bg1tpn5s3npskw/0.ics"
+        assert entry.human_url == "https://teamup.com/ksr8bg1tpn5s3npskw"
+        assert entry.kind is CalendarSourceKind.ICAL
+        assert entry.trusted_for_auto_placement is True
 
 
 class TestCanonicalizeClubName:

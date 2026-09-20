@@ -74,7 +74,7 @@ def two_tournament_plan() -> tuple[SeasonPlan, Tournament, Tournament]:
     )
     t2 = Tournament(
         date=date(2027, 2, 20),
-        arena="Ringerikshallen",
+        arena="Schjongshallen",
         age_group="U11",
         host_club="Ringerike",
         teams=teams_b,
@@ -510,7 +510,7 @@ class TestAddTournament:
             age_group="U10",
             team_labels=["Jar 1", "Ringerike 1", "Skien 1"],
             tournament_date=same_date,
-            arena="Ringerikshallen",
+            arena="Schjongshallen",
             force=False,
         )
 
@@ -523,7 +523,7 @@ class TestAddTournament:
             age_group="U10",
             team_labels=["Jar 1", "Ringerike 1", "Skien 1"],
             tournament_date=same_date,
-            arena="Ringerikshallen",
+            arena="Schjongshallen",
             force=True,
         )
 

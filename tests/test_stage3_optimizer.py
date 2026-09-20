@@ -250,7 +250,7 @@ class TestMoveDates:
         t2_teams = [_team("Ringerike", "C", "U10"), _team("Holmen", "D", "U10")]
         t1 = _tournament("t1", "2026-01-05", "Jar Isforum", "U10", t1_teams)
         t1["start_time"] = "10:00"
-        t2 = _tournament("t2", "2026-01-19", "Ringerikshallen", "U10", t2_teams)
+        t2 = _tournament("t2", "2026-01-19", "Schjongshallen", "U10", t2_teams)
         t2["start_time"] = "10:00"
         candidate = {"schema_version": 1, "tournaments": [t1, t2]}
         problem = {
@@ -286,7 +286,7 @@ def _host_move_problem(club_calendar_status: dict | None = None) -> dict:
         "clubs": {
             "Jar": "Jar Isforum",
             "Kongsberg": "Kongsberghallen",
-            "Ringerike": "Ringerikshallen",
+            "Ringerike": "Schjongshallen",
             "Holmen": "Holmen ishall",
         },
         "round_length_minutes": {"U10": 30},

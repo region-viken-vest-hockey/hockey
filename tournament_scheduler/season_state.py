@@ -78,6 +78,8 @@ __all__ = [
     "load_participation_acceptances",
     "load_schedule",
     "move_tournament",
+    "normalize_arena_identities",
+    "normalize_placements",
     "swap_participants",
     "participation_acceptance_id",
     "planning_checkpoint_from_schedule",
@@ -605,6 +607,24 @@ def normalize_placements(
     return _service(root).normalize_placements(
         season=season,
         problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+    )
+
+
+def normalize_arena_identities(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Re-emit the canonical schedulable arena across a promoted season."""
+
+    return _service(root).normalize_arena_identities(
+        season=season,
         actor=actor,
         note=note,
         dry_run=dry_run,

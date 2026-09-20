@@ -102,7 +102,7 @@ def multi_tournament_plan() -> tuple[SeasonPlan, Tournament, Tournament, Tournam
     )
     t2 = Tournament(
         date=date(2027, 2, 20),
-        arena="Ringerikshallen",
+        arena="Schjongshallen",
         age_group="U10",
         host_club="Ringerike",
         teams=teams_b,

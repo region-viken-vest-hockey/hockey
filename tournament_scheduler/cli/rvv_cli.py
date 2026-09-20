@@ -1289,6 +1289,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         load_export_context,
         load_schedule,
         normalize_placements,
+        normalize_arena_identities,
         effective_config_from_verification_problem,
         planning_checkpoint_from_schedule,
         promote_from_stage3,
@@ -1481,6 +1482,37 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 if summary["removed_tournament_ids"]:
                     _console.print(
                         "  unplaced ids: " + ", ".join(summary["removed_tournament_ids"])
+                    )
+            return 0
+
+        if args.season_command == "normalize-arenas":
+            schedule, _decisions = normalize_arena_identities(
+                season=args.season,
+                root=args.root,
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+            )
+            report = schedule.get("arena_normalization") or {}
+            summary = {
+                "season": args.season,
+                "dry_run": bool(args.dry_run),
+                "changed": bool(report.get("changed")),
+                "changed_count": int(report.get("changed_count") or 0),
+                "changes": report.get("changes") or [],
+                "revision": schedule.get("revision"),
+            }
+            if args.json:
+                print(_json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                action = "would rewrite" if args.dry_run else "rewrote"
+                _console.print(
+                    f"[green]✓[/green] Arena normalization for {args.season}: "
+                    f"{action} {summary['changed_count']} tournament(s)"
+                )
+                for change in summary["changes"]:
+                    _console.print(
+                        f"  {change['tournament_id']}: {change['from']} -> {change['to']}"
                     )
             return 0
 

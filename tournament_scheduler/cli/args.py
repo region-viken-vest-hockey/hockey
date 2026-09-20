@@ -1052,6 +1052,24 @@ def build_parser() -> argparse.ArgumentParser:
     season_normalize.add_argument("--dry-run", action="store_true", help="Report what would change without writing canonical state")
     season_normalize.add_argument("--json", action="store_true", help="Print the normalization report as JSON")
 
+    season_normalize_arenas = season_sub.add_parser(
+        "normalize-arenas",
+        help=(
+            "Re-emit the canonical schedulable arena across a promoted season "
+            "(legacy venue labels are rewritten in place without changing any placement)"
+        ),
+    )
+    season_normalize_arenas.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_normalize_arenas.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_normalize_arenas.add_argument("--actor", default=None, help="Operator identity")
+    season_normalize_arenas.add_argument("--note", default="", help="Audit note")
+    season_normalize_arenas.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what would change without writing canonical state",
+    )
+    season_normalize_arenas.add_argument("--json", action="store_true", help="Print the normalization report as JSON")
+
     season_approve = season_sub.add_parser("approve", help="Approve/lock one canonical tournament in decisions.json")
     season_approve.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_approve.add_argument("--tournament-id", required=True, help="Durable tournament id to approve")
