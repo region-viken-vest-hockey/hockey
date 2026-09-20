@@ -1054,13 +1054,13 @@ BEGIN:VEVENT
 SUMMARY:U12 — Baerum ishall
 DTSTART:20270116T100000Z
 DTEND:20270116T114000Z
-UID:8dcc1694-a141-5a89-b64c-315a599eb23b
+UID:31ce3972-f7e0-5e0e-a6cc-97e75095078d
 CATEGORIES:U12
 DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U12\nVert: Jutul\nDeltaken
- de lag (4): Jutul Grønn\, Frisk Asker 2\, Ringerike 1\, Jar Rød\n\nKampe
- r:\n  Frisk Asker 2 vs Jar Rød\n  Jutul Grønn vs Ringerike 1\n  Jutul Gr
- ønn vs Frisk Asker 2\n  Ringerike 1 vs Jar Rød\n  Frisk Asker 2 vs Ringe
- rike 1\n  Jutul Grønn vs Jar Rød
+ de lag (4): Jutul Grønn\, Frisk Asker 2\, Jar Rød\, Ringerike 2\n\nKampe
+ r:\n  Frisk Asker 2 vs Ringerike 2\n  Jutul Grønn vs Jar Rød\n  Jar Rød
+  vs Ringerike 2\n  Jutul Grønn vs Frisk Asker 2\n  Frisk Asker 2 vs Jar R
+ ød\n  Jutul Grønn vs Ringerike 2
 LOCATION:Baerum ishall
 END:VEVENT
 BEGIN:VEVENT
@@ -1170,13 +1170,13 @@ BEGIN:VEVENT
 SUMMARY:U12 — Ringerikshallen
 DTSTART:20270123T114500Z
 DTEND:20270123T132500Z
-UID:825e0ab9-4248-5f89-bf61-8beb324def86
+UID:98a87730-2b5b-5c92-8b0b-0e4278c1fc42
 CATEGORIES:U12
 DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U12\nVert: Ringerike\nDe
- ltakende lag (4): Ringerike 2\, Tønsberg Hvit\, Jar Svart\, Jutul Grønn\
- n\nKamper:\n  Ringerike 2 vs Jar Svart\n  Tønsberg Hvit vs Jutul Grønn\n
-   Jar Svart vs Jutul Grønn\n  Ringerike 2 vs Tønsberg Hvit\n  Ringerike 
- 2 vs Jutul Grønn\n  Tønsberg Hvit vs Jar Svart
+ ltakende lag (4): Tønsberg Hvit\, Jar Svart\, Jutul Grønn\, Ringerike 1\
+ n\nKamper:\n  Jar Svart vs Ringerike 1\n  Tønsberg Hvit vs Jutul Grønn\n
+   Jutul Grønn vs Ringerike 1\n  Tønsberg Hvit vs Jar Svart\n  Jar Svart 
+ vs Jutul Grønn\n  Tønsberg Hvit vs Ringerike 1
 LOCATION:Ringerikshallen
 END:VEVENT
 BEGIN:VEVENT
@@ -1749,13 +1749,13 @@ BEGIN:VEVENT
 SUMMARY:U12 — Kongsberghallen
 DTSTART:20270314T140000Z
 DTEND:20270314T154000Z
-UID:eed73a63-7adb-559c-b649-e89a8a10e13b
+UID:d4721b74-e8d6-5880-a3d3-a04b1f8c1033
 CATEGORIES:U12
 DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U12\nVert: Kongsberg\nDe
- ltakende lag (4): Kongsberg\, Tønsberg Hvit\, Frisk Asker 2\, Ringerike 1
- \n\nKamper:\n  Kongsberg vs Frisk Asker 2\n  Tønsberg Hvit vs Ringerike 1
- \n  Frisk Asker 2 vs Ringerike 1\n  Kongsberg vs Tønsberg Hvit\n  Kongsbe
- rg vs Ringerike 1\n  Tønsberg Hvit vs Frisk Asker 2
+ ltakende lag (4): Kongsberg\, Tønsberg Hvit\, Frisk Asker 2\, Ringerike 2
+ \n\nKamper:\n  Kongsberg vs Frisk Asker 2\n  Tønsberg Hvit vs Ringerike 2
+ \n  Frisk Asker 2 vs Ringerike 2\n  Kongsberg vs Tønsberg Hvit\n  Kongsbe
+ rg vs Ringerike 2\n  Tønsberg Hvit vs Frisk Asker 2
 LOCATION:Kongsberghallen
 END:VEVENT
 BEGIN:VEVENT
@@ -2027,13 +2027,13 @@ BEGIN:VEVENT
 SUMMARY:U12 — Ringerikshallen
 DTSTART:20270313T114500Z
 DTEND:20270313T132500Z
-UID:01adca58-8c77-5990-9c7e-8908c60625c4
+UID:8496c80c-b7da-5001-9454-545b0d9f0bc8
 CATEGORIES:U12
 DESCRIPTION:Arena: Ringerikshallen\nAldersgruppe: U12\nVert: Ringerike\nDe
- ltakende lag (4): Ringerike 2\, Tønsberg Rød\, Tønsberg Hvit\, Jar Hvit
- \n\nKamper:\n  Ringerike 2 vs Jar Hvit\n  Tønsberg Rød vs Tønsberg Hvit
- \n  Ringerike 2 vs Tønsberg Rød\n  Tønsberg Hvit vs Jar Hvit\n  Ringeri
- ke 2 vs Tønsberg Hvit\n  Tønsberg Rød vs Jar Hvit
+ ltakende lag (4): Tønsberg Rød\, Tønsberg Hvit\, Jar Hvit\, Ringerike 1
+ \n\nKamper:\n  Tønsberg Hvit vs Ringerike 1\n  Tønsberg Rød vs Jar Hvit
+ \n  Jar Hvit vs Ringerike 1\n  Tønsberg Rød vs Tønsberg Hvit\n  Tønsbe
+ rg Hvit vs Jar Hvit\n  Tønsberg Rød vs Ringerike 1
 LOCATION:Ringerikshallen
 END:VEVENT
 BEGIN:VEVENT

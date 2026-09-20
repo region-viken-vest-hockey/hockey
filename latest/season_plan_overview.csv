@@ -63,7 +63,7 @@ date,arena,age_group,host_club,team_count,game_count,furthest_travel,cancelled,c
 2027-01-10,Bugården ishall,U7,Sandefjord Penguins,8,20,Jar Rød~114km,nei,
 2027-01-16,Kongsberghallen,JU12,Kongsberg,4,6,Ringerike 2~85km,nei,
 2027-01-17,Askerhallen,JU8,Frisk Asker,5,10,Skien~109km,nei,
-2027-01-16,Baerum ishall,U12,Jutul,4,6,Ringerike 1~44km,nei,
+2027-01-16,Baerum ishall,U12,Jutul,4,6,Ringerike 2~44km,nei,
 2027-01-16,Holmen ishall,U9,Holmen,8,20,Sandefjord~104km,nei,
 2027-01-17,Skien ishall,U11,Skien,6,15,Ringerike 1~147km,nei,
 2027-01-17,Holmen ishall,U12,Holmen,4,6,Tønsberg Hvit~83km,nei,
@@ -106,7 +106,7 @@ date,arena,age_group,host_club,team_count,game_count,furthest_travel,cancelled,c
 2027-02-21,Askerhallen,U12,Frisk Asker,4,6,Tønsberg Hvit~82km,nei,
 2027-03-14,Askerhallen,JU12,Frisk Asker,4,6,Ringerike 1~50km,nei,
 2027-01-24,Jar Isforum,U12,Jar,4,6,Tønsberg Grå~92km,nei,
-2027-03-14,Kongsberghallen,U12,Kongsberg,4,6,Ringerike 1~85km,nei,
+2027-03-14,Kongsberghallen,U12,Kongsberg,4,6,Ringerike 2~85km,nei,
 2027-02-27,Askerhallen,U12,Frisk Asker,4,6,Tønsberg Rød~82km,ja,Vinterferie 2027 - helgen mellom uke 8 og 9
 2027-03-14,Ringerikshallen,U10,Ringerike,6,15,Frisk Asker 3~50km,nei,
 2027-03-06,Jar Isforum,U11,Jar,6,15,Tønsberg Grå~92km,nei,
