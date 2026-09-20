@@ -29,7 +29,7 @@ tournament_scheduler/fairness_scoring.py	478
 tournament_scheduler/game_generation.py	327
 tournament_scheduler/host_assignment.py	334
 tournament_scheduler/html/data_computation.py	310
-tournament_scheduler/html/html_exporter.py	421
+tournament_scheduler/html/html_exporter.py	511
 tournament_scheduler/ical/ical_exporter.py	388
 tournament_scheduler/llm_judge/prompts.py	319
 # models.py grew by 24 lines for issue #328 (the new `cross_age_hosting_repairs`

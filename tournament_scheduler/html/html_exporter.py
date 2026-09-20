@@ -61,7 +61,6 @@ from .templates import (
     SHARED_JAVASCRIPT,
     SCHEDULE_JAVASCRIPT,
     COUNT_BAR,
-    HARNESS_ASSESSMENT,
 )
 
 
@@ -211,19 +210,6 @@ class HtmlExporter:
             f'<meta name="season-revision" content="{_html_escape(canonical_revision, quote=True)}">'
             if canonical_revision else ""
         )
-        # The harness-assessment section is a stable placeholder replaced
-        # deterministically by semantic-audit materialization; stamping the
-        # page's own export fingerprint lets a served page prove the audit it
-        # displays belongs to this exact export.
-        export_fingerprint = str(pipeline.get("export_fingerprint", "") or "")
-        harness_assessment_html = (
-            HARNESS_ASSESSMENT.replace(
-                "$EXPORT_FINGERPRINT$", _html_escape(export_fingerprint, quote=True)
-            )
-            if export_fingerprint
-            else ""
-        )
-
         # Pipeline metrics
         blocked = pipeline.get("blocked", [])
         blocked_count = len(blocked)
@@ -284,7 +270,6 @@ class HtmlExporter:
                 "$FILTERS$": FILTERS if include_timeline else "",
                 "$COUNT_BAR$": COUNT_BAR if include_timeline else "",
                 "$TIMELINE$": '<div class="timeline" id="timeline"></div>' if include_timeline else "",
-                "$HARNESS_ASSESSMENT$": harness_assessment_html if include_timeline else "",
                 "$SCRIPT$": (
                     SHARED_JAVASCRIPT + ("\n" + SCHEDULE_JAVASCRIPT if include_timeline else "")
                 ),

@@ -186,7 +186,7 @@ def materialize_audit_result(
     context = _resolve_export_context(work_dir, export_fingerprint=export_fp)
     if context is None:
         return None
-    export_dir, candidate_fp, checkpoint = context
+    export_dir, candidate_fp, _checkpoint = context
     export_dir.mkdir(parents=True, exist_ok=True)
 
     artifact = {key: payload[key] for key in _EXPORT_AUDIT_FIELDS if key in payload}
@@ -202,36 +202,7 @@ def materialize_audit_result(
         json.dumps(artifact, indent=2, ensure_ascii=False, default=str),
         encoding="utf-8",
     )
-    _apply_assessment_to_season_plan(export_dir, artifact, checkpoint)
     return path
-
-
-def _apply_assessment_to_season_plan(
-    export_dir: Path,
-    artifact: dict[str, Any],
-    checkpoint: dict[str, Any],
-) -> None:
-    """Best-effort projection of the submitted assessment into the exported HTML.
-
-    The Stage 4 ``season_plan.html`` carries a stable placeholder; audit
-    materialization deterministically replaces only that marked section with
-    the same fingerprint-bound conclusion persisted in ``semantic_audit.json``.
-    A failure here must never reject an otherwise valid audit submission.
-    """
-    output_files = checkpoint.get("output_files")
-    html_path = output_files.get("html") if isinstance(output_files, dict) else None
-    if not html_path or not Path(str(html_path)).exists():
-        html_path = str(export_dir / "season_plan.html")
-    try:
-        from .audit_assessment import apply_harness_assessment
-
-        apply_harness_assessment(
-            artifact,
-            html_path=html_path,
-            manual_schedule_available=(export_dir / "manual_schedule.html").exists(),
-        )
-    except Exception:  # noqa: BLE001 - projection is not a validation gate
-        return
 
 
 def materialize_review_approval(

@@ -1,20 +1,18 @@
-"""Immutable audit chain + harness-assessment projection (issue #330).
+"""Immutable audit chain and revision-scoped harness assessment (issue #330).
 
 Covers the narrowed remainder: one committed export directory must contain the
 exact audit context, the fingerprint binding between context and verdict, and
-the structured operator assessment rendered into ``season_plan.html``.
+the structured operator assessment persisted in ``semantic_audit.json``.
+
+The assessment is audit evidence for the exact audited revision, not season
+state: it is deliberately absent from ``season_plan.html``, and audit
+materialization never rewrites the committed schedule page.
 """
 
 from __future__ import annotations
 
 import json
 
-from tournament_scheduler.pipeline.audit_assessment import (
-    ASSESSMENT_END_MARKER,
-    ASSESSMENT_START_MARKER,
-    apply_harness_assessment,
-    render_harness_assessment_html,
-)
 from tournament_scheduler.pipeline.audit_export_artifact import (
     AUDIT_CONTEXT_FILENAME,
     SEMANTIC_AUDIT_FILENAME,
@@ -33,20 +31,14 @@ from tournament_scheduler.pipeline.operator_action_audit import (
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.serialization.season_plan import season_plan_from_dict
 
-_PLACEHOLDER = (
-    '<html><body><div class="app">'
-    f"{ASSESSMENT_START_MARKER}"
-    '<div id="harnessAssessmentOverview" hidden data-export-fingerprint="$FP$"></div>'
-    f"{ASSESSMENT_END_MARKER}"
-    "</div></body></html>"
-)
+_SEASON_PAGE_SENTINEL = "KEEP-SEASON-PLAN"
 
 
 def _write_export(work_dir, *, fingerprint: str = "fp-1"):
     export_dir = work_dir / "export"
     export_dir.mkdir(exist_ok=True)
     (export_dir / "season_plan.html").write_text(
-        _PLACEHOLDER.replace("$FP$", fingerprint), encoding="utf-8"
+        f"<html><body>{_SEASON_PAGE_SENTINEL}</body></html>", encoding="utf-8"
     )
     (export_dir / "manual_schedule.html").write_text("manual", encoding="utf-8")
     PipelineState(work_dir).write_stage(
@@ -124,8 +116,10 @@ def test_audit_context_is_materialized_immutably(tmp_path):
     assert artifact["context"]["checklist"][0]["item_id"] == 1
 
 
-def test_submit_binds_context_and_projects_assessment_into_html(tmp_path):
+def test_submit_retains_assessment_but_never_touches_season_plan_html(tmp_path):
     export_dir = _write_export(tmp_path)
+    page = export_dir / "season_plan.html"
+    before = page.read_text(encoding="utf-8")
     execute_get_audit_context(work_dir=str(tmp_path))
     materialized = json.loads((export_dir / AUDIT_CONTEXT_FILENAME).read_text(encoding="utf-8"))
 
@@ -138,14 +132,11 @@ def test_submit_binds_context_and_projects_assessment_into_html(tmp_path):
     assert semantic["audit_context_fingerprint"] == materialized["context_fingerprint"]
     assert semantic["operator_assessment"] == _assessment()
 
-    html = (export_dir / "season_plan.html").read_text(encoding="utf-8")
-    assert "Vurdering fra planleggingsassistent" in html
-    assert "Planen er brukbar med ett manuelt unntak." in html
-    assert "Kongsberg U11" in html
-    assert 'data-export-fingerprint="fp-1"' in html
-    assert "manual_schedule.html" in html
-    # Detailed checklist findings stay out of the default season-plan view.
-    assert "q1" not in html
+    # The revision-scoped harness narrative is audit evidence, not season state:
+    # it stays in semantic_audit.json and never rewrites the schedule page.
+    assert page.read_text(encoding="utf-8") == before
+    assert _SEASON_PAGE_SENTINEL in before
+    assert "Vurdering fra planleggingsassistent" not in before
 
 
 def test_context_binding_never_reuses_a_stale_export_context(tmp_path):
@@ -178,40 +169,6 @@ def test_operator_assessment_shape_is_validated():
     assert validate_audit_result(payload) == []
 
 
-def test_render_harness_assessment_escapes_submitted_text():
-    artifact = {
-        "status": "PASS",
-        "export_fingerprint": "fp",
-        "audit_id": "a",
-        "run_id": "r",
-        "generated_at": "2026-09-19T08:00:00+00:00",
-        "operator_assessment": {"operator_summary": "<script>alert(1)</script>"},
-    }
-    html = render_harness_assessment_html(artifact)
-    assert "<script>alert(1)" not in html
-    assert "&lt;script&gt;" in html
-    assert "REVISJON: PASS" in html
-
-
-def test_apply_harness_assessment_replaces_only_the_marked_section(tmp_path):
-    page = tmp_path / "season_plan.html"
-    page.write_text(
-        "<header>KEEP-HEADER</header>" + _PLACEHOLDER.replace("$FP$", "fp") + "<footer>KEEP-FOOTER</footer>",
-        encoding="utf-8",
-    )
-    artifact = {
-        "status": "PASS",
-        "export_fingerprint": "fp",
-        "operator_assessment": {"operator_summary": "Alt ok"},
-    }
-    assert apply_harness_assessment(artifact, html_path=page) is True
-    text = page.read_text(encoding="utf-8")
-    assert "KEEP-HEADER" in text and "KEEP-FOOTER" in text
-    assert "Alt ok" in text
-    assert text.count(ASSESSMENT_START_MARKER) == 1
-    assert text.count(ASSESSMENT_END_MARKER) == 1
-
-
 def test_canonical_export_evidence_bundle_is_self_describing():
     plan = {"tournaments": [], "publication_readiness": {"status": "PASS"}}
     fingerprint = stable_payload_sha256([])
@@ -239,7 +196,7 @@ def test_canonical_export_evidence_bundle_is_self_describing():
     assert bundle["source_summary"]["blocked_sources"] == ["down-source"]
 
 
-def test_season_plan_html_stamps_fingerprint_and_report_excludes_assessment(tmp_path):
+def test_season_plan_html_never_renders_the_harness_assessment_narrative(tmp_path):
     from tournament_scheduler.html.html_exporter import HtmlExporter
 
     plan = season_plan_from_dict(
@@ -257,8 +214,11 @@ def test_season_plan_html_stamps_fingerprint_and_report_excludes_assessment(tmp_
         out,
         pipeline_meta={"export_fingerprint": "ABC123", "age_groups": []},
     )
-    schedule_html = out.read_text(encoding="utf-8")
-    assert ASSESSMENT_START_MARKER in schedule_html
-    assert 'data-export-fingerprint="ABC123"' in schedule_html
-    report_html = out.with_name("season_plan_report.html").read_text(encoding="utf-8")
-    assert ASSESSMENT_START_MARKER not in report_html
+    for page in (out, out.with_name("season_plan_report.html")):
+        html = page.read_text(encoding="utf-8")
+        assert "Vurdering fra planleggingsassistent" not in html
+        assert "Planleggingsassistent" not in html
+        assert "harnessAssessment" not in html
+        assert "harness-assessment" not in html
+        assert "HARNESS_ASSESSMENT" not in html
+        assert "data-export-fingerprint" not in html

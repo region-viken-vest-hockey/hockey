@@ -33,7 +33,6 @@ HEATMAP = _load("heatmap.html")
 CLUB_DASHBOARD = _load("club_dashboard.html")
 REVIEW_SUMMARY = _load("review_summary.html")
 REPORT_OVERVIEW = _load("report_overview.html")
-HARNESS_ASSESSMENT = _load("harness_assessment.html")
 
 # Full page templates
 PAGE_TEMPLATE = _load("page_template.html")

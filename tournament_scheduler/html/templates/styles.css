@@ -136,20 +136,6 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .judgment-card { padding: 12px 14px; background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: var(--radius-sm); }
 .judgment-card span { display: block; margin-bottom: 5px; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); font-weight: 700; }
 .judgment-card p { font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
-/* Harness assessment (fingerprint-bound semantic-audit projection) */
-#harnessAssessmentOverview { margin-top: 18px; }
-.harness-assessment-summary { margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
-.harness-assessment-block { margin-top: 14px; }
-.harness-assessment-block > h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
-.harness-assessment-list { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.harness-assessment-item { padding: 11px 13px; background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: var(--radius-sm); }
-.harness-assessment-item h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 5px; font-size: 13px; color: var(--text-secondary); }
-.harness-assessment-item p { font-size: 12px; line-height: 1.45; color: var(--text-secondary); }
-.harness-assessment-severity, .harness-assessment-category { padding: 2px 7px; border-radius: var(--radius-pill); border: 1px solid var(--border-dim); font-size: 10px; font-weight: 700; letter-spacing: .04em; color: var(--text-muted); }
-.harness-assessment-severity--major, .harness-assessment-severity--critical { color: var(--amber); }
-.harness-assessment-limitations { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 12px; color: var(--text-muted); }
-.harness-assessment-manual { margin-top: 14px; font-size: 12px; }
-.harness-assessment-meta { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border-dim); font-size: 11px; color: var(--text-muted); }
 .section-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 14px; }
 .section-head h2 { margin: 0; font-size: 16px; color: var(--text); }
 .section-note { margin: 0; max-width: 320px; font-size: 12px; line-height: 1.4; color: var(--text-muted); text-align: right; }
