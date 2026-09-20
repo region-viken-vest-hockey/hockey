@@ -23,6 +23,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 
+from .rule_catalog import rule_id_for_score_path
+
 # (report path, direction): "higher" means a bigger value is better, "lower"
 # means a smaller value is better. Mirrors the promotion criteria for the soft
 # quality goals (participation balance, opponent diversity, repeated matchups,
@@ -147,16 +149,18 @@ def compare_quality_scores(
             continue
         delta = new_value - old_value
         regressed = (direction == "lower" and delta > 0) or (direction == "higher" and delta < 0)
-        metrics.append(
-            {
-                "metric": path,
-                "direction": direction,
-                "old": old_value,
-                "new": new_value,
-                "delta": delta,
-                "regressed": regressed,
-            }
-        )
+        metric: Dict[str, Any] = {
+            "metric": path,
+            "direction": direction,
+            "old": old_value,
+            "new": new_value,
+            "delta": delta,
+            "regressed": regressed,
+        }
+        objective_id = rule_id_for_score_path(path)
+        if objective_id:
+            metric["objective_id"] = objective_id
+        metrics.append(metric)
         if regressed:
             regressions.append(path)
     return {"metrics": metrics, "regressions": regressions}

@@ -32,6 +32,11 @@ _VIOLATION_EMITTERS = (
 )
 _CODE_DICT_EMITTERS = ("tournament_scheduler/canonical_baseline.py",)
 
+# The season findings projector emits the actionable finding codes a
+# controller/user sees. A finding that re-surfaces a raw verifier violation
+# carries that verifier code instead, so both vocabularies are accepted.
+_SEASON_FINDING_EMITTER = "tournament_scheduler/season_maintenance.py"
+
 
 def _scanned_verifier_codes() -> set[str]:
     codes: set[str] = set()
@@ -64,6 +69,30 @@ def _scanned_verifier_codes() -> set[str]:
                     and isinstance(value.value, str)
                 ):
                     codes.add(value.value)
+    return codes
+
+
+def _literal_strings(node: ast.AST) -> set[str]:
+    """String constants a ``"code"`` value can take, without the branch test."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return {node.value}
+    if isinstance(node, ast.IfExp):
+        return _literal_strings(node.body) | _literal_strings(node.orelse)
+    return set()
+
+
+def _scanned_season_finding_codes() -> set[str]:
+    tree = ast.parse(
+        (REPO_ROOT / _SEASON_FINDING_EMITTER).read_text(encoding="utf-8"),
+        filename=_SEASON_FINDING_EMITTER,
+    )
+    codes: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Dict):
+            continue
+        for key, value in zip(node.keys, node.values):
+            if isinstance(key, ast.Constant) and key.value == "code":
+                codes |= _literal_strings(value)
     return codes
 
 
@@ -113,6 +142,25 @@ def test_annotate_violations_does_not_overwrite_existing_rule_id() -> None:
     violations = [{"code": "host_team_missing", "rule_id": "explicit"}]
     catalog.annotate_violations(violations)
     assert violations[0]["rule_id"] == "explicit"
+
+
+def test_annotate_findings_attaches_rule_ids() -> None:
+    findings = [
+        {"code": "unresolved_hosting_obligation"},
+        {"code": "host_team_missing"},
+        {"code": "not_a_real_code"},
+    ]
+    catalog.annotate_findings(findings)
+    assert findings[0]["rule_id"] == "hosting_age_group_coverage"
+    # A finding re-surfacing a raw verifier violation keeps the verifier identity.
+    assert findings[1]["rule_id"] == "host_representation"
+    assert "rule_id" not in findings[2]
+
+
+def test_annotate_findings_does_not_overwrite_existing_rule_id() -> None:
+    findings = [{"code": "unresolved_hosting_obligation", "rule_id": "explicit"}]
+    catalog.annotate_findings(findings)
+    assert findings[0]["rule_id"] == "explicit"
 
 
 def test_hard_constraints_have_stable_ids_and_owners() -> None:
@@ -189,6 +237,57 @@ def test_no_verifier_code_is_registered_by_two_rules() -> None:
             owners[code] = entry.id
 
 
+def test_every_season_finding_code_has_a_registered_rule_id() -> None:
+    unregistered = sorted(
+        code
+        for code in _scanned_season_finding_codes()
+        if catalog.rule_id_for_finding_code(code) is None
+        and catalog.rule_id_for_verifier_code(code) is None
+    )
+    assert unregistered == [], (
+        "season finding codes without a catalog rule ID: " + ", ".join(unregistered)
+    )
+
+
+def test_season_finding_code_set_is_not_trivially_empty() -> None:
+    codes = _scanned_season_finding_codes()
+    assert {"unresolved_hosting_obligation", "home_representation_skew"} <= codes
+
+
+def test_no_finding_code_is_registered_by_two_rules() -> None:
+    owners: dict[str, str] = {}
+    for entry in catalog.RULE_CATALOG:
+        for code in entry.finding_codes:
+            assert code not in owners or owners[code] == entry.id, code
+            owners[code] = entry.id
+
+
+def test_every_quality_metric_path_has_an_objective_id() -> None:
+    from tournament_scheduler.quality_objectives import QUALITY_METRIC_PATHS
+
+    missing = [
+        path for path, _direction in QUALITY_METRIC_PATHS if catalog.rule_id_for_score_path(path) is None
+    ]
+    assert missing == [], "quality metric paths without an objective ID: " + ", ".join(missing)
+
+
+def test_compare_quality_scores_carries_objective_ids() -> None:
+    from tournament_scheduler.quality_objectives import compare_quality_scores
+
+    report = {
+        "participation": {"spread": 1},
+        "opponent_diversity": {"max_pair_repeat": 2},
+        "hosting": {"spread": 1},
+        "home_representation": {"max_material_spread": 1},
+        "temporal": {"max_gap_days": 10, "offenders_count": 0},
+        "turnaround": {"gaps_under_days": {7: 0, 14: 0}},
+    }
+    comparison = compare_quality_scores(dict(report), dict(report))
+    by_metric = {metric["metric"]: metric for metric in comparison["metrics"]}
+    assert by_metric["hosting.spread"]["objective_id"] == "hosting_proportional_balance"
+    assert by_metric["participation.spread"]["objective_id"] == "participation_target"
+
+
 def test_precedence_references_are_registered_and_acyclic() -> None:
     for entry in catalog.RULE_CATALOG:
         for reference in (*entry.precedes, *entry.depends_on):
@@ -214,6 +313,12 @@ def test_rules_model_entries_reuse_catalog_identity() -> None:
     assert by_id["hosting_obligation_coverage"]["catalog_id"] == "hosting_age_group_coverage"
     assert by_id["arena_day_collisions"]["catalog_id"] == "arena_interval_non_overlap"
     assert by_id["age_group_exact_match"]["catalog_id"] == "team_age_group_exact"
+    assert by_id["participation_shortfalls"]["catalog_id"] == "participation_target"
+    # Any attached identity must point at a real catalog entry.
+    for rule in rules:
+        catalog_id = rule.get("catalog_id")
+        if catalog_id:
+            assert catalog_id in catalog.CATALOG_BY_ID, rule["id"]
 
 
 def test_hosting_responsibility_finding_code_matches_owner() -> None:

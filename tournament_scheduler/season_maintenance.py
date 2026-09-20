@@ -48,6 +48,7 @@ from .request_constraints import (
     constraint_violations,
     request_constraint_report,
 )
+from .rule_catalog import annotate_findings
 from .season_state import (
     DEFAULT_SEASON_ROOT,
     canonical_state_revision,
@@ -313,8 +314,12 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verification)
     counts: Dict[str, int] = {}
+    counts_by_rule_id: Dict[str, int] = {}
     for finding in findings:
         counts[finding["code"]] = counts.get(finding["code"], 0) + 1
+        rule_id = finding.get("rule_id")
+        if rule_id:
+            counts_by_rule_id[str(rule_id)] = counts_by_rule_id.get(str(rule_id), 0) + 1
     return {
         "schema_version": SEASON_MAINTENANCE_SCHEMA_VERSION,
         "season": season,
@@ -323,6 +328,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
         "verification_ok": bool(verification.get("ok")),
         "finding_count": len(findings),
         "counts_by_code": counts,
+        "counts_by_rule_id": counts_by_rule_id,
         "findings": findings,
         "request_constraints": _request_constraint_context(plan, decisions),
     }
@@ -850,6 +856,10 @@ def _findings(
     findings.extend(_spacing_findings(problem, plan))
     findings.extend(_home_representation_findings(problem, plan))
     findings.sort(key=lambda entry: (entry["category"], entry["finding_id"]))
+    # Attach the stable catalog rule ID to every finding whose code is a
+    # registered semantic, so the controller payload carries identity instead
+    # of prose categories alone.
+    annotate_findings(findings)
     # Every finding carries a coverage view so a controller never has to infer
     # "untried dimensions remain" from the absence of options. The unplaced
     # provider already attached its authoritative per-obligation coverage; the

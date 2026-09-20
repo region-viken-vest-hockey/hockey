@@ -165,6 +165,7 @@ _HARD: tuple[RuleEntry, ...] = (
         evidence_projection=("verify_candidate.violations", "verify_candidate.input_constrained_shapes"),
         tests=("tests/test_effective_tournament_shape.py", "tests/test_planning_contract.py"),
         verifier_codes=("bye_team_not_allowed",),
+        finding_codes=("input_constrained_shape",),
     ),
     RuleEntry(
         id="club_hard_max",
@@ -562,7 +563,12 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
             "rules_model hosting_obligation_coverage",
         ),
         tests=("tests/test_hosting_coverage.py", "tests/test_hosting_same_age_repair.py"),
-        finding_codes=("unresolved_hosting_obligations", "unresolved_hosting"),
+        finding_codes=(
+            "unresolved_hosting_obligations",
+            "unresolved_hosting",
+            "unresolved_hosting_obligation",
+        ),
+        score_paths=("hosting.unresolved_obligations_count",),
         precedes=("hosting_proportional_balance",),
         depends_on=("host_representation",),
     ),
@@ -603,7 +609,7 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
         mutation_providers=("unplaced_placement_repair", "host_placement_repair"),
         evidence_projection=("plan.unresolved_tournament_placements", "manual work items"),
         tests=("tests/test_placement_normalization.py", "tests/test_unplaced_placement_repair.py"),
-        finding_codes=("unplaced_placement",),
+        finding_codes=("unplaced_placement", "unplaced_tournament_placement"),
     ),
     RuleEntry(
         id="guest_reservation_integrity",
@@ -649,7 +655,7 @@ _SOFT: tuple[RuleEntry, ...] = (
         ),
         tests=("tests/test_hosting_coverage.py",),
         score_paths=("hosting.spread",),
-        finding_codes=("hosting_balance_imbalances",),
+        finding_codes=("hosting_balance_imbalances", "hosting_balance_imbalance"),
         depends_on=("hosting_age_group_coverage",),
     ),
     RuleEntry(
@@ -670,12 +676,22 @@ _SOFT: tuple[RuleEntry, ...] = (
             "score_candidate.participation.*",
             "verify_candidate.participation_deviations",
             "rules_model participation_target_deviation",
+            "rules_model participation_shortfalls",
         ),
         tests=("tests/test_participation_targets.py",),
-        finding_codes=("participation_target_deviation", "participation_shortfalls"),
+        finding_codes=(
+            "participation_target_deviation",
+            "participation_shortfalls",
+            "participation_deviation",
+        ),
         score_paths=(
             "participation.spread",
             "participation.club_pool_unresolved_avoidable_deviation_count",
+            "participation.club_pool_unresolved_shortfall_count",
+            "participation.club_pool_unresolved_season_total_absolute_deviation",
+            "participation.club_pool_unresolved_max_team_season_deviation",
+            "participation.club_pool_unresolved_half_total_absolute_deviation",
+            "participation.club_pool_unresolved_max_team_half_deviation",
         ),
     ),
     RuleEntry(
@@ -707,8 +723,11 @@ _SOFT: tuple[RuleEntry, ...] = (
         mutation_providers=("home_representation_repair",),
         evidence_projection=("score_candidate.home_representation.*", "rules_model"),
         tests=("tests/test_home_representation.py",),
-        finding_codes=("home_representation",),
-        score_paths=("home_representation.max_material_spread",),
+        finding_codes=("home_representation", "home_representation_skew"),
+        score_paths=(
+            "home_representation.max_material_spread",
+            "home_representation.material_skew_pool_count",
+        ),
     ),
     RuleEntry(
         id="opponent_repetition",
@@ -719,7 +738,12 @@ _SOFT: tuple[RuleEntry, ...] = (
         verifier_owner="tournament_scheduler.planning_contract.score_candidate",
         evidence_projection=("score_candidate.opponent_diversity.*", "rules_model pairwise_matchups"),
         tests=("tests/test_quality_objectives.py",),
-        score_paths=("opponent_diversity.max_pair_repeat", "opponent_diversity.pairs_meeting_3_plus"),
+        score_paths=(
+            "opponent_diversity.unique_pairs",
+            "opponent_diversity.pairwise_novelty",
+            "opponent_diversity.max_pair_repeat",
+            "opponent_diversity.pairs_meeting_3_plus",
+        ),
     ),
     RuleEntry(
         id="inter_club_diversity",
@@ -730,7 +754,13 @@ _SOFT: tuple[RuleEntry, ...] = (
         verifier_owner="tournament_scheduler.planning_contract.score_candidate",
         evidence_projection=("score_candidate.opponent_diversity.inter_club_diversity",),
         tests=("tests/test_quality_objectives.py",),
-        score_paths=("opponent_diversity.inter_club_diversity", "opponent_diversity.same_club_pairing_count"),
+        score_paths=(
+            "opponent_diversity.inter_club_diversity",
+            "opponent_diversity.same_club_pairing_count",
+            "opponent_diversity.max_same_club_teams_per_tournament",
+            "opponent_diversity.club_count_excess_over_2",
+            "opponent_diversity.tournaments_with_3plus_same_club",
+        ),
     ),
     RuleEntry(
         id="temporal_spacing",
@@ -741,7 +771,12 @@ _SOFT: tuple[RuleEntry, ...] = (
         verifier_owner="tournament_scheduler.planning_contract.score_candidate",
         evidence_projection=("score_candidate.turnaround.*", "rules_model"),
         tests=("tests/test_team_schedule_quality.py", "tests/test_fairness_temporal.py"),
-        score_paths=("turnaround.gaps_under_days.7", "turnaround.gaps_under_days.14"),
+        score_paths=(
+            "turnaround.min_turnaround_days",
+            "turnaround.gaps_under_days.7",
+            "turnaround.gaps_under_days.14",
+        ),
+        finding_codes=("temporal_clustering",),
     ),
     RuleEntry(
         id="temporal_coverage",
@@ -833,6 +868,7 @@ _DECISIONS: tuple[RuleEntry, ...] = (
         verifier_owner="tournament_scheduler.operational_acceptability",
         evidence_projection=("operational_acceptable / requires_operational_opt_in", "decisions.json audit"),
         tests=("tests/test_operational_acceptability.py",),
+        finding_codes=("manual_placement",),
     ),
     RuleEntry(
         id="guest_slot_reservation",
@@ -892,7 +928,11 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
         mutation_providers=("movable_capacity_repair",),
         evidence_projection=("movable_allocations_used", "manual_external_conflict_placements"),
         tests=("tests/test_calendar_availability.py", "tests/test_movable_capacity_repair.py"),
-        finding_codes=("external_calendar_conflicts", "movable_host_confirmation_required"),
+        finding_codes=(
+            "external_calendar_conflicts",
+            "movable_host_confirmation_required",
+            "movable_capacity_opportunity",
+        ),
     ),
     RuleEntry(
         id="club_pool_classification",
@@ -980,6 +1020,7 @@ RULES_MODEL_ID_TO_RULE_ID: dict[str, str] = {
     "tournament_placement_shortfall": "tournament_placement_obligation",
     "external_calendar_conflicts": "calendar_interval_classification",
     "participation_target_deviation": "participation_target",
+    "participation_shortfalls": "participation_target",
     "participation_targets_by_age_group": "participation_target",
     "club_participation_fairness": "intra_club_participation_distribution",
     "pairwise_matchups": "opponent_repetition",
@@ -1017,6 +1058,36 @@ def rule_id_for_finding_code(code: str) -> str | None:
         if code in entry.finding_codes:
             return entry.id
     return None
+
+
+def rule_id_for_score_path(path: str) -> str | None:
+    """Map a ``score_candidate`` score path to its stable catalog objective ID."""
+    for entry in RULE_CATALOG:
+        if path in entry.score_paths:
+            return entry.id
+    return None
+
+
+def annotate_findings(findings: list[dict[str, Any]]) -> None:
+    """Attach the stable ``rule_id`` to each finding dict in place.
+
+    Called at the season-findings projection boundary only. A finding code is
+    resolved first as a finding code and then as a verifier code, so a finding
+    that re-surfaces a raw verifier violation keeps the same identity as the
+    violation it came from. Internal helper code does not need to know the
+    full catalog; identity belongs at the semantic/application boundary.
+    """
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        if finding.get("rule_id"):
+            continue
+        code = finding.get("code")
+        if not isinstance(code, str):
+            continue
+        rule_id = rule_id_for_finding_code(code) or rule_id_for_verifier_code(code)
+        if rule_id:
+            finding["rule_id"] = rule_id
 
 
 def annotate_violations(violations: list[dict[str, Any]]) -> None:
@@ -1255,6 +1326,21 @@ def render_markdown() -> str:
         "`arena_interval_non_overlap`) to find the owning facade, its verifier and its tests",
         "before editing code.",
         "",
+        "## Stable identity in deterministic outputs",
+        "",
+        "The catalog is the one source of rule/objective identity, and the semantic/application",
+        "boundaries reuse it instead of re-deriving prose:",
+        "",
+        "* verifier violations carry `rule_id` (attached by `annotate_violations`);",
+        "* `season findings` carry `rule_id` per finding plus a `counts_by_rule_id` summary",
+        "  (attached by `annotate_findings`);",
+        "* quality/score metrics in `compare_quality_scores` carry `objective_id` for every",
+        "  registered score path;",
+        "* the Regler/rules model carries `catalog_id` per per-run row.",
+        "",
+        "`rule_id_for_verifier_code`, `rule_id_for_finding_code` and `rule_id_for_score_path`",
+        "own the lookups; callers must not hard-code a second mapping.",
+        "",
         "## How to use this catalog",
         "",
         "Before introducing a new rule because of a production failure, determine which case it is:",
@@ -1332,13 +1418,16 @@ def render_markdown() -> str:
         lines.extend(["", f"## {title}", ""])
         lines.extend(_summary_table(entries_by_classification(classification)))
 
-    lines.extend(["", "## Verifier code -> rule ID", "", "| Verifier code | Rule ID |", "|---|---|"])
+    lines.extend(["", "## Stable ID map", "", "| Emitted code / score path | Rule / objective ID |", "|---|---|"])
     for entry in RULE_CATALOG:
         for code in entry.verifier_codes:
-            lines.append(f"| `{code}` | `{entry.id}` |")
+            lines.append(f"| `{code}` (verifier) | `{entry.id}` |")
     for entry in RULE_CATALOG:
         for code in entry.finding_codes:
             lines.append(f"| `{code}` (finding) | `{entry.id}` |")
+    for entry in RULE_CATALOG:
+        for path in entry.score_paths:
+            lines.append(f"| `{path}` (score) | `{entry.id}` |")
     lines.append("")
 
     lines.extend(["## Entry details", ""])

@@ -13,6 +13,21 @@ Search this page for a rule ID (for example `host_representation`,
 `arena_interval_non_overlap`) to find the owning facade, its verifier and its tests
 before editing code.
 
+## Stable identity in deterministic outputs
+
+The catalog is the one source of rule/objective identity, and the semantic/application
+boundaries reuse it instead of re-deriving prose:
+
+* verifier violations carry `rule_id` (attached by `annotate_violations`);
+* `season findings` carry `rule_id` per finding plus a `counts_by_rule_id` summary
+  (attached by `annotate_findings`);
+* quality/score metrics in `compare_quality_scores` carry `objective_id` for every
+  registered score path;
+* the Regler/rules model carries `catalog_id` per per-run row.
+
+`rule_id_for_verifier_code`, `rule_id_for_finding_code` and `rule_id_for_score_path`
+own the lookups; callers must not hard-code a second mapping.
+
 ## How to use this catalog
 
 Before introducing a new rule because of a production failure, determine which case it is:
@@ -158,66 +173,101 @@ candidate regresses a higher-priority operational obligation.
 | `approval_lifecycle` | Operator approvals/locks live in decisions.json separately from schedule facts. A protected placement whose fingerprint changed becomes a stale approval whose lock is dropped; an approval whose tournament is gone becomes orphaned. Both require re-review. | `tournament_scheduler.canonical_baseline` | — | `tests/test_approval_lifecycle.py`, `tests/test_canonical_baseline.py` |
 | `verification_completeness` | Verification reports which checks were skipped because their required input was unavailable. An incomplete verification is never a pass. | `tournament_scheduler.planning_contract` | — | `tests/test_planning_contract.py` |
 
-## Verifier code -> rule ID
+## Stable ID map
 
-| Verifier code | Rule ID |
+| Emitted code / score path | Rule / objective ID |
 |---|---|
-| `age_group_mismatch` | `team_age_group_exact` |
-| `duplicate_team_in_tournament` | `team_unique_in_tournament` |
-| `duplicate_participation_same_date` | `team_unique_per_date` |
-| `bye_team_not_allowed` | `tournament_roster_shape` |
-| `club_hard_max_exceeded` | `club_hard_max` |
-| `arena_interval_conflict` | `arena_interval_non_overlap` |
-| `arena_interval_check_failed` | `arena_interval_non_overlap` |
-| `tournament_over_capacity` | `tournament_capacity` |
-| `tournament_under_minimum` | `tournament_min_size` |
-| `parallel_capacity_exceeded` | `parallel_capacity` |
-| `unregistered_team` | `registered_teams_only` |
-| `invalid_date` | `valid_tournament_date` |
-| `date_outside_window` | `date_within_window` |
-| `holiday_date_used` | `holiday_date_admissible` |
-| `banned_date_used` | `banned_dates_not_used` |
-| `excluded_host_club_used` | `excluded_host_club_not_used` |
-| `host_team_missing` | `host_representation` |
-| `locked_date_missing` | `locked_date_preserved` |
-| `pinned_tournament_missing` | `pinned_tournament_preserved` |
-| `canonical_locked_tournament_missing` | `canonical_locked_tournament_preserved` |
-| `canonical_placement_locked` | `canonical_placement_preserved` |
-| `canonical_participants_locked` | `canonical_participants_preserved` |
-| `participation_hard_max_exceeded` | `participation_hard_max` |
-| `game_team_not_participant` | `game_team_membership` |
-| `invalid_game_record` | `valid_game_record` |
-| `invalid_game_round` | `game_round_integrity` |
-| `game_integrity_ambiguous_participants` | `game_integrity_ambiguous_participants` |
-| `round_robin_missing_pair` | `round_robin_pairing` |
-| `round_robin_duplicate_pair` | `round_robin_pairing` |
-| `team_double_booked_in_round` | `team_unique_per_round` |
-| `configured_round_count_mismatch` | `tournament_round_count` |
-| `avoidable_same_club_matchup` | `intra_club_game_minimum` |
-| `team_unavailable` | `request_team_unavailable` |
-| `minimum_gap` | `request_minimum_gap` |
-| `opponent_avoidance` | `request_opponent_avoidance` |
-| `stale_approval` | `approval_lifecycle` |
-| `orphaned_approval` | `approval_lifecycle` |
+| `age_group_mismatch` (verifier) | `team_age_group_exact` |
+| `duplicate_team_in_tournament` (verifier) | `team_unique_in_tournament` |
+| `duplicate_participation_same_date` (verifier) | `team_unique_per_date` |
+| `bye_team_not_allowed` (verifier) | `tournament_roster_shape` |
+| `club_hard_max_exceeded` (verifier) | `club_hard_max` |
+| `arena_interval_conflict` (verifier) | `arena_interval_non_overlap` |
+| `arena_interval_check_failed` (verifier) | `arena_interval_non_overlap` |
+| `tournament_over_capacity` (verifier) | `tournament_capacity` |
+| `tournament_under_minimum` (verifier) | `tournament_min_size` |
+| `parallel_capacity_exceeded` (verifier) | `parallel_capacity` |
+| `unregistered_team` (verifier) | `registered_teams_only` |
+| `invalid_date` (verifier) | `valid_tournament_date` |
+| `date_outside_window` (verifier) | `date_within_window` |
+| `holiday_date_used` (verifier) | `holiday_date_admissible` |
+| `banned_date_used` (verifier) | `banned_dates_not_used` |
+| `excluded_host_club_used` (verifier) | `excluded_host_club_not_used` |
+| `host_team_missing` (verifier) | `host_representation` |
+| `locked_date_missing` (verifier) | `locked_date_preserved` |
+| `pinned_tournament_missing` (verifier) | `pinned_tournament_preserved` |
+| `canonical_locked_tournament_missing` (verifier) | `canonical_locked_tournament_preserved` |
+| `canonical_placement_locked` (verifier) | `canonical_placement_preserved` |
+| `canonical_participants_locked` (verifier) | `canonical_participants_preserved` |
+| `participation_hard_max_exceeded` (verifier) | `participation_hard_max` |
+| `game_team_not_participant` (verifier) | `game_team_membership` |
+| `invalid_game_record` (verifier) | `valid_game_record` |
+| `invalid_game_round` (verifier) | `game_round_integrity` |
+| `game_integrity_ambiguous_participants` (verifier) | `game_integrity_ambiguous_participants` |
+| `round_robin_missing_pair` (verifier) | `round_robin_pairing` |
+| `round_robin_duplicate_pair` (verifier) | `round_robin_pairing` |
+| `team_double_booked_in_round` (verifier) | `team_unique_per_round` |
+| `configured_round_count_mismatch` (verifier) | `tournament_round_count` |
+| `avoidable_same_club_matchup` (verifier) | `intra_club_game_minimum` |
+| `team_unavailable` (verifier) | `request_team_unavailable` |
+| `minimum_gap` (verifier) | `request_minimum_gap` |
+| `opponent_avoidance` (verifier) | `request_opponent_avoidance` |
+| `stale_approval` (verifier) | `approval_lifecycle` |
+| `orphaned_approval` (verifier) | `approval_lifecycle` |
+| `input_constrained_shape` (finding) | `tournament_roster_shape` |
 | `unresolved_hosting_obligations` (finding) | `hosting_age_group_coverage` |
 | `unresolved_hosting` (finding) | `hosting_age_group_coverage` |
+| `unresolved_hosting_obligation` (finding) | `hosting_age_group_coverage` |
 | `unexplained_hosting_responsibility_transfer` (finding) | `hosting_responsibility` |
 | `unplaced_placement` (finding) | `tournament_placement_obligation` |
+| `unplaced_tournament_placement` (finding) | `tournament_placement_obligation` |
 | `hosting_balance_imbalances` (finding) | `hosting_proportional_balance` |
+| `hosting_balance_imbalance` (finding) | `hosting_proportional_balance` |
 | `participation_target_deviation` (finding) | `participation_target` |
 | `participation_shortfalls` (finding) | `participation_target` |
+| `participation_deviation` (finding) | `participation_target` |
 | `intra_club_participation_distribution` (finding) | `intra_club_participation_distribution` |
 | `home_representation` (finding) | `home_representation` |
+| `home_representation_skew` (finding) | `home_representation` |
+| `temporal_clustering` (finding) | `temporal_spacing` |
 | `operator_waivers` (finding) | `operator_waiver` |
+| `manual_placement` (finding) | `manual_placement_opt_in` |
 | `manual_calendar_placements` (finding) | `calendar_source_trust` |
 | `external_calendar_conflicts` (finding) | `calendar_interval_classification` |
 | `movable_host_confirmation_required` (finding) | `calendar_interval_classification` |
+| `movable_capacity_opportunity` (finding) | `calendar_interval_classification` |
 | `bounded_search_exhausted` (finding) | `search_coverage_evidence` |
 | `proven_infeasible` (finding) | `search_coverage_evidence` |
 | `search_incomplete` (finding) | `search_coverage_evidence` |
 | `stale_approvals` (finding) | `approval_lifecycle` |
 | `orphaned_approvals` (finding) | `approval_lifecycle` |
 | `incomplete_verification` (finding) | `verification_completeness` |
+| `hosting.unresolved_obligations_count` (score) | `hosting_age_group_coverage` |
+| `hosting.spread` (score) | `hosting_proportional_balance` |
+| `participation.spread` (score) | `participation_target` |
+| `participation.club_pool_unresolved_avoidable_deviation_count` (score) | `participation_target` |
+| `participation.club_pool_unresolved_shortfall_count` (score) | `participation_target` |
+| `participation.club_pool_unresolved_season_total_absolute_deviation` (score) | `participation_target` |
+| `participation.club_pool_unresolved_max_team_season_deviation` (score) | `participation_target` |
+| `participation.club_pool_unresolved_half_total_absolute_deviation` (score) | `participation_target` |
+| `participation.club_pool_unresolved_max_team_half_deviation` (score) | `participation_target` |
+| `home_representation.max_material_spread` (score) | `home_representation` |
+| `home_representation.material_skew_pool_count` (score) | `home_representation` |
+| `opponent_diversity.unique_pairs` (score) | `opponent_repetition` |
+| `opponent_diversity.pairwise_novelty` (score) | `opponent_repetition` |
+| `opponent_diversity.max_pair_repeat` (score) | `opponent_repetition` |
+| `opponent_diversity.pairs_meeting_3_plus` (score) | `opponent_repetition` |
+| `opponent_diversity.inter_club_diversity` (score) | `inter_club_diversity` |
+| `opponent_diversity.same_club_pairing_count` (score) | `inter_club_diversity` |
+| `opponent_diversity.max_same_club_teams_per_tournament` (score) | `inter_club_diversity` |
+| `opponent_diversity.club_count_excess_over_2` (score) | `inter_club_diversity` |
+| `opponent_diversity.tournaments_with_3plus_same_club` (score) | `inter_club_diversity` |
+| `turnaround.min_turnaround_days` (score) | `temporal_spacing` |
+| `turnaround.gaps_under_days.7` (score) | `temporal_spacing` |
+| `turnaround.gaps_under_days.14` (score) | `temporal_spacing` |
+| `temporal.max_gap_days` (score) | `temporal_coverage` |
+| `temporal.offenders_count` (score) | `temporal_coverage` |
+| `travel` (score) | `travel_distance` |
 
 ## Entry details
 
@@ -267,7 +317,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.effective_tournament_shape`  
 **Input / fact source:** planning_problem registered pool + rounds_per_tournament  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
-**Codes:** verifier `bye_team_not_allowed` · finding — · score —  
+**Codes:** verifier `bye_team_not_allowed` · finding `input_constrained_shape` · score —  
 **Providers:** mutation `tournament_scheduler.participant_roster_sizing` · search `tournament_scheduler.participant_roster_repair`  
 **Evidence / report:** `verify_candidate.violations`, `verify_candidate.input_constrained_shapes`  
 **Tests:** `tests/test_effective_tournament_shape.py`, `tests/test_planning_contract.py`  
@@ -657,7 +707,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.hosting_coverage.hosting_targets_with_coverage_floor`  
 **Input / fact source:** planning_problem.teams + candidate tournaments (hosting_coverage_matrix)  
 **Verifier / measurement:** `tournament_scheduler.hosting_coverage.hosting_coverage_matrix`  
-**Codes:** verifier — · finding `unresolved_hosting_obligations`, `unresolved_hosting` · score —  
+**Codes:** verifier — · finding `unresolved_hosting_obligations`, `unresolved_hosting`, `unresolved_hosting_obligation` · score `hosting.unresolved_obligations_count`  
 **Providers:** mutation `hosting_balance_repair`, `host_placement_repair`, `unplaced_placement_repair`, `hosting_same_age_repair`, `hosting_cross_age_repair` · search `tournament_scheduler.search_neighborhood_repair`  
 **Evidence / report:** `plan.unresolved_hosting_obligations`, `verify_candidate.unresolved_hosting_obligations`, `publication_readiness unresolved_hosting`, `rules_model hosting_obligation_coverage`  
 **Tests:** `tests/test_hosting_coverage.py`, `tests/test_hosting_same_age_repair.py`  
@@ -683,7 +733,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.placement_normalization`  
 **Input / fact source:** candidate placements + host calendar availability  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
-**Codes:** verifier — · finding `unplaced_placement` · score —  
+**Codes:** verifier — · finding `unplaced_placement`, `unplaced_tournament_placement` · score —  
 **Providers:** mutation `unplaced_placement_repair`, `host_placement_repair` · search —  
 **Evidence / report:** `plan.unresolved_tournament_placements`, `manual work items`  
 **Tests:** `tests/test_placement_normalization.py`, `tests/test_unplaced_placement_repair.py`  
@@ -709,7 +759,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.hosting_coverage.hosting_balance_matrix`  
 **Input / fact source:** planning_problem.teams + candidate tournaments  
 **Verifier / measurement:** `tournament_scheduler.hosting_coverage.material_hosting_balance_imbalances`  
-**Codes:** verifier — · finding `hosting_balance_imbalances` · score `hosting.spread`  
+**Codes:** verifier — · finding `hosting_balance_imbalances`, `hosting_balance_imbalance` · score `hosting.spread`  
 **Providers:** mutation `hosting_balance_repair` · search —  
 **Evidence / report:** `score_candidate.hosting.spread`, `verify_candidate.hosting_balance_imbalances`, `rules_model hosting_deviation`  
 **Tests:** `tests/test_hosting_coverage.py`  
@@ -722,9 +772,9 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.participation_targets`  
 **Input / fact source:** controlled workbook participation_targets_by_age_group / explicit team targets  
 **Verifier / measurement:** `tournament_scheduler.participation_targets.evaluate_participation`  
-**Codes:** verifier — · finding `participation_target_deviation`, `participation_shortfalls` · score `participation.spread`, `participation.club_pool_unresolved_avoidable_deviation_count`  
+**Codes:** verifier — · finding `participation_target_deviation`, `participation_shortfalls`, `participation_deviation` · score `participation.spread`, `participation.club_pool_unresolved_avoidable_deviation_count`, `participation.club_pool_unresolved_shortfall_count`, `participation.club_pool_unresolved_season_total_absolute_deviation`, `participation.club_pool_unresolved_max_team_season_deviation`, `participation.club_pool_unresolved_half_total_absolute_deviation`, `participation.club_pool_unresolved_max_team_half_deviation`  
 **Providers:** mutation `tournament_scheduler.participation_deviation_repair` · search `tournament_scheduler.stage3_optimizer`  
-**Evidence / report:** `score_candidate.participation.*`, `verify_candidate.participation_deviations`, `rules_model participation_target_deviation`  
+**Evidence / report:** `score_candidate.participation.*`, `verify_candidate.participation_deviations`, `rules_model participation_target_deviation`, `rules_model participation_shortfalls`  
 **Tests:** `tests/test_participation_targets.py`  
 **Precedence:** precedes — · depends on —
 
@@ -748,7 +798,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.home_representation`  
 **Input / fact source:** candidate host club + tournament roster  
 **Verifier / measurement:** `tournament_scheduler.home_representation`  
-**Codes:** verifier — · finding `home_representation` · score `home_representation.max_material_spread`  
+**Codes:** verifier — · finding `home_representation`, `home_representation_skew` · score `home_representation.max_material_spread`, `home_representation.material_skew_pool_count`  
 **Providers:** mutation `home_representation_repair` · search —  
 **Evidence / report:** `score_candidate.home_representation.*`, `rules_model`  
 **Tests:** `tests/test_home_representation.py`  
@@ -761,7 +811,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.quality_objectives`  
 **Input / fact source:** candidate generated games  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.score_candidate`  
-**Codes:** verifier — · finding — · score `opponent_diversity.max_pair_repeat`, `opponent_diversity.pairs_meeting_3_plus`  
+**Codes:** verifier — · finding — · score `opponent_diversity.unique_pairs`, `opponent_diversity.pairwise_novelty`, `opponent_diversity.max_pair_repeat`, `opponent_diversity.pairs_meeting_3_plus`  
 **Providers:** mutation — · search —  
 **Evidence / report:** `score_candidate.opponent_diversity.*`, `rules_model pairwise_matchups`  
 **Tests:** `tests/test_quality_objectives.py`  
@@ -774,7 +824,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.quality_objectives`  
 **Input / fact source:** candidate generated games  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.score_candidate`  
-**Codes:** verifier — · finding — · score `opponent_diversity.inter_club_diversity`, `opponent_diversity.same_club_pairing_count`  
+**Codes:** verifier — · finding — · score `opponent_diversity.inter_club_diversity`, `opponent_diversity.same_club_pairing_count`, `opponent_diversity.max_same_club_teams_per_tournament`, `opponent_diversity.club_count_excess_over_2`, `opponent_diversity.tournaments_with_3plus_same_club`  
 **Providers:** mutation — · search —  
 **Evidence / report:** `score_candidate.opponent_diversity.inter_club_diversity`  
 **Tests:** `tests/test_quality_objectives.py`  
@@ -787,7 +837,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.team_schedule_quality`  
 **Input / fact source:** candidate tournament dates per team  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.score_candidate`  
-**Codes:** verifier — · finding — · score `turnaround.gaps_under_days.7`, `turnaround.gaps_under_days.14`  
+**Codes:** verifier — · finding `temporal_clustering` · score `turnaround.min_turnaround_days`, `turnaround.gaps_under_days.7`, `turnaround.gaps_under_days.14`  
 **Providers:** mutation — · search —  
 **Evidence / report:** `score_candidate.turnaround.*`, `rules_model`  
 **Tests:** `tests/test_team_schedule_quality.py`, `tests/test_fairness_temporal.py`  
@@ -865,7 +915,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.operational_acceptability`  
 **Input / fact source:** current canonical baseline + candidate placements  
 **Verifier / measurement:** `tournament_scheduler.operational_acceptability`  
-**Codes:** verifier — · finding — · score —  
+**Codes:** verifier — · finding `manual_placement` · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `operational_acceptable / requires_operational_opt_in`, `decisions.json audit`  
 **Tests:** `tests/test_operational_acceptability.py`  
@@ -917,7 +967,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.calendar_availability`  
 **Input / fact source:** configured/stage-2 calendar intervals  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.external_calendar_conflict`  
-**Codes:** verifier — · finding `external_calendar_conflicts`, `movable_host_confirmation_required` · score —  
+**Codes:** verifier — · finding `external_calendar_conflicts`, `movable_host_confirmation_required`, `movable_capacity_opportunity` · score —  
 **Providers:** mutation `movable_capacity_repair` · search —  
 **Evidence / report:** `movable_allocations_used`, `manual_external_conflict_placements`  
 **Tests:** `tests/test_calendar_availability.py`, `tests/test_movable_capacity_repair.py`  

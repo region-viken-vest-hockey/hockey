@@ -180,6 +180,21 @@ def test_findings_expose_unresolved_hosting_obligation_bound_to_revision(tmp_pat
     assert hosting[0]["deficit"] == 1
 
 
+def test_findings_carry_stable_catalog_rule_ids(tmp_path: Path) -> None:
+    root, _plan, _problem_dict, _revision = _two_club_season(tmp_path)
+
+    findings = list_findings(YEAR, root=root)
+
+    hosting = next(
+        finding
+        for finding in findings["findings"]
+        if finding["code"] == "unresolved_hosting_obligation"
+    )
+    assert hosting["rule_id"] == "hosting_age_group_coverage"
+    # The stable identity is summarised alongside the prose code counts.
+    assert findings["counts_by_rule_id"]["hosting_age_group_coverage"] == 1
+
+
 def test_unrelated_findings_do_not_impose_queue_order(tmp_path: Path) -> None:
     teams = _teams(["Nordby", "Sorby"])
     problem = _problem(
