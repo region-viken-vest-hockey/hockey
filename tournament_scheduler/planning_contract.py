@@ -66,6 +66,7 @@ from tournament_scheduler.operator_waivers import find_participation_waiver
 from tournament_scheduler.participation_targets import SEASON_SCOPE, evaluate_participation
 from tournament_scheduler.tournament_identity import validate_tournament_identity
 from tournament_scheduler.planning_contract_distribution import (
+    home_representation as _home_representation,
     hosting_fairness as _hosting_fairness,
     month_and_half_distribution as _month_and_half_distribution,
 )
@@ -1601,6 +1602,12 @@ def score_candidate(
     # --- hosting fairness --------------------------------------------------
     host_counts, hosting_spread, hosting_coverage = _hosting_fairness(tournaments, problem)
 
+    # --- intra-club home representation ------------------------------------
+    # Hosting coverage/balance says nothing about *which* sibling team shows up
+    # when a multi-team club hosts its own tournament. This is the shared
+    # accounting the objective model and the repair provider both consume.
+    home_representation_facts = _home_representation(tournaments, problem)
+
     # --- month distribution --------------------------------------------------
     month_counts, half_counts, half_deviation_pct = _month_and_half_distribution(
         tournaments, split_date, _parse_date
@@ -1640,6 +1647,7 @@ def score_candidate(
             "spread": hosting_spread,
             **hosting_coverage,
         },
+        "home_representation": home_representation_facts,
         "month_distribution": month_counts,
         "half_distribution": half_counts,
         "half_deviation_pct": half_deviation_pct,

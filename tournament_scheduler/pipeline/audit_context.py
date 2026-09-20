@@ -322,12 +322,14 @@ def _collect_plan_audit_facts(
     # when unavailable (audit evidence, not a gate, so a graceful fallback is
     # fine here).
     registered_count_by_age_group: Counter[str] = Counter()
+    registered_teams: list[dict[str, Any]] = []
     rounds_per_tournament: dict[str, Any] = {}
     if isinstance(config_checkpoint, dict):
         ice_times = dict(config_checkpoint.get("ice_time_minutes") or {})
         rounds_per_tournament = dict(config_checkpoint.get("rounds_per_tournament") or {})
         for team in config_checkpoint.get("teams") or []:
             if isinstance(team, dict) and team.get("age_group"):
+                registered_teams.append(team)
                 registered_count_by_age_group[str(team["age_group"])] += 1
 
     duration_examples: list[dict[str, Any]] = []
@@ -502,6 +504,13 @@ def _collect_plan_audit_facts(
         )
     )
 
+    # issue #408: intra-club home representation. The registered roster is
+    # required to know the sibling pool, so this degrades gracefully to an
+    # empty list when the config checkpoint carries no teams.
+    from tournament_scheduler.home_representation import home_representation_rows
+
+    home_representation = home_representation_rows(registered_teams, tournaments)
+
     return {
         "tournament_count": len(tournaments),
         "game_count": sum(len(t.get("games") or []) for t in tournaments),
@@ -528,6 +537,10 @@ def _collect_plan_audit_facts(
         # judge tell an acceptable, capacity-limited proportional shortfall
         # apart from a genuine planner fairness defect.
         "club_participation_fairness": list(plan_dict.get("club_participation_fairness") or []),
+        # issue #408: per-sibling home-tournament representation for every
+        # multi-team club x age-group pool, so a case like
+        # ``Ringerike U12: R1=1, R2=6`` is visible to the semantic audit.
+        "home_representation": home_representation,
         # issue #327: per-team shortfall category/reason (e.g.
         # `participation_under_target_club_share_ok` vs the generic
         # `participation_under_target`), reconciled onto the plan by Stage 4
@@ -580,6 +593,43 @@ def _summarize_club_pools(pools: list[dict[str, Any]]) -> dict[str, Any]:
         "unresolved_examples": unresolved[: audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
         "intra_club_distribution_examples": intra[: audit_evidence.EVIDENCE_OVERVIEW_MAX_EXAMPLES],
         "evidence_ref": "operator audit-evidence --category participation_club_pools",
+    }
+
+
+def _summarize_home_representation(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Bounded overview of the intra-club home-representation accounting.
+
+    Counts the multi-team pools and shows the most skewed examples (with the
+    per-sibling appearance counts) so the semantic audit can answer "are home
+    tournaments spread across the club's teams?" without loading every pool.
+    """
+    working = [row for row in rows if isinstance(row, dict)]
+    skewed = [row for row in working if not row.get("balanced")]
+    skewed.sort(
+        key=lambda row: (
+            -int(row.get("material_spread") or 0),
+            str(row.get("club") or ""),
+            str(row.get("age_group") or ""),
+        )
+    )
+    examples = [
+        {
+            "club": row.get("club"),
+            "age_group": row.get("age_group"),
+            "spread": int(row.get("spread") or 0),
+            "home_appearances": dict(row.get("home_appearances") or {}),
+        }
+        for row in skewed[:3]
+    ]
+    return {
+        "multi_team_pool_count": len(working),
+        "balanced_pool_count": len(working) - len(skewed),
+        "skewed_pool_count": len(skewed),
+        "max_spread": max(
+            (int(row.get("spread") or 0) for row in working), default=0
+        ),
+        "examples": examples,
+        "evidence_ref": "operator audit-evidence --category home_representation",
     }
 
 
@@ -665,6 +715,9 @@ def _summarize_plan_facts(facts: dict[str, Any]) -> dict[str, Any]:
         "unresolved_participation_shortfall_count": len(facts["unresolved_participation_shortfalls"]),
         "participation_club_pool_count": len(facts.get("participation_club_pools") or []),
         "participation_club_pool_summary": _summarize_club_pools(facts.get("participation_club_pools") or []),
+        "home_representation_summary": _summarize_home_representation(
+            facts.get("home_representation") or []
+        ),
         "club_participation_fairness_count": len(facts["club_participation_fairness"]),
         "same_age_hosting_repair_count": len(facts["same_age_hosting_repairs"]),
         "cross_age_hosting_repair_count": len(facts["cross_age_hosting_repairs"]),

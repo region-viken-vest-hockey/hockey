@@ -11,6 +11,21 @@ from datetime import date
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from tournament_scheduler import planning_half
+from tournament_scheduler.home_representation import (
+    home_representation_facts as _home_representation_facts,
+)
+
+
+def home_representation(tournaments: List[Dict[str, Any]], problem: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Per-sibling home-tournament representation for multi-team club pools.
+
+    Pure delegation to :mod:`tournament_scheduler.home_representation` so the
+    canonical scorer, the audit evidence layer and the repair provider share
+    one accounting. Returns an empty summary when no problem (registered
+    roster) is supplied, exactly like the club x age-group hosting matrix.
+    """
+    teams = (problem or {}).get("teams") or []
+    return _home_representation_facts(teams, tournaments)
 
 
 def hosting_fairness(tournaments: List[Dict[str, Any]], problem: Optional[Dict[str, Any]]) -> Tuple[Dict[str, int], int, Dict[str, Any]]:

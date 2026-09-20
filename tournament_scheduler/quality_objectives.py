@@ -59,6 +59,12 @@ QUALITY_METRIC_PATHS: List[Tuple[str, str]] = [
     ("turnaround.gaps_under_days.14", "lower"),
     ("hosting.spread", "lower"),
     ("hosting.unresolved_obligations_count", "lower"),
+    # Intra-club sibling home representation: which of a multi-team club's
+    # teams actually shows up when the club hosts. Subordinate to hard
+    # validity and the participation guardrails above (a spread of 0-1 is
+    # balanced, so the "material" variants are used, not the raw spread).
+    ("home_representation.max_material_spread", "lower"),
+    ("home_representation.material_skew_pool_count", "lower"),
     ("temporal.max_gap_days", "lower"),
     ("temporal.offenders_count", "lower"),
 ]
@@ -78,6 +84,8 @@ QUALITY_OBJECTIVE_DIMENSIONS: Tuple[str, ...] = (
     "gaps_under_7",
     "gaps_under_14",
     "hosting_spread",
+    "home_representation_max_material_spread",
+    "home_representation_material_skew_pool_count",
     "inter_club_diversity_inverted",
     "temporal_max_gap_days",
 )
@@ -159,6 +167,7 @@ def quality_objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
     gaps = (score.get("turnaround") or {}).get("gaps_under_days") or {}
     opponent = score.get("opponent_diversity") or {}
     hosting = score.get("hosting") or {}
+    home_representation = score.get("home_representation") or {}
     temporal = score.get("temporal") or {}
     participation = score.get("participation") or {}
     # Prefer the club-pool unresolved totals (present whenever the score came
@@ -184,6 +193,12 @@ def quality_objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
         "gaps_under_7": float(gaps.get(7, 0)),
         "gaps_under_14": float(gaps.get(14, 0)),
         "hosting_spread": float(hosting.get("spread", 0)),
+        "home_representation_max_material_spread": float(
+            home_representation.get("max_material_spread", 0)
+        ),
+        "home_representation_material_skew_pool_count": float(
+            home_representation.get("material_skew_pool_count", 0)
+        ),
         "inter_club_diversity_inverted": 1.0 - float(opponent.get("inter_club_diversity", 0.0)),
         "temporal_max_gap_days": float(temporal.get("max_gap_days", 0)),
     }

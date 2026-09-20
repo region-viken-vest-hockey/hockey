@@ -98,6 +98,15 @@ EVIDENCE_CATEGORIES: dict[str, dict[str, Any]] = {
         "unresolved": True,
         "severity": "major",
     },
+    "home_representation": {
+        "description": (
+            "Per-sibling participation in a multi-team club's own home tournaments "
+            "(spread; 0-1 is balanced)."
+        ),
+        "checklist_item": 2,
+        "unresolved": False,
+        "severity": "info",
+    },
     "same_age_hosting_repairs": {
         "description": "Same-age hosting-coverage repairs attempted (repaired or rejected-with-reason).",
         "checklist_item": 2,
@@ -422,6 +431,20 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
                 ),
                 detail=row,
                 tournament_id=row.get("tournament_id"),
+                club=row.get("club"),
+                age_group=row.get("age_group"),
+            )
+        )
+
+    for row in _as_list(facts.get("home_representation")):
+        if not isinstance(row, dict):
+            continue
+        records.append(
+            _record(
+                category="home_representation",
+                finding_type="balanced" if row.get("balanced") else "home_representation_skew",
+                summary=str(row.get("evidence") or f"{row.get('club')} {row.get('age_group')}"),
+                detail=row,
                 club=row.get("club"),
                 age_group=row.get("age_group"),
             )

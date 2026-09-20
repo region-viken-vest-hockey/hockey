@@ -116,6 +116,7 @@ MANUAL_PLACEMENT = "manual_placement"
 MOVABLE_CAPACITY = "movable_capacity"
 ROSTER_SHAPE = "roster_shape"
 TEMPORAL_CLUSTERING = "temporal_clustering"
+HOME_REPRESENTATION = "home_representation"
 
 # Canonical search-coverage vocabulary shared by every finding family. A
 # finding always carries ``search_coverage`` so a caller can tell apart
@@ -149,6 +150,7 @@ SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
     HARD_VIOLATION: ("participants", "host"),
     ROSTER_SHAPE: (),
     TEMPORAL_CLUSTERING: ("date", "participants"),
+    HOME_REPRESENTATION: ("participants",),
 }
 
 
@@ -846,6 +848,7 @@ def _findings(
     findings.extend(_movable_capacity_findings(problem, plan))
     findings.extend(_shape_findings(verification))
     findings.extend(_spacing_findings(problem, plan))
+    findings.extend(_home_representation_findings(problem, plan))
     findings.sort(key=lambda entry: (entry["category"], entry["finding_id"]))
     # Every finding carries a coverage view so a controller never has to infer
     # "untried dimensions remain" from the absence of options. The unplaced
@@ -1292,6 +1295,52 @@ def _clustered_dates(
     ]
 
 
+def _home_representation_findings(
+    problem: Mapping[str, Any], plan: Mapping[str, Any]
+) -> List[Dict[str, Any]]:
+    """Actionable findings for a multi-team club/age pool skewed at home.
+
+    A pool where one sibling team represents the club at nearly every home
+    tournament is a real, deterministic schedule-quality fact. It is reported
+    as a soft ``quality`` finding, never a hard failure: there may be no safe
+    balancing move, and the repair provider is the only thing allowed to
+    mutate the schedule.
+    """
+    from .home_representation import home_representation_rows
+    from .home_representation_repair import home_representation_finding_id
+
+    rows = home_representation_rows(
+        (problem or {}).get("teams") or [], (plan or {}).get("tournaments") or []
+    )
+    out: List[Dict[str, Any]] = []
+    for row in rows:
+        if row.get("balanced"):
+            continue
+        club = str(row.get("club") or "")
+        age_group = str(row.get("age_group") or "")
+        out.append(
+            {
+                "finding_id": home_representation_finding_id(age_group, club),
+                "code": "home_representation_skew",
+                "category": HOME_REPRESENTATION,
+                "severity": "quality",
+                "age_group": age_group,
+                "club": club,
+                "team_count": int(row.get("team_count") or 0),
+                "home_tournament_count": int(row.get("home_tournament_count") or 0),
+                "home_appearances": dict(row.get("home_appearances") or {}),
+                "spread": int(row.get("spread") or 0),
+                "material_spread": int(row.get("material_spread") or 0),
+                "message": (
+                    f"{club} {age_group} home representation is skewed "
+                    f"({row.get('evidence')}); sibling teams should be spread "
+                    "more evenly across the club's home tournaments"
+                ),
+            }
+        )
+    return out
+
+
 def _require_finding(findings: List[Dict[str, Any]], finding_id: str) -> Dict[str, Any]:
     finding = next((entry for entry in findings if entry["finding_id"] == finding_id), None)
     if finding is None:
@@ -1307,7 +1356,14 @@ def _findings_for_option(findings: List[Dict[str, Any]], option_id: str) -> List
         finding
         for finding in findings
         if finding["category"]
-        in (HOSTING, PARTICIPATION, HARD_VIOLATION, MANUAL_PLACEMENT, MOVABLE_CAPACITY)
+        in (
+            HOSTING,
+            PARTICIPATION,
+            HARD_VIOLATION,
+            MANUAL_PLACEMENT,
+            MOVABLE_CAPACITY,
+            HOME_REPRESENTATION,
+        )
     ]
     return selected or findings
 
@@ -1325,7 +1381,7 @@ def _infer_finding_id(
         finding
         for finding in findings
         if (
-            finding["category"] in (HOSTING, PARTICIPATION, MOVABLE_CAPACITY)
+            finding["category"] in (HOSTING, PARTICIPATION, MOVABLE_CAPACITY, HOME_REPRESENTATION)
             or finding.get("code") == "unplaced_tournament_placement"
         )
         and finding["finding_id"] in option_id
@@ -1363,6 +1419,8 @@ def _options_for_finding(
         options, rejected, families = _movable_capacity_options(plan, problem, finding)
     elif category == TEMPORAL_CLUSTERING:
         options, rejected, families = _coupled_placement_options(plan, problem, finding)
+    elif category == HOME_REPRESENTATION:
+        options, rejected, families = _home_representation_options(plan, problem, finding)
     else:
         options, rejected, families = _hard_options(
             plan, problem, finding, allow_search=allow_search, dimensions=dimensions
@@ -1474,6 +1532,28 @@ def _coupled_placement_options(
         finding_id=finding["finding_id"],
     )
     return _collect(repair_set, finding["finding_id"], family="coupled_placement")
+
+
+def _home_representation_options(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    finding: Mapping[str, Any],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Expose verified same-club sibling swaps for one skewed home pool.
+
+    The provider owns the bounded move enumeration (simple rotations plus the
+    coupled home + away swaps that keep both siblings' half-season
+    participation counts). A coupled placement option is never produced here:
+    host/date/arena and hosting responsibility are deliberately unchanged.
+    """
+    from .home_representation_repair import enumerate_home_representation_repairs
+
+    repair_set = enumerate_home_representation_repairs(
+        plan,
+        problem,
+        scope={"age_group": finding.get("age_group"), "club": finding.get("club")},
+    )
+    return _collect(repair_set, finding["finding_id"], family="home_representation")
 
 
 def _movable_capacity_options(
@@ -1628,6 +1708,15 @@ def _escalation(options: List[Dict[str, Any]], rejected: List[Dict[str, Any]], f
             "needed": True,
             "reason": "no_verified_movable_capacity_repair",
             "next": "inspect rejected_candidates for date/roster reasons",
+        }
+    if finding["category"] == HOME_REPRESENTATION:
+        return {
+            "needed": True,
+            "reason": "no_verified_sibling_swap",
+            "next": (
+                "inspect rejected_candidates; simple rotations and coupled "
+                "home + away swaps were enumerated before treating the skew as unavoidable"
+            ),
         }
     if finding["category"] == TEMPORAL_CLUSTERING:
         return {
@@ -2132,6 +2221,16 @@ def _apply_option(
 
         return apply_movable_capacity_repair_option(
             plan, problem, option_id=option_id, expected_fingerprint=fingerprint
+        )
+    if family == "home_representation":
+        from .home_representation_repair import apply_home_representation_repair_option
+
+        return apply_home_representation_repair_option(
+            plan,
+            problem,
+            option_id=option_id,
+            expected_fingerprint=fingerprint,
+            arguments=dict(arguments) or None,
         )
     if family == "coupled_placement":
         from .coupled_placement_repair import apply_coupled_placement_repair_option

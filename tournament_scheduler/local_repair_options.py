@@ -15,6 +15,7 @@ returned option ids.
 
 from __future__ import annotations
 
+import inspect
 from typing import Any, Callable, Dict, Mapping, Tuple
 
 from .date_policy_relocation import (
@@ -24,6 +25,10 @@ from .date_policy_relocation import (
 from .host_placement_repair import (
     apply_host_placement_repair_option,
     enumerate_host_placement_repairs,
+)
+from .home_representation_repair import (
+    apply_home_representation_repair_option,
+    enumerate_home_representation_repairs,
 )
 from .hosting_balance_repair import (
     apply_hosting_balance_repair_option,
@@ -81,6 +86,11 @@ REPAIR_PROVIDERS: Tuple[Tuple[str, EnumerateFn, ApplyFn], ...] = (
     ),
     ("hosting_balance", enumerate_hosting_balance_repairs, apply_hosting_balance_repair_option),
     (
+        "home_representation",
+        enumerate_home_representation_repairs,
+        apply_home_representation_repair_option,
+    ),
+    (
         "participation_deviation",
         enumerate_participation_deviation_repairs,
         apply_participation_deviation_repair_option,
@@ -103,7 +113,9 @@ BROAD_REPAIR_FAMILIES = frozenset({"search_neighborhood"})
 # order in which a bounded search is offered -- is unchanged. The apply
 # dispatcher still includes them, so an explicitly selected goal option id can
 # always be applied through the common boundary.
-GOAL_REPAIR_FAMILIES = frozenset({"hosting_balance", "participation_deviation", "coupled_placement"})
+GOAL_REPAIR_FAMILIES = frozenset(
+    {"hosting_balance", "participation_deviation", "coupled_placement", "home_representation"}
+)
 
 
 def enumerate_local_repair_options(
@@ -207,11 +219,15 @@ def apply_local_repair_option(
             "before_fingerprint": before,
             "family": option.get("family"),
         }
-    outcome = provider[2](
-        candidate,
-        problem,
-        option_id=option_id,
-        expected_fingerprint=expected_fingerprint,
-        run_id=run_id,
-    )
+    kwargs: Dict[str, Any] = {
+        "option_id": option_id,
+        "expected_fingerprint": expected_fingerprint,
+        "run_id": run_id,
+    }
+    # Families that replay a self-contained mutation plan (a coupled placement
+    # exchange, a home-representation sibling-swap plan) accept the option's
+    # ``arguments``; the other providers reconstruct the option from its id.
+    if "arguments" in inspect.signature(provider[2]).parameters:
+        kwargs["arguments"] = dict(option.get("arguments") or {})
+    outcome = provider[2](candidate, problem, **kwargs)
     return {**outcome, "family": option.get("family")}
