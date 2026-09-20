@@ -40,6 +40,7 @@ from collections import defaultdict
 from typing import Any
 
 from .models import SeasonPlan
+from .rule_catalog import catalog_id_for_rules_model_entry
 from .rules_model_obligations import (
     external_conflict_rule as _external_conflict_rule,
     hosting_obligation_rule as _hosting_obligation_rule,
@@ -805,6 +806,13 @@ def build_rules_model(plan: SeasonPlan) -> list[dict[str, Any]]:
     if fairness_rule is not None:
         rules.append(fairness_rule)
     rules.extend(_shared_host_decisions(plan))
+    # Attach the stable catalog identity to each per-run rule where one is
+    # registered, so the Regler page reuses the one canonical rule
+    # catalog instead of maintaining an independent semantic list.
+    for rule in rules:
+        catalog_id = catalog_id_for_rules_model_entry(str(rule.get("id", "")))
+        if catalog_id:
+            rule["catalog_id"] = catalog_id
     return rules
 
 

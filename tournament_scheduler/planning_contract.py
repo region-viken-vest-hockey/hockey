@@ -70,6 +70,7 @@ from tournament_scheduler.planning_contract_distribution import (
     hosting_fairness as _hosting_fairness,
     month_and_half_distribution as _month_and_half_distribution,
 )
+from tournament_scheduler.rule_catalog import annotate_violations
 
 PLANNING_PROBLEM_SCHEMA_VERSION = 1
 CANDIDATE_SCHEMA_VERSION = 1
@@ -873,6 +874,8 @@ def verify_candidate(
                 "external_calendar_conflicts",
             ]
         )
+        annotate_violations(violations)
+        annotate_violations(waived_violations)
         return {
             "ok": not violations,
             "violations": violations,
@@ -1356,6 +1359,8 @@ def verify_candidate(
             row["club"], row["age_group"], tournaments
         )
 
+    annotate_violations(violations)
+    annotate_violations(waived_violations)
     return {
         "ok": not violations,
         "violations": violations,

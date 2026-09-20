@@ -75,6 +75,7 @@ Quick/PR tier phases:
   cli-smoke          integration-marked CLI smoke test
   cli-contracts      public CLI contract suite (subprocess, hermetic)
   rules-report       regenerate/check rules report documentation
+  rule-catalog       check canonical rule catalog doc + conformance guards
   secret-scan        run scripts/secret-scan.sh
   all                all quick/PR tier phases above
 
@@ -82,7 +83,7 @@ Full hermetic lane (scheduled/manual; not every PR):
   slow               hermetic slow tests (real canonical workbook/planner)
   integration        hermetic/local integration tests (subprocess/multi-stage)
   full-tests         quick + slow + hermetic integration in one pytest run
-  full               lint + full-tests + rules-report
+  full               lint + full-tests + rules-report + rule-catalog
 
 Separated non-blocking lanes (never part of quick or full):
   live               live external-source/network tests (opt-in; see below)
@@ -165,6 +166,13 @@ run_named_phase() {
     rules-report)
       run_phase "Rules report sync" sh scripts/rules-report.sh
       ;;
+    rule-catalog)
+      run_phase "Rule catalog sync and guards" bash -c '
+        set -euo pipefail
+        python3 scripts/render-rule-catalog.py --check
+        python3 -m pytest --no-cov -q tests/test_rule_catalog.py
+      '
+      ;;
     secret-scan)
       run_phase "Secret scan" sh scripts/secret-scan.sh
       ;;
@@ -184,7 +192,7 @@ run_named_phase() {
 }
 
 run_all() {
-  local phases=(dependency-lock lint quick operator reproducibility cli-smoke cli-contracts rules-report)
+  local phases=(dependency-lock lint quick operator reproducibility cli-smoke cli-contracts rules-report rule-catalog)
   for named_phase in "${phases[@]}"; do
     run_named_phase "$named_phase"
   done
@@ -196,7 +204,7 @@ run_all() {
 }
 
 run_full() {
-  local phases=(lint full-tests rules-report)
+  local phases=(lint full-tests rules-report rule-catalog)
   for named_phase in "${phases[@]}"; do
     run_named_phase "$named_phase"
   done

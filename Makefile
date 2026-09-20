@@ -19,7 +19,7 @@ KAMPVEILEDER_CONVERT ?= $(ROOT_DIR)/scripts/convert-kampveileder.sh
 
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE
 
-PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-report kampveileder-markdown \
+PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
 	operator-run operator-run-force run status logs calendars calendars-refresh sources-status \
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
@@ -43,6 +43,7 @@ help:
 	@echo "  make dependency-lock               Verify requirements.lock is fresh"
 	@echo "  make secret-scan                   Run repository secret scan"
 	@echo "  make rules-report                  Regenerate/check scheduler rules report"
+	@echo "  make rule-catalog                  Regenerate/check canonical scheduling rule catalog"
 	@echo "  make kampveileder-markdown         Convert NIHF Kampveileder PDF to generated Markdown"
 	@echo ""
 	@echo "Planning and inspection (ARGS is appended to the underlying CLI command):"
@@ -115,6 +116,9 @@ secret-scan:
 
 rules-report:
 	@cd "$(ROOT_DIR)" && sh "$(RULES_REPORT)" $(ARGS)
+
+rule-catalog:
+	@cd "$(ROOT_DIR)" && python3 scripts/render-rule-catalog.py $(ARGS)
 
 kampveileder-markdown:
 	@cd "$(ROOT_DIR)" && sh "$(KAMPVEILEDER_CONVERT)" $(ARGS)

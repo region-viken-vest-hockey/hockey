@@ -140,10 +140,17 @@ def _render_rule_row(rule: dict[str, Any]) -> str:
     configured_value = rule.get("configured_value")
     configured_str = "" if configured_value is None else str(configured_value)
     detail_html = _render_detail_rows(rule.get("detail_rows"))
+    catalog_id = rule.get("catalog_id")
+    catalog_html = (
+        f'<div class="rules-catalog-id">Regel-ID: <code>{_html.escape(str(catalog_id))}</code></div>'
+        if catalog_id
+        else ""
+    )
     return (
         "<tr>"
         f'<td><strong>{_html.escape(str(rule.get("title", "")))}</strong>'
         f'<div class="rules-description">{_html.escape(str(rule.get("description", "")))}</div>'
+        f"{catalog_html}"
         f"{detail_html}</td>"
         f'<td><span class="rules-type-badge rules-type-badge--{_html.escape(rule_type)}">{_html.escape(type_label)}</span></td>'
         f'<td>{_html.escape(str(rule.get("scope", "")))}</td>'

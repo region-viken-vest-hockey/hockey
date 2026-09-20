@@ -15,6 +15,7 @@ External federation policy is different: the NIHF Kampveileder is authoritative 
 | Document | Purpose |
 |---|---|
 | [`system-architecture.md`](system-architecture.md) | Current system boundaries, sources of truth and workflows. |
+| [`architecture/rule-catalog.md`](architecture/rule-catalog.md) | Generated canonical rule/objective/obligation identity, classification, ownership and precedence catalog. |
 | [`rvv-miniputt-pipeline.md`](rvv-miniputt-pipeline.md) | Four-stage season-planning flow, review and publication workflow. |
 | [`rvv-miniputt-input-formats.md`](rvv-miniputt-input-formats.md) | Canonical planner workbook and registration interchange contract. |
 | [`rvv-miniputt-rules-report.md`](rvv-miniputt-rules-report.md) | Maintained rules/report wording used by review output. |

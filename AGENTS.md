@@ -94,7 +94,7 @@ Do not change a domain rule to fix lifecycle state, do not change lifecycle/sess
 
 ### Scheduling-rule changes
 
-Before implementing or modifying a scheduling rule, read the **Scheduling-rule implementation map** in [`docs/system-architecture.md`](docs/system-architecture.md) and identify the rule's authoritative owner.
+Before implementing or modifying a scheduling rule, read the **Scheduling-rule implementation map** in [`docs/system-architecture.md`](docs/system-architecture.md) and the canonical rule/ownership catalog in [`docs/architecture/rule-catalog.md`](docs/architecture/rule-catalog.md), and identify the rule's authoritative owner.
 
 A persistent scheduling invariant must not live only in a baseline generator, one optimizer/search path, a renderer/exporter, or an agent/harness prompt. Put reusable facts/rule math in planner-independent deterministic code, make verification/measurement independent of the generator that proposed the candidate, expose repairs as validated repository actions, and derive reports/HTML from final authoritative state.
 

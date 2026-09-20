@@ -19,6 +19,7 @@ from tournament_scheduler.limited_rounds import minimum_same_club_games_for_limi
 from tournament_scheduler.models import Team
 from tournament_scheduler.participation_targets import INTRA_CLUB_DISTRIBUTION
 from tournament_scheduler.planning_contract import verify_candidate as _verify_candidate
+from tournament_scheduler.rule_catalog import annotate_violations
 
 MIN_TEAMS_PER_TOURNAMENT = 3
 
@@ -347,6 +348,7 @@ def verify_final_candidate(
         violations.extend(_check_games(tournament, problem))
 
     result["violations"] = violations
+    annotate_violations(result["violations"])
     result["ok"] = not violations
     readiness = publication_readiness(result)
     result["publication_readiness"] = readiness
