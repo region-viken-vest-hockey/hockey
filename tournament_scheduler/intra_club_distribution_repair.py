@@ -59,6 +59,7 @@ from .host_team_missing_repair import (
 from .participation_targets import (
     INTRA_CLUB_DISTRIBUTION,
     club_pool_participation_regressions,
+    club_pool_sibling_spread,
     evaluate_participation,
 )
 from .planning_contract import (
@@ -842,8 +843,7 @@ def _distribution(pool: Mapping[str, Any]) -> Dict[str, Dict[str, int]]:
 
 
 def _spread(pool: Mapping[str, Any]) -> int:
-    actuals = [int(row.get("actual") or 0) for row in pool.get("team_distribution") or []]
-    return max(actuals) - min(actuals) if actuals else 0
+    return club_pool_sibling_spread(pool)
 
 
 def _over_under(

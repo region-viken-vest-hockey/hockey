@@ -799,7 +799,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** candidate host club + tournament roster  
 **Verifier / measurement:** `tournament_scheduler.home_representation`  
 **Codes:** verifier — · finding `home_representation`, `home_representation_skew` · score `home_representation.max_material_spread`, `home_representation.material_skew_pool_count`  
-**Providers:** mutation `home_representation_repair` · search —  
+**Providers:** mutation `home_representation_repair` · search `home_representation_repair` (bounded tier-2 coupled-pair/cycle widening)  
 **Evidence / report:** `score_candidate.home_representation.*`, `rules_model`  
 **Tests:** `tests/test_home_representation.py`  
 **Precedence:** precedes — · depends on —

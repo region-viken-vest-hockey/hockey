@@ -1041,6 +1041,18 @@ def club_pool_participation_regressions(
     return regressions
 
 
+def club_pool_sibling_spread(pool: Mapping[str, Any]) -> int:
+    """Max-min per-sibling actual participation spread for one club-pool view.
+
+    Single canonical spread definition for a club-pool's ``team_distribution``,
+    shared by every repair family that needs to know whether a candidate's
+    sibling participation split got better, worse, or stayed even -- so no
+    caller reimplements this from raw counts.
+    """
+    actuals = [int(row.get("actual") or 0) for row in pool.get("team_distribution") or []]
+    return max(actuals) - min(actuals) if actuals else 0
+
+
 def club_pool_snapshot(
     evaluation: ParticipationEvaluation,
     *,
@@ -1088,6 +1100,7 @@ __all__ = [
     "UNRESOLVED_CLUB_POOL_CLASSIFICATIONS",
     "ParticipationEvaluation",
     "club_pool_participation_regressions",
+    "club_pool_sibling_spread",
     "club_pool_snapshot",
     "counts_as_unresolved_shortfall",
     "evaluate_participation",
