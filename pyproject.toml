@@ -42,17 +42,25 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+# Default (quick) selection: only fast, hermetic unit/component tests. The
+# ``full`` lane (``scripts/check full``) additionally selects ``slow`` and
+# ``integration``. ``harness`` and ``live`` are deliberately never part of the
+# quick or full lane and must be selected explicitly (``scripts/check harness``
+# / ``scripts/check live``) so an unavailable external runtime or a flaky
+# upstream service can never silently disappear under a generic marker.
 addopts = [
     "--verbose",
     "-m",
-    "not slow and not integration",
+    "not slow and not integration and not harness and not live",
     "--cov=tournament_scheduler",
     "--cov-report=term-missing",
     "--cov-report=html",
 ]
 markers = [
-    "slow: long-running planner or real-workbook tests excluded from the default quick suite",
-    "integration: subprocess or multi-stage integration tests excluded from the default quick suite",
+    "slow: deterministic but long-running planner/real-workbook test; included in scripts/check full",
+    "integration: hermetic/local subprocess or multi-stage integration test; included in scripts/check full",
+    "harness: requires a specific external agent/tool runtime; run explicitly via scripts/check harness",
+    "live: depends on a live external source/network service; run explicitly via scripts/check live",
 ]
 
 [tool.ruff]

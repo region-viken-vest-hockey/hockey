@@ -120,8 +120,19 @@ These are transport mechanisms, not independent products. Business rules, stage 
 
 ```bash
 make install
-make check
+make check            # quick/PR tier: fast, hermetic unit/component tests
+scripts/check full    # comprehensive hermetic lane: quick + slow + integration
 ```
+
+`scripts/check` is the canonical verification entrypoint. The default/quick
+tier deliberately excludes `slow` and `integration` tests for fast feedback.
+Use `scripts/check full` (nightly/manual, not required on every PR) to also run
+the real canonical workbook/planner tests and the hermetic subprocess/multi-stage
+integration tests, including the public CLI contract suite and the multi-process
+Stage 3 lifecycle. `harness`- and `live`-marked tests are separate non-blocking
+lanes (`scripts/check harness`, `scripts/check live`) and never run implicitly.
+See [`docs/ci.md`](docs/ci.md) for the full lane/check matrix and marker
+semantics.
 
 The Makefile is a developer/CI convenience layer, not a separate source of scheduling behavior.
 

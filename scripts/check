@@ -10,6 +10,8 @@ else
   PYTHON_CMD=${PYTHON:-python3}
 fi
 
+PHASE_TIMINGS=()
+
 phase() {
   echo ""
   echo "==> $*"
@@ -19,30 +21,76 @@ run_phase() {
   local name=$1
   shift
   phase "$name"
+  local start=$SECONDS
   "$@"
+  PHASE_TIMINGS+=("$name=$((SECONDS - start))s")
+}
+
+# Like ``run_phase`` but tolerates pytest's "no tests collected" exit code (5),
+# so an empty optional lane (e.g. ``harness``) is a visible no-op rather than a
+# failure. It never hides a real test failure.
+run_phase_tolerant() {
+  local name=$1
+  shift
+  phase "$name"
+  local start=$SECONDS
+  local rc=0
+  "$@" || rc=$?
+  PHASE_TIMINGS+=("$name=$((SECONDS - start))s")
+  if [[ $rc -eq 5 ]]; then
+    echo "(no tests selected for this phase)"
+    return 0
+  fi
+  return $rc
+}
+
+print_timings() {
+  if [[ ${#PHASE_TIMINGS[@]} -eq 0 ]]; then
+    return
+  fi
+  echo ""
+  echo "Phase timings:"
+  local entry
+  # Guard the (possibly empty) array expansion so this also works under
+  # bash 3.2 + `set -u` (macOS system bash).
+  for entry in ${PHASE_TIMINGS[@]+"${PHASE_TIMINGS[@]}"}; do
+    echo "  $entry"
+  done
 }
 
 usage() {
   cat <<'EOF'
 Usage: scripts/check [phase ...]
 
-With no phase, runs the complete canonical local verification suite.
+With no phase, runs the default quick/PR verification tier.
 CI jobs may invoke individual phases so the command sequence is still owned by
 this script while GitHub keeps separate visible status checks.
 
-Phases:
+Quick/PR tier phases:
   dependency-lock    verify requirements.lock is fresh from pyproject.toml
   lint               ruff check . (pyflakes + pycodestyle-error rules only)
-  quick              fast pytest suite without coverage
+  quick              fast pytest suite (excludes slow/integration/harness/live)
   operator           operator manifest/escalation control-path tests
   reproducibility    deterministic planner reproducibility fixture
   cli-smoke          integration-marked CLI smoke test
+  cli-contracts      public CLI contract suite (subprocess, hermetic)
   rules-report       regenerate/check rules report documentation
   secret-scan        run scripts/secret-scan.sh
-  all                all phases above
+  all                all quick/PR tier phases above
+
+Full hermetic lane (scheduled/manual; not every PR):
+  slow               hermetic slow tests (real canonical workbook/planner)
+  integration        hermetic/local integration tests (subprocess/multi-stage)
+  full-tests         quick + slow + hermetic integration in one pytest run
+  full               lint + full-tests + rules-report
+
+Separated non-blocking lanes (never part of quick or full):
+  live               live external-source/network tests (opt-in; see below)
+  harness            tests that require a specific external agent/tool runtime
 
 Environment:
   SKIP_SECRET_SCAN=1 skips secret-scan in the all phase only.
+  RVV_LIVE_TESTS=1   allow live tests to run (the live phase sets it itself).
 EOF
 }
 
@@ -88,6 +136,32 @@ run_named_phase() {
     cli-smoke)
       run_phase "CLI integration smoke test" "$PYTHON_CMD" -m pytest --no-cov -v -m integration tests/test_cli_smoke.py --basetemp=cli-smoke-tmp
       ;;
+    cli-contracts)
+      run_phase "Public CLI contract suite" "$PYTHON_CMD" -m pytest --no-cov -q -m integration tests/test_cli_contract.py
+      ;;
+    slow)
+      run_phase "Hermetic slow tests (canonical workbook/planner)" "$PYTHON_CMD" -m pytest --no-cov -q -m slow
+      ;;
+    integration)
+      run_phase "Hermetic/local integration tests" "$PYTHON_CMD" -m pytest --no-cov -q -m integration
+      ;;
+    full-tests)
+      # One run over every hermetic test: quick + slow + integration. The
+      # command-line -m overrides the addopts default so nothing is skipped
+      # twice, and durations make a performance regression visible.
+      run_phase "Full hermetic test suite (quick + slow + integration)" \
+        "$PYTHON_CMD" -m pytest --no-cov -q --durations=25 -m "not live and not harness"
+      ;;
+    full)
+      run_full
+      ;;
+    live)
+      run_phase_tolerant "Live external-source tests" \
+        env RVV_LIVE_TESTS=1 "$PYTHON_CMD" -m pytest --no-cov -q -m live
+      ;;
+    harness)
+      run_phase_tolerant "Harness-dependent tests" "$PYTHON_CMD" -m pytest --no-cov -q -m harness
+      ;;
     rules-report)
       run_phase "Rules report sync" sh scripts/rules-report.sh
       ;;
@@ -110,7 +184,7 @@ run_named_phase() {
 }
 
 run_all() {
-  local phases=(dependency-lock lint quick operator reproducibility cli-smoke rules-report)
+  local phases=(dependency-lock lint quick operator reproducibility cli-smoke cli-contracts rules-report)
   for named_phase in "${phases[@]}"; do
     run_named_phase "$named_phase"
   done
@@ -121,6 +195,13 @@ run_all() {
   fi
 }
 
+run_full() {
+  local phases=(lint full-tests rules-report)
+  for named_phase in "${phases[@]}"; do
+    run_named_phase "$named_phase"
+  done
+}
+
 if [[ $# -eq 0 ]]; then
   run_all
 else
@@ -128,6 +209,8 @@ else
     run_named_phase "$requested_phase"
   done
 fi
+
+print_timings
 
 echo ""
 echo "✅ Canonical checks passed"

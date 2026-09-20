@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from tournament_scheduler.canonical_baseline import SEASON_ROOT_ENV_VAR
@@ -8,6 +10,23 @@ from tournament_scheduler.testing.canonical_input import (
     load_canonical_roster,
     load_canonical_season_window,
 )
+
+
+def pytest_collection_modifyitems(config, items):
+    """Keep ``live`` tests opt-in so they cannot run accidentally.
+
+    A ``live`` test depends on a real upstream source (network) and is not
+    part of the quick or full lane. Selecting ``-m live`` is not enough on its
+    own: the source has to be explicitly requested with ``RVV_LIVE_TESTS=1``
+    (what ``scripts/check live`` and the scheduled live CI job set) so a local
+    ``pytest -m live`` cannot surprise the developer with network traffic.
+    """
+    if os.environ.get("RVV_LIVE_TESTS") == "1":
+        return
+    skip_live = pytest.mark.skip(reason="live external-source test; set RVV_LIVE_TESTS=1 to run")
+    for item in items:
+        if "live" in item.keywords:
+            item.add_marker(skip_live)
 
 
 @pytest.fixture(autouse=True)

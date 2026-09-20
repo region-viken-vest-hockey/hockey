@@ -247,6 +247,9 @@ jobs:
       - name: Run CLI smoke test
         run: scripts/check cli-smoke
 
+      - name: Run public CLI contract suite
+        run: scripts/check cli-contracts
+
       - name: Upload CLI smoke artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
