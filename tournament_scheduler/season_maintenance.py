@@ -118,6 +118,10 @@ MOVABLE_CAPACITY = "movable_capacity"
 ROSTER_SHAPE = "roster_shape"
 TEMPORAL_CLUSTERING = "temporal_clustering"
 HOME_REPRESENTATION = "home_representation"
+# A multi-team club x age-group x scope player pool that has enough aggregate
+# participation but uneven sibling labels. This is the actionable counterpart
+# of the informational ``intra_club_participation_distribution`` rule.
+CLUB_DISTRIBUTION = "club_distribution"
 
 # Canonical search-coverage vocabulary shared by every finding family. A
 # finding always carries ``search_coverage`` so a caller can tell apart
@@ -152,6 +156,7 @@ SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
     ROSTER_SHAPE: (),
     TEMPORAL_CLUSTERING: ("date", "participants"),
     HOME_REPRESENTATION: ("participants",),
+    CLUB_DISTRIBUTION: ("participants",),
 }
 
 
@@ -855,6 +860,7 @@ def _findings(
     findings.extend(_shape_findings(verification))
     findings.extend(_spacing_findings(problem, plan))
     findings.extend(_home_representation_findings(problem, plan))
+    findings.extend(_intra_club_distribution_findings(verification))
     findings.sort(key=lambda entry: (entry["category"], entry["finding_id"]))
     # Attach the stable catalog rule ID to every finding whose code is a
     # registered semantic, so the controller payload carries identity instead
@@ -1351,6 +1357,66 @@ def _home_representation_findings(
     return out
 
 
+def _intra_club_distribution_findings(
+    verification: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    """Actionable findings for aggregate-complete but label-uneven club pools.
+
+    ``participation_targets`` already classifies each club x age-group x scope
+    player pool. An ``intra_club_distribution`` pool has enough aggregate
+    participation; only the nominal sibling labels are uneven, so it is a soft
+    quality finding, never an unresolved participation shortfall. It carries the
+    exact sibling counts/targets, the current spread and the scope so the repair
+    provider (and the operator) never has to reconstruct the classification.
+    """
+    from .intra_club_distribution_repair import intra_club_distribution_finding_id
+
+    out: List[Dict[str, Any]] = []
+    for pool in verification.get("participation_club_pools") or []:
+        if str(pool.get("classification") or "") != INTRA_CLUB_DISTRIBUTION:
+            continue
+        club = str(pool.get("club") or "")
+        age_group = str(pool.get("age_group") or "")
+        scope = str(pool.get("scope") or "")
+        distribution = [
+            {
+                "team": str(row.get("team") or ""),
+                "actual": int(row.get("actual") or 0),
+                "target": int(row.get("target") or 0),
+            }
+            for row in pool.get("team_distribution") or []
+        ]
+        actuals = [row["actual"] for row in distribution]
+        max_actual = max(actuals) if actuals else 0
+        min_actual = min(actuals) if actuals else 0
+        out.append(
+            {
+                "finding_id": intra_club_distribution_finding_id(club, age_group, scope),
+                "code": "intra_club_participation_distribution",
+                "category": CLUB_DISTRIBUTION,
+                "severity": "quality",
+                "age_group": age_group,
+                "club": club,
+                "scope": scope,
+                "classification": INTRA_CLUB_DISTRIBUTION,
+                "club_pool_target": pool.get("club_pool_target"),
+                "club_pool_actual": pool.get("club_pool_actual"),
+                "club_pool_deviation": pool.get("club_pool_deviation"),
+                "team_distribution": distribution,
+                "team_count": int(pool.get("registered_team_count") or len(distribution)),
+                "min_actual": min_actual,
+                "max_actual": max_actual,
+                "spread": max_actual - min_actual,
+                "message": (
+                    f"{club} {age_group} ({scope}) club pool is aggregate-complete "
+                    f"({pool.get('club_pool_actual')}/{pool.get('club_pool_target')}) but the "
+                    f"sibling labels are uneven (spread {max_actual - min_actual})"
+                ),
+            }
+        )
+    return out
+
+
 def _require_finding(findings: List[Dict[str, Any]], finding_id: str) -> Dict[str, Any]:
     finding = next((entry for entry in findings if entry["finding_id"] == finding_id), None)
     if finding is None:
@@ -1373,6 +1439,7 @@ def _findings_for_option(findings: List[Dict[str, Any]], option_id: str) -> List
             MANUAL_PLACEMENT,
             MOVABLE_CAPACITY,
             HOME_REPRESENTATION,
+            CLUB_DISTRIBUTION,
         )
     ]
     return selected or findings
@@ -1391,7 +1458,7 @@ def _infer_finding_id(
         finding
         for finding in findings
         if (
-            finding["category"] in (HOSTING, PARTICIPATION, MOVABLE_CAPACITY, HOME_REPRESENTATION)
+            finding["category"] in (HOSTING, PARTICIPATION, MOVABLE_CAPACITY, HOME_REPRESENTATION, CLUB_DISTRIBUTION)
             or finding.get("code") == "unplaced_tournament_placement"
         )
         and finding["finding_id"] in option_id
@@ -1431,6 +1498,10 @@ def _options_for_finding(
         options, rejected, families = _coupled_placement_options(plan, problem, finding)
     elif category == HOME_REPRESENTATION:
         options, rejected, families = _home_representation_options(plan, problem, finding)
+    elif category == CLUB_DISTRIBUTION:
+        options, rejected, families = _intra_club_distribution_options(
+            plan, problem, finding, allow_search=allow_search
+        )
     else:
         options, rejected, families = _hard_options(
             plan, problem, finding, allow_search=allow_search, dimensions=dimensions
@@ -1564,6 +1635,35 @@ def _home_representation_options(
         scope={"age_group": finding.get("age_group"), "club": finding.get("club")},
     )
     return _collect(repair_set, finding["finding_id"], family="home_representation")
+
+
+def _intra_club_distribution_options(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    finding: Mapping[str, Any],
+    *,
+    allow_search: bool,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Expose verified same-club sibling substitutions for a distribution pool.
+
+    The provider owns the bounded move enumeration (away tournaments before home
+    tournaments, then a bounded coupled sibling-only neighborhood when
+    ``allow_search``). It never moves dates/hosts/arenas/slots and never
+    transfers hosting responsibility.
+    """
+    from .intra_club_distribution_repair import enumerate_intra_club_distribution_repairs
+
+    repair_set = enumerate_intra_club_distribution_repairs(
+        plan,
+        problem,
+        allow_search=allow_search,
+        scope={
+            "club": finding.get("club"),
+            "age_group": finding.get("age_group"),
+            "scope": finding.get("scope"),
+        },
+    )
+    return _collect(repair_set, finding["finding_id"], family="intra_club_distribution")
 
 
 def _movable_capacity_options(
@@ -1726,6 +1826,16 @@ def _escalation(options: List[Dict[str, Any]], rejected: List[Dict[str, Any]], f
             "next": (
                 "inspect rejected_candidates; simple rotations and coupled "
                 "home + away swaps were enumerated before treating the skew as unavoidable"
+            ),
+        }
+    if finding["category"] == CLUB_DISTRIBUTION:
+        return {
+            "needed": True,
+            "reason": "no_verified_sibling_substitution",
+            "next": (
+                "inspect rejected_candidates; away-then-home substitutions and the "
+                "bounded coupled sibling-only neighborhood were enumerated before the "
+                "imbalance was treated as unavoidable"
             ),
         }
     if finding["category"] == TEMPORAL_CLUSTERING:
@@ -2241,6 +2351,19 @@ def _apply_option(
             option_id=option_id,
             expected_fingerprint=fingerprint,
             arguments=dict(arguments) or None,
+        )
+    if family == "intra_club_distribution":
+        from .intra_club_distribution_repair import (
+            apply_intra_club_distribution_repair_option,
+        )
+
+        return apply_intra_club_distribution_repair_option(
+            plan,
+            problem,
+            option_id=option_id,
+            expected_fingerprint=fingerprint,
+            arguments=dict(arguments) or None,
+            scope=scope,
         )
     if family == "coupled_placement":
         from .coupled_placement_repair import apply_coupled_placement_repair_option

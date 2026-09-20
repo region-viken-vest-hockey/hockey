@@ -705,8 +705,9 @@ _SOFT: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.participation_targets",
         input_source="planning_problem club pools + candidate participations",
         verifier_owner="tournament_scheduler.participation_targets",
+        mutation_providers=("intra_club_distribution_repair",),
         evidence_projection=("verify_candidate.participation_club_pools", "rules_model club_participation_fairness"),
-        tests=("tests/test_participation_targets.py",),
+        tests=("tests/test_participation_targets.py", "tests/test_intra_club_distribution.py"),
         finding_codes=("intra_club_participation_distribution",),
     ),
     RuleEntry(

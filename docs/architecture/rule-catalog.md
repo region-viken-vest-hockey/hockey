@@ -143,7 +143,7 @@ candidate regresses a higher-priority operational obligation.
 |---|---|---|---|---|
 | `hosting_proportional_balance` | After the age-group coverage floor is satisfied (or a structural shortfall is explicitly surfaced), remaining hosting responsibility is distributed roughly in proportion to registered team counts. This objective is secondary to coverage: a larger club may legitimately under-host relative to its proportional target so a smaller club gets its first responsibility. | `tournament_scheduler.hosting_coverage.hosting_balance_matrix` | `tournament_scheduler.hosting_coverage.material_hosting_balance_imbalances` | `tests/test_hosting_coverage.py` |
 | `participation_target` | The configured per-team/per-half tournament participation target is a desired optimization goal with evidenced relaxation, not an unconditional obligation or hard bound. Attainment is optimized within real season capacity; a capacity-constrained miss is not itself a planning failure. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets.evaluate_participation` | `tests/test_participation_targets.py` |
-| `intra_club_participation_distribution` | Within a multi-team club and age group, participation is rotated evenly across the club's sibling team labels. An aggregate-complete but label-uneven pool is a distribution imbalance, not a missing participation opportunity. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets` | `tests/test_participation_targets.py` |
+| `intra_club_participation_distribution` | Within a multi-team club and age group, participation is rotated evenly across the club's sibling team labels. An aggregate-complete but label-uneven pool is a distribution imbalance, not a missing participation opportunity. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets` | `tests/test_participation_targets.py`, `tests/test_intra_club_distribution.py` |
 | `home_representation` | When a multi-team club hosts a tournament, the club's sibling teams take turns representing it. A spread of 0-1 is balanced; hosting coverage/balance is unchanged by which sibling shows up. | `tournament_scheduler.home_representation` | `tournament_scheduler.home_representation` | `tests/test_home_representation.py` |
 | `opponent_repetition` | Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized. | `tournament_scheduler.quality_objectives` | `tournament_scheduler.planning_contract.score_candidate` | `tests/test_quality_objectives.py` |
 | `inter_club_diversity` | Tournaments should mix teams across clubs rather than concentrating same-club matchups. | `tournament_scheduler.quality_objectives` | `tournament_scheduler.planning_contract.score_candidate` | `tests/test_quality_objectives.py` |
@@ -786,9 +786,9 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** planning_problem club pools + candidate participations  
 **Verifier / measurement:** `tournament_scheduler.participation_targets`  
 **Codes:** verifier — · finding `intra_club_participation_distribution` · score —  
-**Providers:** mutation — · search —  
+**Providers:** mutation `intra_club_distribution_repair` · search —  
 **Evidence / report:** `verify_candidate.participation_club_pools`, `rules_model club_participation_fairness`  
-**Tests:** `tests/test_participation_targets.py`  
+**Tests:** `tests/test_participation_targets.py`, `tests/test_intra_club_distribution.py`  
 **Precedence:** precedes — · depends on —
 
 ### `home_representation`
