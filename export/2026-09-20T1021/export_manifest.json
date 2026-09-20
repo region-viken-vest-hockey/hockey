@@ -5,12 +5,12 @@
   "export_fingerprint": "1d58f1c3651b22f45596f3ce9b2564d30453ccab486539a64e44b75c155c973d",
   "canonical_season": "2026-2027",
   "canonical_revision": "0135ae7fb5b88e68c20357eab830a942d17a23991d77286f24359f3b3fa3b7c9",
-  "lifecycle_status": "draft",
-  "published_at": null,
-  "pages_commit": null,
-  "pages_branch": null,
-  "pages_run_id": null,
-  "pages_bundle_fingerprint": null,
+  "lifecycle_status": "published",
+  "published_at": "2026-09-20T12:14:28+00:00",
+  "pages_commit": "d5b3482da986c6a70e8c521432e4cfbb263b2bff",
+  "pages_branch": "gh-pages",
+  "pages_run_id": "20260918T135604Z-8d38f146",
+  "pages_bundle_fingerprint": "548dc7b0a8aac32aa5d3724362a365b8369f5844caa8b120ae2199263f32ac06",
   "source_run_id": "20260918T135604Z-8d38f146",
   "supersedes": null
 }
