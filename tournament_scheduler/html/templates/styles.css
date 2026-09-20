@@ -175,6 +175,12 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .rules-status--ok { color: var(--emerald); background: rgba(16,185,129,.08); }
 .rules-status--warn { color: var(--amber); background: rgba(245,158,11,.08); }
 .rules-status--attention { color: var(--rose); background: rgba(244,63,94,.08); }
+.rules-catalog-id { margin-top: 4px; font-size: 10px; color: var(--text-muted); }
+.rules-catalog-id a { color: inherit; }
+.rules-catalog-class { padding: 0 5px; border-radius: var(--radius-pill); border: 1px solid var(--border-dim); }
+.rules-catalog-meaning { margin-top: 4px; font-size: 11px; font-style: italic; color: var(--text-muted); line-height: 1.4; }
+.rules-subsection--catalog { margin-top: 20px; }
+.rules-catalog-table td:first-child { white-space: nowrap; }
 
 /* Scores */
 .score-bar { display: flex; gap: 12px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 14px; background: var(--bg-raised); border: 1px solid var(--border-dim); border-radius: var(--radius); }

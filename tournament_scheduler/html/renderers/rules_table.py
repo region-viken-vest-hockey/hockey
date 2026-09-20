@@ -13,6 +13,7 @@ import html as _html
 from typing import Any
 
 from ...rules_model import group_rules_by_type, rules_summary_counts
+from ...rule_catalog import active_catalog_references
 
 _TYPE_LABELS: dict[str, str] = {
     "hard": "Hard krav",
@@ -22,6 +23,18 @@ _TYPE_LABELS: dict[str, str] = {
     "decision": "Beslutning/unntak",
     "advisory": "Rådgivende",
     "default": "Standardverdi",
+}
+
+# Presentation-only Norwegian labels for the catalog's primary classification
+# vocabulary. The classifications themselves are owned by
+# ``rule_catalog.CLASSIFICATIONS``; this mapping is localization, not a second
+# semantic list.
+_CATALOG_CLASS_LABELS: dict[str, str] = {
+    "hard_constraint": "Hardt krav",
+    "operational_obligation": "Driftsforpliktelse",
+    "soft_objective": "Mykt mål",
+    "operator_decision": "Operatørbeslutning",
+    "fact_evidence_semantic": "Fakta/bevis",
 }
 
 _OWNER_LABELS: dict[str, str] = {
@@ -131,6 +144,33 @@ def _render_detail_rows(detail_rows: dict[str, Any] | None) -> str:
     return ""
 
 
+def _render_catalog_identity(catalog_id: Any, catalog: dict[str, Any] | None) -> str:
+    """Render the catalog-derived semantic identity for one run rule.
+
+    The rule ID, classification and meaning come from
+    ``rule_catalog.rule_semantics``; the run-specific result stays in the
+    surrounding row. This is what makes the Regler surface *render from* the
+    catalog rather than restate its semantics locally.
+    """
+    if not catalog_id and not catalog:
+        return ""
+    resolved_id = str(catalog_id or (catalog or {}).get("id") or "")
+    if not resolved_id:
+        return ""
+    classification = str((catalog or {}).get("classification", ""))
+    label = _CATALOG_CLASS_LABELS.get(
+        classification, str((catalog or {}).get("classification_label", classification))
+    )
+    identity = f'Regel-ID: <a href="#catalog-rule-{_html.escape(resolved_id)}"><code>{_html.escape(resolved_id)}</code></a>'
+    if label:
+        identity += f' · <span class="rules-catalog-class">{_html.escape(label)}</span>'
+    meaning = str((catalog or {}).get("meaning", ""))
+    meaning_html = (
+        f'<div class="rules-catalog-meaning">{_html.escape(meaning)}</div>' if meaning else ""
+    )
+    return f'<div class="rules-catalog-id">{identity}</div>{meaning_html}'
+
+
 def _render_rule_row(rule: dict[str, Any]) -> str:
     rule_type = str(rule.get("type", "advisory"))
     type_label = _TYPE_LABELS.get(rule_type, rule_type)
@@ -140,12 +180,8 @@ def _render_rule_row(rule: dict[str, Any]) -> str:
     configured_value = rule.get("configured_value")
     configured_str = "" if configured_value is None else str(configured_value)
     detail_html = _render_detail_rows(rule.get("detail_rows"))
-    catalog_id = rule.get("catalog_id")
-    catalog_html = (
-        f'<div class="rules-catalog-id">Regel-ID: <code>{_html.escape(str(catalog_id))}</code></div>'
-        if catalog_id
-        else ""
-    )
+    catalog = rule.get("catalog") if isinstance(rule.get("catalog"), dict) else None
+    catalog_html = _render_catalog_identity(rule.get("catalog_id"), catalog)
     return (
         "<tr>"
         f'<td><strong>{_html.escape(str(rule.get("title", "")))}</strong>'
@@ -158,6 +194,63 @@ def _render_rule_row(rule: dict[str, Any]) -> str:
         f'<td>{_html.escape(configured_str)}</td>'
         f'<td><span class="rules-status {_status_class(status, rule.get("ok"))}">{_html.escape(status)}</span></td>'
         "</tr>"
+    )
+
+
+def render_rules_catalog_reference_html() -> str:
+    """Render the canonical catalog itself as the Regler reference section.
+
+    Every row is generated from ``rule_catalog.active_catalog_references()``;
+    there is no hand-maintained list of rule semantics in this renderer. The
+    per-run tables above reference these rows by ID.
+    """
+    references = active_catalog_references()
+    if not references:
+        return ""
+    rows: list[str] = []
+    for reference in references:
+        rule_id = str(reference.get("id", ""))
+        classification = str(reference.get("classification", ""))
+        label = _CATALOG_CLASS_LABELS.get(
+            classification, str(reference.get("classification_label", classification))
+        )
+        precedence_bits: list[str] = []
+        if reference.get("precedes"):
+            precedence_bits.append(
+                "før " + ", ".join(
+                    f'<code>{_html.escape(str(item))}</code>' for item in reference["precedes"]
+                )
+            )
+        if reference.get("depends_on"):
+            precedence_bits.append(
+                "avhenger av " + ", ".join(
+                    f'<code>{_html.escape(str(item))}</code>' for item in reference["depends_on"]
+                )
+            )
+        precedence = " · ".join(precedence_bits) or "—"
+        rows.append(
+            f'<tr id="catalog-rule-{_html.escape(rule_id)}">'
+            f'<td><code>{_html.escape(rule_id)}</code></td>'
+            f'<td>{_html.escape(label)}</td>'
+            f'<td>{_html.escape(str(reference.get("meaning", "")))}</td>'
+            f'<td><code>{_html.escape(str(reference.get("canonical_owner", "")))}</code></td>'
+            f'<td>{precedence}</td>'
+            "</tr>"
+        )
+    table = (
+        '<div class="table-wrap"><table class="report-table rules-catalog-table">'
+        "<thead><tr>"
+        "<th>Regel-ID</th><th>Klasse</th><th>Betydning</th><th>Kanonisk eier</th><th>Presedens</th>"
+        f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+    )
+    return (
+        '<section class="rules-subsection rules-subsection--catalog">'
+        "<h3>Regelkatalog (referanse)</h3>"
+        '<p class="section-note">Generert fra den kanoniske regelkatalogen '
+        '(<code>tournament_scheduler/rule_catalog.py</code>). Radene over viser kjøringens '
+        "resultat; denne tabellen er den ene autoritative semantikken (klasse, betydning, eier, "
+        "presedens) som kjøringen og agenten refererer til.</p>"
+        f"{table}</section>"
     )
 
 
@@ -247,4 +340,5 @@ def render_rules_sections_html(rules: list[dict[str, Any]]) -> str:
             f"{table}"
             "</section>"
         )
+    sections.append(render_rules_catalog_reference_html())
     return "".join(sections)

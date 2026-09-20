@@ -288,6 +288,37 @@ def test_compare_quality_scores_carries_objective_ids() -> None:
     assert by_metric["participation.spread"]["objective_id"] == "participation_target"
 
 
+def test_rule_semantics_projection_matches_catalog_entries() -> None:
+    semantics = catalog.rule_semantics("hosting_age_group_coverage")
+    entry = catalog.CATALOG_BY_ID["hosting_age_group_coverage"]
+    assert semantics is not None
+    assert semantics["id"] == entry.id
+    assert semantics["classification"] == entry.classification
+    assert semantics["classification_label"] == catalog.CLASSIFICATION_LABELS[entry.classification]
+    assert semantics["meaning"] == entry.meaning
+    assert semantics["canonical_owner"] == entry.canonical_owner
+    assert semantics["precedes"] == list(entry.precedes)
+    assert semantics["depends_on"] == list(entry.depends_on)
+
+
+def test_rule_semantics_unknown_id_is_none() -> None:
+    assert catalog.rule_semantics("not_a_rule") is None
+
+
+def test_active_catalog_references_cover_exactly_the_active_entries() -> None:
+    references = {reference["id"] for reference in catalog.active_catalog_references()}
+    active = {entry.id for entry in catalog.RULE_CATALOG if entry.status == catalog.STATUS_ACTIVE}
+    assert references == active
+
+
+def test_rules_model_semantics_resolves_registered_entry_ids() -> None:
+    semantics = catalog.rules_model_semantics("hosting_obligation_coverage")
+    assert semantics is not None and semantics["id"] == "hosting_age_group_coverage"
+    # An entry with no catalog registration resolves to no semantics rather
+    # than a fabricated one.
+    assert catalog.rules_model_semantics("christmas_half_boundary") is None
+
+
 def test_precedence_references_are_registered_and_acyclic() -> None:
     for entry in catalog.RULE_CATALOG:
         for reference in (*entry.precedes, *entry.depends_on):

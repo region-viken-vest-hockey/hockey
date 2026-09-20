@@ -321,6 +321,44 @@ def test_render_rules_table_html_empty_when_no_rules():
     assert render_rules_table_html([]) == ""
 
 
+def test_rules_model_rows_carry_catalog_semantics():
+    rules = build_rules_model(
+        _plan(unresolved_hosting_obligations=[{"club": "Ringerike", "age_group": "U12"}])
+    )
+    by_id = {rule["id"]: rule for rule in rules}
+
+    coverage = by_id["hosting_obligation_coverage"]["catalog"]
+    assert coverage["id"] == "hosting_age_group_coverage"
+    assert coverage["classification"] == "operational_obligation"
+    assert coverage["meaning"]
+    # A run rule that maps onto a shared semantic reuses that identity.
+    assert by_id["participation_shortfalls"]["catalog"]["id"] == "participation_target"
+    # Rules with no catalog registration must not be given fabricated semantics.
+    assert "catalog" not in by_id["christmas_half_boundary"]
+
+
+def test_rules_table_row_links_to_catalog_reference():
+    rules = build_rules_model(_plan())
+    html = render_rules_table_html(rules)
+    assert 'href="#catalog-rule-hosting_age_group_coverage"' in html
+    assert "rules-catalog-meaning" in html
+
+
+def test_render_rules_sections_renders_the_catalog_reference():
+    from tournament_scheduler.rule_catalog import RULE_CATALOG, STATUS_ACTIVE
+    from tournament_scheduler.html.renderers.rules_table import render_rules_sections_html
+
+    rules = build_rules_model(_plan())
+    html = render_rules_sections_html(rules)
+
+    assert "Regelkatalog (referanse)" in html
+    # Every active catalog entry is rendered from the catalog itself, not a
+    # locally maintained rule list.
+    for entry in RULE_CATALOG:
+        if entry.status == STATUS_ACTIVE:
+            assert f'id="catalog-rule-{entry.id}"' in html, entry.id
+
+
 def test_render_rules_table_html_renders_columns_and_type_badges():
     rules = build_rules_model(
         _plan(unresolved_hosting_obligations=[{"club": "Ringerike", "age_group": "U12"}])

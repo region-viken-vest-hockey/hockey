@@ -1038,6 +1038,49 @@ def catalog_id_for_rules_model_entry(entry_id: str) -> str | None:
     return RULES_MODEL_ID_TO_RULE_ID.get(key)
 
 
+def rule_semantics(rule_id: str) -> dict[str, Any] | None:
+    """Return the canonical, render-ready semantics for one catalog ID.
+
+    This is the projection the Rules/audit surfaces consume so their semantic
+    labels (classification, meaning, owner, precedence) are derived from the
+    one catalog instead of a hand-maintained parallel list. Run-specific
+    results (status, ``ok``, detail rows) remain owned by the per-run model.
+    """
+    entry = CATALOG_BY_ID.get(rule_id)
+    if entry is None:
+        return None
+    return {
+        "id": entry.id,
+        "classification": entry.classification,
+        "classification_label": CLASSIFICATION_LABELS.get(entry.classification, entry.classification),
+        "meaning": entry.meaning,
+        "canonical_owner": entry.canonical_owner,
+        "status": entry.status,
+        "waivable": entry.waivable,
+        "precedes": list(entry.precedes),
+        "depends_on": list(entry.depends_on),
+    }
+
+
+def rules_model_semantics(entry_id: str) -> dict[str, Any] | None:
+    """Canonical semantics for a per-run Rules-model entry id, if registered."""
+    rule_id = catalog_id_for_rules_model_entry(entry_id)
+    if rule_id is None:
+        return None
+    return rule_semantics(rule_id)
+
+
+def active_catalog_references() -> tuple[dict[str, Any], ...]:
+    """Every active catalog entry projected for reference rendering."""
+    references: list[dict[str, Any]] = []
+    for entry in RULE_CATALOG:
+        if entry.status != STATUS_ACTIVE:
+            continue
+        semantics = rule_semantics(entry.id)
+        if semantics is not None:
+            references.append(semantics)
+    return tuple(references)
+
 
 def entries_by_classification(classification: str) -> tuple[RuleEntry, ...]:
     """Return every catalog entry of one primary *classification*."""
