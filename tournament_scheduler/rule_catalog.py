@@ -975,18 +975,19 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
         meaning=(
             "A host's calendar interval is classified fixed_busy (hard external conflict), "
             "movable_busy (host-controlled, requires host confirmation) or unclassified. The "
-            "classification is policy evidence, not a scheduling rule in itself."
+            "classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament."
         ),
-        canonical_owner="tournament_scheduler.calendar_availability",
-        input_source="configured/stage-2 calendar intervals",
+        canonical_owner="tournament_scheduler.calendar_availability / tournament_scheduler.calendar_bookings",
+        input_source="configured/stage-2 calendar intervals + decisions.json calendar_booking_associations",
         verifier_owner="tournament_scheduler.planning_contract.external_calendar_conflict",
-        mutation_providers=("movable_capacity_repair",),
-        evidence_projection=("movable_allocations_used", "manual_external_conflict_placements"),
-        tests=("tests/test_calendar_availability.py", "tests/test_movable_capacity_repair.py"),
+        mutation_providers=("movable_capacity_repair", "CanonicalSeasonService.confirm_calendar_booking"),
+        evidence_projection=("movable_allocations_used", "manual_external_conflict_placements", "calendar_booking_associations"),
+        tests=("tests/test_calendar_availability.py", "tests/test_movable_capacity_repair.py", "tests/test_approval_lifecycle.py"),
         finding_codes=(
             "external_calendar_conflicts",
             "movable_host_confirmation_required",
             "movable_capacity_opportunity",
+            "stale_calendar_booking_association",
         ),
     ),
     RuleEntry(

@@ -38,6 +38,7 @@ BANNED_DATES_KEY = "banned_dates"
 HOLIDAY_DATE_EXCEPTIONS_KEY = "holiday_date_exceptions"
 SEASON_BASELINE_KEY = "season_baseline"
 SEASON_BASELINE_HISTORY_KEY = "season_baseline_history"
+CALENDAR_BOOKING_ASSOCIATIONS_KEY = "calendar_booking_associations"
 
 
 def schedule_fingerprint(plan_dict: Mapping[str, Any]) -> str:
@@ -67,6 +68,7 @@ def compute_canonical_state_revision(
         "holiday_date_exceptions": decisions.get(HOLIDAY_DATE_EXCEPTIONS_KEY) or [],
         "season_baseline": decisions.get(SEASON_BASELINE_KEY) or {},
         "season_baseline_history": decisions.get(SEASON_BASELINE_HISTORY_KEY) or [],
+        "calendar_booking_associations": decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or [],
         "verification_context": schedule.get("verification_context"),
     }
     return stable_payload_sha256(payload)
@@ -134,6 +136,7 @@ def migrate_participation_acceptance_ids(decisions: dict[str, Any]) -> list[str]
 
 __all__ = [
     "BANNED_DATES_KEY",
+    "CALENDAR_BOOKING_ASSOCIATIONS_KEY",
     "CANONICAL_STATE_REVISION_KEY",
     "CHANGE_PROTECTIONS_KEY",
     "PARTICIPATION_ACCEPTANCES_KEY",

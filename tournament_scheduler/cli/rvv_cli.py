@@ -1282,7 +1282,10 @@ def _cmd_season(args: argparse.Namespace) -> int:
         approve_tournament,
         banned_date_report,
         batch_maintenance,
+        calendar_booking_candidates,
+        calendar_booking_findings,
         change_protection_report,
+        confirm_calendar_booking,
         decisions_path,
         fill_guest_slot,
         guest_slot_candidates,
@@ -1582,6 +1585,63 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"[green]✓[/green] Unapproved {args.tournament_id} in {args.season}; "
                     "placement is editable again"
                 )
+            return 0
+
+        if args.season_command == "calendar-booking-candidates":
+            result = calendar_booking_candidates(
+                season=args.season,
+                root=args.root,
+                club=args.club,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                for row in result.get("booking_candidates", []):
+                    event = row.get("calendar_event") or {}
+                    _console.print(
+                        f"[cyan]{event.get('fingerprint')}[/cyan] {event.get('club')} "
+                        f"{event.get('date')} {event.get('start')}-{event.get('end')} "
+                        f"{event.get('title')}"
+                    )
+                    for cand in row.get("candidate_tournaments", []):
+                        _console.print(
+                            f"  → {cand.get('id')} {cand.get('age_group')} "
+                            f"{cand.get('start_time')} {cand.get('arena')}"
+                        )
+            return 0
+
+        if args.season_command == "confirm-calendar-booking":
+            result = confirm_calendar_booking(
+                season=args.season,
+                root=args.root,
+                event_fingerprint=args.event_fingerprint,
+                tournament_id=args.tournament_id,
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                prefix = "Validated" if args.dry_run else "Confirmed"
+                _console.print(
+                    f"[green]✓[/green] {prefix} calendar booking for {args.tournament_id}"
+                )
+                _console.print(f"  event: {args.event_fingerprint}")
+            return 0
+
+        if args.season_command == "calendar-booking-findings":
+            result = calendar_booking_findings(season=args.season, root=args.root)
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                if not result.get("findings"):
+                    _console.print("[green]✓[/green] No stale calendar booking associations")
+                for finding in result.get("findings", []):
+                    _console.print(
+                        f"[yellow]⚠[/yellow] {finding.get('tournament_id')} "
+                        f"{finding.get('event_fingerprint')}: {', '.join(finding.get('reasons') or [])}"
+                    )
             return 0
 
         if args.season_command == "move":

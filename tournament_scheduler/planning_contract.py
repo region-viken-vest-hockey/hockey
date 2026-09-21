@@ -40,6 +40,7 @@ from tournament_scheduler.calendar_availability import (
     interval_availability,
     unclassified_intervals,
 )
+from tournament_scheduler.calendar_bookings import associated_tournament_for_event, event_fingerprint
 from tournament_scheduler.canonical_baseline import (
     locked_dates as _canonical_locked_dates,
     pinned_tournament_ids as _canonical_pinned_tournament_ids,
@@ -413,6 +414,34 @@ def fixed_busy_windows(
     )
 
 
+def _fixed_busy_windows_for_tournament(
+    club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
+    club: Optional[str],
+    on_date: date,
+    *,
+    tournament_id: str | None,
+    problem: Mapping[str, Any] | None,
+) -> List[Tuple[int, int]]:
+    """Return fixed-busy windows, excluding this tournament's confirmed booking."""
+
+    if not club_busy_intervals or not club:
+        return []
+    windows: List[Tuple[int, int]] = []
+    for entry in club_busy_intervals.get(club, []):
+        if entry.get("date") != on_date.isoformat():
+            continue
+        if interval_availability(entry) != CalendarAvailability.FIXED_BUSY:
+            continue
+        event = {**entry, "club": club, "fingerprint": event_fingerprint({**entry, "club": club})}
+        if tournament_id and associated_tournament_for_event(problem, event) == str(tournament_id):
+            continue
+        try:
+            windows.append((_time_to_minutes(entry["start"]), _time_to_minutes(entry["end"])))
+        except (KeyError, ValueError):
+            continue
+    return windows
+
+
 def movable_busy_windows(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
     club: Optional[str],
@@ -484,6 +513,9 @@ def external_calendar_conflict(
     on_date: date,
     start_time: Optional[str],
     duration_minutes: int,
+    *,
+    tournament_id: str | None = None,
+    problem: Mapping[str, Any] | None = None,
 ) -> bool:
     """True if ``[start_time, start_time + duration_minutes)`` on *on_date*
     overlaps any of *club*'s ``fixed_busy`` windows.
@@ -495,7 +527,18 @@ def external_calendar_conflict(
     """
     if not club:
         return False
-    return _overlaps_any(fixed_busy_windows(club_busy_intervals, club, on_date), start_time, duration_minutes)
+    windows = (
+        _fixed_busy_windows_for_tournament(
+            club_busy_intervals,
+            club,
+            on_date,
+            tournament_id=tournament_id,
+            problem=problem,
+        )
+        if tournament_id and problem is not None
+        else fixed_busy_windows(club_busy_intervals, club, on_date)
+    )
+    return _overlaps_any(windows, start_time, duration_minutes)
 
 
 def movable_calendar_opportunity(
@@ -1006,6 +1049,8 @@ def verify_candidate(
                 interval.start.date(),
                 interval.start.strftime("%H:%M"),
                 duration_minutes,
+                tournament_id=interval.tournament_id,
+                problem=problem,
             ):
                 # Non-blocking: a genuine external double-booking is real,
                 # but the optimizer can't always route around it within its

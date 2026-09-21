@@ -66,7 +66,10 @@ __all__ = [
     "banned_date_report",
     "batch_maintenance",
     "canonical_state_revision",
+    "calendar_booking_candidates",
+    "calendar_booking_findings",
     "change_protection_report",
+    "confirm_calendar_booking",
     "decisions_path",
     "effective_config_from_verification_problem",
     "export_context_path",
@@ -305,6 +308,47 @@ def batch_maintenance(
         request_id=request_id,
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
+    )
+
+
+def calendar_booking_candidates(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    club: str | None = None,
+    problem: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return _service(root).calendar_booking_candidates(season=season, club=club, problem=problem)
+
+
+def calendar_booking_findings(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return _service(root).calendar_booking_findings(season=season, problem=problem)
+
+
+def confirm_calendar_booking(
+    *,
+    season: str,
+    event_fingerprint: str,
+    tournament_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    problem: dict[str, Any] | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).confirm_calendar_booking(
+        season=season,
+        event_fingerprint=event_fingerprint,
+        tournament_id=tournament_id,
+        actor=actor,
+        note=note,
+        problem=problem,
+        dry_run=dry_run,
     )
 
 

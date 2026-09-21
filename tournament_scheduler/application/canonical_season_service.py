@@ -29,6 +29,15 @@ import os
 from datetime import date as _date, datetime, timezone
 from typing import Any, Mapping
 
+from tournament_scheduler.calendar_bookings import (
+    CALENDAR_BOOKING_ASSOCIATIONS_KEY,
+    association_findings,
+    event_fingerprint,
+    find_event,
+    iter_events,
+    new_association_record,
+    project_associations_into_problem,
+)
 from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
 from tournament_scheduler.canonical_state import (
     BANNED_DATES_KEY,
@@ -355,6 +364,7 @@ def _resolve_plan_problem(
     if decisions is not None:
         resolved = project_exceptions_into_problem(resolved, decisions)
         resolved = project_banned_dates_into_problem(resolved, decisions)
+        resolved = project_associations_into_problem(resolved, decisions)
     return resolved
 
 
@@ -3763,6 +3773,206 @@ class CanonicalSeasonService:
             ),
             "released_protection_ids": released,
             "active_count": len(active_change_protections(committed.decisions)),
+        }
+
+    def calendar_booking_candidates(
+        self,
+        *,
+        season: str,
+        club: str | None = None,
+        problem: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Return deterministic candidate tournaments for scraped calendar bookings."""
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        plan = schedule["plan"]
+        resolved_problem = _resolve_plan_problem(schedule, problem, decisions) or {}
+        ice = resolved_problem.get("ice_time_minutes") or {}
+        rows: list[dict[str, Any]] = []
+        for event in iter_events(resolved_problem):
+            if club and str(event.get("club") or "") != club:
+                continue
+            candidates: list[dict[str, Any]] = []
+            for tournament in plan.get("tournaments", []) or []:
+                if str(tournament.get("host_club") or "") != str(event.get("club") or ""):
+                    continue
+                if str(tournament.get("date") or "") != str(event.get("date") or ""):
+                    continue
+                start = str(tournament.get("start_time") or "")
+                if not start:
+                    continue
+                duration = int((ice.get(str(tournament.get("age_group") or "")) or 0) or 0)
+                if duration <= 0:
+                    continue
+                try:
+                    t_start_h, t_start_m = (int(p) for p in start.split(":", 1))
+                    e_start_h, e_start_m = (int(p) for p in str(event.get("start") or "").split(":", 1))
+                    e_end_h, e_end_m = (int(p) for p in str(event.get("end") or "").split(":", 1))
+                except ValueError:
+                    continue
+                t_start = t_start_h * 60 + t_start_m
+                t_end = t_start + duration
+                e_start = e_start_h * 60 + e_start_m
+                e_end = e_end_h * 60 + e_end_m
+                if t_start < e_end and e_start < t_end:
+                    candidates.append(
+                        {
+                            "id": tournament.get("id"),
+                            "age_group": tournament.get("age_group"),
+                            "host_club": tournament.get("host_club"),
+                            "arena": tournament.get("arena"),
+                            "date": tournament.get("date"),
+                            "start_time": tournament.get("start_time"),
+                            "duration_minutes": duration,
+                        }
+                    )
+            if candidates:
+                rows.append(
+                    {
+                        "calendar_event": {
+                            "title": event.get("calendar_event"),
+                            "date": event.get("date"),
+                            "start": event.get("start"),
+                            "end": event.get("end"),
+                            "club": event.get("club"),
+                            "availability": event.get("availability"),
+                            "fingerprint": event.get("fingerprint") or event_fingerprint(event),
+                        },
+                        "candidate_tournaments": candidates,
+                    }
+                )
+        return {
+            "season": season,
+            "canonical_state_revision": canonical_state_revision(schedule, decisions),
+            "booking_candidates": rows,
+        }
+
+    def calendar_booking_findings(self, *, season: str, problem: dict[str, Any] | None = None) -> dict[str, Any]:
+        snapshot = self.load(season)
+        resolved_problem = _resolve_plan_problem(snapshot.schedule, problem, snapshot.decisions)
+        findings = association_findings(
+            problem=resolved_problem,
+            plan=snapshot.schedule.get("plan") or {},
+            decisions=snapshot.decisions,
+        )
+        return {"season": season, "findings": findings, "count": len(findings)}
+
+    def confirm_calendar_booking(
+        self,
+        *,
+        season: str,
+        event_fingerprint: str,
+        tournament_id: str,
+        actor: str | None = None,
+        note: str = "",
+        problem: dict[str, Any] | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Bind one scraped calendar event to one canonical tournament and approve it."""
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        plan = schedule["plan"]
+        base_problem = _resolve_plan_problem(schedule, problem, decisions)
+        event = find_event(base_problem, event_fingerprint)
+        if event is None:
+            raise SeasonStateError(f"Unknown calendar event fingerprint: {event_fingerprint}")
+        tournament = next(
+            (t for t in plan.get("tournaments", []) if str(t.get("id")) == tournament_id), None
+        )
+        if tournament is None:
+            raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+        diagnostics: list[str] = []
+        if str(event.get("club") or "") != str(tournament.get("host_club") or ""):
+            diagnostics.append("host_mismatch")
+        if str(event.get("date") or "") != str(tournament.get("date") or ""):
+            diagnostics.append("date_mismatch")
+        else:
+            ice = (base_problem or {}).get("ice_time_minutes") or {}
+            duration = int((ice.get(str(tournament.get("age_group") or "")) or 0) or 0)
+            try:
+                t_h, t_m = (int(p) for p in str(tournament.get("start_time") or "").split(":", 1))
+                s_h, s_m = (int(p) for p in str(event.get("start") or "").split(":", 1))
+                e_h, e_m = (int(p) for p in str(event.get("end") or "").split(":", 1))
+                t_start = t_h * 60 + t_m
+                if duration <= 0 or not (t_start < e_h * 60 + e_m and s_h * 60 + s_m < t_start + duration):
+                    diagnostics.append("interval_mismatch")
+            except ValueError:
+                diagnostics.append("interval_mismatch")
+        if diagnostics:
+            raise SeasonStateError("Calendar booking is not compatible with tournament: " + ", ".join(diagnostics))
+
+        resolved_actor = _operator_identity(actor)
+        assoc = new_association_record(
+            event=event,
+            tournament=tournament,
+            actor=resolved_actor,
+            note=note,
+            source_revision=canonical_state_revision(schedule, decisions),
+        )
+        updated = dict(decisions)
+        records = [
+            dict(record)
+            for record in (updated.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or [])
+            if not (
+                str(record.get("event_fingerprint") or "") == event_fingerprint
+                and str(record.get("tournament_id") or "") == tournament_id
+            )
+        ]
+        records.append(assoc)
+        updated[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = records
+
+        temp_problem = _resolve_plan_problem(schedule, base_problem, updated)
+        verification = verify_candidate(plan, temp_problem) if temp_problem else verify_candidate(plan)
+        hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
+        blockers = hard_blockers + unresolved_blockers
+        if blockers:
+            messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
+            raise SeasonStateError(f"Refusing to confirm booking for {tournament_id}: {messages}")
+
+        approved_at = _now_iso()
+        tournament_fingerprint = approval_fingerprint(tournament)
+        previous = dict(decisions["decisions"].get(tournament_id, {}))
+        record = dict(previous)
+        record.update(
+            {
+                "status": APPROVED_STATUS,
+                "placement_locked": True,
+                "participants_locked": False,
+                "approved_fingerprint": tournament_fingerprint,
+                "approved_at": approved_at,
+                "approved_by": resolved_actor,
+                "note": note,
+            }
+        )
+        record.pop("stale_at", None)
+        record.pop("stale_reason", None)
+        record.pop("unapproved_at", None)
+        record.pop("unapproved_by", None)
+        updated["decisions"] = dict(updated.get("decisions", {}))
+        updated["decisions"][tournament_id] = record
+        updated["updated_at"] = approved_at
+        _append_decision_history(
+            updated,
+            event="confirm_calendar_booking",
+            tournament_id=tournament_id,
+            actor=resolved_actor,
+            now=approved_at,
+            tournament_fingerprint=tournament_fingerprint,
+            previous_fingerprint=previous.get("approved_fingerprint"),
+            note=note,
+            details={"event_fingerprint": event_fingerprint, "calendar_event": event.get("calendar_event")},
+        )
+        if dry_run:
+            return {"season": season, "dry_run": True, "association": assoc, "approved": record}
+        committed = self._commit(snapshot.with_decisions(updated))
+        return {
+            "season": season,
+            "dry_run": False,
+            "association": assoc,
+            "approved": committed.decisions.get("decisions", {}).get(tournament_id),
+            "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
         }
 
     def approve_tournament(

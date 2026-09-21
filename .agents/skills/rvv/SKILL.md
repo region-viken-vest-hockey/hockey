@@ -47,6 +47,9 @@ After promotion, `season/<season>/schedule.json` plus `season/<season>/decisions
 ```bash
 scripts/rvv-miniputt season status --season 2026-2027
 scripts/rvv-miniputt season approvals --season 2026-2027
+scripts/rvv-miniputt season calendar-booking-candidates --season 2026-2027 --club Jar
+scripts/rvv-miniputt season confirm-calendar-booking --season 2026-2027 --event-fingerprint <fingerprint> --tournament-id <id> --note "Matched to host calendar booking"
+scripts/rvv-miniputt season calendar-booking-findings --season 2026-2027
 scripts/rvv-miniputt season findings --season 2026-2027
 scripts/rvv-miniputt season findings --season 2026-2027 --all
 scripts/rvv-miniputt season baseline create --season 2026-2027 --note "Accepted season baseline after initial planning"
@@ -150,6 +153,8 @@ Findings are independent facts, not a mandatory queue: select whichever finding 
 When the operator explicitly wants a deliberate provisional/manual placement, opt in for that exact action with `--allow-manual-placement` and/or `--allow-host-confirmation`; the opt-in is audited in the result/`decisions.json` evidence. Never treat the absence of a hard verification failure, or the disappearance of one finding, as implicit consent. Release only the protections the operator's request actually supersedes; never release unrelated accepted protections to make a candidate fit.
 
 Never hand-edit canonical season JSON to work around a lock or verifier.
+
+When refreshed host-calendar evidence contains an ambiguous busy event that the host has confirmed is the actual booked RVV tournament window (for example a generic title such as `Serieturneringer U10`), do not add broad title regexes or mutate the raw scraped event. Use `season calendar-booking-candidates` to get bounded deterministic candidates by host/date/interval, let the harness/operator make the semantic match, then persist it with `season confirm-calendar-booking`. The persisted overlay binds one calendar-event fingerprint to one canonical tournament id, records note/provenance, makes that event non-conflicting only for that tournament, and reuses ordinary approval/placement-lock semantics while leaving participants editable. The same event stays busy for every other tournament. Use `calendar-booking-findings` or `season findings` to surface associations that became stale because the event disappeared/changed or the tournament placement changed.
 
 ### Season quality baseline
 

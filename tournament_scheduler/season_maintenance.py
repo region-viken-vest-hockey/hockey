@@ -278,11 +278,13 @@ def load_context(
     # ``manual_adjustments.banned_dates`` read path so findings, repair options,
     # bounded search and candidate-weekend enumeration all respect them from one
     # authoritative source instead of a second date-policy implementation.
+    from .calendar_bookings import project_associations_into_problem
     from .canonical_banned_dates import project_banned_dates_into_problem
     from .canonical_holiday_exceptions import project_exceptions_into_problem
 
     problem = project_exceptions_into_problem(problem, decisions)
     problem = project_banned_dates_into_problem(problem, decisions)
+    problem = project_associations_into_problem(problem, decisions) or problem
     # A persisted operator acceptance is injected as verifier search evidence so
     # the same independent verifier that classifies every other deviation also
     # honours an explicit operator_accepted decision -- and stops honouring it
@@ -320,6 +322,10 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     verification = verify_candidate(plan, problem)
     revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verification)
+    from .calendar_bookings import association_findings
+
+    findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))
+    annotate_findings(findings)
     baseline = decisions.get("season_baseline") or None
     from .season_baseline import compare_findings_to_baseline
 
