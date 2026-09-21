@@ -46,15 +46,28 @@ English aliases such as `target_tournament_count_before_christmas` / `target_tou
 
 `parallel_games` and `rounds_per_tournament` are independent dimensions. `parallel_games` sets the normal tournament participant capacity: `2 x parallel_games` teams can play simultaneously in one round, so that is the normal full-capacity cohort size. `rounds_per_tournament` only says how many rounds/games that cohort plays and is never inverted into a round-robin participant count. A tournament does not need to be a complete round robin, so when `rounds_per_tournament < 2 x parallel_games - 1` it is a deliberate limited-opponent schedule (for example U8 with 4 parallel games and 5 rounds is 8 teams / 20 games / 5 games per team, not a 6-team complete round robin). If the complete registered pool for an age group is smaller than `2 x parallel_games`, the effective shape adapts to the real teams and may reduce the effective round count when that many unique-opponent rounds are impossible; explicit exact-size overrides such as the U12/JU12 four-team rule still take precedence.
 
-`ice_time_minutes` is the configured base hall/arena ice allocation for the age group, expressed as an integer number of minutes to avoid Excel time-format ambiguity. Stage 1 requires a positive `ice_time_minutes` value for every active age group; new age groups must be given an explicit operator-approved value.
+`ice_time_minutes` is the **total hall/arena ice booking window** for the age group, expressed as an integer number of minutes to avoid Excel time-format ambiguity. It is not a game-time base to which the planner may add more minutes. The value must already cover the complete tournament occupancy that RVV expects to book: played rounds, normal round/changeover time, ice preparation/maintenance and other event overhead. Stage 1 requires a positive `ice_time_minutes` value for every active age group; new age groups must be given an explicit operator-approved value.
 
 Tournament occupancy/end-time calculation is canonical:
 
 ```text
-required_duration_minutes = ice_time_minutes + 5 * number_of_rounds
+tournament_occupancy_minutes = ice_time_minutes
 ```
 
-The 5 minutes per round is the explicit transition/changeover buffer. The migrated historical `Istid` values below are treated as base ice allocations; transition buffer is added by the planner/export calculation rather than hidden in `round_length_minutes`.
+Game-format timing is a **separate minimum-feasibility check**, not extra occupancy added to the booking:
+
+```text
+minimum_format_minutes =
+    actual_round_count * (round_length_minutes + 5)
+
+ice_time_minutes >= minimum_format_minutes
+```
+
+The 5 minutes per round is the normal transition/changeover allowance. When `rounds_per_tournament` is configured, Stage 1 should reject a configured booking window that cannot fit the configured format; final/candidate verification must also check the actual generated round count because effective tournament shape may reduce the number of rounds. Any governing minimum booking allocation (for example NIHF's two-hour floor for the applicable U7–U11 3v3 series rounds) is an additional independent lower bound; it must not be implemented by adding minutes to `ice_time_minutes` after the fact.
+
+Slot search, external-calendar conflict detection, arena overlap checks, optimizer feasibility and every export must use the same `ice_time_minutes` occupancy interval. A code path that adds a per-round buffer on top of `ice_time_minutes` violates this contract.
+
+Migrated 2025–2026 `Istid` values below are historical booking-window evidence used when establishing the configuration; they are references to review, not "base ice" values that receive another automatic round buffer.
 
 Migrated 2025–2026 `Istid` values used to seed root `input.xlsx`:
 
