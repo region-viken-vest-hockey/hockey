@@ -195,7 +195,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "a5dfcab45e02ef86c6161660b9afa5a066ac1289865d416f545e4e11aed7787c",
+  "fingerprint": "8f1c3161ea031acaa85ce2dd6c35c240569779159a44abc38ab4929974c429c2",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -31756,7 +31756,7 @@
       {
         "age_group": "U11",
         "arena": "Skien ishall",
-        "date": "2026-10-17",
+        "date": "2026-10-10",
         "games": [
           {
             "away": "Skien",
@@ -31851,7 +31851,7 @@
         ],
         "host_club": "Skien",
         "id": "rvv-0013",
-        "start_time": "17:30",
+        "start_time": "10:00",
         "teams": [
           {
             "age_group": "U11",
@@ -40262,10 +40262,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "a5dfcab45e02ef86c6161660b9afa5a066ac1289865d416f545e4e11aed7787c",
+  "revision": "8f1c3161ea031acaa85ce2dd6c35c240569779159a44abc38ab4929974c429c2",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-21T07:02:04.441372+00:00",
+  "updated_at": "2026-09-21T09:01:47.320881+00:00",
   "verification_context": {
     "candidate_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
     "problem": {
