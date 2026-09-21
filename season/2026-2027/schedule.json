@@ -195,7 +195,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "facd356a315fca0916e140b5565256e4dea7c113bfca309bb81b703307221aeb",
+  "fingerprint": "a5dfcab45e02ef86c6161660b9afa5a066ac1289865d416f545e4e11aed7787c",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -12170,7 +12170,7 @@
       {
         "age_group": "JU10",
         "arena": "Skien ishall",
-        "date": "2026-10-11",
+        "date": "2026-11-21",
         "games": [
           {
             "away": "Jar Hvit",
@@ -12248,7 +12248,7 @@
         "host_club": "Skien",
         "id": "rvv-0007",
         "reserved_guest_slots": 1,
-        "start_time": "10:00",
+        "start_time": "17:00",
         "teams": [
           {
             "age_group": "JU10",
@@ -31756,7 +31756,7 @@
       {
         "age_group": "U11",
         "arena": "Skien ishall",
-        "date": "2026-10-10",
+        "date": "2026-10-17",
         "games": [
           {
             "away": "Skien",
@@ -31851,7 +31851,7 @@
         ],
         "host_club": "Skien",
         "id": "rvv-0013",
-        "start_time": "10:00",
+        "start_time": "17:30",
         "teams": [
           {
             "age_group": "U11",
@@ -40262,10 +40262,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "facd356a315fca0916e140b5565256e4dea7c113bfca309bb81b703307221aeb",
+  "revision": "a5dfcab45e02ef86c6161660b9afa5a066ac1289865d416f545e4e11aed7787c",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-21T06:30:11.226124+00:00",
+  "updated_at": "2026-09-21T07:02:04.441372+00:00",
   "verification_context": {
     "candidate_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
     "problem": {
