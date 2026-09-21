@@ -67,7 +67,7 @@ def _problem(teams: list[dict], *, targets: dict | None = None) -> dict:
         "parallel_games": {U11: 2},
         "rounds_per_tournament": {},
         "round_length_minutes": {U11: 30},
-        "ice_time_minutes": {U11: 90},
+        "ice_time_minutes": {U11: 120},
         "participation_targets_by_age_group": {U11: targets or {"before_christmas": 3, "after_christmas": 3}},
         "manual_adjustments": {
             "locked_dates": [],

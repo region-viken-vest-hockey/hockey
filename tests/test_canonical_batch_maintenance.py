@@ -370,7 +370,7 @@ def test_batch_hard_verification_failure_refuses_without_partial_write(
 def test_batch_operational_acceptability_regression_refuses(tmp_path: Path) -> None:
     candidate = _candidate()
     problem = build_problem_from_candidate(candidate)
-    problem["ice_time_minutes"] = {"U10": 90}
+    problem["ice_time_minutes"] = {"U10": 120}
     problem["round_length_minutes"] = {"U10": 30}
     problem["club_calendar_status"] = {"Kongsberg": "known"}
     problem["club_busy_intervals"] = {

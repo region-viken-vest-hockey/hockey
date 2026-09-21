@@ -107,7 +107,7 @@ def _stage_odd_team_export(tmp_path: Path, *, start_manifest: bool = False):
             "input_path": str(input_path),
             "teams": teams,
             "round_length_minutes": {"JU8": 10},
-            "ice_time_minutes": {"JU8": 60},
+            "ice_time_minutes": {"JU8": 120},
         },
         status=StageStatus.DONE,
     )
@@ -410,7 +410,7 @@ def test_canonical_season_export_does_not_consume_later_stage1_config(tmp_path, 
             "end_date": "2027-04-30",
             "teams": [{"club": club, "label": f"JU8-{club}", "age_group": "JU8"} for club in "ABCDEF"],
             "round_length_minutes": {"JU8": 10},
-            "ice_time_minutes": {"JU8": 60},
+            "ice_time_minutes": {"JU8": 120},
         },
         status=StageStatus.DONE,
     )

@@ -237,7 +237,7 @@ def test_context_falls_back_to_stage2_calendar_summary_when_bundle_missing(tmp_p
 def test_context_includes_selected_plan_cross_checks(tmp_path):
     PipelineState(tmp_path).write_stage(
         StageName.CONFIG,
-        {"round_length_minutes": {"U10": 15}, "ice_time_minutes": {"U10": 30}, "parallel_games": {"U10": 3}},
+        {"round_length_minutes": {"U10": 15}, "ice_time_minutes": {"U10": 120}, "parallel_games": {"U10": 3}},
         status=StageStatus.DONE,
     )
     PipelineState(tmp_path).write_stage(
@@ -300,7 +300,7 @@ def test_context_includes_selected_plan_cross_checks(tmp_path):
     assert summary["game_count"] == 2
     assert summary["csv_pause_row_count"] == 2
     assert summary["expected_csv_game_rows"] == 4
-    assert summary["duration_summary"]["max_minutes"] == 40
+    assert summary["duration_summary"]["max_minutes"] == 120
     assert summary["duration_summary"]["missing_duration_count"] == 1
     utilisation = summary["tournament_utilisation_summary"]
     assert utilisation["tournaments_with_byes_or_invalid_no_bye_roster"] == 2
@@ -334,7 +334,7 @@ def test_unresolved_tournament_placements_reach_the_audit_context(tmp_path):
     club set."""
     PipelineState(tmp_path).write_stage(
         StageName.CONFIG,
-        {"round_length_minutes": {"U10": 15}, "ice_time_minutes": {"U10": 30}},
+        {"round_length_minutes": {"U10": 15}, "ice_time_minutes": {"U10": 120}},
         status=StageStatus.DONE,
     )
     PipelineState(tmp_path).write_stage(

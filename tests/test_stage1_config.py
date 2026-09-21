@@ -181,6 +181,30 @@ class TestValidateConfig:
         errors = validate_config(raw, _DUMMY_INPUT_PATH)
         assert any("rounds_per_tournament" in e and "positivt heltall" in e for e in errors)
 
+    def test_ice_time_must_cover_configured_rounds_and_changeovers(self):
+        raw = _make_valid_raw()
+        raw["age_groups"] = ["U12"]
+        raw["round_length_minutes"] = {"U12": 15}
+        raw["rounds_per_tournament"] = {"U12": 5}
+        raw["ice_time_minutes"] = {"U12": 95}
+        raw["participation_targets_by_age_group"] = {"U12": {"before_christmas": 3, "after_christmas": 3}}
+
+        errors = validate_config(raw, _DUMMY_INPUT_PATH)
+
+        assert any("minimum" in e and "100" in e for e in errors)
+
+    def test_ice_time_must_cover_governing_series_round_floor(self):
+        raw = _make_valid_raw()
+        raw["age_groups"] = ["U10"]
+        raw["round_length_minutes"] = {"U10": 15}
+        raw["rounds_per_tournament"] = {"U10": 5}
+        raw["ice_time_minutes"] = {"U10": 115}
+        raw["participation_targets_by_age_group"] = {"U10": {"before_christmas": 3, "after_christmas": 3}}
+
+        errors = validate_config(raw, _DUMMY_INPUT_PATH)
+
+        assert any("minst 120" in e and "serieomgang" in e for e in errors)
+
     def test_error_messages_are_norwegian(self):
         errors = validate_config({}, _DUMMY_INPUT_PATH)
         # Norwegian error messages should contain Norwegian words
@@ -293,7 +317,7 @@ class TestRunStage1:
         raw["age_groups"] = ["U10"]
         raw["parallel_games"] = {"U10": 3}
         raw["round_length_minutes"] = {"U10": 10}
-        raw["ice_time_minutes"] = {"U10": 90}
+        raw["ice_time_minutes"] = {"U10": 120}
         raw["participation_targets_by_age_group"] = {"U10": {"before_christmas": 3, "after_christmas": 3}}
         _write_input_workbook(input_file, raw)
 
@@ -311,8 +335,8 @@ class TestRunStage1:
         assert effective["end_date"] == "2025-12-01"
         assert effective["age_groups"] == ["U10"]
         assert effective["parallel_games"] == {"U10": 3}
-        assert result["ice_time_minutes"] == {"U10": 90}
-        assert effective["ice_time_minutes"] == {"U10": 90}
+        assert result["ice_time_minutes"] == {"U10": 120}
+        assert effective["ice_time_minutes"] == {"U10": 120}
         assert effective["sources"] == [
             {"name": "Kongsberg", "type": "outlook", "url": "https://example.test/calendar"}
         ]
@@ -414,6 +438,7 @@ class TestRunStage1:
         raw = _make_valid_raw()
         raw["age_groups"] = ["U7", "U10"]
         raw["parallel_games"] = {"U7": 4, "U10": 3}
+        raw["ice_time_minutes"] = {"U7": 120, "U10": 120}
         raw["participation_targets_by_age_group"] = {
             "U7": {"before_christmas": 3, "after_christmas": 5},
             "U10": {"before_christmas": 4, "after_christmas": 6},
@@ -439,6 +464,7 @@ class TestRunStage1:
         raw = _make_valid_raw()
         raw["age_groups"] = ["U7", "U10"]
         raw["parallel_games"] = {"U7": 4, "U10": 3}
+        raw["ice_time_minutes"] = {"U7": 120, "U10": 120}
         raw["participation_targets_by_age_group"] = {
             "U7": {"before_christmas": 3, "after_christmas": 5},
             # U10 intentionally has no configured half-targets at all.

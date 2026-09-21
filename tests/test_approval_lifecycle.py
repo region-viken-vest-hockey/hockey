@@ -118,7 +118,7 @@ def test_approval_refuses_known_external_conflict(tmp_path):
             {"club": club, "label": f"{club}1", "age_group": "U10"} for club in "ABCD"
         ],
         "age_groups": ["U10"],
-        "ice_time_minutes": {"U10": 60},
+        "ice_time_minutes": {"U10": 120},
         "rounds_per_tournament": {"U10": 3},
         "parallel_games": {"U10": 2},
         "club_calendar_status": {"A": "known"},

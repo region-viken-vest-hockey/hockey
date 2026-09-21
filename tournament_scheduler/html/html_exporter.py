@@ -97,8 +97,8 @@ class HtmlExporter:
         output_files: Optional dict mapping format name to absolute file paths for download links.
         pipeline_meta: Optional pipeline-wide metadata with blocked sources, date range, etc.
         ice_time_for_age_group: Optional mapping of age group -> configured
-            base ice minutes, used with ``start_time`` and round count to
-            compute the displayed occupied time range.
+            booking-window minutes, used with ``start_time`` and round count
+            to compute the displayed occupied time range.
         calendars_path: Absolute path to the generated calendars.html file. When provided and
             the file exists, a navbar link to calendars.html is included.
         input_html_path: Absolute path to the generated input.html file (public overview of

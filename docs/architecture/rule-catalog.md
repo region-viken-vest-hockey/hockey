@@ -99,6 +99,7 @@ candidate regresses a higher-priority operational obligation.
 | `team_unique_per_date` | A team may not be scheduled in two different tournaments on the same date. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `tournament_roster_shape` | A tournament has an admissible, avoidable-by-free participant shape: even teams and no pause/bye rounds (or the exact age-group team count where configured). An input-constrained scarce shape is surfaced separately, never as a soft preference. | `tournament_scheduler.effective_tournament_shape` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_effective_tournament_shape.py`, `tests/test_planning_contract.py` |
 | `club_hard_max` | At most three teams from one club may participate in one tournament. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
+| `tournament_ice_booking_duration` | A tournament's configured ice_time_minutes is the complete hall occupancy window. It must be at least the actual rounds times round length plus the per-round changeover buffer, and any governing per-series-round booking floor. | `tournament_scheduler.occupancy` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_occupancy.py`, `tests/test_planning_contract.py`, `tests/test_stage1_config.py` |
 | `arena_interval_non_overlap` | Two tournaments must never require the same arena in overlapping datetime intervals. A failure to evaluate the interval data is itself a blocking verification result, not a silent pass. | `tournament_scheduler.arena_conflicts` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_arena_conflicts.py`, `tests/test_planning_contract.py` |
 | `tournament_capacity` | A tournament must not exceed its configured participant capacity. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `tournament_min_size` | A tournament with enough registered teams in its age group must have at least three participants. | `tournament_scheduler.final_verification` | `tournament_scheduler.final_verification.verify_final_candidate` | `tests/test_final_verification.py` |
@@ -182,6 +183,8 @@ candidate regresses a higher-priority operational obligation.
 | `duplicate_participation_same_date` (verifier) | `team_unique_per_date` |
 | `bye_team_not_allowed` (verifier) | `tournament_roster_shape` |
 | `club_hard_max_exceeded` (verifier) | `club_hard_max` |
+| `ice_time_playing_minimum` (verifier) | `tournament_ice_booking_duration` |
+| `ice_time_governing_minimum` (verifier) | `tournament_ice_booking_duration` |
 | `arena_interval_conflict` (verifier) | `arena_interval_non_overlap` |
 | `arena_interval_check_failed` (verifier) | `arena_interval_non_overlap` |
 | `tournament_over_capacity` (verifier) | `tournament_capacity` |
@@ -334,6 +337,19 @@ candidate regresses a higher-priority operational obligation.
 **Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.search_neighborhood_repair`, `tournament_scheduler.stage3_cpsat_club_cap`  
 **Evidence / report:** `verify_candidate.violations`  
 **Tests:** `tests/test_planning_contract.py`  
+**Precedence:** precedes — · depends on —
+
+### `tournament_ice_booking_duration`
+
+`Hard constraint` · status `active` · operator-waivable: no (structural)  
+**Meaning:** A tournament's configured ice_time_minutes is the complete hall occupancy window. It must be at least the actual rounds times round length plus the per-round changeover buffer, and any governing per-series-round booking floor.  
+**Canonical owner:** `tournament_scheduler.occupancy`  
+**Input / fact source:** planning_problem ice_time_minutes + round_length_minutes + generated round count  
+**Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
+**Codes:** verifier `ice_time_playing_minimum`, `ice_time_governing_minimum` · finding — · score —  
+**Providers:** mutation — · search —  
+**Evidence / report:** `verify_candidate.violations`, `rules_model tournament_duration`  
+**Tests:** `tests/test_occupancy.py`, `tests/test_planning_contract.py`, `tests/test_stage1_config.py`  
 **Precedence:** precedes — · depends on —
 
 ### `arena_interval_non_overlap`
@@ -799,7 +815,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** candidate host club + tournament roster  
 **Verifier / measurement:** `tournament_scheduler.home_representation`  
 **Codes:** verifier — · finding `home_representation`, `home_representation_skew` · score `home_representation.max_material_spread`, `home_representation.material_skew_pool_count`  
-**Providers:** mutation `home_representation_repair` · search `home_representation_repair` (bounded tier-2 coupled-pair/cycle widening)  
+**Providers:** mutation `home_representation_repair` · search —  
 **Evidence / report:** `score_candidate.home_representation.*`, `rules_model`  
 **Tests:** `tests/test_home_representation.py`  
 **Precedence:** precedes — · depends on —

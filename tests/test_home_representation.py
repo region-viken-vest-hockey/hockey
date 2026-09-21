@@ -61,7 +61,7 @@ def _problem() -> Dict[str, Any]:
         "age_groups": ["U10"],
         "parallel_games": {"U10": 2},
         "round_length_minutes": {"U10": 30},
-        "ice_time_minutes": {"U10": 90},
+        "ice_time_minutes": {"U10": 120},
         "rounds_per_tournament": {"U10": 3},
         "participation_targets_by_age_group": {
             "U10": {"before_christmas": 2, "after_christmas": 2}

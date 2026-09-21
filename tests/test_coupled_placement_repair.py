@@ -67,7 +67,7 @@ def _problem() -> Dict[str, Any]:
         "age_groups": ["U9", "U11"],
         "parallel_games": {"U9": 2, "U11": 2},
         "round_length_minutes": {"U9": 30, "U11": 30},
-        "ice_time_minutes": {"U9": 90, "U11": 90},
+        "ice_time_minutes": {"U9": 120, "U11": 120},
         "rounds_per_tournament": {"U9": 3, "U11": 3},
     }
     problem = build_planning_problem(config, None, date(2026, 9, 1), date(2027, 4, 30))
@@ -972,7 +972,7 @@ def _u9_problem() -> Dict[str, Any]:
         "age_groups": ["U9"],
         "parallel_games": {"U9": 2},
         "round_length_minutes": {"U9": 30},
-        "ice_time_minutes": {"U9": 90},
+        "ice_time_minutes": {"U9": 120},
         "rounds_per_tournament": {"U9": 3},
     }
     problem = build_planning_problem(config, None, date(2026, 9, 1), date(2027, 4, 30))

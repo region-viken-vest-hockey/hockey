@@ -64,7 +64,7 @@ class TestSpondExporter:
         assert sheet.auto_filter.ref == "A1:J3"
         assert rows[1][1] == "U10 Turnering — Kongsberghallen"
         assert rows[1][3] == "09:00"
-        assert rows[1][4] == "09:30"
+        assert rows[1][4] == "09:15"
         assert rows[1][5] == "U10"
         assert rows[1][6] == "Kongsberg"
         assert rows[1][7] == "Kongsberg, Skien, Holmen"

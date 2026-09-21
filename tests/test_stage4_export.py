@@ -256,7 +256,7 @@ class TestRunStage4:
         second = {
             **first,
             "id": "second",
-            "start_time": "09:15",
+            "start_time": "09:10",
             "teams": [
                 {"club": "Jar", "label": "Jar U10A", "age_group": "U10"},
                 {"club": "Holmen", "label": "Holmen U10A", "age_group": "U10"},
@@ -353,7 +353,7 @@ class TestRunStage4:
         second = {
             **first,
             "id": "second",
-            "start_time": "09:15",
+            "start_time": "09:10",
             "teams": [
                 {"club": "Jar", "label": "Jar U10A", "age_group": "U10"},
                 {"club": "Holmen", "label": "Holmen U10A", "age_group": "U10"},
@@ -739,7 +739,7 @@ class TestRunStage4:
         overview = workbook["Sesongoversikt"]
         rows = list(overview.iter_rows(values_only=True))
         assert rows[1][7] == "09:00"
-        assert rows[1][8] == "09:30"
+        assert rows[1][8] == "09:15"
 
     def test_exports_stage3_v2_candidate_envelope_unchanged(self, tmp_path):
         """Stage 3 v2's candidate.json (issue #257) is the same checkpoint
@@ -1092,7 +1092,7 @@ class TestRunStage4:
         assert "BEGIN:VCALENDAR" in content
         assert "VEVENT" in content
         assert "DTSTART:20251005T090000Z" in content
-        assert "DTEND:20251005T093000Z" in content
+        assert "DTEND:20251005T091500Z" in content
 
     def test_writes_timestamped_exports_without_flat_copies(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
@@ -1195,7 +1195,7 @@ class TestRunStage4:
 
         assert rows[0][0:5] == ("Dato", "Aktivitet", "Sted", "Start", "Slutt")
         assert rows[1][3] == "09:00"
-        assert rows[1][4] == "09:30"
+        assert rows[1][4] == "09:15"
         assert rows[1][9] == "turnering"
         assert len(rows) == 2  # header + one tournament row, not one row per game
 

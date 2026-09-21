@@ -57,10 +57,8 @@ tournament_occupancy_minutes = ice_time_minutes
 Game-format timing is a **separate minimum-feasibility check**, not extra occupancy added to the booking:
 
 ```text
-minimum_format_minutes =
-    actual_round_count * (round_length_minutes + 5)
-
-ice_time_minutes >= minimum_format_minutes
+minimum_playing_requirement = number_of_rounds * (round_length_minutes + 5)
+ice_time_minutes >= minimum_playing_requirement
 ```
 
 The 5 minutes per round is the normal transition/changeover allowance. When `rounds_per_tournament` is configured, Stage 1 should reject a configured booking window that cannot fit the configured format; final/candidate verification must also check the actual generated round count because effective tournament shape may reduce the number of rounds. Any governing minimum booking allocation (for example NIHF's two-hour floor for the applicable U7–U11 3v3 series rounds) is an additional independent lower bound; it must not be implemented by adding minutes to `ice_time_minutes` after the fact.
@@ -69,19 +67,19 @@ Slot search, external-calendar conflict detection, arena overlap checks, optimiz
 
 Migrated 2025–2026 `Istid` values below are historical booking-window evidence used when establishing the configuration; they are references to review, not "base ice" values that receive another automatic round buffer.
 
-Migrated 2025–2026 `Istid` values used to seed root `input.xlsx`:
+U7/JU7, U8/JU8, U9, U10/JU10 and U11 also have a 120-minute governing minimum per series round. Current reviewed values in root `input.xlsx` are:
 
-| Age group | `ice_time_minutes` | Historical source |
+| Age group | `ice_time_minutes` | Review |
 |---|---:|---|
-| U7 | 110 | `docs/2025/U7 Miniputt sesongen 2025 - 2026.xlsx` (`Istid fra`/`Istid til`) |
-| U8 | 90 | `docs/2025/U8 ETTER JUL_REVIDERT.xlsx` (`ISTID` duration cell) |
-| JU8 | 130 | `docs/2025/JU8 KLAR Miniputt sesongen 2025 - 2026.xlsx` (`Istid fra`/`Istid til`) |
-| U9 | 105 | `docs/2025/U9 ETTER JUL_Revidert.xlsx` (`ISTID` duration cell) |
-| U10 | 135 | `docs/2025/U10 ETTER JUL_REVIDERT.xlsx` (`ISTID` duration cell) |
-| JU10 | 110 | `docs/2025/JU10 KLAR Miniputt sesongen 2025 - 2026.xlsx` (`Istid fra`/`Istid til`) |
-| U11 | 135 | `docs/2025/U11 ETTER JUL_FERDIG_Revidert_1.xlsx` (`ISTID` duration cell) |
-| U12 | 75 | `docs/2025/U12 ETTER JUL_REVIDERT.xlsx` (`Istid` duration cell) |
-| JU12 | 175 | `docs/2025/JU12 KLAR REVIDERT Miniputt sesongen 2025 - 2026.xlsx` (`Istid fra`/`Istid til`) |
+| U7 | 130 | five 15-minute rounds + buffers require 100; exceeds 120-minute governing floor |
+| U8 | 130 | five 15-minute rounds + buffers require 100; exceeds 120-minute governing floor |
+| JU8 | 130 | five 15-minute rounds + buffers require 100; exceeds 120-minute governing floor |
+| U9 | 130 | five 15-minute rounds + buffers require 100; exceeds 120-minute governing floor |
+| U10 | 120 | five 15-minute rounds + buffers require 100; equals 120-minute governing floor |
+| JU10 | 120 | five 15-minute rounds + buffers require 100; equals 120-minute governing floor |
+| U11 | 120 | five 15-minute rounds + buffers require 100; equals 120-minute governing floor |
+| U12 | 85 | three 15-minute rounds + buffers require 60 |
+| JU12 | 85 | three 15-minute rounds + buffers require 60 |
 
 When `Aldersgrupper` is present, its rows define the declared age groups used to validate `Lag` and age-group-specific configuration.
 

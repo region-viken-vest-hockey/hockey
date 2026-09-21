@@ -10,6 +10,7 @@ from typing import Any
 
 from .input_workbook import load_workbook_config
 
+from ..occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
 from ..roster_loader import RosterLoader
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
                         f"'round_length_minutes[\"{ag}\"]' må være et positivt heltall, fikk: {minutes!r}."
                     )
 
-    # --- Configured base ice time (minutes) ---
+    # --- Configured total ice booking window (minutes) ---
     ice_time_by_age = raw.get("ice_time_minutes")
     if ice_time_by_age is not None:
         if not isinstance(ice_time_by_age, dict):
@@ -206,15 +207,37 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
                             f"ikke-negativt heltall, fikk: {value!r}."
                         )
 
-    # --- Every active age group must carry configured base ice time and both half-targets ---
+    # --- Every active age group must carry configured ice time and both half-targets ---
     if defined_age_groups:
         ice_time_dict = ice_time_by_age if isinstance(ice_time_by_age, dict) else {}
+        rounds_dict = raw.get("rounds_per_tournament") if isinstance(raw.get("rounds_per_tournament"), dict) else {}
+        round_length_dict = raw.get("round_length_minutes") if isinstance(raw.get("round_length_minutes"), dict) else {}
         for ag in defined_age_groups:
             if ag not in ice_time_dict:
                 errors.append(
                     f"Aldersgruppen '{ag}' mangler 'ice_time_minutes' i arket 'Aldersgrupper'. "
                     "Verdien er påkrevd og må oppgis eksplisitt."
                 )
+                continue
+            ice_minutes = ice_time_dict.get(ag)
+            if not isinstance(ice_minutes, int) or ice_minutes < 1:
+                continue
+            governing_floor = governing_minimum_ice_time_minutes(ag)
+            if governing_floor is not None and ice_minutes < governing_floor:
+                errors.append(
+                    f"'ice_time_minutes[\"{ag}\"]' må være minst {governing_floor} minutter "
+                    "for denne aldersgruppens serieomgang."
+                )
+            rounds = rounds_dict.get(ag)
+            round_length = round_length_dict.get(ag)
+            if isinstance(rounds, int) and isinstance(round_length, int):
+                minimum = minimum_playing_requirement_minutes(round_length, rounds)
+                if minimum > 0 and ice_minutes < minimum:
+                    errors.append(
+                        f"'ice_time_minutes[\"{ag}\"]' ({ice_minutes}) er kortere enn "
+                        f"minimum for {rounds} runder à {round_length} minutter med 5 minutters "
+                        f"rundebuffer ({minimum} minutter)."
+                    )
 
     # `deltakelser_per_lag_før_jul` / `_etter_jul` are the authoritative
     # per-team participation targets for every active age group; a missing

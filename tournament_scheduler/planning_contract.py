@@ -62,6 +62,7 @@ from tournament_scheduler.effective_tournament_shape import (
     compute_effective_tournament_shape,
     shape_violation,
 )
+from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
 from tournament_scheduler.operator_waivers import find_participation_waiver
 from tournament_scheduler.participation_targets import SEASON_SCOPE, evaluate_participation
 from tournament_scheduler.tournament_identity import validate_tournament_identity
@@ -912,6 +913,7 @@ def verify_candidate(
         if ag:
             registered_count_by_age_group[ag] = registered_count_by_age_group.get(ag, 0) + 1
     rounds_per_tournament = problem.get("rounds_per_tournament") or {}
+    round_length_minutes_by_age = problem.get("round_length_minutes") or {}
     parallel_games_capacity = problem.get("parallel_games") or {}
     input_constrained_shapes: List[Dict[str, Any]] = []
 
@@ -957,7 +959,8 @@ def verify_candidate(
     from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
     from tournament_scheduler.serialization.season_plan import tournament_from_dict
 
-    ice_time_minutes = problem.get("ice_time_minutes") or problem.get("round_length_minutes") or {}
+    configured_ice_time_minutes = problem.get("ice_time_minutes") or {}
+    ice_time_minutes = configured_ice_time_minutes or problem.get("round_length_minutes") or {}
     club_calendar_status_for_conflicts = problem.get("club_calendar_status") or {}
     club_busy_intervals = apply_calendar_interpretations(
         problem.get("club_busy_intervals") or {},
@@ -1131,6 +1134,36 @@ def verify_candidate(
             )
         elif shape.input_constrained and actual_team_count == shape.effective_team_count:
             input_constrained_shapes.append({"tournament_id": t_id, **shape.as_dict()})
+
+        actual_round_count = max((int(game.get("round_number") or 0) for game in t.get("games") or []), default=0)
+        configured_ice_time = configured_ice_time_minutes.get(shape_age_group)
+        configured_round_length = round_length_minutes_by_age.get(shape_age_group)
+        if isinstance(configured_ice_time, int) and configured_ice_time > 0:
+            governing_floor = governing_minimum_ice_time_minutes(shape_age_group)
+            if governing_floor is not None and configured_ice_time < governing_floor:
+                _violate(
+                    "ice_time_governing_minimum",
+                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={configured_ice_time}, "
+                    f"below the governing minimum booking window of {governing_floor} minutes",
+                    t_id,
+                    age_group=shape_age_group,
+                    configured_ice_time_minutes=configured_ice_time,
+                    minimum_required_minutes=governing_floor,
+                )
+            minimum_playing = minimum_playing_requirement_minutes(configured_round_length, actual_round_count)
+            if minimum_playing > 0 and configured_ice_time < minimum_playing:
+                _violate(
+                    "ice_time_playing_minimum",
+                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={configured_ice_time}, "
+                    f"below the minimum {minimum_playing} minutes required for {actual_round_count} "
+                    f"rounds of {configured_round_length} minutes plus changeovers",
+                    t_id,
+                    age_group=shape_age_group,
+                    configured_ice_time_minutes=configured_ice_time,
+                    minimum_required_minutes=minimum_playing,
+                    round_count=actual_round_count,
+                    round_length_minutes=configured_round_length,
+                )
 
         # issue #323: this check is already scoped to the tournament's OWN
         # participant list (`t.get("teams", [])`), not the roster-wide set

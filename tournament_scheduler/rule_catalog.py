@@ -181,6 +181,22 @@ _HARD: tuple[RuleEntry, ...] = (
         verifier_codes=("club_hard_max_exceeded",),
     ),
     RuleEntry(
+        id="tournament_ice_booking_duration",
+        classification=HARD_CONSTRAINT,
+        meaning=(
+            "A tournament's configured ice_time_minutes is the complete hall occupancy window. "
+            "It must be at least the actual rounds times round length plus the per-round "
+            "changeover buffer, and any governing per-series-round booking floor."
+        ),
+        canonical_owner="tournament_scheduler.occupancy",
+        input_source="planning_problem ice_time_minutes + round_length_minutes + generated round count",
+        verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
+        evidence_projection=("verify_candidate.violations", "rules_model tournament_duration"),
+        tests=("tests/test_occupancy.py", "tests/test_planning_contract.py", "tests/test_stage1_config.py"),
+        verifier_codes=("ice_time_playing_minimum", "ice_time_governing_minimum"),
+        waivable=False,
+    ),
+    RuleEntry(
         id="arena_interval_non_overlap",
         classification=HARD_CONSTRAINT,
         meaning=(

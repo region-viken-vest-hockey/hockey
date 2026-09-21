@@ -64,7 +64,7 @@ def _problem(
         "age_groups": ["U10"],
         "parallel_games": {"U10": parallel_games},
         "round_length_minutes": {"U10": 30},
-        "ice_time_minutes": {"U10": 90},
+        "ice_time_minutes": {"U10": 120},
         "rounds_per_tournament": {"U10": 3},
     }
     if participation_targets is not None:

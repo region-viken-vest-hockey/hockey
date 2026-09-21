@@ -350,7 +350,7 @@ def _collect_plan_audit_facts(
         duration_minutes = None
         end_time = None
         if round_count > 0 and isinstance(ice_time, int) and ice_time > 0:
-            duration_minutes = ice_time + round_buffer_minutes
+            duration_minutes = ice_time
             duration_values.append(duration_minutes)
             if start_time:
                 try:

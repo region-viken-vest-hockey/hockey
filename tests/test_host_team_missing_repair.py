@@ -429,7 +429,7 @@ def _frisk_style_u11_fixture():
         "teams": registered,
         "parallel_games": {"U11": 2},
         "rounds_per_tournament": {"U11": 3},
-        "ice_time_minutes": {"U11": 90},
+        "ice_time_minutes": {"U11": 120},
     }
     scraping = {
         "club_calendar_status": {team["club"]: "known" for team in registered},
@@ -627,7 +627,7 @@ def test_rehost_options_use_the_canonical_clubs_key_from_build_planning_problem(
             "teams": registered,
             "parallel_games": {"U11": 2},
             "rounds_per_tournament": {"U11": 3},
-            "ice_time_minutes": {"U11": 90},
+            "ice_time_minutes": {"U11": 120},
         },
         {"club_calendar_status": {team["club"]: "known" for team in registered}, "events_by_club": {}},
         date(2026, 9, 1),

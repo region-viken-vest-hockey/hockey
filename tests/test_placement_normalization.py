@@ -70,7 +70,7 @@ def _tournament(tid, host, *, date="2026-01-10", arena="H Arena", start="10:00",
 
 def _problem(**overrides):
     problem = {
-        "ice_time_minutes": {"U10": 90},
+        "ice_time_minutes": {"U10": 120},
         "club_calendar_status": {"H": "known"},
         "club_busy_intervals": {},
     }

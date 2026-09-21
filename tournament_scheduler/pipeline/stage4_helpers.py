@@ -41,8 +41,8 @@ def build_tournament_placement_entries(plan: SeasonPlan) -> list[dict[str, str]]
         if item.get("required_duration_minutes"):
             duration_clause = (
                 f"Required duration: {item.get('required_duration_minutes')} min "
-                f"(base ice {item.get('configured_ice_time_minutes', 'ukjent')} min + "
-                f"round buffer {item.get('round_buffer_minutes', 'ukjent')} min for "
+                f"(configured booking window {item.get('configured_ice_time_minutes', 'ukjent')} min; "
+                f"round buffer evidence {item.get('round_buffer_minutes', 'ukjent')} min for "
                 f"{item.get('round_count', 'ukjent')} rounds). "
             )
         else:

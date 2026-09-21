@@ -36,18 +36,18 @@ def _tournament(tid, start_time, *, arena="Jar Isforum", day=date(2026, 9, 5), a
 def test_tournament_interval_uses_full_datetime_and_can_cross_midnight():
     tournament = _tournament("late", "23:30", rounds=2)
 
-    interval = tournament_interval(tournament, {"U10": 20})
+    interval = tournament_interval(tournament, {"U10": 40})
 
     assert interval is not None
     assert interval.start.isoformat() == "2026-09-05T23:30:00"
-    # configured 20 min base ice + 2 × 5 min setup/changeover crosses midnight.
-    assert interval.end.isoformat() == "2026-09-06T00:00:00"
-    assert interval.interval_label == "2026-09-05 23:30–2026-09-06 00:00"
+    # configured 40 min booking window crosses midnight; per-round buffers are not added on top.
+    assert interval.end.isoformat() == "2026-09-06T00:10:00"
+    assert interval.interval_label == "2026-09-05 23:30–2026-09-06 00:10"
 
 
 def test_adjacent_intervals_do_not_collide():
     first = _tournament("first", "10:00", rounds=1)
-    second = _tournament("second", "10:25", rounds=1)
+    second = _tournament("second", "10:20", rounds=1)
 
     collisions = find_arena_interval_collisions([first, second], {"U10": 20})
 
@@ -56,7 +56,7 @@ def test_adjacent_intervals_do_not_collide():
 
 def test_overlapping_intervals_collide_with_actionable_details():
     first = _tournament("first", "10:00", rounds=2)
-    second = _tournament("second", "10:20", rounds=1)
+    second = _tournament("second", "10:15", rounds=1)
 
     collisions = find_arena_interval_collisions([first, second], {"U10": 20})
 
@@ -66,8 +66,8 @@ def test_overlapping_intervals_collide_with_actionable_details():
     assert collision["date"] == "2026-09-05"
     assert collision["tournament_id"] == "first"
     assert collision["conflicting_tournament_id"] == "second"
-    assert collision["interval"] == "2026-09-05 10:00–2026-09-05 10:30"
-    assert collision["conflicting_interval"] == "2026-09-05 10:20–2026-09-05 10:45"
+    assert collision["interval"] == "2026-09-05 10:00–2026-09-05 10:20"
+    assert collision["conflicting_interval"] == "2026-09-05 10:15–2026-09-05 10:35"
     assert "first" in collision["message"]
     assert "second" in collision["message"]
 
@@ -76,12 +76,12 @@ def test_overnight_interval_collides_with_next_day_tournament():
     overnight = _tournament("overnight", "23:30", rounds=4)
     next_day = _tournament("next-day", "00:00", day=date(2026, 9, 6), rounds=1)
 
-    collisions = find_arena_interval_collisions([overnight, next_day], {"U10": 20})
+    collisions = find_arena_interval_collisions([overnight, next_day], {"U10": 50})
 
     assert len(collisions) == 1
     assert collisions[0]["tournament_id"] == "overnight"
     assert collisions[0]["conflicting_tournament_id"] == "next-day"
-    assert collisions[0]["interval"] == "2026-09-05 23:30–2026-09-06 00:10"
+    assert collisions[0]["interval"] == "2026-09-05 23:30–2026-09-06 00:20"
 
 
 def test_same_time_in_different_arenas_does_not_collide():

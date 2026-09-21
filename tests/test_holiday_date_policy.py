@@ -56,7 +56,7 @@ def _problem(teams: List[Dict[str, str]]) -> Dict[str, Any]:
         "age_groups": ["U10"],
         "parallel_games": {"U10": 2},
         "round_length_minutes": {"U10": 30},
-        "ice_time_minutes": {"U10": 90},
+        "ice_time_minutes": {"U10": 120},
         "rounds_per_tournament": {"U10": 3},
     }
     problem = build_planning_problem(config, None, WINDOW_START, WINDOW_END)
@@ -312,7 +312,7 @@ def test_batch_relocation_demotes_when_no_admissible_date() -> None:
         "age_groups": ["U10"],
         "parallel_games": {"U10": 2},
         "round_length_minutes": {"U10": 30},
-        "ice_time_minutes": {"U10": 90},
+        "ice_time_minutes": {"U10": 120},
         "rounds_per_tournament": {"U10": 3},
     }
     problem = build_planning_problem(config, None, holiday, holiday)

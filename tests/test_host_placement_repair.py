@@ -352,7 +352,7 @@ def _swap_problem():
     # calendar. `ice_time_minutes` is required for the verifier's arena
     # interval collision check.
     problem["clubs"] = {"H": "H Arena", "A": "H Arena", "B": "B Arena", "C": "C Arena", "D": "D Arena"}
-    problem["ice_time_minutes"] = {"U10": 90}
+    problem["ice_time_minutes"] = {"U10": 120}
     problem["club_busy_intervals"] = {
         "H": [{"date": "2026-01-10", "start": "09:00", "end": "20:00", "kind": "external"}]
     }

@@ -75,8 +75,8 @@ class SeasonPlanExporter:
         provided.
 
         ``ice_time_for_age_group`` (optional mapping of age group -> configured
-        base ice minutes) is used to compute each tournament's occupied end
-        time for the "Sluttid" overview column.
+        booking-window minutes) is used to compute each tournament's occupied
+        end time for the "Sluttid" overview column.
 
         Returns the path the workbook was saved to.
         """

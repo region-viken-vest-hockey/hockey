@@ -51,7 +51,7 @@ def _write_minimal_workbook(path: Path) -> None:
             "deltakelser_per_lag_etter_jul",
         ]
     )
-    age_groups.append(["U10", 2, 15, 30, 2, 2])
+    age_groups.append(["U10", 2, 15, 120, 2, 2])
 
     teams = wb.create_sheet("Lag")
     teams.append(["club", "label", "age_group"])

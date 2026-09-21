@@ -78,6 +78,38 @@ class TestVerifyCandidateSelfConsistency:
         assert not result["ok"]
         assert "bye_team_not_allowed" in {v["code"] for v in result["violations"]}
 
+    def test_ice_time_below_actual_round_playing_minimum_is_rejected(self):
+        teams = [_team("Jar", "Jar 1", "U12"), _team("Kongsberg", "Kongsberg 1", "U12")]
+        games = [
+            {"home": teams[0]["label"], "away": teams[1]["label"], "parallel_slot": 0, "round_number": round_number}
+            for round_number in range(1, 6)
+        ]
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jar Isforum", "U12", teams, games=games)]}
+        problem = {
+            "teams": teams,
+            "round_length_minutes": {"U12": 15},
+            "ice_time_minutes": {"U12": 95},
+            "rounds_per_tournament": {"U12": 3},
+        }
+
+        result = verify_candidate(candidate, problem)
+
+        assert "ice_time_playing_minimum" in {v["code"] for v in result["violations"]}
+
+    def test_ice_time_below_governing_series_round_floor_is_rejected(self):
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        candidate = {"tournaments": [_tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)]}
+        problem = {
+            "teams": teams,
+            "round_length_minutes": {"U10": 15},
+            "ice_time_minutes": {"U10": 115},
+            "rounds_per_tournament": {"U10": 1},
+        }
+
+        result = verify_candidate(candidate, problem)
+
+        assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
+
     def test_even_sized_tournament_passes_no_bye_rule(self):
         teams = [
             _team("Jar", "Jar 1", "U10"),

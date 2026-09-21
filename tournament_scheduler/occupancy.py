@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from typing import Mapping, Protocol
 
 ROUND_BUFFER_MINUTES = 5
+NIHF_SERIES_ROUND_MINIMUM_MINUTES = 120
+NIHF_SERIES_ROUND_MINIMUM_AGE_GROUPS = frozenset({"U7", "JU7", "U8", "JU8", "U9", "U10", "JU10", "U11"})
 
 
 class TournamentLike(Protocol):
@@ -40,11 +42,33 @@ def round_count_for_games(games: list) -> int:
     return max(int(getattr(game, "round_number", 0) or 0) for game in games)
 
 
+def minimum_playing_requirement_minutes(
+    round_length_minutes: int | None,
+    round_count: int,
+    *,
+    round_buffer_minutes: int = ROUND_BUFFER_MINUTES,
+) -> int:
+    """Return the minimum minutes needed for rounds plus changeovers."""
+    if not isinstance(round_length_minutes, int) or round_length_minutes <= 0 or round_count <= 0:
+        return 0
+    return round_count * (round_length_minutes + max(0, round_buffer_minutes))
+
+
+def governing_minimum_ice_time_minutes(age_group: str) -> int | None:
+    """Return the governing per-series-round booking floor for *age_group*."""
+    return NIHF_SERIES_ROUND_MINIMUM_MINUTES if age_group in NIHF_SERIES_ROUND_MINIMUM_AGE_GROUPS else None
+
+
 def required_ice_minutes(ice_time_minutes: int | None, round_count: int, *, round_buffer_minutes: int = ROUND_BUFFER_MINUTES) -> int:
-    """Return required occupied minutes: configured base ice plus per-round buffer."""
+    """Return tournament hall occupancy minutes.
+
+    ``ice_time_minutes`` is the complete booked/occupied window for the
+    tournament. The per-round buffer remains part of format validation, but it
+    is not added on top of the configured booking duration.
+    """
     if not isinstance(ice_time_minutes, int) or ice_time_minutes <= 0 or round_count <= 0:
         return 0
-    return ice_time_minutes + max(0, round_buffer_minutes) * round_count
+    return ice_time_minutes
 
 
 def occupancy_components(age_group: str, ice_time_by_age_group: Mapping[str, int], round_count: int) -> OccupancyComponents:

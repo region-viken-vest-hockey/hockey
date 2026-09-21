@@ -268,12 +268,7 @@ def _placement_conflict(
 
 
 def _occupancy_minutes(tournament: Mapping[str, Any], problem: Mapping[str, Any]) -> int:
-    """Configured base ice time plus the canonical per-round buffer.
-
-    Mirrors :func:`tournament_scheduler.occupancy.tournament_required_ice_minutes`
-    (the duration the verifier actually uses), so an arena overlap is never
-    missed because a repair estimate used only the flat configured ice time.
-    """
+    """Configured ice-time window used by the canonical occupancy contract."""
     ice_time = (problem.get("ice_time_minutes") or {}).get(tournament.get("age_group"))
     rounds = max(
         (int(game.get("round_number") or 0) for game in tournament.get("games") or []),
@@ -281,7 +276,7 @@ def _occupancy_minutes(tournament: Mapping[str, Any], problem: Mapping[str, Any]
     )
     if not isinstance(ice_time, int) or ice_time <= 0 or rounds <= 0:
         return 0
-    return ice_time + 5 * rounds
+    return ice_time
 
 
 def _time_to_minutes(value: str) -> Optional[int]:

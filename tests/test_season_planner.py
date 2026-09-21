@@ -657,6 +657,7 @@ class TestSeasonPlanner:
             club_arenas={"Jar": "Jarahallen"},
             parallel_games_for_age_group={"U7": 4, "U10": 4},
             round_length_for_age_group={"U7": 180, "U10": 180},
+            ice_time_for_age_group={"U7": 195, "U10": 195},
         )
 
         plan = planner.build_plan(start, end)
@@ -701,6 +702,7 @@ class TestSeasonPlanner:
             club_arenas={"Jar": "Jarahallen"},
             parallel_games_for_age_group={"U7": 4, "U8": 4, "U9": 4},
             round_length_for_age_group={"U7": 180, "U8": 180, "U9": 180},
+            ice_time_for_age_group={"U7": 195, "U8": 195, "U9": 195},
             seed=0,
         )
 

@@ -64,7 +64,7 @@ def _conflicting_problem(candidate: dict) -> dict:
             }
         ]
     }
-    problem["ice_time_minutes"] = {"U10": 45}
+    problem["ice_time_minutes"] = {"U10": 120}
     problem["round_length_minutes"] = {"U10": 15}
     return problem
 
@@ -74,7 +74,7 @@ def _config() -> dict:
         "start_date": "2026-09-01",
         "end_date": "2027-04-30",
         "age_groups": ["U10"],
-        "ice_time_minutes": {"U10": 45},
+        "ice_time_minutes": {"U10": 120},
         "round_length_minutes": {"U10": 15},
         "rounds_per_tournament": {"U10": 3},
         "parallel_games": {"U10": 2},
@@ -132,7 +132,7 @@ def test_export_of_a_clean_plan_is_unchanged(tmp_path):
     problem = build_problem_from_candidate(candidate)
     problem["club_calendar_status"] = {"A": "known"}
     problem["club_busy_intervals"] = {}
-    problem["ice_time_minutes"] = {"U10": 45}
+    problem["ice_time_minutes"] = {"U10": 120}
     problem["round_length_minutes"] = {"U10": 15}
 
     state.write_stage(StageName.PLANNING, {"plan": candidate}, status=StageStatus.DONE)

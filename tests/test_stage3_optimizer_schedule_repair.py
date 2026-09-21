@@ -9,7 +9,7 @@ from tournament_scheduler.stage3_optimizer import (
     repair_schedule_conflicts_bounded_multi_seed,
 )
 
-_PROBLEM = {"round_length_minutes": {"U7": 20, "U9": 20}, "ice_time_minutes": {"U7": 40, "U9": 40}}
+_PROBLEM = {"round_length_minutes": {"U7": 20, "U9": 20}, "ice_time_minutes": {"U7": 120, "U9": 120}}
 
 
 def _team(club: str, label: str, age_group: str) -> dict:

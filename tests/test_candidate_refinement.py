@@ -71,7 +71,7 @@ def _problem(
         "age_groups": sorted({team["age_group"] for team in teams}),
         "parallel_games": {"U10": 2, "U12": 2},
         "round_length_minutes": {"U10": 30, "U12": 30},
-        "ice_time_minutes": {"U10": 90, "U12": 90},
+        "ice_time_minutes": {"U10": 120, "U12": 90},
         "rounds_per_tournament": {"U10": 3, "U12": 3},
     }
     problem = build_planning_problem(config, None, start, end)

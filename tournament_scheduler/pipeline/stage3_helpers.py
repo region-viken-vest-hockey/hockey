@@ -66,7 +66,7 @@ def _build_rounds_per_tournament(config: dict[str, Any]) -> dict[str, int]:
 
 
 def _build_ice_time(config: dict[str, Any]) -> dict[str, int]:
-    """Extract configured base ice-time-minutes mapping from config."""
+    """Extract configured tournament booking-window minutes by age group."""
     return dict(config.get("ice_time_minutes", {}))
 
 
