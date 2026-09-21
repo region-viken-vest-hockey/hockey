@@ -27,6 +27,19 @@ Inspect the repository-owned `DecisionContext` after each pause and continue onl
 
 When a verified schedule is deliberately accepted as the operational baseline for club review/ice booking, promote it explicitly through the shared `season` procedure. Promotion is not an automatic side effect of an ordinary planner run.
 
+### Ice-duration contract
+
+For every planning, repair, review and export path, treat `ice_time_minutes` as the **authoritative total booked/occupied ice duration** for that age group. Never add `5 * rounds`, setup time or resurfacing time on top of it when checking a slot or computing an end time.
+
+Round timing is validation evidence only:
+
+```text
+minimum_format_minutes =
+    actual_round_count * (round_length_minutes + 5)
+```
+
+The configured `ice_time_minutes` must be at least that minimum and must also satisfy any applicable governing/local minimum booking allocation. If those checks fail, fix/configure the source value or the canonical duration rule; do not silently enlarge one consumer's interval. Slot search, external-calendar availability, arena conflicts, optimizer/repair feasibility, Excel/HTML/iCal end times and audit evidence must all describe the same occupancy interval. See `docs/rvv-miniputt-input-formats.md` for the workbook contract and `docs/system-architecture.md` for ownership.
+
 ### 2. Promoted-season maintenance
 
 After promotion, `season/<season>/schedule.json` plus `season/<season>/decisions.json` are the durable operational truth. Use canonical `season` operations for approvals, targeted moves, bounded replanning and re-export rather than regenerating the season from scratch:
@@ -341,8 +354,8 @@ Audit checklist:
 
 1. Antall cuper pr lag?
 2. Antall hjemmeturneringer pr lag?
-3. Lengde på turneringer?
-4. Er det faktisk ledig tid på is?
+3. Lengde på turneringer? (Bekreft at eksportert/sluttid bruker nøyaktig konfigurert `ice_time_minutes`, og at denne samtidig dekker rundene + 5 min overgang pr runde samt eventuelle minimumskrav til booket istid.)
+4. Er det faktisk ledig tid på is for hele denne konfigurerte bookingperioden?
 5. Deltar vertsklubben i samme turnering?
 6. Deltar hvert lag maksimalt én gang per dag?
 7. Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?
