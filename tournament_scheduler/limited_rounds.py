@@ -5,8 +5,6 @@ from __future__ import annotations
 from itertools import combinations
 from typing import Sequence
 
-from ortools.sat.python import cp_model
-
 from tournament_scheduler.host_representation import constituent_clubs
 from tournament_scheduler.models import Game, Team
 
@@ -33,6 +31,8 @@ def generate_limited_round_games(teams: Sequence[Team], parallel_games: int, rou
 
     pairs = list(combinations(range(n), 2))
     target_games = min(rounds * games_per_round, len(pairs))
+    from ortools.sat.python import cp_model
+
     model = cp_model.CpModel()
     x: dict[tuple[int, int], cp_model.IntVar] = {}
     for r in range(rounds):
