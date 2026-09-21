@@ -14,6 +14,11 @@ Read `AGENTS.md`, `.agents/skills/rvv/SKILL.md`, and this repository's internal 
    - current findings where relevant;
    - current export/audit/publication revision where relevant.
 3. Classify and compose the request. One request may require several internal procedures; do not stop after the first mechanical change if the requested outcome requires repair, verification, export or audit.
+   - Preserve any priority, conditionality or dependency the operator expressed between outcomes.
+   - Treat confirmed conflicts and explicit requirements as mandatory intent.
+   - Treat wording such as "if possible", "investigate", "prefer", "lower priority" or equivalent as conditional intent unless the surrounding request makes it mandatory.
+   - Never worsen, undo or block a higher-priority outcome merely to satisfy a lower-priority preference.
+   - If all requested outcomes cannot be satisfied acceptably, complete the higher-priority outcomes and report the lower-priority ones as unresolved rather than forcing a materially worse schedule.
 4. Load only the relevant internal shared procedures under `.agents/commands/rvv-miniputt/` and follow their canonical boundaries. Do not recreate their policy in the harness.
 5. Before changing a promoted schedule because of club/operator feedback, inspect the active accepted-change protections and request constraints, and give the request a stable request id. When the feedback describes intent rather than an exact placement (unavailable date/range, minimum gap between tournaments, opponent avoidance), translate it into the narrowest supported typed request constraint with `season add-constraint` **before** searching or mutating, then choose any legal result satisfying all active constraints. Earlier accepted requests and constraints remain binding unless the newer request explicitly supersedes them; never release one merely because it blocks a convenient candidate.
 6. Prefer the smallest hard-valid change that satisfies the intent:
@@ -53,6 +58,7 @@ Use `.agents/commands/rvv-miniputt/guide.md` as the routing guide and then load 
 
 Report the result in operator terms:
 
+- for multi-outcome requests, report each requested outcome separately as `resolved`, `partially resolved`, `unchanged by choice`, or `blocked`, preserving the operator's stated priority;
 - what changed and why;
 - what was deliberately preserved;
 - meaningful before/after schedule-quality facts where available;
