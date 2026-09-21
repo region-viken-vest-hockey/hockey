@@ -111,6 +111,7 @@ class TestNoAuditResult:
         (latest / "index.html").write_text("<h1>unchanged season</h1>", encoding="utf-8")
         (latest / "activities.json").write_text('{"old": true}\n', encoding="utf-8")
         (latest / "activities" / "index.html").write_text("old activity\n", encoding="utf-8")
+        (latest / "_meta.json").write_text('{"run_id": "old"}\n', encoding="utf-8")
         subprocess.run(["git", "-C", str(tmp_path), "add", "latest"], check=True)
         subprocess.run(["git", "-C", str(tmp_path), "commit", "-q", "-m", "pages"], check=True)
         subprocess.run(["git", "-C", str(tmp_path), "checkout", "-q", "main"], check=True)

@@ -302,7 +302,8 @@ def diff_latest(bundle_dir: str, *, repo_dir: str = ".", branch: str = "gh-pages
     remove = sorted(
         path
         for path in existing - bundle_rels
-        if not any(
+        if path != "latest/_meta.json"
+        and not any(
             path == f"latest/{root}" or path.startswith(f"latest/{root}/")
             for root in preserved_roots
         )
