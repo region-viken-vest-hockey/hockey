@@ -278,6 +278,27 @@ The rule has one planner-independent semantic owner, `hosting_responsibility`: i
 
 Registration or tournament-volume changes are a canonical fairness recompute, not an unexplained placement transfer: the target math changed, so the guard skips that age group rather than mislabeling the legal redistribution.
 
+### Tournament ice occupancy is the configured booking window
+
+`ice_time_minutes` is controlled input for the **total occupied/booked ice interval** of a tournament in that age group. It is not a base game duration. The canonical occupancy used by placement, calendar-conflict checks, arena overlap checks, optimization and exports is therefore:
+
+```text
+tournament_occupancy_minutes = ice_time_minutes
+```
+
+The game format supplies independent lower-bound validation:
+
+```text
+minimum_format_minutes =
+    actual_round_count * (round_length_minutes + 5)
+
+ice_time_minutes >= minimum_format_minutes
+```
+
+Governing or local minimum booking requirements are additional lower bounds on the configured value; they do not extend a tournament after placement. For the currently applicable RVV 3v3 groups where NIHF requires at least two hours per series round, the configuration must satisfy that floor independently of the round calculation.
+
+This distinction is a cross-path scheduling invariant. Reusable occupancy/minimum-duration math belongs in a planner-independent deterministic owner and every slot finder, repair/search provider, verifier and renderer must consume that same contract. Do not compensate in a caller by adding setup/changeover minutes to `ice_time_minutes`, and do not let exports compute a different end time from the verifier.
+
 ### Calendar availability is a classification, not a boolean
 
 Calendar evidence is normalized into explicit availability classes before planning, so occupied time is not automatically unavailable time:
