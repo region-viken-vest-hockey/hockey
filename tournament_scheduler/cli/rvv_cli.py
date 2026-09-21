@@ -1338,6 +1338,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
 
         if args.season_command == "export":
             schedule = load_schedule(args.season, root=args.root)
+            decisions = load_decisions(args.season, root=args.root)
             checkpoint = planning_checkpoint_from_schedule(schedule)
             state = PipelineState(args.work_dir)
             verification_context = schedule.get("verification_context") if isinstance(schedule.get("verification_context"), dict) else {}
@@ -1375,6 +1376,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
             )
             result["canonical_season"] = args.season
             result["canonical_revision"] = schedule.get("revision")
+            result["season_baseline"] = decisions.get("season_baseline") or None
             # Distinct from the informational `canonical_season`/`canonical_revision`
             # fields above (which the ordinary Stage 4 exporter also sets whenever
             # Stage 3 adopted a promoted season as its baseline): this marker is
@@ -2071,10 +2073,86 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"[bold]Funn {args.season}[/bold] (revision {str(report['revision'])[:12]}, "
                     f"{report['finding_count']} funn)"
                 )
-                for finding in report["findings"]:
+                comparison = report.get("baseline_comparison") or {}
+                if comparison.get("active"):
+                    summary = comparison.get("summary") or {}
+                    _console.print("[bold]Baseline comparison[/bold]")
+                    for status in ("NEW", "REGRESSED", "IMPROVED", "RESOLVED", "KNOWN"):
+                        _console.print(f"  {status:<9} {int(summary.get(status, 0))}")
+                    if not comparison.get("new_count") and not comparison.get("regression_count"):
+                        _console.print("[green]No regressions relative to accepted baseline.[/green]")
+                    if getattr(args, "all", False):
+                        visible = report["findings"]
+                    else:
+                        wanted = {"NEW", "REGRESSED"}
+                        entry_status = {
+                            str(entry.get("finding_id") or ""): str(entry.get("status") or "")
+                            for entry in comparison.get("entries") or []
+                        }
+                        # Hard findings are never baseline-suppressible: keep
+                        # them visible even when the default view emphasizes
+                        # only NEW/REGRESSED accepted-debt changes.
+                        visible = [
+                            finding
+                            for finding in report["findings"]
+                            if entry_status.get(str(finding.get("finding_id") or "")) in wanted
+                            or str(finding.get("severity") or "").lower() == "hard"
+                        ]
+                else:
+                    visible = report["findings"]
+                for finding in visible:
+                    is_hard = str(finding.get("severity") or "").lower() == "hard"
+                    marker = "[red]![/red] " if is_hard else "  "
                     _console.print(
-                        f"  [dim]{finding['category']}[/dim] {finding['finding_id']}: {finding['message']}"
+                        f"{marker}[dim]{finding['category']}[/dim] {finding['finding_id']}: {finding['message']}"
                     )
+            return 0
+
+        if args.season_command == "baseline":
+            from ..season_state import (
+                season_baseline_advance,
+                season_baseline_create,
+                season_baseline_replace,
+                season_baseline_show,
+            )
+
+            if args.baseline_command == "create":
+                result = season_baseline_create(
+                    season=args.season, root=args.root, actor=args.actor, note=args.note
+                )
+            elif args.baseline_command == "replace":
+                result = season_baseline_replace(
+                    season=args.season, root=args.root, actor=args.actor, note=args.note
+                )
+            elif args.baseline_command == "advance":
+                result = season_baseline_advance(
+                    season=args.season, root=args.root, actor=args.actor, note=args.note
+                )
+            elif args.baseline_command == "show":
+                result = season_baseline_show(season=args.season, root=args.root)
+            else:
+                _console.print("[red]✗[/red] Missing baseline command (create/show/advance/replace)")
+                return 2
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                comparison = result.get("comparison") or {}
+                baseline = result.get("baseline") or {}
+                _console.print(
+                    f"[bold]Season baseline {args.season}[/bold] revision {str(result.get('revision') or result.get('canonical_state_revision') or '')[:12]}"
+                )
+                if baseline:
+                    _console.print(
+                        f"  accepted {baseline.get('created_at')} by {baseline.get('created_by')} "
+                        f"({baseline.get('finding_count', 0)} findings)"
+                    )
+                summary = comparison.get("summary") or {}
+                for status in ("NEW", "REGRESSED", "IMPROVED", "RESOLVED", "KNOWN"):
+                    _console.print(f"  {status:<9} {int(summary.get(status, 0))}")
+                if comparison.get("ok_to_advance"):
+                    _console.print("[green]No NEW or REGRESSED findings relative to baseline.[/green]")
+                else:
+                    _console.print("[yellow]Baseline has NEW or REGRESSED findings.[/yellow]")
             return 0
 
         if args.season_command in ("repair-options", "search"):

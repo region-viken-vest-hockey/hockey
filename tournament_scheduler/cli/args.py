@@ -1470,6 +1470,49 @@ def build_parser() -> argparse.ArgumentParser:
     season_findings.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_findings.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_findings.add_argument("--json", action="store_true", help="Print findings as JSON")
+    season_findings.add_argument(
+        "--all",
+        action="store_true",
+        help="Show all known/accepted findings when a baseline exists (default emphasizes NEW/REGRESSED)",
+    )
+
+    season_baseline = season_sub.add_parser(
+        "baseline",
+        help="Create, advance or inspect the accepted season-quality baseline",
+    )
+    season_baseline_sub = season_baseline.add_subparsers(dest="baseline_command", title="baseline commands")
+    season_baseline_create = season_baseline_sub.add_parser(
+        "create", help="Accept the current non-hard finding set as the season baseline"
+    )
+    season_baseline_create.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_baseline_create.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_baseline_create.add_argument("--actor", default=None, help="Operator identity for baseline provenance")
+    season_baseline_create.add_argument("--note", default="", help="Why this baseline is accepted")
+    season_baseline_create.add_argument("--json", action="store_true", help="Print baseline result as JSON")
+    season_baseline_show = season_baseline_sub.add_parser("show", help="Show baseline and current comparison")
+    season_baseline_show.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_baseline_show.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_baseline_show.add_argument("--json", action="store_true", help="Print baseline result as JSON")
+    season_baseline_advance = season_baseline_sub.add_parser(
+        "advance", help="Tighten the baseline to the current equal-or-better state"
+    )
+    season_baseline_advance.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_baseline_advance.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_baseline_advance.add_argument("--actor", default=None, help="Operator identity for baseline provenance")
+    season_baseline_advance.add_argument("--note", default="", help="Optional note for baseline advancement")
+    season_baseline_advance.add_argument("--json", action="store_true", help="Print baseline result as JSON")
+    season_baseline_replace = season_baseline_sub.add_parser(
+        "replace",
+        help=(
+            "Explicitly rebaseline to the current state even when it is worse, recording the "
+            "prior baseline as audit history"
+        ),
+    )
+    season_baseline_replace.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_baseline_replace.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_baseline_replace.add_argument("--actor", default=None, help="Operator identity for baseline provenance")
+    season_baseline_replace.add_argument("--note", default="", help="Why the worse state is deliberately accepted")
+    season_baseline_replace.add_argument("--json", action="store_true", help="Print baseline result as JSON")
 
     season_repair = season_sub.add_parser(
         "repair-options",

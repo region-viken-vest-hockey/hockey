@@ -94,6 +94,10 @@ __all__ = [
     "revoke_participation_acceptance",
     "schedule_fingerprint",
     "schedule_path",
+    "season_baseline_advance",
+    "season_baseline_create",
+    "season_baseline_replace",
+    "season_baseline_show",
     "season_dir",
     "season_id_from_plan",
     "unapprove_tournament",
@@ -229,6 +233,46 @@ def swap_participants(
         dry_run=dry_run,
         request_id=request_id,
     )
+
+
+def season_baseline_show(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+) -> dict[str, Any]:
+    return _service(root).season_baseline_show(season)
+
+
+def season_baseline_create(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    return _service(root).season_baseline_create(season=season, actor=actor, note=note)
+
+
+def season_baseline_replace(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    return _service(root).season_baseline_create(
+        season=season, actor=actor, note=note, replace=True
+    )
+
+
+def season_baseline_advance(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    return _service(root).season_baseline_advance(season=season, actor=actor, note=note)
 
 
 def batch_maintenance(

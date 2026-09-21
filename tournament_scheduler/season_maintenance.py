@@ -318,6 +318,16 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     verification = verify_candidate(plan, problem)
     revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verification)
+    baseline = decisions.get("season_baseline") or None
+    from .season_baseline import compare_findings_to_baseline
+
+    baseline_comparison = compare_findings_to_baseline(baseline, findings)
+    # Hard verification is never baselineable: a hard failure must never let a
+    # comparison claim the season is safe to advance/accept, regardless of how
+    # the non-hard findings compare.
+    baseline_comparison["hard_verification_ok"] = bool(verification.get("ok"))
+    if not verification.get("ok"):
+        baseline_comparison["ok_to_advance"] = False
     counts: Dict[str, int] = {}
     counts_by_rule_id: Dict[str, int] = {}
     for finding in findings:
@@ -335,6 +345,12 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
         "counts_by_code": counts,
         "counts_by_rule_id": counts_by_rule_id,
         "findings": findings,
+        "baseline_comparison": baseline_comparison,
+        "baseline": {
+            "active": bool(baseline),
+            "created_at": baseline.get("created_at") if isinstance(baseline, Mapping) else None,
+            "note": baseline.get("note") if isinstance(baseline, Mapping) else None,
+        },
         "request_constraints": _request_constraint_context(plan, decisions),
     }
 

@@ -48,6 +48,10 @@ After promotion, `season/<season>/schedule.json` plus `season/<season>/decisions
 scripts/rvv-miniputt season status --season 2026-2027
 scripts/rvv-miniputt season approvals --season 2026-2027
 scripts/rvv-miniputt season findings --season 2026-2027
+scripts/rvv-miniputt season findings --season 2026-2027 --all
+scripts/rvv-miniputt season baseline create --season 2026-2027 --note "Accepted season baseline after initial planning"
+scripts/rvv-miniputt season baseline show --season 2026-2027
+scripts/rvv-miniputt season baseline advance --season 2026-2027
 scripts/rvv-miniputt season repair-options --season 2026-2027 --finding <finding-id>
 scripts/rvv-miniputt season search --season 2026-2027 --finding <finding-id>
 scripts/rvv-miniputt season apply-repair --season 2026-2027 --option-id <id> --expected-revision <rev>
@@ -141,6 +145,29 @@ Findings are independent facts, not a mandatory queue: select whichever finding 
 When the operator explicitly wants a deliberate provisional/manual placement, opt in for that exact action with `--allow-manual-placement` and/or `--allow-host-confirmation`; the opt-in is audited in the result/`decisions.json` evidence. Never treat the absence of a hard verification failure, or the disappearance of one finding, as implicit consent. Release only the protections the operator's request actually supersedes; never release unrelated accepted protections to make a candidate fit.
 
 Never hand-edit canonical season JSON to work around a lock or verifier.
+
+### Season quality baseline
+
+A promoted season can carry a number of accepted, non-hard deviations that cannot realistically be eliminated (season capacity, arena availability, excluded weekends, club constraints). Those accepted deviations must stay visible without being re-litigated on every maintenance change, but they must never be confused with hard validity.
+
+The **season quality baseline** is a reviewed snapshot of the current set and severity of non-hard findings, used only as a regression reference for later maintenance. It is deliberately distinct from every adjacent concept:
+
+- **canonical schedule truth** (`season/<season>/schedule.json`) is the actual placement/roster state; the baseline never edits it;
+- **operator waiver** (`waiver ...`) is a narrow, authorized exception to one classified hard planning rule;
+- **participation acceptance** (`season accept-deviation`) is a decision about one bounded participation strong-goal deviation, bound to its scope/magnitude;
+- **season baseline** (`season baseline ...`) is a full-season regression reference over *all* non-hard findings, recording stable finding identities and their measured severities, never aggregate counts alone.
+
+Hard structural verification stays authoritative. Deleting one finding while introducing a different one is a regression even when counts are unchanged, and a participation shortfall changing from `-1` to `-2` is a regression even though the finding id is unchanged. The baseline therefore records, per finding, the stable finding id, category, rule id, relevant measured values and search-coverage state (e.g. `bounded_search_exhausted`), plus provenance (season, source canonical-state revision, schedule fingerprint, creation time, actor, note, and an optional export/audit fingerprint).
+
+```bash
+scripts/rvv-miniputt season baseline create --season 2026-2027 --note "Accepted after initial planning"
+scripts/rvv-miniputt season baseline show --season 2026-2027
+scripts/rvv-miniputt season baseline advance --season 2026-2027
+```
+
+Once a baseline exists, `season findings` reports a comparison that classifies every current non-hard finding as `KNOWN`, `IMPROVED`, `RESOLVED`, `REGRESSED` or `NEW`, and the default operator view emphasizes `NEW`/`REGRESSED` while `--all` still lists the accepted known debt. Hard findings are never baselineable: they stay blocking and remain visible in the default view. `season baseline create`/`advance` refuse to run while hard verification fails, so the baseline can never make an invalid plan valid.
+
+`season baseline advance` tightens the accepted state to the current equal-or-better state: it is allowed only when there are no `NEW` or `REGRESSED` findings, and it records the prior baseline and comparison summary in `decisions.json` history. A genuinely worse/new state is never silently accepted by `advance`; it requires the explicit `season baseline replace --note "why the worse state is deliberately accepted"`, which rebaselines and records the prior baseline as audit history. Baseline mutations are decision-only writes: they change the canonical-state revision and provenance but never the schedule fingerprint when no tournament changed. Export evidence and the audit context expose the active baseline for traceability.
 
 ### Reserved guest places
 

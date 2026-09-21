@@ -35,6 +35,8 @@ PARTICIPATION_ACCEPTANCES_KEY = "participation_acceptances"
 PARTICIPATION_ACCEPTANCE_PREFIX = "participation_acceptance"
 REQUEST_CONSTRAINTS_KEY = "request_constraints"
 BANNED_DATES_KEY = "banned_dates"
+SEASON_BASELINE_KEY = "season_baseline"
+SEASON_BASELINE_HISTORY_KEY = "season_baseline_history"
 
 
 def schedule_fingerprint(plan_dict: Mapping[str, Any]) -> str:
@@ -61,6 +63,8 @@ def compute_canonical_state_revision(
         "change_protections": decisions.get(CHANGE_PROTECTIONS_KEY) or [],
         "request_constraints": decisions.get(REQUEST_CONSTRAINTS_KEY) or [],
         "banned_dates": decisions.get(BANNED_DATES_KEY) or [],
+        "season_baseline": decisions.get(SEASON_BASELINE_KEY) or {},
+        "season_baseline_history": decisions.get(SEASON_BASELINE_HISTORY_KEY) or [],
         "verification_context": schedule.get("verification_context"),
     }
     return stable_payload_sha256(payload)
@@ -133,6 +137,8 @@ __all__ = [
     "PARTICIPATION_ACCEPTANCES_KEY",
     "PARTICIPATION_ACCEPTANCE_PREFIX",
     "REQUEST_CONSTRAINTS_KEY",
+    "SEASON_BASELINE_KEY",
+    "SEASON_BASELINE_HISTORY_KEY",
     "canonical_state_revision",
     "compute_canonical_state_revision",
     "migrate_participation_acceptance_ids",

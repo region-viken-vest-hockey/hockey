@@ -966,6 +966,7 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
         "plan_audit_facts": plan_audit_facts,
         "plan_audit_summary": plan_audit_summary,
         "export_consistency_summary": export_consistency_summary,
+        "season_baseline": (evidence_bundle or {}).get("season_baseline"),
     }
 
 
@@ -1012,6 +1013,8 @@ def build_audit_context(
         "checklist_evidence_guide": _build_checklist_evidence_guide(evidence_overview=evidence_overview),
         "evidence_index": evidence_overview,
     }
+    if raw.get("season_baseline"):
+        context["season_baseline"] = raw["season_baseline"]
     if workflow is not None:
         context["workflow"] = dict(workflow)
     context["evidence_metrics"] = audit_evidence.build_overview_metrics(context, index)

@@ -88,4 +88,6 @@ def build_canonical_export_evidence(
     bundle["evidence_source"] = "canonical_season_export"
     bundle["canonical_season"] = schedule.get("season")
     bundle["canonical_revision"] = schedule.get("revision") or schedule.get("fingerprint")
+    if export_checkpoint.get("season_baseline"):
+        bundle["season_baseline"] = export_checkpoint.get("season_baseline")
     return bundle

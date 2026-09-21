@@ -161,6 +161,7 @@ candidate regresses a higher-priority operational obligation.
 | `operator_accepted_participation_deviation` | An operator may deliberately live with a bounded participation deviation. The acceptance never changes the target or the schedule, is bound to the deviation scope/magnitude and becomes stale when the target changes or the deviation worsens. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets.evidence_covers_deviation` | `tests/test_participation_targets.py`, `tests/test_season_maintenance.py` |
 | `manual_placement_opt_in` | An automatic canonical mutation may not newly introduce a manual/unt trusted-calendar placement or host-confirmation dependency. A deliberate provisional placement requires the exact explicit opt-in and is audited. | `tournament_scheduler.operational_acceptability` | `tournament_scheduler.operational_acceptability` | `tests/test_operational_acceptability.py` |
 | `guest_slot_reservation` | The operator reserves guest places as intent; the selection among legal alternatives is recorded as a decision. | `tournament_scheduler.guest_slots` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_guest_slots.py` |
+| `season_quality_baseline` | An operator may accept the current set and severity of non-hard findings as the season's regression reference. The baseline records stable finding ids and measurements (never aggregate counts alone), so later maintenance classifies fresh findings as known/improved/resolved/regressed/new. It never suppresses hard verification failures and never changes the schedule. | `tournament_scheduler.season_baseline` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_season_baseline.py` |
 | `operator_banned_date` | The operator may ban a global date as unusable for every tournament; the ban is durable policy, not a one-off. | `tournament_scheduler.canonical_banned_dates` | — | `tests/test_canonical_banned_dates.py` |
 
 ## Fact / evidence semantics
@@ -948,6 +949,19 @@ candidate regresses a higher-priority operational obligation.
 **Providers:** mutation `guest-reserve`, `guest-fill`, `guest-release` · search —  
 **Evidence / report:** `season guest-report`, `season_plan.html`  
 **Tests:** `tests/test_guest_slots.py`  
+**Precedence:** precedes — · depends on —
+
+### `season_quality_baseline`
+
+`Operator decision` · status `active` · operator-waivable: yes  
+**Meaning:** An operator may accept the current set and severity of non-hard findings as the season's regression reference. The baseline records stable finding ids and measurements (never aggregate counts alone), so later maintenance classifies fresh findings as known/improved/resolved/regressed/new. It never suppresses hard verification failures and never changes the schedule.  
+**Canonical owner:** `tournament_scheduler.season_baseline`  
+**Input / fact source:** canonical decisions.json season baseline + fresh season findings  
+**Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
+**Codes:** verifier — · finding — · score —  
+**Providers:** mutation `season baseline create`, `season baseline advance`, `season baseline replace` · search —  
+**Evidence / report:** `season findings baseline comparison`, `season/<season>/decisions.json season_baseline`, `export/evidence_bundle.json season_baseline`  
+**Tests:** `tests/test_season_baseline.py`  
 **Precedence:** precedes — · depends on —
 
 ### `operator_banned_date`

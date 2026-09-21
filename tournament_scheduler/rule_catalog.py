@@ -899,6 +899,31 @@ _DECISIONS: tuple[RuleEntry, ...] = (
         tests=("tests/test_guest_slots.py",),
     ),
     RuleEntry(
+        id="season_quality_baseline",
+        classification=OPERATOR_DECISION,
+        meaning=(
+            "An operator may accept the current set and severity of non-hard findings as the "
+            "season's regression reference. The baseline records stable finding ids and "
+            "measurements (never aggregate counts alone), so later maintenance classifies fresh "
+            "findings as known/improved/resolved/regressed/new. It never suppresses hard "
+            "verification failures and never changes the schedule."
+        ),
+        canonical_owner="tournament_scheduler.season_baseline",
+        input_source="canonical decisions.json season baseline + fresh season findings",
+        verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
+        mutation_providers=(
+            "season baseline create",
+            "season baseline advance",
+            "season baseline replace",
+        ),
+        evidence_projection=(
+            "season findings baseline comparison",
+            "season/<season>/decisions.json season_baseline",
+            "export/evidence_bundle.json season_baseline",
+        ),
+        tests=("tests/test_season_baseline.py",),
+    ),
+    RuleEntry(
         id="operator_banned_date",
         classification=OPERATOR_DECISION,
         meaning="The operator may ban a global date as unusable for every tournament; the ban is durable policy, not a one-off.",
