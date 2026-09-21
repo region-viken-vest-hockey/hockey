@@ -49,9 +49,9 @@ LOCATION:Holmen ishall
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:JU10 — Skien ishall
-DTSTART:20261011T100000Z
-DTEND:20261011T122000Z
-UID:5bef8128-d323-5eeb-8672-242efa868142
+DTSTART:20261121T170000Z
+DTEND:20261121T192000Z
+UID:d0df5cc3-adc3-572d-b63b-a9ca4afc74fa
 CATEGORIES:JU10
 DESCRIPTION:Arena: Skien ishall\nAldersgruppe: JU10\nVert: Skien\nDeltaken
  de lag (5): Skien\, Jar Blå\, Frisk Asker Orange\, Jar Hvit\, Frisk Asker
@@ -2733,9 +2733,9 @@ LOCATION:Tonsberghallen
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Skien ishall
-DTSTART:20261010T100000Z
-DTEND:20261010T122000Z
-UID:9a518e2a-340a-5323-b04c-cfb2aaecfe6b
+DTSTART:20261017T173000Z
+DTEND:20261017T195000Z
+UID:78f9e30a-8264-5bef-b7db-4dfce74e8a4e
 CATEGORIES:U11
 DESCRIPTION:Arena: Skien ishall\nAldersgruppe: U11\nVert: Skien\nDeltakend
  e lag (6): Tønsberg Hvit\, Jar Lilla\, Jar Gul\, Holmen Hockey Hvit\, Ski
