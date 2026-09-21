@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "artifact_type": "publication_approval",
+  "audit_id": "audit:2026-09-21T0908:a120bc6f",
+  "audit_verdict": "REVIEW_REQUIRED",
+  "run_id": "20260918T135604Z-8d38f146",
+  "export_fingerprint": "a120bc6fac7ce7e4f423f6b922f97de5cd3efd76190df221bab32d00a10f8165",
+  "selected_candidate_fingerprint": "a120bc6fac7ce7e4f423f6b922f97de5cd3efd76190df221bab32d00a10f8165",
+  "approved": true,
+  "question_id": "3cd9d47d8e857687",
+  "answer": "godkjenn revisjon",
+  "answered_at": null
+}
