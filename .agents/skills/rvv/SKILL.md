@@ -38,7 +38,7 @@ minimum_format_minutes =
     actual_round_count * (round_length_minutes + 5)
 ```
 
-The configured `ice_time_minutes` must be at least that minimum and must also satisfy any applicable governing/local minimum booking allocation. If those checks fail, fix/configure the source value or the canonical duration rule; do not silently enlarge one consumer's interval. Slot search, external-calendar availability, arena conflicts, optimizer/repair feasibility, Excel/HTML/iCal end times and audit evidence must all describe the same occupancy interval. See `docs/rvv-miniputt-input-formats.md` for the workbook contract and `docs/system-architecture.md` for ownership.
+The configured `ice_time_minutes` must be at least that minimum and must also satisfy any applicable governing/local minimum booking allocation. If those checks fail, fix/configure the source value or the canonical duration rule; do not silently enlarge one consumer's interval. A configured value above the minimum is not automatically waste: the 2026–2027 RVV values deliberately include operational headroom for ice preparation/resurfacing (including Zamboni time), setup/clearance, team turnover and small delays, and are intended to preserve the effective windows already used by the published plan/club bookings. Do not automatically reduce them to the format minimum. Slot search, external-calendar availability, arena conflicts, optimizer/repair feasibility, Excel/HTML/iCal end times and audit evidence must all describe the same occupancy interval. See `docs/rvv-miniputt-input-formats.md` for the approved per-age-group values/workbook contract and `docs/system-architecture.md` for ownership.
 
 ### 2. Promoted-season maintenance
 

@@ -310,7 +310,9 @@ ice_time_minutes >= minimum_format_minutes
 
 Governing or local minimum booking requirements are additional lower bounds on the configured value; they do not extend a tournament after placement. For the currently applicable RVV 3v3 groups where NIHF requires at least two hours per series round, the configuration must satisfy that floor independently of the round calculation.
 
-This distinction is a cross-path scheduling invariant. Reusable occupancy/minimum-duration math belongs in a planner-independent deterministic owner and every slot finder, repair/search provider, verifier and renderer must consume that same contract. Do not compensate in a caller by adding setup/changeover minutes to `ice_time_minutes`, and do not let exports compute a different end time from the verifier.
+The configured window may intentionally be materially longer than the playing-format minimum. For the 2026–2027 RVV season, that margin is deliberate operational capacity for ice preparation/resurfacing (including Zamboni time), setup/clearance of goals and dividers, team turnover and small delays, and it preserves the effective windows already used in the published plan/club ice bookings. Treat that margin as part of the occupancy contract, not as inefficiency to remove automatically. The approved per-age-group values live in `docs/rvv-miniputt-input-formats.md`.
+
+This distinction is a cross-path scheduling invariant. Reusable occupancy/minimum-duration math belongs in a planner-independent deterministic owner and every slot finder, repair/search provider, verifier and renderer must consume that same contract. Do not compensate in a caller by adding setup/changeover/resurfacing minutes to `ice_time_minutes`, do not shrink the configured window merely to the format minimum, and do not let exports compute a different end time from the verifier.
 
 ### Calendar availability is a classification, not a boolean
 

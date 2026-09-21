@@ -65,21 +65,25 @@ The 5 minutes per round is the normal transition/changeover allowance. When `rou
 
 Slot search, external-calendar conflict detection, arena overlap checks, optimizer feasibility and every export must use the same `ice_time_minutes` occupancy interval. A code path that adds a per-round buffer on top of `ice_time_minutes` violates this contract.
 
-Migrated 2025–2026 `Istid` values below are historical booking-window evidence used when establishing the configuration; they are references to review, not "base ice" values that receive another automatic round buffer.
+Migrated 2025–2026 `Istid` values are historical booking-window evidence used when establishing the configuration; they are references to review, not "base ice" values that receive another automatic round buffer.
 
-U7/JU7, U8/JU8, U9, U10/JU10 and U11 also have a 120-minute governing minimum per series round. Current reviewed values in root `input.xlsx` are:
+For 2026–2027, RVV deliberately keeps the longer windows that the published plan/clubs effectively used. The difference between the game-format minimum and `ice_time_minutes` is **intentional operational headroom**, not unused planner slack. It may be used for preparing/resurfacing the ice (including Zamboni time), placing/removing dividers and goals, getting teams on/off the ice, small delays, and other event turnover. That headroom is already part of the booked interval and must never be added again by a planner/export path.
 
-| Age group | `ice_time_minutes` | Review |
-|---|---:|---|
-| U7 | 130 | five 15-minute rounds + buffers require 100; exceeds 120-minute governing floor |
-| U8 | 130 | five 15-minute rounds + buffers require 100; exceeds 120-minute governing floor |
-| JU8 | 130 | five 15-minute rounds + buffers require 100; exceeds 120-minute governing floor |
-| U9 | 130 | five 15-minute rounds + buffers require 100; exceeds 120-minute governing floor |
-| U10 | 120 | five 15-minute rounds + buffers require 100; equals 120-minute governing floor |
-| JU10 | 120 | five 15-minute rounds + buffers require 100; equals 120-minute governing floor |
-| U11 | 120 | five 15-minute rounds + buffers require 100; equals 120-minute governing floor |
-| U12 | 85 | three 15-minute rounds + buffers require 60 |
-| JU12 | 85 | three 15-minute rounds + buffers require 60 |
+U7/JU7, U8/JU8, U9, U10/JU10 and U11 also have a 120-minute governing minimum per series round. The approved 2026–2027 booking windows (and the values root `input.xlsx` should carry) are:
+
+| Age group | `ice_time_minutes` | Format minimum | Intentional operational headroom |
+|---|---:|---:|---:|
+| U7 | 155 | 100 | 55 min; also exceeds the 120-minute governing floor |
+| U8 | 155 | 100 | 55 min; also exceeds the 120-minute governing floor |
+| JU8 | 155 | 100 | 55 min; also exceeds the 120-minute governing floor |
+| U9 | 155 | 100 | 55 min; also exceeds the 120-minute governing floor |
+| U10 | 140 | 100 | 40 min; also exceeds the 120-minute governing floor |
+| JU10 | 140 | 100 | 40 min; also exceeds the 120-minute governing floor |
+| U11 | 140 | 100 | 40 min; also exceeds the 120-minute governing floor |
+| U12 | 100 | 60 | 40 min |
+| JU12 | 100 | 60 | 40 min |
+
+Do not reduce these values merely because the nominal rounds fit in less time. A shorter window is a new operator policy decision and may also conflict with ice already booked from the published season plan.
 
 When `Aldersgrupper` is present, its rows define the declared age groups used to validate `Lag` and age-group-specific configuration.
 
