@@ -58,7 +58,11 @@ from .host_team_missing_repair import (
     candidate_fingerprint,
 )
 from .participation_targets import (
+    HALVES,
+    SEASON_SCOPE,
+    ParticipationEvaluation,
     club_pool_participation_regressions,
+    club_pool_sibling_spread,
     evaluate_participation,
 )
 from .planning_contract import _parse_date, score_candidate, verify_candidate
@@ -77,6 +81,17 @@ DEFAULT_MAX_GREEDY_STEPS = 8
 # cuts the long tail of equivalent low-value swaps rather than the promising
 # repairs.
 DEFAULT_MAX_MOVES_EVALUATED = 24
+
+# Tier-2 bounded search: only runs when the tier-1 simple rotations, coupled
+# home+away pairs and greedy plan produced no *acceptable* option. It reuses
+# the same move-unit generator to build two-substitution coupled plans and
+# bounded 3+ sibling cycles, so multi-tournament sibling rotations stay
+# available when a direct pairwise move is insufficient -- without turning the
+# family into a whole-season search.
+DEFAULT_MAX_TIER2_UNITS = 16
+DEFAULT_MAX_UNITS_PER_LABEL_PAIR = 2
+DEFAULT_MAX_TIER2_PAIR_EVALUATED = 40
+DEFAULT_MAX_TIER2_CYCLE_EVALUATED = 24
 
 # Material consequences this family refuses to accept. A sibling swap is
 # deliberately *narrower* than a placement/roster repair: it must not create a
@@ -273,6 +288,15 @@ def _finding_options(
     if greedy is not None:
         options.append(greedy)
 
+    # Tier 2: only widen into the bounded coupled/cycle neighborhood when
+    # nothing acceptable was found among the cheap tier-1 moves.
+    if not any(option.effects.get("consequence_acceptable") for option in options):
+        tier2_options, tier2_rejections = _tier2_options(
+            candidate, problem, row, finding_id, fingerprint, before_verification
+        )
+        options.extend(tier2_options)
+        rejected.extend(tier2_rejections)
+
     if not options:
         rejected.append(
             {
@@ -467,6 +491,109 @@ def _greedy_option(
     )
 
 
+def _diverse_units(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    row: Mapping[str, Any],
+    limit: int,
+    *,
+    per_label_pair: int = DEFAULT_MAX_UNITS_PER_LABEL_PAIR,
+) -> List[List[Dict[str, Any]]]:
+    """Bound ``_candidate_moves`` to a *diverse* sample across (over, under) pairs.
+
+    ``_candidate_moves`` is ordered most-skewed-pair-first and can enumerate
+    many home/away combinations for a single (over, under) label pair before
+    ever reaching the next one. A pool that needs two *independent* label
+    pairs rebalanced in the same candidate (for example four sibling teams at
+    3/1/1/3, which needs both a 3->1 move and the other 3->1 move to reach an
+    even split) would otherwise never see the second pair inside a truncated
+    prefix. Capping per label pair instead keeps the tier-2 pairwise search
+    bounded while still covering every distinct over/under pair.
+    """
+    grouped: Dict[Tuple[str, str], List[List[Dict[str, Any]]]] = {}
+    for swaps in _candidate_moves(plan, problem, row):
+        key = (str(swaps[0]["remove"]["label"]), str(swaps[0]["add"]["label"]))
+        bucket = grouped.setdefault(key, [])
+        if len(bucket) < per_label_pair:
+            bucket.append(swaps)
+    units: List[List[Dict[str, Any]]] = []
+    for key in sorted(grouped):
+        units.extend(grouped[key])
+    return units[:limit]
+
+
+def _tier2_options(
+    candidate: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    row: Mapping[str, Any],
+    finding_id: str,
+    fingerprint: str,
+    before_verification: Mapping[str, Any],
+) -> Tuple[List[RepairOption], List[Dict[str, Any]]]:
+    """Bounded coupled-pair and 3+ sibling cycle search for one skewed pool.
+
+    Reuses the same swap-unit generator and evaluation as tier 1; only the
+    combination strategy differs, so acceptance stays governed by the single
+    ``_evaluate_move`` gate (strict material-spread improvement, hard
+    verification, and the family's consequence policy).
+    """
+    options: List[RepairOption] = []
+    rejected: List[Dict[str, Any]] = []
+    units = _diverse_units(candidate, problem, row, DEFAULT_MAX_TIER2_UNITS)
+
+    evaluated = 0
+    for first_index in range(len(units)):
+        for second_index in range(first_index + 1, len(units)):
+            if evaluated >= DEFAULT_MAX_TIER2_PAIR_EVALUATED:
+                break
+            evaluated += 1
+            combined = list(units[first_index]) + list(units[second_index])
+            trial = _apply_swaps(candidate, problem, combined)
+            if trial is None:
+                continue
+            option, reason = _evaluate_move(
+                candidate,
+                trial,
+                problem,
+                row,
+                finding_id,
+                fingerprint,
+                combined,
+                before_verification,
+            )
+            if option is not None:
+                options.append(option)
+            elif reason is not None:
+                rejected.append({**reason, "coupled_pair": True})
+        if evaluated >= DEFAULT_MAX_TIER2_PAIR_EVALUATED:
+            break
+
+    evaluated = 0
+    for swaps in _cycle_moves(candidate, problem, row):
+        if evaluated >= DEFAULT_MAX_TIER2_CYCLE_EVALUATED:
+            break
+        evaluated += 1
+        trial = _apply_swaps(candidate, problem, swaps)
+        if trial is None:
+            continue
+        option, reason = _evaluate_move(
+            candidate,
+            trial,
+            problem,
+            row,
+            finding_id,
+            fingerprint,
+            swaps,
+            before_verification,
+        )
+        if option is not None:
+            options.append(option)
+        elif reason is not None:
+            rejected.append({**reason, "sibling_cycle": True})
+
+    return options, rejected
+
+
 # ---------------------------------------------------------------------------
 # Move generation
 # ---------------------------------------------------------------------------
@@ -527,6 +654,76 @@ def _candidate_moves(
                     coupled += 1
                     yield [home_swap, _swap(away, under, over, club, age_group)]
                 yield [home_swap]
+
+
+def _cycle_moves(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    row: Mapping[str, Any],
+) -> Iterable[List[Dict[str, Any]]]:
+    """Yield bounded 3-sibling participation-preserving home-representation cycles.
+
+    ``home: A -> B``, ``away: B -> C``, ``away: C -> A`` -- every sibling's own
+    participation count is unchanged (A trades one home appearance for one away
+    appearance, B and C's own totals are each net zero), only the home split
+    moves. Used when no direct pairwise move between the two most-skewed
+    siblings exists but a third sibling can act as the compensating buffer.
+    """
+    club = str(row["club"])
+    age_group = str(row["age_group"])
+    appearances = dict(row.get("home_appearances") or {})
+    labels = list(appearances)
+    if len(labels) < 3:
+        return
+    home_tournaments = _home_tournaments(plan, club, age_group)
+    away_tournaments = _away_tournaments(plan, club, age_group)
+
+    over_labels = sorted(
+        (label for label in appearances if appearances[label] > row.get("min_appearances", 0)),
+        key=lambda label: (-appearances[label], label),
+    )
+    under_labels = sorted(
+        (label for label in appearances if appearances[label] < row.get("max_appearances", 0)),
+        key=lambda label: (appearances[label], label),
+    )
+    for over in over_labels:
+        for under in under_labels:
+            if over == under:
+                continue
+            homes = [
+                tournament
+                for tournament in home_tournaments
+                if _participates(tournament, club, age_group, over)
+                and not _participates(tournament, club, age_group, under)
+                and not _plays_on_date(plan, club, age_group, under, tournament)
+            ][:DEFAULT_MAX_HOME_TOURNAMENTS]
+            for home in homes:
+                home_swap = _swap(home, over, under, club, age_group)
+                for buffer_label in labels:
+                    if buffer_label in (over, under):
+                        continue
+                    seconds = [
+                        tournament
+                        for tournament in away_tournaments
+                        if _participates(tournament, club, age_group, under)
+                        and not _participates(tournament, club, age_group, buffer_label)
+                        and not _plays_on_date(plan, club, age_group, buffer_label, tournament)
+                        and _same_half(problem, home, tournament)
+                    ]
+                    for second in seconds:
+                        second_swap = _swap(second, under, buffer_label, club, age_group)
+                        thirds = [
+                            tournament
+                            for tournament in away_tournaments
+                            if str(tournament.get("id") or "") != str(second.get("id") or "")
+                            and _participates(tournament, club, age_group, buffer_label)
+                            and not _participates(tournament, club, age_group, over)
+                            and not _plays_on_date(plan, club, age_group, over, tournament)
+                            and _same_half(problem, home, tournament)
+                        ]
+                        for third in thirds:
+                            third_swap = _swap(third, buffer_label, over, club, age_group)
+                            yield [home_swap, second_swap, third_swap]
 
 
 def _home_tournaments(
@@ -713,6 +910,12 @@ def changed_team_consequences(
     not materially increase its total travel. Opponent-diversity and extra
     7-13-day-gap changes stay in ``material_team_regressions`` as evidence and
     feed the shared objective vector, but do not hard-block a sibling swap.
+
+    A swapped sibling's own ``participation_shortfall_worsened`` is exempt from
+    that material set -- see :func:`_sibling_redistribution_exempt` -- when the
+    club-pool aggregate is unchanged and the sibling distribution spread is
+    equal or better; a genuinely deepened club-pool shortfall is still caught
+    by ``club_pool_regressions`` regardless.
     """
     changed_ids = _changed_tournament_ids(before, after)
     identities: set = set()
@@ -761,7 +964,12 @@ def changed_team_consequences(
         if swapped and identity not in swapped:
             continue
         for regression in analysis.get("material_regressions") or []:
-            if regression.get("code") in MATERIAL_SWAP_REGRESSION_CODES:
+            code = regression.get("code")
+            if code == "participation_shortfall_worsened" and _sibling_redistribution_exempt(
+                identity, before_eval, after_eval
+            ):
+                continue
+            if code in MATERIAL_SWAP_REGRESSION_CODES:
                 strict_material.append(
                     {
                         "team": analysis["team"],
@@ -809,6 +1017,68 @@ def _swapped_identities(swaps: Sequence[Mapping[str, Any]]) -> List[Tuple[str, s
             if identity not in identities:
                 identities.append(identity)
     return identities
+
+
+def _club_pool_for(
+    evaluation: ParticipationEvaluation, club: str, age_group: str, scope: str
+) -> Optional[Mapping[str, Any]]:
+    for pool in evaluation.club_pools:
+        if (
+            str(pool.get("club") or "") == club
+            and str(pool.get("age_group") or "") == age_group
+            and str(pool.get("scope") or "") == scope
+        ):
+            return pool
+    return None
+
+
+def _sibling_redistribution_exempt(
+    identity: Tuple[str, str, str],
+    before_eval: ParticipationEvaluation,
+    after_eval: ParticipationEvaluation,
+) -> bool:
+    """Whether a swapped sibling's own ``participation_shortfall_worsened`` is exempt.
+
+    ``compare_changed_team_schedule_consequence`` flags a "removed" team's own
+    per-team shortfall growing as material -- correct for a roster repair that
+    drops a team's participation outright, but too conservative for a
+    same-club/same-age sibling swap that merely moves *which* label represents
+    the club: the losing sibling's individual target miss is exactly offset by
+    the gaining sibling's improvement, so the club-pool aggregate the operator
+    actually cares about is unaffected.
+
+    This narrow exception applies -- at every scope (season and each
+    before/after-Christmas half) the swap actually touched -- only when all of
+    the following hold, using the canonical club-pool classification/spread
+    instead of a second sibling-balance model:
+
+    * the club x age-group pool has more than one registered team (a
+      single-team club's own shortfall is never redistributable and stays
+      material, matching ``SINGLE_TEAM_DEVIATION`` semantics);
+    * the pool's aggregate actual participation is exactly unchanged;
+    * the pool's per-sibling spread (:func:`club_pool_sibling_spread`) did not
+      increase -- the redistribution must be equal-or-better, never a materially
+      worse sibling split.
+
+    A genuine deepened club-pool shortfall is still caught independently by
+    ``club_pool_participation_regressions`` in the caller, and a hard-maximum
+    breach is a separate, never-exempt regression code.
+    """
+    club, _, age_group = identity
+    checked = False
+    for scope in (SEASON_SCOPE,) + HALVES:
+        before_pool = _club_pool_for(before_eval, club, age_group, scope)
+        after_pool = _club_pool_for(after_eval, club, age_group, scope)
+        if before_pool is None or after_pool is None:
+            continue
+        checked = True
+        if int(before_pool.get("registered_team_count") or 0) < 2:
+            return False
+        if int(before_pool.get("club_pool_actual") or 0) != int(after_pool.get("club_pool_actual") or 0):
+            return False
+        if club_pool_sibling_spread(after_pool) > club_pool_sibling_spread(before_pool):
+            return False
+    return checked
 
 
 def _club_pool_travel_regressions(
