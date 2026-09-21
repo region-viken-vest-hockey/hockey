@@ -33,6 +33,7 @@ from tournament_scheduler.canonical_baseline import approval_fingerprint, resolv
 from tournament_scheduler.canonical_state import (
     BANNED_DATES_KEY,
     CANONICAL_STATE_REVISION_KEY,
+    HOLIDAY_DATE_EXCEPTIONS_KEY,
     CHANGE_PROTECTIONS_KEY,
     PARTICIPATION_ACCEPTANCES_KEY,
     REQUEST_CONSTRAINTS_KEY,
@@ -62,6 +63,16 @@ from tournament_scheduler.canonical_banned_dates import (
     banned_date_report as build_banned_date_report,
     project_banned_dates_into_problem,
     validate_and_normalize as normalize_banned_date,
+)
+from tournament_scheduler.canonical_holiday_exceptions import (
+    ACTIVE as HOLIDAY_EXCEPTION_ACTIVE,
+    RELEASED as HOLIDAY_EXCEPTION_RELEASED,
+    HolidayDateExceptionError,
+    active_exception_records,
+    append_exceptions as append_holiday_exceptions,
+    exception_report as build_holiday_exception_report,
+    project_exceptions_into_problem,
+    validate_and_normalize as normalize_holiday_exception,
 )
 from tournament_scheduler.request_constraints import (
     ACTIVE as REQUEST_CONSTRAINT_ACTIVE,
@@ -342,7 +353,8 @@ def _resolve_plan_problem(
     if resolved is None:
         return None
     if decisions is not None:
-        return project_banned_dates_into_problem(resolved, decisions)
+        resolved = project_exceptions_into_problem(resolved, decisions)
+        resolved = project_banned_dates_into_problem(resolved, decisions)
     return resolved
 
 
@@ -1166,6 +1178,197 @@ class CanonicalSeasonService:
             ),
             "released_constraint_ids": released,
             "active_count": len(active_request_constraints(committed.decisions)),
+        }
+
+    # -- holiday date exceptions -----------------------------------------
+
+    def holiday_date_exception_report(
+        self,
+        season: str,
+        *,
+        include_released: bool = False,
+    ) -> dict[str, Any]:
+        """Read-only lifecycle + evidence for holiday-policy exceptions."""
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        plan = schedule.get("plan") or {}
+        problem = _resolve_plan_problem(schedule, None, decisions)
+        entries = build_holiday_exception_report(
+            plan,
+            decisions,
+            problem=problem,
+            include_released=include_released,
+        )
+        active = [entry for entry in entries if entry.get("status") == HOLIDAY_EXCEPTION_ACTIVE]
+        return {
+            "season": season,
+            "revision": schedule.get("revision"),
+            "canonical_state_revision": canonical_state_revision(schedule, decisions),
+            "active_count": len(active),
+            "holiday_date_exceptions": entries,
+        }
+
+    def allow_holiday_date(
+        self,
+        *,
+        season: str,
+        date: str,
+        reason: str,
+        actor: str | None = None,
+    ) -> dict[str, Any]:
+        """Persist one derived-holiday-policy exception (decision-only write)."""
+
+        snapshot = self.load(season)
+        schedule, decisions = snapshot.schedule, snapshot.decisions
+        plan = schedule.get("plan") or {}
+        problem = _resolve_plan_problem(schedule, None, None)
+        try:
+            normalized = normalize_holiday_exception({"date": date, "reason": reason})
+        except HolidayDateExceptionError as exc:
+            raise SeasonStateError(str(exc)) from exc
+
+        existing = active_exception_records(decisions)
+        stored = next(
+            (
+                record
+                for record in existing
+                if str(record.get("date") or "") == normalized["date"]
+            ),
+            None,
+        )
+        if stored is not None:
+            entry = next(
+                entry
+                for entry in build_holiday_exception_report(
+                    plan, decisions, problem=_resolve_plan_problem(schedule, None, decisions)
+                )
+                if str(entry.get("id") or "") == str(stored.get("id") or "")
+            )
+            return {
+                "season": season,
+                "created": False,
+                "holiday_date_exception": entry,
+                "canonical_state_revision": canonical_state_revision(schedule, decisions),
+            }
+
+        derived_entries = build_holiday_exception_report(
+            plan,
+            {**decisions, HOLIDAY_DATE_EXCEPTIONS_KEY: [normalized]},
+            problem=problem,
+        )
+        projected_entry = next(
+            (entry for entry in derived_entries if str(entry.get("id") or "") == normalized["id"]),
+            None,
+        )
+        if not projected_entry or not projected_entry.get("derived_holiday_policy_reason"):
+            raise SeasonStateError(
+                f"Refusing holiday-date exception: {normalized['date']} is not excluded by the derived holiday policy"
+            )
+
+        now = _now_iso()
+        resolved_actor = _operator_identity(actor)
+        record = {
+            **normalized,
+            "status": HOLIDAY_EXCEPTION_ACTIVE,
+            "created_at": now,
+            "created_by": resolved_actor,
+            "source_revision": canonical_state_revision(schedule, decisions),
+            "derived_holiday_policy_reason": projected_entry.get("derived_holiday_policy_reason"),
+        }
+        updated = dict(decisions)
+        append_holiday_exceptions(updated, [record])
+        _append_decision_history(
+            updated,
+            event="allow_holiday_date",
+            tournament_id="",
+            actor=resolved_actor,
+            now=now,
+            note=reason,
+            details={
+                "holiday_date_exception_id": record["id"],
+                "date": record["date"],
+                "reason": record["reason"],
+            },
+        )
+        updated["updated_at"] = now
+        committed = self._commit(snapshot.with_decisions(updated))
+        entry = next(
+            entry
+            for entry in build_holiday_exception_report(
+                committed.schedule.get("plan") or {},
+                committed.decisions,
+                problem=_resolve_plan_problem(committed.schedule, None, committed.decisions),
+            )
+            if str(entry.get("id") or "") == record["id"]
+        )
+        return {
+            "season": season,
+            "created": True,
+            "holiday_date_exception": entry,
+            "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
+        }
+
+    def disallow_holiday_dates(
+        self,
+        *,
+        season: str,
+        dates: list[str] | None = None,
+        exception_ids: list[str] | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        """Release one or more active holiday-policy exceptions."""
+
+        wanted_ids = {str(value) for value in (exception_ids or []) if str(value)}
+        wanted_dates = {str(value) for value in (dates or []) if str(value)}
+        if not wanted_ids and not wanted_dates:
+            raise SeasonStateError("Refusing holiday-date exception release: provide --date and/or --exception-id")
+
+        snapshot = self.load(season)
+        decisions = copy.deepcopy(snapshot.decisions)
+        records = decisions.get(HOLIDAY_DATE_EXCEPTIONS_KEY, []) or []
+        now = _now_iso()
+        resolved_actor = _operator_identity(actor)
+        released: list[str] = []
+        released_dates: list[str] = []
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            if str(record.get("status") or HOLIDAY_EXCEPTION_ACTIVE) != HOLIDAY_EXCEPTION_ACTIVE:
+                continue
+            if str(record.get("id") or "") not in wanted_ids and str(record.get("date") or "") not in wanted_dates:
+                continue
+            record["status"] = HOLIDAY_EXCEPTION_RELEASED
+            record["released_at"] = now
+            record["released_by"] = resolved_actor
+            record["release_reason"] = note or ""
+            released.append(str(record.get("id") or ""))
+            released_dates.append(str(record.get("date") or ""))
+
+        if not released:
+            raise SeasonStateError("No active holiday-date exceptions matched the release request")
+
+        decisions["updated_at"] = now
+        _append_decision_history(
+            decisions,
+            event="disallow_holiday_date",
+            tournament_id="",
+            actor=resolved_actor,
+            now=now,
+            note=note,
+            details={
+                "released_holiday_date_exception_ids": released,
+                "released_dates": released_dates,
+            },
+        )
+        committed = self._commit(snapshot.with_decisions(decisions))
+        return {
+            "season": season,
+            "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
+            "released_holiday_date_exception_ids": released,
+            "released_dates": sorted(set(released_dates)),
+            "active_count": len(active_exception_records(committed.decisions)),
         }
 
     # -- banned dates ------------------------------------------------------

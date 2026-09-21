@@ -35,6 +35,7 @@ PARTICIPATION_ACCEPTANCES_KEY = "participation_acceptances"
 PARTICIPATION_ACCEPTANCE_PREFIX = "participation_acceptance"
 REQUEST_CONSTRAINTS_KEY = "request_constraints"
 BANNED_DATES_KEY = "banned_dates"
+HOLIDAY_DATE_EXCEPTIONS_KEY = "holiday_date_exceptions"
 SEASON_BASELINE_KEY = "season_baseline"
 SEASON_BASELINE_HISTORY_KEY = "season_baseline_history"
 
@@ -63,6 +64,7 @@ def compute_canonical_state_revision(
         "change_protections": decisions.get(CHANGE_PROTECTIONS_KEY) or [],
         "request_constraints": decisions.get(REQUEST_CONSTRAINTS_KEY) or [],
         "banned_dates": decisions.get(BANNED_DATES_KEY) or [],
+        "holiday_date_exceptions": decisions.get(HOLIDAY_DATE_EXCEPTIONS_KEY) or [],
         "season_baseline": decisions.get(SEASON_BASELINE_KEY) or {},
         "season_baseline_history": decisions.get(SEASON_BASELINE_HISTORY_KEY) or [],
         "verification_context": schedule.get("verification_context"),

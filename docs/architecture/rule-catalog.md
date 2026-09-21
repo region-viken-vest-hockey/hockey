@@ -163,6 +163,7 @@ candidate regresses a higher-priority operational obligation.
 | `guest_slot_reservation` | The operator reserves guest places as intent; the selection among legal alternatives is recorded as a decision. | `tournament_scheduler.guest_slots` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_guest_slots.py` |
 | `season_quality_baseline` | An operator may accept the current set and severity of non-hard findings as the season's regression reference. The baseline records stable finding ids and measurements (never aggregate counts alone), so later maintenance classifies fresh findings as known/improved/resolved/regressed/new. It never suppresses hard verification failures and never changes the schedule. | `tournament_scheduler.season_baseline` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_season_baseline.py` |
 | `operator_banned_date` | The operator may ban a global date as unusable for every tournament; the ban is durable policy, not a one-off. | `tournament_scheduler.canonical_banned_dates` | — | `tests/test_canonical_banned_dates.py` |
+| `operator_holiday_date_exception` | The operator may allow one date that is excluded only by the derived holiday/date policy; the exception does not override explicit banned dates. | `tournament_scheduler.canonical_holiday_exceptions` | — | `tests/test_holiday_date_policy.py` |
 
 ## Fact / evidence semantics
 
@@ -975,6 +976,19 @@ candidate regresses a higher-priority operational obligation.
 **Providers:** mutation `season ban-date`, `season unban-date` · search —  
 **Evidence / report:** `season banned-dates --json`  
 **Tests:** `tests/test_canonical_banned_dates.py`  
+**Precedence:** precedes — · depends on —
+
+### `operator_holiday_date_exception`
+
+`Operator decision` · status `active` · operator-waivable: yes  
+**Meaning:** The operator may allow one date that is excluded only by the derived holiday/date policy; the exception does not override explicit banned dates.  
+**Canonical owner:** `tournament_scheduler.canonical_holiday_exceptions`  
+**Input / fact source:** canonical decisions.json holiday_date_exceptions  
+**Verifier / measurement:** —  
+**Codes:** verifier — · finding — · score —  
+**Providers:** mutation `season allow-holiday-date`, `season disallow-holiday-date` · search —  
+**Evidence / report:** `season holiday-date-exceptions --json`  
+**Tests:** `tests/test_holiday_date_policy.py`  
 **Precedence:** precedes — · depends on —
 
 ### `calendar_source_trust`

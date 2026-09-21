@@ -1335,6 +1335,50 @@ def build_parser() -> argparse.ArgumentParser:
     season_banned_dates.add_argument("--all", action="store_true", help="Include released bans")
     season_banned_dates.add_argument("--json", action="store_true", help="Print the banned date report as JSON")
 
+    season_allow_holiday_date = season_sub.add_parser(
+        "allow-holiday-date",
+        help="Allow one date that is excluded only by the derived holiday/date policy",
+    )
+    season_allow_holiday_date.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_allow_holiday_date.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_allow_holiday_date.add_argument("--date", required=True, help="Date to allow (YYYY-MM-DD)")
+    season_allow_holiday_date.add_argument("--reason", required=True, help="Audited reason for allowing this date")
+    season_allow_holiday_date.add_argument("--actor", default=None, help="Operator identity")
+    season_allow_holiday_date.add_argument("--json", action="store_true", help="Print result as JSON")
+
+    season_disallow_holiday_date = season_sub.add_parser(
+        "disallow-holiday-date",
+        help="Remove one or more active holiday-date exceptions",
+    )
+    season_disallow_holiday_date.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_disallow_holiday_date.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_disallow_holiday_date.add_argument(
+        "--date",
+        dest="dates",
+        action="append",
+        default=None,
+        help="Allowed holiday date to remove (repeatable)",
+    )
+    season_disallow_holiday_date.add_argument(
+        "--exception-id",
+        dest="exception_ids",
+        action="append",
+        default=None,
+        help="Holiday-date exception id to remove (repeatable)",
+    )
+    season_disallow_holiday_date.add_argument("--actor", default=None, help="Operator identity")
+    season_disallow_holiday_date.add_argument("--note", default="", help="Why the exception is being removed")
+    season_disallow_holiday_date.add_argument("--json", action="store_true", help="Print result as JSON")
+
+    season_holiday_date_exceptions = season_sub.add_parser(
+        "holiday-date-exceptions",
+        help="List active holiday-policy date exceptions",
+    )
+    season_holiday_date_exceptions.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_holiday_date_exceptions.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_holiday_date_exceptions.add_argument("--all", action="store_true", help="Include released exceptions")
+    season_holiday_date_exceptions.add_argument("--json", action="store_true", help="Print report as JSON")
+
     season_guest_report = season_sub.add_parser(
         "guest-report",
         help="Show reserved guest places and their open/filled/released lifecycle status",

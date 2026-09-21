@@ -933,6 +933,19 @@ _DECISIONS: tuple[RuleEntry, ...] = (
         evidence_projection=("season banned-dates --json",),
         tests=("tests/test_canonical_banned_dates.py",),
     ),
+    RuleEntry(
+        id="operator_holiday_date_exception",
+        classification=OPERATOR_DECISION,
+        meaning=(
+            "The operator may allow one date that is excluded only by the derived holiday/date policy; "
+            "the exception does not override explicit banned dates."
+        ),
+        canonical_owner="tournament_scheduler.canonical_holiday_exceptions",
+        input_source="canonical decisions.json holiday_date_exceptions",
+        mutation_providers=("season allow-holiday-date", "season disallow-holiday-date"),
+        evidence_projection=("season holiday-date-exceptions --json",),
+        tests=("tests/test_holiday_date_policy.py",),
+    ),
 )
 
 

@@ -71,7 +71,8 @@ def relocate_excluded_date_tournaments(
     honest "no legal replacement found" outcome the date policy requires.
     """
     working = copy.deepcopy(dict(candidate))
-    excluded = set(problem_date_exclusions(problem))
+    excluded_reasons = problem_date_exclusions(problem)
+    excluded = set(excluded_reasons)
     targets = [
         tournament
         for tournament in working.get("tournaments", [])
@@ -102,6 +103,7 @@ def relocate_excluded_date_tournaments(
                     "host_club": tournament.get("host_club"),
                     "age_group": tournament.get("age_group"),
                     "reason": "no_admissible_date_found",
+                    "excluded_date_policy_reason": excluded_reasons.get(anchor) if anchor is not None else None,
                     "rejected_candidates": rejection_reasons,
                 }
             )
@@ -141,6 +143,7 @@ def relocate_excluded_date_tournaments(
                 evidence={
                     "original_date": entry["original_date"],
                     "reason": "no_admissible_replacement_found",
+                    "excluded_date_policy_reason": entry.get("excluded_date_policy_reason"),
                     "rejected_candidates": list(entry["rejected_candidates"]),
                 },
             )

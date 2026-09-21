@@ -137,20 +137,38 @@ def problem_date_exclusions(problem: Optional[Mapping[str, Any]]) -> Dict[date, 
 
     Combines the holiday policy derived from the problem's own planning
     window with any explicit ``date_exclusions`` the problem carries (for
-    example a season whose policy was frozen at promotion time). This is the
-    single reader every automatic date-changing path uses, so a repair cannot
-    "fix" one exclusion by forgetting another.
+    example a season whose policy was frozen at promotion time). Active
+    ``holiday_date_exceptions`` remove only exclusions whose source is the
+    derived holiday policy for that exact date. Operator ``banned_dates`` are
+    composed separately by :func:`problem_forbidden_dates`, so an exception can
+    never bypass an explicit canonical ban.
     """
     out: Dict[date, str] = {}
+    exception_dates: Set[date] = set()
+    if isinstance(problem, Mapping):
+        exception_dates = {
+            parsed
+            for value in problem.get("holiday_date_exceptions") or []
+            if (parsed := _parse_date(value)) is not None
+        }
     start, end = problem_window(problem)
     if start is not None and end is not None:
-        out.update(holiday_exclusions(start, end))
+        out.update(
+            {
+                excluded: reason
+                for excluded, reason in holiday_exclusions(start, end).items()
+                if excluded not in exception_dates
+            }
+        )
     if isinstance(problem, Mapping):
         for entry in problem.get("date_exclusions") or []:
             if not isinstance(entry, Mapping):
                 continue
             excluded = _parse_date(entry.get("date"))
             if excluded is None:
+                continue
+            source = str(entry.get("source") or "")
+            if source == HOLIDAY_POLICY_SOURCE and excluded in exception_dates:
                 continue
             reason = str(entry.get("reason") or "excluded by date policy")
             out.setdefault(excluded, reason)

@@ -16,6 +16,7 @@ from typing import Any, Dict, Iterable, List
 
 from tournament_scheduler.date_policy import (
     holiday_excluded_dates,
+    problem_forbidden_dates,
 )
 from tournament_scheduler.date_policy_relocation import (
     apply_date_policy_relocation_option,
@@ -35,7 +36,14 @@ from tournament_scheduler.season_maintenance import (
     search,
     supported_dimensions_for_finding,
 )
-from tournament_scheduler.season_state import schedule_fingerprint
+from tournament_scheduler.season_state import (
+    add_banned_date,
+    allow_holiday_date,
+    holiday_date_exception_report,
+    load_decisions,
+    release_banned_dates,
+    schedule_fingerprint,
+)
 from tournament_scheduler.stage3_optimizer import optimize_candidate
 
 WINDOW_START = date(2026, 9, 1)
@@ -180,6 +188,88 @@ def test_verify_candidate_rejects_excluded_holiday_date() -> None:
     assert holiday_violations
     assert holiday_violations[0]["tournament_id"] == "T1"
     assert result["ok"] is False
+
+
+def test_holiday_date_exception_allows_derived_christmas_weekend() -> None:
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams)
+    problem["holiday_date_exceptions"] = ["2026-12-19"]
+    candidate = _plan([_tournament("T1", "2026-12-19", "Nordby", teams)])
+
+    result = verify_candidate(candidate, problem)
+
+    assert "holiday_date_used" not in {v["code"] for v in result["violations"]}
+    assert date(2026, 12, 19) not in problem_forbidden_dates(problem)
+
+
+def test_holiday_date_exception_does_not_allow_other_holiday_weekends() -> None:
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams)
+    problem["holiday_date_exceptions"] = ["2026-12-19"]
+    candidate = _plan([_tournament("T1", "2026-12-20", "Nordby", teams)])
+
+    result = verify_candidate(candidate, problem)
+
+    holiday_violations = [v for v in result["violations"] if v["code"] == "holiday_date_used"]
+    assert holiday_violations
+    assert holiday_violations[0]["reason"].startswith("Weekend before:")
+
+
+def test_holiday_date_exception_does_not_override_banned_date() -> None:
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams)
+    problem["holiday_date_exceptions"] = ["2026-12-19"]
+    problem["manual_adjustments"]["banned_dates"] = ["2026-12-19"]
+    candidate = _plan([_tournament("T1", "2026-12-19", "Nordby", teams)])
+
+    result = verify_candidate(candidate, problem)
+
+    codes = {v["code"] for v in result["violations"]}
+    assert "holiday_date_used" not in codes
+    assert "banned_date_used" in codes
+    assert problem_forbidden_dates(problem)[date(2026, 12, 19)] == "banned by operator"
+
+
+def test_promoted_season_holiday_exception_is_decision_only_and_revision_bound(tmp_path: Path) -> None:
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams)
+    plan = _plan([_tournament("T1", "2026-12-19", "Nordby", teams)])
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+    before_schedule = (root / "2026-2027" / "schedule.json").read_bytes()
+
+    findings_before = list_findings("2026-2027", root=root)
+    assert any(f["code"] == "holiday_date_used" for f in findings_before["findings"])
+    old_revision = findings_before["revision"]
+
+    result = allow_holiday_date(
+        season="2026-2027",
+        root=root,
+        date="2026-12-19",
+        reason="RVV permits tournaments on the final weekend before Christmas",
+        actor="tester",
+    )
+
+    assert result["created"] is True
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before_schedule
+    assert result["canonical_state_revision"] != old_revision
+    assert load_decisions("2026-2027", root=root)["holiday_date_exceptions"][0]["date"] == "2026-12-19"
+    report = holiday_date_exception_report("2026-2027", root=root)
+    assert report["active_count"] == 1
+    assert report["holiday_date_exceptions"][0]["currently_overrides_derived_policy"] is True
+    findings_after = list_findings("2026-2027", root=root)
+    assert not any(f["code"] == "holiday_date_used" for f in findings_after["findings"])
+
+    add_banned_date(
+        season="2026-2027",
+        root=root,
+        date="2026-12-19",
+        request_id="test-ban",
+    )
+    banned_findings = list_findings("2026-2027", root=root)
+    assert any(f["code"] == "banned_date_used" for f in banned_findings["findings"])
+    assert not any(f["code"] == "holiday_date_used" for f in banned_findings["findings"])
+    release_banned_dates(season="2026-2027", root=root, dates=["2026-12-19"])
 
 
 def test_verify_candidate_accepts_admissible_date() -> None:
@@ -327,7 +417,9 @@ def test_batch_relocation_demotes_when_no_admissible_date() -> None:
 
     assert result["moves"] == []
     assert result["unresolved"]
+    assert result["unresolved"][0]["excluded_date_policy_reason"] == "Holiday week: Første juledag"
     assert result["demotions"]
+    assert result["demotions"][0]["placement_evidence"]["excluded_date_policy_reason"] == "Holiday week: Første juledag"
     assert result["verification"]["ok"] is True
     obligation_ids = [
         str(entry.get("source_tournament_id")) for entry in result["candidate"]["unresolved_tournament_placements"]

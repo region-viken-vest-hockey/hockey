@@ -75,7 +75,11 @@ def replan_around_baseline(
     from tournament_scheduler.canonical_banned_dates import (
         project_banned_dates_into_problem,
     )
+    from tournament_scheduler.canonical_holiday_exceptions import (
+        project_exceptions_into_problem,
+    )
 
+    problem = project_exceptions_into_problem(problem, decisions)
     problem = project_banned_dates_into_problem(problem, decisions)
     # A persisted operator acceptance is a durable canonical decision, not a
     # property of the transient config: the replan verifier must honour it too,

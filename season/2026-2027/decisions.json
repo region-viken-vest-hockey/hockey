@@ -57,7 +57,7 @@
       "type": "banned_date"
     }
   ],
-  "canonical_state_revision": "b965d180fbc4463da8728c292bb50bbf9cd8ed94067aadb1a7e19cfb81adab59",
+  "canonical_state_revision": "3fb080fe2f5653cccdcfef961894b1d49fc29b3f5cb68519477e205e902ac14b",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -193077,6 +193077,34 @@
       "schedule_fingerprint": "8f1c3161ea031acaa85ce2dd6c35c240569779159a44abc38ab4929974c429c2",
       "tournament_fingerprint": "6598ab44a8887e8801bff9f70de3db471a9c001123cb420831d3451cc387141c",
       "tournament_id": "rvv-0013"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-21T20:14:16.457038+00:00",
+      "details": {
+        "date": "2026-12-19",
+        "holiday_date_exception_id": "holiday-date-exception:34228bafb0549a51",
+        "reason": "RVV permits tournaments on the final weekend before Christmas"
+      },
+      "event": "allow_holiday_date",
+      "note": "RVV permits tournaments on the final weekend before Christmas",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "8f1c3161ea031acaa85ce2dd6c35c240569779159a44abc38ab4929974c429c2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    }
+  ],
+  "holiday_date_exceptions": [
+    {
+      "created_at": "2026-09-21T20:14:16.457038+00:00",
+      "created_by": "niclasl",
+      "date": "2026-12-19",
+      "derived_holiday_policy_reason": "Weekend before: Andre juledag",
+      "id": "holiday-date-exception:34228bafb0549a51",
+      "reason": "RVV permits tournaments on the final weekend before Christmas",
+      "source_revision": "b965d180fbc4463da8728c292bb50bbf9cd8ed94067aadb1a7e19cfb81adab59",
+      "status": "active",
+      "type": "holiday_date_exception"
     }
   ],
   "request_constraints": [
@@ -193104,5 +193132,5 @@
   "schedule_fingerprint": "8f1c3161ea031acaa85ce2dd6c35c240569779159a44abc38ab4929974c429c2",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-21T09:01:47.320881+00:00"
+  "updated_at": "2026-09-21T20:14:16.457038+00:00"
 }

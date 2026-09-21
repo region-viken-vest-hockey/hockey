@@ -59,6 +59,7 @@ __all__ = [
     "SeasonStateError",
     "add_banned_date",
     "add_request_constraint",
+    "allow_holiday_date",
     "apply_candidate",
     "approval_report",
     "approve_tournament",
@@ -72,6 +73,7 @@ __all__ = [
     "fill_guest_slot",
     "guest_slot_candidates",
     "guest_slot_report",
+    "holiday_date_exception_report",
     "load_decisions",
     "load_export_context",
     "load_json",
@@ -87,6 +89,7 @@ __all__ = [
     "record_participation_acceptance",
     "release_banned_dates",
     "release_change_protections",
+    "disallow_holiday_dates",
     "release_guest_slot",
     "release_request_constraints",
     "request_constraint_report",
@@ -398,6 +401,58 @@ def release_request_constraints(
         request_id=request_id,
         actor=actor,
         note=note,
+    )
+
+
+def allow_holiday_date(
+    *,
+    season: str,
+    date: str,
+    reason: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+) -> dict[str, Any]:
+    """Persist one season-level exception to a derived holiday exclusion."""
+
+    return _service(root).allow_holiday_date(
+        season=season,
+        date=date,
+        reason=reason,
+        actor=actor,
+    )
+
+
+def disallow_holiday_dates(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    dates: list[str] | None = None,
+    exception_ids: list[str] | None = None,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Release active holiday-date exceptions with audit history."""
+
+    return _service(root).disallow_holiday_dates(
+        season=season,
+        dates=dates,
+        exception_ids=exception_ids,
+        actor=actor,
+        note=note,
+    )
+
+
+def holiday_date_exception_report(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    include_released: bool = False,
+) -> dict[str, Any]:
+    """Return active holiday-date exceptions and provenance."""
+
+    return _service(root).holiday_date_exception_report(
+        season,
+        include_released=include_released,
     )
 
 

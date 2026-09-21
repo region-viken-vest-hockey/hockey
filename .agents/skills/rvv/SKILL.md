@@ -69,6 +69,9 @@ scripts/rvv-miniputt season release-constraint --season 2026-2027 --request-id <
 scripts/rvv-miniputt season ban-date --season 2026-2027 --date <YYYY-MM-DD> --request-id <operator-request-id> --note "<reason>"
 scripts/rvv-miniputt season unban-date --season 2026-2027 --date <YYYY-MM-DD> --note "<reason>"
 scripts/rvv-miniputt season banned-dates --season 2026-2027 --json
+scripts/rvv-miniputt season allow-holiday-date --season 2026-2027 --date <YYYY-MM-DD> --reason "<why the derived holiday exclusion should not apply>"
+scripts/rvv-miniputt season holiday-date-exceptions --season 2026-2027 --json
+scripts/rvv-miniputt season disallow-holiday-date --season 2026-2027 --date <YYYY-MM-DD> --note "<reason>"
 scripts/rvv-miniputt season guest-report --season 2026-2027
 scripts/rvv-miniputt season guest-candidates --season 2026-2027 --age-groups JU10,JU12
 scripts/rvv-miniputt season guest-reserve --season 2026-2027 --tournament-id <id> --note "external league team may apply"
@@ -118,6 +121,8 @@ Active constraints are hard maintenance requirements enforced by the repository 
 When one request records several independent violations, no single canonical mutation can satisfy the whole active set first (each commit still has to clear every active constraint). Do not release valid constraints to unlock an intermediate mutation, do not hand-edit canonical JSON, and do not fence a broad `season replan` with approvals. Use atomic scoped batch maintenance instead: `scripts/rvv-miniputt season batch` applies a declared list of `move`/`swap_participants`/`cancel` operations to one in-memory candidate, requires an explicit `--scope` of affected tournament ids, freezes every out-of-scope tournament, runs the complete authoritative gate set once on the final candidate (all active request constraints, hard verification, operational acceptability, locks/protections, guest reservations, hosting responsibility, and per-team swap consequences) and commits exactly once. A batch that leaves any violation, changes an out-of-scope tournament, or fails any gate is refused without a partial write; a `--dry-run` reports scope, changed ids, remaining violations and every gate verdict. One isolated violation still goes through ordinary `season move` / `season swap-participants`, whose full-season constraint gate is unchanged.
 
 Distinguish a **global date restriction** from a **team restriction**. When a whole date is unusable for every tournament (hall closed, holiday weekend nobody can host), record a canonical **banned date** with `season ban-date`, not a per-team request constraint. A banned date reuses the existing `banned_dates` rule read by the planner, verifier, candidate-weekend enumeration, repair/search, optimizer and the `season batch` boundary -- there is no separate date-policy engine. Like `season add-constraint`, recording a ban is a decision-only write that is allowed even while tournaments are still scheduled on that date: the ban is persisted, `season banned-dates --json` reports the exact `affected_tournament_ids`, and the canonical revision advances so stale options are invalidated. Repair is separate: derive the scope from `season banned-dates --json` and repair it with one scoped atomic `season batch`. Remove a ban only with `season unban-date` when the underlying restriction no longer applies; never hand-edit JSON. A banned date blocks `season move`, `season batch` moves, generated repair/search options, candidate-weekend/optimizer/replan date moves and final canonical verification until repaired or explicitly unbanned.
+
+A holiday-date exception is the opposite kind of global date policy: it allows one exact date that the derived Norwegian holiday/weekend policy would otherwise exclude. Use `season allow-holiday-date` only when RVV explicitly confirms the derived exclusion should not apply for that season/date. It is stored in canonical `decisions.json` with reason/provenance and advances the canonical revision, but it does not move tournaments. It removes only the derived holiday-policy exclusion; if the same date is also an explicit `ban-date`, the ban still wins and must be unbanned separately.
 
 ```bash
 scripts/rvv-miniputt season release-constraint --season 2026-2027 \
@@ -382,7 +387,7 @@ Audit checklist:
 1. Antall cuper pr lag?
 2. Antall hjemmeturneringer pr lag?
 3. Lengde på turneringer? (Bekreft at eksportert/sluttid bruker nøyaktig konfigurert `ice_time_minutes`, og at denne samtidig dekker rundene + 5 min overgang pr runde samt eventuelle minimumskrav til booket istid.)
-4. Er det faktisk ledig tid på is for hele denne konfigurerte bookingperioden?
+4. Er det faktisk ledig tid på is? (For hele denne konfigurerte bookingperioden.)
 5. Deltar vertsklubben i samme turnering?
 6. Deltar hvert lag maksimalt én gang per dag?
 7. Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?

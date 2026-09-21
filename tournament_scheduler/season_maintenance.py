@@ -279,7 +279,9 @@ def load_context(
     # bounded search and candidate-weekend enumeration all respect them from one
     # authoritative source instead of a second date-policy implementation.
     from .canonical_banned_dates import project_banned_dates_into_problem
+    from .canonical_holiday_exceptions import project_exceptions_into_problem
 
+    problem = project_exceptions_into_problem(problem, decisions)
     problem = project_banned_dates_into_problem(problem, decisions)
     # A persisted operator acceptance is injected as verifier search evidence so
     # the same independent verifier that classifies every other deviation also

@@ -175,6 +175,12 @@ def build_planning_problem(
     # separate from operator ``manual_adjustments.banned_dates`` because they
     # are a fixed domain policy, not an operator preference.
     holiday_exclusions = _holiday_exclusions(start_date, end_date)
+    holiday_date_exceptions = sorted(
+        str(value)
+        for value in (config.get("holiday_date_exceptions", []) or [])
+        if str(value)
+    )
+    exception_set = set(holiday_date_exceptions)
     date_exclusions = [
         {
             "date": excluded.isoformat(),
@@ -182,6 +188,7 @@ def build_planning_problem(
             "source": HOLIDAY_POLICY_SOURCE,
         }
         for excluded, reason in sorted(holiday_exclusions.items())
+        if excluded.isoformat() not in exception_set
     ]
 
     club_busy_dates: Dict[str, List[str]] = {}
@@ -242,6 +249,7 @@ def build_planning_problem(
         # ``manual_adjustments`` so the verifier and every automatic date
         # search share one rule and the audit can surface the active policy.
         "date_exclusions": date_exclusions,
+        "holiday_date_exceptions": holiday_date_exceptions,
         "date_preferences": date_preferences,
         "club_busy_dates": club_busy_dates,
         "club_calendar_status": club_calendar_status,
