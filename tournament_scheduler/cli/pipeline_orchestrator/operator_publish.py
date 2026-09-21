@@ -67,6 +67,8 @@ def _execute_operator_publish(args: argparse.Namespace) -> "Any | None":
         action_kwargs["allowed_filenames"] = DEFAULT_ALLOWED_FILENAMES | set(args.extra_public_files)
     if getattr(args, "allow_findings", None):
         action_kwargs["allow_findings"] = set(args.allow_findings)
+    if getattr(args, "routine_public_assets", False):
+        action_kwargs["routine_public_assets"] = True
     if getattr(args, "verify_max_attempts", None) is not None:
         action_kwargs["verify_max_attempts"] = args.verify_max_attempts
     if getattr(args, "verify_retry_delay_seconds", None) is not None:

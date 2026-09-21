@@ -310,6 +310,7 @@ def _cmd_registered_teams(args: argparse.Namespace) -> int:
     args.run_id = getattr(args, "run_id", None) or default_registered_teams_run_id()
     args.extra_public_files = getattr(args, "extra_public_files", []) or []
     args.allow_findings = getattr(args, "allow_findings", []) or []
+    args.routine_public_assets = True
 
     publish_result = _execute_operator_publish(args)
     if publish_result is None:
@@ -367,6 +368,7 @@ def _cmd_activities(args: argparse.Namespace) -> int:
     args.run_id = getattr(args, "run_id", None) or default_activity_run_id()
     args.extra_public_files = getattr(args, "extra_public_files", []) or []
     args.allow_findings = getattr(args, "allow_findings", []) or []
+    args.routine_public_assets = True
 
     publish_result = _execute_operator_publish(args)
     if publish_result is None:

@@ -112,6 +112,11 @@ def _branch_exists_on_remote(repo_root: str, remote: str, branch: str) -> bool:
     return proc.returncode == 0
 
 
+def _commit_ref_exists(repo_root: str, ref: str) -> bool:
+    proc = _git(["rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"], cwd=repo_root)
+    return proc.returncode == 0
+
+
 def _copy_path(source: Path, destination: Path) -> None:
     """Copy one file or directory, creating its destination parent."""
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -259,10 +264,16 @@ def diff_latest(bundle_dir: str, *, repo_dir: str = ".", branch: str = "gh-pages
     except PagesPublishError:
         repo_root = None
 
-    if repo_root is None or not _branch_exists_locally(repo_root, branch):
+    compare_ref = None
+    if repo_root is not None:
+        for candidate in (branch, f"origin/{branch}", "FETCH_HEAD"):
+            if _commit_ref_exists(repo_root, candidate):
+                compare_ref = candidate
+                break
+    if repo_root is None or compare_ref is None:
         return {"add": sorted(f"latest/{name}" for name in bundle_contents), "update": [], "remove": []}
 
-    tree_proc = _git(["ls-tree", "-r", "--name-only", branch], cwd=repo_root)
+    tree_proc = _git(["ls-tree", "-r", "--name-only", compare_ref], cwd=repo_root)
     existing = {
         line for line in tree_proc.stdout.splitlines() if line.startswith("latest/")
     } if tree_proc.returncode == 0 else set()
@@ -272,7 +283,7 @@ def diff_latest(bundle_dir: str, *, repo_dir: str = ".", branch: str = "gh-pages
     for name, content in bundle_contents.items():
         rel = f"latest/{name}"
         show_proc = subprocess.run(
-            ["git", "show", f"{branch}:{rel}"],
+            ["git", "show", f"{compare_ref}:{rel}"],
             cwd=repo_root,
             capture_output=True,
             timeout=_GIT_TIMEOUT_SECONDS,

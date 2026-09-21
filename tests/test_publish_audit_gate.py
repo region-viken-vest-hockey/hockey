@@ -102,6 +102,29 @@ class TestNoAuditResult:
         assert result.status == "blocked"
         assert result.requires_human is True
 
+    def test_routine_public_asset_update_does_not_require_season_audit(self, tmp_path):
+        _init_repo(tmp_path)
+        subprocess.run(["git", "-C", str(tmp_path), "checkout", "-q", "-b", "gh-pages"], check=True)
+        latest = tmp_path / "latest"
+        (latest / "activities").mkdir(parents=True)
+        (latest / "season_plan.html").write_text("<h1>unchanged season</h1>", encoding="utf-8")
+        (latest / "index.html").write_text("<h1>unchanged season</h1>", encoding="utf-8")
+        (latest / "activities.json").write_text('{"old": true}\n', encoding="utf-8")
+        (latest / "activities" / "index.html").write_text("old activity\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(tmp_path), "add", "latest"], check=True)
+        subprocess.run(["git", "-C", str(tmp_path), "commit", "-q", "-m", "pages"], check=True)
+        subprocess.run(["git", "-C", str(tmp_path), "checkout", "-q", "main"], check=True)
+
+        export_dir = tmp_path / "routine-export"
+        (export_dir / "activities").mkdir(parents=True)
+        (export_dir / "season_plan.html").write_text("<h1>unchanged season</h1>", encoding="utf-8")
+        (export_dir / "activities.json").write_text('{"new": true}\n', encoding="utf-8")
+        (export_dir / "activities" / "index.html").write_text("new activity\n", encoding="utf-8")
+
+        result = _publish(tmp_path, export_dir=str(export_dir), routine_public_assets=True)
+
+        assert result.status == "ok", result.summary
+
 
 class TestDeterministicHardFailTakesPrecedence:
     def test_hard_violation_blocks_even_with_a_passing_audit(self, tmp_path):

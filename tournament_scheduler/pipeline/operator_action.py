@@ -517,6 +517,7 @@ def _execute_publish_pages(
     push: bool = True,
     allowed_filenames: "frozenset[str] | set[str] | None" = None,
     allow_findings: "frozenset[str] | set[str] | None" = None,
+    routine_public_assets: bool = False,
     confirm_public: bool = False,
     dry_run: bool = False,
     verify: bool = True,
@@ -643,16 +644,34 @@ def _execute_publish_pages(
         )
         return bundle_result
 
-    if (blocked := _apply_publish_audit_gate(work_dir=work_dir, bundle_result=bundle_result, with_collision_warning=_with_collision_warning)) is not None:
-        _emit_publication_trace(
-            work_dir,
-            run_id,
-            status="blocked",
-            export_dir=export_dir,
-            export_fingerprint=export_checkpoint.get("export_fingerprint"),
-            detail="publication audit gate",
+    def _is_routine_public_asset(path: str) -> bool:
+        return (
+            path == "latest/activities.json"
+            or path.startswith("latest/activities/")
+            or path == "latest/registered-teams.json"
+            or path.startswith("latest/registered-teams/")
         )
-        return blocked
+
+    routine_asset_diff = pages_publish.diff_latest(public_bundle_dir, repo_dir=repo_dir, branch=branch)
+    routine_asset_changes = [
+        path
+        for kind in ("add", "update", "remove")
+        for path in routine_asset_diff.get(kind, [])
+    ]
+    skip_season_audit = bool(routine_public_assets) and all(
+        _is_routine_public_asset(path) for path in routine_asset_changes
+    )
+    if not skip_season_audit:
+        if (blocked := _apply_publish_audit_gate(work_dir=work_dir, bundle_result=bundle_result, with_collision_warning=_with_collision_warning)) is not None:
+            _emit_publication_trace(
+                work_dir,
+                run_id,
+                status="blocked",
+                export_dir=export_dir,
+                export_fingerprint=export_checkpoint.get("export_fingerprint"),
+                detail="publication audit gate",
+            )
+            return blocked
     bundle_fp = pages_publish.bundle_fingerprint(public_bundle_dir)
     target_fp = pages_publish.target_fingerprint(
         repo_dir=repo_dir, branch=branch, remote=remote, run_id=run_id
