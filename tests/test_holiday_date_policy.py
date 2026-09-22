@@ -272,6 +272,54 @@ def test_promoted_season_holiday_exception_is_decision_only_and_revision_bound(t
     release_banned_dates(season="2026-2027", root=root, dates=["2026-12-19"])
 
 
+def test_season_export_honours_holiday_exception_added_after_promotion(tmp_path: Path) -> None:
+    """A holiday-date exception recorded after promotion must not be ignored
+    by ``season export``'s hard-verification gate.
+
+    The gate re-verifies against ``schedule.json``'s ``verification_context``
+    ``problem`` -- a snapshot frozen at the season's original promotion time.
+    An exception recorded afterwards only lives in ``decisions.json`` and must
+    be projected into that frozen problem before re-verification, the same
+    way ``season findings``/``repair-options`` already do; otherwise export
+    refuses a canonical state that promoted-season maintenance itself already
+    accepted as hard-valid.
+    """
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams)
+    plan = _plan([_tournament("T1", "2026-12-19", "Nordby", teams)])
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    allow_holiday_date(
+        season="2026-2027",
+        root=root,
+        date="2026-12-19",
+        reason="RVV permits tournaments on the final weekend before Christmas",
+        actor="tester",
+    )
+
+    exit_code = cli_main(
+        [
+            "season",
+            "export",
+            "--season",
+            "2026-2027",
+            "--root",
+            str(root),
+            "--work-dir",
+            str(tmp_path / "pipeline"),
+            "--export-dir",
+            str(tmp_path / "export"),
+            "--flat",
+        ]
+    )
+
+    assert exit_code == 0
+    assert (tmp_path / "export" / "season_plan.xlsx").exists()
+
+
 def test_verify_candidate_accepts_admissible_date() -> None:
     teams = _teams(["Nordby", "Sorby"])
     problem = _problem(teams)

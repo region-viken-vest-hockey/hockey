@@ -533,15 +533,20 @@ def _duration_minutes(tournament, problem):
     return int(fallback or 120)
 
 
-# Realistic generated miniputt start times. 16:00 is the latest generated
+# Realistic generated miniputt start times. 17:30 is the latest generated
 # start; later source-calendar events still remain facts, and an
 # already-established later tournament time may be preserved via
 # ``tournament.get("start_time")``, but repair search must not invent evening
-# tournament starts simply because an arena happens to be free.
+# tournament starts simply because an arena happens to be free. The ceiling
+# was widened from 16:00 to 17:30 (operator-confirmed request) once a club
+# confirmed real same-day ice availability into the early evening, so a
+# same-arena obligation queued behind an already-placed afternoon tournament
+# is not stranded just because the bounded search never tried a slot late
+# enough to follow it.
 GENERATED_START_TIMES: Tuple[str, ...] = (
     "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
     "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
-    "16:00",
+    "16:00", "16:30", "17:00", "17:30",
 )
 
 

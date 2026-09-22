@@ -1201,13 +1201,28 @@ def _canonical_verification_problem(
 
     if season:
         try:
-            from ..season_state import load_schedule
+            from ..calendar_bookings import project_associations_into_problem
+            from ..canonical_banned_dates import project_banned_dates_into_problem
+            from ..canonical_holiday_exceptions import project_exceptions_into_problem
+            from ..season_state import load_decisions, load_schedule
 
             schedule = load_schedule(season, root=root or "season")
             context = schedule.get("verification_context") if isinstance(schedule, dict) else None
             problem = context.get("problem") if isinstance(context, dict) else None
             if isinstance(problem, dict) and problem:
-                return dict(problem)
+                # The stored problem is frozen at the season's original
+                # promotion; project the *current* canonical decisions
+                # (holiday exceptions, banned dates, calendar-booking
+                # associations) into it, mirroring
+                # ``canonical_season.shared._resolve_plan_problem`` and the
+                # ``season export`` gate, so approve/move/etc. never refuse a
+                # mutation over a since-superseded fact.
+                decisions = load_decisions(season, root=root or "season")
+                resolved = dict(problem)
+                resolved = project_exceptions_into_problem(resolved, decisions)
+                resolved = project_banned_dates_into_problem(resolved, decisions)
+                resolved = project_associations_into_problem(resolved, decisions) or resolved
+                return resolved
         except Exception:
             pass
 
@@ -1368,6 +1383,22 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     "Canonical season export requires a promoted verification-context problem; "
                     "re-promote from a provenance-bound Stage 4 handoff."
                 )
+            # The provenance-bound problem is frozen at the season's original
+            # promotion time; a later canonical decision (banned date, holiday
+            # exception, calendar-booking association) never mutates it. Project
+            # the *current* canonical overlays into it here -- mirroring
+            # season_maintenance.load_context -- so this export gate verifies
+            # against the same live decisions that season findings/repair-options
+            # already accepted, instead of re-litigating against stale policy.
+            from ..calendar_bookings import project_associations_into_problem
+            from ..canonical_banned_dates import project_banned_dates_into_problem
+            from ..canonical_holiday_exceptions import project_exceptions_into_problem
+
+            verification_problem = project_exceptions_into_problem(verification_problem, decisions)
+            verification_problem = project_banned_dates_into_problem(verification_problem, decisions)
+            verification_problem = (
+                project_associations_into_problem(verification_problem, decisions) or verification_problem
+            )
             # The public/source presentation snapshot is carried with the
             # promoted handoff, so export never reads mutable `.pipeline`
             # scrape state. It is fingerprint-verified before use.

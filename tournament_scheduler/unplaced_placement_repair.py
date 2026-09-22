@@ -109,12 +109,25 @@ SEARCH_PROVEN_INFEASIBLE = "proven_infeasible"
 # as bounded_search_exhausted/search_incomplete rather than "not yet looked
 # at that date". Widened to cover a realistic same-half span while staying a
 # bounded (not season-wide-across-both-halves) scan.
-_MAX_OPTIONS_PER_OBLIGATION = 8
+# Raised alongside _MAX_START_TIMES_PER_DATE (6 -> 8): a fully-free date now
+# generates 8 representative start-time samples by itself, which at the old
+# cap of 8 silently starved every other candidate date's options down to
+# zero. Widened so one wide-open date can no longer consume the whole
+# obligation-level budget.
+_MAX_OPTIONS_PER_OBLIGATION = 12
 _MAX_DATE_CANDIDATES = 20
 _MAX_RELEASE_DATES = 3
 _MAX_BLOCKERS = 2
 _MAX_BLOCKER_DATES = 3
-_MAX_START_TIMES_PER_DATE = 6
+# 6 evenly-spaced samples over a 13-entry generated-time list always landed on
+# an existing arena_interval_conflict boundary or skipped straight past a
+# legal gap between two samples (a same-host obligation queued after a long
+# afternoon tournament ending at 16:20 sampled 16:00 -- blocked -- then jumped
+# to 17:30, skipping the legal 16:30/17:00 gap in between and surfacing an
+# option that ran past the host's confirmed close time). Widened to 8 so the
+# representative sample is dense enough to still find a real gap between two
+# already-placed same-day tournaments.
+_MAX_START_TIMES_PER_DATE = 8
 
 # One canonical identity for this provider's bounded search. It includes the
 # supported ladder, every configured cap and the generated start-time policy,

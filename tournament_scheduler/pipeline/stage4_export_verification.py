@@ -28,7 +28,10 @@ def _build_export_verification_problem(
     if not effective_config or not start_raw or not end_raw:
         return None
     try:
-        from ..canonical_baseline import resolve_canonical_baseline
+        from ..calendar_bookings import project_associations_into_problem
+        from ..canonical_banned_dates import project_banned_dates_into_problem
+        from ..canonical_baseline import resolve_canonical_state
+        from ..canonical_holiday_exceptions import project_exceptions_into_problem
         from ..operator_waivers import load_active_waivers
         from ..planning_contract import build_planning_problem
 
@@ -39,8 +42,9 @@ def _build_export_verification_problem(
         # promoted to canonical state, fold its approval/placement locks into
         # the problem so this export gate hard-rejects a candidate that moved
         # or dropped approved/booked work -- not only self-consistency.
-        canonical_baseline = resolve_canonical_baseline(effective_config, start.date(), end.date())
-        return build_planning_problem(
+        canonical_state = resolve_canonical_state(effective_config, start.date(), end.date())
+        canonical_baseline = canonical_state["baseline"] if canonical_state else None
+        problem = build_planning_problem(
             effective_config,
             scraping_result,
             start.date(),
@@ -48,5 +52,17 @@ def _build_export_verification_problem(
             waivers=load_active_waivers(state.work_dir),
             canonical_baseline=canonical_baseline,
         )
+        if canonical_state:
+            # Mirror season_maintenance.load_context's projections so this
+            # export chokepoint honours the same canonical banned dates,
+            # holiday-date exceptions and calendar-booking associations that
+            # season repair/apply-repair already verified the candidate
+            # against, instead of re-deriving a stricter problem from
+            # nothing but the frozen pipeline config.
+            decisions = canonical_state["decisions"]
+            problem = project_exceptions_into_problem(problem, decisions)
+            problem = project_banned_dates_into_problem(problem, decisions)
+            problem = project_associations_into_problem(problem, decisions) or problem
+        return problem
     except Exception:
         return None

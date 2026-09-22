@@ -277,6 +277,82 @@ def test_approval_refuses_known_external_conflict(tmp_path):
     assert verification["manual_external_conflict_placements"][0]["tournament_id"] == "t1"
 
 
+def test_cli_approve_honours_calendar_booking_confirmed_after_promotion(tmp_path):
+    """``season approve`` (CLI) must see a calendar-booking association
+    recorded after promotion, not just the frozen promotion-time problem.
+
+    ``_canonical_verification_problem`` in ``cli/rvv_cli.py`` reads
+    ``schedule.json``'s ``verification_context.problem`` -- a snapshot frozen
+    at promotion -- to gate ``season approve``/``season move``. A calendar
+    booking confirmed afterwards only lives in ``decisions.json`` and must be
+    projected into that frozen problem the same way ``season export``
+    already does (see the analogous holiday-date-exception regression),
+    otherwise a real Jar-confirmed booking is refused forever as an
+    "external calendar conflict" the operator already resolved.
+    """
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": [{"club": club, "label": f"{club}1", "age_group": "U10"} for club in "ABCD"],
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {
+            "A": [
+                {
+                    "date": "2026-09-12",
+                    "start": "10:00",
+                    "end": "12:00",
+                    "kind": "external",
+                    "availability": "fixed_busy",
+                    "calendar_event": "Booking - Serieturnering U10",
+                }
+            ]
+        },
+    }
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _plan([_tournament("t1")])}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state, problem=problem)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)[
+        "booking_candidates"
+    ][0]["calendar_event"]["fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="tester",
+        note="Jar confirmed this booking",
+        problem=problem,
+    )
+
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    exit_code = cli_main(
+        [
+            "season",
+            "approve",
+            "--season",
+            "2026-2027",
+            "--tournament-id",
+            "t1",
+            "--root",
+            str(root),
+            "--actor",
+            "tester",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "approved"
+
+
 def test_changed_approval_is_deterministic_stale_approval(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     approve_tournament(season="2026-2027", tournament_id="t1", root=root, actor="booker")

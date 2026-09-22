@@ -767,7 +767,7 @@ def test_alternate_date_afternoon_slot_is_found_within_the_start_time_cap(tmp_pa
     """A capped alternate-date search must still reach a legal afternoon slot.
 
     The old ``[:6]`` slice of the ordered candidate list always tried morning
-    starts (10:00-12:30) even though the generated window ran to 16:00, so an
+    starts (10:00-12:30) even though the generated window ran to 17:30, so an
     alternate date whose only gap began after lunch was reported as if it had
     no legal slot at all.
     """
@@ -801,11 +801,11 @@ def test_alternate_date_afternoon_slot_is_found_within_the_start_time_cap(tmp_pa
         option
         for option in report["options"]
         if option["arguments"]["date"] in {"2026-10-17", "2026-10-18"}
-        and option["arguments"]["start_time"] in {"15:00", "15:30", "16:00"}
+        and option["arguments"]["start_time"] in {"14:30", "15:30", "16:30", "17:30"}
     ]
     assert afternoon, report["options"]
     chosen = afternoon[0]
-    assert chosen["arguments"]["start_time"] <= "16:00"
+    assert chosen["arguments"]["start_time"] <= "17:30"
     applied = apply_repair(
         YEAR,
         chosen["option_id"],
@@ -822,10 +822,11 @@ def test_alternate_date_latest_allowed_start_survives_preferred_time_insertion(
     """The latest allowed start stays reachable for a non-sampled preferred start.
 
     Prepending the obligation's preferred start to a bounded, day-covering
-    sample must not evict the last sampled endpoint. With preferred 12:00 (not
-    itself one of the sampled values) a naive slice dropped 16:00, so an
-    alternate date whose only legal generated start was exactly the latest
-    allowed time was reported as having no legal slot.
+    sample must not evict the last sampled endpoint. With a preferred time
+    that is not itself one of the sampled values, a naive slice dropped the
+    latest allowed start, so an alternate date whose only legal generated
+    start was exactly the latest allowed time was reported as having no
+    legal slot.
     """
     teams = _teams(["Jar", "Frisk Asker"])
     problem = _problem(
@@ -841,14 +842,16 @@ def test_alternate_date_latest_allowed_start_survives_preferred_time_insertion(
                 {"date": "2026-10-18", "start": "00:00", "end": "23:59", "calendar_event": "Kamp"},
                 {"date": "2026-10-24", "start": "00:00", "end": "23:59", "calendar_event": "Kamp"},
                 {"date": "2026-10-25", "start": "00:00", "end": "23:59", "calendar_event": "Kamp"},
-                # The only usable date is free only from 15:30, so the latest
-                # allowed generated start (16:00) is the only legal slot.
-                {"date": "2026-10-11", "start": "00:00", "end": "15:30", "calendar_event": "Kamp"},
+                # The only usable date is free only from 17:00, so the latest
+                # allowed generated start (17:30) is the only legal slot.
+                {"date": "2026-10-11", "start": "00:00", "end": "17:00", "calendar_event": "Kamp"},
             ]
         },
     )
     obligation = _obligation(age_group="U10", day="2026-10-10", host="Jar", roster=teams)
-    obligation["preferred_start_time"] = "12:00"
+    # 12:15 is deliberately not one of GENERATED_START_TIMES, so it exercises
+    # the "preferred not already sampled" eviction-preservation path.
+    obligation["preferred_start_time"] = "12:15"
     plan = _base_plan([], obligation, start="2026-10-10", end="2026-10-25")
     root = tmp_path / "season"
     _write_season(root, plan, problem)
@@ -859,7 +862,7 @@ def test_alternate_date_latest_allowed_start_survives_preferred_time_insertion(
         option
         for option in report["options"]
         if option["arguments"]["date"] == "2026-10-11"
-        and option["arguments"]["start_time"] == "16:00"
+        and option["arguments"]["start_time"] == "17:30"
     ]
     assert latest, report["options"]
     applied = apply_repair(
@@ -868,6 +871,64 @@ def test_alternate_date_latest_allowed_start_survives_preferred_time_insertion(
         report["revision"],
         root=root,
         finding_id="unplaced_placement:U10:2026-10-10:1",
+    )
+    assert applied["ok"] is True, applied
+
+
+def test_same_date_start_time_reaches_widened_evening_ceiling_past_16_00(
+    tmp_path: Path,
+) -> None:
+    """A same-host obligation queued behind a long afternoon tournament must
+    reach a legal start past the old 16:00 ceiling.
+
+    GENERATED_START_TIMES was widened to 17:30 after a club confirmed real
+    same-day ice availability into the early evening. A same-host obligation
+    whose only free slot on its own date starts after an already-placed
+    140-minute tournament ending at 16:20 must be reachable at 16:30, not
+    reported as having no legal same-date slot merely because the previous
+    16:00 ceiling could never follow it.
+    """
+    teams_u10 = _teams(["Jar", "Frisk Asker"], age_group="U10")
+    teams_u11 = _teams(["Jar", "Sorby"], age_group="U11")
+    problem = _problem(
+        teams_u10 + teams_u11,
+        start=date(2026, 11, 1),
+        end=date(2026, 11, 30),
+    )
+    problem["ice_time_minutes"] = {"U10": 140, "U11": 140, "U12": 120, "JU10": 120}
+    blocker = _tournament(
+        "rvv-0001", "2026-11-21", "Jar", teams_u10, start_time="14:00", age_group="U10"
+    )
+    plan = _base_plan(
+        [blocker],
+        _obligation(age_group="U11", day="2026-11-21", host="Jar", roster=teams_u11),
+        start="2026-11-01",
+        end="2026-11-30",
+    )
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    report = repair_options(YEAR, "unplaced_placement:U11:2026-11-21:1", root=root)
+
+    same_date = [
+        option
+        for option in report["options"]
+        if option["arguments"]["date"] == "2026-11-21"
+    ]
+    assert same_date, report["options"]
+    # 14:00-16:20 is occupied by the blocker; no generated start may land there.
+    assert not any(
+        "14:00" <= option["arguments"]["start_time"] < "16:20" for option in same_date
+    ), same_date
+    evening = [option for option in same_date if option["arguments"]["start_time"] >= "16:30"]
+    assert evening, same_date
+    chosen = evening[0]
+    applied = apply_repair(
+        YEAR,
+        chosen["option_id"],
+        report["revision"],
+        root=root,
+        finding_id="unplaced_placement:U11:2026-11-21:1",
     )
     assert applied["ok"] is True, applied
 
