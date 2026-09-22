@@ -1414,17 +1414,35 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
             except PublicExportContextError as exc:
                 raise SeasonStateError(str(exc)) from exc
-            result = run_export(
-                checkpoint,
-                state=state,
-                export_dir=args.export_dir,
-                strict=True,
-                timestamped_export=args.timestamped_export,
-                verification_problem=verification_problem,
-                effective_config_override=effective_config_from_verification_problem(verification_problem),
-                use_pipeline_metadata=False,
-                public_export_context=public_export_context,
-            )
+
+            from ..pipeline.export_lifecycle import PUBLISHED_STATUS, find_export_manifests
+
+            published_exports = [
+                record
+                for record in find_export_manifests(args.export_dir)
+                if record.get("lifecycle_status") == PUBLISHED_STATUS
+                and record.get("canonical_season") == args.season
+            ]
+            latest_published_export = published_exports[0] if published_exports else None
+            from ..pipeline.export_projection_guard import ExportProjectionError
+
+            try:
+                result = run_export(
+                    checkpoint,
+                    state=state,
+                    export_dir=args.export_dir,
+                    strict=True,
+                    timestamped_export=args.timestamped_export,
+                    verification_problem=verification_problem,
+                    effective_config_override=effective_config_from_verification_problem(verification_problem),
+                    use_pipeline_metadata=False,
+                    public_export_context=public_export_context,
+                    allow_placement_normalization=latest_published_export is None,
+                    canonical_schedule_plan=schedule.get("plan") if latest_published_export else None,
+                    published_export_guard=latest_published_export,
+                )
+            except ExportProjectionError as exc:
+                raise SeasonStateError(str(exc)) from exc
             result["canonical_season"] = args.season
             result["canonical_revision"] = schedule.get("revision")
             result["season_baseline"] = decisions.get("season_baseline") or None

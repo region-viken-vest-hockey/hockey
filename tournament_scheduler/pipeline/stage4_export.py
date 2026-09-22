@@ -37,6 +37,7 @@ from typing import Any
 from ..arena_conflicts import find_arena_interval_collisions
 from ..planning_contract import extract_candidate, verify_candidate
 from .export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
+from .export_projection_guard import assert_export_preserves_canonical_plan, tournament_projection
 from .fingerprints import stable_payload_sha256
 from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter
@@ -143,6 +144,9 @@ def run(
     use_pipeline_metadata: bool = True,
     public_export_context: dict[str, Any] | None = None,
     supersedes: dict[str, Any] | None = None,
+    allow_placement_normalization: bool = True,
+    canonical_schedule_plan: dict[str, Any] | None = None,
+    published_export_guard: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Export the Stage 3 plan to Excel, iCal, and CSV.
 
@@ -162,6 +166,13 @@ def run(
         Provenance back to the reviewed export this generation refines. It is
         recorded in the new export's lifecycle manifest and returned in the
         checkpoint; the caller owns marking the prior export superseded.
+    allow_placement_normalization:
+        Whether Stage 4 may demote fixed-conflict placements before export.
+        Published canonical-season exports pass ``False`` because they must be
+        schedule-preserving projections of canonical state.
+    canonical_schedule_plan:
+        When supplied, the proposed export projection is checked against this
+        canonical plan by stable tournament id before any artifacts are written.
 
     Returns
     -------
@@ -228,7 +239,7 @@ def run(
     # every export format. Operator-approved placements are confirmation and
     # are never demoted.
     normalization_report: dict[str, Any] = {}
-    if isinstance(plan_dict, dict) and plan_dict.get("tournaments"):
+    if allow_placement_normalization and isinstance(plan_dict, dict) and plan_dict.get("tournaments"):
         from ..placement_normalization import normalize_unplaced_placements
 
         plan_dict = copy.deepcopy(plan_dict)
@@ -237,6 +248,16 @@ def run(
             plan_dict,
             export_problem,
             approvals=_export_approvals(effective_config, plan_dict),
+        )
+
+    export_projection_guard: dict[str, Any] | None = None
+    if canonical_schedule_plan is not None:
+        export_projection_guard = assert_export_preserves_canonical_plan(
+            canonical_plan=canonical_schedule_plan,
+            proposed_plan=plan_dict,
+            season=(plan_checkpoint.get("canonical_state") or {}).get("season"),
+            canonical_revision=(plan_checkpoint.get("canonical_state") or {}).get("revision"),
+            published_export=published_export_guard,
         )
 
     try:
@@ -301,6 +322,8 @@ def run(
         except Exception as exc:  # noqa: BLE001 - export must not fail on this best-effort sync
             logger.warning("Could not persist the normalized planning checkpoint: %s", exc)
 
+    schedule_projection = tournament_projection(plan_dict)
+
     plan = season_plan_from_dict(plan_dict)
     export_path = Path(export_dir)
     export_path.mkdir(parents=True, exist_ok=True)
@@ -360,6 +383,7 @@ def run(
                 canonical_season=canonical_season,
                 canonical_revision=canonical_revision,
                 supersedes=supersedes,
+                schedule_projection=schedule_projection,
             )
             output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
             pruned_exports = _prune_old_exports(primary_export_path.parent)
@@ -380,6 +404,7 @@ def run(
             "export_lifecycle": lifecycle_manifest,
             "supersedes": supersedes,
             "pruned_exports": pruned_exports,
+            "export_projection_guard": export_projection_guard,
         }
         state.write_stage(StageName.EXPORT, checkpoint, status=StageStatus.DONE)
         _progress("Eksport ferdig")
@@ -875,6 +900,7 @@ def run(
                 canonical_season=canonical_season,
                 canonical_revision=canonical_revision,
                 supersedes=supersedes,
+                schedule_projection=schedule_projection,
             )
             output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
             pruned_exports = _prune_old_exports(primary_export_path.parent)
@@ -903,6 +929,7 @@ def run(
         "approval_status": approval_status,
         "export_lifecycle": lifecycle_manifest,
         "supersedes": supersedes,
+        "export_projection_guard": export_projection_guard,
     }
     if normalization_report:
         checkpoint["placement_normalization"] = normalization_report

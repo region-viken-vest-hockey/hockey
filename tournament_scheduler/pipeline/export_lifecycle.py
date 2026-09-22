@@ -52,6 +52,7 @@ def write_draft_manifest(
     canonical_season: str | None = None,
     canonical_revision: str | None = None,
     supersedes: Mapping[str, Any] | None = None,
+    schedule_projection: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Write the initial lifecycle marker for a generated export.
 
@@ -77,6 +78,11 @@ def write_draft_manifest(
         "pages_bundle_fingerprint": previous.get("pages_bundle_fingerprint"),
         "source_run_id": source_run_id,
         "supersedes": dict(supersedes) if supersedes else None,
+        "schedule_projection": (
+            dict(schedule_projection)
+            if schedule_projection is not None
+            else previous.get("schedule_projection")
+        ),
     }
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return payload

@@ -9,6 +9,9 @@ promotion refuses the reviewed handoff as a "different candidate".
 
 from __future__ import annotations
 
+import pytest
+
+from tournament_scheduler.pipeline.export_projection_guard import ExportProjectionError
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.stage4_export import run as run_export
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
@@ -122,6 +125,63 @@ def test_export_normalizes_fixed_conflict_and_remains_promotable(tmp_path):
     assert len(obligations) == 1
     assert obligations[0]["responsible_host"] == "A"
     assert obligations[0]["reason"] == "fixed_external_calendar_conflict"
+
+
+def test_published_canonical_export_preserves_conflicting_canonical_placement(tmp_path):
+    work_dir = tmp_path / ".pipeline"
+    state = PipelineState(work_dir)
+    RunManifest(work_dir).start_run("published canonical export", input_fingerprint={})
+    candidate = _candidate()
+    problem = _conflicting_problem(candidate)
+
+    state.write_stage(StageName.PLANNING, {"plan": candidate}, status=StageStatus.DONE)
+    result = run_export(
+        {"plan": candidate, "canonical_state": {"season": "2026-2027", "revision": "rev-2"}},
+        state,
+        export_dir=str(tmp_path / "export"),
+        timestamped_export=False,
+        verification_problem=problem,
+        effective_config_override=_config(),
+        allow_placement_normalization=False,
+        canonical_schedule_plan=candidate,
+        published_export_guard={
+            "export_id": "published-export",
+            "canonical_revision": "rev-1",
+            "lifecycle_status": "published",
+        },
+    )
+
+    assert result.get("placement_normalization") in (None, {})
+    assert result["export_projection_guard"]["summary"] == "export projection preserves canonical schedule"
+    assert result["reviewed_plan"]["tournaments"][0]["id"] == "u10-a-20260912"
+    assert [t["id"] for t in state.read_stage(StageName.PLANNING)["plan"]["tournaments"]] == [
+        "u10-a-20260912"
+    ]
+
+
+def test_export_guard_rejects_unexplained_canonical_tournament_removal(tmp_path):
+    work_dir = tmp_path / ".pipeline"
+    state = PipelineState(work_dir)
+    RunManifest(work_dir).start_run("published canonical export", input_fingerprint={})
+    candidate = _candidate()
+    problem = _conflicting_problem(candidate)
+
+    with pytest.raises(ExportProjectionError) as excinfo:
+        run_export(
+            {"plan": candidate, "canonical_state": {"season": "2026-2027", "revision": "rev-2"}},
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+            verification_problem=problem,
+            effective_config_override=_config(),
+            allow_placement_normalization=True,
+            canonical_schedule_plan=candidate,
+            published_export_guard={"export_id": "published-export", "lifecycle_status": "published"},
+        )
+
+    report = excinfo.value.report
+    assert report["canonical_delta"]["removed_tournament_ids"] == ["u10-a-20260912"]
+    assert "export never repairs" in report["summary"]
 
 
 def test_export_of_a_clean_plan_is_unchanged(tmp_path):
