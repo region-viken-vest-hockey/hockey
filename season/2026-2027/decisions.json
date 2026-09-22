@@ -57,7 +57,7 @@
       "type": "banned_date"
     }
   ],
-  "canonical_state_revision": "3fb080fe2f5653cccdcfef961894b1d49fc29b3f5cb68519477e205e902ac14b",
+  "canonical_state_revision": "774e01c4f824d7c11d34318ef4a0b710588d3503db51d0375c8de1e43d7480f6",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -2303,6 +2303,14 @@
       "placement_locked": false,
       "status": "pending_review"
     }
+  },
+  "export_state": {
+    "problem_fingerprint": "1e6c7400f5d674b50cfbb6104d21f9999b54674122bf45e7654cc69a44169137",
+    "requires_fresh_audit": true,
+    "requires_fresh_export": true,
+    "stale_at": "2026-09-22T09:04:38.936998+00:00",
+    "stale_reason": "config_reconciled",
+    "status": "stale"
   },
   "history": [
     {
@@ -193092,6 +193100,67 @@
       "schedule_fingerprint": "8f1c3161ea031acaa85ce2dd6c35c240569779159a44abc38ab4929974c429c2",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "pi",
+      "at": "2026-09-22T09:04:38.936998+00:00",
+      "details": {
+        "after_problem_fingerprint": "1e6c7400f5d674b50cfbb6104d21f9999b54674122bf45e7654cc69a44169137",
+        "before_problem_fingerprint": "7935fef4d353af0d5c51fde8fcee0ff0273d2755b94aaefaa5a33f388e8d6bce",
+        "semantic_migrations": [
+          {
+            "age_group_changes": {
+              "JU10": {
+                "migrated_value": 140,
+                "old_value": 115
+              },
+              "JU12": {
+                "migrated_value": 100,
+                "old_value": 85
+              },
+              "JU8": {
+                "migrated_value": 155,
+                "old_value": 130
+              },
+              "U10": {
+                "migrated_value": 140,
+                "old_value": 115
+              },
+              "U11": {
+                "migrated_value": 140,
+                "old_value": 115
+              },
+              "U12": {
+                "migrated_value": 100,
+                "old_value": 85
+              },
+              "U7": {
+                "migrated_value": 155,
+                "old_value": 130
+              },
+              "U8": {
+                "migrated_value": 155,
+                "old_value": 130
+              },
+              "U9": {
+                "migrated_value": 155,
+                "old_value": 130
+              }
+            },
+            "change_count": 180,
+            "field": "ice_time_minutes",
+            "requires_operator_count": 0,
+            "safe": true,
+            "semantic_migration": "preserve_pre_ice_time_contract_effective_occupancy"
+          }
+        ]
+      },
+      "event": "reconcile_config",
+      "note": "Migrate promoted ice-time semantics to preserve legacy effective occupancy",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "8f1c3161ea031acaa85ce2dd6c35c240569779159a44abc38ab4929974c429c2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -193132,5 +193201,5 @@
   "schedule_fingerprint": "8f1c3161ea031acaa85ce2dd6c35c240569779159a44abc38ab4929974c429c2",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-21T20:14:16.457038+00:00"
+  "updated_at": "2026-09-22T09:04:38.936998+00:00"
 }

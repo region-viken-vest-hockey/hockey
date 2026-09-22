@@ -1199,6 +1199,18 @@ def _canonical_verification_problem(
     """
     from datetime import date as _date
 
+    if season:
+        try:
+            from ..season_state import load_schedule
+
+            schedule = load_schedule(season, root=root or "season")
+            context = schedule.get("verification_context") if isinstance(schedule, dict) else None
+            problem = context.get("problem") if isinstance(context, dict) else None
+            if isinstance(problem, dict) and problem:
+                return dict(problem)
+        except Exception:
+            pass
+
     from ..pipeline.stage1_config import load_effective_config
     from ..pipeline.stage4_export_verification import _build_export_verification_problem
     from ..pipeline.state import PipelineState
@@ -2247,6 +2259,40 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     _console.print(f"  revision: {str(result.get('canonical_state_revision'))[:12]}")
                 if not result.get("verification_ok"):
                     _console.print("[yellow]New calendar conflicts/findings may require repair before export.[/yellow]")
+            return 0
+
+        if args.season_command == "reconcile-config":
+            from ..season_state import reconcile_config
+
+            result = reconcile_config(
+                season=args.season,
+                root=args.root,
+                input_path=args.input,
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                action = "Previewed" if result.get("dry_run") else "Reconciled"
+                marker = "[yellow]○[/yellow]" if result.get("dry_run") else "[green]✓[/green]"
+                migrations = result.get("semantic_migrations") or []
+                change_count = sum(len(item.get("changes") or []) for item in migrations)
+                _console.print(
+                    f"{marker} {action} config for {args.season}: "
+                    f"{change_count} tournament facts, verification_ok={result.get('verification_ok')}"
+                )
+                if result.get("canonical_state_revision"):
+                    _console.print(f"  revision: {str(result.get('canonical_state_revision'))[:12]}")
+                if result.get("refused"):
+                    _console.print("  [yellow]⚠[/yellow] refused: " + "; ".join(result.get("refusal_reasons") or []))
+                for migration in migrations:
+                    for age_group, change in (migration.get("age_group_changes") or {}).items():
+                        _console.print(
+                            f"  {age_group}: {change.get('old_value')} → {change.get('migrated_value')} "
+                            f"({migration.get('semantic_migration')})"
+                        )
             return 0
 
         if args.season_command == "findings":

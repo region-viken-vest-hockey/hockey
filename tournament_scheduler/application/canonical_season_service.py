@@ -51,6 +51,7 @@ from .canonical_season import (
     batch as _batch,
     calendars as _calendars,
     candidates as _candidates,
+    config_reconciliation as _config_reconciliation,
     constraints as _constraints,
     guest_slots as _guest_slots,
     lifecycle as _lifecycle,
@@ -125,6 +126,17 @@ class CanonicalSeasonService:
         allow_missing_sources: bool = False,
     ) -> dict[str, Any]:
         return _calendars.refresh_calendars(self, season=season, input_path=input_path, work_dir=work_dir, actor=actor, note=note, dry_run=dry_run, allow_missing_sources=allow_missing_sources)
+
+    def reconcile_config(
+        self,
+        *,
+        season: str,
+        input_path: str | os.PathLike[str] = "input.xlsx",
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _config_reconciliation.reconcile_config(self, season=season, input_path=input_path, actor=actor, note=note, dry_run=dry_run)
 
     def _assert_request_constraints_satisfied(
         self,

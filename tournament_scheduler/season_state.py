@@ -91,6 +91,7 @@ __all__ = [
     "planning_checkpoint_from_schedule",
     "promote_from_stage3",
     "record_participation_acceptance",
+    "reconcile_config",
     "refresh_calendars",
     "release_banned_dates",
     "release_change_protections",
@@ -330,6 +331,24 @@ def refresh_calendars(
         note=note,
         dry_run=dry_run,
         allow_missing_sources=allow_missing_sources,
+    )
+
+
+def reconcile_config(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    input_path: str | os.PathLike[str] = "input.xlsx",
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).reconcile_config(
+        season=season,
+        input_path=input_path,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
     )
 
 

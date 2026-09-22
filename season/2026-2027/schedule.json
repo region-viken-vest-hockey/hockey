@@ -40251,6 +40251,9 @@
   },
   "plan_schema_version": 1,
   "promoted_from": {
+    "export_stale": true,
+    "export_stale_at": "2026-09-22T09:04:38.936998+00:00",
+    "export_stale_reason": "config semantics reconciled",
     "public_export_context_fingerprint": "f5ac564e3b0f7eac33196110185cb082556676d5fe9f8bbd33ea0be77bbfc415",
     "run_id": "20260918T135604Z-8d38f146",
     "stage3_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
@@ -40265,9 +40268,67 @@
   "revision": "8f1c3161ea031acaa85ce2dd6c35c240569779159a44abc38ab4929974c429c2",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-21T09:01:47.320881+00:00",
+  "updated_at": "2026-09-22T09:04:38.936998+00:00",
   "verification_context": {
     "candidate_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
+    "config_reconciliation": {
+      "after_problem_fingerprint": "1e6c7400f5d674b50cfbb6104d21f9999b54674122bf45e7654cc69a44169137",
+      "before_problem_fingerprint": "7935fef4d353af0d5c51fde8fcee0ff0273d2755b94aaefaa5a33f388e8d6bce",
+      "dry_run": false,
+      "input_path": "input.xlsx",
+      "note": "Migrate promoted ice-time semantics to preserve legacy effective occupancy",
+      "reconciled_at": "2026-09-22T09:04:38.936998+00:00",
+      "reconciled_by": "pi",
+      "schema_version": 1,
+      "semantic_migrations": [
+        {
+          "age_group_changes": {
+            "JU10": {
+              "migrated_value": 140,
+              "old_value": 115
+            },
+            "JU12": {
+              "migrated_value": 100,
+              "old_value": 85
+            },
+            "JU8": {
+              "migrated_value": 155,
+              "old_value": 130
+            },
+            "U10": {
+              "migrated_value": 140,
+              "old_value": 115
+            },
+            "U11": {
+              "migrated_value": 140,
+              "old_value": 115
+            },
+            "U12": {
+              "migrated_value": 100,
+              "old_value": 85
+            },
+            "U7": {
+              "migrated_value": 155,
+              "old_value": 130
+            },
+            "U8": {
+              "migrated_value": 155,
+              "old_value": 130
+            },
+            "U9": {
+              "migrated_value": 155,
+              "old_value": 130
+            }
+          },
+          "change_count": 180,
+          "field": "ice_time_minutes",
+          "requires_operator_count": 0,
+          "safe": true,
+          "semantic_migration": "preserve_pre_ice_time_contract_effective_occupancy"
+        }
+      ]
+    },
+    "config_reconciliation_history": [],
     "problem": {
       "age_groups": [
         "U7",
@@ -112678,15 +112739,15 @@
       "date_preferences": [],
       "end_date": "2027-03-28",
       "ice_time_minutes": {
-        "JU10": 115,
-        "JU12": 85,
-        "JU8": 130,
-        "U10": 115,
-        "U11": 115,
-        "U12": 85,
-        "U7": 130,
-        "U8": 130,
-        "U9": 130
+        "JU10": 140,
+        "JU12": 100,
+        "JU8": 155,
+        "U10": 140,
+        "U11": 140,
+        "U12": 100,
+        "U7": 155,
+        "U8": 155,
+        "U9": 155
       },
       "manual_adjustments": {
         "banned_dates": [],
@@ -174333,7 +174394,7 @@
         }
       ]
     },
-    "problem_fingerprint": "7935fef4d353af0d5c51fde8fcee0ff0273d2755b94aaefaa5a33f388e8d6bce",
+    "problem_fingerprint": "1e6c7400f5d674b50cfbb6104d21f9999b54674122bf45e7654cc69a44169137",
     "run_id": "20260918T135604Z-8d38f146",
     "schema_version": 1,
     "verify_ok": true
