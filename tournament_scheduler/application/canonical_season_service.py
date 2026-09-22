@@ -22,12 +22,13 @@ scheduling rules (those are domain providers/verifier); it is the application
 layer that sequences them.
 """
 
+
 from __future__ import annotations
 
 import copy
 import os
 import tempfile
-from datetime import date as _date, datetime, timezone
+from datetime import date as _date, datetime
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -38,7 +39,6 @@ from tournament_scheduler.calendar_bookings import (
     find_event,
     iter_events,
     new_association_record,
-    project_associations_into_problem,
 )
 from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
 from tournament_scheduler.canonical_state import (
@@ -73,7 +73,6 @@ from tournament_scheduler.canonical_banned_dates import (
     active_banned_date_records,
     append_banned_dates,
     banned_date_report as build_banned_date_report,
-    project_banned_dates_into_problem,
     validate_and_normalize as normalize_banned_date,
 )
 from tournament_scheduler.canonical_holiday_exceptions import (
@@ -83,7 +82,6 @@ from tournament_scheduler.canonical_holiday_exceptions import (
     active_exception_records,
     append_exceptions as append_holiday_exceptions,
     exception_report as build_holiday_exception_report,
-    project_exceptions_into_problem,
     validate_and_normalize as normalize_holiday_exception,
 )
 from tournament_scheduler.request_constraints import (
@@ -129,21 +127,41 @@ from tournament_scheduler.participation_targets import OPERATOR_ACCEPTED
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
+from .canonical_season.shared import (
+    APPROVED_STATUS,
+    STALE_APPROVAL_STATUS,
+    PENDING_REVIEW_STATUS,
+    _operator_identity,
+    _now_iso,
+    _append_decision_history,
+    _reconcile_decisions,
+    _resolve_plan_problem,
+    _regenerate_tournament_games,
+    _guest_reservation_signature,
+    _placement_snapshot,
+    _parse_iso_date_for_move,
+    _validate_start_time_for_move,
+    _attributable_blockers,
+)
 
-# Statuses an approval lifecycle can be in. ``stale_approval`` means a
-# previously approved tournament changed without an explicit unapprove, so
-# the stored fingerprint no longer proves the current placement.
-APPROVED_STATUS = "approved"
-STALE_APPROVAL_STATUS = "stale_approval"
-PENDING_REVIEW_STATUS = "pending_review"
+
+_BATCH_MOVE_FIELDS: tuple[str, ...] = ("date", "arena", "host_club", "start_time")
 
 
-def _operator_identity(actor: str | None) -> str:
-    return actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator"
+_CALENDAR_PROBLEM_KEYS = (
+    "club_busy_dates",
+    "club_busy_intervals",
+    "club_calendar_status",
+    "unclassified_calendar_events",
+)
 
 
-def _now_iso() -> str:
-    return datetime.now(tz=timezone.utc).isoformat()
+__all__ = [
+    "APPROVED_STATUS",
+    "CanonicalSeasonService",
+    "PENDING_REVIEW_STATUS",
+    "STALE_APPROVAL_STATUS",
+]
 
 
 def _record_promotion_trace(
@@ -198,180 +216,6 @@ def _initial_decisions(plan_dict: dict[str, Any]) -> dict[str, Any]:
     return records
 
 
-def _append_decision_history(
-    decisions: dict[str, Any],
-    *,
-    event: str,
-    tournament_id: str,
-    actor: str | None,
-    now: str,
-    tournament_fingerprint: str | None = None,
-    previous_fingerprint: str | None = None,
-    note: str = "",
-    details: dict[str, Any] | None = None,
-) -> None:
-    """Append a durable approval-lifecycle audit entry to decisions.json."""
-
-    history = decisions.setdefault("history", [])
-    entry = {
-        "event": event,
-        "tournament_id": tournament_id,
-        "actor": _operator_identity(actor),
-        "at": now,
-        "tournament_fingerprint": tournament_fingerprint,
-        "previous_fingerprint": previous_fingerprint,
-        "schedule_fingerprint": decisions.get("schedule_fingerprint"),
-        "note": note or "",
-    }
-    if details:
-        entry["details"] = details
-    history.append(entry)
-
-
-def _reconcile_decisions(
-    existing: dict[str, Any],
-    plan_dict: dict[str, Any],
-    *,
-    now: str,
-) -> dict[str, Any]:
-    """Carry approval/lock state forward for surviving tournaments only.
-
-    A tournament whose identity survives keeps its record. A previously
-    approved tournament whose facts changed (possible only when it was approved
-    without a placement lock) becomes an explicit ``stale_approval`` with its
-    old fingerprint retained for audit. Removed tournaments drop their records;
-    new ids start at ``pending_review``.
-    """
-
-    reconciled: dict[str, Any] = {}
-    for tournament in plan_dict.get("tournaments", []) or []:
-        tournament_id = str(tournament.get("id") or "")
-        if not tournament_id:
-            continue
-        record = dict(existing.get(tournament_id) or {})
-        if not record:
-            record = {
-                "status": PENDING_REVIEW_STATUS,
-                "placement_locked": False,
-                "participants_locked": False,
-                "approved_fingerprint": None,
-                "approved_at": None,
-                "approved_by": None,
-                "note": "",
-            }
-        elif record.get("status") in (APPROVED_STATUS, STALE_APPROVAL_STATUS) or record.get(
-            "approved_fingerprint"
-        ):
-            approved_fingerprint = record.get("approved_fingerprint")
-            fingerprint_matches = bool(approved_fingerprint) and approved_fingerprint == approval_fingerprint(
-                tournament
-            )
-            if record.get("status") == STALE_APPROVAL_STATUS or not fingerprint_matches:
-                record = {
-                    "status": STALE_APPROVAL_STATUS,
-                    "placement_locked": False,
-                    "participants_locked": False,
-                    "approved_fingerprint": approved_fingerprint,
-                    "approved_at": record.get("approved_at"),
-                    "approved_by": record.get("approved_by"),
-                    "note": record.get("note") or "",
-                    "stale_at": record.get("stale_at") or now,
-                    "stale_reason": "approval invalidated by schedule change",
-                }
-        reconciled[tournament_id] = record
-    return reconciled
-
-
-def _placement_snapshot(tournament: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "date": tournament.get("date"),
-        "arena": tournament.get("arena"),
-        "host_club": tournament.get("host_club"),
-        "start_time": tournament.get("start_time"),
-    }
-
-
-def _parse_iso_date_for_move(value: str, field: str) -> _date:
-    try:
-        return _date.fromisoformat(str(value))
-    except (TypeError, ValueError) as exc:
-        raise SeasonStateError(f"Invalid {field}: {value!r}; expected YYYY-MM-DD") from exc
-
-
-def _validate_start_time_for_move(value: str | None) -> None:
-    if value is None:
-        return
-    try:
-        hour_s, minute_s = str(value).split(":", 1)
-        hour = int(hour_s)
-        minute = int(minute_s)
-    except (TypeError, ValueError) as exc:
-        raise SeasonStateError(f"Invalid start_time: {value!r}; expected HH:MM") from exc
-    if not (0 <= hour <= 23 and 0 <= minute <= 59):
-        raise SeasonStateError(f"Invalid start_time: {value!r}; expected HH:MM")
-
-
-def _attributable_blockers(
-    verification: dict[str, Any],
-    tournament_id: str,
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Split a verification result into this tournament's hard/unresolved blockers."""
-
-    hard: list[dict[str, Any]] = []
-    unresolved: list[dict[str, Any]] = []
-    for violation in verification.get("violations") or []:
-        owner = violation.get("tournament_id")
-        if owner is not None:
-            if str(owner) == tournament_id:
-                hard.append(violation)
-            continue
-        if tournament_id and tournament_id in str(violation.get("message") or ""):
-            hard.append(violation)
-    for placement in verification.get("manual_external_conflict_placements") or []:
-        if str(placement.get("tournament_id") or "") == tournament_id:
-            unresolved.append(
-                {
-                    "code": "manual_external_conflict_placements",
-                    "message": (
-                        f"Tournament {tournament_id} has a known external calendar conflict; "
-                        "resolve it before approving"
-                    ),
-                    "tournament_id": tournament_id,
-                }
-            )
-    return hard, unresolved
-
-
-def _resolve_plan_problem(
-    schedule: Mapping[str, Any],
-    problem: dict[str, Any] | None,
-    decisions: Mapping[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    """Return the verification problem for a canonical plan mutation.
-
-    Callers may pass it explicitly; otherwise the promoted verification
-    context is the durable owner of the normalized planning problem. Active
-    canonical operator banned dates are always projected into the problem's
-    existing ``manual_adjustments.banned_dates`` read path, so every
-    schedule-changing boundary and every repair/search consumer sees the same
-    authoritative ban set.
-    """
-
-    if isinstance(problem, Mapping):
-        resolved: dict[str, Any] | None = dict(problem)
-    else:
-        context = schedule.get("verification_context")
-        candidate_problem = context.get("problem") if isinstance(context, Mapping) else None
-        resolved = dict(candidate_problem) if isinstance(candidate_problem, Mapping) else None
-    if resolved is None:
-        return None
-    if decisions is not None:
-        resolved = project_exceptions_into_problem(resolved, decisions)
-        resolved = project_banned_dates_into_problem(resolved, decisions)
-        resolved = project_associations_into_problem(resolved, decisions)
-    return resolved
-
-
 def _configured_capacity(problem: Mapping[str, Any] | None, age_group: str) -> int | None:
     """Return the configured participant+guest place capacity for an age group."""
 
@@ -379,44 +223,6 @@ def _configured_capacity(problem: Mapping[str, Any] | None, age_group: str) -> i
     if isinstance(parallel, int) and parallel > 0:
         return parallel * 2
     return None
-
-
-def _regenerate_tournament_games(
-    tournament: dict[str, Any],
-    problem: Mapping[str, Any] | None,
-) -> None:
-    """Regenerate a canonical tournament's games from its current participants.
-
-    Guest participants are preserved as guests. While a guest place is still
-    open the generated games are explicitly provisional (a round-robin among
-    the known RVV teams); filling the place regenerates the complete schedule.
-    """
-
-    from tournament_scheduler.game_generation import generate_tournament_games
-    from tournament_scheduler.models import Team
-
-    age_group = str(tournament.get("age_group") or "")
-    teams = [
-        Team(
-            club=str(team.get("club") or ""),
-            label=str(team.get("label") or ""),
-            age_group=str(team.get("age_group") or age_group),
-            target_tournament_count=team.get("target_tournament_count"),
-            guest=bool(team.get("guest", False)),
-        )
-        for team in tournament.get("teams", [])
-    ]
-    parallel = int(((problem or {}).get("parallel_games") or {}).get(age_group, 1) or 1)
-    rounds = ((problem or {}).get("rounds_per_tournament") or {}).get(age_group)
-    tournament["games"] = [
-        {
-            "home": game.home.label,
-            "away": game.away.label,
-            "parallel_slot": game.parallel_slot,
-            "round_number": game.round_number,
-        }
-        for game in generate_tournament_games(teams, parallel, rounds)
-    ]
 
 
 def _apply_move_to_plan(
@@ -788,9 +594,6 @@ def _apply_cancel_to_plan(
     }
 
 
-_BATCH_MOVE_FIELDS: tuple[str, ...] = ("date", "arena", "host_club", "start_time")
-
-
 def _normalize_batch_operation(raw: Any) -> dict[str, Any]:
     """Validate and normalize one atomic-batch operation payload."""
 
@@ -927,32 +730,6 @@ def _affected_participation_counts(
     }
 
 
-def _guest_reservation_signature(plan: Mapping[str, Any]) -> dict[str, list[tuple[str, str]]]:
-    """Return ``{tournament_id: [(slot_id, status), ...]}`` for active reservations.
-
-    Used to reject a canonical replan/apply that would silently drop or
-    rewrite a reservation instead of going through reserve/fill/release.
-    """
-
-    signature: dict[str, list[tuple[str, str]]] = {}
-    for tournament in plan.get("tournaments", []) or []:
-        active = [
-            (str(record.get("id") or ""), str(record.get("status") or GUEST_SLOT_OPEN))
-            for record in active_guest_slots(tournament)
-        ]
-        if active:
-            signature[str(tournament.get("id") or "")] = active
-    return signature
-
-
-_CALENDAR_PROBLEM_KEYS = (
-    "club_busy_dates",
-    "club_busy_intervals",
-    "club_calendar_status",
-    "unclassified_calendar_events",
-)
-
-
 def _calendar_problem_payload(problem: Mapping[str, Any] | None) -> dict[str, Any]:
     return {key: copy.deepcopy((problem or {}).get(key)) for key in _CALENDAR_PROBLEM_KEYS}
 
@@ -984,9 +761,24 @@ def _calendar_source_summaries(scrape: Mapping[str, Any], *, fetched_at: str) ->
     return sorted(summaries, key=lambda item: (item["name"], item["type"], item["url"]))
 
 
+def _acceptance_record_id(record: Mapping[str, Any]) -> str:
+    """Return the canonical acceptance id, migrating a legacy record on read.
+
+    A legacy record omitted ``age_group`` from its id. Recomputing from the
+    stored fields lets revocation match it before any write migrates the file.
+    """
+
+    club = str(record.get("club") or "")
+    label = str(record.get("label") or "")
+    age_group = str(record.get("age_group") or "")
+    scope = str(record.get("scope") or "")
+    if club and label and age_group and scope:
+        return participation_acceptance_id(club, label, age_group, scope)
+    return str(record.get("id") or "")
+
+
 class CanonicalSeasonService:
     """Application-layer mutation service over a canonical-season store."""
-
     def __init__(
         self,
         store: CanonicalSeasonStore | None = None,
@@ -994,12 +786,8 @@ class CanonicalSeasonService:
         root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
     ) -> None:
         self.store = store or CanonicalSeasonStore(root)
-
-    # -- lifecycle ---------------------------------------------------------
-
     def load(self, season: str) -> CanonicalSeasonSnapshot:
         return self.store.load(season)
-
     def _commit(self, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool = False) -> CanonicalSeasonSnapshot:
         """Persist a snapshot under one fresh canonical-state revision.
 
@@ -1023,9 +811,6 @@ class CanonicalSeasonService:
         committed = snapshot.with_decisions(decisions)
         self.store.write(committed, require_absent=require_absent)
         return committed
-
-    # -- season quality baseline -----------------------------------------
-
     def season_baseline_show(self, season: str) -> dict[str, Any]:
         """Return the stored season-quality baseline and current comparison."""
 
@@ -1055,7 +840,6 @@ class CanonicalSeasonService:
             "hard_finding_count": len(hard_findings),
             "hard_findings": hard_findings,
         }
-
     def season_baseline_create(
         self,
         *,
@@ -1110,7 +894,6 @@ class CanonicalSeasonService:
             "created": True,
             "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
         }
-
     def season_baseline_advance(
         self,
         *,
@@ -1165,7 +948,6 @@ class CanonicalSeasonService:
             "advanced": True,
             "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
         }
-
     def refresh_calendars(
         self,
         *,
@@ -1357,7 +1139,6 @@ class CanonicalSeasonService:
         }
         result["export_state"] = decisions["export_state"]
         return result
-
     def _assert_request_constraints_satisfied(
         self,
         plan: Mapping[str, Any],
@@ -1381,9 +1162,6 @@ class CanonicalSeasonService:
         raise SeasonStateError(
             f"Refusing canonical {action}: it violates an active request constraint: {messages}"
         )
-
-    # -- request constraints ----------------------------------------------
-
     def request_constraint_report(
         self,
         season: str,
@@ -1413,7 +1191,6 @@ class CanonicalSeasonService:
             ),
             "constraints": constraints,
         }
-
     def add_request_constraint(
         self,
         *,
@@ -1533,7 +1310,6 @@ class CanonicalSeasonService:
                 committed.schedule, committed.decisions
             ),
         }
-
     def release_request_constraints(
         self,
         *,
@@ -1595,9 +1371,6 @@ class CanonicalSeasonService:
             "released_constraint_ids": released,
             "active_count": len(active_request_constraints(committed.decisions)),
         }
-
-    # -- holiday date exceptions -----------------------------------------
-
     def holiday_date_exception_report(
         self,
         season: str,
@@ -1624,7 +1397,6 @@ class CanonicalSeasonService:
             "active_count": len(active),
             "holiday_date_exceptions": entries,
         }
-
     def allow_holiday_date(
         self,
         *,
@@ -1724,7 +1496,6 @@ class CanonicalSeasonService:
             "holiday_date_exception": entry,
             "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
         }
-
     def disallow_holiday_dates(
         self,
         *,
@@ -1786,9 +1557,6 @@ class CanonicalSeasonService:
             "released_dates": sorted(set(released_dates)),
             "active_count": len(active_exception_records(committed.decisions)),
         }
-
-    # -- banned dates ------------------------------------------------------
-
     def banned_date_report(
         self,
         season: str,
@@ -1817,7 +1585,6 @@ class CanonicalSeasonService:
             ),
             "banned_dates": entries,
         }
-
     def add_banned_date(
         self,
         *,
@@ -1910,7 +1677,6 @@ class CanonicalSeasonService:
                 committed.schedule, committed.decisions
             ),
         }
-
     def release_banned_dates(
         self,
         *,
@@ -1982,9 +1748,6 @@ class CanonicalSeasonService:
             "released_dates": sorted(set(released_dates)),
             "active_count": len(active_banned_date_records(committed.decisions)),
         }
-
-    # -- promotion ---------------------------------------------------------
-
     def promote(
         self,
         *,
@@ -2085,9 +1848,6 @@ class CanonicalSeasonService:
             export_fingerprint=bound_context.get("export_fingerprint"),
         )
         return committed.schedule, committed.decisions
-
-    # -- schedule-changing mutations --------------------------------------
-
     def move_tournament(
         self,
         *,
@@ -2283,8 +2043,6 @@ class CanonicalSeasonService:
         )
         committed = self._commit(snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions))
         return committed.schedule
-
-
     def swap_participants(
         self,
         *,
@@ -2538,7 +2296,6 @@ class CanonicalSeasonService:
             "change_cost": applied_cost,
             "swap": details,
         }
-
     def replace_participant(
         self,
         *,
@@ -2815,9 +2572,6 @@ class CanonicalSeasonService:
             "change_cost": applied_cost,
             "replacement": details,
         }
-
-    # -- atomic scoped batch maintenance --------------------------------
-
     def batch_maintenance(
         self,
         *,
@@ -3243,7 +2997,6 @@ class CanonicalSeasonService:
             committed.schedule, committed.decisions
         )
         return report
-
     def apply_candidate(
         self,
         *,
@@ -3437,7 +3190,6 @@ class CanonicalSeasonService:
             snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
         )
         return committed.schedule, committed.decisions, cost
-
     def normalize_placements(
         self,
         *,
@@ -3539,9 +3291,6 @@ class CanonicalSeasonService:
             snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
         )
         return committed.schedule, committed.decisions
-
-    # -- arena identity ----------------------------------------------------
-
     def normalize_arena_identities(
         self,
         *,
@@ -3773,9 +3522,6 @@ class CanonicalSeasonService:
             snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
         )
         return committed.schedule, committed.decisions
-
-    # -- reserved guest slots ---------------------------------------------
-
     def guest_slot_report(self, season: str) -> dict[str, Any]:
         """Read-only lifecycle status of every reserved guest place."""
 
@@ -3806,7 +3552,6 @@ class CanonicalSeasonService:
             "filled_total": sum(int(entry["filled"]) for entry in tournaments),
             "tournaments": tournaments,
         }
-
     def guest_slot_candidates(
         self,
         *,
@@ -3923,7 +3668,6 @@ class CanonicalSeasonService:
             "candidates": ranked,
             "legal_candidates": [c for c in ranked if c["legal"]],
         }
-
     @staticmethod
     def _displaceable_team_options(tournament: Mapping[str, Any]) -> list[dict[str, Any]]:
         """RVV participants that a reservation may displace without breaking host representation."""
@@ -3945,7 +3689,6 @@ class CanonicalSeasonService:
                 }
             )
         return options
-
     def reserve_guest_slot(
         self,
         *,
@@ -4109,7 +3852,6 @@ class CanonicalSeasonService:
             snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
         )
         return committed.schedule
-
     def fill_guest_slot(
         self,
         *,
@@ -4217,7 +3959,6 @@ class CanonicalSeasonService:
             snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
         )
         return committed.schedule
-
     def release_guest_slot(
         self,
         *,
@@ -4356,10 +4097,6 @@ class CanonicalSeasonService:
             snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
         )
         return committed.schedule
-
-    # -- decision-only mutations ------------------------------------------
-
-
     def change_protection_report(
         self,
         season: str,
@@ -4392,7 +4129,6 @@ class CanonicalSeasonService:
             ),
             "protections": records,
         }
-
     def release_change_protections(
         self,
         *,
@@ -4457,7 +4193,6 @@ class CanonicalSeasonService:
             "released_protection_ids": released,
             "active_count": len(active_change_protections(committed.decisions)),
         }
-
     def calendar_booking_candidates(
         self,
         *,
@@ -4530,7 +4265,6 @@ class CanonicalSeasonService:
             "canonical_state_revision": canonical_state_revision(schedule, decisions),
             "booking_candidates": rows,
         }
-
     def calendar_booking_findings(self, *, season: str, problem: dict[str, Any] | None = None) -> dict[str, Any]:
         snapshot = self.load(season)
         resolved_problem = _resolve_plan_problem(snapshot.schedule, problem, snapshot.decisions)
@@ -4540,7 +4274,6 @@ class CanonicalSeasonService:
             decisions=snapshot.decisions,
         )
         return {"season": season, "findings": findings, "count": len(findings)}
-
     def confirm_calendar_booking(
         self,
         *,
@@ -4657,7 +4390,6 @@ class CanonicalSeasonService:
             "approved": committed.decisions.get("decisions", {}).get(tournament_id),
             "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
         }
-
     def approve_tournament(
         self,
         *,
@@ -4726,7 +4458,6 @@ class CanonicalSeasonService:
             note=note,
         )
         return self._commit(snapshot.with_decisions(updated)).decisions
-
     def unapprove_tournament(
         self,
         *,
@@ -4782,7 +4513,6 @@ class CanonicalSeasonService:
             note=note,
         )
         return self._commit(snapshot.with_decisions(updated)).decisions
-
     def load_participation_acceptances(self, season: str) -> list[dict[str, Any]]:
         """Return the active (non-revoked) operator participation acceptances."""
 
@@ -4795,7 +4525,6 @@ class CanonicalSeasonService:
             for record in records
             if isinstance(record, dict) and not record.get("revoked_at")
         ]
-
     def record_participation_acceptance(
         self,
         *,
@@ -4850,7 +4579,6 @@ class CanonicalSeasonService:
         updated = {**decisions, PARTICIPATION_ACCEPTANCES_KEY: kept, "updated_at": now}
         self._commit(snapshot.with_decisions(updated))
         return record
-
     def revoke_participation_acceptance(
         self,
         *,
@@ -4895,9 +4623,6 @@ class CanonicalSeasonService:
         updated = {**decisions, PARTICIPATION_ACCEPTANCES_KEY: updated_records, "updated_at": now}
         self._commit(snapshot.with_decisions(updated))
         return revoked
-
-    # -- read-only projections --------------------------------------------
-
     def approval_report(self, season: str) -> dict[str, Any]:
         """Read-only approval/lock status for every canonical tournament."""
 
@@ -4970,27 +4695,3 @@ class CanonicalSeasonService:
             "stale_approvals": stale_approvals,
             "orphaned_approvals": orphaned,
         }
-
-
-def _acceptance_record_id(record: Mapping[str, Any]) -> str:
-    """Return the canonical acceptance id, migrating a legacy record on read.
-
-    A legacy record omitted ``age_group`` from its id. Recomputing from the
-    stored fields lets revocation match it before any write migrates the file.
-    """
-
-    club = str(record.get("club") or "")
-    label = str(record.get("label") or "")
-    age_group = str(record.get("age_group") or "")
-    scope = str(record.get("scope") or "")
-    if club and label and age_group and scope:
-        return participation_acceptance_id(club, label, age_group, scope)
-    return str(record.get("id") or "")
-
-
-__all__ = [
-    "APPROVED_STATUS",
-    "CanonicalSeasonService",
-    "PENDING_REVIEW_STATUS",
-    "STALE_APPROVAL_STATUS",
-]
