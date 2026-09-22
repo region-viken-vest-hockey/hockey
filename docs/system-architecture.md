@@ -381,8 +381,14 @@ infrastructure-only `CanonicalSeasonStore`
 (`tournament_scheduler/infrastructure/canonical_season_store.py`) owns the two
 durable files and installs them together as one staged directory swap; the
 application `CanonicalSeasonService`
-(`tournament_scheduler/application/canonical_season_service.py`) owns the common
-load -> mutate -> verify -> reconcile -> history -> write sequence. Schedule
+(`tournament_scheduler/application/canonical_season_service.py`) is the stable
+public mutation boundary and a delegation facade. The common
+load -> mutate -> verify -> reconcile -> history -> write sequence is owned by
+`application/canonical_season/lifecycle.py`, the shared canonical
+invariants/readers by `application/canonical_season/shared.py`, and each command
+family by a focused module under `application/canonical_season/` (baseline,
+calendars, constraints, placements, normalization, roster, replacement, batch,
+candidates, guest_slots, approvals). Schedule
 mutations (`season move`, `season replan`/`apply`, promotion) and decision-only
 mutations (`approve`/`unapprove`, participation `accept`/`revoke`) share that
 boundary, so a rejected mutation leaves both files untouched and a decision-only
