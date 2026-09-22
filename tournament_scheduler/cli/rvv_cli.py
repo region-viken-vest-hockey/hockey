@@ -1307,6 +1307,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         release_request_constraints,
         request_constraint_report,
         reserve_guest_slot,
+        replace_participant,
         schedule_path,
         swap_participants,
         unapprove_tournament,
@@ -1677,6 +1678,34 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"[green]✓[/green] {action} {args.tournament_id} in {args.season}; "
                     f"revision {schedule.get('revision')}"
                 )
+            return 0
+
+
+        if args.season_command == "replace-participant":
+            result = replace_participant(
+                season=args.season,
+                tournament_id=args.tournament_id,
+                remove_team_label=args.remove_team,
+                add_team_label=args.add_team,
+                root=args.root,
+                problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
+                actor=args.actor,
+                note=args.note,
+                dry_run=bool(args.dry_run),
+                request_id=args.request_id,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                action = "Validated participant-replacement preview" if result["dry_run"] else "Replaced participant"
+                replacement = result["replacement"]
+                _console.print(
+                    f"[green]✓[/green] {action}: "
+                    f"{replacement['removed_team']['label']} -> {replacement['added_team']['label']} "
+                    f"({replacement['tournament_id']})"
+                )
+                revision = result.get("candidate_revision") if result["dry_run"] else result.get("revision")
+                _console.print(f"  revision: {revision}")
             return 0
 
 

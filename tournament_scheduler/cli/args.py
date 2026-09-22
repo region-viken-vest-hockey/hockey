@@ -1151,6 +1151,26 @@ def build_parser() -> argparse.ArgumentParser:
     season_move.add_argument("--json", action="store_true", help="Print updated schedule.json as JSON")
 
 
+    season_replace = season_sub.add_parser(
+        "replace-participant",
+        help="Replace one participant in one canonical tournament and verify the full season",
+    )
+    season_replace.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_replace.add_argument("--tournament-id", required=True, help="Durable tournament id")
+    season_replace.add_argument("--remove-team", required=True, help="Existing participant label to remove")
+    season_replace.add_argument("--add-team", required=True, help="Registered same-age participant label to add")
+    season_replace.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_replace.add_argument("--actor", default=None, help="Operator identity")
+    season_replace.add_argument("--note", default="", help="Replacement note/reason for decisions history")
+    season_replace.add_argument("--request-id", default=None, help="Stable source/request id recorded on automatic change protections")
+    season_replace.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and preview the replacement without writing canonical state",
+    )
+    season_replace.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
+    season_replace.add_argument("--json", action="store_true", help="Print replacement result as JSON")
+
     season_swap = season_sub.add_parser(
         "swap-participants",
         help="Swap one participant between two same-age canonical tournaments and verify the full season",

@@ -15,6 +15,7 @@ from tournament_scheduler.season_state import (
     load_decisions,
     load_schedule,
     move_tournament,
+    replace_participant,
     swap_participants,
     normalize_placements,
     planning_checkpoint_from_schedule,
@@ -384,6 +385,107 @@ def test_normalize_placements_is_a_noop_for_a_valid_plan(tmp_path: Path) -> None
 
     assert after["plan"]["tournaments"] == before["plan"]["tournaments"]
     assert (root / "2026-2027" / "schedule.json").read_bytes() == before_bytes
+
+
+def test_replace_participant_handles_frisk_asker_one_tournament_substitution(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+
+    def team(label: str, club: str | None = None) -> dict:
+        return {"club": club or label.split()[0], "label": label, "age_group": "U11"}
+
+    candidate = {
+        "schema_version": 1,
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "tournaments": [],
+    }
+    fixtures = [
+        ("kongsberg-20261018", "2026-10-18", "Kongsberg", ["Kongsberg 1", "Frisk Asker 4", "Jar 1", "Jutul 1"]),
+        ("jutul-20261114", "2026-11-14", "Jutul", ["Jutul 1", "Frisk Asker 4", "Jar 1", "Kongsberg 1"]),
+        ("fa4-extra-1", "2026-12-05", "Jar", ["Jar 1", "Frisk Asker 4", "Kongsberg 1", "Jutul 1"]),
+        ("fa4-extra-2", "2026-09-06", "Kongsberg", ["Kongsberg 1", "Frisk Asker 4", "Jar 1", "Jutul 1"]),
+        ("fa4-extra-3", "2026-10-04", "Jutul", ["Jutul 1", "Frisk Asker 4", "Jar 1", "Kongsberg 1"]),
+        ("fa4-extra-4", "2026-11-29", "Jar", ["Jar 1", "Frisk Asker 4", "Kongsberg 1", "Jutul 1"]),
+        ("fa3-current-1", "2026-09-20", "Jar", ["Jar 2", "Frisk Asker 3", "Holmen 1", "Ringerike 1"]),
+        ("fa3-current-2", "2026-12-13", "Jutul", ["Jutul 2", "Frisk Asker 3", "Ski 1", "Skien 1"]),
+    ]
+    for tid, tournament_date, host, labels in fixtures:
+        candidate["tournaments"].append(
+            {
+                "id": tid,
+                "date": tournament_date,
+                "arena": f"{host} Arena",
+                "age_group": "U11",
+                "host_club": host,
+                "teams": [team(label, "Frisk Asker" if label.startswith("Frisk") else label.split()[0]) for label in labels],
+                "games": [],
+                "start_time": "10:00",
+            }
+        )
+    _stage_plan(state, candidate)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    before_schedule = (root / "2026-2027" / "schedule.json").read_bytes()
+    before_decisions = (root / "2026-2027" / "decisions.json").read_bytes()
+    preview = replace_participant(
+        season="2026-2027",
+        tournament_id="kongsberg-20261018",
+        remove_team_label="Frisk Asker 4",
+        add_team_label="Frisk Asker 3",
+        root=root,
+        actor="tester",
+        request_id="frisk-before-christmas-u11",
+        dry_run=True,
+    )
+    assert preview["dry_run"] is True
+    assert preview["replacement"]["can_apply_unchanged"] is True
+    assert preview["replacement"]["verification_result"]["ok"] is True
+    assert set(preview["replacement"]["team_consequences"]) == {"removed_team", "added_team"}
+    counts = preview["replacement"]["participation_counts"]
+    assert counts["Frisk Asker:Frisk Asker 3:U11"]["before"]["before_christmas"] == 2
+    assert counts["Frisk Asker:Frisk Asker 3:U11"]["after"]["before_christmas"] == 3
+    assert counts["Frisk Asker:Frisk Asker 4:U11"]["before"]["before_christmas"] == 6
+    assert counts["Frisk Asker:Frisk Asker 4:U11"]["after"]["before_christmas"] == 5
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before_schedule
+    assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions
+
+    result = replace_participant(
+        season="2026-2027",
+        tournament_id="kongsberg-20261018",
+        remove_team_label="Frisk Asker 4",
+        add_team_label="Frisk Asker 3",
+        root=root,
+        actor="tester",
+        request_id="frisk-before-christmas-u11",
+        note="Frisk Asker asked to rebalance U11 siblings before Christmas",
+    )
+    assert result["dry_run"] is False
+    updated = load_schedule("2026-2027", root=root)
+    tournament = next(t for t in updated["plan"]["tournaments"] if t["id"] == "kongsberg-20261018")
+    labels = {team["label"] for team in tournament["teams"]}
+    assert "Frisk Asker 3" in labels
+    assert "Frisk Asker 4" not in labels
+    assert any(game["home"] == "Frisk Asker 3" or game["away"] == "Frisk Asker 3" for game in tournament["games"])
+    assert tournament["date"] == "2026-10-18"
+    assert tournament["host_club"] == "Kongsberg"
+    decisions = load_decisions("2026-2027", root=root)
+    events = [event for event in decisions.get("history", []) if event.get("event") == "participant_replacement"]
+    assert len(events) == 1
+    assert events[0]["details"]["request_id"] == "frisk-before-christmas-u11"
+    assert change_protection_report("2026-2027", root=root)["active_count"] == 2
+
+    before_reject = (root / "2026-2027" / "schedule.json").read_bytes()
+    with pytest.raises(SeasonStateError, match="already participates"):
+        replace_participant(
+            season="2026-2027",
+            tournament_id="kongsberg-20261018",
+            remove_team_label="Jar 1",
+            add_team_label="Frisk Asker 3",
+            root=root,
+        )
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before_reject
 
 
 def test_participant_swap_is_verified_atomic_and_dry_runnable(tmp_path: Path) -> None:

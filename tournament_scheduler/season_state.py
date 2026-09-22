@@ -85,6 +85,7 @@ __all__ = [
     "move_tournament",
     "normalize_arena_identities",
     "normalize_placements",
+    "replace_participant",
     "swap_participants",
     "participation_acceptance_id",
     "planning_checkpoint_from_schedule",
@@ -209,6 +210,34 @@ def move_tournament(
         request_id=request_id,
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
+    )
+
+
+def replace_participant(
+    *,
+    season: str,
+    tournament_id: str,
+    remove_team_label: str,
+    add_team_label: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+    request_id: str | None = None,
+) -> dict[str, Any]:
+    """Replace one participant in one same-age canonical tournament."""
+
+    return _service(root).replace_participant(
+        season=season,
+        tournament_id=tournament_id,
+        remove_team_label=remove_team_label,
+        add_team_label=add_team_label,
+        problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+        request_id=request_id,
     )
 
 

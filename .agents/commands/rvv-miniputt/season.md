@@ -50,11 +50,12 @@ Classify the requested outcome before choosing a command:
 - **global date unusable for every tournament** (ice hall closed, a holiday/weekend nobody can host or play) -> record a canonical **banned date** (`season ban-date`), not a per-team request constraint;
 - **semantic constraint, not an exact placement** (a team unavailable on a date/range, a minimum gap between a team's tournaments, an opponent to avoid within a date range) -> record a typed request constraint first (see **Record semantic request constraints** below), then search for any legal result satisfying all active constraints;
 - **specific date/arena/host/time change** -> use the targeted `season move --request-id <id>` flow below;
-- **specific participant/roster exchange** -> evaluate `season swap-participants --dry-run --request-id <id>`; an existing finding is not required;
+- **specific one-tournament participant substitution** ("replace team A with team B here") -> evaluate `season replace-participant --dry-run --request-id <id>`; an existing finding is not required;
+- **specific participant/roster exchange between two tournaments** -> evaluate `season swap-participants --dry-run --request-id <id>`; an existing finding is not required;
 - **general request to improve participation/placement** -> use current findings/repair-options/search first, then the smallest verified change;
 - **broader rebalance** -> only then escalate to baseline-aware `season replan` / `diff` / verified `apply`.
 
-For a participant swap, preview alternatives before applying. The repository reports before/after consequences for **both** affected teams (spacing, temporal coverage, opponent repetition/diversity and travel), and applying a materially regressive swap is refused. Do not optimize the requesting club by treating the displaced team as free capacity.
+For a participant replacement or swap, preview alternatives before applying. The repository reports before/after consequences for **all** affected teams (spacing, temporal coverage, opponent repetition/diversity and travel), and applying a materially regressive change is refused. Do not optimize the requesting club by treating the displaced team as free capacity.
 
 Accepted swaps and moves create granular protections in canonical `decisions.json`. A later candidate that would undo one is a conflict with prior accepted intent, not permission to discard it. When a protection blocks a candidate:
 
@@ -245,6 +246,22 @@ A move is refused by default when it would newly place the tournament inside the
 
 Reapprove only when the new placement is actually confirmed/booked.
 
+
+## Replace one tournament participant safely
+
+Use this for a one-tournament substitution: "replace team A with registered same-age team B in this tournament". It keeps the date, time, arena and host unchanged, regenerates games, and reports consequences for the outgoing and incoming teams.
+
+```bash
+scripts/rvv-miniputt season replace-participant \
+  --season <season> \
+  --tournament-id <id> \
+  --remove-team "<outgoing team>" \
+  --add-team "<incoming team>" \
+  --request-id <request-id> \
+  --dry-run --json
+```
+
+Do not invent a second tournament for a plain substitution. Use `swap-participants` only when the operator requested a two-tournament exchange.
 
 ## Swap tournament participants safely
 

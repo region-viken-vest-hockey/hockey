@@ -100,6 +100,50 @@ def build_swap_protections(
     return records
 
 
+def build_participant_replacement_protections(
+    *,
+    removed_team: Mapping[str, Any],
+    added_team: Mapping[str, Any],
+    tournament_id: str,
+    request_id: str,
+    actor: str,
+    note: str,
+    created_at: str,
+    source_revision: str,
+) -> list[dict[str, Any]]:
+    """Protect an accepted one-tournament participant substitution."""
+
+    records: list[dict[str, Any]] = []
+    for team, kind in (
+        (added_team, MUST_PARTICIPATE),
+        (removed_team, MUST_NOT_PARTICIPATE),
+    ):
+        record = {
+            "kind": kind,
+            "status": ACTIVE,
+            "team": {
+                "club": str(team.get("club") or ""),
+                "label": str(team.get("label") or ""),
+                "age_group": str(team.get("age_group") or ""),
+            },
+            "tournament_id": tournament_id,
+            "request_id": request_id,
+            "created_at": created_at,
+            "created_by": actor,
+            "note": note or "",
+            "source_event": "participant_replacement",
+        }
+        record["id"] = _protection_id(
+            kind=kind,
+            team=record["team"],
+            tournament_id=tournament_id,
+            request_id=request_id,
+            source_revision=source_revision,
+        )
+        records.append(record)
+    return records
+
+
 def build_move_protections(
     *,
     tournament_id: str,
@@ -241,6 +285,7 @@ __all__ = [
     "active_change_protections",
     "append_change_protections",
     "build_move_protections",
+    "build_participant_replacement_protections",
     "build_swap_protections",
     "protection_violations",
     "team_identity",
