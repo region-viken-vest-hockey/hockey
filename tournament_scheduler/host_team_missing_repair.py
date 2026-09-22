@@ -515,11 +515,22 @@ def _effective_size(problem, age_group):
 
 
 def _duration_minutes(tournament, problem):
+    """Return the authoritative occupancy minutes for *tournament*.
+
+    The promoted verification problem's ``ice_time_minutes`` is the current
+    canonical hall-occupancy contract. A persisted tournament/obligation
+    ``duration_minutes`` value may be legacy evidence and must not override the
+    current problem value when one is available.
+    """
+    age_group = tournament.get("age_group")
+    ice = (problem.get("ice_time_minutes") or {}).get(age_group)
+    if isinstance(ice, int) and ice > 0:
+        return ice
     value = tournament.get("duration_minutes")
     if isinstance(value, int) and value > 0:
         return value
-    ice = (problem.get("ice_time_minutes") or problem.get("round_length_minutes") or {}).get(tournament.get("age_group"))
-    return int(ice or 120)
+    fallback = (problem.get("round_length_minutes") or {}).get(age_group)
+    return int(fallback or 120)
 
 
 # Realistic generated miniputt start times. 16:00 is the latest generated

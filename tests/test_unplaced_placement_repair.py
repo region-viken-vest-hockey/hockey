@@ -232,6 +232,66 @@ def test_materialization_builds_verified_tournament_and_removes_obligation(tmp_p
     assert verify_candidate(persisted, problem_loaded)["ok"]
 
 
+def test_unplaced_option_end_time_uses_authoritative_ice_time_not_stale_obligation() -> None:
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams, start=date(2026, 10, 1), end=date(2026, 10, 31))
+    problem["ice_time_minutes"]["U10"] = 140
+    plan = _base_plan(
+        [],
+        _obligation(age_group="U10", day="2026-10-10", host="Sorby", roster=teams),
+        start="2026-10-01",
+        end="2026-10-31",
+    )
+    plan["unresolved_tournament_placements"][0]["required_duration_minutes"] = 115
+
+    result = enumerate_unplaced_placement_repairs(
+        plan,
+        problem,
+        finding_ids=["unplaced_placement:U10:2026-10-10:1"],
+        allow_search=False,
+    )
+
+    same_date = next(
+        option for option in result["options"] if option["arguments"]["start_time"] == "10:00"
+    )
+    assert same_date["evidence"]["end_time"] == "12:20"
+
+
+def test_stale_u10_obligation_duration_cannot_bypass_governing_current_window() -> None:
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(
+        teams,
+        start=date(2026, 10, 10),
+        end=date(2026, 10, 10),
+        busy={
+            "Sorby": [
+                {"date": "2026-10-10", "start": "12:00", "end": "12:10", "calendar_event": "Booked"}
+            ]
+        },
+    )
+    problem["ice_time_minutes"]["U10"] = 140
+    plan = _base_plan(
+        [],
+        _obligation(age_group="U10", day="2026-10-10", host="Sorby", roster=teams),
+        start="2026-10-10",
+        end="2026-10-10",
+    )
+    plan["unresolved_tournament_placements"][0]["required_duration_minutes"] = 115
+
+    result = enumerate_unplaced_placement_repairs(
+        plan,
+        problem,
+        finding_ids=["unplaced_placement:U10:2026-10-10:1"],
+        allow_search=False,
+    )
+
+    assert not any(option["arguments"]["start_time"] == "10:00" for option in result["options"])
+    rejection = next(
+        entry for entry in result["rejected_candidates"] if entry.get("start_time") == "10:00"
+    )
+    assert rejection["reason"] == "external_calendar_conflict"
+
+
 def test_materialization_option_is_bound_to_candidate_fingerprint(tmp_path: Path) -> None:
     teams = _teams(["Nordby", "Sorby"])
     problem = _problem(teams, start=date(2026, 10, 1), end=date(2026, 10, 31))

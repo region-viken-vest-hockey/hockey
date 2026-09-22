@@ -149,6 +149,72 @@ def _migration_record_summary(migration: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _positive_int(value: Any) -> int | None:
+    if isinstance(value, int) and value > 0:
+        return value
+    return None
+
+
+def _reconcile_unresolved_placement_durations(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Re-derive unresolved-obligation duration evidence from canonical ice time.
+
+    ``unresolved_tournament_placements`` may have been persisted before the
+    ice-time contract migration. Those duration fields are repair/search
+    evidence, not an authority independent of the verification problem, so
+    reconciliation rewrites them to the current ``ice_time_minutes`` value and
+    stores the previous values as explicitly non-authoritative legacy evidence.
+    """
+    reconciled = copy.deepcopy(plan)
+    obligations = reconciled.get("unresolved_tournament_placements")
+    if not isinstance(obligations, list):
+        return reconciled, {"field": "unresolved_tournament_placements.duration", "changes": []}
+
+    ice_time = problem.get("ice_time_minutes") or {}
+    changes: list[dict[str, Any]] = []
+    for entry in obligations:
+        if not isinstance(entry, dict):
+            continue
+        age_group = str(entry.get("age_group") or "")
+        authoritative = _positive_int(ice_time.get(age_group)) if isinstance(ice_time, Mapping) else None
+        if authoritative is None:
+            continue
+        old_required = entry.get("required_duration_minutes")
+        old_configured = entry.get("configured_ice_time_minutes")
+        if old_required == authoritative and old_configured == authoritative and entry.get("duration_authority") == "verification_context.ice_time_minutes":
+            continue
+        changes.append(
+            {
+                "obligation_id": str(entry.get("id") or ""),
+                "age_group": age_group,
+                "old_required_duration_minutes": old_required,
+                "old_configured_ice_time_minutes": old_configured,
+                "authoritative_duration_minutes": authoritative,
+                "authority": "verification_context.ice_time_minutes",
+            }
+        )
+        legacy = {
+            "required_duration_minutes": old_required,
+            "configured_ice_time_minutes": old_configured,
+            "non_authoritative_after_reconciliation": True,
+            "authority": "legacy_unresolved_tournament_placements",
+        }
+        entry["legacy_duration_evidence"] = legacy
+        entry["required_duration_minutes"] = authoritative
+        entry["configured_ice_time_minutes"] = authoritative
+        entry["duration_authority"] = "verification_context.ice_time_minutes"
+
+    return reconciled, {
+        "field": "unresolved_tournament_placements.duration",
+        "semantic_migration": "rederive_unresolved_placement_duration_from_verification_context",
+        "authority": "verification_context.ice_time_minutes",
+        "changes": sorted(changes, key=lambda item: (item["age_group"], item["obligation_id"])),
+        "change_count": len(changes),
+    }
+
+
 def reconcile_config(
     service,
     *,
@@ -185,6 +251,11 @@ def reconcile_config(
     migrated_problem["ice_time_minutes"] = migrated_ice
     after_problem_fingerprint = stable_payload_sha256(migrated_problem)
 
+    preview_plan, obligation_duration_reconciliation = _reconcile_unresolved_placement_durations(
+        plan, migrated_problem
+    )
+    after_schedule_fingerprint = schedule_fingerprint(preview_plan)
+
     preview_context = copy.deepcopy(context)
     preview_context["problem"] = migrated_problem
     preview_context["problem_fingerprint"] = after_problem_fingerprint
@@ -200,16 +271,26 @@ def reconcile_config(
         "before_problem_fingerprint": before_problem_fingerprint,
         "after_problem_fingerprint": after_problem_fingerprint,
         "semantic_migrations": persisted_migrations,
+        "unresolved_placement_duration_reconciliation": copy.deepcopy(
+            obligation_duration_reconciliation
+        ),
     }
     preview_context["config_reconciliation"] = reconciliation_record
     preview_schedule = copy.deepcopy(schedule)
     preview_schedule["verification_context"] = preview_context
     preview_schedule["updated_at"] = reconciliation_record["reconciled_at"]
+    preview_schedule["plan"] = preview_plan
+    if after_schedule_fingerprint != before_schedule_fingerprint:
+        preview_schedule["revision"] = after_schedule_fingerprint
+        preview_schedule["fingerprint"] = after_schedule_fingerprint
 
     resolved_problem = _resolve_plan_problem(preview_schedule, None, decisions)
-    verification = verify_candidate(plan, resolved_problem) if resolved_problem else verify_candidate(plan)
+    verification = verify_candidate(preview_plan, resolved_problem) if resolved_problem else verify_candidate(preview_plan)
     verification_ok = bool(verification.get("ok"))
-    changed = bool(age_group_changes) and before_problem_fingerprint != after_problem_fingerprint
+    changed = (
+        (bool(age_group_changes) and before_problem_fingerprint != after_problem_fingerprint)
+        or after_schedule_fingerprint != before_schedule_fingerprint
+    )
 
     result = {
         "season": season,
@@ -217,11 +298,13 @@ def reconcile_config(
         "changed": changed,
         "safe": safe,
         "schedule_fingerprint": before_schedule_fingerprint,
+        "after_schedule_fingerprint": after_schedule_fingerprint,
         "before_problem_fingerprint": before_problem_fingerprint,
         "after_problem_fingerprint": after_problem_fingerprint,
         "previous_canonical_state_revision": before_revision,
         "canonical_state_revision": before_revision,
         "semantic_migrations": [ice_reconciliation],
+        "unresolved_placement_duration_reconciliation": obligation_duration_reconciliation,
         "verification_ok": verification_ok,
         "verification_violations": list(verification.get("violations") or []),
         "manual_external_conflict_placements": list(verification.get("manual_external_conflict_placements") or []),
@@ -249,6 +332,8 @@ def reconcile_config(
     promoted_from["export_stale_at"] = reconciliation_record["reconciled_at"]
     schedule["promoted_from"] = promoted_from
     decisions["updated_at"] = reconciliation_record["reconciled_at"]
+    if after_schedule_fingerprint != before_schedule_fingerprint:
+        decisions["schedule_fingerprint"] = after_schedule_fingerprint
     decisions["export_state"] = {
         "status": "stale",
         "stale_reason": "config_reconciled",
@@ -268,6 +353,9 @@ def reconcile_config(
             "before_problem_fingerprint": before_problem_fingerprint,
             "after_problem_fingerprint": after_problem_fingerprint,
             "semantic_migrations": persisted_migrations,
+            "unresolved_placement_duration_reconciliation": copy.deepcopy(
+                obligation_duration_reconciliation
+            ),
         },
     )
     committed = service._commit(snapshot.with_schedule(schedule).with_decisions(decisions))

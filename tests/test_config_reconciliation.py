@@ -10,6 +10,7 @@ from tournament_scheduler.application.canonical_season.config_reconciliation imp
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
 from tournament_scheduler.cli.rvv_cli import _canonical_verification_problem
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
+from tournament_scheduler.season_maintenance import repair_options
 from tournament_scheduler.season_state import canonical_state_revision, load_decisions, load_schedule, schedule_fingerprint
 
 YEAR = "2026-2027"
@@ -143,6 +144,52 @@ def test_reconcile_config_apply_is_atomic_and_audited(tmp_path: Path) -> None:
     assert after_decisions["canonical_state_revision"] == report["canonical_state_revision"]
     assert after_decisions["decisions"] == before_decisions["decisions"]
     assert after_decisions["history"][-1]["event"] == "reconcile_config"
+
+
+def test_reconcile_config_rederives_legacy_unresolved_obligation_durations(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    obligation = {
+        "id": "unplaced_placement:U10:2026-12-19:1",
+        "age_group": "U10",
+        "date": "2026-12-19",
+        "responsible_host": "Jar",
+        "participant_teams": [_team("Jar", "Jar U10", "U10"), _team("Kongsberg", "Kongsberg U10", "U10")],
+        "required_duration_minutes": 115,
+        "configured_ice_time_minutes": 115,
+    }
+    plan = {
+        "schema_version": 1,
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "tournaments": [_tournament("u10", "U10", "2026-10-10", 5)],
+        "unresolved_tournament_placements": [obligation],
+    }
+    problem = _legacy_problem()
+    problem["age_groups"] = ["U10"]
+    problem["ice_time_minutes"] = {"U10": 115}
+    _write_season(root, plan, problem)
+
+    report = reconcile_config(
+        CanonicalSeasonService(root=root),
+        season=YEAR,
+        dry_run=False,
+        current_config={"ice_time_minutes": {"U10": 140}},
+    )
+
+    duration_report = report["unresolved_placement_duration_reconciliation"]
+    assert duration_report["changes"][0]["old_required_duration_minutes"] == 115
+    assert duration_report["changes"][0]["authoritative_duration_minutes"] == 140
+    persisted = load_schedule(YEAR, root=root)["plan"]["unresolved_tournament_placements"][0]
+    assert persisted["required_duration_minutes"] == 140
+    assert persisted["configured_ice_time_minutes"] == 140
+    assert persisted["duration_authority"] == "verification_context.ice_time_minutes"
+    assert persisted["legacy_duration_evidence"]["required_duration_minutes"] == 115
+    assert persisted["legacy_duration_evidence"]["non_authoritative_after_reconciliation"] is True
+
+    option_report = repair_options(
+        YEAR, "unplaced_placement:U10:2026-12-19:1", root=root
+    )
+    assert option_report["options"][0]["evidence"]["end_time"] == "12:20"
 
 
 def test_cli_maintenance_uses_reconciled_canonical_problem_instead_of_stale_pipeline(tmp_path: Path) -> None:
