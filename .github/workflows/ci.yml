@@ -16,9 +16,6 @@ on:
       - "pyproject.toml"
       - "requirements*.txt"
       - "requirements.lock"
-      - "package.json"
-      - "package-lock.json"
-      - "tsconfig.pi.json"
       - ".github/workflows/ci.yml"
   push:
     branches: [main]
@@ -36,9 +33,6 @@ on:
       - "pyproject.toml"
       - "requirements*.txt"
       - "requirements.lock"
-      - "package.json"
-      - "package-lock.json"
-      - "tsconfig.pi.json"
       - ".github/workflows/ci.yml"
   workflow_dispatch:
 
@@ -101,26 +95,6 @@ jobs:
 
       - name: Run ruff
         run: scripts/check lint
-
-  pi-typecheck:
-    name: Pi TypeScript typecheck
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Typecheck Pi extension
-        run: npm run check:pi
 
   quick:
     name: Python quick test suite

@@ -15,8 +15,6 @@ downloads/
 eggs/
 .eggs/
 lib/
-# .pi/lib/ holds the Pi extension's TypeScript source, not a Python build dir
-!.pi/lib/
 lib64/
 parts/
 sdist/
