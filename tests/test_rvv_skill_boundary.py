@@ -98,3 +98,13 @@ def test_repo_does_not_require_rvv_specific_pi_extension() -> None:
     assert not (ROOT / ".pi" / "lib" / "pipeline-runner.ts").exists()
     assert not (ROOT / ".pi" / "lib" / "operator-audit.ts").exists()
     assert not (ROOT / ".pi" / "lib" / "browser-recovery.ts").exists()
+
+    # The removed Pi extension left no TypeScript tooling behind: no tsconfig,
+    # no npm typecheck script, and no CI job that needs Node.
+    assert not (ROOT / "tsconfig.pi.json").exists()
+    package_json = ROOT / "package.json"
+    if package_json.exists():
+        assert "check:pi" not in package_json.read_text(encoding="utf-8")
+    ci_workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "pi-typecheck" not in ci_workflow
+    assert "check:pi" not in ci_workflow
