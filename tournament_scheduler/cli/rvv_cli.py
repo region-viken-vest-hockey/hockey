@@ -2186,6 +2186,40 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
             return 0
 
+        if args.season_command == "refresh-calendars":
+            from ..season_state import refresh_calendars
+
+            result = refresh_calendars(
+                season=args.season,
+                root=args.root,
+                input_path=args.input,
+                work_dir=args.work_dir,
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+                allow_missing_sources=args.allow_missing_sources,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                action = "Previewed" if result.get("dry_run") else "Refreshed"
+                marker = "[yellow]○[/yellow]" if result.get("dry_run") else "[green]✓[/green]"
+                _console.print(
+                    f"{marker} {action} calendar evidence for {args.season}: "
+                    f"{str(result.get('previous_calendar_fingerprint') or '')[:12]} → "
+                    f"{str(result.get('calendar_fingerprint') or '')[:12]}"
+                )
+                _console.print(
+                    f"  sources: {result.get('source_count', 0)}, "
+                    f"blocked: {len(result.get('blocked_sources') or [])}, "
+                    f"verification_ok: {result.get('verification_ok')}"
+                )
+                if result.get("canonical_state_revision"):
+                    _console.print(f"  revision: {str(result.get('canonical_state_revision'))[:12]}")
+                if not result.get("verification_ok"):
+                    _console.print("[yellow]New calendar conflicts/findings may require repair before export.[/yellow]")
+            return 0
+
         if args.season_command == "findings":
             from ..season_maintenance import list_findings
 

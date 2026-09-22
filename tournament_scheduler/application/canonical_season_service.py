@@ -26,7 +26,9 @@ from __future__ import annotations
 
 import copy
 import os
+import tempfile
 from datetime import date as _date, datetime, timezone
+from pathlib import Path
 from typing import Any, Mapping
 
 from tournament_scheduler.calendar_bookings import (
@@ -94,6 +96,7 @@ from tournament_scheduler.request_constraints import (
     request_constraint_violations,
     validate_and_normalize as normalize_request_constraint,
 )
+from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.guest_slots import (
     DEFAULT_GUEST_AGE_GROUPS,
     GUEST_SLOT_FILLED,
@@ -770,6 +773,45 @@ def _guest_reservation_signature(plan: Mapping[str, Any]) -> dict[str, list[tupl
     return signature
 
 
+_CALENDAR_PROBLEM_KEYS = (
+    "club_busy_dates",
+    "club_busy_intervals",
+    "club_calendar_status",
+    "unclassified_calendar_events",
+)
+
+
+def _calendar_problem_payload(problem: Mapping[str, Any] | None) -> dict[str, Any]:
+    return {key: copy.deepcopy((problem or {}).get(key)) for key in _CALENDAR_PROBLEM_KEYS}
+
+
+def _calendar_source_summaries(scrape: Mapping[str, Any], *, fetched_at: str) -> list[dict[str, Any]]:
+    summaries: list[dict[str, Any]] = []
+    for source in scrape.get("sources") or []:
+        if not isinstance(source, Mapping):
+            continue
+        payload = {
+            "name": source.get("name"),
+            "url": source.get("url"),
+            "type": source.get("type"),
+            "events": source.get("events") or [],
+            "blocked": bool(source.get("blocked")),
+            "event_count": int(source.get("event_count") or len(source.get("events") or [])),
+        }
+        summaries.append(
+            {
+                "name": str(source.get("name") or ""),
+                "type": str(source.get("type") or ""),
+                "url": str(source.get("url") or ""),
+                "event_count": payload["event_count"],
+                "blocked": payload["blocked"],
+                "fetched_at": str(source.get("scrape_timestamp") or fetched_at),
+                "fingerprint": stable_payload_sha256(payload),
+            }
+        )
+    return sorted(summaries, key=lambda item: (item["name"], item["type"], item["url"]))
+
+
 class CanonicalSeasonService:
     """Application-layer mutation service over a canonical-season store."""
 
@@ -951,6 +993,198 @@ class CanonicalSeasonService:
             "advanced": True,
             "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
         }
+
+    def refresh_calendars(
+        self,
+        *,
+        season: str,
+        input_path: str | os.PathLike[str] = "input.xlsx",
+        work_dir: str | os.PathLike[str] | None = None,
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+        allow_missing_sources: bool = False,
+    ) -> dict[str, Any]:
+        """Refresh promoted-season calendar evidence without changing the schedule.
+
+        The promoted plan/decision state remains the operational truth.  Only
+        the verification-context calendar facts are rebuilt from a fresh Stage 2
+        scrape, preserving the previous evidence fingerprint in history and
+        advancing the canonical-state revision on commit.
+        """
+
+        from tournament_scheduler.pipeline import stage1_config, stage2_scraping
+        from tournament_scheduler.pipeline.state import PipelineState
+        from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+        from tournament_scheduler.season_maintenance import list_findings
+
+        snapshot = self.load(season)
+        schedule = copy.deepcopy(snapshot.schedule)
+        decisions = copy.deepcopy(snapshot.decisions)
+        plan = copy.deepcopy(schedule.get("plan") or {})
+        context = copy.deepcopy(schedule.get("verification_context") or {})
+        problem = copy.deepcopy(context.get("problem") or {})
+        if not isinstance(problem, dict) or not problem:
+            raise SeasonStateError("Canonical season carries no verification-context problem to refresh")
+
+        start = _parse_iso_date_for_move(str(problem.get("start_date") or plan.get("start_date")), "start_date")
+        end = _parse_iso_date_for_move(str(problem.get("end_date") or plan.get("end_date")), "end_date")
+        before_calendar = _calendar_problem_payload(problem)
+        before_fingerprint = stable_payload_sha256(before_calendar)
+        before_schedule_fingerprint = schedule_fingerprint(plan)
+        fetched_at = _now_iso()
+
+        def _scrape_in(workspace: Path) -> dict[str, Any]:
+            state = PipelineState(workspace)
+            stage1_config.run(input_path, state, strict=True)
+            config = stage1_config.load_effective_config(state, input_path=input_path)
+            config["start_date"] = start.isoformat()
+            config["end_date"] = end.isoformat()
+            # Keep the promoted planning contract's non-source facts authoritative
+            # for problem reconstruction; the current workbook supplies sources.
+            for key in (
+                "teams",
+                "age_groups",
+                "parallel_games",
+                "rounds_per_tournament",
+                "round_length_minutes",
+                "ice_time_minutes",
+                "participation_targets_by_age_group",
+            ):
+                if key in problem:
+                    config[key] = copy.deepcopy(problem[key])
+            scrape = stage2_scraping.run(
+                config,
+                state,
+                datetime.combine(start, datetime.min.time()),
+                datetime.combine(end, datetime.min.time()),
+                strict=not allow_missing_sources,
+                allow_missing_sources=allow_missing_sources,
+                force_refresh=True,
+            )
+            rebuilt = build_planning_problem(
+                config,
+                scrape,
+                start,
+                end,
+                waivers=problem.get("operator_waivers") or [],
+                canonical_baseline=problem.get("canonical_baseline") if isinstance(problem.get("canonical_baseline"), dict) else None,
+            )
+            return {"scrape": scrape, "rebuilt_problem": rebuilt}
+
+        if work_dir is None:
+            with tempfile.TemporaryDirectory(prefix="rvv-calendar-refresh-") as tmp:
+                scrape_result = _scrape_in(Path(tmp))
+        else:
+            workspace = Path(work_dir)
+            workspace.mkdir(parents=True, exist_ok=True)
+            scrape_result = _scrape_in(workspace)
+
+        scrape = scrape_result["scrape"]
+        rebuilt_problem = scrape_result["rebuilt_problem"]
+        new_problem = copy.deepcopy(problem)
+        for key in _CALENDAR_PROBLEM_KEYS:
+            new_problem[key] = copy.deepcopy(rebuilt_problem.get(key))
+        after_calendar = _calendar_problem_payload(new_problem)
+        after_fingerprint = stable_payload_sha256(after_calendar)
+        source_summaries = _calendar_source_summaries(scrape, fetched_at=fetched_at)
+        evidence_record = {
+            "schema_version": 1,
+            "refreshed_at": fetched_at,
+            "refreshed_by": _operator_identity(actor),
+            "note": note or "",
+            "input_path": str(input_path),
+            "dry_run": bool(dry_run),
+            "previous_calendar_fingerprint": before_fingerprint,
+            "calendar_fingerprint": after_fingerprint,
+            "stage2_fingerprint": stable_payload_sha256(scrape),
+            "source_count": len(source_summaries),
+            "blocked_sources": list(scrape.get("blocked") or []),
+            "empty_sources": list(scrape.get("empty_sources") or []),
+            "sources": source_summaries,
+        }
+
+        preview_context = copy.deepcopy(context)
+        preview_context["problem"] = new_problem
+        preview_context["problem_fingerprint"] = stable_payload_sha256(new_problem)
+        preview_context.setdefault("calendar_evidence_history", [])
+        current_evidence = preview_context.get("calendar_evidence")
+        if isinstance(current_evidence, Mapping):
+            preview_context["calendar_evidence_history"].append(copy.deepcopy(current_evidence))
+        preview_context["calendar_evidence"] = evidence_record
+        preview_schedule = copy.deepcopy(schedule)
+        preview_schedule["verification_context"] = preview_context
+        preview_schedule["updated_at"] = fetched_at
+
+        resolved_problem = _resolve_plan_problem(preview_schedule, None, decisions)
+        verification = verify_candidate(plan, resolved_problem)
+        findings_before = list_findings(season, root=self.store.root)
+
+        result = {
+            "season": season,
+            "dry_run": bool(dry_run),
+            "changed": before_fingerprint != after_fingerprint,
+            "schedule_fingerprint": before_schedule_fingerprint,
+            "previous_calendar_fingerprint": before_fingerprint,
+            "calendar_fingerprint": after_fingerprint,
+            "source_count": len(source_summaries),
+            "blocked_sources": list(scrape.get("blocked") or []),
+            "empty_sources": list(scrape.get("empty_sources") or []),
+            "sources": source_summaries,
+            "verification_ok": bool(verification.get("ok")),
+            "verification_violations": list(verification.get("violations") or []),
+            "manual_external_conflict_placements": list(
+                verification.get("manual_external_conflict_placements") or []
+            ),
+        }
+        if dry_run:
+            result["canonical_state_revision"] = canonical_state_revision(schedule, decisions)
+            return result
+
+        schedule = preview_schedule
+        promoted_from = dict(schedule.get("promoted_from") or {})
+        promoted_from["export_stale"] = True
+        promoted_from["export_stale_reason"] = "calendar evidence refreshed"
+        promoted_from["export_stale_at"] = fetched_at
+        schedule["promoted_from"] = promoted_from
+        decisions["updated_at"] = fetched_at
+        decisions["export_state"] = {
+            "status": "stale",
+            "stale_reason": "calendar_evidence_refreshed",
+            "stale_at": fetched_at,
+            "requires_fresh_export": True,
+            "requires_fresh_audit": True,
+            "calendar_fingerprint": after_fingerprint,
+        }
+        _append_decision_history(
+            decisions,
+            event="refresh_calendar_evidence",
+            tournament_id="",
+            actor=actor,
+            now=fetched_at,
+            note=note,
+            details={
+                "previous_calendar_fingerprint": before_fingerprint,
+                "calendar_fingerprint": after_fingerprint,
+                "stage2_fingerprint": evidence_record["stage2_fingerprint"],
+                "source_count": len(source_summaries),
+                "blocked_sources": list(scrape.get("blocked") or []),
+            },
+        )
+        committed = self._commit(snapshot.with_schedule(schedule).with_decisions(decisions))
+        findings_after = list_findings(season, root=self.store.root)
+        result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
+        result["previous_canonical_state_revision"] = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+        result["findings_before"] = {
+            "finding_count": findings_before.get("finding_count"),
+            "baseline_comparison": findings_before.get("baseline_comparison"),
+        }
+        result["findings_after"] = {
+            "finding_count": findings_after.get("finding_count"),
+            "baseline_comparison": findings_after.get("baseline_comparison"),
+        }
+        result["export_state"] = decisions["export_state"]
+        return result
 
     def _assert_request_constraints_satisfied(
         self,

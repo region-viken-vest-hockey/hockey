@@ -90,6 +90,7 @@ __all__ = [
     "planning_checkpoint_from_schedule",
     "promote_from_stage3",
     "record_participation_acceptance",
+    "refresh_calendars",
     "release_banned_dates",
     "release_change_protections",
     "disallow_holiday_dates",
@@ -279,6 +280,28 @@ def season_baseline_advance(
     note: str = "",
 ) -> dict[str, Any]:
     return _service(root).season_baseline_advance(season=season, actor=actor, note=note)
+
+
+def refresh_calendars(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    input_path: str | os.PathLike[str] = "input.xlsx",
+    work_dir: str | os.PathLike[str] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+    allow_missing_sources: bool = False,
+) -> dict[str, Any]:
+    return _service(root).refresh_calendars(
+        season=season,
+        input_path=input_path,
+        work_dir=work_dir,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+        allow_missing_sources=allow_missing_sources,
+    )
 
 
 def batch_maintenance(

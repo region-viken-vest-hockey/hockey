@@ -1537,6 +1537,24 @@ def build_parser() -> argparse.ArgumentParser:
     season_replan.add_argument("--json", action="store_true", help="Print the replan result as JSON")
     _add_operational_opt_in_flags(season_replan)
 
+    season_refresh = season_sub.add_parser(
+        "refresh-calendars",
+        help="Refresh promoted-season calendar evidence from a fresh Stage 2 scrape without moving tournaments",
+    )
+    season_refresh.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_refresh.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_refresh.add_argument("--input", default="input.xlsx", help="Canonical input workbook with configured sources")
+    season_refresh.add_argument("--work-dir", default=None, help="Optional work directory for the scrape checkpoint/cache")
+    season_refresh.add_argument("--actor", default=None, help="Operator identity for provenance")
+    season_refresh.add_argument("--note", default="", help="Refresh note for decisions history")
+    season_refresh.add_argument("--dry-run", action="store_true", help="Preview the evidence refresh without writing canonical state")
+    season_refresh.add_argument(
+        "--allow-missing-sources",
+        action="store_true",
+        help="Record partial evidence even if some sources are blocked (default: fail safely)",
+    )
+    season_refresh.add_argument("--json", action="store_true", help="Print refresh result as JSON")
+
     season_findings = season_sub.add_parser(
         "findings",
         help="List fresh, revision-bound actionable findings over canonical season state",
