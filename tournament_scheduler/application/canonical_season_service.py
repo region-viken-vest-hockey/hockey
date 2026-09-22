@@ -59,6 +59,7 @@ from .canonical_season import (
     placements as _placements,
     replacement as _replacement,
     roster as _roster,
+    team_rename as _team_rename,
 )
 from .canonical_season.shared import (
     APPROVED_STATUS,
@@ -318,6 +319,20 @@ class CanonicalSeasonService:
         allow_host_confirmation: bool = False,
     ) -> dict[str, Any]:
         return _batch.batch_maintenance(self, season=season, operations=operations, scope=scope, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation)
+
+    def rename_teams(
+        self,
+        *,
+        season: str,
+        mappings: list[Mapping[str, Any]],
+        problem: dict[str, Any] | None = None,
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+        request_id: str | None = None,
+        input_path: str | None = None,
+    ) -> dict[str, Any]:
+        return _team_rename.rename_teams(self, season=season, mappings=mappings, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, input_path=input_path)
 
     def apply_candidate(
         self,

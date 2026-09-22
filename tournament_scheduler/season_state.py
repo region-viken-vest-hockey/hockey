@@ -86,6 +86,7 @@ __all__ = [
     "normalize_arena_identities",
     "normalize_placements",
     "replace_participant",
+    "rename_teams",
     "swap_participants",
     "participation_acceptance_id",
     "planning_checkpoint_from_schedule",
@@ -269,6 +270,32 @@ def swap_participants(
         note=note,
         dry_run=dry_run,
         request_id=request_id,
+    )
+
+
+def rename_teams(
+    *,
+    season: str,
+    mappings: list[dict[str, Any]],
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+    request_id: str | None = None,
+    input_path: str | None = None,
+) -> dict[str, Any]:
+    """Rename canonical team identities without replanning the season."""
+
+    return _service(root).rename_teams(
+        season=season,
+        mappings=mappings,
+        problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+        request_id=request_id,
+        input_path=input_path,
     )
 
 

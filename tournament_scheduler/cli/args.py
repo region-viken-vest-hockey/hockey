@@ -1192,6 +1192,35 @@ def build_parser() -> argparse.ArgumentParser:
     season_swap.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_swap.add_argument("--json", action="store_true", help="Print swap result as JSON")
 
+    season_rename = season_sub.add_parser(
+        "rename-team",
+        help="Rename one or more canonical team identities without replanning",
+    )
+    season_rename.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_rename.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_rename.add_argument("--club", action="append", default=None, help="Club for a rename mapping (repeatable with --age-group/--from/--to)")
+    season_rename.add_argument("--age-group", action="append", default=None, help="Age group for a rename mapping")
+    season_rename.add_argument("--from", dest="from_label", action="append", default=None, help="Existing team label")
+    season_rename.add_argument("--to", dest="to_label", action="append", default=None, help="New team label")
+    season_rename.add_argument(
+        "--mapping",
+        action="append",
+        default=None,
+        help="Mapping as club,age_group,from_label,to_label (repeatable); alternative to the repeated flags",
+    )
+    season_rename.add_argument("--actor", default=None, help="Operator identity")
+    season_rename.add_argument("--note", default="", help="Rename note/reason for decisions history")
+    season_rename.add_argument("--request-id", required=True, help="Stable request id recorded in history")
+    season_rename.add_argument("--input", default="input.xlsx", help="Controlled input workbook to update on apply")
+    season_rename.add_argument(
+        "--no-input-update",
+        action="store_true",
+        help="Do not update the controlled input workbook (for tests or non-workbook snapshots)",
+    )
+    season_rename.add_argument("--dry-run", action="store_true", help="Validate and preview the rename without writing")
+    season_rename.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
+    season_rename.add_argument("--json", action="store_true", help="Print rename result as JSON")
+
 
     season_batch = season_sub.add_parser(
         "batch",

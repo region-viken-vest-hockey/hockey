@@ -50,6 +50,7 @@ Classify the requested outcome before choosing a command:
 - **global date unusable for every tournament** (ice hall closed, a holiday/weekend nobody can host or play) -> record a canonical **banned date** (`season ban-date`), not a per-team request constraint;
 - **semantic constraint, not an exact placement** (a team unavailable on a date/range, a minimum gap between a team's tournaments, an opponent to avoid within a date range) -> record a typed request constraint first (see **Record semantic request constraints** below), then search for any legal result satisfying all active constraints;
 - **specific date/arena/host/time change** -> use the targeted `season move --request-id <id>` flow below;
+- **pure team-name/identity-label correction across the canonical season** (same club, same age group, same underlying team) -> evaluate `season rename-team --dry-run --request-id <id>` and apply it atomically; do not use registration-set reconciliation, `replace-participant`, or a replan;
 - **specific one-tournament participant substitution** ("replace team A with team B here") -> evaluate `season replace-participant --dry-run --request-id <id>`; an existing finding is not required;
 - **specific participant/roster exchange between two tournaments** -> evaluate `season swap-participants --dry-run --request-id <id>`; an existing finding is not required;
 - **general request to improve participation/placement** -> use current findings/repair-options/search first, then the smallest verified change;

@@ -1320,6 +1320,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         request_constraint_report,
         reserve_guest_slot,
         replace_participant,
+        rename_teams,
         schedule_path,
         swap_participants,
         unapprove_tournament,
@@ -1718,6 +1719,58 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
                 revision = result.get("candidate_revision") if result["dry_run"] else result.get("revision")
                 _console.print(f"  revision: {revision}")
+            return 0
+
+
+        if args.season_command == "rename-team":
+            mappings = []
+            for item in args.mapping or []:
+                parts = [part.strip() for part in str(item).split(",", 3)]
+                if len(parts) != 4 or not all(parts):
+                    raise SeasonStateError(
+                        "Invalid --mapping value; expected club,age_group,from_label,to_label"
+                    )
+                mappings.append(
+                    {"club": parts[0], "age_group": parts[1], "from_label": parts[2], "to_label": parts[3]}
+                )
+            repeated = [args.club or [], args.age_group or [], args.from_label or [], args.to_label or []]
+            if any(repeated):
+                lengths = {len(values) for values in repeated}
+                if len(lengths) != 1:
+                    raise SeasonStateError(
+                        "--club, --age-group, --from and --to must be provided the same number of times"
+                    )
+                mappings.extend(
+                    {"club": club, "age_group": age_group, "from_label": from_label, "to_label": to_label}
+                    for club, age_group, from_label, to_label in zip(
+                        args.club or [], args.age_group or [], args.from_label or [], args.to_label or []
+                    )
+                )
+            result = rename_teams(
+                season=args.season,
+                mappings=mappings,
+                root=args.root,
+                problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
+                actor=args.actor,
+                note=args.note,
+                dry_run=bool(args.dry_run),
+                request_id=args.request_id,
+                input_path=None if args.no_input_update else args.input,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                action = "Validated team-rename preview" if result["dry_run"] else "Renamed team identities"
+                revision = result.get("candidate_revision") if result["dry_run"] else result.get("revision")
+                _console.print(
+                    f"[green]✓[/green] {action}: {result['renamed_team_identities']} team(s); revision {revision}"
+                )
+                for mapping in result.get("mappings") or []:
+                    source = mapping["from"]
+                    target = mapping["to"]
+                    _console.print(
+                        f"  {source['club']} {source['age_group']}: {source['label']} -> {target['label']}"
+                    )
             return 0
 
 

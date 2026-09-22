@@ -16,6 +16,7 @@ from tournament_scheduler.season_state import (
     load_schedule,
     move_tournament,
     replace_participant,
+    rename_teams,
     swap_participants,
     normalize_placements,
     planning_checkpoint_from_schedule,
@@ -385,6 +386,112 @@ def test_normalize_placements_is_a_noop_for_a_valid_plan(tmp_path: Path) -> None
 
     assert after["plan"]["tournaments"] == before["plan"]["tournaments"]
     assert (root / "2026-2027" / "schedule.json").read_bytes() == before_bytes
+
+
+def test_rename_teams_migrates_identity_without_changing_placements_or_locks(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    _stage_plan(state)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    approve_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        actor="booker",
+        note="ice booked",
+        participants_locked=True,
+    )
+
+    decisions_path = root / "2026-2027" / "decisions.json"
+    decisions = json.loads(decisions_path.read_text(encoding="utf-8"))
+    decisions["request_constraints"] = [
+        {
+            "id": "request:test",
+            "type": "team_unavailable",
+            "status": "active",
+            "request_id": "rename-test",
+            "teams": [{"club": "A", "label": "A1", "age_group": "U10"}],
+            "date_from": "2026-12-24",
+            "date_to": "2026-12-24",
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "created_by": "tester",
+        }
+    ]
+    decisions["change_protections"] = [
+        {
+            "id": "change:test",
+            "kind": "must_participate",
+            "status": "active",
+            "team": {"club": "A", "label": "A1", "age_group": "U10"},
+            "tournament_id": "u10-a-20260912",
+            "request_id": "rename-test",
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "created_by": "tester",
+        }
+    ]
+    decisions_path.write_text(json.dumps(decisions, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    preview = rename_teams(
+        season="2026-2027",
+        root=root,
+        mappings=[{"club": "A", "age_group": "U10", "from_label": "A1", "to_label": "A Yellow"}],
+        request_id="team-colours",
+        dry_run=True,
+    )
+    assert preview["dry_run"] is True
+    assert preview["renamed_team_identities"] == 1
+    assert preview["placement_neutrality"]["tournaments_added"] == []
+    assert preview["placement_neutrality"]["tournaments_removed"] == []
+    assert preview["placement_neutrality"]["placement_changed_ids"] == []
+    assert preview["placement_neutrality"]["participant_assignments_changed_except_rename"] is False
+
+    result = rename_teams(
+        season="2026-2027",
+        root=root,
+        mappings=[{"club": "A", "age_group": "U10", "from_label": "A1", "to_label": "A Yellow"}],
+        request_id="team-colours",
+        actor="tester",
+    )
+    assert result["dry_run"] is False
+    schedule = load_schedule("2026-2027", root=root)
+    tournament = schedule["plan"]["tournaments"][0]
+    assert tournament["date"] == "2026-09-12"
+    assert tournament["arena"] == "Arena A"
+    assert tournament["host_club"] == "A"
+    assert tournament["teams"][0] == {"club": "A", "label": "A Yellow", "age_group": "U10"}
+    assert tournament["games"][0]["home"] == "A Yellow"
+    assert {team["label"] for team in schedule["verification_context"]["problem"]["teams"]} >= {"A Yellow", "B1"}
+
+    decisions = load_decisions("2026-2027", root=root)
+    assert decisions["decisions"]["u10-a-20260912"]["status"] == "approved"
+    assert decisions["decisions"]["u10-a-20260912"]["participants_locked"] is True
+    assert decisions["request_constraints"][0]["teams"][0]["label"] == "A Yellow"
+    assert decisions["change_protections"][0]["team"]["label"] == "A Yellow"
+
+
+def test_rename_teams_refuses_colliding_target_identity(tmp_path: Path) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    candidate = _candidate()
+    candidate["tournaments"][0]["teams"][3] = {"club": "A", "label": "A2", "age_group": "U10"}
+    for game in candidate["tournaments"][0]["games"]:
+        if game["home"] == "D1":
+            game["home"] = "A2"
+        if game["away"] == "D1":
+            game["away"] = "A2"
+    _stage_plan(state, candidate)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    with pytest.raises(SeasonStateError, match="target identity already exists"):
+        rename_teams(
+            season="2026-2027",
+            root=root,
+            mappings=[{"club": "A", "age_group": "U10", "from_label": "A1", "to_label": "A2"}],
+            request_id="bad-rename",
+            dry_run=True,
+        )
 
 
 def test_replace_participant_handles_frisk_asker_one_tournament_substitution(tmp_path: Path) -> None:
