@@ -20,6 +20,18 @@ leaves both canonical files untouched.
 This module holds no persistence mechanics (that is the store) and no
 scheduling rules (those are domain providers/verifier); it is the application
 layer that sequences them.
+
+``CanonicalSeasonService`` is a stable facade. The use-case implementations
+live in the cohesive modules under :mod:`tournament_scheduler.application.canonical_season`
+(``baseline``, ``calendars``, ``constraints``, ``placements``, ``normalization``,
+``roster``, ``replacement``, ``batch``, ``candidates``, ``guest_slots``,
+``approvals``), while the one shared load -> verify -> reconcile -> history ->
+revision -> atomic-write lifecycle is owned by
+:mod:`tournament_scheduler.application.canonical_season.lifecycle` and the
+shared invariants/readers by
+:mod:`tournament_scheduler.application.canonical_season.shared`. Every public
+method here delegates to exactly one implementation; callers never need to
+know which internal module implements a command.
 """
 
 
