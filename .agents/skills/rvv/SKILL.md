@@ -11,6 +11,19 @@ Use repository code for facts, hard constraints, validation, search/solver mecha
 
 Read `AGENTS.md` first for repository-wide precedence and hygiene rules.
 
+## Canonical-season implementation navigation
+
+`CanonicalSeasonService` is the stable public application boundary for promoted-season mutations; it is **not** a requirement that every canonical-season use case live in one source file. Preserve one public mutation boundary, one persistence owner (`CanonicalSeasonStore`), and the shared load -> mutate -> verify -> reconcile -> history -> revision -> atomic-write invariants, while preferring cohesive internal modules when implementation size/coupling warrants extraction.
+
+When investigating or changing canonical-season behavior, keep agent context local:
+- start from the exact CLI/application entry point and affected `CanonicalSeasonService` method, then follow only the helpers/domain modules it actually calls;
+- use symbol/code search and targeted line/range reads rather than loading a large canonical-season implementation wholesale;
+- for a localized concern (for example roster swaps, guest slots, approvals, calendar evidence, constraints or baselines), read that concern plus the shared lifecycle/invariants; do not pull unrelated command families into context by default;
+- keep `season_state.py` a thin compatibility facade and do not create a second mutation implementation there or in an adapter;
+- when extracting implementation, prefer explicit composition/delegation over mixin inheritance, and keep existing public service signatures stable unless a deliberate compatibility change is part of the task.
+
+This locality rule is about agent comprehension as well as code structure: a single architectural owner may delegate to several focused implementation modules without weakening the canonical boundary.
+
 ## Operating lifecycle
 
 There are two operating phases.
