@@ -18,6 +18,7 @@ from tournament_scheduler.calendar_bookings import (
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
     association_findings,
     booking_status_report as _booking_status_report,
+    event_covers_tournament_interval,
     event_fingerprint,
     find_event,
     iter_events,
@@ -517,18 +518,8 @@ def confirm_calendar_booking(
         diagnostics.append("host_mismatch")
     if str(event.get("date") or "") != str(tournament.get("date") or ""):
         diagnostics.append("date_mismatch")
-    else:
-        ice = (base_problem or {}).get("ice_time_minutes") or {}
-        duration = int((ice.get(str(tournament.get("age_group") or "")) or 0) or 0)
-        try:
-            t_h, t_m = (int(p) for p in str(tournament.get("start_time") or "").split(":", 1))
-            s_h, s_m = (int(p) for p in str(event.get("start") or "").split(":", 1))
-            e_h, e_m = (int(p) for p in str(event.get("end") or "").split(":", 1))
-            t_start = t_h * 60 + t_m
-            if duration <= 0 or not (t_start < e_h * 60 + e_m and s_h * 60 + s_m < t_start + duration):
-                diagnostics.append("interval_mismatch")
-        except ValueError:
-            diagnostics.append("interval_mismatch")
+    elif not event_covers_tournament_interval(event, tournament, base_problem):
+        diagnostics.append("interval_mismatch")
     if diagnostics:
         raise SeasonStateError("Calendar booking is not compatible with tournament: " + ", ".join(diagnostics))
 
@@ -551,6 +542,7 @@ def confirm_calendar_booking(
         actor=resolved_actor,
         note=note,
         source_revision=canonical_state_revision(schedule, decisions),
+        problem=base_problem,
     )
     updated = dict(decisions)
     records = [

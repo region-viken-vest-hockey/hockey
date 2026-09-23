@@ -8,7 +8,7 @@ every other tournament.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
@@ -101,11 +101,84 @@ def _tournaments_by_id(plan: Mapping[str, Any] | None) -> dict[str, Mapping[str,
     }
 
 
+def _parse_hhmm(value: Any) -> int | None:
+    try:
+        hour, minute = (int(part) for part in str(value or "").split(":", 1))
+    except (TypeError, ValueError):
+        return None
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+    return hour * 60 + minute
+
+
+def _format_hhmm(minutes: int) -> str:
+    value = datetime(2000, 1, 1) + timedelta(minutes=minutes)
+    return value.strftime("%H:%M")
+
+
+def _game_round_count(tournament: Mapping[str, Any]) -> int:
+    rounds: list[int] = []
+    for game in tournament.get("games") or []:
+        if isinstance(game, Mapping):
+            try:
+                rounds.append(int(game.get("round_number") or 0))
+            except (TypeError, ValueError):
+                pass
+    return max(rounds, default=0)
+
+
+def tournament_occupancy_interval_facts(
+    tournament: Mapping[str, Any],
+    problem: Mapping[str, Any] | None,
+) -> dict[str, str]:
+    """Return the canonical occupied interval facts for one tournament."""
+
+    age_group = str(tournament.get("age_group") or "")
+    start_time = str(tournament.get("start_time") or "")
+    duration = 0
+    ice_time = (problem or {}).get("ice_time_minutes") or {}
+    if isinstance(ice_time, Mapping):
+        try:
+            duration = int((ice_time.get(age_group) or 0) or 0)
+        except (TypeError, ValueError):
+            duration = 0
+    start_minutes = _parse_hhmm(start_time)
+    end_time = _format_hhmm(start_minutes + duration) if start_minutes is not None and duration > 0 else ""
+    return {
+        "date": str(tournament.get("date") or ""),
+        "start_time": start_time,
+        "duration_minutes": str(duration),
+        "end_time": end_time,
+        "age_group": age_group,
+        "round_count": str(_game_round_count(tournament)),
+    }
+
+
+def event_covers_tournament_interval(
+    event: Mapping[str, Any],
+    tournament: Mapping[str, Any],
+    problem: Mapping[str, Any] | None,
+) -> bool:
+    """Return whether the scraped event covers the canonical occupied interval."""
+
+    interval = tournament_occupancy_interval_facts(tournament, problem)
+    if str(event.get("date") or "") != interval["date"]:
+        return False
+    event_start = _parse_hhmm(event.get("start"))
+    event_end = _parse_hhmm(event.get("end"))
+    tournament_start = _parse_hhmm(interval["start_time"])
+    tournament_end = _parse_hhmm(interval["end_time"])
+    if None in (event_start, event_end, tournament_start, tournament_end):
+        return False
+    return event_start <= tournament_start and tournament_end <= event_end
+
+
 def _association_stale_reasons(
     record: Mapping[str, Any],
     *,
     events: Mapping[str, Mapping[str, Any]],
     tournaments: Mapping[str, Mapping[str, Any]],
+    problem: Mapping[str, Any] | None = None,
 ) -> list[str]:
     tid = str(record.get("tournament_id") or "")
     event_fp = str(record.get("event_fingerprint") or "")
@@ -138,6 +211,14 @@ def _association_stale_reasons(
         ):
             if str(record.get(key) or "") != str(event.get(event_key) or ""):
                 reasons.append(f"event_{key}_changed")
+    if tournament is not None:
+        stored_interval = record.get("tournament_interval") or {}
+        current_interval = tournament_occupancy_interval_facts(tournament, problem)
+        for key in ("date", "start_time", "duration_minutes", "end_time"):
+            if key in stored_interval and str(stored_interval.get(key) or "") != current_interval[key]:
+                reasons.append(f"tournament_{key}_changed")
+        if event is not None and not event_covers_tournament_interval(event, tournament, problem):
+            reasons.append("event_does_not_cover_tournament_interval")
     return sorted(set(reasons))
 
 
@@ -155,7 +236,7 @@ def valid_active_associations(
         event_fp = str(record.get("event_fingerprint") or "")
         if not event_fp or event_fp in seen_events:
             continue
-        if not _association_stale_reasons(record, events=events, tournaments=tournaments):
+        if not _association_stale_reasons(record, events=events, tournaments=tournaments, problem=problem):
             valid.append(record)
             seen_events.add(event_fp)
     return valid
@@ -168,8 +249,9 @@ def project_associations_into_problem(
 ) -> dict[str, Any] | None:
     """Attach currently-valid booking associations to a copied verification problem.
 
-    When the current plan is supplied, stale associations fail closed: they are
-    left visible through findings but are not projected into verifier evidence.
+    Associations are projected only when the current plan is supplied, so their
+    tournament facts and occupied interval can be revalidated. Stale evidence
+    remains visible through findings but is not projected into verifier evidence.
     """
 
     if problem is None:
@@ -178,7 +260,7 @@ def project_associations_into_problem(
     projected[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = (
         valid_active_associations(decisions, problem=projected, plan=plan)
         if plan is not None
-        else active_associations(decisions)
+        else []
     )
     return projected
 
@@ -213,6 +295,7 @@ def new_association_record(
     actor: str,
     note: str,
     source_revision: str,
+    problem: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     now = datetime.now(tz=timezone.utc).isoformat()
     tournament_id = str(tournament.get("id") or "")
@@ -229,6 +312,7 @@ def new_association_record(
         "title": str(event.get("calendar_event") or event.get("title") or ""),
         "availability": str(event.get("availability") or ""),
         "tournament_facts": tournament_booking_facts(tournament),
+        "tournament_interval": tournament_occupancy_interval_facts(tournament, problem),
         "source_revision": source_revision,
         "note": note or "",
         "created_at": now,
@@ -381,7 +465,7 @@ def association_findings(
     for record in active:
         tid = str(record.get("tournament_id") or "")
         event_fp = str(record.get("event_fingerprint") or "")
-        reasons = _association_stale_reasons(record, events=events, tournaments=tournaments)
+        reasons = _association_stale_reasons(record, events=events, tournaments=tournaments, problem=problem)
         if reasons:
             findings.append(
                 {

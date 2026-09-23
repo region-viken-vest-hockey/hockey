@@ -975,7 +975,7 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
         meaning=(
             "A host's calendar interval is classified fixed_busy (hard external conflict), "
             "movable_busy (host-controlled, requires host confirmation) or unclassified. The "
-            "classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament."
+            "classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval."
         ),
         canonical_owner="tournament_scheduler.calendar_availability / tournament_scheduler.calendar_bookings",
         input_source="configured/stage-2 calendar intervals + decisions.json calendar_booking_associations",
