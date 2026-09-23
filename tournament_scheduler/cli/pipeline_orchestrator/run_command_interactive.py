@@ -462,6 +462,11 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
     start = datetime.strptime(cfg["start_date"], "%Y-%m-%d")
     end = datetime.strptime(cfg["end_date"], "%Y-%m-%d")
 
+    from .new_run_guard import guard_sealed_season_run
+
+    if guard_sealed_season_run(cfg, start.date(), end.date()):
+        return 1
+
     scraping, abort, _stage2_failed = _run_stage2(args, cfg, state, start, end, strict, _log, resume_from)
     if abort:
         return 1

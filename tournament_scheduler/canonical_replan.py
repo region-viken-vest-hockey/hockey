@@ -58,6 +58,11 @@ def replan_around_baseline(
     """
     schedule = load_schedule(season, root=root)
     decisions = load_decisions(season, root=root)
+    from tournament_scheduler.published_baseline import (
+        assert_season_allows_global_regeneration,
+    )
+
+    assert_season_allows_global_regeneration(decisions, operation="season replan")
     baseline = build_canonical_baseline(schedule, decisions)
     baseline_candidate = dict(schedule.get("plan") or {})
 

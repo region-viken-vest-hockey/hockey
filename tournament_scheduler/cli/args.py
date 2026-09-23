@@ -1038,6 +1038,54 @@ def build_parser() -> argparse.ArgumentParser:
     season_status.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_status.add_argument("--json", action="store_true", help="Print canonical state metadata as JSON")
 
+    season_lifecycle = season_sub.add_parser(
+        "lifecycle",
+        help="Show the published/planning lifecycle state and published-baseline reconciliation",
+    )
+    season_lifecycle.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_lifecycle.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_lifecycle.add_argument("--json", action="store_true", help="Print the lifecycle report as JSON")
+
+    season_seal = season_sub.add_parser(
+        "seal-published",
+        help=(
+            "Backfill/seal an already published season from its authoritative "
+            "publication history so it can no longer be globally regenerated"
+        ),
+    )
+    season_seal.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_seal.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_seal.add_argument("--actor", default=None, help="Operator identity")
+    season_seal.add_argument("--note", default="", help="Audit note")
+    season_seal.add_argument(
+        "--attest-materialization",
+        dest="attest_materializations",
+        action="append",
+        default=[],
+        metavar="TOURNAMENT_ID=PROVENANCE",
+        help=(
+            "Attest a tournament that was created after publication, with durable "
+            "provenance evidence (repeatable). Only needed for legacy migration; "
+            "an unattested added tournament fails closed"
+        ),
+    )
+    season_seal.add_argument("--json", action="store_true", help="Print the seal report as JSON")
+
+    season_reopen = season_sub.add_parser(
+        "reopen-planning",
+        help="Emergency, operator-only escape hatch from published_sealed back to planning",
+    )
+    season_reopen.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_reopen.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_reopen.add_argument("--reason", required=True, help="Operator reason for breaking the published baseline")
+    season_reopen.add_argument(
+        "--confirm-break-published-baseline",
+        action="store_true",
+        help="Required acknowledgement that this removes the sealed-season protection",
+    )
+    season_reopen.add_argument("--actor", default=None, help="Operator identity")
+    season_reopen.add_argument("--json", action="store_true", help="Print the reopen report as JSON")
+
     season_normalize = season_sub.add_parser(
         "normalize-placements",
         help=(

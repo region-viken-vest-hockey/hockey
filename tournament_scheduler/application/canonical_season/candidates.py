@@ -29,6 +29,7 @@ from tournament_scheduler.operational_acceptability import (
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
+from tournament_scheduler.published_baseline import assert_season_allows_global_regeneration
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
 from .shared import (
@@ -132,6 +133,14 @@ def promote(
     plan_dict = dict(reviewed_plan) if isinstance(reviewed_plan, dict) else dict(candidate)
     plan_dict["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
     resolved_season = season or season_id_from_plan(plan_dict)
+    # Promotion replaces the whole canonical season. A sealed published season
+    # may only be replaced after an explicit ``season reopen-planning``; even
+    # ``--force`` must not silently bypass the published operational baseline.
+    if service.store.decisions_path(resolved_season).exists():
+        existing = service.load(resolved_season)
+        assert_season_allows_global_regeneration(
+            existing.decisions, operation="season promote"
+        )
     if (
         service.store.schedule_path(resolved_season).exists()
         or service.store.decisions_path(resolved_season).exists()
@@ -207,13 +216,14 @@ def apply_candidate(
     _new_change_protections: list[dict[str, Any]] | None = None,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
+    operation: str = "global_regeneration",
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     """Apply a verified replan candidate to canonical season state.
 
-    Hard verification is necessary but not sufficient: the candidate must
-    also not newly introduce fixed-busy/manual placement work or a
-    host-confirmation dependency relative to the current canonical plan,
-    unless the operator explicitly opted in for a provisional placement.
+    ``operation`` names the origin of the candidate. The fail-closed default is
+    ``global_regeneration``: a published_sealed season refuses any caller that
+    does not explicitly identify itself as a narrow, validated canonical
+    maintenance mutation (``targeted_mutation`` / ``targeted_repair``).
     """
 
     from tournament_scheduler.canonical_baseline import (
@@ -224,6 +234,7 @@ def apply_candidate(
 
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
+    assert_season_allows_global_regeneration(decisions, operation=operation)
     baseline = build_canonical_baseline(schedule, decisions)
     normalized_candidate = extract_candidate(candidate)
 

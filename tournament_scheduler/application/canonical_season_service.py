@@ -55,8 +55,10 @@ from .canonical_season import (
     constraints as _constraints,
     guest_slots as _guest_slots,
     lifecycle as _lifecycle,
+    lifecycle_status as _lifecycle_status,
     normalization as _normalization,
     placements as _placements,
+    publication as _publication,
     replacement as _replacement,
     roster as _roster,
     team_rename as _team_rename,
@@ -347,8 +349,40 @@ class CanonicalSeasonService:
         _new_change_protections: list[dict[str, Any]] | None = None,
         allow_manual_placement: bool = False,
         allow_host_confirmation: bool = False,
+        operation: str = "global_regeneration",
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation)
+        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation)
+
+    def season_lifecycle_report(self, season: str) -> dict[str, Any]:
+        return _lifecycle_status.season_lifecycle_report(self, season=season)
+
+    def verify_sealed_reconciliation(self, season: str) -> dict[str, Any]:
+        return _lifecycle_status.verify_sealed_reconciliation(self, season=season)
+
+    def seal_published_season(
+        self,
+        *,
+        season: str,
+        publication_id: str,
+        canonical_revision: str,
+        published_at: str,
+        published_projection: Mapping[str, Mapping[str, Any]],
+        publication_canonical_projection: Mapping[str, Mapping[str, Any]] | None = None,
+        materializations: list[Mapping[str, Any]] | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        return _publication.seal_published_season(self, season=season, publication_id=publication_id, canonical_revision=canonical_revision, published_at=published_at, published_projection=published_projection, publication_canonical_projection=publication_canonical_projection, materializations=materializations or [], actor=actor, note=note)
+
+    def reopen_planning(
+        self,
+        *,
+        season: str,
+        reason: str,
+        confirm_break_published_baseline: bool = False,
+        actor: str | None = None,
+    ) -> dict[str, Any]:
+        return _lifecycle_status.reopen_planning(self, season=season, reason=reason, confirm_break_published_baseline=confirm_break_published_baseline, actor=actor)
 
     def normalize_placements(
         self,

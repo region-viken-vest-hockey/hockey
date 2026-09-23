@@ -49,9 +49,10 @@ Use `.agents/commands/rvv-miniputt/guide.md` as the routing guide and then load 
 - **add/remove a registered team or change the season team set** -> change the authoritative controlled registration/input through its supported path, then reconcile/replan around the canonical baseline while preserving booked commitments. If no supported canonical/operator path exists, surface that capability gap rather than editing schedule JSON.
 - **reserve/fill/release guest places** -> `season.md` guest capabilities; use repository-generated guest candidates for policy-level placement choices.
 - **repair unresolved placement/participation/hosting findings** -> `season.md`; findings -> repair-options -> bounded search as needed -> verified revision-bound apply.
-- **broader replan** -> `season.md`; keep approvals hard-preserved, generate a candidate, inspect diff/change cost, and apply only through the verified boundary.
+- **broader replan** -> `season.md`; keep approvals hard-preserved, generate a candidate, inspect diff/change cost, and apply only through the verified boundary. On a `published_sealed` season broad replan is refused; use targeted canonical maintenance instead, or a deliberate operator-authorised `season reopen-planning` for a genuine full restructuring.
 - **calendar/source recovery** -> `calendars.md`, `scrape.md`, and/or `scrape-llm.md` as appropriate, then return to the canonical pipeline.
 - **inspect status/evidence/logs** -> `status.md`, `logs.md`, and repository-owned evidence commands as appropriate.
+- **inspect/seal the published season lifecycle** -> `season.md`; a published season is maintenance-only (`published_sealed`); migrate/backfill a legacy published season with `season seal-published` before treating it as sealed.
 - **export/audit** -> `season.md` plus the semantic audit contract in the RVV skill.
 - **publish/rollback** -> `publish.md`, only after the exact current canonical export has a current semantic audit and the operator explicitly requested the public action.
 

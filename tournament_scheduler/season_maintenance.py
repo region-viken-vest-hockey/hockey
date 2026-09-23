@@ -590,6 +590,7 @@ def apply_repair(
         actor=actor,
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
+        operation="targeted_repair",
     )
     new_revision = canonical_state_revision(updated_schedule, updated_decisions)
     fresh_verification = verify_candidate(dict(updated_schedule.get("plan") or {}), problem)

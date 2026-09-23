@@ -88,6 +88,7 @@ __all__ = [
     "move_tournament",
     "normalize_arena_identities",
     "normalize_placements",
+    "reopen_planning",
     "replace_participant",
     "rename_teams",
     "swap_participants",
@@ -105,6 +106,9 @@ __all__ = [
     "request_constraint_report",
     "reserve_guest_slot",
     "revoke_participation_acceptance",
+    "seal_published_season",
+    "season_lifecycle_report",
+    "verify_sealed_reconciliation",
     "schedule_fingerprint",
     "schedule_path",
     "season_baseline_advance",
@@ -756,8 +760,14 @@ def apply_candidate(
     allow_guest_slot_changes: bool = False,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
+    operation: str = "global_regeneration",
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-    """Apply a verified replan candidate to canonical season state."""
+    """Apply a verified replan candidate to canonical season state.
+
+    ``operation`` defaults to the fail-closed ``global_regeneration`` so a
+    sealed published season refuses every caller that has not explicitly
+    identified itself as a narrow, validated maintenance mutation.
+    """
 
     return _service(root).apply_candidate(
         season=season,
@@ -768,6 +778,67 @@ def apply_candidate(
         allow_guest_slot_changes=allow_guest_slot_changes,
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
+        operation=operation,
+    )
+
+
+def season_lifecycle_report(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
+    """Return the published/planning lifecycle + reconciliation report."""
+
+    return _service(root).season_lifecycle_report(season)
+
+
+def verify_sealed_reconciliation(
+    season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
+) -> dict[str, Any]:
+    """Return the sealed-season reconciliation invariant report."""
+
+    return _service(root).verify_sealed_reconciliation(season)
+
+
+def seal_published_season(
+    *,
+    season: str,
+    publication_id: str,
+    canonical_revision: str,
+    published_at: str,
+    published_projection: dict[str, Any],
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    publication_canonical_projection: dict[str, Any] | None = None,
+    materializations: list[dict[str, Any]] | None = None,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Persist the immutable published baseline and seal the season."""
+
+    return _service(root).seal_published_season(
+        season=season,
+        publication_id=publication_id,
+        canonical_revision=canonical_revision,
+        published_at=published_at,
+        published_projection=published_projection,
+        publication_canonical_projection=publication_canonical_projection,
+        materializations=materializations or [],
+        actor=actor,
+        note=note,
+    )
+
+
+def reopen_planning(
+    *,
+    season: str,
+    reason: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    confirm_break_published_baseline: bool = False,
+    actor: str | None = None,
+) -> dict[str, Any]:
+    """Explicit operator-only emergency escape hatch from ``published_sealed``."""
+
+    return _service(root).reopen_planning(
+        season=season,
+        reason=reason,
+        confirm_break_published_baseline=confirm_break_published_baseline,
+        actor=actor,
     )
 
 

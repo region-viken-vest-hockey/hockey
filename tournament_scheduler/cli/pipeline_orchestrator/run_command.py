@@ -80,6 +80,16 @@ def _cmd_run(args: argparse.Namespace) -> int:
     start = datetime.strptime(cfg["start_date"], "%Y-%m-%d")
     end = datetime.strptime(cfg["end_date"], "%Y-%m-%d")
 
+    from .new_run_guard import guard_sealed_season_run
+
+    if guard_sealed_season_run(cfg, start.date(), end.date()):
+        _manifest_record(
+            args.work_dir, "config", "failed", "Run refused: season is published_sealed."
+        )
+        _manifest_finalize(args.work_dir, "failed")
+        _write_run_log(args, state, log_start, log_lines, success=False)
+        return 1
+
     _manifest_set_active(args.work_dir, "scraping")
     scraping, abort, stage2_failed = _run_stage2(args, cfg, state, start, end, strict, _log, resume_from)
     if abort:

@@ -783,6 +783,21 @@ def _execute_publish_pages(
                 artifacts=list(bundle_result.artifacts),
             ))
 
+    try:
+        from .publication_lifecycle import assert_publication_allowed
+
+        assert_publication_allowed(export_dir, repo_dir=repo_dir)
+    except Exception as exc:  # noqa: BLE001 - fail closed on a sealed-season guard failure.
+        return _with_collision_warning(CapabilityResult.blocked(
+            f"Publisering nektet fordi den publiserte sesongen ikke kan forsvars mot den seilede basislinjen: {exc}",
+            capability="pages_publish",
+            suggested_actions=[
+                "season lifecycle --season <season> --json",
+                "season export --season <season>",
+            ],
+            artifacts=list(bundle_result.artifacts),
+        ))
+
     publish_result = pages_publish.publish(
         export_dir=public_bundle_dir,
         run_id=run_id,
@@ -822,6 +837,29 @@ def _execute_publish_pages(
         except Exception as exc:  # noqa: BLE001 - publication succeeded; surface lifecycle failure explicitly.
             publish_result.problems = list(publish_result.problems) + [
                 f"Kunne ikke markere kildeeksporten som publisert: {exc}"
+            ]
+            if publish_result.status == "ok":
+                publish_result.status = "warning"
+
+        try:
+            from .publication_lifecycle import record_publication_seal
+
+            seal_report = record_publication_seal(export_dir, repo_dir=repo_dir)
+            if seal_report is not None:
+                publish_result.evidence = list(publish_result.evidence) + [
+                    f"season_lifecycle_state={seal_report.get('state', 'skipped')}",
+                    f"published_baseline_projection={seal_report.get('projection_fingerprint') or seal_report.get('skipped')}",
+                ]
+                if seal_report.get("skipped"):
+                    publish_result.problems = list(publish_result.problems) + [
+                        "Kunne ikke seile den publiserte sesongen direkte: "
+                        f"{seal_report.get('skipped')}. Kjør '{seal_report.get('migration_command')}'."
+                    ]
+                    if publish_result.status == "ok":
+                        publish_result.status = "warning"
+        except Exception as exc:  # noqa: BLE001 - publication succeeded; surface lifecycle failure explicitly.
+            publish_result.problems = list(publish_result.problems) + [
+                f"Kunne ikke registrere publisert basislinje / seile sesongen: {exc}"
             ]
             if publish_result.status == "ok":
                 publish_result.status = "warning"

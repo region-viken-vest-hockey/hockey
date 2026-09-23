@@ -51,9 +51,20 @@ def normalize_placements(
     from tournament_scheduler.placement_normalization import (
         normalize_unplaced_placements,
     )
+    from tournament_scheduler.published_baseline import (
+        SeasonSealedError,
+        is_published_sealed,
+    )
 
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
+    if not dry_run and is_published_sealed(decisions):
+        raise SeasonSealedError(
+            "Refusing to normalize placements on a published_sealed season: "
+            "mutating normalization could silently move or demote published "
+            "tournaments. '--dry-run' remains available as a diagnostic; a real "
+            "conflict must be resolved with an explicit move/cancel/booking decision."
+        )
     verification_context = schedule.get("verification_context")
     resolved_problem = problem
     if resolved_problem is None and isinstance(verification_context, Mapping):

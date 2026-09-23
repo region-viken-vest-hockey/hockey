@@ -461,6 +461,7 @@ def replace_participant(
         candidate=plan,
         problem=resolved_problem,
         actor=actor,
+        operation="targeted_mutation",
         _new_change_protections=new_protections,
         _history_event={
             "event": "participant_replacement",

@@ -258,3 +258,52 @@ def test_real_sep_21_baseline_reconstructs_unique_stable_ids() -> None:
     assert "rvv-0009" not in published
     assert "rvv-0026" not in published
     assert "rvv-0031" not in published
+
+
+def test_real_sep_21_baseline_reconciles_with_durable_history() -> None:
+    """The real legacy-current migration shape reconciles, or there is drift.
+
+    Skipped when the committed Sep-21 publication or its canonical revision
+    history is unavailable (for example a shallow CI checkout).
+    """
+
+    from tournament_scheduler.infrastructure.canonical_season_store import (
+        load_decisions,
+        load_schedule,
+    )
+    from tournament_scheduler.published_mutation_history import (
+        omission_projection,
+        reconcile_published_baseline,
+    )
+
+    repo_root = Path(__file__).resolve().parents[1]
+    manifest_path = repo_root / "export" / "2026-09-21T0908" / "export_manifest.json"
+    if not manifest_path.exists():
+        pytest.skip("committed Sep-21 publication is not present")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    revision = str(manifest.get("canonical_revision") or "")
+    season_root = repo_root / "season"
+    publication_plan = load_canonical_plan_at_revision("2026-2027", revision, season_root=season_root)
+    if publication_plan is None:
+        pytest.skip("canonical history for the publication revision is unavailable")
+
+    published = projection_from_export_artifacts(
+        manifest_path.parent,
+        published_canonical_plan=publication_plan,
+    )
+    current = tournament_projection(load_schedule("2026-2027", root=season_root)["plan"])
+    decisions = load_decisions("2026-2027", root=season_root)
+
+    omissions = omission_projection(tournament_projection(publication_plan), published)
+    materializations = {
+        tournament_id: current[tournament_id]
+        for tournament_id in ("rvv-0009", "rvv-0026", "rvv-0031")
+    }
+    report = reconcile_published_baseline(
+        published_projection=published,
+        current_projection=current,
+        history=decisions.get("history") or [],
+        attested_additions={**omissions, **materializations},
+    )
+    assert report["ok"] is True, report["unexplained_delta"]
+    assert sorted(omissions) == ["rvv-0033", "rvv-0057"]

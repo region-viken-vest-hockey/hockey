@@ -60,3 +60,41 @@ def guard_new_full_run(args: Any) -> bool:
         "scripts/rvv-miniputt run --new-full-run"
     )
     return True
+
+
+def guard_sealed_season_run(cfg: Any, start: Any, end: Any) -> bool:
+    """Refuse a full pipeline run whose window matches a published_sealed season.
+
+    A published season is an operational schedule, not a planning problem. A
+    full run would rebuild Stage 1-4 facts (and a competing candidate) around an
+    operational baseline; the supported path is explicit canonical maintenance
+    (``season move`` / ``swap-participants`` / ``batch`` / repair search) plus
+    ``season export``. This is a transport for the canonical lifecycle
+    predicate; the authoritative refusal for actually replacing canonical state
+    lives at the ``season promote`` / ``season apply`` boundary.
+    """
+    try:
+        from ...canonical_baseline import resolve_canonical_state
+        from ...published_baseline import is_published_sealed
+
+        resolved = resolve_canonical_state(cfg, start, end)
+    except Exception:
+        return False
+    if not resolved:
+        return False
+    decisions = resolved.get("decisions")
+    if not is_published_sealed(decisions):
+        return False
+    season = resolved.get("season")
+    _console.print(
+        f"[red]✗[/red] Nektet: {season} er publisert og seilet (published_sealed). "
+        "En publisert sesong er en operativ plan, ikke et planleggingsproblem."
+    )
+    _console.print(
+        "  Vedlikehold den med eksplisitte kanoniske operasjoner "
+        "(season move / swap-participants / batch / repair + season export)."
+    )
+    _console.print(
+        f"  Se status: scripts/rvv-miniputt season lifecycle --season {season}"
+    )
+    return True

@@ -20,6 +20,26 @@ Promotion is deliberate and exclusive. Do not use `--force` merely because a can
 
 After promotion, prefer the canonical season commands for normal club feedback and stabilization work.
 
+## Published-season lifecycle
+
+Publication is what makes the season operational. The **first successful publication seals the season automatically**; a season published before this feature existed is backfilled explicitly:
+
+```bash
+scripts/rvv-miniputt season lifecycle --season <season> --json
+scripts/rvv-miniputt season seal-published --season <season>
+```
+
+`season seal-published` locates the real published baseline through authoritative publication history (never a supplied export directory), records the immutable baseline, derives publication omissions from the canonical plan at the publication revision, and requires explicit provenance for any post-publication materialization it must accept (`--attest-materialization <id>=<provenance>`). It fails closed if `published baseline + attested additions + recorded canonical mutations` does not exactly equal the current canonical projection. Do not work around a failure by snapshotting current state.
+
+Once `published_sealed`, the season is maintenance-only. `season replan`, planner-generated `season apply`, mutating `season normalize-placements`, `season promote --force`, and a full/new pipeline run for the same window are refused by the service layer. Continue through the targeted canonical operations below. If a deliberate full restructuring is ever required, use the operator-only emergency escape hatch and record why:
+
+```bash
+scripts/rvv-miniputt season reopen-planning --season <season> \
+  --reason "<operator reason>" --confirm-break-published-baseline
+```
+
+Never infer or auto-select reopening because a repair/replan path is convenient.
+
 ## Inspect state
 
 ```bash
@@ -54,7 +74,7 @@ Classify the requested outcome before choosing a command:
 - **specific one-tournament participant substitution** ("replace team A with team B here") -> evaluate `season replace-participant --dry-run --request-id <id>`; an existing finding is not required;
 - **specific participant/roster exchange between two tournaments** -> evaluate `season swap-participants --dry-run --request-id <id>`; an existing finding is not required;
 - **general request to improve participation/placement** -> use current findings/repair-options/search first, then the smallest verified change;
-- **broader rebalance** -> only then escalate to baseline-aware `season replan` / `diff` / verified `apply`.
+- **broader rebalance** -> only then escalate to baseline-aware `season replan` / `diff` / verified `apply`; on a `published_sealed` season these are refused, so complete the outcome through targeted canonical operations or a deliberate, operator-authorised `season reopen-planning`.
 
 For a participant replacement or swap, preview alternatives before applying. The repository reports before/after consequences for **all** affected teams (spacing, temporal coverage, opponent repetition/diversity and travel), and applying a materially regressive change is refused. Do not optimize the requesting club by treating the displaced team as free capacity.
 

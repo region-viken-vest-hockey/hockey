@@ -1536,6 +1536,141 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     )
             return 0
 
+        if args.season_command == "lifecycle":
+            from ..season_state import season_lifecycle_report
+
+            report = season_lifecycle_report(args.season, root=args.root)
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Sesonglivssyklus {args.season}[/bold]: {report['state']}"
+                )
+                baseline = report.get("published_baseline")
+                if baseline:
+                    _console.print(
+                        f"  publisert: {baseline.get('publication_id')} "
+                        f"({baseline.get('tournament_count')} turneringer, "
+                        f"{baseline.get('published_at')})"
+                    )
+                reconciliation = report.get("reconciliation")
+                if reconciliation:
+                    if reconciliation["ok"]:
+                        _console.print(
+                            "  [green]✓[/green] avstemt mot publisert basislinje "
+                            f"({reconciliation['applied_mutation_count']} kanoniske endringer)"
+                        )
+                    else:
+                        _console.print(
+                            "  [red]✗[/red] uforklart avvik mot publisert basislinje: "
+                            + _json.dumps(reconciliation["unexplained_delta"], ensure_ascii=False)
+                        )
+            return 0
+
+        if args.season_command == "seal-published":
+            from ..infrastructure.canonical_revision_history import load_canonical_plan_at_revision
+            from ..pipeline.export_lifecycle import find_published_exports_for_season
+            from ..pipeline.export_projection_guard import (
+                projection_from_export_artifacts,
+                tournament_projection,
+            )
+            from ..season_state import seal_published_season
+
+            published_exports = find_published_exports_for_season(args.season, season_root=args.root)
+            if not published_exports:
+                _console.print(
+                    f"[red]✗[/red] Ingen autoritativ publisert eksport funnet for {args.season}; "
+                    "kan ikke seile en upublisert sesong."
+                )
+                return 1
+            latest = published_exports[0]
+            publication_canonical_plan = load_canonical_plan_at_revision(
+                str(latest.get("canonical_season") or args.season),
+                str(latest.get("canonical_revision") or ""),
+                season_root=args.root,
+            )
+            published_projection = latest.get("schedule_projection")
+            if not isinstance(published_projection, dict):
+                if publication_canonical_plan is None:
+                    _console.print(
+                        "[red]✗[/red] Kan ikke rekonstruere den publiserte sesongplanen: "
+                        "eksporten mangler schedule_projection og kanonisk revisjon kunne "
+                        "ikke gjenopprettes. Nekter å seile."
+                    )
+                    return 1
+                from ..pipeline.export_projection_guard import ExportProjectionError
+
+                try:
+                    published_projection = projection_from_export_artifacts(
+                        str(latest.get("export_dir") or ""),
+                        published_canonical_plan=publication_canonical_plan,
+                    )
+                except ExportProjectionError as exc:
+                    _console.print(f"[red]✗[/red] {exc}")
+                    return 1
+            publication_canonical_projection = (
+                tournament_projection(publication_canonical_plan)
+                if publication_canonical_plan is not None
+                else None
+            )
+            materializations = []
+            for raw in getattr(args, "attest_materializations", []) or []:
+                tournament_id, _, provenance = str(raw).partition("=")
+                materializations.append(
+                    {"tournament_id": tournament_id.strip(), "provenance": provenance.strip()}
+                )
+            report = seal_published_season(
+                season=args.season,
+                publication_id=str(latest.get("export_id") or ""),
+                canonical_revision=str(latest.get("canonical_revision") or ""),
+                published_at=str(latest.get("published_at") or ""),
+                published_projection=published_projection,
+                publication_canonical_projection=publication_canonical_projection,
+                materializations=materializations,
+                actor=args.actor,
+                note=args.note,
+                root=args.root,
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] {args.season} er nå published_sealed "
+                    f"(publisering {report['publication_id']}, "
+                    f"{report['reconciliation']['applied_mutation_count']} kanoniske endringer)"
+                )
+                if report["reconciliation"]["publication_omissions"]:
+                    _console.print(
+                        "  dokumenterte publiseringsutelatelser: "
+                        + ", ".join(report["reconciliation"]["publication_omissions"])
+                    )
+                if report["reconciliation"]["materializations"]:
+                    _console.print(
+                        "  attesterte etterpubliseringsmaterialiseringer: "
+                        + ", ".join(report["reconciliation"]["materializations"])
+                    )
+            return 0
+
+        if args.season_command == "reopen-planning":
+            from ..season_state import reopen_planning
+
+            report = reopen_planning(
+                season=args.season,
+                reason=args.reason,
+                confirm_break_published_baseline=args.confirm_break_published_baseline,
+                actor=args.actor,
+                root=args.root,
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[yellow]⚠[/yellow] {args.season} er gjenåpnet for planlegging "
+                    f"(tidligere publisert basislinje er ikke endret)."
+                )
+                _console.print(f"  årsak: {report['reason']}")
+            return 0
+
         if args.season_command == "normalize-placements":
             schedule, decisions = normalize_placements(
                 season=args.season,

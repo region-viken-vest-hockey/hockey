@@ -204,15 +204,52 @@ A tournament may reserve one or more places for a team from another league/regio
 
 Reservations respect approval/participant locks: a locked tournament must be explicitly unapproved first. They survive later replanning/repair -- `season apply` refuses a candidate that would silently change or drop a reservation -- until deliberately filled or released. `season_plan.html` shows an open place as "N ledige gjesteplasser" and a filled place as a guest participant, and the semantic-audit evidence carries a `guest_reservations` category.
 
-For broader quality/placement repair, use `season replan`, inspect `season diff`, then `season apply`. Search starts from canonical state, honors locks and includes weighted change cost so published-but-unapproved tournaments are not churned gratuitously.
+For broader quality/placement repair, use `season replan`, inspect `season diff`, then `season apply`. Search starts from canonical state, honors locks and includes weighted change cost so published-but-unapproved tournaments are not churned gratuitously. This path is only for a season that is still in the `promoted` state: once a season is `published_sealed` (see **Published-season lifecycle** below), broad replan/global apply are refused at the service boundary and the season evolves only through explicit targeted canonical mutations.
 
 Hosting responsibility is recomputed after candidate-changing operations as a club/shared-registration × age-group ledger: proportional target, assigned responsibility, automatic placements, manual/unplaced responsibility and actual physical hosting. Missing trustworthy ice first triggers bounded responsibility-preserving repair (for example another legal date/slot for the same responsible host, or a roster alternative that still represents that host). If the bounded repair budget finds no verified placement, the obligation remains with the intended club as an unresolved placement finding -- kept out of `plan.tournaments` and every season export, but visible in `manual_schedule.html`/findings/audit -- rather than as a fake scheduled tournament; another club's convenient slot is reported as physical excess rather than silently absorbing the responsibility.
 
-`season normalize-placements` upgrades an already-generated canonical plan to the same placed/provisional/unplaced state model without rerunning Stage 1-3: a tournament whose concrete placement provably overlaps a trusted/fixed external booking, or a legacy exhausted-search placeholder, is moved out of `plan.tournaments` into a stable `unresolved_tournament_placements` obligation, while approved/locked placements, movable-ice host-confirmation candidates and unavailable-calendar provisional placements are preserved. It re-verifies the full plan and reconciles the derived projections before committing. Add `--dry-run` to report the classification without writing. After a season has a published export, `season export` is schedule-preserving: refreshed calendar evidence may surface conflicts for explicit operator action, but export itself never moves, demotes or removes canonical tournaments.
+`season normalize-placements` upgrades an already-generated canonical plan to the same placed/provisional/unplaced state model without rerunning Stage 1-3: a tournament whose concrete placement provably overlaps a trusted/fixed external booking, or a legacy exhausted-search placeholder, is moved out of `plan.tournaments` into a stable `unresolved_tournament_placements` obligation, while approved/locked placements, movable-ice host-confirmation candidates and unavailable-calendar provisional placements are preserved. It re-verifies the full plan and reconciles the derived projections before committing. Add `--dry-run` to report the classification without writing; on a `published_sealed` season only `--dry-run` is allowed, because mutating normalization could silently move or demote a published tournament. After a season has a published export, `season export` is schedule-preserving: refreshed calendar evidence may surface conflicts for explicit operator action, but export itself never moves, demotes or removes canonical tournaments.
 
 `season normalize-arenas` re-emits the canonical schedulable arena across a promoted season. The single owner of arena identity is `club_registry.canonical_arena_name` / `ClubCalendarSource.arena`: a tournament already placed at its club's canonical arena is left byte-identical, while a tournament carrying a former name for that same venue (a `legacy_arena_aliases` entry such as `Ringerikshallen` -> `Schjongshallen`) is rewritten in place. It is an identity correction, not a scheduling change: dates, start times, hosts, participants, games, approvals, change guards, request constraints and guest reservations are preserved (an active `arena` placement guard follows the venue to its new label), the stored verification problem's club->arena mapping and canonical-baseline snapshot are re-emitted so a later repair/replan cannot reintroduce the legacy label, and the full canonical hard verifier runs before the atomic commit. Add `--dry-run` to see the exact before/after delta without writing.
 
 Canonical writes are transactional: rejected verification or write failure must not leave mixed `schedule.json` / `decisions.json` state.
+
+## Published-season lifecycle
+
+Promotion makes a season canonical; publication makes it operational. The canonical application layer owns an explicit season lifecycle: `planning` -> `promoted` -> `published_sealed`. The **first successful publication seals the season automatically** and records an immutable published baseline (publication/export id, canonical revision, `published_at`, projection fingerprint and the full stable-id projection: date, start time, arena, host, participant identities). Later publications append a new publication revision; they never rewrite the historical baseline.
+
+A season published before this feature existed is backfilled explicitly:
+
+```bash
+scripts/rvv-miniputt season lifecycle --season <season> --json
+scripts/rvv-miniputt season seal-published --season <season>
+```
+
+`season seal-published` resolves the actual currently published baseline through authoritative publication history (never through a supplied export directory). It derives publication omissions from the canonical plan at the publication revision and requires explicit provenance for each post-publication materialization (`--attest-materialization <id>=<provenance>`). The migration must establish
+
+```text
+the actual published projection
++ attested publication omissions / materializations
++ recorded schedule-mutating canonical history
+= current canonical projection
+```
+
+and it **fails closed** on any unexplained stable-id delta instead of snapshotting the current canonical state. Decision-only evidence (approval, booking state, request constraints, banned/holiday dates, calendar refresh, audit metadata, season baseline) is never treated as a schedule mutation. Explicit canonical changes accepted after publication are preserved, not reverted.
+
+Once `published_sealed`, the season is maintenance-only. The guard is enforced in the application/service layer, so a direct Python caller gets the same refusal as the CLI:
+
+- `season replan`, planner-generated `season apply`, mutating `season normalize-placements`, `season promote --force` and a full/new pipeline `run` for the same window are refused;
+- targeted canonical maintenance (move, swap/replace participant, batch, rename-team, guest reserve/fill/release, approve/unapprove, booking-evidence reconciliation, calendar refresh, safe config reconciliation, banned/holiday dates) continues to work and preserves unrelated tournaments;
+- the export/publication boundary refuses a new publication when canonical state cannot reconcile to the published baseline plus recorded mutations, or when the export no longer matches the sealed canonical schedule; export itself stays schedule-preserving.
+
+The deliberate emergency escape hatch is operator-only, prominent and permanently audited:
+
+```bash
+scripts/rvv-miniputt season reopen-planning --season <season> \
+  --reason "<operator reason>" --confirm-break-published-baseline
+```
+
+It returns the season to `promoted` without editing the recorded publication history; normal publication protections apply again to any later replacement. It must never be inferred or auto-selected merely because a repair/replan path is convenient.
 
 ## Export lifecycle
 
@@ -258,7 +295,7 @@ make publish CONFIRM_PUBLIC=1
 make verify-publish
 ```
 
-Publication builds a separate allowlisted/privacy-checked public bundle and promotes the exact source export lifecycle from `draft` to `published`. Rollback is explicit through publication history.
+Publication builds a separate allowlisted/privacy-checked public bundle and promotes the exact source export lifecycle from `draft` to `published`. A successful publication also records the immutable published baseline and seals the season (or appends a publication revision for an already sealed season); the publication boundary refuses unexplained canonical drift and a stale export of a sealed schedule. Rollback is explicit through publication history.
 
 ## Runtime state
 
