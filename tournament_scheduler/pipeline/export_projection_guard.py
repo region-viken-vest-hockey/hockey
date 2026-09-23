@@ -65,25 +65,31 @@ def projection_from_export_artifacts(
     export_dir: str | Path,
     *,
     canonical_plan: Mapping[str, Any] | None = None,
+    published_canonical_plan: Mapping[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Reconstruct a stable-id projection from legacy published artifacts.
 
     Manifests written before the publication guard did not carry
     ``schedule_projection``.  Prefer the embedded HTML tournament payload when
-    present.  The committed 2026-09-21 publication did not track that HTML, but
-    it does track the Spond season workbook; for that legacy shape, recover the
-    published placement/participants from the workbook and bind them to the
-    current canonical stable ids by exact match first, then remaining order for
-    rows whose published placement has since changed.  Refuse partial
-    reconstruction: publication safety must not silently compare against an
-    incomplete baseline.
+    present; it carries stable ids directly.  The committed 2026-09-21
+    publication did not track that HTML, but it does track the Spond season
+    workbook, which carries placement/participants but no stable id.  For that
+    legacy shape the row-to-id identity must be recovered from the canonical
+    plan *at the publication revision* (``published_canonical_plan``); binding
+    against the current canonical plan or against row order would fabricate
+    identity.  Refuse partial reconstruction: publication safety must not
+    silently compare against an incomplete or guessed baseline.
     """
 
     html_path = Path(export_dir) / "season_plan.html"
     try:
         text = html_path.read_text(encoding="utf-8")
     except OSError:
-        return _projection_from_spond_workbook(export_dir, canonical_plan=canonical_plan)
+        return _projection_from_spond_workbook(
+            export_dir,
+            canonical_plan=canonical_plan,
+            published_canonical_plan=published_canonical_plan,
+        )
     match = _TOURNAMENTS_RE.search(text)
     if not match:
         raise ExportProjectionError(
@@ -153,15 +159,18 @@ def _projection_from_spond_workbook(
     export_dir: str | Path,
     *,
     canonical_plan: Mapping[str, Any] | None,
+    published_canonical_plan: Mapping[str, Any] | None,
 ) -> dict[str, dict[str, Any]]:
     workbook_path = Path(export_dir) / "season_plan_spond.xlsx"
-    if not canonical_plan:
+    if not published_canonical_plan:
         raise ExportProjectionError(
             {
                 "summary": (
                     "Refusing season export: published export has no schedule_projection, "
-                    "HTML fallback is unavailable and canonical ids are needed to bind "
-                    "the legacy Spond workbook projection"
+                    "HTML fallback is unavailable, and the canonical schedule snapshot "
+                    "from the publication revision could not be resolved; refusing to bind "
+                    "legacy Spond workbook rows to stable tournament ids by row order or "
+                    "against post-publication canonical state"
                 ),
                 "export_dir": str(export_dir),
             }
@@ -218,30 +227,22 @@ def _projection_from_spond_workbook(
             }
         )
 
-    canonical_tournaments = [
+    published_tournaments = [
         tournament
-        for tournament in (canonical_plan or {}).get("tournaments", []) or []
+        for tournament in (published_canonical_plan or {}).get("tournaments", []) or []
         if isinstance(tournament, Mapping) and tournament.get("id")
     ]
-    data_rows = [row for row in rows[1:] if any(cell not in (None, "") for cell in row)]
-    if len(data_rows) > len(canonical_tournaments):
+    if not published_tournaments:
         raise ExportProjectionError(
             {
                 "summary": (
-                    "Refusing season export: legacy Spond workbook has more tournaments "
-                    "than the current canonical stable-id list"
+                    "Refusing season export: the canonical schedule snapshot from the "
+                    "publication revision contains no stable tournament ids"
                 ),
-                "workbook_tournament_count": len(data_rows),
-                "canonical_tournament_count": len(canonical_tournaments),
                 "export_dir": str(export_dir),
             }
         )
-
-    team_lookup: dict[tuple[str, str], Mapping[str, Any]] = {}
-    for tournament in canonical_tournaments:
-        for team in tournament.get("teams") or []:
-            if isinstance(team, Mapping):
-                team_lookup[(str(team.get("age_group") or ""), str(team.get("label") or ""))] = team
+    data_rows = [row for row in rows[1:] if any(cell not in (None, "") for cell in row)]
 
     def cell(row: tuple[Any, ...], name: str) -> str:
         value = row[index[name]] if index[name] < len(row) else ""
@@ -253,82 +254,103 @@ def _projection_from_spond_workbook(
             return f"{parts[2]}-{parts[1]}-{parts[0]}"
         return value
 
-    def row_projection(row: tuple[Any, ...]) -> dict[str, Any]:
-        age_group = cell(row, "Aldersgruppe")
-        participant_labels = [
-            label.strip()
-            for label in cell(row, "Deltakende lag").split(",")
-            if label.strip()
-        ]
-        participants = []
-        for label in participant_labels:
-            team = team_lookup.get((age_group, label))
-            if team is None:
-                participants.append("\u001f".join(("", label, age_group)))
-            else:
-                participants.append(_participant_key(team))
-        return {
-            "date": iso_date(cell(row, "Dato")),
-            "start_time": cell(row, "Start"),
-            "arena": cell(row, "Sted"),
-            "host_club": cell(row, "Vertsklubb"),
-            "age_group": age_group,
-            "participants": sorted(participants),
-        }
-
-    def comparable(projection_item: Mapping[str, Any]) -> tuple[Any, ...]:
+    def row_identity(row: tuple[Any, ...]) -> tuple[Any, ...]:
+        participant_labels = tuple(
+            sorted(
+                label.strip()
+                for label in cell(row, "Deltakende lag").split(",")
+                if label.strip()
+            )
+        )
         return (
-            projection_item.get("date"),
-            projection_item.get("start_time"),
-            projection_item.get("arena"),
-            projection_item.get("host_club"),
-            projection_item.get("age_group"),
-            tuple(projection_item.get("participants") or []),
+            iso_date(cell(row, "Dato")),
+            cell(row, "Start"),
+            cell(row, "Sted"),
+            cell(row, "Vertsklubb"),
+            cell(row, "Aldersgruppe"),
+            participant_labels,
         )
 
-    canonical_by_exact: dict[tuple[Any, ...], list[Mapping[str, Any]]] = {}
-    for tournament in canonical_tournaments:
-        item = tournament_projection({"tournaments": [tournament]}).get(str(tournament.get("id")))
-        if item:
-            canonical_by_exact.setdefault(comparable(item), []).append(tournament)
+    def tournament_identity(tournament: Mapping[str, Any]) -> tuple[Any, ...]:
+        labels = tuple(
+            sorted(
+                str(team.get("label") or "").strip()
+                for team in tournament.get("teams") or []
+                if isinstance(team, Mapping) and str(team.get("label") or "").strip()
+            )
+        )
+        return (
+            str(tournament.get("date") or ""),
+            str(tournament.get("start_time") or ""),
+            str(tournament.get("arena") or ""),
+            str(tournament.get("host_club") or ""),
+            str(tournament.get("age_group") or ""),
+            labels,
+        )
 
-    row_items = [row_projection(row) for row in data_rows]
-    assigned_ids: set[str] = set()
-    row_bindings: list[Mapping[str, Any] | None] = []
-    for item in row_items:
-        bucket = canonical_by_exact.get(comparable(item)) or []
-        canonical = next((candidate for candidate in bucket if str(candidate.get("id")) not in assigned_ids), None)
-        if canonical is not None:
-            assigned_ids.add(str(canonical.get("id")))
-        row_bindings.append(canonical)
+    by_identity: dict[tuple[Any, ...], list[Mapping[str, Any]]] = {}
+    for tournament in published_tournaments:
+        by_identity.setdefault(tournament_identity(tournament), []).append(tournament)
 
-    remaining = [
-        tournament
-        for tournament in canonical_tournaments
-        if str(tournament.get("id")) not in assigned_ids
-    ]
-    remaining_iter = iter(remaining)
     projection: dict[str, dict[str, Any]] = {}
-    for item, canonical in zip(row_items, row_bindings, strict=True):
-        if canonical is None:
-            canonical = next(remaining_iter, None)
-        if canonical is None:
-            raise ExportProjectionError(
+    unbound_rows: list[dict[str, Any]] = []
+    for row in data_rows:
+        identity = row_identity(row)
+        candidates = by_identity.get(identity) or []
+        if len(candidates) != 1:
+            unbound_rows.append(
                 {
-                    "summary": "Refusing season export: legacy Spond reconstruction ran out of stable ids",
-                    "export_dir": str(export_dir),
+                    "date": identity[0],
+                    "start_time": identity[1],
+                    "arena": identity[2],
+                    "age_group": identity[4],
+                    "participant_labels": list(identity[5]),
+                    "candidate_count": len(candidates),
                 }
             )
-        tournament_id = str(canonical.get("id") or "")
+            continue
+        tournament = candidates[0]
+        tournament_id = str(tournament.get("id") or "")
+        if tournament_id in projection:
+            unbound_rows.append(
+                {
+                    "date": identity[0],
+                    "start_time": identity[1],
+                    "arena": identity[2],
+                    "age_group": identity[4],
+                    "participant_labels": list(identity[5]),
+                    "candidate_count": 0,
+                    "reason": "stable_id_already_bound",
+                    "tournament_id": tournament_id,
+                }
+            )
+            continue
         projection[tournament_id] = {
             "id": tournament_id,
-            "date": item["date"],
-            "start_time": item["start_time"],
-            "arena": item["arena"],
-            "host_club": item["host_club"],
-            "age_group": item["age_group"],
-            "participants": list(item["participants"]),
+            "date": identity[0],
+            "start_time": identity[1],
+            "arena": identity[2],
+            "host_club": identity[3],
+            "age_group": identity[4],
+            "participants": sorted(
+                _participant_key(team)
+                for team in tournament.get("teams") or []
+                if isinstance(team, Mapping)
+            ),
         }
+    if unbound_rows:
+        raise ExportProjectionError(
+            {
+                "summary": (
+                    "Refusing season export: legacy Spond workbook rows cannot be "
+                    "uniquely bound to stable tournament ids from the canonical "
+                    "schedule snapshot at the publication revision"
+                ),
+                "unbound_rows": unbound_rows,
+                "workbook_tournament_count": len(data_rows),
+                "export_dir": str(export_dir),
+            }
+        )
     if not projection:
         raise ExportProjectionError(
             {
@@ -343,6 +365,7 @@ def _published_schedule_projection(
     published_export: Mapping[str, Any] | None,
     *,
     canonical_plan: Mapping[str, Any] | None = None,
+    published_canonical_plan: Mapping[str, Any] | None = None,
 ) -> Mapping[str, Any] | None:
     if not published_export:
         return None
@@ -351,7 +374,11 @@ def _published_schedule_projection(
         return published_projection
     export_dir = published_export.get("export_dir")
     if export_dir:
-        return projection_from_export_artifacts(export_dir, canonical_plan=canonical_plan)
+        return projection_from_export_artifacts(
+            export_dir,
+            canonical_plan=canonical_plan,
+            published_canonical_plan=published_canonical_plan,
+        )
     raise ExportProjectionError(
         {
             "summary": (
@@ -412,13 +439,25 @@ def assert_export_preserves_canonical_plan(
     season: str | None = None,
     canonical_revision: str | None = None,
     published_export: Mapping[str, Any] | None = None,
+    published_canonical_plan: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Raise if a proposed export is not an exact projection of canonical state."""
+    """Raise if a proposed export is not an exact projection of canonical state.
+
+    ``published_canonical_plan`` is the canonical plan at the revision the
+    published export recorded. Legacy published artifacts that carry no stable
+    tournament identity can only be reconstructed against that publication-time
+    snapshot; passing the current canonical plan instead would fabricate row
+    identity from row order.
+    """
 
     canonical = tournament_projection(canonical_plan)
     proposed = tournament_projection(proposed_plan)
     canonical_delta = diff_tournament_projection(canonical, proposed)
-    published_projection = _published_schedule_projection(published_export, canonical_plan=canonical_plan)
+    published_projection = _published_schedule_projection(
+        published_export,
+        canonical_plan=canonical_plan,
+        published_canonical_plan=published_canonical_plan,
+    )
     published_delta: dict[str, Any] | None = None
     if isinstance(published_projection, Mapping):
         published_delta = diff_tournament_projection(published_projection, canonical)

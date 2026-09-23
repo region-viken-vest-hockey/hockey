@@ -1428,6 +1428,23 @@ def _cmd_season(args: argparse.Namespace) -> int:
             latest_published_export = published_exports[0] if published_exports else None
             from ..pipeline.export_projection_guard import ExportProjectionError
 
+            # A published baseline that predates ``schedule_projection`` can only
+            # be recovered by binding its rows to the canonical plan *at the
+            # revision it published*. Resolve that publication-time snapshot
+            # explicitly; if it is unavailable the guard fails closed rather
+            # than infer stable ids from row order.
+            published_canonical_plan = None
+            if latest_published_export and not latest_published_export.get("schedule_projection"):
+                from ..infrastructure.canonical_revision_history import (
+                    load_canonical_plan_at_revision,
+                )
+
+                published_canonical_plan = load_canonical_plan_at_revision(
+                    str(latest_published_export.get("canonical_season") or args.season),
+                    str(latest_published_export.get("canonical_revision") or ""),
+                    season_root=args.root,
+                )
+
             try:
                 result = run_export(
                     checkpoint,
@@ -1442,6 +1459,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     allow_placement_normalization=latest_published_export is None,
                     canonical_schedule_plan=schedule.get("plan") if latest_published_export else None,
                     published_export_guard=latest_published_export,
+                    published_canonical_plan=published_canonical_plan,
                 )
             except ExportProjectionError as exc:
                 raise SeasonStateError(str(exc)) from exc

@@ -339,6 +339,22 @@ def test_canonical_export_uses_publication_history_not_requested_export_dir(tmp_
 
     schedule_path = tmp_path / "season" / "2026-2027" / "schedule.json"
     schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    # The legacy publication predates schedule_projection, so its stable-id
+    # baseline must be recovered from the canonical plan at the recorded
+    # publication revision. Record that publication-time snapshot durably.
+    revisions_dir = schedule_path.parent.parent / "revisions" / "2026-2027"
+    revisions_dir.mkdir(parents=True)
+    (revisions_dir / "published-rev.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "season": "2026-2027",
+                "revision": "published-rev",
+                "plan": schedule["plan"],
+            }
+        ),
+        encoding="utf-8",
+    )
     tournament = schedule["plan"]["tournaments"][0]
     tournament["date"] = "2026-09-13"
     schedule["revision"] = "current-rev"
@@ -422,7 +438,7 @@ def test_canonical_export_fails_when_legacy_published_projection_is_unrecoverabl
         "--flat",
     ])
     assert rc == 1
-    assert "unreadable" in capsys.readouterr().out
+    assert "could not be resolved" in capsys.readouterr().out
 
 
 def test_canonical_export_does_not_read_mutated_workspace_scrape_state(tmp_path, capsys):

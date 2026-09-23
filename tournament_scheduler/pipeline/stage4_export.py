@@ -147,6 +147,7 @@ def run(
     allow_placement_normalization: bool = True,
     canonical_schedule_plan: dict[str, Any] | None = None,
     published_export_guard: dict[str, Any] | None = None,
+    published_canonical_plan: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Export the Stage 3 plan to Excel, iCal, and CSV.
 
@@ -173,6 +174,12 @@ def run(
     canonical_schedule_plan:
         When supplied, the proposed export projection is checked against this
         canonical plan by stable tournament id before any artifacts are written.
+    published_canonical_plan:
+        The canonical plan at the publication revision recorded by
+        ``published_export_guard``. It is used to recover stable tournament
+        identity from legacy published artifacts that predate
+        ``schedule_projection``; without it such a baseline fails closed instead
+        of binding rows by position.
 
     Returns
     -------
@@ -258,6 +265,7 @@ def run(
             season=(plan_checkpoint.get("canonical_state") or {}).get("season"),
             canonical_revision=(plan_checkpoint.get("canonical_state") or {}).get("revision"),
             published_export=published_export_guard,
+            published_canonical_plan=published_canonical_plan,
         )
 
     try:
