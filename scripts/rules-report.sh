@@ -4,7 +4,9 @@ set -eu
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 cd "$ROOT"
 
-python3 - <<'PY'
+PYTHON_CMD=${PYTHON:-python3}
+
+"$PYTHON_CMD" - <<'PY'
 from datetime import datetime
 from pathlib import Path
 
@@ -35,4 +37,4 @@ planner, _, _ = build_canonical_planner(
 Path("docs/rvv-miniputt-rules-report.md").write_text(render_rules_markdown(planner), encoding="utf-8")
 PY
 
-python3 -m pytest tests/test_rules_report_doc.py tests/test_season_planner.py -q
+"$PYTHON_CMD" -m pytest tests/test_rules_report_doc.py tests/test_season_planner.py -q

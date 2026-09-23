@@ -121,7 +121,7 @@ secret-scan:
 	@cd "$(ROOT_DIR)" && sh "$(SECRET_SCAN)" $(ARGS)
 
 rules-report:
-	@cd "$(ROOT_DIR)" && sh "$(RULES_REPORT)" $(ARGS)
+	@cd "$(ROOT_DIR)" && PYTHON="$(PYTHON)" sh "$(RULES_REPORT)" $(ARGS)
 
 rule-catalog:
 	@cd "$(ROOT_DIR)" && "$(PYTHON)" scripts/render-rule-catalog.py $(ARGS)

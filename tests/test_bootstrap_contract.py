@@ -42,3 +42,11 @@ def test_readme_documents_single_bootstrap_command():
     assert "make bootstrap" in text
     assert "Python 3.12" in text
     assert "scripts/bootstrap" in text
+
+
+def test_rules_report_honors_selected_repository_python():
+    rules = (ROOT / "scripts" / "rules-report.sh").read_text(encoding="utf-8")
+    check = CHECK.read_text(encoding="utf-8")
+    assert 'PYTHON_CMD=${PYTHON:-python3}' in rules
+    assert '"$PYTHON_CMD" -m pytest' in rules
+    assert 'env PYTHON="$PYTHON_CMD" sh scripts/rules-report.sh' in check

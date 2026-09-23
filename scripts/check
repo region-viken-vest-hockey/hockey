@@ -164,7 +164,7 @@ run_named_phase() {
       run_phase_tolerant "Harness-dependent tests" "$PYTHON_CMD" -m pytest --no-cov -q -m harness
       ;;
     rules-report)
-      run_phase "Rules report sync" sh scripts/rules-report.sh
+      run_phase "Rules report sync" env PYTHON="$PYTHON_CMD" sh scripts/rules-report.sh
       ;;
     rule-catalog)
       run_phase "Rule catalog sync and guards" env RVV_CHECK_PYTHON="$PYTHON_CMD" bash -c '
