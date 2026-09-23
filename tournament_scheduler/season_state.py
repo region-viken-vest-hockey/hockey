@@ -71,6 +71,7 @@ __all__ = [
     "change_protection_report",
     "confirm_calendar_booking",
     "decisions_path",
+    "release_calendar_booking",
     "effective_config_from_verification_problem",
     "export_context_path",
     "fill_guest_slot",
@@ -446,6 +447,26 @@ def confirm_calendar_booking(
         actor=actor,
         note=note,
         problem=problem,
+        dry_run=dry_run,
+    )
+
+
+def release_calendar_booking(
+    *,
+    season: str,
+    event_fingerprint: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    tournament_id: str | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).release_calendar_booking(
+        season=season,
+        event_fingerprint=event_fingerprint,
+        tournament_id=tournament_id,
+        actor=actor,
+        note=note,
         dry_run=dry_run,
     )
 

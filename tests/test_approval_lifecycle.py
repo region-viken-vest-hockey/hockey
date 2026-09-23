@@ -23,6 +23,7 @@ from tournament_scheduler.season_state import (
     calendar_booking_findings,
     confirm_calendar_booking,
     load_decisions,
+    release_calendar_booking,
     load_schedule,
     move_tournament,
     promote_from_stage3,
@@ -197,6 +198,108 @@ def test_calendar_booking_confirmation_binds_event_only_to_matching_tournament(t
     assert {p["tournament_id"] for p in verification["manual_external_conflict_placements"]} == {"t2"}
 
 
+def test_stale_calendar_booking_association_fails_closed_when_tournament_moves(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": _teams(),
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {"A": [{"date": "2026-09-12", "start": "10:00", "end": "12:00", "availability": "fixed_busy", "calendar_event": "Miniputt"}]},
+    }
+    event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)["booking_candidates"][0]["calendar_event"]["fingerprint"]
+    confirm_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t1", problem=problem)
+
+    # Persist the placement change through a legacy path to simulate a stale canonical association.
+    schedule_path = root / "2026-2027" / "schedule.json"
+    saved = json.loads(schedule_path.read_text(encoding="utf-8"))
+    saved["plan"]["tournaments"][0]["arena"] = "Arena B"
+    schedule_path.write_text(json.dumps(saved), encoding="utf-8")
+
+    findings = calendar_booking_findings(season="2026-2027", root=root, problem=problem)
+    assert "tournament_arena_changed" in findings["findings"][0]["reasons"]
+    from tournament_scheduler.calendar_bookings import project_associations_into_problem
+    from tournament_scheduler.planning_contract import verify_candidate
+
+    plan = load_schedule("2026-2027", root=root)["plan"]
+    projected = project_associations_into_problem(problem, load_decisions("2026-2027", root=root), plan)
+    verification = verify_candidate(plan, projected)
+    assert {p["tournament_id"] for p in verification["manual_external_conflict_placements"]} == {"t1"}
+
+
+def test_stale_calendar_booking_association_fails_closed_when_start_time_changes(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": _teams(),
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {"A": [{"date": "2026-09-12", "start": "10:00", "end": "12:00", "availability": "fixed_busy", "calendar_event": "Miniputt"}]},
+    }
+    event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)["booking_candidates"][0]["calendar_event"]["fingerprint"]
+    confirm_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t1", problem=problem)
+    schedule_path = root / "2026-2027" / "schedule.json"
+    saved = json.loads(schedule_path.read_text(encoding="utf-8"))
+    saved["plan"]["tournaments"][0]["start_time"] = "10:30"
+    schedule_path.write_text(json.dumps(saved), encoding="utf-8")
+
+    findings = calendar_booking_findings(season="2026-2027", root=root, problem=problem)
+    assert "tournament_start_time_changed" in findings["findings"][0]["reasons"]
+    from tournament_scheduler.calendar_bookings import project_associations_into_problem
+    from tournament_scheduler.planning_contract import verify_candidate
+
+    plan = load_schedule("2026-2027", root=root)["plan"]
+    projected = project_associations_into_problem(problem, load_decisions("2026-2027", root=root), plan)
+    assert verify_candidate(plan, projected)["manual_external_conflict_placements"][0]["tournament_id"] == "t1"
+
+
+def test_calendar_booking_release_is_required_before_rebind(tmp_path):
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("t1"),
+            _tournament(
+                "t2",
+                arena="Arena B",
+                teams=[
+                    {"club": "A", "label": "A2", "age_group": "U10"},
+                    {"club": "E", "label": "E1", "age_group": "U10"},
+                    {"club": "F", "label": "F1", "age_group": "U10"},
+                    {"club": "G", "label": "G1", "age_group": "U10"},
+                ],
+            ),
+        ],
+    )
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": [*_teams(("A", "B", "C", "D")), {"club": "A", "label": "A2", "age_group": "U10"}, *_teams(("E", "F", "G"))],
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {"A": [{"date": "2026-09-12", "start": "10:00", "end": "12:00", "availability": "fixed_busy", "calendar_event": "Miniputt"}]},
+    }
+    event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)["booking_candidates"][0]["calendar_event"]["fingerprint"]
+    confirm_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t1", problem=problem)
+    with pytest.raises(SeasonStateError, match="release it before rebinding"):
+        confirm_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t2", problem=problem)
+
+    release = release_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t1", note="wrong match")
+    assert release["released"][0]["status"] == "released"
+    result = confirm_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t2", problem=problem)
+    assert result["association"]["tournament_id"] == "t2"
+
+
 def test_calendar_booking_confirmation_rejects_wrong_tournament_and_reports_stale(tmp_path):
     root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-19", host="A")])
     problem = {
@@ -241,6 +344,23 @@ def test_calendar_booking_confirmation_rejects_wrong_tournament_and_reports_stal
     changed_problem = dict(problem)
     changed_problem["club_busy_intervals"] = {"A": []}
     findings = calendar_booking_findings(season="2026-2027", root=root, problem=changed_problem)
+    assert findings["findings"][0]["code"] == "stale_calendar_booking_association"
+    assert "event_missing" in findings["findings"][0]["reasons"]
+
+    renamed_problem = dict(problem)
+    renamed_problem["club_busy_intervals"] = {
+        "A": [
+            {
+                "date": "2026-09-12",
+                "start": "10:00",
+                "end": "12:00",
+                "kind": "external",
+                "availability": "fixed_busy",
+                "calendar_event": "Renamed Miniputt",
+            }
+        ]
+    }
+    findings = calendar_booking_findings(season="2026-2027", root=root, problem=renamed_problem)
     assert findings["findings"][0]["code"] == "stale_calendar_booking_association"
     assert "event_missing" in findings["findings"][0]["reasons"]
 

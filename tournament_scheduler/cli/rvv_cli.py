@@ -1221,7 +1221,7 @@ def _canonical_verification_problem(
                 resolved = dict(problem)
                 resolved = project_exceptions_into_problem(resolved, decisions)
                 resolved = project_banned_dates_into_problem(resolved, decisions)
-                resolved = project_associations_into_problem(resolved, decisions) or resolved
+                resolved = project_associations_into_problem(resolved, decisions, schedule.get("plan") or {}) or resolved
                 return resolved
         except Exception:
             pass
@@ -1314,6 +1314,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         change_protection_report,
         confirm_calendar_booking,
         decisions_path,
+        release_calendar_booking,
         fill_guest_slot,
         guest_slot_candidates,
         guest_slot_report,
@@ -1397,7 +1398,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
             verification_problem = project_exceptions_into_problem(verification_problem, decisions)
             verification_problem = project_banned_dates_into_problem(verification_problem, decisions)
             verification_problem = (
-                project_associations_into_problem(verification_problem, decisions) or verification_problem
+                project_associations_into_problem(verification_problem, decisions, schedule.get("plan") or {})
+                or verification_problem
             )
             # The public/source presentation snapshot is carried with the
             # promoted handoff, so export never reads mutable `.pipeline`
@@ -1703,6 +1705,23 @@ def _cmd_season(args: argparse.Namespace) -> int:
                         f"[yellow]⚠[/yellow] {finding.get('tournament_id')} "
                         f"{finding.get('event_fingerprint')}: {', '.join(finding.get('reasons') or [])}"
                     )
+            return 0
+
+        if args.season_command == "release-calendar-booking":
+            result = release_calendar_booking(
+                season=args.season,
+                root=args.root,
+                event_fingerprint=args.event_fingerprint,
+                tournament_id=args.tournament_id,
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                prefix = "Validated release of" if args.dry_run else "Released"
+                _console.print(f"[green]✓[/green] {prefix} {len(result.get('released') or [])} calendar booking association(s)")
             return 0
 
         if args.season_command == "move":

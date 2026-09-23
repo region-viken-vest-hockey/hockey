@@ -282,9 +282,10 @@ def load_context(
     from .canonical_banned_dates import project_banned_dates_into_problem
     from .canonical_holiday_exceptions import project_exceptions_into_problem
 
+    plan = dict(schedule.get("plan") or {})
     problem = project_exceptions_into_problem(problem, decisions)
     problem = project_banned_dates_into_problem(problem, decisions)
-    problem = project_associations_into_problem(problem, decisions) or problem
+    problem = project_associations_into_problem(problem, decisions, plan) or problem
     # A persisted operator acceptance is injected as verifier search evidence so
     # the same independent verifier that classifies every other deviation also
     # honours an explicit operator_accepted decision -- and stops honouring it
@@ -292,7 +293,7 @@ def load_context(
     problem["participation_search_evidence"] = search_evidence_from_acceptances(
         load_participation_acceptances(season, root=root)
     )
-    return schedule, decisions, dict(schedule.get("plan") or {}), problem
+    return schedule, decisions, plan, problem
 
 
 def _acceptances_by_scope(

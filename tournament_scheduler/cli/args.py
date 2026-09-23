@@ -1129,6 +1129,19 @@ def build_parser() -> argparse.ArgumentParser:
     season_booking_findings.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_findings.add_argument("--json", action="store_true", help="Print structured JSON")
 
+    season_release_booking = season_sub.add_parser(
+        "release-calendar-booking",
+        help="Release an active scraped-event booking association before rebinding",
+    )
+    season_release_booking.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_release_booking.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_release_booking.add_argument("--event-fingerprint", required=True, help="Scraped calendar event fingerprint")
+    season_release_booking.add_argument("--tournament-id", default=None, help="Optional associated tournament id to release")
+    season_release_booking.add_argument("--actor", default=None, help="Operator identity")
+    season_release_booking.add_argument("--note", default="", help="Audited reason for releasing this association")
+    season_release_booking.add_argument("--dry-run", action="store_true", help="Validate without writing canonical state")
+    season_release_booking.add_argument("--json", action="store_true", help="Print structured JSON")
+
     season_move = season_sub.add_parser("move", help="Apply a verified placement mutation to canonical schedule state")
     season_move.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_move.add_argument("--tournament-id", required=True, help="Durable tournament id to mutate")

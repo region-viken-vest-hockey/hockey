@@ -473,6 +473,18 @@ class CanonicalSeasonService:
     ) -> dict[str, Any]:
         return _calendars.confirm_calendar_booking(self, season=season, event_fingerprint=event_fingerprint, tournament_id=tournament_id, actor=actor, note=note, problem=problem, dry_run=dry_run)
 
+    def release_calendar_booking(
+        self,
+        *,
+        season: str,
+        event_fingerprint: str,
+        tournament_id: str | None = None,
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _calendars.release_calendar_booking(self, season=season, event_fingerprint=event_fingerprint, tournament_id=tournament_id, actor=actor, note=note, dry_run=dry_run)
+
     def approve_tournament(
         self,
         *,

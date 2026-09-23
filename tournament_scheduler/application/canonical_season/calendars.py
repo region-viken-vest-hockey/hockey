@@ -400,6 +400,18 @@ def confirm_calendar_booking(
     if diagnostics:
         raise SeasonStateError("Calendar booking is not compatible with tournament: " + ", ".join(diagnostics))
 
+    for record in decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []:
+        if not isinstance(record, Mapping) or record.get("status", "active") != "active":
+            continue
+        if str(record.get("event_fingerprint") or "") != event_fingerprint:
+            continue
+        existing_tournament_id = str(record.get("tournament_id") or "")
+        if existing_tournament_id and existing_tournament_id != tournament_id:
+            raise SeasonStateError(
+                "Calendar event already has an active tournament association; "
+                "release it before rebinding"
+            )
+
     resolved_actor = _operator_identity(actor)
     assoc = new_association_record(
         event=event,
@@ -471,3 +483,58 @@ def confirm_calendar_booking(
         "approved": committed.decisions.get("decisions", {}).get(tournament_id),
         "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
     }
+
+
+def release_calendar_booking(
+    service,
+    *,
+    season: str,
+    event_fingerprint: str,
+    tournament_id: str | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Release an active event->tournament association before rebinding."""
+
+    snapshot = service.load(season)
+    decisions = snapshot.decisions
+    resolved_actor = _operator_identity(actor)
+    now = _now_iso()
+    updated = dict(decisions)
+    records: list[dict[str, Any]] = []
+    released: list[dict[str, Any]] = []
+    for record in updated.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []:
+        if not isinstance(record, Mapping):
+            continue
+        row = dict(record)
+        matches = str(row.get("event_fingerprint") or "") == event_fingerprint and row.get("status", "active") == "active"
+        if tournament_id is not None:
+            matches = matches and str(row.get("tournament_id") or "") == tournament_id
+        if matches:
+            row["status"] = "released"
+            row["released_at"] = now
+            row["released_by"] = resolved_actor
+            row["release_note"] = note or ""
+            released.append(row)
+        records.append(row)
+    if not released:
+        raise SeasonStateError("No active calendar booking association matched the release request")
+    updated[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = records
+    updated["updated_at"] = now
+    for row in released:
+        _append_decision_history(
+            updated,
+            event="release_calendar_booking",
+            tournament_id=str(row.get("tournament_id") or ""),
+            actor=resolved_actor,
+            now=now,
+            note=note,
+            details={"event_fingerprint": event_fingerprint, "association_id": row.get("id")},
+        )
+    result = {"season": season, "dry_run": dry_run, "released": released}
+    if dry_run:
+        return result
+    committed = service._commit(snapshot.with_decisions(updated))
+    result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
+    return result

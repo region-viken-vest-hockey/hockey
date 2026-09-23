@@ -62,7 +62,9 @@ def _build_export_verification_problem(
             decisions = canonical_state["decisions"]
             problem = project_exceptions_into_problem(problem, decisions)
             problem = project_banned_dates_into_problem(problem, decisions)
-            problem = project_associations_into_problem(problem, decisions) or problem
+            problem = project_associations_into_problem(
+                problem, decisions, (canonical_state.get("schedule") or {}).get("plan") or {}
+            ) or problem
         return problem
     except Exception:
         return None
