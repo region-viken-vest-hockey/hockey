@@ -327,10 +327,12 @@ def test_canonical_export_uses_publication_history_not_requested_export_dir(tmp_
             "published_at": "2026-09-21T09:14:53+00:00",
         }
     )
-    # Simulate the real legacy baseline: published before manifests had a
-    # schedule_projection, while season_plan.html still embeds stable ids.
+    # Simulate the real committed legacy baseline: published before manifests
+    # had a schedule_projection and without the HTML file, while the Spond
+    # workbook can still be bound back to stable canonical ids.
     manifest.pop("schedule_projection", None)
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    (published_dir / "season_plan.html").unlink()
 
     assert main(["season", "promote", "--work-dir", str(state.work_dir), "--root", str(tmp_path / "season")]) == 0
     capsys.readouterr()
