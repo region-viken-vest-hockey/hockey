@@ -460,6 +460,21 @@ class CanonicalSeasonService:
     def calendar_booking_findings(self, *, season: str, problem: dict[str, Any] | None = None) -> dict[str, Any]:
         return _calendars.calendar_booking_findings(self, season=season, problem=problem)
 
+    def booking_status_report(self, *, season: str, problem: dict[str, Any] | None = None) -> dict[str, Any]:
+        return _calendars.booking_status_report(self, season=season, problem=problem)
+
+    def reconcile_calendar_bookings(
+        self,
+        *,
+        season: str,
+        club: str,
+        actor: str | None = None,
+        note: str = "",
+        problem: dict[str, Any] | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _calendars.reconcile_calendar_bookings(self, season=season, club=club, actor=actor, note=note, problem=problem, dry_run=dry_run)
+
     def confirm_calendar_booking(
         self,
         *,

@@ -14,20 +14,47 @@ from typing import Any, Iterable, Mapping
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 CALENDAR_BOOKING_ASSOCIATIONS_KEY = "calendar_booking_associations"
+TOURNAMENT_BOOKING_EVIDENCE_KEY = "tournament_booking_evidence"
 ACTIVE = "active"
 STALE = "stale"
+BOOKING_CONFIRMED_BOOKED = "confirmed_booked"
+BOOKING_CONFIRMED_NOT_BOOKED = "confirmed_not_booked"
+BOOKING_AMBIGUOUS = "ambiguous"
+BOOKING_NOT_CHECKABLE = "not_checkable"
+BOOKING_UNKNOWN = "unknown"
+
+_ATTENTION_BOOKING_STATUSES = {BOOKING_CONFIRMED_NOT_BOOKED, BOOKING_AMBIGUOUS, BOOKING_NOT_CHECKABLE, STALE}
 
 
 def event_fingerprint(event: Mapping[str, Any]) -> str:
     """Return the stable identity for one normalized calendar interval."""
 
-    payload = {
+    payload = _event_fingerprint_payload(event)
+    return stable_payload_sha256(payload)
+
+
+def _event_fingerprint_payload(event: Mapping[str, Any]) -> dict[str, str]:
+    return {
         "club": str(event.get("club") or ""),
         "date": str(event.get("date") or ""),
         "start": str(event.get("start") or ""),
         "end": str(event.get("end") or ""),
         "calendar_event": str(event.get("calendar_event") or event.get("title") or ""),
         "availability": str(event.get("availability") or ""),
+    }
+
+
+def club_calendar_fingerprint(problem: Mapping[str, Any] | None, club: str) -> str:
+    """Fingerprint one club's current calendar evidence for booking review."""
+
+    events = sorted(
+        (_event_fingerprint_payload(event) for event in iter_events(problem) if str(event.get("club") or "") == club),
+        key=lambda item: (item["date"], item["start"], item["end"], item["calendar_event"]),
+    )
+    payload = {
+        "club": club,
+        "status": str(((problem or {}).get("club_calendar_status") or {}).get(club) or ""),
+        "events": events,
     }
     return stable_payload_sha256(payload)
 
@@ -169,6 +196,16 @@ def associated_tournament_for_event(
     return None
 
 
+def tournament_booking_facts(tournament: Mapping[str, Any]) -> dict[str, str]:
+    return {
+        "host_club": str(tournament.get("host_club") or ""),
+        "arena": str(tournament.get("arena") or ""),
+        "date": str(tournament.get("date") or ""),
+        "start_time": str(tournament.get("start_time") or ""),
+        "age_group": str(tournament.get("age_group") or ""),
+    }
+
+
 def new_association_record(
     *,
     event: Mapping[str, Any],
@@ -191,18 +228,128 @@ def new_association_record(
         "end": str(event.get("end") or ""),
         "title": str(event.get("calendar_event") or event.get("title") or ""),
         "availability": str(event.get("availability") or ""),
-        "tournament_facts": {
-            "host_club": str(tournament.get("host_club") or ""),
-            "arena": str(tournament.get("arena") or ""),
-            "date": str(tournament.get("date") or ""),
-            "start_time": str(tournament.get("start_time") or ""),
-            "age_group": str(tournament.get("age_group") or ""),
-        },
+        "tournament_facts": tournament_booking_facts(tournament),
         "source_revision": source_revision,
         "note": note or "",
         "created_at": now,
         "created_by": actor,
     }
+
+
+def new_booking_evidence_record(
+    *,
+    tournament: Mapping[str, Any],
+    status: str,
+    problem: Mapping[str, Any] | None,
+    actor: str,
+    note: str,
+    checked_at: str,
+    source_revision: str,
+    event: Mapping[str, Any] | None = None,
+    reason: str = "",
+) -> dict[str, Any]:
+    club = str(tournament.get("host_club") or "")
+    tournament_id = str(tournament.get("id") or "")
+    event_fp = str(event.get("fingerprint") or event_fingerprint(event)) if event is not None else ""
+    return {
+        "id": f"booking_evidence:{tournament_id}:{checked_at}",
+        "status": status,
+        "tournament_id": tournament_id,
+        "host_club": club,
+        "arena": str(tournament.get("arena") or ""),
+        "date": str(tournament.get("date") or ""),
+        "start_time": str(tournament.get("start_time") or ""),
+        "tournament_facts": tournament_booking_facts(tournament),
+        "calendar_fingerprint": club_calendar_fingerprint(problem, club),
+        "event_fingerprint": event_fp,
+        "source_calendar_status": str(((problem or {}).get("club_calendar_status") or {}).get(club) or ""),
+        "checked_at": checked_at,
+        "checked_by": actor,
+        "note": note or "",
+        "reason": reason,
+        "source_revision": source_revision,
+    }
+
+
+def _booking_record_stale_reasons(
+    record: Mapping[str, Any],
+    *,
+    problem: Mapping[str, Any] | None,
+    tournaments: Mapping[str, Mapping[str, Any]],
+) -> list[str]:
+    tid = str(record.get("tournament_id") or "")
+    tournament = tournaments.get(tid)
+    reasons: list[str] = []
+    if tournament is None:
+        reasons.append("tournament_missing")
+    else:
+        facts = record.get("tournament_facts") or {}
+        for key, value in tournament_booking_facts(tournament).items():
+            if str(facts.get(key) or "") != value:
+                reasons.append(f"tournament_{key}_changed")
+    club = str(record.get("host_club") or (tournament or {}).get("host_club") or "")
+    if club and str(record.get("calendar_fingerprint") or "") != club_calendar_fingerprint(problem, club):
+        reasons.append("calendar_evidence_changed")
+    return sorted(set(reasons))
+
+
+def booking_status_report(
+    *,
+    problem: Mapping[str, Any] | None,
+    plan: Mapping[str, Any] | None,
+    decisions: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    tournaments = _tournaments_by_id(plan)
+    active_assoc_ids = {str(record.get("tournament_id") or "") for record in valid_active_associations(decisions, problem=problem, plan=plan)}
+    assoc_stale_by_tournament = {
+        str(finding.get("tournament_id") or "")
+        for finding in association_findings(problem=problem, plan=plan, decisions=decisions)
+        if finding.get("code") == "stale_calendar_booking_association"
+    }
+    latest: dict[str, dict[str, Any]] = {}
+    for record in (decisions or {}).get(TOURNAMENT_BOOKING_EVIDENCE_KEY) or []:
+        if not isinstance(record, Mapping):
+            continue
+        tid = str(record.get("tournament_id") or "")
+        if not tid:
+            continue
+        previous = latest.get(tid)
+        if previous is None or str(record.get("checked_at") or "") >= str(previous.get("checked_at") or ""):
+            latest[tid] = dict(record)
+
+    rows: list[dict[str, Any]] = []
+    counts = {BOOKING_UNKNOWN: 0, BOOKING_CONFIRMED_BOOKED: 0, BOOKING_CONFIRMED_NOT_BOOKED: 0, BOOKING_AMBIGUOUS: 0, BOOKING_NOT_CHECKABLE: 0, STALE: 0, "needs_attention": 0}
+    for tid, tournament in sorted(tournaments.items()):
+        record = latest.get(tid)
+        status = BOOKING_UNKNOWN
+        stale_reasons: list[str] = []
+        if tid in active_assoc_ids:
+            status = BOOKING_CONFIRMED_BOOKED
+        elif tid in assoc_stale_by_tournament:
+            status = STALE
+            stale_reasons = ["calendar_booking_association_stale"]
+        elif record:
+            stale_reasons = _booking_record_stale_reasons(record, problem=problem, tournaments=tournaments)
+            status = STALE if stale_reasons else str(record.get("status") or BOOKING_UNKNOWN)
+        row = {
+            "tournament_id": tid,
+            "status": status,
+            "host_club": str(tournament.get("host_club") or ""),
+            "age_group": str(tournament.get("age_group") or ""),
+            "arena": str(tournament.get("arena") or ""),
+            "date": str(tournament.get("date") or ""),
+            "start_time": str(tournament.get("start_time") or ""),
+            "needs_attention": status in _ATTENTION_BOOKING_STATUSES,
+            "stale_reasons": stale_reasons,
+        }
+        if record:
+            row["evidence"] = record
+        rows.append(row)
+        counts.setdefault(status, 0)
+        counts[status] += 1
+        if row["needs_attention"]:
+            counts["needs_attention"] += 1
+    return {"tournaments": rows, "counts": counts}
 
 
 def association_findings(

@@ -65,6 +65,8 @@ scripts/rvv-miniputt season reconcile-config --season 2026-2027 --dry-run
 scripts/rvv-miniputt season reconcile-config --season 2026-2027
 scripts/rvv-miniputt season approvals --season 2026-2027
 scripts/rvv-miniputt season calendar-booking-candidates --season 2026-2027 --club Jar
+scripts/rvv-miniputt season reconcile-calendar-bookings --season 2026-2027 --club Jar --note "Reviewed complete host calendar"
+scripts/rvv-miniputt season booking-status --season 2026-2027
 scripts/rvv-miniputt season confirm-calendar-booking --season 2026-2027 --event-fingerprint <fingerprint> --tournament-id <id> --note "Matched to host calendar booking"
 scripts/rvv-miniputt season release-calendar-booking --season 2026-2027 --event-fingerprint <fingerprint> --tournament-id <id> --note "superseded match"
 scripts/rvv-miniputt season calendar-booking-findings --season 2026-2027

@@ -139,6 +139,67 @@ def _embedded_tournaments(html: str) -> list[dict]:
 # Tests
 # ---------------------------------------------------------------------------
 
+class TestBookingStatusRendering:
+    def test_schedule_exposes_booking_status_filters_cards_and_heatmap_items(self, tmp_path):
+        plan_dict = {
+            "start_date": "2025-10-01",
+            "end_date": "2025-12-01",
+            "tournaments": [
+                {
+                    "id": "t-booked",
+                    "date": "2025-10-05",
+                    "arena": "Kongsberghallen",
+                    "age_group": "U10",
+                    "host_club": "Kongsberg",
+                    "teams": [
+                        {"club": "Kongsberg", "label": "K1", "age_group": "U10"},
+                        {"club": "Skien", "label": "S1", "age_group": "U10"},
+                    ],
+                    "games": [{"home": "K1", "away": "S1", "parallel_slot": 0, "round_number": 1}],
+                    "start_time": "09:00",
+                },
+                {
+                    "id": "t-missing",
+                    "date": "2025-10-05",
+                    "arena": "Kongsberghallen",
+                    "age_group": "U12",
+                    "host_club": "Kongsberg",
+                    "teams": [
+                        {"club": "Kongsberg", "label": "K2", "age_group": "U12"},
+                        {"club": "Skien", "label": "S2", "age_group": "U12"},
+                    ],
+                    "games": [{"home": "K2", "away": "S2", "parallel_slot": 0, "round_number": 1}],
+                    "start_time": "11:00",
+                },
+            ],
+        }
+        plan = season_plan_from_dict(plan_dict)
+        exporter = HtmlExporter()
+        out_path = tmp_path / "season_plan.html"
+        exporter.export(
+            plan,
+            out_path,
+            age_groups=["U10", "U12"],
+            pipeline_meta={
+                "booking_status": {
+                    "counts": {"confirmed_booked": 1, "confirmed_not_booked": 1, "unknown": 0, "needs_attention": 1},
+                    "tournaments": [
+                        {"tournament_id": "t-booked", "status": "confirmed_booked", "needs_attention": False},
+                        {"tournament_id": "t-missing", "status": "confirmed_not_booked", "needs_attention": True},
+                    ],
+                }
+            },
+        )
+        html = out_path.read_text(encoding="utf-8")
+        embedded = {row["id"]: row for row in _embedded_tournaments(html)}
+        assert embedded["t-booked"]["bs"] == "confirmed_booked"
+        assert embedded["t-missing"]["ba"] is True
+        assert 'id="filterBooking"' in html
+        assert "IKKE BOOKET" in html
+        assert "heatmap-booking-confirmed_not_booked" in html
+        assert "booket bekreftet" in html
+
+
 class TestTeamFilter:
     """The season schedule exposes exact team filtering for club review."""
 

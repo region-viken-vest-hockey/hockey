@@ -19,9 +19,11 @@ from tournament_scheduler.season_state import (
     apply_candidate,
     approval_report,
     approve_tournament,
+    booking_status_report,
     calendar_booking_candidates,
     calendar_booking_findings,
     confirm_calendar_booking,
+    reconcile_calendar_bookings,
     load_decisions,
     release_calendar_booking,
     load_schedule,
@@ -196,6 +198,70 @@ def test_calendar_booking_confirmation_binds_event_only_to_matching_tournament(t
     associated_problem = project_associations_into_problem(problem, decisions)
     verification = verify_candidate(plan, associated_problem)
     assert {p["tournament_id"] for p in verification["manual_external_conflict_placements"]} == {"t2"}
+
+
+def test_club_reconciliation_records_negative_booking_evidence_and_stales_on_move(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-19")])
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": _teams(),
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {
+            "A": [
+                {"date": "2026-09-12", "start": "10:00", "end": "12:00", "availability": "fixed_busy", "calendar_event": "Miniputt U10"}
+            ]
+        },
+    }
+
+    result = reconcile_calendar_bookings(
+        season="2026-2027",
+        root=root,
+        club="A",
+        actor="booker",
+        note="reviewed complete host calendar",
+        problem=problem,
+    )
+    statuses = {row["tournament_id"]: row["status"] for row in result["classified"]}
+    assert statuses == {"t1": "confirmed_booked", "t2": "confirmed_not_booked"}
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert {row["tournament_id"]: row["status"] for row in report["tournaments"]} == statuses
+    assert report["counts"]["confirmed_not_booked"] == 1
+    assert report["counts"]["needs_attention"] == 1
+
+    schedule_path = root / "2026-2027" / "schedule.json"
+    saved = json.loads(schedule_path.read_text(encoding="utf-8"))
+    saved["plan"]["tournaments"][1]["date"] = "2026-09-20"
+    schedule_path.write_text(json.dumps(saved), encoding="utf-8")
+
+    stale = booking_status_report(season="2026-2027", root=root, problem=problem)
+    t2 = next(row for row in stale["tournaments"] if row["tournament_id"] == "t2")
+    assert t2["status"] == "stale"
+    assert "tournament_date_changed" in t2["stale_reasons"]
+
+
+def test_club_reconciliation_does_not_record_negative_evidence_for_blocked_source(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": _teams(),
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "blocked"},
+        "club_busy_intervals": {"A": []},
+    }
+    result = reconcile_calendar_bookings(season="2026-2027", root=root, club="A", problem=problem)
+    assert result["classified"][0]["status"] == "not_checkable"
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert report["tournaments"][0]["status"] == "not_checkable"
+    assert report["counts"]["confirmed_not_booked"] == 0
 
 
 def test_stale_calendar_booking_association_fails_closed_when_tournament_moves(tmp_path):

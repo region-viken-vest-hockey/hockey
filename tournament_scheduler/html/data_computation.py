@@ -220,12 +220,17 @@ def compute_team_travel_info(plan: object) -> tuple[dict[str, int], str, str, in
 # ---------------------------------------------------------------------------
 
 
-def compute_heatmap_data(plan: object) -> tuple[dict[str, dict[str, list[str]]], list[str], list[str]]:
+def compute_heatmap_data(
+    plan: object,
+    *,
+    booking_by_tournament: dict[str, dict[str, object]] | None = None,
+) -> tuple[dict[str, dict[str, list[dict[str, str]]]], list[str], list[str]]:
     """Build the heatmap dict from tournament data.
 
     Returns a 3‑tuple ``(heatmap, heatmap_weeks, heatmap_clubs)``.
     """
-    heatmap: dict[str, dict[str, list[str]]] = {}
+    booking_by_tournament = booking_by_tournament or {}
+    heatmap: dict[str, dict[str, list[dict[str, str]]]] = {}
     all_host_clubs: set[str] = set()
     for t in getattr(plan, "tournaments", []):
         if getattr(t, "cancelled", False) or not getattr(t, "date", None):
@@ -235,7 +240,14 @@ def compute_heatmap_data(plan: object) -> tuple[dict[str, dict[str, list[str]]],
             continue
         iso_year, iso_week, _ = getattr(t, "date").isocalendar()
         week_key = f"{iso_year}-W{iso_week:02d}"
-        heatmap.setdefault(week_key, {}).setdefault(host, []).append(getattr(t, "age_group", ""))
+        booking = booking_by_tournament.get(str(getattr(t, "id", ""))) or {}
+        heatmap.setdefault(week_key, {}).setdefault(host, []).append(
+            {
+                "age_group": str(getattr(t, "age_group", "")),
+                "tournament_id": str(getattr(t, "id", "")),
+                "booking_status": str(booking.get("status") or "unknown"),
+            }
+        )
         all_host_clubs.add(host)
     return heatmap, sorted(heatmap.keys()), sorted(all_host_clubs)
 

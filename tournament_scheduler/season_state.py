@@ -65,11 +65,13 @@ __all__ = [
     "approve_tournament",
     "banned_date_report",
     "batch_maintenance",
+    "booking_status_report",
     "canonical_state_revision",
     "calendar_booking_candidates",
     "calendar_booking_findings",
     "change_protection_report",
     "confirm_calendar_booking",
+    "reconcile_calendar_bookings",
     "decisions_path",
     "release_calendar_booking",
     "effective_config_from_verification_problem",
@@ -427,6 +429,35 @@ def calendar_booking_findings(
     problem: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return _service(root).calendar_booking_findings(season=season, problem=problem)
+
+
+def booking_status_report(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return _service(root).booking_status_report(season=season, problem=problem)
+
+
+def reconcile_calendar_bookings(
+    *,
+    season: str,
+    club: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    problem: dict[str, Any] | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).reconcile_calendar_bookings(
+        season=season,
+        club=club,
+        actor=actor,
+        note=note,
+        problem=problem,
+        dry_run=dry_run,
+    )
 
 
 def confirm_calendar_booking(

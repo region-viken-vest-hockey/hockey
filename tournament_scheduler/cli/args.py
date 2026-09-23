@@ -1129,6 +1129,26 @@ def build_parser() -> argparse.ArgumentParser:
     season_booking_findings.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_findings.add_argument("--json", action="store_true", help="Print structured JSON")
 
+    season_booking_status = season_sub.add_parser(
+        "booking-status",
+        help="Report per-tournament booking evidence status separately from approvals",
+    )
+    season_booking_status.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_booking_status.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_booking_status.add_argument("--json", action="store_true", help="Print structured JSON")
+
+    season_reconcile_bookings = season_sub.add_parser(
+        "reconcile-calendar-bookings",
+        help="Classify all tournaments hosted by one club against that club's calendar evidence",
+    )
+    season_reconcile_bookings.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_reconcile_bookings.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_reconcile_bookings.add_argument("--club", required=True, help="Host club whose calendar was reviewed")
+    season_reconcile_bookings.add_argument("--actor", default=None, help="Operator identity")
+    season_reconcile_bookings.add_argument("--note", default="", help="Audit note for the calendar review")
+    season_reconcile_bookings.add_argument("--dry-run", action="store_true", help="Classify without writing canonical state")
+    season_reconcile_bookings.add_argument("--json", action="store_true", help="Print structured JSON")
+
     season_release_booking = season_sub.add_parser(
         "release-calendar-booking",
         help="Release an active scraped-event booking association before rebinding",

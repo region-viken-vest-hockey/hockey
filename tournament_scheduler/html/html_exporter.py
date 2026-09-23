@@ -115,9 +115,29 @@ class HtmlExporter:
             for entry in (approval_entries or [])
             if isinstance(entry, dict) and entry.get("tournament_id")
         }
+        booking_status = pipeline.get("booking_status") if isinstance(pipeline.get("booking_status"), dict) else {}
+        booking_entries = booking_status.get("tournaments") if isinstance(booking_status, dict) else None
+        booking_by_tournament = {
+            str(entry.get("tournament_id")): entry
+            for entry in (booking_entries or [])
+            if isinstance(entry, dict) and entry.get("tournament_id")
+        }
         approval_counts = approval_status.get("counts") if isinstance(approval_status, dict) else None
         approval_count_html = ""
         approval_filter_html = ""
+        booking_filter_html = ""
+        booking_counts = booking_status.get("counts") if isinstance(booking_status, dict) else None
+        if booking_counts:
+            booking_filter_html = (
+                '<select id="filterBooking" class="filter-select">'
+                '<option value="">Alle bookingstatuser</option>'
+                '<option value="needs_attention">Må følges opp</option>'
+                '<option value="confirmed_booked">Booket bekreftet</option>'
+                '<option value="confirmed_not_booked">Ikke booket</option>'
+                '<option value="unknown">Ikke kontrollert</option>'
+                '<option value="stale">Utdatert/uklar</option>'
+                '</select>'
+            )
         if approval_counts:
             approved = int(approval_counts.get("approved") or 0)
             stale = int(approval_counts.get("stale") or 0)
@@ -134,7 +154,10 @@ class HtmlExporter:
                 '</select>'
             )
         tournaments_json = self._plan_to_json(
-            plan, ice_time_for_age_group, approval_by_tournament=approval_by_tournament
+            plan,
+            ice_time_for_age_group,
+            approval_by_tournament=approval_by_tournament,
+            booking_by_tournament=booking_by_tournament,
         )
 
         # Count unique teams
@@ -162,7 +185,7 @@ class HtmlExporter:
         team_travel_json = json.dumps(team_travel, ensure_ascii=False)
 
         # Heatmap data
-        heatmap, heatmap_weeks, heatmap_clubs = compute_heatmap_data(plan)
+        heatmap, heatmap_weeks, heatmap_clubs = compute_heatmap_data(plan, booking_by_tournament=booking_by_tournament)
         heatmap_json = json.dumps(heatmap, ensure_ascii=False)
         heatmap_weeks_json = json.dumps(heatmap_weeks, ensure_ascii=False)
         heatmap_clubs_json = json.dumps(heatmap_clubs, ensure_ascii=False)
@@ -345,6 +368,7 @@ class HtmlExporter:
                 "$TOURNAMENTS_JSON$": tournaments_json,
                 "$APPROVAL_COUNT$": approval_count_html,
                 "$APPROVAL_FILTER$": approval_filter_html,
+                "$BOOKING_FILTER$": booking_filter_html,
             }
 
             html = PAGE_TEMPLATE
@@ -406,10 +430,12 @@ class HtmlExporter:
         plan: SeasonPlan,
         ice_time_for_age_group: dict[str, int] | None = None,
         approval_by_tournament: dict[str, Any] | None = None,
+        booking_by_tournament: dict[str, Any] | None = None,
     ) -> str:
         """Serialize the plan's tournaments to the compact JSON format used by the HTML."""
         ice_time_for_age_group = ice_time_for_age_group or {}
         approval_by_tournament = approval_by_tournament or {}
+        booking_by_tournament = booking_by_tournament or {}
         data = []
         # Presentation order is canonical and independent of the incidental
         # order of ``plan.tournaments`` (candidate refinement/repair/adoption
@@ -479,6 +505,10 @@ class HtmlExporter:
                 entry["ap"] = str(approval.get("status") or "")
                 if approval.get("placement_locked") or approval.get("participants_locked"):
                     entry["apl"] = True
+            booking = booking_by_tournament.get(str(t.id))
+            if booking:
+                entry["bs"] = str(booking.get("status") or "unknown")
+                entry["ba"] = bool(booking.get("needs_attention"))
             data.append(entry)
         return json.dumps(data, ensure_ascii=False)
 

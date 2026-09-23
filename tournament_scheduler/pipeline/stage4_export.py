@@ -353,9 +353,10 @@ def run(
     # them.  Best-effort: a missing/unreadable canonical season just means no
     # approval overlay, never an export failure.
     approval_status: dict[str, Any] | None = None
+    booking_status: dict[str, Any] | None = None
     try:
         from ..canonical_baseline import resolve_canonical_state
-        from ..season_state import approval_report
+        from ..season_state import approval_report, booking_status_report
 
         plan_start = getattr(plan, "start_date", None)
         plan_end = getattr(plan, "end_date", None)
@@ -363,8 +364,10 @@ def run(
             resolved = resolve_canonical_state(effective_config, plan_start, plan_end)
             if resolved:
                 approval_status = approval_report(resolved["season"], root=resolved["root"])
+                booking_status = booking_status_report(season=resolved["season"], root=resolved["root"])
     except Exception:
         approval_status = None
+        booking_status = None
 
     if plan_dict.get("placeholder") == "not_started" or (plan_checkpoint.get("not_started") and not plan.tournaments):
         message = str(plan_dict.get("message") or NOT_STARTED_MESSAGE)
@@ -681,6 +684,7 @@ def run(
         "canonical_revision": canonical_revision,
         "export_fingerprint": export_fingerprint,
         "approval_status": approval_status,
+        "booking_status": booking_status,
     }
     # Immutable public/source presentation context. The normal pipeline captures
     # it from the live workspace once, here; a canonical `season export` passes
@@ -927,6 +931,7 @@ def run(
         "canonical_season": canonical_season,
         "canonical_revision": canonical_revision,
         "approval_status": approval_status,
+        "booking_status": booking_status,
         "export_lifecycle": lifecycle_manifest,
         "supersedes": supersedes,
         "export_projection_guard": export_projection_guard,

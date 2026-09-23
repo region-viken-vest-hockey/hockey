@@ -173,6 +173,7 @@ function render() {
   var teamSel = document.getElementById('filterTeam');
   var searchSel = document.getElementById('filterSearch');
   var approvalSel = document.getElementById('filterApproval');
+  var bookingSel = document.getElementById('filterBooking');
   var timeline = document.getElementById('timeline');
   var totalTournaments = document.getElementById('totalTournaments');
   var visibleCount = document.getElementById('visibleCount');
@@ -185,6 +186,7 @@ function render() {
   var team = teamSel ? teamSel.value : '';
   var search = searchSel ? searchSel.value.toLowerCase().trim() : '';
   var approval = approvalSel ? approvalSel.value : '';
+  var booking = bookingSel ? bookingSel.value : '';
 
   var html = '';
   var visible = 0;
@@ -202,6 +204,9 @@ function render() {
     if (approval === 'approved' && t.ap !== 'approved') continue;
     if (approval === 'stale' && t.ap !== 'stale_approval') continue;
     if (approval === 'not_approved' && t.ap === 'approved') continue;
+    if (booking === 'needs_attention' && !t.ba) continue;
+    if (booking === 'stale' && t.bs !== 'stale' && t.bs !== 'ambiguous') continue;
+    if (booking && booking !== 'needs_attention' && booking !== 'stale' && (t.bs || 'unknown') !== booking) continue;
 
     visible++;
     if (!timeline) continue;
@@ -243,6 +248,18 @@ function render() {
       if (t.gs.f) guestParts.push(t.gs.f === 1 ? '1 gjesteplass fylt' : t.gs.f + ' gjesteplasser fylt');
       guestBadge = '<div class="guest-badge">' + guestParts.join(' \u00b7 ') + '</div>';
     }
+    var bookingBadge = '';
+    if (t.bs) {
+      var bookingLabels = {
+        confirmed_booked: 'BOOKET BEKREFTET',
+        confirmed_not_booked: 'IKKE BOOKET',
+        unknown: 'IKKE KONTROLLERT',
+        not_checkable: 'IKKE KONTROLLERBAR',
+        ambiguous: 'UKLAR BOOKING',
+        stale: 'BOOKINGGRUNNLAG UTDATERT'
+      };
+      bookingBadge = '<div class="booking-badge booking-badge--' + t.bs + '">' + (bookingLabels[t.bs] || t.bs) + '</div>';
+    }
     var approvalBadge = '';
     if (t.ap === 'approved') {
       approvalBadge = '<div class="approval-badge' + (t.apl ? ' approval-badge--locked' : '') + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>GODKJENT' + (t.apl ? ' · LÅST' : '') + '</div>';
@@ -251,6 +268,7 @@ function render() {
     }
     html += '<div class="tournament-card' + cancelledClass + manualClass + '" onclick="this.classList.toggle(\'expanded\')">' +
       approvalBadge +
+      bookingBadge +
       guestBadge +
       manualBadge +
       confirmationBadge +
@@ -302,6 +320,8 @@ if (ageFilter) ageFilter.addEventListener('change', function() {
 if (arenaFilter) arenaFilter.addEventListener('change', render);
 var approvalFilter = document.getElementById('filterApproval');
 if (approvalFilter) approvalFilter.addEventListener('change', render);
+var bookingFilter = document.getElementById('filterBooking');
+if (bookingFilter) bookingFilter.addEventListener('change', render);
 if (clubFilter) clubFilter.addEventListener('change', function() {
   var club = this.value;
   populateTeamOptions(true);
@@ -327,6 +347,7 @@ if (clearFilter) clearFilter.addEventListener('click', function() {
   if (clubFilter) clubFilter.value = '';
   if (teamFilter) teamFilter.value = '';
   if (approvalFilter) approvalFilter.value = '';
+  if (bookingFilter) bookingFilter.value = '';
   if (searchFilter) searchFilter.value = '';
   populateTeamOptions(false);
   if (clubDashboard) clubDashboard.style.display = 'none';

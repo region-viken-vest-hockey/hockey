@@ -1309,11 +1309,13 @@ def _cmd_season(args: argparse.Namespace) -> int:
         approve_tournament,
         banned_date_report,
         batch_maintenance,
+        booking_status_report,
         calendar_booking_candidates,
         calendar_booking_findings,
         change_protection_report,
         confirm_calendar_booking,
         decisions_path,
+        reconcile_calendar_bookings,
         release_calendar_booking,
         fill_guest_slot,
         guest_slot_candidates,
@@ -1705,6 +1707,42 @@ def _cmd_season(args: argparse.Namespace) -> int:
                         f"[yellow]⚠[/yellow] {finding.get('tournament_id')} "
                         f"{finding.get('event_fingerprint')}: {', '.join(finding.get('reasons') or [])}"
                     )
+            return 0
+
+        if args.season_command == "booking-status":
+            result = booking_status_report(season=args.season, root=args.root)
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                counts = result.get("counts") or {}
+                _console.print(
+                    f"[bold]Bookingstatus {args.season}[/bold]: "
+                    f"{counts.get('confirmed_booked', 0)} booket, "
+                    f"{counts.get('confirmed_not_booked', 0)} ikke booket, "
+                    f"{counts.get('unknown', 0)} ukjent, "
+                    f"{counts.get('needs_attention', 0)} trenger oppfølging"
+                )
+                for row in result.get("tournaments", []):
+                    if row.get("needs_attention"):
+                        _console.print(f"  [yellow]⚠[/yellow] {row.get('tournament_id')} {row.get('status')}")
+            return 0
+
+        if args.season_command == "reconcile-calendar-bookings":
+            result = reconcile_calendar_bookings(
+                season=args.season,
+                root=args.root,
+                club=args.club,
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                prefix = "Classified" if args.dry_run else "Recorded"
+                _console.print(f"[green]✓[/green] {prefix} booking evidence for {args.club}: {result.get('count')} tournament(s)")
+                for row in result.get("classified", []):
+                    _console.print(f"  {row.get('tournament_id')}: {row.get('status')} ({row.get('reason')})")
             return 0
 
         if args.season_command == "release-calendar-booking":

@@ -10,12 +10,19 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from tournament_scheduler.calendar_bookings import (
+    BOOKING_AMBIGUOUS,
+    BOOKING_CONFIRMED_BOOKED,
+    BOOKING_CONFIRMED_NOT_BOOKED,
+    BOOKING_NOT_CHECKABLE,
     CALENDAR_BOOKING_ASSOCIATIONS_KEY,
+    TOURNAMENT_BOOKING_EVIDENCE_KEY,
     association_findings,
+    booking_status_report as _booking_status_report,
     event_fingerprint,
     find_event,
     iter_events,
     new_association_record,
+    new_booking_evidence_record,
 )
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_state import (
@@ -355,6 +362,131 @@ def calendar_booking_findings(service, *, season: str, problem: dict[str, Any] |
     return {"season": season, "findings": findings, "count": len(findings)}
 
 
+def booking_status_report(service, *, season: str, problem: dict[str, Any] | None = None) -> dict[str, Any]:
+    snapshot = service.load(season)
+    resolved_problem = _resolve_plan_problem(snapshot.schedule, problem, snapshot.decisions)
+    report = _booking_status_report(
+        problem=resolved_problem,
+        plan=snapshot.schedule.get("plan") or {},
+        decisions=snapshot.decisions,
+    )
+    report["season"] = season
+    report["canonical_state_revision"] = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+    return report
+
+
+def _tournament_interval(tournament: Mapping[str, Any], ice: Mapping[str, Any]) -> tuple[int, int] | None:
+    start = str(tournament.get("start_time") or "")
+    duration = int((ice.get(str(tournament.get("age_group") or "")) or 0) or 0)
+    if duration <= 0 or ":" not in start:
+        return None
+    try:
+        h, m = (int(part) for part in start.split(":", 1))
+    except ValueError:
+        return None
+    t_start = h * 60 + m
+    return t_start, t_start + duration
+
+
+def _event_interval(event: Mapping[str, Any]) -> tuple[int, int] | None:
+    try:
+        s_h, s_m = (int(part) for part in str(event.get("start") or "").split(":", 1))
+        e_h, e_m = (int(part) for part in str(event.get("end") or "").split(":", 1))
+    except ValueError:
+        return None
+    return s_h * 60 + s_m, e_h * 60 + e_m
+
+
+def _overlaps(tournament: Mapping[str, Any], event: Mapping[str, Any], ice: Mapping[str, Any]) -> bool:
+    if str(tournament.get("date") or "") != str(event.get("date") or ""):
+        return False
+    t_interval = _tournament_interval(tournament, ice)
+    e_interval = _event_interval(event)
+    if not t_interval or not e_interval:
+        return False
+    return t_interval[0] < e_interval[1] and e_interval[0] < t_interval[1]
+
+
+def reconcile_calendar_bookings(
+    service,
+    *,
+    season: str,
+    club: str,
+    actor: str | None = None,
+    note: str = "",
+    problem: dict[str, Any] | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Classify every hosted tournament for one club against current calendar evidence."""
+
+    snapshot = service.load(season)
+    schedule, decisions = snapshot.schedule, snapshot.decisions
+    plan = schedule["plan"]
+    resolved_problem = _resolve_plan_problem(schedule, problem, decisions) or {}
+    ice = resolved_problem.get("ice_time_minutes") or {}
+    status = str((resolved_problem.get("club_calendar_status") or {}).get(club) or "")
+    trustworthy = status == "known"
+    events = [event for event in iter_events(resolved_problem) if str(event.get("club") or "") == club]
+    now = _now_iso()
+    resolved_actor = _operator_identity(actor)
+    rows: list[dict[str, Any]] = []
+    records: list[dict[str, Any]] = []
+    for tournament in plan.get("tournaments", []) or []:
+        if str(tournament.get("host_club") or "") != club:
+            continue
+        if not trustworthy:
+            booking_status = BOOKING_NOT_CHECKABLE
+            matched_event = None
+            reason = f"calendar_status:{status or 'missing'}"
+        else:
+            overlaps = [event for event in events if _overlaps(tournament, event, ice)]
+            if len(overlaps) == 1:
+                booking_status = BOOKING_CONFIRMED_BOOKED
+                matched_event = overlaps[0]
+                reason = "matched_single_overlapping_event"
+            elif len(overlaps) == 0:
+                booking_status = BOOKING_CONFIRMED_NOT_BOOKED
+                matched_event = None
+                reason = "no_overlapping_event_in_trustworthy_calendar"
+            else:
+                booking_status = BOOKING_AMBIGUOUS
+                matched_event = None
+                reason = "multiple_overlapping_events"
+        record = new_booking_evidence_record(
+            tournament=tournament,
+            status=booking_status,
+            problem=resolved_problem,
+            actor=resolved_actor,
+            note=note,
+            checked_at=now,
+            source_revision=canonical_state_revision(schedule, decisions),
+            event=matched_event,
+            reason=reason,
+        )
+        records.append(record)
+        rows.append({"tournament_id": tournament.get("id"), "status": booking_status, "reason": reason, "event_fingerprint": record.get("event_fingerprint")})
+    result = {"season": season, "club": club, "dry_run": dry_run, "classified": rows, "count": len(rows)}
+    if dry_run:
+        return result
+    updated = dict(decisions)
+    prior = [dict(record) for record in updated.get(TOURNAMENT_BOOKING_EVIDENCE_KEY) or [] if not (isinstance(record, Mapping) and str(record.get("tournament_id") or "") in {str(r.get("tournament_id") or "") for r in records})]
+    updated[TOURNAMENT_BOOKING_EVIDENCE_KEY] = prior + records
+    updated["updated_at"] = now
+    _append_decision_history(
+        updated,
+        event="reconcile_calendar_bookings",
+        tournament_id="",
+        actor=resolved_actor,
+        now=now,
+        note=note,
+        details={"club": club, "classified": rows},
+    )
+    committed = service._commit(snapshot.with_decisions(updated))
+    result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
+    result["booking_status"] = _booking_status_report(problem=resolved_problem, plan=plan, decisions=committed.decisions)
+    return result
+
+
 def confirm_calendar_booking(
     service,
     *,
@@ -431,6 +563,24 @@ def confirm_calendar_booking(
     ]
     records.append(assoc)
     updated[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = records
+    checked_at = _now_iso()
+    evidence = new_booking_evidence_record(
+        tournament=tournament,
+        status=BOOKING_CONFIRMED_BOOKED,
+        problem=base_problem,
+        actor=resolved_actor,
+        note=note,
+        checked_at=checked_at,
+        source_revision=canonical_state_revision(schedule, decisions),
+        event=event,
+        reason="operator_confirmed_calendar_booking_association",
+    )
+    prior_evidence = [
+        dict(record)
+        for record in updated.get(TOURNAMENT_BOOKING_EVIDENCE_KEY) or []
+        if not (isinstance(record, Mapping) and str(record.get("tournament_id") or "") == tournament_id)
+    ]
+    updated[TOURNAMENT_BOOKING_EVIDENCE_KEY] = prior_evidence + [evidence]
 
     temp_problem = _resolve_plan_problem(schedule, base_problem, updated)
     verification = verify_candidate(plan, temp_problem) if temp_problem else verify_candidate(plan)
@@ -440,7 +590,7 @@ def confirm_calendar_booking(
         messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
         raise SeasonStateError(f"Refusing to confirm booking for {tournament_id}: {messages}")
 
-    approved_at = _now_iso()
+    approved_at = checked_at
     tournament_fingerprint = approval_fingerprint(tournament)
     previous = dict(decisions["decisions"].get(tournament_id, {}))
     record = dict(previous)

@@ -162,6 +162,17 @@ function getClubFromTeam(team) {
     span.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + c.bg + ';border:1px solid ' + c.text + '"></span>' + club;
     legend.appendChild(span);
   });
+  [
+    ['confirmed_booked', 'booket bekreftet'],
+    ['confirmed_not_booked', 'ikke booket'],
+    ['unknown', 'ikke kontrollert'],
+    ['ambiguous', 'uklar/utdatert']
+  ].forEach(function(item) {
+    const span = document.createElement('span');
+    span.className = 'heatmap-booking-legend heatmap-booking-' + item[0];
+    span.textContent = item[1];
+    legend.appendChild(span);
+  });
 
   // Build header row: week labels with month grouping
   let headerRow = '<tr><th style="position:sticky;left:0;z-index:1;background:var(--bg);padding:6px 10px;text-align:left;color:var(--text-muted);font-weight:600;min-width:110px">Klubb</th>';
@@ -194,7 +205,22 @@ function getClubFromTeam(team) {
       const weekData = HEATMAP[wk] || {};
       const clubData = weekData[club];
       if (clubData && clubData.length) {
-        const label = clubData.join(',');
+        const items = clubData.map(function(item) {
+          if (typeof item === 'string') return {age_group: item, booking_status: 'unknown'};
+          return item || {age_group: '', booking_status: 'unknown'};
+        });
+        const label = items.map(function(item) {
+          const status = item.booking_status || 'unknown';
+          const titleMap = {
+            confirmed_booked: 'booket bekreftet',
+            confirmed_not_booked: 'ikke booket',
+            unknown: 'ikke kontrollert',
+            not_checkable: 'ikke kontrollerbar',
+            ambiguous: 'uklar booking',
+            stale: 'bookinggrunnlag utdatert'
+          };
+          return '<span class="heatmap-booking-item heatmap-booking-' + status + '" title="' + (item.age_group || '') + ' – ' + (titleMap[status] || status) + '">' + (item.age_group || '') + '</span>';
+        }).join('');
         bodyHtml += '<td style="background:' + c.bg + ';border:1px solid ' + c.text + ';padding:3px 4px;text-align:center;font-size:10px;color:' + c.text + ';font-weight:600;white-space:nowrap">' + label + '</td>';
       } else {
         bodyHtml += '<td style="background:var(--heatmap-empty-bg);border:1px solid var(--border-dim);padding:3px 4px;text-align:center"></td>';
