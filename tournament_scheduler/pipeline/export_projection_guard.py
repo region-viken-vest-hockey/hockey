@@ -8,6 +8,9 @@ stable tournament-id projection before Stage 4 writes artifacts.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+from pathlib import Path
+import re
 from typing import Any, Mapping
 
 
@@ -53,6 +56,122 @@ def tournament_projection(plan: Mapping[str, Any] | None) -> dict[str, dict[str,
             ),
         }
     return projection
+
+
+_TOURNAMENTS_RE = re.compile(r"^\s*const\s+TOURNAMENTS\s*=\s*(\[.*\]);\s*$", re.MULTILINE)
+
+
+def projection_from_export_artifacts(export_dir: str | Path) -> dict[str, dict[str, Any]]:
+    """Reconstruct a stable-id projection from legacy published artifacts.
+
+    Manifests written before the publication guard did not carry
+    ``schedule_projection``.  The committed ``season_plan.html`` embeds the
+    exact rendered tournament list with durable ids, placement fields and
+    participants, so it is the safest legacy fallback.  Refuse partial
+    reconstruction: publication safety must not silently compare against an
+    incomplete baseline.
+    """
+
+    html_path = Path(export_dir) / "season_plan.html"
+    try:
+        text = html_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ExportProjectionError(
+            {
+                "summary": (
+                    "Refusing season export: published export has no schedule_projection "
+                    f"and legacy projection artifact is unreadable: {html_path}"
+                ),
+                "export_dir": str(export_dir),
+            }
+        ) from exc
+    match = _TOURNAMENTS_RE.search(text)
+    if not match:
+        raise ExportProjectionError(
+            {
+                "summary": (
+                    "Refusing season export: published export has no schedule_projection "
+                    f"and {html_path} does not contain embedded TOURNAMENTS data"
+                ),
+                "export_dir": str(export_dir),
+            }
+        )
+    try:
+        rendered = json.loads(match.group(1))
+    except json.JSONDecodeError as exc:
+        raise ExportProjectionError(
+            {
+                "summary": (
+                    "Refusing season export: published export has no schedule_projection "
+                    f"and {html_path} contains invalid embedded TOURNAMENTS JSON"
+                ),
+                "export_dir": str(export_dir),
+            }
+        ) from exc
+    if not isinstance(rendered, list):
+        raise ExportProjectionError(
+            {
+                "summary": "Refusing season export: legacy TOURNAMENTS payload is not a list",
+                "export_dir": str(export_dir),
+            }
+        )
+    projection: dict[str, dict[str, Any]] = {}
+    for item in rendered:
+        if not isinstance(item, Mapping):
+            continue
+        tournament_id = str(item.get("id") or "")
+        if not tournament_id:
+            continue
+        participants = item.get("p") or []
+        if not isinstance(participants, list):
+            participants = []
+        projection[tournament_id] = {
+            "id": tournament_id,
+            "date": str(item.get("d") or ""),
+            "start_time": str(item.get("ts") or ""),
+            "arena": str(item.get("a") or ""),
+            "host_club": str(item.get("h") or ""),
+            "age_group": str(item.get("g") or ""),
+            "participants": sorted(
+                _participant_key(
+                    {"club": team.get("c"), "label": team.get("l"), "age_group": team.get("g")}
+                )
+                for team in participants
+                if isinstance(team, Mapping)
+            ),
+        }
+    if not projection:
+        raise ExportProjectionError(
+            {
+                "summary": "Refusing season export: legacy projection reconstruction produced no tournaments",
+                "export_dir": str(export_dir),
+            }
+        )
+    return projection
+
+
+def _published_schedule_projection(published_export: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    if not published_export:
+        return None
+    published_projection = published_export.get("schedule_projection")
+    if isinstance(published_projection, Mapping):
+        return published_projection
+    export_dir = published_export.get("export_dir")
+    if export_dir:
+        return projection_from_export_artifacts(export_dir)
+    raise ExportProjectionError(
+        {
+            "summary": (
+                "Refusing season export: published export has no schedule_projection "
+                "and no export_dir for legacy reconstruction"
+            ),
+            "published_export": {
+                key: published_export.get(key)
+                for key in ("export_id", "export_fingerprint", "canonical_revision", "lifecycle_status")
+                if published_export.get(key) is not None
+            },
+        }
+    )
 
 
 def diff_tournament_projection(
@@ -106,7 +225,7 @@ def assert_export_preserves_canonical_plan(
     canonical = tournament_projection(canonical_plan)
     proposed = tournament_projection(proposed_plan)
     canonical_delta = diff_tournament_projection(canonical, proposed)
-    published_projection = (published_export or {}).get("schedule_projection")
+    published_projection = _published_schedule_projection(published_export)
     published_delta: dict[str, Any] | None = None
     if isinstance(published_projection, Mapping):
         published_delta = diff_tournament_projection(published_projection, canonical)
@@ -139,5 +258,6 @@ __all__ = [
     "ExportProjectionError",
     "assert_export_preserves_canonical_plan",
     "diff_tournament_projection",
+    "projection_from_export_artifacts",
     "tournament_projection",
 ]

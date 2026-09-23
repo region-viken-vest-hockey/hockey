@@ -311,6 +311,118 @@ def test_canonical_export_after_workspace_deleted_retains_source_and_companions(
     assert Path(files["activities_json"]).exists()
 
 
+def test_canonical_export_uses_publication_history_not_requested_export_dir(tmp_path, capsys):
+    from tournament_scheduler.cli.rvv_cli import main
+
+    state = _seed_workspace(tmp_path)
+    initial = run_export({"plan": _plan()}, state, export_dir=str(tmp_path / "export"))
+    published_dir = Path(initial["export_dir"])
+    manifest_path = published_dir / "export_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.update(
+        {
+            "lifecycle_status": "published",
+            "canonical_season": "2026-2027",
+            "canonical_revision": "published-rev",
+            "published_at": "2026-09-21T09:14:53+00:00",
+        }
+    )
+    # Simulate the real legacy baseline: published before manifests had a
+    # schedule_projection, while season_plan.html still embeds stable ids.
+    manifest.pop("schedule_projection", None)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    assert main(["season", "promote", "--work-dir", str(state.work_dir), "--root", str(tmp_path / "season")]) == 0
+    capsys.readouterr()
+
+    schedule_path = tmp_path / "season" / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    tournament = schedule["plan"]["tournaments"][0]
+    tournament["date"] = "2026-09-13"
+    schedule["revision"] = "current-rev"
+    problem = schedule["verification_context"]["problem"]
+    problem["club_calendar_status"] = {club: "known" for club in CLUBS}
+    problem["club_busy_intervals"] = {
+        "Alfa": [
+            {
+                "date": "2026-09-13",
+                "start": "10:30",
+                "end": "12:00",
+                "availability": "fixed_busy",
+                "kind": "external",
+                "calendar_event": "Later booking",
+            }
+        ]
+    }
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    other_export_dir = tmp_path / "fresh-empty-output"
+    rc = main([
+        "season",
+        "export",
+        "--season",
+        "2026-2027",
+        "--work-dir",
+        str(state.work_dir),
+        "--root",
+        str(tmp_path / "season"),
+        "--export-dir",
+        str(other_export_dir),
+        "--flat",
+        "--json",
+    ])
+    assert rc == 0
+    captured = capsys.readouterr().out
+    result = json.loads(captured[captured.index("{") : captured.rindex("}") + 1])
+
+    guard = result["export_projection_guard"]
+    assert guard["published_to_canonical_delta"] is not None
+    assert guard["published_to_canonical_delta"]["placement_changes"][0]["tournament_id"] == "ju8-alfa-20260912"
+    assert guard["canonical_delta"]["changed"] is False
+    assert result.get("placement_normalization") in (None, {})
+    assert result["reviewed_plan"]["tournaments"][0]["date"] == "2026-09-13"
+
+
+def test_canonical_export_fails_when_legacy_published_projection_is_unrecoverable(tmp_path, capsys):
+    from tournament_scheduler.cli.rvv_cli import main
+
+    state = _seed_workspace(tmp_path)
+    run_export({"plan": _plan()}, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
+    history_dir = tmp_path / "export" / "published-without-artifacts"
+    history_dir.mkdir(parents=True)
+    (history_dir / "export_manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "export_id": "published-without-artifacts",
+                "generated_at": "2026-09-21T09:08:01+00:00",
+                "canonical_season": "2026-2027",
+                "canonical_revision": "published-rev",
+                "lifecycle_status": "published",
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert main(["season", "promote", "--work-dir", str(state.work_dir), "--root", str(tmp_path / "season")]) == 0
+    capsys.readouterr()
+
+    rc = main([
+        "season",
+        "export",
+        "--season",
+        "2026-2027",
+        "--work-dir",
+        str(state.work_dir),
+        "--root",
+        str(tmp_path / "season"),
+        "--export-dir",
+        str(tmp_path / "fresh-empty-output"),
+        "--flat",
+    ])
+    assert rc == 1
+    assert "unreadable" in capsys.readouterr().out
+
+
 def test_canonical_export_does_not_read_mutated_workspace_scrape_state(tmp_path, capsys):
     from tournament_scheduler.cli.rvv_cli import main
 

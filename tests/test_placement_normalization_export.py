@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from tournament_scheduler.pipeline.export_projection_guard import ExportProjectionError
+from tournament_scheduler.pipeline.export_projection_guard import ExportProjectionError, tournament_projection
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.stage4_export import run as run_export
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
@@ -148,6 +148,7 @@ def test_published_canonical_export_preserves_conflicting_canonical_placement(tm
             "export_id": "published-export",
             "canonical_revision": "rev-1",
             "lifecycle_status": "published",
+            "schedule_projection": tournament_projection(candidate),
         },
     )
 
@@ -176,7 +177,11 @@ def test_export_guard_rejects_unexplained_canonical_tournament_removal(tmp_path)
             effective_config_override=_config(),
             allow_placement_normalization=True,
             canonical_schedule_plan=candidate,
-            published_export_guard={"export_id": "published-export", "lifecycle_status": "published"},
+            published_export_guard={
+                "export_id": "published-export",
+                "lifecycle_status": "published",
+                "schedule_projection": tournament_projection(candidate),
+            },
         )
 
     report = excinfo.value.report

@@ -1415,14 +1415,12 @@ def _cmd_season(args: argparse.Namespace) -> int:
             except PublicExportContextError as exc:
                 raise SeasonStateError(str(exc)) from exc
 
-            from ..pipeline.export_lifecycle import PUBLISHED_STATUS, find_export_manifests
+            from ..pipeline.export_lifecycle import find_published_exports_for_season
 
-            published_exports = [
-                record
-                for record in find_export_manifests(args.export_dir)
-                if record.get("lifecycle_status") == PUBLISHED_STATUS
-                and record.get("canonical_season") == args.season
-            ]
+            published_exports = find_published_exports_for_season(
+                args.season,
+                season_root=args.root,
+            )
             latest_published_export = published_exports[0] if published_exports else None
             from ..pipeline.export_projection_guard import ExportProjectionError
 

@@ -185,6 +185,37 @@ def prune_draft_exports(export_dirs: list[Path], *, keep: int) -> list[str]:
     return removed
 
 
+def publication_history_root(season_root: str | Path = "season") -> Path:
+    """Return the repository-owned export history root for canonical seasons."""
+
+    root = Path(season_root)
+    # In normal operation ``season/`` and ``export/`` are siblings. A caller may
+    # point --root at another season-state directory in tests or recovery;
+    # publication history remains anchored next to that canonical root, not in
+    # the newly requested --export-dir.
+    return root.parent / "export"
+
+
+def find_published_exports_for_season(
+    season: str,
+    *,
+    season_root: str | Path = "season",
+) -> list[dict[str, Any]]:
+    """Return published lifecycle records for *season*, newest first.
+
+    The lookup deliberately ignores the current output directory: once a season
+    has been published, canonical export protection follows the season
+    lifecycle/publication history.
+    """
+
+    return [
+        record
+        for record in find_export_manifests(publication_history_root(season_root))
+        if record.get("lifecycle_status") == PUBLISHED_STATUS
+        and record.get("canonical_season") == season
+    ]
+
+
 def find_export_manifests(export_root: str | Path) -> list[dict[str, Any]]:
     """Return lifecycle manifests under an export root, newest first."""
     root = Path(export_root)
