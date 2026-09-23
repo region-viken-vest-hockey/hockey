@@ -12,14 +12,16 @@ RVV ?= $(ROOT_DIR)/scripts/rvv-miniputt
 ACTIVITY_INPUT ?= $(ROOT_DIR)/Årshjul for aktiviteter.xlsx
 CHECK ?= $(ROOT_DIR)/scripts/check
 RELEASE ?= $(ROOT_DIR)/scripts/release
+BOOTSTRAP ?= $(ROOT_DIR)/scripts/bootstrap
 INSTALL ?= $(ROOT_DIR)/scripts/install.sh
+PYTHON ?= $(ROOT_DIR)/venv/bin/python3
 SECRET_SCAN ?= $(ROOT_DIR)/scripts/secret-scan.sh
 RULES_REPORT ?= $(ROOT_DIR)/scripts/rules-report.sh
 KAMPVEILEDER_CONVERT ?= $(ROOT_DIR)/scripts/convert-kampveileder.sh
 
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE
 
-PUBLIC_TARGETS := help install check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
+PUBLIC_TARGETS := help bootstrap install check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
 	operator-run operator-run-force run status logs calendars calendars-refresh sources-status \
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
@@ -37,7 +39,8 @@ help:
 	@echo "RVV Miniputt operator targets (default: help)"
 	@echo ""
 	@echo "Setup and verification:"
-	@echo "  make install                       Install Python/project dependencies"
+	@echo "  make bootstrap                     Set up a new machine/checkout with Python 3.12"
+	@echo "  make install                       Reinstall Python/project dependencies"
 	@echo "  make check [ARGS='...']            Run canonical verification via scripts/check"
 	@echo "  make test [ARGS='...']             Run pytest directly for local iteration"
 	@echo "  make dependency-lock               Verify requirements.lock is fresh"
@@ -99,6 +102,9 @@ help:
 	@echo "Safety: help/all/run/operator-run never publish publicly. Mutating publish, rollback,"
 	@echo "release paths retain explicit target-specific safeguards."
 
+bootstrap:
+	@cd "$(ROOT_DIR)" && "$(BOOTSTRAP)" $(ARGS)
+
 install:
 	@cd "$(ROOT_DIR)" && sh "$(INSTALL)" $(ARGS)
 
@@ -106,7 +112,7 @@ check:
 	@cd "$(ROOT_DIR)" && "$(CHECK)" $(ARGS)
 
 test:
-	@cd "$(ROOT_DIR)" && python3 -m pytest $(ARGS)
+	@cd "$(ROOT_DIR)" && "$(PYTHON)" -m pytest $(ARGS)
 
 dependency-lock:
 	@cd "$(ROOT_DIR)" && "$(CHECK)" dependency-lock
@@ -118,7 +124,7 @@ rules-report:
 	@cd "$(ROOT_DIR)" && sh "$(RULES_REPORT)" $(ARGS)
 
 rule-catalog:
-	@cd "$(ROOT_DIR)" && python3 scripts/render-rule-catalog.py $(ARGS)
+	@cd "$(ROOT_DIR)" && "$(PYTHON)" scripts/render-rule-catalog.py $(ARGS)
 
 kampveileder-markdown:
 	@cd "$(ROOT_DIR)" && sh "$(KAMPVEILEDER_CONVERT)" $(ARGS)

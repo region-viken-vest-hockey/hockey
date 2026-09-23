@@ -13,6 +13,7 @@ MAKEFILE = ROOT / "Makefile"
 
 PUBLIC_TARGETS = [
     "help",
+    "bootstrap",
     "install",
     "check",
     "test",
@@ -228,6 +229,18 @@ class TestMakefileOperatorInterface:
 
         assert _run_make("release", f"RELEASE={fake}", "TAG=v2.0.0", env=env).returncode == 0
         assert _read_calls(log_path)[-1] == ["v2.0.0"]
+
+    def test_bootstrap_target_delegates_to_canonical_script(self, tmp_path):
+        fake, log_path = _fake_cli(tmp_path)
+        env = {"CALL_LOG": str(log_path)}
+
+        result = _run_make("bootstrap", f"BOOTSTRAP={fake}", env=env)
+
+        assert result.returncode == 0, result.stderr
+        assert _read_calls(log_path)[-1] == []
+        makefile = MAKEFILE.read_text(encoding="utf-8")
+        bootstrap_body = re.search(r"\\nbootstrap:\\n(?P<body>.*?)(?:\\n\\S|\\Z)", makefile, re.DOTALL).group("body")
+        assert "$(BOOTSTRAP)" in bootstrap_body
 
     def test_check_target_delegates_to_canonical_script(self, tmp_path):
         fake, log_path = _fake_cli(tmp_path)

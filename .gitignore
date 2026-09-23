@@ -195,3 +195,6 @@ OPENCODE.md
 # OS / local key material
 .DS_Store
 .env.keys
+
+# Repository-local bootstrap tooling (uv binary)
+.bootstrap/

@@ -1,0 +1,112 @@
+#!/bin/sh
+set -eu
+
+ROOT_DIR=$(CDPATH= cd "$(dirname "$0")/.." && pwd)
+cd "$ROOT_DIR"
+
+PYTHON_VERSION=${PYTHON_VERSION:-3.12}
+UV_VERSION=${UV_VERSION:-0.12.17}
+BOOTSTRAP_DIR=${RVV_BOOTSTRAP_DIR:-"$ROOT_DIR/.bootstrap"}
+UV_BIN="$BOOTSTRAP_DIR/bin/uv"
+VENV_DIR=${VENV_DIR:-venv}
+VENV_PY="$ROOT_DIR/$VENV_DIR/bin/python3"
+INSTALL_PLAYWRIGHT=${INSTALL_PLAYWRIGHT:-1}
+
+show_help() {
+  cat <<EOF
+Usage: scripts/bootstrap
+
+Set up a fresh RVV Hockey checkout with the repository-supported toolchain:
+  - repo-local uv $UV_VERSION
+  - Python $PYTHON_VERSION
+  - ./$VENV_DIR virtual environment
+  - locked Python dependencies
+  - Playwright Chromium (default)
+  - dependency-lock, lint and quick verification
+
+Environment overrides:
+  PYTHON_VERSION=3.12       Python minor version to provision
+  UV_VERSION=0.12.17       uv version to install
+  VENV_DIR=venv             Virtualenv directory
+  INSTALL_PLAYWRIGHT=1      Set to 0 to skip Chromium installation
+  RVV_BOOTSTRAP_DIR=.bootstrap
+                            Repo-local bootstrap tool directory
+EOF
+}
+
+case "${1:-}" in
+  -h|--help)
+    show_help
+    exit 0
+    ;;
+  "")
+    ;;
+  *)
+    echo "Error: unknown bootstrap argument: $1" >&2
+    show_help >&2
+    exit 2
+    ;;
+esac
+
+mkdir -p "$BOOTSTRAP_DIR/bin"
+
+need_uv=1
+if [ -x "$UV_BIN" ]; then
+  installed_uv=$("$UV_BIN" --version 2>/dev/null || true)
+  if [ "$installed_uv" = "uv $UV_VERSION" ]; then
+    need_uv=0
+  fi
+fi
+
+if [ "$need_uv" = "1" ]; then
+  installer_url="https://astral.sh/uv/$UV_VERSION/install.sh"
+  echo "Installing uv $UV_VERSION into $BOOTSTRAP_DIR/bin ..."
+  if command -v curl >/dev/null 2>&1; then
+    curl -LsSf "$installer_url" | env UV_UNMANAGED_INSTALL="$BOOTSTRAP_DIR/bin" sh
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- "$installer_url" | env UV_UNMANAGED_INSTALL="$BOOTSTRAP_DIR/bin" sh
+  else
+    echo "Error: bootstrap requires curl or wget to install uv." >&2
+    exit 1
+  fi
+fi
+
+if [ ! -x "$UV_BIN" ]; then
+  echo "Error: uv installer did not create $UV_BIN" >&2
+  exit 1
+fi
+
+recreate_venv=0
+if [ -x "$VENV_PY" ]; then
+  actual_python=$("$VENV_PY" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)
+  if [ "$actual_python" != "$PYTHON_VERSION" ]; then
+    echo "Existing ./$VENV_DIR uses Python ${actual_python:-unknown}; expected $PYTHON_VERSION."
+    recreate_venv=1
+  elif ! "$VENV_PY" -m pip --version >/dev/null 2>&1; then
+    echo "Existing ./$VENV_DIR has no usable pip; recreating it."
+    recreate_venv=1
+  fi
+elif [ -e "$ROOT_DIR/$VENV_DIR" ]; then
+  recreate_venv=1
+fi
+
+if [ "$recreate_venv" = "1" ]; then
+  rm -rf "$ROOT_DIR/$VENV_DIR"
+fi
+
+if [ ! -x "$VENV_PY" ]; then
+  echo "Creating ./$VENV_DIR with Python $PYTHON_VERSION ..."
+  "$UV_BIN" venv --seed --python "$PYTHON_VERSION" "$ROOT_DIR/$VENV_DIR"
+fi
+
+echo "Installing project dependencies ..."
+PYTHON_BIN="$VENV_PY" VENV_DIR="$VENV_DIR" INSTALL_PLAYWRIGHT="$INSTALL_PLAYWRIGHT" sh "$ROOT_DIR/scripts/install.sh"
+
+echo "Verifying bootstrap environment ..."
+"$ROOT_DIR/scripts/check" dependency-lock lint quick
+
+echo ""
+echo "Bootstrap complete."
+echo "Python: $("$VENV_PY" --version)"
+echo "Environment: $ROOT_DIR/$VENV_DIR"
+echo "Next: make help"

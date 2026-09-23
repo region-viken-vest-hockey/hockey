@@ -98,15 +98,15 @@ EOF
 run_named_phase() {
   case "$1" in
     dependency-lock)
-      run_phase "Python dependency lock freshness" bash -c '
+      run_phase "Python dependency lock freshness" env RVV_CHECK_PYTHON="$PYTHON_CMD" bash -c '
         set -euo pipefail
         tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/rvv-pip-tools.XXXXXX")
         trap "rm -rf \"$tmp_dir\"" EXIT
-        python3 -m venv "$tmp_dir"
+        "$RVV_CHECK_PYTHON" -m venv "$tmp_dir"
         "$tmp_dir/bin/python" -m pip install --quiet --upgrade "pip<26" "pip-tools==7.6.0"
         before_lock="$tmp_dir/requirements.lock.before"
         cp requirements.lock "$before_lock"
-        PIP_COMPILE_BIN="$tmp_dir/bin/pip-compile" scripts/refresh-python-lock.sh >/tmp/rvv-refresh-python-lock.out 2>&1
+        PYTHON="$RVV_CHECK_PYTHON" PIP_COMPILE_BIN="$tmp_dir/bin/pip-compile" scripts/refresh-python-lock.sh >/tmp/rvv-refresh-python-lock.out 2>&1
         if ! cmp -s "$before_lock" requirements.lock; then
           echo "ERROR: requirements.lock is stale. Run scripts/refresh-python-lock.sh and commit the result." >&2
           diff -u "$before_lock" requirements.lock >&2 || true
@@ -167,10 +167,10 @@ run_named_phase() {
       run_phase "Rules report sync" sh scripts/rules-report.sh
       ;;
     rule-catalog)
-      run_phase "Rule catalog sync and guards" bash -c '
+      run_phase "Rule catalog sync and guards" env RVV_CHECK_PYTHON="$PYTHON_CMD" bash -c '
         set -euo pipefail
-        python3 scripts/render-rule-catalog.py --check
-        python3 -m pytest --no-cov -q tests/test_rule_catalog.py
+        "$RVV_CHECK_PYTHON" scripts/render-rule-catalog.py --check
+        "$RVV_CHECK_PYTHON" -m pytest --no-cov -q tests/test_rule_catalog.py
       '
       ;;
     secret-scan)

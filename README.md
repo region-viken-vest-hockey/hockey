@@ -116,13 +116,24 @@ There is one Python command transport: `tournament_scheduler.cli.rvv_cli`.
 
 These are transport mechanisms, not independent products. Business rules, stage sequencing, defaults and verification must not be reimplemented in shell wrappers or harness adapters.
 
-## Developer verification
+## Developer setup and verification
+
+For a new machine or fresh checkout, the normal setup path is one command:
 
 ```bash
-make install
+make bootstrap
+```
+
+`make bootstrap` is a thin Makefile adapter over `scripts/bootstrap`. The bootstrap script installs a pinned repo-local `uv` when needed, provisions Python 3.12 to match CI, creates/recreates `./venv` with that interpreter, installs the locked project dependencies, installs Playwright Chromium, and runs dependency-lock/lint/quick verification. It does not depend on whatever `python3` version the operating system happens to provide.
+
+After bootstrap:
+
+```bash
 make check            # quick/PR tier: fast, hermetic unit/component tests
 scripts/check full    # comprehensive hermetic lane: quick + slow + integration
 ```
+
+Use `make install` only when you already have a suitable Python environment and want to reinstall project dependencies. `scripts/bootstrap` is also available directly as the underlying setup entrypoint.
 
 `scripts/check` is the canonical verification entrypoint. The default/quick
 tier deliberately excludes `slow` and `integration` tests for fast feedback.
