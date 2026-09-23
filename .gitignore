@@ -198,3 +198,4 @@ OPENCODE.md
 
 # Repository-local bootstrap tooling (uv binary)
 .bootstrap/
+.vscode
