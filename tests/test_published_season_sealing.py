@@ -414,6 +414,44 @@ def test_sealed_move_reconciles_immediately(tmp_path: Path) -> None:
     assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
 
 
+def test_sealed_roster_swap_reconciles_immediately(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)
+    service = CanonicalSeasonService(root=root)
+    before = service.load("2026-2027").schedule["plan"]
+
+    service.swap_participants(
+        season="2026-2027",
+        tournament_a_id="rvv-1",
+        team_a_label="G-rvv-1",
+        tournament_b_id="rvv-2",
+        team_b_label="G-rvv-2",
+        actor="tester",
+    )
+
+    latest = service.load("2026-2027")
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+    assert latest.schedule["plan"]["tournaments"][2] == before["tournaments"][2]
+    assert latest.decisions["history"][-1]["event"] == "participant_swap"
+
+
+def test_sealed_scoped_batch_reconciles_immediately(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)
+    service = CanonicalSeasonService(root=root)
+    service.batch_maintenance(
+        season="2026-2027",
+        operations=[{"op": "move", "tournament_id": "rvv-1", "start_time": "11:00"}],
+        scope=["rvv-1"],
+        request_id="request-1",
+        actor="tester",
+    )
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+    assert service.load("2026-2027").decisions["history"][-1]["event"] == "batch_maintenance"
+
+
 def test_normalize_placements_dry_run_is_diagnostic_on_sealed_season(tmp_path: Path) -> None:
     from tournament_scheduler.season_state import normalize_placements
 
