@@ -40,4 +40,4 @@ def test_architecture_source_is_not_an_independent_classification_catalog() -> N
     text = (ROOT / "docs/architecture/planning-model.md").read_text(encoding="utf-8")
     assert "generated classification and per-rule ownership" in text
     assert "not a manually maintained second rule table" in text
-    assert "globally" in text.lower()  # bounded frontier must not claim global optimality
+    assert "no global optimality claim" in text.lower()
