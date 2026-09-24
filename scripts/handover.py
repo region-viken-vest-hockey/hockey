@@ -103,7 +103,7 @@ def _public_revision(payload: dict[str, Any] | None, missing: list[str]) -> str 
             raise ValueError("missing season-revision")
         return parser.revision
     except (KeyError, ValueError, UnicodeError, binascii.Error):
-        missing.append("public latest/index.html: unreadable season revision")
+        missing.append("gh-pages latest/index.html: unreadable season revision")
         return None
 
 
@@ -282,7 +282,7 @@ def collect(
         "main_head": None,
         "gh_pages_head": None,
         "ci": None,
-        "public_latest_revision": None,
+        "gh_pages_latest_revision": None,
     }
     active_issue: dict[str, Any] | None = None
     open_issues: list[dict[str, Any]] = []
@@ -304,8 +304,11 @@ def collect(
                 }
             else:
                 missing.append("GitHub CI: no run for current main HEAD")
+        # Read the season revision from the gh-pages branch source, not a
+        # separately fetched deployed Pages URL; the hosted site can briefly
+        # differ from the branch and this is not a live deployment check.
         public = _api(repo, "contents/latest/index.html?ref=gh-pages", root, runner, missing)
-        github["public_latest_revision"] = _public_revision(public, missing)
+        github["gh_pages_latest_revision"] = _public_revision(public, missing)
         raw = _probe(
             "GitHub open issues",
             ["gh", "api", f"repos/{repo}/issues?state=open&sort=updated&direction=desc&per_page=30"],
@@ -363,10 +366,12 @@ def collect(
         missing.append("live GitHub state: skipped by --no-remote")
 
     if published is not None:
-        published["public_latest_revision"] = github["public_latest_revision"]
+        published["gh_pages_latest_revision"] = github["gh_pages_latest_revision"]
         published["gh_pages_head"] = github["gh_pages_head"]
-        if github["public_latest_revision"] and published["canonical_revision"] != github["public_latest_revision"]:
-            risks.append("Public latest revision does not match the repository's published manifest.")
+        if github["gh_pages_latest_revision"] and published["canonical_revision"] != github["gh_pages_latest_revision"]:
+            risks.append(
+                "gh-pages latest/index.html revision does not match the repository's published manifest."
+            )
         if isinstance(baseline, dict):
             if baseline.get("publication_id") != published["export_id"]:
                 risks.append("Canonical active publication ID differs from the repository published manifest.")
@@ -424,7 +429,12 @@ def collect(
 def render(report: dict[str, Any]) -> str:
     local, remote = report["local"], report["github"]
     pub, current = report["published"] or {}, report["canonical"] or {}
-    rec = current.get("reconciliation") or {}
+    rec = current.get("reconciliation")
+    if not isinstance(rec, dict):
+        # A malformed (non-object) reconciliation is already classified as
+        # REVIEW_REQUIRED by collect(); the human view must render that verdict
+        # instead of raising. Never describe an unreadable baseline as verified.
+        rec = {}
     lines = [
         f"RVV handover · {report['verdict']} · {report['season']}",
         f"Local: {local['branch'] or '?'} @ {local['head'] or '?'}; dirty={local['dirty']}",
@@ -432,7 +442,7 @@ def render(report: dict[str, Any]) -> str:
         f"CI: {(remote['ci'] or {}).get('conclusion') or 'UNVERIFIED'}",
         f"gh-pages HEAD: {remote['gh_pages_head'] or 'UNVERIFIED'}",
         f"Published: {pub.get('export_id') or 'UNVERIFIED'} @ {pub.get('canonical_revision') or 'UNVERIFIED'}",
-        f"Public latest HTML: {remote['public_latest_revision'] or 'UNVERIFIED'}",
+        f"gh-pages latest/index.html revision: {remote['gh_pages_latest_revision'] or 'UNVERIFIED'}",
         f"Canonical: {current.get('state') or 'UNVERIFIED'} @ {current.get('canonical_state_revision') or 'UNVERIFIED'}",
         f"Baseline reconciliation: {rec.get('ok', 'UNVERIFIED')}",
         f"Export candidates (not published): {len(report['unpublished_export_candidates'])}",

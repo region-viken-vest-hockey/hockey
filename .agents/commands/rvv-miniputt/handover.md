@@ -31,12 +31,15 @@ report says REVIEW_REQUIRED; do not fill in gaps from memory.
    GitHub Issues list. Do not claim there is a unique active task merely because
    an earlier chat worked on it. Read current issue body, comments and linked
    PR/CI; treat handover comments as leads subject to verification.
-4. Distinguish four different states: (a) actual public `gh-pages/latest`,
-   (b) its historical exported manifest/baseline, (c) current canonical
+4. Distinguish four different states: (a) the `gh-pages/latest` branch
+   source, (b) its historical exported manifest/baseline, (c) current canonical
    `season/<season>/`, (d) unpublished export candidates and calendar evidence.
-   Never treat the most recent generated export or Pages branch HEAD alone as
-   the current season identity. Activity-page publishing can advance gh-pages
-   without changing the season plan.
+   The public revision is read from the `gh-pages` branch's `latest/index.html`;
+   it is a source-branch check, not an independent query of the deployed Pages
+   URL, and the branch and hosted site can briefly differ. Never treat the most
+   recent generated export or Pages branch HEAD alone as the current season
+   identity. Activity-page publishing can advance gh-pages without changing the
+   season plan.
 5. For season operations, require live `season lifecycle --json`,
    `published_sealed`, and `reconciliation.ok == true`; investigate any
    missing/unexplained delta. Historic published canonical revision may
@@ -63,7 +66,8 @@ Use the connected GitHub app to fetch, in this order:
 - current CI on `main`, and `gh-pages` branch SHA;
 - `export/<publication-id>/export_manifest.json` for authoritative
   historical publication, plus the `season-revision` metadata in
-  `gh-pages/latest/index.html`;
+  `gh-pages/latest/index.html` (the branch source, not a separately fetched
+  deployed Pages URL);
 - inspect `season/<season>/` blob identity and relevant code or tests;
   if large canonical files cannot be processed, **do not** claim the live
   lifecycle/reconciliation has passed. Ask a checkout-capable agent to run

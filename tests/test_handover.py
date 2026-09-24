@@ -37,6 +37,7 @@ class ReadOnlyRunner:
             "canonical_revision": PUBLISHED,
         }
         self.canonical_state_revision: str | None = CURRENT
+        self.reconciliation: object | None = None
 
     def __call__(self, args: list[str], _root: Path) -> str:
         self.calls.append(tuple(args))
@@ -55,7 +56,11 @@ class ReadOnlyRunner:
             lifecycle = {
                 "state": "published_sealed",
                 "canonical_state_revision": self.canonical_state_revision,
-                "reconciliation": {"ok": self.lifecycle_ok, "unexplained_delta": {}},
+                "reconciliation": (
+                    self.reconciliation
+                    if self.reconciliation is not None
+                    else {"ok": self.lifecycle_ok, "unexplained_delta": {}}
+                ),
             }
             if self.baseline is not None:
                 lifecycle["published_baseline"] = self.baseline
@@ -135,7 +140,18 @@ def test_publication_mismatch_requires_review(tmp_path: Path) -> None:
     runner.public_revision = "unexpected"
     report = handover.collect(root=_root(tmp_path), season=SEASON, runner=runner)
     assert report["verdict"] == "REVIEW_REQUIRED"
-    assert any("Public latest revision" in row for row in report["risks"])
+    assert any("gh-pages latest/index.html revision" in row for row in report["risks"])
+
+
+def test_malformed_reconciliation_collects_and_renders_review_required(tmp_path: Path) -> None:
+    runner = ReadOnlyRunner()
+    runner.reconciliation = ["corrupt"]
+    report = handover.collect(root=_root(tmp_path), season=SEASON, repo=REPO, runner=runner)
+    assert report["verdict"] == "REVIEW_REQUIRED"
+    assert any("does not reconcile" in row for row in report["risks"])
+    text = handover.render(report)
+    assert "REVIEW_REQUIRED" in text
+    assert "Baseline reconciliation: UNVERIFIED" in text
 
 
 def test_published_manifest_is_scoped_to_requested_season(tmp_path: Path) -> None:
