@@ -815,6 +815,7 @@ def _execute_publish_pages(
     publish_result.artifacts = list(publish_result.artifacts) + list(bundle_result.artifacts)
 
     if publish_result.status in ("ok", "warning"):
+        publication_state_error: Exception | None = None
         try:
             from .export_lifecycle import promote_export_manifest, read_export_manifest
 
@@ -834,35 +835,40 @@ def _execute_publish_pages(
                     f"source_export_fingerprint={promoted.get('export_fingerprint')}",
                     f"export_lifecycle_status={promoted.get('lifecycle_status')}",
                 ]
-        except Exception as exc:  # noqa: BLE001 - publication succeeded; surface lifecycle failure explicitly.
+        except Exception as exc:  # noqa: BLE001 - publication reached Pages; persistence is now incomplete.
+            publication_state_error = exc
             publish_result.problems = list(publish_result.problems) + [
-                f"Kunne ikke markere kildeeksporten som publisert: {exc}"
+                f"INCOMPLETE PUBLICATION: Pages-publisering ble utført, men kildeeksporten ble ikke markert som publisert: {exc}"
             ]
-            if publish_result.status == "ok":
-                publish_result.status = "warning"
 
-        try:
-            from .publication_lifecycle import record_publication_seal
+        if publication_state_error is None:
+            try:
+                from .publication_lifecycle import record_publication_seal
 
-            seal_report = record_publication_seal(export_dir, repo_dir=repo_dir)
-            if seal_report is not None:
-                publish_result.evidence = list(publish_result.evidence) + [
-                    f"season_lifecycle_state={seal_report.get('state', 'skipped')}",
-                    f"published_baseline_projection={seal_report.get('projection_fingerprint') or seal_report.get('skipped')}",
-                ]
-                if seal_report.get("skipped"):
-                    publish_result.problems = list(publish_result.problems) + [
-                        "Kunne ikke seile den publiserte sesongen direkte: "
-                        f"{seal_report.get('skipped')}. Kjør '{seal_report.get('migration_command')}'."
+                seal_report = record_publication_seal(export_dir, repo_dir=repo_dir)
+                if seal_report is not None:
+                    publish_result.evidence = list(publish_result.evidence) + [
+                        f"season_lifecycle_state={seal_report.get('state')}",
+                        f"published_baseline_projection={seal_report.get('projection_fingerprint')}",
                     ]
-                    if publish_result.status == "ok":
-                        publish_result.status = "warning"
-        except Exception as exc:  # noqa: BLE001 - publication succeeded; surface lifecycle failure explicitly.
-            publish_result.problems = list(publish_result.problems) + [
-                f"Kunne ikke registrere publisert basislinje / seile sesongen: {exc}"
+            except Exception as exc:  # noqa: BLE001 - publication reached Pages; persistence is now incomplete.
+                publication_state_error = exc
+                publish_result.problems = list(publish_result.problems) + [
+                    "INCOMPLETE PUBLICATION: Pages-publisering ble utført, men publisert "
+                    f"basislinje / seilet sesong ble ikke registrert: {exc}"
+                ]
+
+        if publication_state_error is not None:
+            publish_result.status = "failed"
+            publish_result.summary = (
+                f"{publish_result.summary} Publiseringen er ufullstendig: Pages kan være oppdatert, "
+                "men varig eksport-/sesongstatus ble ikke lagret. Rett feilen og kjør samme "
+                "publisering på nytt; gjentakelsen verifiserer den samme bunten og fullfører historikken."
+            )
+            publish_result.suggested_actions = list(publish_result.suggested_actions) + [
+                "Rett den lokale eksport-/sesongtilstanden og kjør samme operator publish-kommando på nytt",
+                "Kontroller Pages-commit/run-id mot export_manifest.json før manuell inngripen",
             ]
-            if publish_result.status == "ok":
-                publish_result.status = "warning"
 
     if push and verify and publish_result.status in ("ok", "warning"):
         urls = [a for a in publish_result.artifacts if isinstance(a, str) and a.startswith("http")]

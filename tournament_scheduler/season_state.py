@@ -125,14 +125,16 @@ def _service(root: str | os.PathLike[str]) -> CanonicalSeasonService:
     return CanonicalSeasonService(root=root)
 
 
-def planning_checkpoint_from_schedule(schedule: dict[str, Any]) -> dict[str, Any]:
+def planning_checkpoint_from_schedule(
+    schedule: dict[str, Any], decisions: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Return a Stage-4-compatible planning checkpoint from canonical state."""
 
     return {
         "plan": dict(schedule["plan"]),
         "canonical_state": {
             "season": schedule.get("season"),
-            "revision": schedule.get("revision"),
+            "revision": canonical_state_revision(schedule, decisions),
             "fingerprint": schedule.get("fingerprint"),
             "promoted_from": schedule.get("promoted_from", {}),
             "verification_context": schedule.get("verification_context"),

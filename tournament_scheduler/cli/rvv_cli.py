@@ -1377,7 +1377,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         if args.season_command == "export":
             schedule = load_schedule(args.season, root=args.root)
             decisions = load_decisions(args.season, root=args.root)
-            checkpoint = planning_checkpoint_from_schedule(schedule)
+            checkpoint = planning_checkpoint_from_schedule(schedule, decisions)
             state = PipelineState(args.work_dir)
             verification_context = schedule.get("verification_context") if isinstance(schedule.get("verification_context"), dict) else {}
             verification_problem = verification_context.get("problem") if isinstance(verification_context, dict) else None
@@ -1464,7 +1464,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
             except ExportProjectionError as exc:
                 raise SeasonStateError(str(exc)) from exc
             result["canonical_season"] = args.season
-            result["canonical_revision"] = schedule.get("revision")
+            result["canonical_revision"] = checkpoint.get("canonical_state", {}).get("revision")
             result["season_baseline"] = decisions.get("season_baseline") or None
             # Distinct from the informational `canonical_season`/`canonical_revision`
             # fields above (which the ordinary Stage 4 exporter also sets whenever
@@ -1492,7 +1492,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
             else:
                 _console.print(
                     f"[green]✓[/green] Exported canonical season {args.season} "
-                    f"revision {schedule.get('revision')}"
+                    f"revision {result.get('canonical_revision')}"
                 )
                 for label, path in result.get("output_files", {}).items():
                     _console.print(f"  {label}: {path}")

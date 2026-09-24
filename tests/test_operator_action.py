@@ -524,6 +524,34 @@ class TestPublishPagesApprovalGate:
         assert manifest["pages_bundle_fingerprint"]
         assert "export_lifecycle_status=published" in result.evidence
 
+    def test_publish_reports_incomplete_when_export_state_persistence_fails(self, tmp_path, monkeypatch):
+        _init_repo(tmp_path)
+        _write_export(tmp_path)
+        state = PipelineState(tmp_path)
+        export_checkpoint = state.read_stage(StageName.EXPORT)
+        export_dir = tmp_path / "export"
+        write_draft_manifest(
+            export_dir,
+            export_id="2026-09-01T1000",
+            generated_at="2026-09-01T10:00:00+00:00",
+            export_fingerprint=export_checkpoint["export_fingerprint"],
+            source_run_id=None,
+        )
+
+        from tournament_scheduler.pipeline import export_lifecycle
+
+        def fail_promote(*_args, **_kwargs):
+            raise RuntimeError("cannot write manifest")
+
+        monkeypatch.setattr(export_lifecycle, "promote_export_manifest", fail_promote)
+        action = DEFAULT_REGISTRY.build(
+            "publish_pages", work_dir=str(tmp_path), repo_dir=str(tmp_path), push=False, confirm_public=True
+        )
+        result = DEFAULT_REGISTRY.execute(action, approved=True)
+
+        assert result.status == "failed"
+        assert any("INCOMPLETE PUBLICATION" in problem for problem in result.problems)
+
     def test_confirm_public_publishes_activity_subdirectory(self, tmp_path):
         _init_repo(tmp_path)
         _write_export(tmp_path, content='<a href="activities/">Aktiviteter</a>')

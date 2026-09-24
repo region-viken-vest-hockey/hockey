@@ -18,7 +18,7 @@ import copy
 import pytest
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-from tournament_scheduler.canonical_state import schedule_fingerprint
+from tournament_scheduler.canonical_state import canonical_state_revision, schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
     SEASON_STATE_SCHEMA_VERSION,
@@ -495,23 +495,34 @@ def test_reopen_planning_requires_confirmation_and_reason(tmp_path: Path) -> Non
 # ---------------------------------------------------------------------------
 
 
-def _first_publication_export(tmp_path: Path, root: Path, *, drift: bool = False) -> Path:
+def _first_publication_export(
+    tmp_path: Path,
+    root: Path,
+    *,
+    drift: bool = False,
+    projection: dict | None = None,
+    canonical_revision: str | None = None,
+    season: str = "2026-2027",
+) -> Path:
     export_dir = tmp_path / "export" / "2026-09-28T0908"
     export_dir.mkdir(parents=True)
-    projection = _tp({"tournaments": _tournaments_abc()})
+    exported_projection = projection if projection is not None else _tp({"tournaments": _tournaments_abc()})
     if drift:
-        projection = _tp(
+        exported_projection = _tp(
             {"tournaments": [_tournament("rvv-1", "2026-10-11", "23:00", "A", "Alpha")]}
         )
+    if canonical_revision is None:
+        snapshot = CanonicalSeasonStore(root).load(season)
+        canonical_revision = canonical_state_revision(snapshot.schedule, snapshot.decisions)
     write_draft_manifest(
         export_dir,
         export_id="2026-09-28T0908",
         generated_at="2026-09-28T09:08:01+00:00",
         export_fingerprint="fp",
         source_run_id="run",
-        canonical_season="2026-2027",
-        canonical_revision="rev-current",
-        schedule_projection=projection,
+        canonical_season=season,
+        canonical_revision=canonical_revision,
+        schedule_projection=exported_projection,
     )
     return export_dir
 
@@ -526,6 +537,80 @@ def test_record_publication_seal_seals_season(tmp_path: Path) -> None:
     assert report["state"] == "published_sealed"
     snapshot = CanonicalSeasonStore(root).load("2026-2027")
     assert is_published_sealed(snapshot.decisions)
+
+
+def test_publication_refuses_manifest_season_without_canonical_state(tmp_path: Path) -> None:
+    export_dir = tmp_path / "export" / "2026-09-28T0908"
+    export_dir.mkdir(parents=True)
+    write_draft_manifest(
+        export_dir,
+        export_id="2026-09-28T0908",
+        generated_at="2026-09-28T09:08:01+00:00",
+        export_fingerprint="fp",
+        source_run_id="run",
+        canonical_season="2026-2027",
+        canonical_revision="rev-missing",
+        schedule_projection=_tp({"tournaments": _tournaments_abc()}),
+    )
+
+    with pytest.raises(RuntimeError, match="cannot be loaded"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)
+
+
+def test_publication_refuses_missing_or_malformed_schedule_projection(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    current_revision = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+    export_dir = tmp_path / "export" / "2026-09-28T0908"
+    export_dir.mkdir(parents=True)
+    write_draft_manifest(
+        export_dir,
+        export_id="2026-09-28T0908",
+        generated_at="2026-09-28T09:08:01+00:00",
+        export_fingerprint="fp",
+        source_run_id="run",
+        canonical_season="2026-2027",
+        canonical_revision=current_revision,
+        schedule_projection={},
+    )
+    with pytest.raises(RuntimeError, match="schedule_projection"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)
+
+    write_draft_manifest(
+        export_dir,
+        export_id="2026-09-28T0908",
+        generated_at="2026-09-28T09:08:01+00:00",
+        export_fingerprint="fp",
+        source_run_id="run",
+        canonical_season="2026-2027",
+        canonical_revision=current_revision,
+        schedule_projection={"rvv-1": {"id": "rvv-1"}},
+    )
+    with pytest.raises(RuntimeError, match="malformed"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)
+
+
+def test_publication_refuses_stale_canonical_revision_before_push(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    export_dir = _first_publication_export(tmp_path, root, canonical_revision="stale-revision")
+
+    with pytest.raises(RuntimeError, match="current canonical revision"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)
+
+
+def test_record_publication_seal_propagates_persistence_failure(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    export_dir = _first_publication_export(tmp_path, root)
+
+    def fail_write(*_args, **_kwargs):
+        raise RuntimeError("disk full")
+
+    monkeypatch.setattr(CanonicalSeasonStore, "write", fail_write)
+    with pytest.raises(RuntimeError, match="disk full"):
+        record_publication_seal(export_dir, repo_dir=tmp_path)
 
 
 def test_publication_refused_when_export_no_longer_matches_canonical(tmp_path: Path) -> None:
