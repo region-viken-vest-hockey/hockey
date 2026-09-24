@@ -11,6 +11,7 @@ on:
       - ".chatgpt/**"
       - ".codex/**"
       - ".pi/**"
+      - "docs/**"
       - "AGENTS.md"
       - "Makefile"
       - "pyproject.toml"
@@ -28,6 +29,7 @@ on:
       - ".chatgpt/**"
       - ".codex/**"
       - ".pi/**"
+      - "docs/**"
       - "AGENTS.md"
       - "Makefile"
       - "pyproject.toml"
@@ -231,3 +233,24 @@ jobs:
           name: cli-smoke-artifacts
           path: cli-smoke-tmp/
           if-no-files-found: ignore
+
+  architecture-docs:
+    name: Semantic architecture links and Mermaid render
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Validate owner links, catalog vocabulary and extract diagrams
+        run: python scripts/check-architecture-docs.py --extract-mermaid "$RUNNER_TEMP/architecture-mermaid"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Render all three diagrams (real Mermaid syntax check)
+        run: |
+          set -euo pipefail
+          for source in "$RUNNER_TEMP"/architecture-mermaid/*.mmd; do
+            npm exec --yes --package @mermaid-js/mermaid-cli@11.16.0 -- mmdc -i "$source" -o "${source%.mmd}.svg"
+          done
