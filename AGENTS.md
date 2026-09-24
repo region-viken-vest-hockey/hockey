@@ -4,6 +4,11 @@ This is the shared, harness-neutral instruction file. Keep always-on repository 
 
 ## Instruction loading
 
+At the start of a new agent conversation or after context loss, follow the shared
+[verified session handover](.agents/commands/rvv-miniputt/handover.md) before
+making assumptions about tasks or season/publication state. A handover is
+read-only evidence, not an authority to plan, mutate or publish.
+
 Load task-specific guidance only when it is relevant:
 
 - For RVV Miniputt scraping, calendar collection/recovery, season planning, canonical-season maintenance, pipeline operation/debugging, export, review, or publication, read [`.agents/skills/rvv/SKILL.md`](.agents/skills/rvv/SKILL.md).
@@ -31,6 +36,8 @@ If an active document contradicts current code or the controlled workbook, fix t
 ## RVV Miniputt command surface
 
 The **operator-facing harness surface is intentionally one command**: `.agents/commands/rvv-miniputt/operate.md`. Claude, Codex, ChatGPT and future harness UIs should expose only an `operate` alias for RVV work. The operator describes the desired outcome in natural language; `operate` routes that intent to the internal shared procedures below. Files such as `run.md`, `season.md`, `publish.md`, `scrape.md` and `status.md` remain reusable agent procedures, not separate operator commands.
+
+The one intentional non-operation entry point is the read-only `make handover` session/evidence diagnostic, whose shared procedure is [`.agents/commands/rvv-miniputt/handover.md`](.agents/commands/rvv-miniputt/handover.md). It gathers bounded Git/GitHub/canonical/publication evidence at session start and grants no planning, mutation, export or publication authority; it is not a second RVV operation command.
 
 `.agents/skills/rvv/SKILL.md` owns shared RVV policy. `.agents/commands/rvv-miniputt/` owns shared command procedures. Claude, Codex, ChatGPT, Pi and future agent harnesses should consume the same files and execute the same repository-local command transport.
 

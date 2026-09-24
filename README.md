@@ -82,6 +82,15 @@ Publication builds a separate allowlisted public bundle. Spond exports, review p
 | `export/` | Generated review/export bundles with lifecycle metadata. |
 | `gh-pages` branch | Published static snapshots. |
 
+## Session handover
+
+Run `make handover` (optionally `ARGS='--issue N --json'`) for a bounded,
+read-only view of Git, CI, the real public revision and current canonical
+lifecycle. It never publishes or changes the season. Fresh agents should read
+[the shared handover procedure](.agents/commands/rvv-miniputt/handover.md)
+and recheck the live GitHub issue/PR rather than treating old chat summaries
+as current state. Missing evidence is reported as `REVIEW_REQUIRED`.
+
 ## Normal operator workflow
 
 The normal interface is an agent harness, but **all harnesses use the same repository-owned instructions and command procedures**:
