@@ -239,7 +239,9 @@ class TestMakefileOperatorInterface:
         assert result.returncode == 0, result.stderr
         assert _read_calls(log_path)[-1] == []
         makefile = MAKEFILE.read_text(encoding="utf-8")
-        bootstrap_body = re.search(r"\\nbootstrap:\\n(?P<body>.*?)(?:\\n\\S|\\Z)", makefile, re.DOTALL).group("body")
+        bootstrap_match = re.search(r"\nbootstrap:\n(?P<body>.*?)(?:\n\S|\Z)", makefile, re.DOTALL).group("body")
+        assert bootstrap_match, "Makefile should declare a bootstrap target"
+        bootstrap_body = bootstrap_match.group("body")
         assert "$(BOOTSTRAP)" in bootstrap_body
 
     def test_check_target_delegates_to_canonical_script(self, tmp_path):
