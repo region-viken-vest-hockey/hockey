@@ -200,7 +200,7 @@ def test_calendar_booking_confirmation_binds_event_only_to_matching_tournament(t
     assert {p["tournament_id"] for p in verification["manual_external_conflict_placements"]} == {"t2"}
 
 
-def test_club_reconciliation_records_negative_booking_evidence_and_stales_on_move(tmp_path):
+def test_club_reconciliation_records_candidate_and_negative_booking_evidence_and_stales_on_move(tmp_path):
     root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-19")])
     problem = {
         "start_date": "2026-09-01",
@@ -227,11 +227,13 @@ def test_club_reconciliation_records_negative_booking_evidence_and_stales_on_mov
         problem=problem,
     )
     statuses = {row["tournament_id"]: row["status"] for row in result["classified"]}
-    assert statuses == {"t1": "confirmed_booked", "t2": "confirmed_not_booked"}
+    assert statuses == {"t1": "ambiguous", "t2": "confirmed_not_booked"}
+    assert {row["tournament_id"]: row["reason"] for row in result["classified"]}["t1"] == "single_overlapping_event_requires_confirmation"
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     assert {row["tournament_id"]: row["status"] for row in report["tournaments"]} == statuses
+    assert report["counts"]["confirmed_booked"] == 0
     assert report["counts"]["confirmed_not_booked"] == 1
-    assert report["counts"]["needs_attention"] == 1
+    assert report["counts"]["needs_attention"] == 2
 
     schedule_path = root / "2026-2027" / "schedule.json"
     saved = json.loads(schedule_path.read_text(encoding="utf-8"))
@@ -242,6 +244,93 @@ def test_club_reconciliation_records_negative_booking_evidence_and_stales_on_mov
     t2 = next(row for row in stale["tournaments"] if row["tournament_id"] == "t2")
     assert t2["status"] == "stale"
     assert "tournament_date_changed" in t2["stale_reasons"]
+
+
+def _host_a_problem(events):
+    return {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": _teams(),
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {"A": events},
+    }
+
+
+def test_lone_unrelated_overlapping_event_is_not_confirmed_booked(tmp_path):
+    """Occupancy alone is not proof that the interval is this tournament."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem(
+        [
+            {
+                "date": "2026-09-12",
+                "start": "10:00",
+                "end": "12:00",
+                "availability": "fixed_busy",
+                "calendar_event": "Trening U10",
+            }
+        ]
+    )
+
+    result = reconcile_calendar_bookings(
+        season="2026-2027", root=root, club="A", note="reviewed complete host calendar", problem=problem
+    )
+    row = result["classified"][0]
+    assert row["status"] == "ambiguous"
+    assert row["reason"] == "single_overlapping_event_requires_confirmation"
+    assert row["event_fingerprint"]
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert report["tournaments"][0]["status"] == "ambiguous"
+    assert report["counts"]["confirmed_booked"] == 0
+    assert report["tournaments"][0]["needs_attention"] is True
+
+
+def test_reconcile_keeps_explicit_association_confirmed_and_records_negative(tmp_path):
+    """Only an explicit association makes a match confirmed_booked."""
+
+    root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-19")])
+    problem = _host_a_problem(
+        [
+            {
+                "date": "2026-09-12",
+                "start": "10:00",
+                "end": "12:00",
+                "availability": "fixed_busy",
+                "calendar_event": "Serieturneringer U10",
+            }
+        ]
+    )
+    event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)[
+        "booking_candidates"
+    ][0]["calendar_event"]["fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="Matched to host calendar booking",
+        problem=problem,
+    )
+
+    result = reconcile_calendar_bookings(
+        season="2026-2027", root=root, club="A", note="reviewed complete host calendar", problem=problem
+    )
+    statuses = {row["tournament_id"]: row["status"] for row in result["classified"]}
+    assert statuses == {"t1": "confirmed_booked", "t2": "confirmed_not_booked"}
+    reasons = {row["tournament_id"]: row["reason"] for row in result["classified"]}
+    assert reasons["t1"] == "explicit_calendar_booking_association"
+    assert reasons["t2"] == "no_overlapping_event_in_trustworthy_calendar"
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert {row["tournament_id"]: row["status"] for row in report["tournaments"]} == statuses
+    assert report["counts"]["confirmed_booked"] == 1
+    assert report["counts"]["confirmed_not_booked"] == 1
 
 
 def test_club_reconciliation_does_not_record_negative_evidence_for_blocked_source(tmp_path):
