@@ -581,18 +581,26 @@ def apply_repair(
         }
 
     from .application.canonical_season.scoped_mutation import (
-        contract_history_details,
-        make_scoped_mutation_contract,
+        authorization_history_details,
+        authorize_bounded_repair,
     )
     from .season_state import apply_candidate
 
-    changed_tournament_ids = _changed_tournament_ids(plan, result_candidate)
-    targeted_contract = make_scoped_mutation_contract(
+    # Re-derive the allowed affected ids and the exact after-state by
+    # reproducing the bounded repair from the current canonical plan. The
+    # caller cannot widen the scope or substitute a different candidate.
+    scoped_authorization = authorize_bounded_repair(
         schedule=schedule,
         decisions=decisions,
         candidate=result_candidate,
-        affected_tournament_ids=changed_tournament_ids,
+        option_id=option_id,
+        finding_id=finding_id,
+        dimensions=resolved_dimensions,
+        problem=problem,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
     )
+    changed_tournament_ids = list(scoped_authorization.affected_tournament_ids)
     updated_schedule, updated_decisions, cost = apply_candidate(
         season=season,
         candidate=result_candidate,
@@ -602,7 +610,7 @@ def apply_repair(
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
         operation="targeted_repair",
-        _targeted_contract=targeted_contract,
+        _scoped_authorization=scoped_authorization,
         _history_event={
             "event": "repair_option_applied",
             "tournament_id": str(changed_tournament_ids[0] if changed_tournament_ids else ""),
@@ -611,7 +619,7 @@ def apply_repair(
                 "option_id": option_id,
                 "finding_id": finding_id,
                 "changed_tournament_ids": changed_tournament_ids,
-                **contract_history_details(targeted_contract),
+                **authorization_history_details(scoped_authorization),
             },
         },
     )

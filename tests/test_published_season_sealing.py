@@ -29,6 +29,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SEASON_STATE_SCHEMA_VERSION,
     CanonicalSeasonSnapshot,
     CanonicalSeasonStore,
+    SeasonStateError,
 )
 from tournament_scheduler.pipeline.export_lifecycle import write_draft_manifest
 from tournament_scheduler.pipeline.export_projection_guard import (
@@ -51,8 +52,8 @@ from tournament_scheduler.published_mutation_history import (
     reconcile_published_baseline,
 )
 from tournament_scheduler.application.canonical_season.scoped_mutation import (
-    contract_history_details,
-    make_scoped_mutation_contract,
+    ScopedMutationAuthorization,
+    authorize_bounded_repair,
 )
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 
@@ -414,6 +415,128 @@ def _seal_abc(root: Path, *, materialize_three: bool = True) -> dict:
     )
 
 
+_REPAIRABLE_FINDING = "unplaced_placement:U10:2026-10-10:1"
+_REPAIRABLE_EXISTING_ID = "rvv-existing"
+
+
+def _write_sealed_repairable_season(root: Path, *, season: str = "2026-2027") -> None:
+    """Canonical season with one scheduled tournament and one unplaced obligation.
+
+    The obligation materializes through the bounded ``unplaced_placement``
+    repair, giving a sealed season a real one-tournament bounded repair to
+    exercise the service-owned authorization end to end.
+    """
+
+    from datetime import date as _date
+
+    from tournament_scheduler.planning_contract import build_planning_problem
+
+    teams = [
+        {"club": club, "label": f"{club} {index}", "age_group": "U10"}
+        for club in ("Nordby", "Sorby")
+        for index in (1, 2)
+    ]
+    config = {
+        "teams": teams,
+        "age_groups": ["U10"],
+        "parallel_games": {"U10": 2},
+        "round_length_minutes": {"U10": 30},
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+    }
+    problem = build_planning_problem(config, None, _date(2026, 10, 1), _date(2026, 10, 31))
+    problem["clubs"] = {club: f"{club} Arena" for club in ("Nordby", "Sorby")}
+    problem["club_calendar_status"] = {club: "known" for club in ("Nordby", "Sorby")}
+    labels = [team["label"] for team in teams]
+    games = [
+        {
+            "home": labels[index],
+            "away": labels[(index + 1) % len(labels)],
+            "parallel_slot": 0,
+            "round_number": 1,
+        }
+        for index in range(len(labels))
+    ]
+    existing = {
+        "id": _REPAIRABLE_EXISTING_ID,
+        "date": "2026-10-03",
+        "arena": "Nordby Arena",
+        "age_group": "U10",
+        "host_club": "Nordby",
+        "teams": [dict(team) for team in teams],
+        "games": games,
+        "start_time": "10:00",
+    }
+    obligation = {
+        "id": _REPAIRABLE_FINDING,
+        "age_group": "U10",
+        "date": "2026-10-10",
+        "period": "before_christmas",
+        "responsible_host": "Sorby",
+        "participant_teams": [dict(team) for team in teams],
+        "participant_team_count": len(teams),
+        "required_duration_minutes": 90,
+        "category": "manual_tournament_placement",
+        "search_attempted": True,
+        "bounded_repair_exhausted": True,
+        "reason": "no_participant_host_slot",
+        "source_tournament_id": "rvv-9001",
+    }
+    plan = {
+        "schema_version": 1,
+        "start_date": "2026-10-01",
+        "end_date": "2026-10-31",
+        "tournaments": [existing],
+        "unresolved_tournament_placements": [obligation],
+    }
+    now = "2026-09-22T00:00:00+00:00"
+    fingerprint = schedule_fingerprint(plan)
+    schedule = {
+        "schema_version": SEASON_STATE_SCHEMA_VERSION,
+        "season": season,
+        "created_at": now,
+        "updated_at": now,
+        "revision": fingerprint,
+        "fingerprint": fingerprint,
+        "plan_schema_version": 1,
+        "plan": plan,
+        "verification_context": {"problem": problem},
+    }
+    decisions = {
+        "schema_version": DECISIONS_SCHEMA_VERSION,
+        "season": season,
+        "created_at": now,
+        "updated_at": now,
+        "schedule_fingerprint": fingerprint,
+        "actor": "tester",
+        "decisions": {
+            _REPAIRABLE_EXISTING_ID: {
+                "status": "pending_review",
+                "placement_locked": False,
+                "participants_locked": False,
+                "approved_fingerprint": None,
+            }
+        },
+        "history": [],
+    }
+    CanonicalSeasonStore(root).write(
+        CanonicalSeasonSnapshot(season=season, schedule=schedule, decisions=decisions)
+    )
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load(season)
+    projection = tournament_projection(snapshot.schedule["plan"], problem)
+    service.seal_published_season(
+        season=season,
+        publication_id="2026-09-21T0908",
+        canonical_revision="rev-published",
+        published_at="2026-09-21T09:14:53+00:00",
+        published_projection=projection,
+        publication_canonical_projection=projection,
+        materializations=[],
+        actor="tester",
+    )
+
+
 def test_seal_records_baseline_and_state(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -552,78 +675,133 @@ def test_sealed_season_guards_global_regeneration(tmp_path: Path) -> None:
     assert status["reconciliation"]["ok"] is True
 
 
-def test_sealed_season_allows_scoped_repair_with_replayable_history(tmp_path: Path) -> None:
+def test_sealed_service_refuses_caller_constructed_wide_scope(tmp_path: Path) -> None:
+    """A caller-built scope is never authorization for a whole-season candidate."""
+
+    from tournament_scheduler.season_state import apply_candidate as api_apply_candidate
+
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
     _seal_abc(root)
     service = CanonicalSeasonService(root=root)
     snapshot = service.load("2026-2027")
     candidate = copy.deepcopy(snapshot.schedule["plan"])
-    candidate["tournaments"][0]["start_time"] = "11:30"
-    contract = make_scoped_mutation_contract(
-        schedule=snapshot.schedule,
-        decisions=snapshot.decisions,
-        candidate=candidate,
-        affected_tournament_ids=["rvv-1"],
+    for tournament in candidate["tournaments"]:
+        tournament["start_time"] = "23:00"
+    wide_ids = tuple(sorted(str(t["id"]) for t in candidate["tournaments"]))
+    # Syntactically valid, declares every tournament and carries replayable
+    # after-records -- exactly the packaging a sealed boundary must not trust.
+    forged = ScopedMutationAuthorization(
+        operation="bounded_repair",
+        expected_canonical_revision=canonical_state_revision(
+            snapshot.schedule, snapshot.decisions
+        ),
+        affected_tournament_ids=wide_ids,
+        before_records={tournament_id: None for tournament_id in wide_ids},
+        after_records={tournament_id: None for tournament_id in wide_ids},
     )
 
-    service.apply_candidate(
-        season="2026-2027",
-        candidate=candidate,
-        actor="tester",
-        operation="targeted_repair",
-        _targeted_contract=contract,
-        _history_event={
-            "event": "repair_option_applied",
-            "tournament_id": "rvv-1",
-            "details": {
-                "option_id": "repair-1",
-                "finding_id": "finding-1",
-                "changed_tournament_ids": ["rvv-1"],
-                **contract_history_details(contract),
-            },
-        },
-    )
-
-    status = service.season_lifecycle_report("2026-2027")
-    assert status["reconciliation"]["ok"] is True
-    latest = service.load("2026-2027")
-    assert latest.schedule["plan"]["tournaments"][1:] == snapshot.schedule["plan"]["tournaments"][1:]
-    assert latest.decisions["history"][-1]["event"] == "repair_option_applied"
-
-
-def test_sealed_scoped_mutation_enforces_expected_revision_and_scope(tmp_path: Path) -> None:
-    root = tmp_path / "season"
-    _write_canonical(root, _tournaments_abc())
-    _seal_abc(root)
-    service = CanonicalSeasonService(root=root)
-    snapshot = service.load("2026-2027")
-    candidate = copy.deepcopy(snapshot.schedule["plan"])
-    candidate["tournaments"][0]["start_time"] = "11:30"
-    contract = make_scoped_mutation_contract(
-        schedule=snapshot.schedule,
-        decisions=snapshot.decisions,
-        candidate=candidate,
-        affected_tournament_ids=["rvv-1"],
-    )
-    forged_candidate = copy.deepcopy(candidate)
-    forged_candidate["tournaments"][1]["start_time"] = "11:45"
-
-    with pytest.raises(Exception, match="outside its declared scope"):
+    with pytest.raises(SeasonSealedError):
         service.apply_candidate(
             season="2026-2027",
-            candidate=forged_candidate,
+            candidate=candidate,
+            operation="global_regeneration",
+            _scoped_authorization=forged,
+            _history_event={
+                "event": "repair_option_applied",
+                "tournament_id": wide_ids[0],
+                "details": {"after_records": forged.after_records},
+            },
+        )
+    with pytest.raises(SeasonSealedError):
+        api_apply_candidate(
+            season="2026-2027",
+            candidate=candidate,
+            root=root,
+            operation="targeted_mutation",
+            _scoped_authorization=forged,
+        )
+    # Nothing was written.
+    assert service.load("2026-2027").schedule["plan"] == snapshot.schedule["plan"]
+
+
+def test_sealed_bounded_repair_is_reproduced_and_replays(tmp_path: Path) -> None:
+    from tournament_scheduler.season_maintenance import apply_repair, repair_options
+
+    root = tmp_path / "season"
+    _write_sealed_repairable_season(root)
+    service = CanonicalSeasonService(root=root)
+    before = service.load("2026-2027").schedule["plan"]["tournaments"]
+
+    report = repair_options("2026-2027", _REPAIRABLE_FINDING, root=root)
+    assert report["option_count"] >= 1
+    result = apply_repair(
+        "2026-2027",
+        report["options"][0]["option_id"],
+        report["revision"],
+        root=root,
+        finding_id=_REPAIRABLE_FINDING,
+    )
+
+    assert result["ok"] is True, result
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+    latest = service.load("2026-2027")
+    assert latest.decisions["history"][-1]["event"] == "repair_option_applied"
+    # The pre-existing tournament is untouched by the bounded repair.
+    assert [t for t in latest.schedule["plan"]["tournaments"] if t["id"] == _REPAIRABLE_EXISTING_ID] == [
+        t for t in before if t["id"] == _REPAIRABLE_EXISTING_ID
+    ]
+
+
+def test_sealed_bounded_repair_rejects_widened_candidate_and_stale_revision(
+    tmp_path: Path,
+) -> None:
+    from tournament_scheduler.season_maintenance import apply_repair_to_plan
+
+    root = tmp_path / "season"
+    _write_sealed_repairable_season(root)
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load("2026-2027")
+    problem = snapshot.schedule["verification_context"]["problem"]
+    from tournament_scheduler.season_maintenance import repair_options
+
+    report = repair_options("2026-2027", _REPAIRABLE_FINDING, root=root)
+    option_id = report["options"][0]["option_id"]
+    reproduction = apply_repair_to_plan(
+        snapshot.schedule["plan"], problem, option_id, finding_id=_REPAIRABLE_FINDING
+    )
+    assert reproduction["ok"] is True
+    candidate = reproduction["candidate"]
+    authorization = authorize_bounded_repair(
+        schedule=snapshot.schedule,
+        decisions=snapshot.decisions,
+        candidate=candidate,
+        option_id=option_id,
+        finding_id=_REPAIRABLE_FINDING,
+    )
+    assert authorization.operation == "bounded_repair"
+
+    widened = copy.deepcopy(candidate)
+    for tournament in widened["tournaments"]:
+        if tournament["id"] == _REPAIRABLE_EXISTING_ID:
+            tournament["start_time"] = "23:00"
+    with pytest.raises(SeasonStateError, match="outside its authorized scope"):
+        service.apply_candidate(
+            season="2026-2027",
+            candidate=widened,
             operation="targeted_repair",
-            _targeted_contract=contract,
+            _scoped_authorization=authorization,
         )
 
-    service.approve_tournament(season="2026-2027", tournament_id="rvv-1", actor="tester")
-    with pytest.raises(Exception, match="expected canonical revision"):
+    service.approve_tournament(
+        season="2026-2027", tournament_id=_REPAIRABLE_EXISTING_ID, actor="tester"
+    )
+    with pytest.raises(SeasonStateError, match="expected canonical revision"):
         service.apply_candidate(
             season="2026-2027",
             candidate=candidate,
             operation="targeted_repair",
-            _targeted_contract=contract,
+            _scoped_authorization=authorization,
         )
 
 

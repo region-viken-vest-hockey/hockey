@@ -358,9 +358,9 @@ class CanonicalSeasonService:
         allow_manual_placement: bool = False,
         allow_host_confirmation: bool = False,
         operation: str = "global_regeneration",
-        _targeted_contract: Any | None = None,
+        _scoped_authorization: Any | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation, _targeted_contract=_targeted_contract)
+        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation, _scoped_authorization=_scoped_authorization)
 
     def season_lifecycle_report(self, season: str) -> dict[str, Any]:
         return _lifecycle_status.season_lifecycle_report(self, season=season)

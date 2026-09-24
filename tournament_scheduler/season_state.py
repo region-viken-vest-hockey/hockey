@@ -763,14 +763,15 @@ def apply_candidate(
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
     operation: str = "global_regeneration",
-    _targeted_contract: Any | None = None,
+    _scoped_authorization: Any | None = None,
     _history_event: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     """Apply a verified replan candidate to canonical season state.
 
     ``operation`` defaults to the fail-closed ``global_regeneration`` so a
-    sealed published season refuses every caller that has not explicitly
-    identified itself as a narrow, validated maintenance mutation.
+    sealed published season refuses every caller without a service-issued,
+    evidence-derived scoped authorization; a caller-built scope is never
+    authorization.
     """
 
     return _service(root).apply_candidate(
@@ -783,7 +784,7 @@ def apply_candidate(
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
         operation=operation,
-        _targeted_contract=_targeted_contract,
+        _scoped_authorization=_scoped_authorization,
         _history_event=_history_event,
     )
 
