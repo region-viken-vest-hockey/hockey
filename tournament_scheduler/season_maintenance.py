@@ -596,7 +596,6 @@ def apply_repair(
         option_id=option_id,
         finding_id=finding_id,
         dimensions=resolved_dimensions,
-        problem=problem,
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
     )

@@ -38,7 +38,6 @@ from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VE
 from .scoped_mutation import (
     ScopedMutationAuthorization,
     authorization_history_details,
-    is_scoped_mutation_authorization,
     validate_scoped_mutation_authorization,
     validate_scoped_mutation_completion,
 )
@@ -246,22 +245,24 @@ def apply_candidate(
     schedule, decisions = snapshot.schedule, snapshot.decisions
     baseline = build_canonical_baseline(schedule, decisions)
     normalized_candidate = extract_candidate(candidate)
-    if is_published_sealed(decisions):
-        if not is_scoped_mutation_authorization(_scoped_authorization):
-            # A mode string, a caller-built contract or an arbitrary id list is
-            # never authorization: a whole-season candidate can be packaged as a
-            # wide "scoped" contract. Refuse unless the application layer minted
-            # an evidence-derived capability for this exact operation.
-            assert_season_allows_global_regeneration(decisions, operation=operation)
-        validate_scoped_mutation_authorization(
-            schedule=schedule,
-            decisions=decisions,
-            candidate=normalized_candidate,
-            authorization=_scoped_authorization,
-            operation=operation,
-        )
-    elif _scoped_authorization is not None:
-        validate_scoped_mutation_authorization(
+    reproduced_scoped_plan: dict[str, Any] | None = None
+    if is_published_sealed(decisions) and not isinstance(
+        _scoped_authorization, ScopedMutationAuthorization
+    ):
+        # A mode string, a caller-built contract or an arbitrary id list is
+        # never authorization: a whole-season candidate can be packaged as a
+        # wide "scoped" contract. A token is not authorization either -- only a
+        # typed operation reproduced from current canonical state is.
+        assert_season_allows_global_regeneration(decisions, operation=operation)
+    if _scoped_authorization is not None:
+        if isinstance(_scoped_authorization, ScopedMutationAuthorization):
+            permitted_event = _scoped_authorization.permitted_history_event
+            if not _history_event or str(_history_event.get("event") or "") != str(permitted_event):
+                raise SeasonStateError(
+                    f"Refusing {operation}: scoped mutation must carry its permitted durable "
+                    f"history event {permitted_event!r}"
+                )
+        reproduced_scoped_plan = validate_scoped_mutation_authorization(
             schedule=schedule,
             decisions=decisions,
             candidate=normalized_candidate,
@@ -368,12 +369,13 @@ def apply_candidate(
     plan.setdefault("end_date", schedule["plan"].get("end_date"))
     reconcile_plan_derived_state(plan, result, problem=problem)
     if _scoped_authorization is not None:
-        # Derived-state reconciliation must not move any tournament outside the
-        # authorized scope, and the final after-state must still match the
-        # durable history the authorization will record.
+        # Derived-state reconciliation must not change anything the reproduced
+        # typed operation did not produce, and the final after-state must still
+        # match the durable history the authorization will record.
         validate_scoped_mutation_completion(
             schedule=schedule,
             plan=plan,
+            reproduced=reproduced_scoped_plan,
             authorization=_scoped_authorization,
             operation=operation,
         )

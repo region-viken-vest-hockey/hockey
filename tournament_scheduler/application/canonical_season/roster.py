@@ -402,10 +402,9 @@ def swap_participants(
         decisions=decisions,
         candidate=plan,
         tournament_a_id=tournament_a_id,
+        team_a_label=team_a_label,
         tournament_b_id=tournament_b_id,
-        age_group=age_group_a,
-        team_a=team_a,
-        team_b=team_b,
+        team_b_label=team_b_label,
     )
     updated_schedule, updated_decisions, applied_cost = service.apply_candidate(
         season=season,

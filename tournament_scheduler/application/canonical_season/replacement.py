@@ -463,9 +463,8 @@ def replace_participant(
         decisions=decisions,
         candidate=plan,
         tournament_id=tournament_id,
-        age_group=str(replacement["age_group"]),
-        removed_team=removed_team,
-        added_team=added_team,
+        remove_team_label=remove_team_label,
+        add_team_label=add_team_label,
     )
     updated_schedule, updated_decisions, applied_cost = service.apply_candidate(
         season=season,
