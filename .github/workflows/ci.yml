@@ -251,6 +251,9 @@ jobs:
       - name: Render all three diagrams (real Mermaid syntax check)
         run: |
           set -euo pipefail
+          # GitHub-hosted runner blocks Chromium user namespaces; disable the
+          # sandbox only for this isolated, trusted documentation-render job.
+          printf '%s\n' '{"args":["--no-sandbox","--disable-setuid-sandbox"]}' > "$RUNNER_TEMP/mermaid-puppeteer.json"
           for source in "$RUNNER_TEMP"/architecture-mermaid/*.mmd; do
-            npm exec --yes --package @mermaid-js/mermaid-cli@11.16.0 -- mmdc -i "$source" -o "${source%.mmd}.svg"
+            npm exec --yes --package @mermaid-js/mermaid-cli@11.16.0 -- mmdc -p "$RUNNER_TEMP/mermaid-puppeteer.json" -i "$source" -o "${source%.mmd}.svg"
           done
