@@ -4,6 +4,11 @@ This is the shared, harness-neutral instruction file. Keep always-on repository 
 
 ## Instruction loading
 
+At the start of a new agent conversation or after context loss, follow the shared
+[verified session handover](.agents/commands/rvv-miniputt/handover.md) before
+making assumptions about tasks or season/publication state. A handover is
+read-only evidence, not an authority to plan, mutate or publish.
+
 Load task-specific guidance only when it is relevant:
 
 - For RVV Miniputt scraping, calendar collection/recovery, season planning, canonical-season maintenance, pipeline operation/debugging, export, review, or publication, read [`.agents/skills/rvv/SKILL.md`](.agents/skills/rvv/SKILL.md).
