@@ -13,6 +13,7 @@ publication-boundary auto-seal hook.
 from __future__ import annotations
 
 from pathlib import Path
+from dataclasses import replace
 import copy
 import json
 
@@ -966,6 +967,118 @@ def test_sealed_scoped_mutation_binds_permitted_history_event(tmp_path: Path) ->
             _scoped_authorization=authorization,
             _history_event={"event": "move", "tournament_id": "rvv-existing", "details": {}},
         )
+
+    forged = replace(authorization, permitted_history_event="move")
+    with pytest.raises(SeasonStateError, match="permitted durable history event"):
+        service.apply_candidate(
+            season="2026-2027",
+            candidate=candidate,
+            problem=problem,
+            operation="targeted_repair",
+            _scoped_authorization=forged,
+            _history_event={"event": "move", "tournament_id": "rvv-existing", "details": {}},
+        )
+
+
+def test_sealed_scoped_mutation_rejects_forged_projection_records(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_sealed_repairable_season(root)
+    service, _snapshot, problem, candidate, authorization = _minted_repair_authorization(root)
+    history = {
+        "event": "repair_option_applied",
+        "tournament_id": authorization.affected_tournament_ids[0],
+        "details": {},
+    }
+
+    empty = replace(authorization, before_records={}, after_records={})
+    with pytest.raises(SeasonStateError, match="before-state"):
+        service.apply_candidate(
+            season="2026-2027",
+            candidate=candidate,
+            problem=problem,
+            operation="targeted_repair",
+            _scoped_authorization=empty,
+            _history_event=history,
+        )
+
+    forged_after = replace(
+        authorization,
+        after_records={tid: None for tid in authorization.affected_tournament_ids},
+    )
+    with pytest.raises(SeasonStateError, match="after-state"):
+        service.apply_candidate(
+            season="2026-2027",
+            candidate=candidate,
+            problem=problem,
+            operation="targeted_repair",
+            _scoped_authorization=forged_after,
+            _history_event=history,
+        )
+
+
+def test_sealed_scoped_history_stamps_recomputed_projection_records(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_sealed_repairable_season(root)
+    service, _snapshot, problem, candidate, authorization = _minted_repair_authorization(root)
+
+    service.apply_candidate(
+        season="2026-2027",
+        candidate=candidate,
+        problem=problem,
+        operation="targeted_repair",
+        _scoped_authorization=authorization,
+        _history_event={
+            "event": "repair_option_applied",
+            "tournament_id": authorization.affected_tournament_ids[0],
+            "details": {"before_records": {}, "after_records": {}},
+        },
+    )
+
+    details = service.load("2026-2027").decisions["history"][-1]["details"]
+    assert details["before_records"] == authorization.before_records
+    assert details["after_records"] == authorization.after_records
+    assert details["before_records"]
+    assert details["after_records"]
+
+
+def test_sealed_scoped_apply_uses_authoritative_problem_for_verification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import tournament_scheduler.application.canonical_season.candidates as candidate_module
+
+    seen: list[dict | None] = []
+    original = candidate_module.verify_candidate
+
+    def spy(candidate, problem=None):
+        if isinstance(problem, dict):
+            seen.append(copy.deepcopy(problem))
+        else:
+            seen.append(problem)
+        return original(candidate, problem)
+
+    monkeypatch.setattr(candidate_module, "verify_candidate", spy)
+
+    for name, supplied_problem in (("none", None), ("altered", {"ice_time_minutes": {"U10": 1}})):
+        root = tmp_path / name
+        _write_sealed_repairable_season(root)
+        service, _snapshot, _problem_arg, candidate, authorization = _minted_repair_authorization(root)
+        service.apply_candidate(
+            season="2026-2027",
+            candidate=candidate,
+            problem=supplied_problem,
+            operation="targeted_repair",
+            _scoped_authorization=authorization,
+            _history_event={
+                "event": "repair_option_applied",
+                "tournament_id": authorization.affected_tournament_ids[0],
+                "details": {},
+            },
+        )
+
+    scoped_problems = [item for item in seen if isinstance(item, dict) and item.get("rounds_per_tournament")]
+    assert scoped_problems
+    assert all(item["rounds_per_tournament"].get("U10") == 3 for item in scoped_problems)
+    assert not any(item == {"ice_time_minutes": {"U10": 1}} for item in seen)
 
 
 def test_sealed_move_reconciles_immediately(tmp_path: Path) -> None:

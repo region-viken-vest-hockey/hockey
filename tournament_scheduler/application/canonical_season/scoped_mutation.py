@@ -35,7 +35,6 @@ from tournament_scheduler.pipeline.export_projection_guard import (
     diff_tournament_projection,
     tournament_projection,
 )
-from tournament_scheduler.published_baseline import projection_problem_from_schedule
 
 
 OPERATION_PARTICIPANT_SWAP = "participant_swap"
@@ -427,6 +426,65 @@ def authorize_bounded_repair(
     )
 
 
+def permitted_history_event_for_authorization(authorization: ScopedMutationAuthorization) -> str:
+    """Return the durable history event allowed for the typed operation.
+
+    The value is derived from ``authorization.operation`` every time instead of
+    trusting the authorization object's serializable field.
+    """
+
+    try:
+        return _PERMITTED_HISTORY_EVENT[authorization.operation]
+    except KeyError as exc:
+        raise SeasonStateError(
+            f"Refusing scoped mutation: unknown operation {authorization.operation!r}"
+        ) from exc
+
+
+def _scoped_projection_evidence(
+    *,
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+    reproduced: Mapping[str, Any],
+    authorization: ScopedMutationAuthorization,
+    operation: str,
+) -> dict[str, Any]:
+    """Recompute and validate durable before/after projection evidence."""
+
+    resolved_problem = _authoritative_problem(schedule, decisions)
+    before = _projection(schedule.get("plan") or {}, resolved_problem)
+    after = _projection(reproduced, resolved_problem)
+    affected = tuple(
+        sorted({str(item) for item in authorization.affected_tournament_ids if str(item)})
+    )
+    derived = changed_tournament_ids(before, after)
+    if not affected:
+        raise SeasonStateError(f"Refusing {operation}: scoped mutation authorizes no tournaments")
+    if set(derived) != set(affected):
+        raise SeasonStateError(
+            f"Refusing {operation}: candidate changed tournaments {list(derived)} outside its "
+            f"authorized scope {list(affected)}"
+        )
+    before_records = {tournament_id: before.get(tournament_id) for tournament_id in affected}
+    after_records = {tournament_id: after.get(tournament_id) for tournament_id in affected}
+    if authorization.before_records != before_records:
+        raise SeasonStateError(
+            f"Refusing {operation}: scoped authorization before-state does not match current "
+            "canonical state"
+        )
+    if authorization.after_records != after_records:
+        raise SeasonStateError(
+            f"Refusing {operation}: scoped authorization after-state does not match the "
+            "reproduced operation"
+        )
+    return {
+        "expected_canonical_revision": authorization.expected_canonical_revision,
+        "affected_tournament_ids": list(affected),
+        "before_records": before_records,
+        "after_records": after_records,
+    }
+
+
 def validate_scoped_mutation_authorization(
     *,
     schedule: Mapping[str, Any],
@@ -460,27 +518,25 @@ def validate_scoped_mutation_authorization(
         authorization=authorization,
     )
     _require_same_operation_result(expected=reproduced, actual=candidate, operation=operation)
-
-    resolved_problem = _authoritative_problem(schedule, decisions)
-    before = _projection(schedule.get("plan") or {}, resolved_problem)
-    after = _projection(reproduced, resolved_problem)
-    derived = changed_tournament_ids(before, after)
-    affected = tuple(
-        sorted({str(item) for item in authorization.affected_tournament_ids if str(item)})
+    details = _scoped_projection_evidence(
+        schedule=schedule,
+        decisions=decisions,
+        reproduced=reproduced,
+        authorization=authorization,
+        operation=operation,
     )
-    if not affected:
-        raise SeasonStateError(f"Refusing {operation}: scoped mutation authorizes no tournaments")
-    if set(derived) != set(affected):
-        raise SeasonStateError(
-            f"Refusing {operation}: candidate changed tournaments {list(derived)} outside its "
-            f"authorized scope {list(affected)}"
-        )
-    return reproduced
+    return {
+        "plan": reproduced,
+        "problem": _authoritative_problem(schedule, decisions),
+        "history_event": permitted_history_event_for_authorization(authorization),
+        "history_details": details,
+    }
 
 
 def validate_scoped_mutation_completion(
     *,
     schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
     plan: Mapping[str, Any],
     reproduced: Mapping[str, Any] | None,
     authorization: Any,
@@ -497,9 +553,10 @@ def validate_scoped_mutation_completion(
         raise SeasonStateError(
             f"Refusing {operation}: sealed-season mutation lost its scoped authorization"
         )
-    if reproduced is not None:
-        _require_same_operation_result(expected=reproduced, actual=plan, operation=operation)
-    problem = projection_problem_from_schedule(schedule)
+    reproduced_plan = reproduced.get("plan") if isinstance(reproduced, Mapping) else reproduced
+    if reproduced_plan is not None:
+        _require_same_operation_result(expected=reproduced_plan, actual=plan, operation=operation)
+    problem = _authoritative_problem(schedule, decisions)
     before = _projection(schedule.get("plan") or {}, problem)
     after = _projection(plan, problem)
     derived = changed_tournament_ids(before, after)
@@ -511,17 +568,20 @@ def validate_scoped_mutation_completion(
             f"Refusing {operation}: reconciled candidate changed tournaments {list(derived)} "
             f"outside its authorized scope {list(affected)}"
         )
-    if authorization.after_records:
-        expected_after = {tournament_id: after.get(tournament_id) for tournament_id in affected}
-        if authorization.after_records != expected_after:
-            raise SeasonStateError(
-                f"Refusing {operation}: reconciled candidate no longer matches the authorized "
-                "after-state"
-            )
+    expected_after = {tournament_id: after.get(tournament_id) for tournament_id in affected}
+    if authorization.after_records != expected_after:
+        raise SeasonStateError(
+            f"Refusing {operation}: reconciled candidate no longer matches the authorized "
+            "after-state"
+        )
 
 
 def authorization_history_details(authorization: ScopedMutationAuthorization) -> dict[str, Any]:
-    """Serialize authorization evidence for durable mutation history."""
+    """Serialize authorization evidence for legacy preview details.
+
+    The sealed apply boundary recomputes and overwrites these records from the
+    current canonical state and reproduced candidate before stamping history.
+    """
 
     return {
         "expected_canonical_revision": authorization.expected_canonical_revision,
@@ -543,6 +603,7 @@ __all__ = [
     "changed_tournament_ids",
     "is_scoped_mutation_authorization",
     "normalized_plan_content",
+    "permitted_history_event_for_authorization",
     "validate_scoped_mutation_authorization",
     "validate_scoped_mutation_completion",
 ]
