@@ -5,6 +5,7 @@ import base64
 import importlib.util
 import json
 from pathlib import Path
+import sys
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "handover.py"
@@ -31,6 +32,11 @@ class ReadOnlyRunner:
         self.comments = 0
         self.pages_reads = 0
         self.change_pages_midflight = False
+        self.baseline: dict[str, str] | None = {
+            "publication_id": "2026-09-21T0908",
+            "canonical_revision": PUBLISHED,
+        }
+        self.canonical_state_revision: str | None = CURRENT
 
     def __call__(self, args: list[str], _root: Path) -> str:
         self.calls.append(tuple(args))
@@ -46,15 +52,14 @@ class ReadOnlyRunner:
         if args[:2] == ["git", "log"]:
             return "a123456 recent implementation"
         if args[0] != "gh":
-            return json.dumps({
+            lifecycle = {
                 "state": "published_sealed",
-                "canonical_state_revision": CURRENT,
-                "published_baseline": {
-                    "publication_id": "2026-09-21T0908",
-                    "canonical_revision": PUBLISHED,
-                },
+                "canonical_state_revision": self.canonical_state_revision,
                 "reconciliation": {"ok": self.lifecycle_ok, "unexplained_delta": {}},
-            })
+            }
+            if self.baseline is not None:
+                lifecycle["published_baseline"] = self.baseline
+            return json.dumps(lifecycle)
         if not self.available:
             raise OSError("no authenticated Github client")
         endpoint = args[2]
@@ -185,6 +190,108 @@ def test_no_remote_still_reports_local_canonical_with_unknown_public(tmp_path: P
     assert report["github"]["gh_pages_head"] is None
     assert report["verdict"] == "REVIEW_REQUIRED"
     assert not any(call[0] == "gh" for call in runner.calls)
+
+
+def test_active_publication_uses_publication_order_not_generation(tmp_path: Path) -> None:
+    root = _root(tmp_path)
+    # Historical export: generated earlier but published later than the newer export.
+    (root / "export" / "2026-09-21T0908" / "export_manifest.json").write_text(json.dumps({
+        "export_id": "2026-09-21T0908",
+        "lifecycle_status": "published",
+        "canonical_season": SEASON,
+        "canonical_revision": PUBLISHED,
+        "export_fingerprint": "export-fingerprint",
+        "generated_at": "2026-09-21T09:14:53+00:00",
+        "published_at": "2026-09-22T09:14:53+00:00",
+    }), encoding="utf-8")
+    # Newer-generated export published earlier; generation-first selection would pick this.
+    newer = root / "export" / "2026-09-22T1200" / "export_manifest.json"
+    newer.parent.mkdir(parents=True)
+    newer.write_text(json.dumps({
+        "export_id": "2026-09-22T1200",
+        "lifecycle_status": "published",
+        "canonical_season": SEASON,
+        "canonical_revision": "newer-generation-revision",
+        "export_fingerprint": "newer-fingerprint",
+        "generated_at": "2026-09-22T12:00:00+00:00",
+        "published_at": "2026-09-21T10:00:00+00:00",
+    }), encoding="utf-8")
+    report = handover.collect(root=root, season=SEASON, repo=REPO, runner=ReadOnlyRunner())
+    assert report["published"]["export_id"] == "2026-09-21T0908"
+    assert report["published"]["canonical_revision"] == PUBLISHED
+    assert report["verdict"] == "CONTEXT_VERIFIED"
+
+
+def test_missing_active_publication_manifest_fails_closed(tmp_path: Path) -> None:
+    runner = ReadOnlyRunner()
+    runner.baseline = {"publication_id": "absent-export", "canonical_revision": PUBLISHED}
+    report = handover.collect(root=_root(tmp_path), season=SEASON, runner=runner)
+    assert report["published"] is None
+    assert report["verdict"] == "REVIEW_REQUIRED"
+    assert any("not found among published export manifests" in row for row in report["missing_evidence"])
+
+
+def test_sealed_state_without_complete_baseline_requires_review(tmp_path: Path) -> None:
+    root = _root(tmp_path)
+    runner = ReadOnlyRunner()
+    runner.baseline = None
+    report = handover.collect(root=root, season=SEASON, runner=runner)
+    assert report["verdict"] == "REVIEW_REQUIRED"
+    assert any("missing an active publication ID" in row for row in report["risks"])
+
+    runner = ReadOnlyRunner()
+    runner.baseline = {"publication_id": "2026-09-21T0908", "canonical_revision": ""}
+    report = handover.collect(root=root, season=SEASON, runner=runner)
+    assert report["verdict"] == "REVIEW_REQUIRED"
+    assert any("missing its canonical revision" in row for row in report["risks"])
+
+    runner = ReadOnlyRunner()
+    runner.canonical_state_revision = None
+    report = handover.collect(root=root, season=SEASON, runner=runner)
+    assert report["verdict"] == "REVIEW_REQUIRED"
+    assert any("Canonical state revision is missing" in row for row in report["risks"])
+
+
+def test_baseline_revision_mismatch_requires_review(tmp_path: Path) -> None:
+    runner = ReadOnlyRunner()
+    runner.baseline = {
+        "publication_id": "2026-09-21T0908",
+        "canonical_revision": "different-baseline-revision",
+    }
+    report = handover.collect(root=_root(tmp_path), season=SEASON, runner=runner)
+    assert report["verdict"] == "REVIEW_REQUIRED"
+    assert any("active baseline revision differs" in row for row in report["risks"])
+
+
+def test_main_requires_explicit_repo_when_origin_unavailable(tmp_path: Path, monkeypatch) -> None:
+    (tmp_path / "season" / SEASON).mkdir(parents=True)
+    monkeypatch.setattr(handover, "_infer_repo", lambda _root: None)
+    monkeypatch.setattr(sys, "argv", ["handover.py", "--root", str(tmp_path), "--no-remote"])
+    try:
+        handover.main()
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:
+        raise AssertionError("expected an explicit --repo parser error")
+
+
+def test_main_accepts_explicit_repo_without_origin(tmp_path: Path, monkeypatch) -> None:
+    (tmp_path / "season" / SEASON).mkdir(parents=True)
+    monkeypatch.setattr(handover, "_infer_repo", lambda _root: None)
+    captured: dict[str, str] = {}
+
+    def fake_collect(**kwargs):
+        captured.update(kwargs)
+        return {"season": kwargs["season"], "repository": kwargs["repo"]}
+
+    monkeypatch.setattr(handover, "collect", fake_collect)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["handover.py", "--root", str(tmp_path), "--repo", REPO, "--no-remote", "--json"],
+    )
+    assert handover.main() == 0
+    assert captured["repo"] == REPO
 
 
 def test_no_manifest_or_lifecycle_must_fail_closed(tmp_path: Path) -> None:

@@ -107,8 +107,41 @@ def _public_revision(payload: dict[str, Any] | None, missing: list[str]) -> str 
         return None
 
 
+def _select_active_published(
+    published: list[dict[str, Any]],
+    active_publication_id: str | None,
+    missing: list[str],
+) -> dict[str, Any] | None:
+    """Select the active published export by canonical identity, not generation.
+
+    ``export_lifecycle.find_export_manifests`` orders records by ``generated_at``,
+    which is not publication order. The canonical baseline ``publication_id`` owns
+    that identity; without it we use the newest ``published_at`` and fail closed
+    when no publication time exists rather than falling back to generation time.
+    """
+    if active_publication_id:
+        for record in published:
+            if str(record.get("export_id") or "") == active_publication_id:
+                return record
+        missing.append(
+            f"canonical active publication {active_publication_id}: "
+            "not found among published export manifests"
+        )
+        return None
+    dated = [record for record in published if record.get("published_at")]
+    if not dated:
+        missing.append(
+            "repository published export manifests: no published_at to order by publication"
+        )
+        return None
+    return max(dated, key=lambda record: str(record.get("published_at")))
+
+
 def _publication_evidence(
-    root: Path, season: str, missing: list[str]
+    root: Path,
+    season: str,
+    missing: list[str],
+    active_publication_id: str | None = None,
 ) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
     """Read publication evidence through the canonical export-lifecycle owner.
 
@@ -159,7 +192,9 @@ def _publication_evidence(
     if not published:
         missing.append(f"repository published export manifest for {season}: not found")
         return None, candidates
-    latest = published[0]
+    latest = _select_active_published(published, active_publication_id, missing)
+    if latest is None:
+        return None, candidates
     return {
         "export_id": latest.get("export_id"),
         "canonical_revision": latest.get("canonical_revision"),
@@ -200,7 +235,6 @@ def collect(
     if local["dirty"] is True:
         risks.append("Local worktree is dirty; do not infer it equals committed main.")
 
-    published, candidates = _publication_evidence(root, season, missing)
     lifecycle_raw = _probe(
         "canonical lifecycle",
         [str(root / "scripts" / "rvv-miniputt"), "season", "lifecycle", "--season", season, "--json"],
@@ -217,12 +251,30 @@ def collect(
             lifecycle = parsed
         except ValueError:
             missing.append("canonical lifecycle: malformed JSON")
+    baseline = lifecycle.get("published_baseline") if lifecycle else None
+    active_publication_id = (
+        str(baseline.get("publication_id")).strip()
+        if isinstance(baseline, dict) and baseline.get("publication_id")
+        else None
+    )
+    published, candidates = _publication_evidence(
+        root, season, missing, active_publication_id
+    )
     if lifecycle is None:
         risks.append("Current canonical lifecycle and reconciliation were not verified.")
     elif lifecycle.get("state") == "published_sealed":
         reconciliation = lifecycle.get("reconciliation") or {}
         if not isinstance(reconciliation, dict) or reconciliation.get("ok") is not True:
             risks.append("Published baseline does not reconcile with current canonical season.")
+        # A sealed state is only verifiable with a complete active baseline and a
+        # current canonical revision; a missing field must fail closed, not pass
+        # merely because other mocked sources happen to agree.
+        if not active_publication_id:
+            risks.append("Published baseline is missing an active publication ID; cannot verify the sealed state.")
+        if not isinstance(baseline, dict) or not str(baseline.get("canonical_revision") or "").strip():
+            risks.append("Published baseline is missing its canonical revision; cannot verify the sealed state.")
+        if not str(lifecycle.get("canonical_state_revision") or "").strip():
+            risks.append("Canonical state revision is missing; cannot verify the sealed state.")
     else:
         risks.append("Current canonical season was not confirmed published_sealed.")
 
@@ -315,9 +367,21 @@ def collect(
         published["gh_pages_head"] = github["gh_pages_head"]
         if github["public_latest_revision"] and published["canonical_revision"] != github["public_latest_revision"]:
             risks.append("Public latest revision does not match the repository's published manifest.")
-        baseline = lifecycle.get("published_baseline") if lifecycle else None
-        if isinstance(baseline, dict) and baseline.get("publication_id") != published["export_id"]:
-            risks.append("Canonical active publication ID differs from the repository published manifest.")
+        if isinstance(baseline, dict):
+            if baseline.get("publication_id") != published["export_id"]:
+                risks.append("Canonical active publication ID differs from the repository published manifest.")
+            if (
+                baseline.get("canonical_revision")
+                and published.get("canonical_revision")
+                and baseline["canonical_revision"] != published["canonical_revision"]
+            ):
+                risks.append("Canonical active baseline revision differs from the repository published manifest.")
+            if (
+                baseline.get("published_at")
+                and published.get("published_at")
+                and baseline["published_at"] != published["published_at"]
+            ):
+                risks.append("Canonical active baseline publication time differs from the repository published manifest.")
     if github["main_head"] and local["head"] != github["main_head"]:
         risks.append("Local HEAD differs from remote main; recheck the branch and changes.")
     if github["ci"]:
@@ -398,7 +462,11 @@ def main() -> int:
     season = args.season or _infer_season(root)
     if not season:
         parser.error("--season is required; could not infer a single season from season/")
-    repo = args.repo or _infer_repo(root) or DEFAULT_REPO
+    repo = args.repo or _infer_repo(root)
+    if not repo:
+        parser.error(
+            "--repo is required; could not verify owner/name from the origin remote"
+        )
     result = collect(
         root=root, season=season, repo=repo,
         issue=args.issue, remote=not args.no_remote,

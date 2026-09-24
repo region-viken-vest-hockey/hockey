@@ -10,9 +10,11 @@ GitHub Issues remain the only live implementation backlog.
 "Continue hockey from the repo handover; verify live state first."
 
 Local checkout: from the repository root run `make handover`, optionally
-`make handover ARGS='--issue N --json'`. This command is read-only. Season and
-repository default to the single canonical `season/` directory and the origin
-remote; pass `--season`/`--repo` to override. It uses the canonical
+`make handover ARGS='--issue N --json'`. This command is read-only. Season
+defaults to the single canonical `season/` directory. The repository is inferred
+from the origin remote; if the origin cannot be verified, `--repo` is required
+rather than guessed at the upstream default. Pass `--season`/`--repo` to
+override. It uses the canonical
 `season lifecycle --json` report for the season and GitHub read-only API
 queries through `gh api`, and reads publication evidence through the canonical
 export-lifecycle owner. If GitHub CLI is unavailable or not authenticated, the
