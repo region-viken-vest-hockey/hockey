@@ -237,6 +237,8 @@ scripts/rvv-miniputt ...
 
 Harness adapters may add genuinely necessary UI/transport integration, but must not redefine shared pipeline policy or create an independent reasoning loop. The active harness itself should read the shared procedure, inspect repository output, choose a declared action and invoke the next canonical command.
 
+Session startup/evidence gathering uses the read-only `make handover` adapter described in `.agents/commands/rvv-miniputt/handover.md`. It is diagnostic evidence only, never an operation or publication authority, and does not broaden the operation command surface.
+
 When an agent changes repository code, use `scripts/check` for the fast/default feedback loop. Before treating a substantive change to scheduling semantics, verification, canonical-season mutation/persistence, audit/export/publication contracts or multi-process lifecycle as complete, run the comprehensive hermetic lane `scripts/check full`. Harness-dependent and live external-source checks remain explicit separate lanes (`scripts/check harness`, `scripts/check live`) and are never substitutes for deterministic full verification.
 
 ## Inputs

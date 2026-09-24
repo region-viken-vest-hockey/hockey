@@ -107,6 +107,8 @@ help:
 bootstrap:
 	@cd "$(ROOT_DIR)" && "$(BOOTSTRAP)" $(ARGS)
 
+# Deliberately uses the system python3, not $(PYTHON): handover is stdlib-only and
+# must work before `make bootstrap` has provisioned the venv.
 handover:
 	@cd "$(ROOT_DIR)" && python3 "$(HANDOVER)" $(ARGS)
 

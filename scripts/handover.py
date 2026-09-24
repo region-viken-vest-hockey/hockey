@@ -16,10 +16,10 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 from typing import Any, Callable
 
 DEFAULT_REPO = "region-viken-vest-hockey/hockey"
-DEFAULT_SEASON = "2026-2027"
 Runner = Callable[[list[str], Path], str]
 
 
@@ -33,8 +33,14 @@ def _run(command: list[str], cwd: Path) -> str:
         timeout=30,
     )
     if completed.returncode:
-        # Never echo stderr: CLI/authentication errors may contain secrets.
-        raise RuntimeError(f"{command[0]} exited with status {completed.returncode}")
+        # Never echo `gh` stderr: authentication/platform errors may contain secrets.
+        if command[0] == "gh":
+            raise RuntimeError(f"{command[0]} exited with status {completed.returncode}")
+        detail = " ".join(str(completed.stderr or "").split())[-200:]
+        raise RuntimeError(
+            f"{command[0]} exited with status {completed.returncode}"
+            + (f": {detail}" if detail else "")
+        )
     return completed.stdout.strip()
 
 
@@ -42,19 +48,25 @@ def _probe(label: str, command: list[str], root: Path, runner: Runner, missing: 
     try:
         return runner(command, root)
     except (OSError, RuntimeError, subprocess.TimeoutExpired) as exc:
-        missing.append(f"{label}: {type(exc).__name__}")
+        detail = " ".join(str(exc).split())[:200]
+        missing.append(f"{label}: {detail}")
         return None
 
 
-def _read_json(path: Path, missing: list[str]) -> dict[str, Any] | None:
+def _infer_season(root: Path) -> str | None:
+    """Return the single canonical season id under season/, if unambiguous."""
+    seasons = sorted(path.name for path in (root / "season").glob("*") if path.is_dir())
+    return seasons[0] if len(seasons) == 1 else None
+
+
+def _infer_repo(root: Path) -> str | None:
+    """Return owner/name parsed from the origin remote, if available."""
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(value, dict):
-            raise ValueError("expected object")
-        return value
-    except (OSError, ValueError):
-        missing.append(f"{path.name}: missing or malformed")
+        raw = _run(["git", "remote", "get-url", "origin"], root)
+    except (OSError, RuntimeError, subprocess.TimeoutExpired):
         return None
+    match = re.search(r"[:/]([\w.-]+/[\w.-]+?)(?:\.git)?$", raw)
+    return match.group(1) if match else None
 
 
 def _api(repo: str, endpoint: str, root: Path, runner: Runner, missing: list[str]) -> dict[str, Any] | None:
@@ -95,44 +107,73 @@ def _public_revision(payload: dict[str, Any] | None, missing: list[str]) -> str 
         return None
 
 
-def _published_manifests(root: Path, missing: list[str]) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
-    published: list[dict[str, Any]] = []
-    candidates: list[dict[str, str]] = []
-    for path in sorted((root / "export").glob("*/export_manifest.json")):
-        entry = _read_json(path, missing)
-        if entry is None:
-            continue
-        status = str(entry.get("lifecycle_status") or "unknown")
-        info = {
-            "export_id": str(entry.get("export_id") or path.parent.name),
-            "lifecycle_status": status,
-            "canonical_revision": str(entry.get("canonical_revision") or ""),
-            "path": str(path.relative_to(root)),
+def _publication_evidence(
+    root: Path, season: str, missing: list[str]
+) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
+    """Read publication evidence through the canonical export-lifecycle owner.
+
+    The canonical reader resolves the repository publication-history root and
+    scopes published exports to the requested season, so this report cannot
+    drift from the export/publication contract owned by the pipeline.
+    """
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    try:
+        from tournament_scheduler.pipeline import export_lifecycle
+    except Exception:
+        missing.append("canonical export lifecycle: unavailable")
+        return None, []
+
+    def relative(record: dict[str, Any]) -> str:
+        export_dir = record.get("export_dir")
+        if not export_dir:
+            return ""
+        try:
+            return str(Path(export_dir).relative_to(root))
+        except ValueError:
+            return str(export_dir)
+
+    try:
+        history_root = export_lifecycle.publication_history_root(root / "season")
+        manifests = export_lifecycle.find_export_manifests(history_root)
+        published = export_lifecycle.find_published_exports_for_season(
+            season, season_root=root / "season"
+        )
+    except Exception:
+        missing.append("canonical export lifecycle: read failed")
+        return None, []
+
+    candidates = [
+        {
+            "export_id": str(
+                record.get("export_id") or Path(str(record.get("export_dir") or "")).name
+            ),
+            "lifecycle_status": str(record.get("lifecycle_status") or "unknown"),
+            "canonical_revision": str(record.get("canonical_revision") or ""),
+            "path": relative(record),
         }
-        if status == "published":
-            published.append({**entry, "source_path": info["path"]})
-        else:
-            candidates.append(info)
+        for record in manifests
+        if record.get("lifecycle_status") != export_lifecycle.PUBLISHED_STATUS
+        and record.get("canonical_season") in (None, season)
+    ][-5:]
     if not published:
-        missing.append("repository published export manifest: not found")
-        return None, candidates[-5:]
-    latest = max(published, key=lambda entry: (
-        str(entry.get("published_at") or ""), str(entry.get("export_id") or "")
-    ))
+        missing.append(f"repository published export manifest for {season}: not found")
+        return None, candidates
+    latest = published[0]
     return {
         "export_id": latest.get("export_id"),
         "canonical_revision": latest.get("canonical_revision"),
         "export_fingerprint": latest.get("export_fingerprint"),
         "pages_commit_at_publication": latest.get("pages_commit"),
         "published_at": latest.get("published_at"),
-        "source_path": latest["source_path"],
-    }, candidates[-5:]
+        "source_path": relative(latest),
+    }, candidates
 
 
 def collect(
     *,
     root: Path,
-    season: str = DEFAULT_SEASON,
+    season: str,
     repo: str = DEFAULT_REPO,
     issue: int | None = None,
     runner: Runner = _run,
@@ -159,7 +200,7 @@ def collect(
     if local["dirty"] is True:
         risks.append("Local worktree is dirty; do not infer it equals committed main.")
 
-    published, candidates = _published_manifests(root, missing)
+    published, candidates = _publication_evidence(root, season, missing)
     lifecycle_raw = _probe(
         "canonical lifecycle",
         [str(root / "scripts" / "rvv-miniputt"), "season", "lifecycle", "--season", season, "--json"],
@@ -179,7 +220,8 @@ def collect(
     if lifecycle is None:
         risks.append("Current canonical lifecycle and reconciliation were not verified.")
     elif lifecycle.get("state") == "published_sealed":
-        if lifecycle.get("reconciliation", {}).get("ok") is not True:
+        reconciliation = lifecycle.get("reconciliation") or {}
+        if not isinstance(reconciliation, dict) or reconciliation.get("ok") is not True:
             risks.append("Published baseline does not reconcile with current canonical season.")
     else:
         risks.append("Current canonical season was not confirmed published_sealed.")
@@ -273,14 +315,17 @@ def collect(
         published["gh_pages_head"] = github["gh_pages_head"]
         if github["public_latest_revision"] and published["canonical_revision"] != github["public_latest_revision"]:
             risks.append("Public latest revision does not match the repository's published manifest.")
-        if lifecycle and lifecycle.get("published_baseline"):
-            baseline = lifecycle["published_baseline"]
-            if baseline.get("publication_id") != published["export_id"]:
-                risks.append("Canonical active publication ID differs from the repository published manifest.")
+        baseline = lifecycle.get("published_baseline") if lifecycle else None
+        if isinstance(baseline, dict) and baseline.get("publication_id") != published["export_id"]:
+            risks.append("Canonical active publication ID differs from the repository published manifest.")
     if github["main_head"] and local["head"] != github["main_head"]:
         risks.append("Local HEAD differs from remote main; recheck the branch and changes.")
-    if github["ci"] and github["ci"]["conclusion"] != "success":
-        risks.append("Current main CI is not successful.")
+    if github["ci"]:
+        conclusion = github["ci"].get("conclusion")
+        if conclusion is None:
+            risks.append("Current main CI has not completed; treat as unverified.")
+        elif conclusion != "success":
+            risks.append("Current main CI is not successful.")
 
     # Missing evidence always blocks a fully verified context. This is never
     # a publication approval, even when the context is fully verified.
@@ -342,15 +387,20 @@ def render(report: dict[str, Any]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--season", default=DEFAULT_SEASON)
-    parser.add_argument("--repo", default=DEFAULT_REPO)
+    parser.add_argument("--season", default=None, help="Season id; inferred from season/ when unambiguous")
+    parser.add_argument("--repo", default=None, help="owner/name; inferred from the origin remote")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent)
     parser.add_argument("--issue", type=int, help="Explicit active GitHub issue; never inferred from chat history")
     parser.add_argument("--no-remote", action="store_true", help="Use local read-only evidence only")
     parser.add_argument("--json", action="store_true", help="Emit the structured evidence report")
     args = parser.parse_args()
+    root = args.root.resolve()
+    season = args.season or _infer_season(root)
+    if not season:
+        parser.error("--season is required; could not infer a single season from season/")
+    repo = args.repo or _infer_repo(root) or DEFAULT_REPO
     result = collect(
-        root=args.root.resolve(), season=args.season, repo=args.repo,
+        root=root, season=season, repo=repo,
         issue=args.issue, remote=not args.no_remote,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) if args.json else render(result))

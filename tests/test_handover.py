@@ -14,6 +14,7 @@ handover = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(handover)
 
 REPO = "region-viken-vest-hockey/hockey"
+SEASON = "2026-2027"
 MAIN = "a" * 40
 PAGES = "b" * 40
 PUBLISHED = "old-publication-revision"
@@ -97,8 +98,10 @@ def _root(tmp_path: Path) -> Path:
     manifest.write_text(json.dumps({
         "export_id": "2026-09-21T0908",
         "lifecycle_status": "published",
+        "canonical_season": SEASON,
         "canonical_revision": PUBLISHED,
         "export_fingerprint": "export-fingerprint",
+        "generated_at": "2026-09-21T09:14:53+00:00",
         "published_at": "2026-09-21T09:14:53+00:00",
     }), encoding="utf-8")
     (tmp_path / "scripts").mkdir()
@@ -109,7 +112,7 @@ def test_handover_distinguishes_publication_and_unpublished_canonical(tmp_path: 
     root = _root(tmp_path)
     before = (root / "export" / "2026-09-21T0908" / "export_manifest.json").read_bytes()
     runner = ReadOnlyRunner()
-    report = handover.collect(root=root, repo=REPO, issue=12, runner=runner)
+    report = handover.collect(root=root, season=SEASON, repo=REPO, issue=12, runner=runner)
     assert report["verdict"] == "CONTEXT_VERIFIED"
     assert report["publish_ready"] is False
     assert report["published"]["canonical_revision"] == PUBLISHED
@@ -125,15 +128,31 @@ def test_handover_distinguishes_publication_and_unpublished_canonical(tmp_path: 
 def test_publication_mismatch_requires_review(tmp_path: Path) -> None:
     runner = ReadOnlyRunner()
     runner.public_revision = "unexpected"
-    report = handover.collect(root=_root(tmp_path), runner=runner)
+    report = handover.collect(root=_root(tmp_path), season=SEASON, runner=runner)
     assert report["verdict"] == "REVIEW_REQUIRED"
     assert any("Public latest revision" in row for row in report["risks"])
+
+
+def test_published_manifest_is_scoped_to_requested_season(tmp_path: Path) -> None:
+    root = _root(tmp_path)
+    other = tmp_path / "export" / "2025-2026T0001" / "export_manifest.json"
+    other.parent.mkdir(parents=True)
+    other.write_text(json.dumps({
+        "export_id": "2025-2026T0001",
+        "lifecycle_status": "published",
+        "canonical_season": "2025-2026",
+        "canonical_revision": "other-season-revision",
+        "generated_at": "2030-01-01T00:00:00+00:00",
+    }), encoding="utf-8")
+    report = handover.collect(root=root, season=SEASON, repo=REPO, runner=ReadOnlyRunner())
+    assert report["published"]["export_id"] == "2026-09-21T0908"
+    assert report["published"]["canonical_revision"] == PUBLISHED
 
 
 def test_unreconciled_baseline_requires_review(tmp_path: Path) -> None:
     runner = ReadOnlyRunner()
     runner.lifecycle_ok = False
-    report = handover.collect(root=_root(tmp_path), runner=runner)
+    report = handover.collect(root=_root(tmp_path), season=SEASON, runner=runner)
     assert report["verdict"] == "REVIEW_REQUIRED"
     assert any("does not reconcile" in row for row in report["risks"])
 
@@ -142,18 +161,26 @@ def test_failed_ci_or_unavailable_remote_never_claims_verified(tmp_path: Path) -
     root = _root(tmp_path)
     runner = ReadOnlyRunner()
     runner.ci = "failure"
-    report = handover.collect(root=root, runner=runner)
+    report = handover.collect(root=root, season=SEASON, runner=runner)
     assert report["verdict"] == "REVIEW_REQUIRED"
     runner.available = False
-    report = handover.collect(root=root, runner=runner)
+    report = handover.collect(root=root, season=SEASON, runner=runner)
     assert report["verdict"] == "REVIEW_REQUIRED"
     assert report["github"]["main_head"] is None
     assert report["publish_ready"] is False
 
 
+def test_incomplete_ci_requires_review(tmp_path: Path) -> None:
+    runner = ReadOnlyRunner()
+    runner.ci = None
+    report = handover.collect(root=_root(tmp_path), season=SEASON, runner=runner)
+    assert report["verdict"] == "REVIEW_REQUIRED"
+    assert any("has not completed" in row for row in report["risks"])
+
+
 def test_no_remote_still_reports_local_canonical_with_unknown_public(tmp_path: Path) -> None:
     runner = ReadOnlyRunner()
-    report = handover.collect(root=_root(tmp_path), runner=runner, remote=False)
+    report = handover.collect(root=_root(tmp_path), season=SEASON, runner=runner, remote=False)
     assert report["canonical"]["state"] == "published_sealed"
     assert report["github"]["gh_pages_head"] is None
     assert report["verdict"] == "REVIEW_REQUIRED"
@@ -168,7 +195,7 @@ def test_no_manifest_or_lifecycle_must_fail_closed(tmp_path: Path) -> None:
             raise RuntimeError("read failed")
         return runner(args, root)
 
-    report = handover.collect(root=tmp_path, runner=without_lifecycle)
+    report = handover.collect(root=tmp_path, season=SEASON, runner=without_lifecycle)
     assert report["published"] is None
     assert report["canonical"] is None
     assert report["verdict"] == "REVIEW_REQUIRED"
@@ -183,7 +210,7 @@ def test_html_revision_parser_requires_explicit_metadata() -> None:
 
 def test_repo_argument_does_not_accept_api_path_injection(tmp_path: Path) -> None:
     try:
-        handover.collect(root=tmp_path, repo="owner/repo/../../other", remote=False)
+        handover.collect(root=tmp_path, season=SEASON, repo="owner/repo/../../other", remote=False)
     except ValueError:
         pass
     else:
@@ -193,7 +220,7 @@ def test_repo_argument_does_not_accept_api_path_injection(tmp_path: Path) -> Non
 def test_last_issue_comment_is_context_not_new_authority(tmp_path: Path) -> None:
     runner = ReadOnlyRunner()
     runner.comments = 1
-    report = handover.collect(root=_root(tmp_path), runner=runner, issue=12)
+    report = handover.collect(root=_root(tmp_path), season=SEASON, runner=runner, issue=12)
     assert report["active_issue"]["latest_comment"]["excerpt"].startswith("Last verified SHA")
     assert report["active_issue"]["latest_comment"]["url"].endswith("issuecomment-1")
     assert report["verdict"] == "CONTEXT_VERIFIED"
@@ -202,6 +229,6 @@ def test_last_issue_comment_is_context_not_new_authority(tmp_path: Path) -> None
 def test_remote_branch_change_during_collection_requires_review(tmp_path: Path) -> None:
     runner = ReadOnlyRunner()
     runner.change_pages_midflight = True
-    report = handover.collect(root=_root(tmp_path), runner=runner)
+    report = handover.collect(root=_root(tmp_path), season=SEASON, runner=runner)
     assert report["verdict"] == "REVIEW_REQUIRED"
     assert any("gh-pages changed during handover" in row for row in report["risks"])
