@@ -205,6 +205,29 @@ class TestParseBookupTimegrid:
         assert len(events) == 1
         assert events[0].name == "Ekstern klubb (Trening)"
 
+    def test_can_skip_contract_detail_clicks_for_bounded_live_refresh(self) -> None:
+        frame = _FakeTimegridFrame(["2026-10-05"], [])
+        frame._columns = [
+            _Column(
+                [
+                    _FakeEvent(
+                        frame,
+                        data_start="17:00",
+                        data_full="17:00-18:00",
+                        leietaker="Tønsberg ishall",
+                        formal="U-lag",
+                    )
+                ]
+            )
+        ]
+
+        events = _parse_bookup_timegrid(frame, club_name="Tønsberg", read_details=False)
+
+        assert len(events) == 1
+        assert events[0].datetime.strftime("%H:%M") == "17:00"
+        assert events[0].name == "Booket"
+        assert frame.modal_title is None
+
     def test_returns_empty_without_day_headers(self) -> None:
         frame = _FakeTimegridFrame([], [])
         assert _parse_bookup_timegrid(frame) == []
