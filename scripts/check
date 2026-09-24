@@ -76,6 +76,7 @@ Quick/PR tier phases:
   cli-contracts      public CLI contract suite (subprocess, hermetic)
   rules-report       regenerate/check rules report documentation
   rule-catalog       check canonical rule catalog doc + conformance guards
+  architecture-docs  validate semantic architecture diagrams and owner links
   secret-scan        run scripts/secret-scan.sh
   all                all quick/PR tier phases above
 
@@ -83,7 +84,7 @@ Full hermetic lane (scheduled/manual; not every PR):
   slow               hermetic slow tests (real canonical workbook/planner)
   integration        hermetic/local integration tests (subprocess/multi-stage)
   full-tests         quick + slow + hermetic integration in one pytest run
-  full               lint + full-tests + rules-report + rule-catalog
+  full               lint + full-tests + rules-report + rule-catalog + architecture-docs
 
 Separated non-blocking lanes (never part of quick or full):
   live               live external-source/network tests (opt-in; see below)
@@ -173,6 +174,9 @@ run_named_phase() {
         "$RVV_CHECK_PYTHON" -m pytest --no-cov -q tests/test_rule_catalog.py
       '
       ;;
+    architecture-docs)
+      run_phase "Semantic architecture drift check" "$PYTHON_CMD" scripts/check-architecture-docs.py
+      ;;
     secret-scan)
       run_phase "Secret scan" sh scripts/secret-scan.sh
       ;;
@@ -192,7 +196,7 @@ run_named_phase() {
 }
 
 run_all() {
-  local phases=(dependency-lock lint quick operator reproducibility cli-smoke cli-contracts rules-report rule-catalog)
+  local phases=(dependency-lock lint quick operator reproducibility cli-smoke cli-contracts rules-report rule-catalog architecture-docs)
   for named_phase in "${phases[@]}"; do
     run_named_phase "$named_phase"
   done
@@ -204,7 +208,7 @@ run_all() {
 }
 
 run_full() {
-  local phases=(lint full-tests rules-report rule-catalog)
+  local phases=(lint full-tests rules-report rule-catalog architecture-docs)
   for named_phase in "${phases[@]}"; do
     run_named_phase "$named_phase"
   done
