@@ -14,6 +14,12 @@ It has three related workflows:
 
 All three may feed the same sanitized GitHub Pages publication snapshot.
 
+## Visual architecture and decision model
+
+The focused [planning and decision architecture](architecture/planning-model.md) contains three maintained Mermaid views: system/data flow, planner-independent hard/obligation/soft semantics with CP-SAT and Pareto/Stage 3 ownership, and the planning → promotion → canonical maintenance → publication lifecycle. Use its [concept/owner routing table](architecture/planning-model.md#concept-and-owner-routing) as a starting map, then follow the [generated rule catalog](architecture/rule-catalog.md) and executable verifier/owner rather than treating a diagram as rule code. [Architecture regeneration guidance](architecture/README.md) instructs Archify to preserve this semantic view instead of replacing it with an imports-only graph.
+
+**Authority boundary:** Stage 3 builds, measures and adopts candidates; Stage 4 creates the exact-candidate review/audit handoff; deliberate promotion makes Git-backed season state authoritative. After publication the sealed season is maintained through scoped verified canonical mutations, not implicitly replanned using today's inputs or optimizer.
+
 ## Sources of truth
 
 - **SharePoint List** is the reviewed source for registration-workflow data.
