@@ -12,9 +12,12 @@ the public upstream service is classified separately under the ``live`` marker
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
+from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.pipeline.scraper_bookup import (
     _bookup_navigate_to_date,
+    _deduplicate_bookup_events,
     _is_own_club_youth_booking,
     _parse_bookup_timegrid,
 )
@@ -139,6 +142,22 @@ class TestIsOwnClubYouthBooking:
         assert not _is_own_club_youth_booking("Booket", "Tønsberg")
 
 
+class TestDeduplicateBookupEvents:
+    def test_preserves_same_day_distinct_booked_intervals(self) -> None:
+        events = [
+            CalendarEvent("17.10.2026", "Booket", datetime(2026, 10, 17, 9, 0), 1.0),
+            CalendarEvent("17.10.2026", "Booket", datetime(2026, 10, 17, 14, 15), 2.0),
+            CalendarEvent("17.10.2026", "Booket", datetime(2026, 10, 17, 14, 15), 2.0),
+        ]
+
+        unique = _deduplicate_bookup_events(events)
+
+        assert [(e.datetime.strftime("%H:%M"), e.duration_hours) for e in unique] == [
+            ("09:00", 1.0),
+            ("14:15", 2.0),
+        ]
+
+
 class TestParseBookupTimegrid:
     def test_parses_date_time_and_duration_per_column(self) -> None:
         frame = _FakeTimegridFrame(["2026-10-05", "2026-10-06"], [])
@@ -204,6 +223,29 @@ class TestParseBookupTimegrid:
 
         assert len(events) == 1
         assert events[0].name == "Ekstern klubb (Trening)"
+
+    def test_can_skip_contract_detail_clicks_for_bounded_live_refresh(self) -> None:
+        frame = _FakeTimegridFrame(["2026-10-05"], [])
+        frame._columns = [
+            _Column(
+                [
+                    _FakeEvent(
+                        frame,
+                        data_start="17:00",
+                        data_full="17:00-18:00",
+                        leietaker="Tønsberg ishall",
+                        formal="U-lag",
+                    )
+                ]
+            )
+        ]
+
+        events = _parse_bookup_timegrid(frame, club_name="Tønsberg", read_details=False)
+
+        assert len(events) == 1
+        assert events[0].datetime.strftime("%H:%M") == "17:00"
+        assert events[0].name == "Booket"
+        assert frame.modal_title is None
 
     def test_returns_empty_without_day_headers(self) -> None:
         frame = _FakeTimegridFrame([], [])

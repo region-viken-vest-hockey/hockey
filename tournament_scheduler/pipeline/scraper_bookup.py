@@ -15,6 +15,14 @@ from typing import Any
 from ..models import CalendarEvent
 
 
+def _playwright_call_with_timeout(callable_obj: Any, *args: Any, timeout: int, **kwargs: Any) -> Any:
+    """Call a Playwright method with a timeout, tolerating simple test doubles."""
+    try:
+        return callable_obj(*args, timeout=timeout, **kwargs)
+    except TypeError:
+        return callable_obj(*args, **kwargs)
+
+
 def _run_bookup_scraper(
     url: str,
     name: str,
@@ -84,7 +92,7 @@ def _run_bookup_scraper(
                 page_content = frame.content()
                 raw_html += page_content
 
-                week_events = _parse_bookup_timegrid(frame, club_name=name)
+                week_events = _parse_bookup_timegrid(frame, club_name=name, read_details=False)
                 # Filter to date range
                 for ev in week_events:
                     if start_date_ref <= ev.datetime <= end_date_ref + timedelta(days=1):
@@ -94,7 +102,7 @@ def _run_bookup_scraper(
                 next_btn = frame.locator(".fc-next-button, button[aria-label*='next'], .fc-next")
                 if next_btn.count() > 0:
                     try:
-                        next_btn.first.click()
+                        next_btn.first.click(timeout=5_000)
                         frame.wait_for_timeout(1_500)
                     except Exception:
                         break
@@ -105,16 +113,24 @@ def _run_bookup_scraper(
     except Exception:
         pass
 
-    # Deduplicate
-    seen: set[tuple[str, str]] = set()
+    return _deduplicate_bookup_events(events), raw_html
+
+
+def _deduplicate_bookup_events(events: list[CalendarEvent]) -> list[CalendarEvent]:
+    """Preserve distinct same-day intervals while dropping exact duplicates."""
+    seen: set[tuple[str, str, str, float]] = set()
     unique: list[CalendarEvent] = []
     for ev in events:
-        key = (ev.date, ev.name)
+        key = (
+            ev.date,
+            ev.datetime.strftime("%H:%M"),
+            ev.name,
+            round(float(ev.duration_hours or 0.0), 4),
+        )
         if key not in seen:
             seen.add(key)
             unique.append(ev)
-
-    return unique, raw_html
+    return unique
 
 
 def _bookup_navigate_to_date(frame: Any, target: datetime) -> None:
@@ -143,7 +159,7 @@ def _bookup_navigate_to_date(frame: Any, target: datetime) -> None:
             btn = frame.locator(".fc-next-button")
         if btn.count() > 0:
             try:
-                btn.first.click()
+                btn.first.click(timeout=5_000)
                 frame.wait_for_timeout(1_000)
             except Exception:
                 break
@@ -169,16 +185,25 @@ def _is_own_club_youth_booking(title: str, club_name: str) -> bool:
     return "u-lag" in formal_part
 
 
-def _parse_bookup_timegrid(frame: Any, club_name: str = "") -> list[CalendarEvent]:
+def _parse_bookup_timegrid(
+    frame: Any,
+    club_name: str = "",
+    *,
+    read_details: bool = True,
+) -> list[CalendarEvent]:
     """Extract events from a BookUp FullCalendar timeGrid week view.
 
     Reads the real per-hour booking blocks (``.fc-time-grid-event``, which
     carry an exact ``data-full`` time range) rather than the generic
     ``.fc-bgevent`` shading. Each block is clicked to read its
     "Leietaker"/"Formål" contract detail from the ``#viewModal`` panel BookUp
-    reveals — no login required, confirmed against Tønsberg's public
-    calendar. Skips the host club's own youth-team bookings (see
-    :func:`_is_own_club_youth_booking`) when *club_name* is given.
+    reveals when ``read_details`` is enabled — no login required, confirmed
+    against Tønsberg's public calendar. Skips the host club's own youth-team
+    bookings (see :func:`_is_own_club_youth_booking`) when *club_name* is given
+    and details were read. Live Stage 2 disables per-event detail clicks to keep
+    refresh bounded; returned ``Booket`` events are interval evidence only and
+    cannot distinguish external rentals from the host club's own movable
+    youth-team ice.
     """
     events: list[CalendarEvent] = []
 
@@ -225,21 +250,32 @@ def _parse_bookup_timegrid(frame: Any, club_name: str = "") -> list[CalendarEven
 
                 leietaker = ""
                 formal = ""
-                try:
-                    el.click(force=True)
-                    frame.wait_for_timeout(600)
-                    title_loc = frame.locator("#viewModal .title")
-                    if title_loc.count() > 0:
-                        leietaker = title_loc.first.inner_text().strip()
-                    sub_loc = frame.locator("#viewModal .sub-title")
-                    if sub_loc.count() > 0:
-                        formal = sub_loc.first.inner_text().strip()
-                    close_btn = frame.locator(".view-contract-close")
-                    if close_btn.count() > 0:
-                        close_btn.first.click(force=True)
-                        frame.wait_for_timeout(300)
-                except Exception:
-                    pass
+                if read_details:
+                    try:
+                        el.click(force=True, timeout=1_000)
+                        frame.wait_for_timeout(600)
+                        title_loc = frame.locator("#viewModal .title")
+                        if title_loc.count() > 0:
+                            leietaker = _playwright_call_with_timeout(
+                                title_loc.first.inner_text,
+                                timeout=1_000,
+                            ).strip()
+                        sub_loc = frame.locator("#viewModal .sub-title")
+                        if sub_loc.count() > 0:
+                            formal = _playwright_call_with_timeout(
+                                sub_loc.first.inner_text,
+                                timeout=1_000,
+                            ).strip()
+                        close_btn = frame.locator(".view-contract-close")
+                        if close_btn.count() > 0:
+                            _playwright_call_with_timeout(
+                                close_btn.first.click,
+                                force=True,
+                                timeout=1_000,
+                            )
+                            frame.wait_for_timeout(300)
+                    except Exception:
+                        pass
 
                 if club_name and leietaker and formal:
                     combined_title = f"Leietaker:{leietaker} Formål:{formal}"

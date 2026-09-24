@@ -309,6 +309,44 @@ def test_lone_unrelated_overlapping_event_is_not_confirmed_booked(tmp_path):
     assert report["tournaments"][0]["needs_attention"] is True
 
 
+@pytest.mark.parametrize(
+    "approval_note",
+    [
+        "A confirmed this booking via their change sheet",
+        "Placement approved from organizer sheet",
+        "Placement approved; not confirmed booking",
+    ],
+)
+def test_reconcile_preserves_approved_placement_without_calendar_event(tmp_path, approval_note):
+    """Calendar absence is follow-up evidence, not cancellation of an approved placement."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    approve_tournament(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        actor="booker",
+        note=approval_note,
+    )
+    problem = _host_a_problem([])
+
+    result = reconcile_calendar_bookings(
+        season="2026-2027", root=root, club="A", note="reviewed complete host calendar", problem=problem
+    )
+    row = result["classified"][0]
+    assert row["status"] == "ambiguous"
+    assert row["reason"] == "approved_placement_without_calendar_evidence"
+
+    report, heatmap_items = _report_and_heatmap(root, problem)
+    assert report["tournaments"][0]["status"] == "ambiguous"
+    assert report["counts"]["confirmed_not_booked"] == 0
+    assert heatmap_items["t1"]["booking_status"] == "ambiguous"
+
+    decision = load_decisions("2026-2027", root=root)["decisions"]["t1"]
+    assert decision["status"] == "approved"
+    assert decision["placement_locked"] is True
+
+
 def test_reconcile_keeps_explicit_association_confirmed_and_records_negative(tmp_path):
     """Only an explicit association makes a match confirmed_booked."""
 
