@@ -12,9 +12,12 @@ the public upstream service is classified separately under the ``live`` marker
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
+from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.pipeline.scraper_bookup import (
     _bookup_navigate_to_date,
+    _deduplicate_bookup_events,
     _is_own_club_youth_booking,
     _parse_bookup_timegrid,
 )
@@ -137,6 +140,22 @@ class TestIsOwnClubYouthBooking:
 
     def test_title_without_contract_fields_is_not_own_youth_booking(self) -> None:
         assert not _is_own_club_youth_booking("Booket", "Tønsberg")
+
+
+class TestDeduplicateBookupEvents:
+    def test_preserves_same_day_distinct_booked_intervals(self) -> None:
+        events = [
+            CalendarEvent("17.10.2026", "Booket", datetime(2026, 10, 17, 9, 0), 1.0),
+            CalendarEvent("17.10.2026", "Booket", datetime(2026, 10, 17, 14, 15), 2.0),
+            CalendarEvent("17.10.2026", "Booket", datetime(2026, 10, 17, 14, 15), 2.0),
+        ]
+
+        unique = _deduplicate_bookup_events(events)
+
+        assert [(e.datetime.strftime("%H:%M"), e.duration_hours) for e in unique] == [
+            ("09:00", 1.0),
+            ("14:15", 2.0),
+        ]
 
 
 class TestParseBookupTimegrid:

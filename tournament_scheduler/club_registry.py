@@ -22,8 +22,10 @@ Known/working deterministic sources today include Ringerike/Frisk Asker
 (StyledCalendar widget).
 
 Tønsberg uses BookUp's public JavaScript-rendered availability calendar. Stage 2
-reads it deterministically with Playwright; no account, credential, MFA, or
-session handoff is required.
+reads interval evidence deterministically with Playwright; no account,
+credential, MFA, or session handoff is required. The bounded live refresh does
+not click every interval for contract tenancy details, so the source is not
+trusted as automatic external-blocker or negative-booking proof.
 
 Sandefjord Penguins is *not* a BookUp/credentialed source for the RVV
 Miniputt pipeline (issue #261): the club has a known, fixed weekly ice-time
@@ -167,12 +169,13 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         source="https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
         skip=False,
         note=(
-            "BookUp SPA -- the public 'Se tilgjengelighet' view returns real, "
-            "detailed per-slot availability (exact times, clicked-through "
-            "Leietaker/Formål detail) with no login required, confirmed "
-            "against the live calendar. Trusted for automatic placement."
+            "BookUp SPA -- the public 'Se tilgjengelighet' view returns exact "
+            "per-slot interval evidence without login. Bounded live refresh does "
+            "not click every event for Leietaker/Formål details, so generic "
+            "Booket intervals are not authoritative for automatic placement, "
+            "hard external blockers, or confirmed-not-booked conclusions."
         ),
-        trusted_for_auto_placement=True,
+        trusted_for_auto_placement=False,
     ),
     "Frisk Asker": ClubCalendarSource(
         club="Frisk Asker",

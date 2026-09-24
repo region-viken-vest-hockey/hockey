@@ -113,16 +113,24 @@ def _run_bookup_scraper(
     except Exception:
         pass
 
-    # Deduplicate
-    seen: set[tuple[str, str]] = set()
+    return _deduplicate_bookup_events(events), raw_html
+
+
+def _deduplicate_bookup_events(events: list[CalendarEvent]) -> list[CalendarEvent]:
+    """Preserve distinct same-day intervals while dropping exact duplicates."""
+    seen: set[tuple[str, str, str, float]] = set()
     unique: list[CalendarEvent] = []
     for ev in events:
-        key = (ev.date, ev.name)
+        key = (
+            ev.date,
+            ev.datetime.strftime("%H:%M"),
+            ev.name,
+            round(float(ev.duration_hours or 0.0), 4),
+        )
         if key not in seen:
             seen.add(key)
             unique.append(ev)
-
-    return unique, raw_html
+    return unique
 
 
 def _bookup_navigate_to_date(frame: Any, target: datetime) -> None:
@@ -192,9 +200,10 @@ def _parse_bookup_timegrid(
     reveals when ``read_details`` is enabled — no login required, confirmed
     against Tønsberg's public calendar. Skips the host club's own youth-team
     bookings (see :func:`_is_own_club_youth_booking`) when *club_name* is given
-    and details were read. Live Stage 2 scraping disables per-event detail
-    clicks to keep source refresh bounded; downstream reconciliation uses the
-    occupied interval as calendar evidence.
+    and details were read. Live Stage 2 disables per-event detail clicks to keep
+    refresh bounded; returned ``Booket`` events are interval evidence only and
+    cannot distinguish external rentals from the host club's own movable
+    youth-team ice.
     """
     events: list[CalendarEvent] = []
 
