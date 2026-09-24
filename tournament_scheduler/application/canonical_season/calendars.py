@@ -24,6 +24,7 @@ from tournament_scheduler.calendar_bookings import (
     iter_events,
     new_association_record,
     new_booking_evidence_record,
+    valid_active_associations,
 )
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_state import (
@@ -418,7 +419,13 @@ def reconcile_calendar_bookings(
     problem: dict[str, Any] | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    """Classify every hosted tournament for one club against current calendar evidence."""
+    """Classify every hosted tournament for one club against current calendar evidence.
+
+    The classification is evidence, not booking proof.  A lone busy event that
+    merely overlaps a tournament is recorded as ``ambiguous`` so the operator /
+    harness can own the semantic match through ``confirm-calendar-booking``;
+    only an already-valid explicit association is reported ``confirmed_booked``.
+    """
 
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
@@ -428,6 +435,13 @@ def reconcile_calendar_bookings(
     status = str((resolved_problem.get("club_calendar_status") or {}).get(club) or "")
     trustworthy = status == "known"
     events = [event for event in iter_events(resolved_problem) if str(event.get("club") or "") == club]
+    confirmed_by_tournament: dict[str, Mapping[str, Any] | None] = {}
+    for record in valid_active_associations(decisions, problem=resolved_problem, plan=plan):
+        tournament_id = str(record.get("tournament_id") or "")
+        if tournament_id:
+            confirmed_by_tournament[tournament_id] = find_event(
+                resolved_problem, str(record.get("event_fingerprint") or "")
+            )
     now = _now_iso()
     resolved_actor = _operator_identity(actor)
     rows: list[dict[str, Any]] = []
@@ -435,16 +449,26 @@ def reconcile_calendar_bookings(
     for tournament in plan.get("tournaments", []) or []:
         if str(tournament.get("host_club") or "") != club:
             continue
-        if not trustworthy:
+        tournament_id = str(tournament.get("id") or "")
+        if tournament_id in confirmed_by_tournament:
+            # Only an explicit operator/harness-validated association is proof that
+            # an occupied interval is this tournament; raw overlap is not.
+            booking_status = BOOKING_CONFIRMED_BOOKED
+            matched_event = confirmed_by_tournament[tournament_id]
+            reason = "explicit_calendar_booking_association"
+        elif not trustworthy:
             booking_status = BOOKING_NOT_CHECKABLE
             matched_event = None
             reason = f"calendar_status:{status or 'missing'}"
         else:
             overlaps = [event for event in events if _overlaps(tournament, event, ice)]
             if len(overlaps) == 1:
-                booking_status = BOOKING_CONFIRMED_BOOKED
+                # Exactly one busy event overlaps, but occupancy is not proof that
+                # the event is this RVV tournament. Keep the candidate visible and
+                # require an explicit `confirm-calendar-booking` match.
+                booking_status = BOOKING_AMBIGUOUS
                 matched_event = overlaps[0]
-                reason = "matched_single_overlapping_event"
+                reason = "single_overlapping_event_requires_confirmation"
             elif len(overlaps) == 0:
                 booking_status = BOOKING_CONFIRMED_NOT_BOOKED
                 matched_event = None

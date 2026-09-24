@@ -1187,7 +1187,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     season_reconcile_bookings = season_sub.add_parser(
         "reconcile-calendar-bookings",
-        help="Classify all tournaments hosted by one club against that club's calendar evidence",
+        help="Record host-calendar booking evidence for one club (overlap is candidate evidence, never a confirmed booking)",
     )
     season_reconcile_bookings.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_reconcile_bookings.add_argument("--root", default="season", help="Canonical season-state root (default: season)")

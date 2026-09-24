@@ -414,7 +414,21 @@ def booking_status_report(
             stale_reasons = ["calendar_booking_association_stale"]
         elif record:
             stale_reasons = _booking_record_stale_reasons(record, problem=problem, tournaments=tournaments)
-            status = STALE if stale_reasons else str(record.get("status") or BOOKING_UNKNOWN)
+            record_status = str(record.get("status") or BOOKING_UNKNOWN)
+            if stale_reasons:
+                status = STALE
+            elif record_status == BOOKING_CONFIRMED_BOOKED:
+                # Historical evidence is preserved in ``row["evidence"]``, but
+                # ``confirmed_booked`` is a statement about *current* proof: it
+                # requires a currently-valid explicit event-to-tournament
+                # association (handled above). A legacy single-overlap positive
+                # record, or one whose association was released without
+                # rebinding, is only weak positive evidence and must surface as
+                # requiring review instead of staying confirmed.
+                status = BOOKING_AMBIGUOUS
+                stale_reasons = ["confirmed_booking_without_valid_association"]
+            else:
+                status = record_status
         row = {
             "tournament_id": tid,
             "status": status,
