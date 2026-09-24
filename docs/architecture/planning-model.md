@@ -88,7 +88,8 @@ flowchart TB
   CPS --> CAND
   MATH --> VER
   CAND --> VER --> VALID
-  VALID -->|"no: reject/report"| OBL
+  INVALID["Invalid candidate: verifier findings / reject"]
+  VALID -->|"no"| INVALID
   VALID -->|"yes"| MEAS
   SOFT --> MEAS
   MEAS --> FRONT --> SESSION
@@ -102,7 +103,7 @@ flowchart TB
   classDef soft fill:#e4f1ff,stroke:#245a99,color:#222
   classDef decision fill:#ede5ff,stroke:#69419d,color:#222
   classDef evidence fill:#e4f5e9,stroke:#236d3a,color:#222
-  class HARD,VER,VALID,RECHECK hard
+  class HARD,VER,VALID,INVALID,RECHECK hard
   class OBL obligation
   class SOFT,MEAS,FRONT soft
   class OPD,SESSION,PROM decision
