@@ -14,6 +14,7 @@ MAKEFILE = ROOT / "Makefile"
 PUBLIC_TARGETS = [
     "help",
     "bootstrap",
+    "handover",
     "install",
     "check",
     "test",
@@ -243,6 +244,18 @@ class TestMakefileOperatorInterface:
         assert bootstrap_match, "Makefile should declare a bootstrap target"
         bootstrap_body = bootstrap_match.group("body")
         assert "$(BOOTSTRAP)" in bootstrap_body
+
+    def test_handover_target_delegates_to_stdlib_script(self, tmp_path):
+        fake, log_path = _fake_cli(tmp_path)
+        result = _run_make(
+            "handover", f"HANDOVER={fake}", "ARGS=--issue 12 --json",
+            env={"CALL_LOG": str(log_path)},
+        )
+        assert result.returncode == 0, result.stderr
+        assert _read_calls(log_path)[-1] == ["--issue", "12", "--json"]
+        makefile = MAKEFILE.read_text(encoding="utf-8")
+        body = re.search(r"\nhandover:\n(?P<body>.*?)(?:\n\S|\Z)", makefile, re.DOTALL)
+        assert body is not None and 'python3 "$(HANDOVER)"' in body.group("body")
 
     def test_check_target_delegates_to_canonical_script(self, tmp_path):
         fake, log_path = _fake_cli(tmp_path)

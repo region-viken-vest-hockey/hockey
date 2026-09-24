@@ -2,6 +2,11 @@
 
 This is the single operator-facing entry point for RVV Miniputt work. The operator states the desired outcome in ordinary language; the active harness determines the lifecycle, loads the relevant shared procedures, and uses repository-owned capabilities to carry it out.
 
+At the start of a new session or after context loss, first follow
+`.agents/commands/rvv-miniputt/handover.md` and verify current refs; never
+reuse old conversation status as authority. This step grants no mutation or
+publication permission.
+
 Read `AGENTS.md`, `.agents/skills/rvv/SKILL.md`, and this repository's internal routing guide `.agents/commands/rvv-miniputt/guide.md` before acting. The other files in this directory are internal shared procedures, not separate commands the operator should need to remember.
 
 ## Operator contract
