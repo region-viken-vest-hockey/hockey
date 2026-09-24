@@ -35,7 +35,12 @@ from tournament_scheduler.published_baseline import (
 )
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
-from .scoped_mutation import ScopedMutationContract, validate_scoped_mutation_contract
+from .scoped_mutation import (
+    ScopedMutationAuthorization,
+    permitted_history_event_for_authorization,
+    validate_scoped_mutation_authorization,
+    validate_scoped_mutation_completion,
+)
 from .shared import (
     PENDING_REVIEW_STATUS,
     _operator_identity,
@@ -221,14 +226,13 @@ def apply_candidate(
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
     operation: str = "global_regeneration",
-    _targeted_contract: ScopedMutationContract | None = None,
+    _scoped_authorization: ScopedMutationAuthorization | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     """Apply a verified replan candidate to canonical season state.
 
-    ``operation`` names the origin of the candidate. The fail-closed default is
-    ``global_regeneration``: a published_sealed season refuses any caller that
-    does not explicitly identify itself as a narrow, validated canonical
-    maintenance mutation (``targeted_mutation`` / ``targeted_repair``).
+    A published_sealed season refuses every caller that cannot present a
+    service-issued, evidence-derived scoped authorization. ``operation`` is only
+    narration: neither it nor a caller-built contract/scope is authorization.
     """
 
     from tournament_scheduler.canonical_baseline import (
@@ -241,22 +245,28 @@ def apply_candidate(
     schedule, decisions = snapshot.schedule, snapshot.decisions
     baseline = build_canonical_baseline(schedule, decisions)
     normalized_candidate = extract_candidate(candidate)
-    if is_published_sealed(decisions):
-        if _targeted_contract is None:
-            assert_season_allows_global_regeneration(decisions, operation=operation)
-        validate_scoped_mutation_contract(
+    scoped_validation: dict[str, Any] | None = None
+    if is_published_sealed(decisions) and not isinstance(
+        _scoped_authorization, ScopedMutationAuthorization
+    ):
+        # A mode string, a caller-built contract or an arbitrary id list is
+        # never authorization: a whole-season candidate can be packaged as a
+        # wide "scoped" contract. A token is not authorization either -- only a
+        # typed operation reproduced from current canonical state is.
+        assert_season_allows_global_regeneration(decisions, operation=operation)
+    if _scoped_authorization is not None:
+        if isinstance(_scoped_authorization, ScopedMutationAuthorization):
+            permitted_event = permitted_history_event_for_authorization(_scoped_authorization)
+            if not _history_event or str(_history_event.get("event") or "") != str(permitted_event):
+                raise SeasonStateError(
+                    f"Refusing {operation}: scoped mutation must carry its permitted durable "
+                    f"history event {permitted_event!r}"
+                )
+        scoped_validation = validate_scoped_mutation_authorization(
             schedule=schedule,
             decisions=decisions,
             candidate=normalized_candidate,
-            contract=_targeted_contract,
-            operation=operation,
-        )
-    elif _targeted_contract is not None:
-        validate_scoped_mutation_contract(
-            schedule=schedule,
-            decisions=decisions,
-            candidate=normalized_candidate,
-            contract=_targeted_contract,
+            authorization=_scoped_authorization,
             operation=operation,
         )
 
@@ -300,9 +310,14 @@ def apply_candidate(
             f"Refusing canonical apply: candidate violates canonical locks: {messages}"
         )
 
+    verification_problem = (
+        scoped_validation.get("problem")
+        if isinstance(scoped_validation, Mapping)
+        else problem
+    )
     result = (
-        verify_candidate(normalized_candidate, problem)
-        if problem
+        verify_candidate(normalized_candidate, verification_problem)
+        if verification_problem
         else verify_candidate(normalized_candidate)
     )
     if not result.get("ok", True):
@@ -315,8 +330,8 @@ def apply_candidate(
 
     before_plan = schedule.get("plan") or {}
     before_verification = (
-        verify_candidate(dict(before_plan), problem)
-        if problem
+        verify_candidate(dict(before_plan), verification_problem)
+        if verification_problem
         else verify_candidate(dict(before_plan))
     )
     operational_acceptability = check_operational_acceptability(
@@ -338,13 +353,13 @@ def apply_candidate(
             + (f"; pass {flags} only for an explicit provisional placement" if flags else "")
         )
 
-    if problem:
+    if verification_problem:
         from tournament_scheduler.hosting_responsibility import (
             unexplained_responsibility_transfers,
         )
 
         transfers = unexplained_responsibility_transfers(
-            schedule.get("plan"), normalized_candidate, problem
+            schedule.get("plan"), normalized_candidate, verification_problem
         )
         if transfers:
             messages = "; ".join(str(entry.get("message")) for entry in transfers)
@@ -357,7 +372,19 @@ def apply_candidate(
     plan["schema_version"] = SEASON_PLAN_SCHEMA_VERSION
     plan.setdefault("start_date", schedule["plan"].get("start_date"))
     plan.setdefault("end_date", schedule["plan"].get("end_date"))
-    reconcile_plan_derived_state(plan, result, problem=problem)
+    reconcile_plan_derived_state(plan, result, problem=verification_problem)
+    if _scoped_authorization is not None:
+        # Derived-state reconciliation must not change anything the reproduced
+        # typed operation did not produce, and the final after-state must still
+        # match the durable history the authorization will record.
+        validate_scoped_mutation_completion(
+            schedule=schedule,
+            decisions=decisions,
+            plan=plan,
+            reproduced=scoped_validation,
+            authorization=_scoped_authorization,
+            operation=operation,
+        )
 
     now = _now_iso()
     fingerprint = schedule_fingerprint(plan)
@@ -392,9 +419,23 @@ def apply_candidate(
             ),
             None,
         )
+        history_details = (
+            dict(_history_event.get("details") or {})
+            if isinstance(_history_event.get("details"), Mapping)
+            else {}
+        )
+        if _scoped_authorization is not None:
+            # The replayable record must be the authorization the apply boundary
+            # validated, so a caller cannot record a wider after-state than the
+            # candidate it actually committed.
+            if isinstance(scoped_validation, Mapping):
+                history_details.update(dict(scoped_validation.get("history_details") or {}))
+        history_event_name = str(_history_event.get("event") or "apply_candidate")
+        if isinstance(scoped_validation, Mapping):
+            history_event_name = str(scoped_validation.get("history_event") or history_event_name)
         _append_decision_history(
             updated_decisions,
-            event=str(_history_event.get("event") or "apply_candidate"),
+            event=history_event_name,
             tournament_id=history_tournament_id,
             actor=actor,
             now=now,
@@ -409,11 +450,7 @@ def apply_candidate(
                 else None
             ),
             note=str(_history_event.get("note") or ""),
-            details=(
-                dict(_history_event.get("details") or {})
-                if isinstance(_history_event.get("details"), Mapping)
-                else None
-            ),
+            details=history_details or None,
         )
     cost = change_cost(baseline, plan, weights=change_weights)
     updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)

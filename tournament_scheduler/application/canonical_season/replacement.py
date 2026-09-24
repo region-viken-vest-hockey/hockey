@@ -456,13 +456,15 @@ def replace_participant(
             "team's schedule: " + ", ".join(regressions)
         )
 
-    from .scoped_mutation import make_scoped_mutation_contract
+    from .scoped_mutation import authorize_participant_replacement
 
-    targeted_contract = make_scoped_mutation_contract(
+    scoped_authorization = authorize_participant_replacement(
         schedule=schedule,
         decisions=decisions,
         candidate=plan,
-        affected_tournament_ids=[tournament_id],
+        tournament_id=tournament_id,
+        remove_team_label=remove_team_label,
+        add_team_label=add_team_label,
     )
     updated_schedule, updated_decisions, applied_cost = service.apply_candidate(
         season=season,
@@ -470,7 +472,7 @@ def replace_participant(
         problem=resolved_problem,
         actor=actor,
         operation="targeted_mutation",
-        _targeted_contract=targeted_contract,
+        _scoped_authorization=scoped_authorization,
         _new_change_protections=new_protections,
         _history_event={
             "event": "participant_replacement",
