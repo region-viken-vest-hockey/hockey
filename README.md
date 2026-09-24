@@ -84,7 +84,7 @@ Publication builds a separate allowlisted public bundle. Spond exports, review p
 
 ## Session handover
 
-Run `make handover` (optionally `ARGS='--issue 443 --json'`) for a bounded,
+Run `make handover` (optionally `ARGS='--issue N --json'`) for a bounded,
 read-only view of Git, CI, the real public revision and current canonical
 lifecycle. It never publishes or changes the season. Fresh agents should read
 [the shared handover procedure](.agents/commands/rvv-miniputt/handover.md)

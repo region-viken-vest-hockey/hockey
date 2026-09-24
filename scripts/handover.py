@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import binascii
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 import json
@@ -89,7 +90,7 @@ def _public_revision(payload: dict[str, Any] | None, missing: list[str]) -> str 
         if not parser.revision:
             raise ValueError("missing season-revision")
         return parser.revision
-    except (KeyError, ValueError, UnicodeError):
+    except (KeyError, ValueError, UnicodeError, binascii.Error):
         missing.append("public latest/index.html: unreadable season revision")
         return None
 
@@ -234,8 +235,36 @@ def collect(
                 active_issue = {
                     "number": item.get("number"), "title": item.get("title"),
                     "state": item.get("state"), "url": item.get("html_url"),
-                    "updated_at": item.get("updated_at"),
+                    "updated_at": item.get("updated_at"), "latest_comment": None,
                 }
+                count = int(item.get("comments") or 0)
+                if count:
+                    # Request just the last issue comment, not a transcript dump.
+                    raw_comments = _probe(
+                        "GitHub issue last comment",
+                        ["gh", "api", f"repos/{repo}/issues/{issue}/comments?per_page=1&page={count}"],
+                        root, runner, missing,
+                    )
+                    if raw_comments is not None:
+                        try:
+                            comments = json.loads(raw_comments)
+                            if not isinstance(comments, list) or len(comments) != 1:
+                                raise ValueError("missing last comment")
+                            comment = comments[0]
+                            active_issue["latest_comment"] = {
+                                "url": comment.get("html_url"),
+                                "created_at": comment.get("created_at"),
+                                "excerpt": str(comment.get("body") or "")[:500],
+                            }
+                        except (ValueError, TypeError, AttributeError):
+                            missing.append("GitHub issue last comment: malformed or unavailable")
+        # A remote update during the snapshot invalidates the claimed reference.
+        final_main = _api(repo, "branches/main", root, runner, missing)
+        final_pages = _api(repo, "branches/gh-pages", root, runner, missing)
+        if github["main_head"] != ((final_main or {}).get("commit") or {}).get("sha"):
+            risks.append("Remote main changed during handover; rerun against current HEAD.")
+        if github["gh_pages_head"] != ((final_pages or {}).get("commit") or {}).get("sha"):
+            risks.append("gh-pages changed during handover; re-verify public revision.")
     else:
         missing.append("live GitHub state: skipped by --no-remote")
 

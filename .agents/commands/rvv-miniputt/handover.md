@@ -10,7 +10,7 @@ GitHub Issues remain the only live implementation backlog.
 "Continue hockey from the repo handover; verify live state first."
 
 Local checkout: from the repository root run `make handover`, optionally
-`make handover ARGS='--issue 443 --json'`. This command is read-only. It uses
+`make handover ARGS='--issue N --json'`. This command is read-only. It uses
 the canonical `season lifecycle --json` report for the season and GitHub
 read-only API queries through `gh api`. If GitHub CLI is unavailable or not
 authenticated, the report says REVIEW_REQUIRED; do not fill in gaps from memory.
@@ -62,7 +62,7 @@ Use the connected GitHub app to fetch, in this order:
 - inspect `season/<season>/` blob identity and relevant code or tests;
   if large canonical files cannot be processed, **do not** claim the live
   lifecycle/reconciliation has passed. Ask a checkout-capable agent to run
-  `make handover --issue ...` or the canonical lifecycle command.
+  `make handover ARGS='--issue N'` or the canonical lifecycle command.
 
 Do not claim a local CLI or integration test was run from GitHub-only metadata.
 Never copy a previous response's commit SHA, revision, number of findings or

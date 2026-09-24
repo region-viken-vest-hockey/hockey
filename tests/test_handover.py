@@ -27,6 +27,9 @@ class ReadOnlyRunner:
         self.public_revision = PUBLISHED
         self.lifecycle_ok = True
         self.available = True
+        self.comments = 0
+        self.pages_reads = 0
+        self.change_pages_midflight = False
 
     def __call__(self, args: list[str], _root: Path) -> str:
         self.calls.append(tuple(args))
@@ -57,7 +60,9 @@ class ReadOnlyRunner:
         if endpoint.endswith("branches/main"):
             return json.dumps({"commit": {"sha": MAIN}})
         if endpoint.endswith("branches/gh-pages"):
-            return json.dumps({"commit": {"sha": PAGES}})
+            self.pages_reads += 1
+            revision = "c" * 40 if self.change_pages_midflight and self.pages_reads > 1 else PAGES
+            return json.dumps({"commit": {"sha": revision}})
         if "/actions/runs?" in endpoint:
             return json.dumps({"workflow_runs": [
                 {"name": "CI", "status": "completed", "conclusion": self.ci,
@@ -71,10 +76,17 @@ class ReadOnlyRunner:
                 {"number": 12, "title": "Live issue", "html_url": "https://github.com/example/issues/12"},
                 {"number": 13, "pull_request": {}, "title": "Not an issue"},
             ])
+        if "/issues/12/comments?" in endpoint:
+            return json.dumps([{
+                "body": "Last verified SHA: old; recheck against current main.",
+                "created_at": "2026-09-24T07:00:00Z",
+                "html_url": "https://github.com/example/issues/12#issuecomment-1",
+            }])
         if endpoint.endswith("/issues/12"):
             return json.dumps({
                 "number": 12, "title": "Live issue", "state": "open",
                 "html_url": "https://github.com/example/issues/12",
+                "comments": self.comments,
             })
         raise AssertionError(f"unexpected read-only query: {endpoint}")
 
@@ -176,3 +188,20 @@ def test_repo_argument_does_not_accept_api_path_injection(tmp_path: Path) -> Non
         pass
     else:
         raise AssertionError("invalid repository selector accepted")
+
+
+def test_last_issue_comment_is_context_not_new_authority(tmp_path: Path) -> None:
+    runner = ReadOnlyRunner()
+    runner.comments = 1
+    report = handover.collect(root=_root(tmp_path), runner=runner, issue=12)
+    assert report["active_issue"]["latest_comment"]["excerpt"].startswith("Last verified SHA")
+    assert report["active_issue"]["latest_comment"]["url"].endswith("issuecomment-1")
+    assert report["verdict"] == "CONTEXT_VERIFIED"
+
+
+def test_remote_branch_change_during_collection_requires_review(tmp_path: Path) -> None:
+    runner = ReadOnlyRunner()
+    runner.change_pages_midflight = True
+    report = handover.collect(root=_root(tmp_path), runner=runner)
+    assert report["verdict"] == "REVIEW_REQUIRED"
+    assert any("gh-pages changed during handover" in row for row in report["risks"])
