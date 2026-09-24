@@ -409,25 +409,18 @@ def _overlaps(tournament: Mapping[str, Any], event: Mapping[str, Any], ice: Mapp
     return t_interval[0] < e_interval[1] and e_interval[0] < t_interval[1]
 
 
-def _approved_booking_confirmation(decisions: Mapping[str, Any], tournament_id: str) -> bool:
-    """Return whether approval evidence explicitly says the club confirmed booking.
+def _approved_placement_locked(decisions: Mapping[str, Any], tournament_id: str) -> bool:
+    """Return whether the tournament already has an approved placement lock.
 
-    Public-calendar absence is source-specific evidence. It must not be
-    projected as a negative booking conclusion when the canonical approval
-    decision already records explicit club booking confirmation.
+    Public-calendar absence is source-specific follow-up evidence. It must not
+    be projected as a negative booking conclusion for an already approved slot,
+    but approval-note prose is not parsed as booking authority either.
     """
 
     record = (decisions.get("decisions") or {}).get(tournament_id) or {}
     if not isinstance(record, Mapping):
         return False
-    if str(record.get("status") or "") != APPROVED_STATUS:
-        return False
-    if not bool(record.get("placement_locked")):
-        return False
-    note = str(record.get("note") or "").casefold()
-    confirmation_terms = ("confirmed", "bekreftet")
-    booking_terms = ("booking", "booked", "booket")
-    return any(term in note for term in confirmation_terms) and any(term in note for term in booking_terms)
+    return str(record.get("status") or "") == APPROVED_STATUS and bool(record.get("placement_locked"))
 
 
 def reconcile_calendar_bookings(
@@ -492,9 +485,9 @@ def reconcile_calendar_bookings(
                 reason = "single_overlapping_event_requires_confirmation"
             elif len(overlaps) == 0:
                 matched_event = None
-                if _approved_booking_confirmation(decisions, tournament_id):
+                if _approved_placement_locked(decisions, tournament_id):
                     booking_status = BOOKING_AMBIGUOUS
-                    reason = "approved_club_confirmed_booking_absent_from_calendar"
+                    reason = "approved_placement_without_calendar_evidence"
                 else:
                     booking_status = BOOKING_CONFIRMED_NOT_BOOKED
                     reason = "no_overlapping_event_in_trustworthy_calendar"

@@ -309,8 +309,16 @@ def test_lone_unrelated_overlapping_event_is_not_confirmed_booked(tmp_path):
     assert report["tournaments"][0]["needs_attention"] is True
 
 
-def test_reconcile_preserves_approved_club_confirmed_booking_without_calendar_event(tmp_path):
-    """Calendar absence is follow-up evidence, not cancellation of a club-confirmed approval."""
+@pytest.mark.parametrize(
+    "approval_note",
+    [
+        "A confirmed this booking via their change sheet",
+        "Placement approved from organizer sheet",
+        "Placement approved; not confirmed booking",
+    ],
+)
+def test_reconcile_preserves_approved_placement_without_calendar_event(tmp_path, approval_note):
+    """Calendar absence is follow-up evidence, not cancellation of an approved placement."""
 
     root = _promote(tmp_path, [_tournament("t1")])
     approve_tournament(
@@ -318,7 +326,7 @@ def test_reconcile_preserves_approved_club_confirmed_booking_without_calendar_ev
         root=root,
         tournament_id="t1",
         actor="booker",
-        note="A confirmed this booking via their change sheet",
+        note=approval_note,
     )
     problem = _host_a_problem([])
 
@@ -327,7 +335,7 @@ def test_reconcile_preserves_approved_club_confirmed_booking_without_calendar_ev
     )
     row = result["classified"][0]
     assert row["status"] == "ambiguous"
-    assert row["reason"] == "approved_club_confirmed_booking_absent_from_calendar"
+    assert row["reason"] == "approved_placement_without_calendar_evidence"
 
     report, heatmap_items = _report_and_heatmap(root, problem)
     assert report["tournaments"][0]["status"] == "ambiguous"
