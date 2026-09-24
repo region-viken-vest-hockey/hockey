@@ -20,9 +20,15 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from tournament_scheduler.pipeline.export_projection_guard import (
+    FULL_OPERATIONAL_PROJECTION_SCHEMA,
+    FULL_OPERATIONAL_PROJECTION_VERSION,
+    occupied_end_time,
     tournament_projection,
 )
+
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+
+LEGACY_BASELINE_BACKFILL = "legacy_published_baseline_backfill"
 
 SEASON_LIFECYCLE_KEY = "season_lifecycle"
 
@@ -32,9 +38,6 @@ STATE_PUBLISHED_SEALED = "published_sealed"
 
 # Partition separator used by the export projection for participant identity.
 PARTICIPANT_SEPARATOR = "\u001f"
-
-PROJECTION_FIELDS = ("date", "start_time", "arena", "host_club", "age_group")
-
 
 class SeasonSealedError(RuntimeError):
     """Raised when a sealed published season would be globally regenerated."""
@@ -112,9 +115,19 @@ def participant_parts(key: str) -> tuple[str, str, str]:
 def projection_entry(tournament_id: str, entry: Mapping[str, Any]) -> dict[str, Any]:
     """Normalize one projection entry into a canonical stable-id record."""
 
-    record: dict[str, Any] = {"id": str(tournament_id)}
-    for field in PROJECTION_FIELDS:
+    record: dict[str, Any] = {
+        "id": str(tournament_id),
+        "projection_schema": entry.get("projection_schema"),
+        "projection_schema_version": entry.get("projection_schema_version"),
+    }
+    for field in ("date", "start_time", "arena", "host_club", "age_group", "end_time", "cancellation_reason"):
         record[field] = str(entry.get(field) or "")
+    try:
+        record["duration_minutes"] = int(entry.get("duration_minutes") or 0)
+    except (TypeError, ValueError):
+        record["duration_minutes"] = entry.get("duration_minutes")
+    record["cancelled"] = bool(entry.get("cancelled", False))
+    record["guest_slots"] = [dict(slot) for slot in entry.get("guest_slots") or [] if isinstance(slot, Mapping)]
     record["participants"] = sorted(str(key) for key in entry.get("participants") or [])
     return record
 
@@ -125,13 +138,9 @@ def _normalized_projection_tournaments(
     tournaments: list[dict[str, Any]] = []
     for tournament_id in sorted(projection):
         entry = projection[tournament_id]
-        tournaments.append(
-            {
-                "tournament_id": str(tournament_id),
-                **{field: str(entry.get(field) or "") for field in PROJECTION_FIELDS},
-                "participants": sorted(str(key) for key in entry.get("participants") or []),
-            }
-        )
+        record = projection_entry(str(tournament_id), entry)
+        record["tournament_id"] = str(tournament_id)
+        tournaments.append(record)
     return tournaments
 
 
@@ -139,10 +148,30 @@ def projection_fingerprint(projection: Mapping[str, Mapping[str, Any]]) -> str:
     return stable_payload_sha256(_normalized_projection_tournaments(projection))
 
 
-def projection_from_canonical_plan(plan: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+def projection_problem_from_schedule(schedule: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    context = (schedule or {}).get("verification_context")
+    if not isinstance(context, Mapping):
+        return None
+    problem = context.get("problem")
+    return dict(problem) if isinstance(problem, Mapping) else None
+
+
+def projection_from_canonical_plan(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any] | None = None,
+) -> dict[str, dict[str, Any]]:
     """Stable-id projection of a canonical plan payload."""
 
-    return tournament_projection(plan)
+    return tournament_projection(plan, problem)
+
+
+def projection_from_canonical_schedule(schedule: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """Stable-id projection of a durable canonical schedule payload."""
+
+    return projection_from_canonical_plan(
+        schedule.get("plan") or {},
+        projection_problem_from_schedule(schedule),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -180,8 +209,76 @@ def build_baseline_record(
     return record
 
 
-def baseline_projection(record: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    """Reconstruct the stable-id projection stored in a baseline record."""
+def _is_versioned_projection_entry(entry: Mapping[str, Any]) -> bool:
+    return (
+        entry.get("projection_schema") == FULL_OPERATIONAL_PROJECTION_SCHEMA
+        and entry.get("projection_schema_version") == FULL_OPERATIONAL_PROJECTION_VERSION
+    )
+
+
+def entries_require_backfill(entries: Any) -> bool:
+    """True when any projection record predates the versioned operational schema."""
+
+    return any(
+        isinstance(entry, Mapping) and not _is_versioned_projection_entry(entry)
+        for entry in entries or []
+    )
+
+
+def baseline_requires_backfill(record: Mapping[str, Any]) -> bool:
+    """True when a baseline record predates the versioned operational projection."""
+
+    return entries_require_backfill(record.get("tournaments"))
+
+
+def baseline_migration_requires_backfill(record: Mapping[str, Any]) -> bool:
+    """True when a baseline's attested omissions/materializations are legacy."""
+
+    migration = record.get("migration") if isinstance(record.get("migration"), Mapping) else {}
+    return entries_require_backfill(migration.get("publication_omissions")) or entries_require_backfill(
+        migration.get("materializations")
+    )
+
+
+def backfill_projection_entry(
+    entry: Mapping[str, Any],
+    *,
+    authoritative: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Upgrade one legacy projection record with authoritative operational facts.
+
+    The immutable recorded placement/participants are preserved; only the
+    operational facts the legacy record never carried (occupied interval,
+    cancellation, guest reservations) are supplied from the historically
+    authoritative source.
+    """
+
+    tournament_id = str(entry.get("tournament_id") or entry.get("id") or "")
+    if _is_versioned_projection_entry(entry) or not isinstance(authoritative, Mapping):
+        return projection_entry(tournament_id, entry)
+    merged = dict(authoritative)
+    for field in ("id", "date", "start_time", "arena", "host_club", "age_group", "participants"):
+        value = entry.get(field)
+        if value not in (None, ""):
+            merged[field] = value
+    merged["end_time"] = occupied_end_time(merged.get("start_time"), merged.get("duration_minutes"))
+    merged["projection_migration"] = LEGACY_BASELINE_BACKFILL
+    return projection_entry(tournament_id, merged)
+
+
+def baseline_projection(
+    record: Mapping[str, Any],
+    *,
+    publication_canonical_projection: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Reconstruct the stable-id projection stored in a baseline record.
+
+    A baseline recorded before the versioned operational projection is
+    backfilled from the historically authoritative canonical projection at the
+    publication revision. The immutable baseline record is never rewritten; the
+    upgrade only supplies the operational facts (occupied interval, cancellation
+    and guest reservations) that legacy publication artifacts did not carry.
+    """
 
     projection: dict[str, dict[str, Any]] = {}
     for entry in record.get("tournaments") or []:
@@ -191,6 +288,25 @@ def baseline_projection(record: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
         if not tournament_id:
             continue
         projection[tournament_id] = projection_entry(tournament_id, entry)
+    if not publication_canonical_projection:
+        return projection
+    for tournament_id, entry in list(projection.items()):
+        if _is_versioned_projection_entry(entry):
+            continue
+        canonical = publication_canonical_projection.get(tournament_id)
+        if not isinstance(canonical, Mapping):
+            continue
+        merged = dict(canonical)
+        # Placement/participants are the actually published facts; the
+        # publication-time canonical projection supplies the operational facts
+        # the legacy artifact never recorded.
+        for field in ("id", "date", "start_time", "arena", "host_club", "age_group", "participants"):
+            value = entry.get(field)
+            if value not in (None, ""):
+                merged[field] = value
+        merged["end_time"] = occupied_end_time(merged.get("start_time"), merged.get("duration_minutes"))
+        merged["projection_migration"] = LEGACY_BASELINE_BACKFILL
+        projection[tournament_id] = projection_entry(tournament_id, merged)
     return projection
 
 
@@ -207,8 +323,8 @@ def publication_history(decisions: Mapping[str, Any] | None) -> list[dict[str, A
 
 
 __all__ = [
+    "LEGACY_BASELINE_BACKFILL",
     "PARTICIPANT_SEPARATOR",
-    "PROJECTION_FIELDS",
     "PublishedBaselineError",
     "SEASON_LIFECYCLE_KEY",
     "STATE_PLANNING",
@@ -217,7 +333,11 @@ __all__ = [
     "SeasonSealedError",
     "active_baseline",
     "assert_season_allows_global_regeneration",
+    "backfill_projection_entry",
+    "baseline_migration_requires_backfill",
     "baseline_projection",
+    "baseline_requires_backfill",
+    "entries_require_backfill",
     "build_baseline_record",
     "is_published_sealed",
     "lifecycle_record",
@@ -227,5 +347,7 @@ __all__ = [
     "projection_entry",
     "projection_fingerprint",
     "projection_from_canonical_plan",
+    "projection_from_canonical_schedule",
+    "projection_problem_from_schedule",
     "publication_history",
 ]

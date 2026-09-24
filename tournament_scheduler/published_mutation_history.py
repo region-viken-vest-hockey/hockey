@@ -23,6 +23,7 @@ from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.pipeline.export_projection_guard import (
     diff_tournament_projection,
+    occupied_end_time,
 )
 
 from tournament_scheduler.published_baseline import (
@@ -46,12 +47,10 @@ _DECISION_ONLY_EVENTS = {
     "confirm_calendar_booking",
     "disallow_holiday_date",
     "reconcile_calendar_bookings",
-    "reconcile_config",
     "refresh_calendar_evidence",
     "release_calendar_booking",
     "release_change_protection",
     "release_request_constraint",
-    "reserve_guest_slot",
     "season_baseline_advance",
     "season_baseline_create",
     "season_baseline_replace",
@@ -70,6 +69,22 @@ def _participant_key(team: Mapping[str, Any], fallback_age_group: str) -> str:
     )
 
 
+def _refresh_end_time(entry: dict[str, Any] | None) -> None:
+    if entry is None:
+        return
+    entry["end_time"] = occupied_end_time(entry.get("start_time"), entry.get("duration_minutes"))
+
+
+def _set_duration(entry: dict[str, Any] | None, duration: Any) -> None:
+    if entry is None:
+        return
+    try:
+        entry["duration_minutes"] = int(duration)
+    except (TypeError, ValueError) as exc:
+        raise PublishedMutationHistoryError("duration mutation history contains an invalid value") from exc
+    _refresh_end_time(entry)
+
+
 def _set_placement(projection: dict[str, dict[str, Any]], tournament_id: str, placement: Mapping[str, Any]) -> None:
     entry = projection.get(tournament_id)
     if entry is None:
@@ -78,6 +93,39 @@ def _set_placement(projection: dict[str, dict[str, Any]], tournament_id: str, pl
         value = placement.get(field)
         if value is not None:
             entry[field] = str(value)
+    _refresh_end_time(entry)
+
+
+def _slot_identity(slot: Mapping[str, Any]) -> str:
+    return str(slot.get("id") or "")
+
+
+def _normalize_slot(slot: Mapping[str, Any]) -> dict[str, Any]:
+    external = slot.get("external_team")
+    normalized: dict[str, Any] = {
+        "id": str(slot.get("id") or ""),
+        "status": str(slot.get("status") or "open"),
+        "external_team": None,
+    }
+    if isinstance(external, Mapping):
+        normalized["external_team"] = {
+            "club": str(external.get("club") or ""),
+            "label": str(external.get("label") or ""),
+            "age_group": str(external.get("age_group") or ""),
+        }
+    return normalized
+
+
+def _guest_slots(entry: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if entry is None:
+        return []
+    return [dict(slot) for slot in entry.get("guest_slots") or [] if isinstance(slot, Mapping)]
+
+
+def _write_guest_slots(entry: dict[str, Any] | None, slots: list[dict[str, Any]]) -> None:
+    if entry is None:
+        return
+    entry["guest_slots"] = sorted((_normalize_slot(slot) for slot in slots), key=lambda slot: slot["id"])
 
 
 def _replace_participant(entry: dict[str, Any] | None, removed: str, added: str) -> None:
@@ -111,21 +159,18 @@ def _apply_swap(projection: dict[str, dict[str, Any]], swap: Mapping[str, Any]) 
     _replace_participant(projection.get(tournament_b), key_b, key_a)
 
 
-def _projection_from_record(record: Mapping[str, Any]) -> dict[str, Any]:
+def _projection_from_record(
+    record: Mapping[str, Any],
+    *,
+    existing: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     tournament_id = str(record.get("id") or record.get("tournament_id") or "")
     if not tournament_id:
         raise PublishedMutationHistoryError("scoped mutation record is missing tournament id")
-    return projection_entry(
-        tournament_id,
-        {
-            "date": str(record.get("date") or ""),
-            "start_time": str(record.get("start_time") or ""),
-            "arena": str(record.get("arena") or ""),
-            "host_club": str(record.get("host_club") or ""),
-            "age_group": str(record.get("age_group") or ""),
-            "participants": sorted(str(key) for key in record.get("participants") or []),
-        },
-    )
+    merged = {**dict(existing or {}), **dict(record)}
+    entry = projection_entry(tournament_id, merged)
+    _refresh_end_time(entry)
+    return entry
 
 
 def _apply_after_records(
@@ -141,7 +186,7 @@ def _apply_after_records(
             continue
         if not isinstance(record, Mapping):
             raise PublishedMutationHistoryError("scoped mutation after-record is not an object")
-        entry = _projection_from_record(record)
+        entry = _projection_from_record(record, existing=projection.get(str(tournament_id or "")))
         projection[str(entry["id"])] = entry
         applied_ids.append(str(entry["id"]))
     return applied_ids
@@ -188,8 +233,31 @@ def replay_recorded_mutations(
                     raise PublishedMutationHistoryError("batch swap history entry is not an object")
                 _apply_swap(projection, swap)
                 applied.append({"event": "batch_swap"})
-            # Cancellation is a tournament-level ``cancelled`` flag, not part of
-            # the exported stable-id projection, so it never changes identity.
+            for cancellation in details.get("cancellations") or []:
+                if not isinstance(cancellation, Mapping):
+                    raise PublishedMutationHistoryError("batch cancellation history entry is not an object")
+                tournament_id = str(cancellation.get("tournament_id") or "")
+                entry = projection.get(tournament_id)
+                if entry is not None:
+                    entry["cancelled"] = True
+                    entry["cancellation_reason"] = str(cancellation.get("reason") or "")
+                    applied.append({"event": "batch_cancel", "tournament_id": tournament_id})
+        elif kind == "reconcile_config":
+            migrations = details.get("semantic_migrations")
+            if not isinstance(migrations, list):
+                raise PublishedMutationHistoryError("config reconciliation history is missing semantic_migrations")
+            age_group_changes: dict[str, Any] = {}
+            for migration in migrations:
+                if not isinstance(migration, Mapping):
+                    raise PublishedMutationHistoryError("config reconciliation migration is not an object")
+                if migration.get("field") == "ice_time_minutes":
+                    age_group_changes.update(migration.get("age_group_changes") or {})
+            for entry in projection.values():
+                age_group = str(entry.get("age_group") or "")
+                change = age_group_changes.get(age_group)
+                if isinstance(change, Mapping) and "migrated_value" in change:
+                    _set_duration(entry, change.get("migrated_value"))
+                    applied.append({"event": "reconcile_config_duration", "tournament_id": entry.get("id")})
         elif kind == "normalize_arena_identities":
             for change in details.get("changes") or []:
                 if not isinstance(change, Mapping):
@@ -225,6 +293,27 @@ def replay_recorded_mutations(
                     if source_key in entry.get("participants") or []:
                         _replace_participant(entry, source_key, target_key)
                 applied.append({"event": "team_identity_rename"})
+        elif kind == "reserve_guest_slot":
+            tournament_id = str(event.get("tournament_id") or "")
+            entry = projection.get(tournament_id)
+            if not tournament_id:
+                raise PublishedMutationHistoryError("guest-reserve history is missing tournament id")
+            slots = _guest_slots(entry)
+            existing_ids = {_slot_identity(slot) for slot in slots}
+            for slot in details.get("slots") or []:
+                if not isinstance(slot, Mapping):
+                    raise PublishedMutationHistoryError("guest-reserve history slot is not an object")
+                # Pre-publication reservations are already reflected in the
+                # baseline; replaying the same reservation must be idempotent
+                # rather than duplicating the place.
+                if _slot_identity(slot) in existing_ids:
+                    continue
+                slots.append(_normalize_slot(slot))
+                existing_ids.add(_slot_identity(slot))
+            for label in details.get("displaced_teams") or []:
+                _remove_participant_label(entry, str(label))
+            _write_guest_slots(entry, slots)
+            applied.append({"event": "reserve_guest_slot", "tournament_id": tournament_id})
         elif kind == "fill_guest_slot":
             tournament_id = str(event.get("tournament_id") or "")
             entry = projection.get(tournament_id)
@@ -232,6 +321,17 @@ def replay_recorded_mutations(
             if not tournament_id or not isinstance(external_team, Mapping):
                 raise PublishedMutationHistoryError("guest-fill history is missing tournament id or external team")
             age_group = str((entry or {}).get("age_group") or "")
+            slots = _guest_slots(entry)
+            slot_id = str(details.get("slot_id") or "")
+            for slot in slots:
+                if not slot_id or _slot_identity(slot) == slot_id:
+                    if str(slot.get("status") or "open") == "open":
+                        slot["status"] = "filled"
+                        slot["external_team"] = dict(external_team)
+                        break
+                    if str(slot.get("status") or "open") == "filled":
+                        break
+            _write_guest_slots(entry, slots)
             _replace_participant(entry, "", _participant_key(external_team, age_group))
             applied.append({"event": "fill_guest_slot", "tournament_id": tournament_id})
         elif kind == "release_guest_slot":
@@ -239,6 +339,14 @@ def replay_recorded_mutations(
             entry = projection.get(tournament_id)
             if not tournament_id:
                 raise PublishedMutationHistoryError("guest-release history is missing tournament id")
+            slots = _guest_slots(entry)
+            slot_id = str(details.get("slot_id") or "")
+            for slot in slots:
+                if not slot_id or _slot_identity(slot) == slot_id:
+                    if str(slot.get("status") or "open") in ("open", "filled"):
+                        slot["status"] = "released"
+                    break
+            _write_guest_slots(entry, slots)
             _remove_participant_label(entry, str(details.get("removed_guest") or ""))
             replacement = details.get("replacement_team")
             if isinstance(replacement, Mapping) and str(replacement.get("label") or ""):

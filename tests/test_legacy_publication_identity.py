@@ -49,6 +49,15 @@ def _tournament(tid: str, date: str, start: str, arena: str, host: str, age: str
     }
 
 
+def _problem(plan: dict | None = None) -> dict:
+    ages = {
+        str(t.get("age_group") or "")
+        for t in (plan or {}).get("tournaments", [])
+        if isinstance(t, dict) and t.get("age_group")
+    }
+    return {"ice_time_minutes": {age: 120 for age in ages}}
+
+
 def _historical_plan() -> dict:
     """Publication-time canonical plan, deliberately not in date order."""
 
@@ -117,6 +126,7 @@ def _published_projection(tmp_path: Path) -> tuple[dict, dict]:
     projection = projection_from_export_artifacts(
         export_dir,
         published_canonical_plan=historical,
+        published_canonical_problem=_problem(historical),
     )
     return historical, projection
 
@@ -150,7 +160,7 @@ def test_legacy_delta_reports_stable_ids_for_moves_omissions_and_additions(tmp_p
         ]
     }
 
-    delta = diff_tournament_projection(published, tournament_projection(current))
+    delta = diff_tournament_projection(published, tournament_projection(current, _problem(current)))
     moved_ids = sorted(change["tournament_id"] for change in delta["placement_changes"])
     assert moved_ids == ["rvv-0002", "rvv-0004"]
     assert delta["added_tournament_ids"] == ["rvv-0005", "rvv-0006"]
@@ -178,7 +188,11 @@ def test_legacy_workbook_binding_fails_closed_on_ambiguous_row(tmp_path: Path) -
     ambiguous = {"tournaments": [*_historical_plan()["tournaments"], duplicate]}
 
     with pytest.raises(ExportProjectionError) as excinfo:
-        projection_from_export_artifacts(export_dir, published_canonical_plan=ambiguous)
+        projection_from_export_artifacts(
+            export_dir,
+            published_canonical_plan=ambiguous,
+            published_canonical_problem=_problem(ambiguous),
+        )
 
     report = excinfo.value.report
     assert report["unbound_rows"]
@@ -188,7 +202,14 @@ def test_legacy_workbook_binding_fails_closed_on_ambiguous_row(tmp_path: Path) -
 def test_durable_revision_snapshot_resolves_only_matching_revision(tmp_path: Path) -> None:
     season_root = tmp_path / "season"
     revision = "rev-abc"
-    payload = {"schema_version": 1, "season": "2026-2027", "revision": revision, "plan": _historical_plan()}
+    historical = _historical_plan()
+    payload = {
+        "schema_version": 1,
+        "season": "2026-2027",
+        "revision": revision,
+        "plan": historical,
+        "verification_context": {"problem": _problem(historical)},
+    }
     path = revision_snapshot_path("2026-2027", revision, season_root=season_root)
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps(payload), encoding="utf-8")
@@ -205,11 +226,13 @@ def test_committed_history_resolves_canonical_revision(tmp_path: Path) -> None:
     season_dir = season_root / "2026-2027"
     season_dir.mkdir(parents=True)
     revision = "8f1c3161deadbeef"
+    historical = _historical_plan()
     payload = {
         "schema_version": 1,
         "season": "2026-2027",
         "revision": revision,
-        "plan": _historical_plan(),
+        "plan": historical,
+        "verification_context": {"problem": _problem(historical)},
     }
     (season_dir / "schedule.json").write_text(json.dumps(payload), encoding="utf-8")
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
@@ -243,9 +266,18 @@ def test_real_sep_21_baseline_reconstructs_unique_stable_ids() -> None:
     if snapshot is None:
         pytest.skip("canonical history for the publication revision is unavailable")
 
+    from tournament_scheduler.infrastructure.canonical_revision_history import load_canonical_schedule_at_revision
+    from tournament_scheduler.published_baseline import projection_problem_from_schedule
+
+    schedule_snapshot = load_canonical_schedule_at_revision(
+        "2026-2027",
+        revision,
+        season_root=repo_root / "season",
+    )
     published = projection_from_export_artifacts(
         manifest_path.parent,
         published_canonical_plan=snapshot,
+        published_canonical_problem=projection_problem_from_schedule(schedule_snapshot),
     )
 
     assert len(published) == 178
@@ -287,14 +319,26 @@ def test_real_sep_21_baseline_reconciles_with_durable_history() -> None:
     if publication_plan is None:
         pytest.skip("canonical history for the publication revision is unavailable")
 
+    from tournament_scheduler.infrastructure.canonical_revision_history import load_canonical_schedule_at_revision
+    from tournament_scheduler.published_baseline import projection_problem_from_schedule
+
+    publication_schedule = load_canonical_schedule_at_revision("2026-2027", revision, season_root=season_root)
     published = projection_from_export_artifacts(
         manifest_path.parent,
         published_canonical_plan=publication_plan,
+        published_canonical_problem=projection_problem_from_schedule(publication_schedule),
     )
-    current = tournament_projection(load_schedule("2026-2027", root=season_root)["plan"])
+    current_schedule = load_schedule("2026-2027", root=season_root)
+    current = tournament_projection(
+        current_schedule["plan"],
+        projection_problem_from_schedule(current_schedule),
+    )
     decisions = load_decisions("2026-2027", root=season_root)
 
-    omissions = omission_projection(tournament_projection(publication_plan), published)
+    omissions = omission_projection(
+        tournament_projection(publication_plan, projection_problem_from_schedule(publication_schedule)),
+        published,
+    )
     materializations = {
         tournament_id: current[tournament_id]
         for tournament_id in ("rvv-0009", "rvv-0026", "rvv-0031")

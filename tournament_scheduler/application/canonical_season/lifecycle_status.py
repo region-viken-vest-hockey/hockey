@@ -23,55 +23,40 @@ from tournament_scheduler.published_baseline import (
     STATE_PROMOTED,
     STATE_PUBLISHED_SEALED,
     active_baseline,
-    baseline_projection,
     is_published_sealed,
     lifecycle_record,
     lifecycle_state,
-    projection_from_canonical_plan,
+    projection_from_canonical_schedule,
     publication_history,
 )
 from tournament_scheduler.published_mutation_history import (
     reconcile_published_baseline,
 )
 
-from .shared import _now_iso, _operator_identity
-
-
-def _attested_additions(baseline: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    """Reconstruct the attested additions stored with a sealed baseline."""
-
-    migration = baseline.get("migration") if isinstance(baseline.get("migration"), Mapping) else {}
-    additions: dict[str, dict[str, Any]] = {}
-    for key in ("publication_omissions", "materializations"):
-        for entry in migration.get(key) or []:
-            if not isinstance(entry, Mapping):
-                continue
-            tournament_id = str(entry.get("tournament_id") or "")
-            if not tournament_id:
-                continue
-            additions[tournament_id] = {
-                "id": tournament_id,
-                "date": str(entry.get("date") or ""),
-                "start_time": str(entry.get("start_time") or ""),
-                "arena": str(entry.get("arena") or ""),
-                "host_club": str(entry.get("host_club") or ""),
-                "age_group": str(entry.get("age_group") or ""),
-                "participants": sorted(str(participant) for participant in entry.get("participants") or []),
-            }
-    return additions
+from .shared import (
+    _now_iso,
+    _operator_identity,
+    published_baseline_reconciliation,
+)
 
 
 def _reconcile(
     *,
+    service,
     baseline: Mapping[str, Any],
     current_projection: Mapping[str, Mapping[str, Any]],
     decisions: Mapping[str, Any],
 ) -> dict[str, Any]:
+    published_projection, attested_additions = published_baseline_reconciliation(
+        service,
+        baseline,
+        current_projection=current_projection,
+    )
     return reconcile_published_baseline(
-        published_projection=baseline_projection(baseline),
+        published_projection=published_projection,
         current_projection=current_projection,
         history=decisions.get("history") or [],
-        attested_additions=_attested_additions(baseline),
+        attested_additions=attested_additions,
     )
 
 
@@ -107,8 +92,9 @@ def season_lifecycle_report(service, *, season: str) -> dict[str, Any]:
             "tournament_count": baseline.get("tournament_count"),
         }
         reconciliation = _reconcile(
+            service=service,
             baseline=baseline,
-            current_projection=projection_from_canonical_plan(snapshot.plan),
+            current_projection=projection_from_canonical_schedule(snapshot.schedule),
             decisions=decisions,
         )
         report["reconciliation"] = {
@@ -129,8 +115,9 @@ def verify_sealed_reconciliation(service, *, season: str) -> dict[str, Any]:
     if baseline is None:
         return {"season": season, "ok": True, "sealed": False, "reason": "no_published_baseline"}
     report = _reconcile(
+        service=service,
         baseline=baseline,
-        current_projection=projection_from_canonical_plan(snapshot.plan),
+        current_projection=projection_from_canonical_schedule(snapshot.schedule),
         decisions=snapshot.decisions,
     )
     report.update(

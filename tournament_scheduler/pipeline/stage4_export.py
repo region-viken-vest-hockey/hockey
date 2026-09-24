@@ -148,6 +148,7 @@ def run(
     canonical_schedule_plan: dict[str, Any] | None = None,
     published_export_guard: dict[str, Any] | None = None,
     published_canonical_plan: dict[str, Any] | None = None,
+    published_canonical_problem: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Export the Stage 3 plan to Excel, iCal, and CSV.
 
@@ -179,7 +180,9 @@ def run(
         ``published_export_guard``. It is used to recover stable tournament
         identity from legacy published artifacts that predate
         ``schedule_projection``; without it such a baseline fails closed instead
-        of binding rows by position.
+        of binding rows by position. ``published_canonical_problem`` supplies
+        the historical ice-time contract used to backfill the versioned
+        occupied-interval facts without rewriting the immutable artifact.
 
     Returns
     -------
@@ -262,10 +265,13 @@ def run(
         export_projection_guard = assert_export_preserves_canonical_plan(
             canonical_plan=canonical_schedule_plan,
             proposed_plan=plan_dict,
+            canonical_problem=export_problem,
+            proposed_problem=export_problem,
             season=(plan_checkpoint.get("canonical_state") or {}).get("season"),
             canonical_revision=(plan_checkpoint.get("canonical_state") or {}).get("revision"),
             published_export=published_export_guard,
             published_canonical_plan=published_canonical_plan,
+            published_canonical_problem=published_canonical_problem,
         )
 
     try:
@@ -330,7 +336,14 @@ def run(
         except Exception as exc:  # noqa: BLE001 - export must not fail on this best-effort sync
             logger.warning("Could not persist the normalized planning checkpoint: %s", exc)
 
-    schedule_projection = tournament_projection(plan_dict)
+    # Canonical exports must carry the strict, fail-closed operational
+    # projection. A non-canonical Stage 4 export is only a working manifest, so
+    # its projection may leave an unknown duration at zero rather than refuse.
+    schedule_projection = tournament_projection(
+        plan_dict,
+        export_problem,
+        strict=canonical_schedule_plan is not None,
+    )
 
     plan = season_plan_from_dict(plan_dict)
     export_path = Path(export_dir)

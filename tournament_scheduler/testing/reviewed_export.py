@@ -39,11 +39,20 @@ def build_problem_from_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
             continue
         seen.add(key)
         unique_teams.append(team)
+    age_groups = sorted({str(t.get("age_group")) for t in unique_teams if t.get("age_group")})
+    # The controlled workbook always carries one authoritative booking window
+    # per active age group; a synthetic candidate needs the same contract so the
+    # occupancy projection has a determinate duration instead of failing closed.
+    ice_time_minutes = {
+        age_group: int(candidate.get("ice_time_minutes", {}).get(age_group, 120))
+        for age_group in age_groups
+    }
     config = {
         "start_date": candidate.get("start_date"),
         "end_date": candidate.get("end_date"),
         "teams": unique_teams,
-        "age_groups": sorted({str(t.get("age_group")) for t in unique_teams if t.get("age_group")}),
+        "age_groups": age_groups,
+        "ice_time_minutes": ice_time_minutes,
     }
     return build_planning_problem(
         config,

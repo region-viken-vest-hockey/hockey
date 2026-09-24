@@ -351,6 +351,11 @@ def test_canonical_export_uses_publication_history_not_requested_export_dir(tmp_
                 "season": "2026-2027",
                 "revision": "published-rev",
                 "plan": schedule["plan"],
+                # The versioned operational projection backfills the
+                # publication-time occupied interval from this snapshot's
+                # bound verification context, exactly like the durable
+                # canonical schedule does.
+                "verification_context": schedule["verification_context"],
             }
         ),
         encoding="utf-8",

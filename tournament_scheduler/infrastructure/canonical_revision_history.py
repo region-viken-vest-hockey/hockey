@@ -45,12 +45,19 @@ def revision_snapshot_path(
     return Path(season_root) / REVISIONS_DIRNAME / season / f"{revision}.json"
 
 
-def _plan_from_schedule_payload(payload: Any, *, revision: str) -> dict[str, Any] | None:
+def _schedule_payload_for_revision(payload: Any, *, revision: str) -> dict[str, Any] | None:
     if not isinstance(payload, Mapping):
         return None
     if str(payload.get("revision") or "") != revision:
         return None
-    plan = payload.get("plan")
+    return dict(payload)
+
+
+def _plan_from_schedule_payload(payload: Any, *, revision: str) -> dict[str, Any] | None:
+    schedule = _schedule_payload_for_revision(payload, revision=revision)
+    if schedule is None:
+        return None
+    plan = schedule.get("plan")
     return dict(plan) if isinstance(plan, Mapping) else None
 
 
@@ -67,7 +74,8 @@ def _load_durable_snapshot(
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
-    return _plan_from_schedule_payload(payload, revision=revision)
+    schedule = _schedule_payload_for_revision(payload, revision=revision)
+    return schedule
 
 
 def _git(args: list[str], *, cwd: Path) -> str | None:
@@ -119,23 +127,25 @@ def _load_committed_snapshot(
             payload = json.loads(blob)
         except json.JSONDecodeError:
             continue
-        plan = _plan_from_schedule_payload(payload, revision=revision)
-        if plan is not None:
-            return plan
+        schedule = _schedule_payload_for_revision(payload, revision=revision)
+        if schedule is not None:
+            return schedule
     return None
 
 
-def load_canonical_plan_at_revision(
+def load_canonical_schedule_at_revision(
     season: str,
     revision: str,
     *,
     season_root: str | Path = "season",
 ) -> dict[str, Any] | None:
-    """Return the canonical plan recorded for *revision*, or ``None``.
+    """Return the full canonical schedule payload for *revision*, or ``None``.
 
-    ``None`` means the revision cannot be resolved from durable snapshots or
-    committed history; it is never a signal to fall back to row order or to the
-    current canonical plan.
+    The whole schedule (including its bound ``verification_context``) is
+    returned, not only the plan, because the versioned operational projection
+    needs the historical occupied interval. ``None`` means the revision cannot
+    be resolved from durable snapshots or committed history; it is never a
+    signal to fall back to row order or to the current canonical plan.
     """
 
     revision = str(revision or "").strip()
@@ -152,8 +162,24 @@ def load_canonical_plan_at_revision(
     return _load_committed_snapshot(season, revision, season_root=season_root)
 
 
+def load_canonical_plan_at_revision(
+    season: str,
+    revision: str,
+    *,
+    season_root: str | Path = "season",
+) -> dict[str, Any] | None:
+    """Return the canonical plan recorded for *revision*, or ``None``."""
+
+    schedule = load_canonical_schedule_at_revision(season, revision, season_root=season_root)
+    if not isinstance(schedule, Mapping):
+        return None
+    plan = schedule.get("plan")
+    return dict(plan) if isinstance(plan, Mapping) else None
+
+
 __all__ = [
     "REVISIONS_DIRNAME",
     "load_canonical_plan_at_revision",
+    "load_canonical_schedule_at_revision",
     "revision_snapshot_path",
 ]

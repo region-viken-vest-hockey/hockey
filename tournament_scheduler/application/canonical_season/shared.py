@@ -11,7 +11,18 @@ from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_banned_dates import project_banned_dates_into_problem
 from tournament_scheduler.canonical_holiday_exceptions import project_exceptions_into_problem
 from tournament_scheduler.guest_slots import GUEST_SLOT_OPEN, active_guest_slots
+from tournament_scheduler.infrastructure.canonical_revision_history import (
+    load_canonical_schedule_at_revision,
+)
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
+from tournament_scheduler.published_baseline import (
+    backfill_projection_entry,
+    baseline_migration_requires_backfill,
+    baseline_projection,
+    baseline_requires_backfill,
+    projection_problem_from_schedule,
+)
+from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
 
 APPROVED_STATUS = "approved"
 
@@ -20,6 +31,93 @@ STALE_APPROVAL_STATUS = "stale_approval"
 
 
 PENDING_REVIEW_STATUS = "pending_review"
+
+
+def _publication_canonical_projection(
+    service,
+    baseline: Mapping[str, Any],
+) -> dict[str, dict[str, Any]] | None:
+    """Resolve the canonical projection at a baseline's publication revision."""
+
+    publication_schedule = load_canonical_schedule_at_revision(
+        str(baseline.get("season") or ""),
+        str(baseline.get("canonical_revision") or ""),
+        season_root=getattr(service.store, "root", "season"),
+    )
+    if not isinstance(publication_schedule, Mapping):
+        return None
+    return tournament_projection(
+        publication_schedule.get("plan") or {},
+        projection_problem_from_schedule(publication_schedule),
+    )
+
+
+def attested_additions(
+    baseline: Mapping[str, Any],
+    *,
+    publication_projection: Mapping[str, Mapping[str, Any]] | None,
+    current_projection: Mapping[str, Mapping[str, Any]] | None,
+) -> dict[str, dict[str, Any]]:
+    """Build the attested omission/materialization entries for reconciliation.
+
+    Legacy attested entries are backfilled from the historically authoritative
+    projection: omissions from the publication revision, post-publication
+    materializations from current canonical state. The immutable baseline record
+    is never rewritten.
+    """
+
+    migration = baseline.get("migration") if isinstance(baseline.get("migration"), Mapping) else {}
+    additions: dict[str, dict[str, Any]] = {}
+    for entry in migration.get("publication_omissions") or []:
+        if not isinstance(entry, Mapping):
+            continue
+        tournament_id = str(entry.get("tournament_id") or "")
+        if not tournament_id:
+            continue
+        additions[tournament_id] = backfill_projection_entry(
+            entry,
+            authoritative=(publication_projection or {}).get(tournament_id),
+        )
+    for entry in migration.get("materializations") or []:
+        if not isinstance(entry, Mapping):
+            continue
+        tournament_id = str(entry.get("tournament_id") or "")
+        if not tournament_id:
+            continue
+        additions[tournament_id] = backfill_projection_entry(
+            entry,
+            authoritative=(current_projection or {}).get(tournament_id),
+        )
+    return additions
+
+
+def published_baseline_reconciliation(
+    service,
+    baseline: Mapping[str, Any],
+    *,
+    current_projection: Mapping[str, Mapping[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    """Return the (published projection, attested additions) pair for a baseline.
+
+    A published baseline recorded before the versioned operational projection
+    lacks occupied-interval/cancellation/guest facts. Those are recovered from
+    the historically authoritative canonical schedule at the recorded
+    publication revision; the immutable baseline record itself is never
+    rewritten.
+    """
+
+    needs_backfill = baseline_requires_backfill(baseline) or baseline_migration_requires_backfill(baseline)
+    publication_projection = _publication_canonical_projection(service, baseline) if needs_backfill else None
+    published = baseline_projection(
+        baseline,
+        publication_canonical_projection=publication_projection,
+    )
+    additions = attested_additions(
+        baseline,
+        publication_projection=publication_projection,
+        current_projection=current_projection,
+    )
+    return published, additions
 
 
 def _operator_identity(actor: str | None) -> str:

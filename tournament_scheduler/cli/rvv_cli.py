@@ -1434,16 +1434,21 @@ def _cmd_season(args: argparse.Namespace) -> int:
             # explicitly; if it is unavailable the guard fails closed rather
             # than infer stable ids from row order.
             published_canonical_plan = None
+            published_canonical_problem = None
             if latest_published_export and not latest_published_export.get("schedule_projection"):
                 from ..infrastructure.canonical_revision_history import (
-                    load_canonical_plan_at_revision,
+                    load_canonical_schedule_at_revision,
                 )
+                from ..published_baseline import projection_problem_from_schedule
 
-                published_canonical_plan = load_canonical_plan_at_revision(
+                published_canonical_schedule = load_canonical_schedule_at_revision(
                     str(latest_published_export.get("canonical_season") or args.season),
                     str(latest_published_export.get("canonical_revision") or ""),
                     season_root=args.root,
                 )
+                if published_canonical_schedule is not None:
+                    published_canonical_plan = published_canonical_schedule.get("plan")
+                    published_canonical_problem = projection_problem_from_schedule(published_canonical_schedule)
 
             try:
                 result = run_export(
@@ -1460,6 +1465,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     canonical_schedule_plan=schedule.get("plan") if latest_published_export else None,
                     published_export_guard=latest_published_export,
                     published_canonical_plan=published_canonical_plan,
+                    published_canonical_problem=published_canonical_problem,
                 )
             except ExportProjectionError as exc:
                 raise SeasonStateError(str(exc)) from exc
@@ -1568,7 +1574,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
             return 0
 
         if args.season_command == "seal-published":
-            from ..infrastructure.canonical_revision_history import load_canonical_plan_at_revision
+            from ..infrastructure.canonical_revision_history import load_canonical_schedule_at_revision
             from ..pipeline.export_lifecycle import find_published_exports_for_season
             from ..pipeline.export_projection_guard import (
                 projection_from_export_artifacts,
@@ -1584,10 +1590,22 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
                 return 1
             latest = published_exports[0]
-            publication_canonical_plan = load_canonical_plan_at_revision(
+            publication_canonical_schedule = load_canonical_schedule_at_revision(
                 str(latest.get("canonical_season") or args.season),
                 str(latest.get("canonical_revision") or ""),
                 season_root=args.root,
+            )
+            publication_canonical_plan = (
+                publication_canonical_schedule.get("plan")
+                if isinstance(publication_canonical_schedule, dict)
+                else None
+            )
+            from ..published_baseline import projection_problem_from_schedule
+
+            publication_canonical_problem = (
+                projection_problem_from_schedule(publication_canonical_schedule)
+                if isinstance(publication_canonical_schedule, dict)
+                else None
             )
             published_projection = latest.get("schedule_projection")
             if not isinstance(published_projection, dict):
@@ -1604,15 +1622,26 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     published_projection = projection_from_export_artifacts(
                         str(latest.get("export_dir") or ""),
                         published_canonical_plan=publication_canonical_plan,
+                        published_canonical_problem=publication_canonical_problem,
                     )
                 except ExportProjectionError as exc:
                     _console.print(f"[red]✗[/red] {exc}")
                     return 1
-            publication_canonical_projection = (
-                tournament_projection(publication_canonical_plan)
-                if publication_canonical_plan is not None
-                else None
-            )
+            if publication_canonical_plan is not None:
+                from ..pipeline.export_projection_guard import ExportProjectionError
+
+                try:
+                    publication_canonical_projection = tournament_projection(
+                        publication_canonical_plan, publication_canonical_problem
+                    )
+                except ExportProjectionError as exc:
+                    _console.print(
+                        "[red]✗[/red] Kan ikke gjenoppbygge kanonisk operativ projeksjon "
+                        f"på publiseringstidspunktet: {exc}"
+                    )
+                    return 1
+            else:
+                publication_canonical_projection = None
             materializations = []
             for raw in getattr(args, "attest_materializations", []) or []:
                 tournament_id, _, provenance = str(raw).partition("=")

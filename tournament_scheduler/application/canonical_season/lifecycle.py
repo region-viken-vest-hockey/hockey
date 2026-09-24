@@ -21,11 +21,12 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 )
 from tournament_scheduler.published_baseline import (
     active_baseline,
-    baseline_projection,
     is_published_sealed,
-    projection_from_canonical_plan,
+    projection_from_canonical_schedule,
 )
 from tournament_scheduler.published_mutation_history import reconcile_published_baseline
+
+from .shared import published_baseline_reconciliation
 
 
 def _commit(service, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool = False) -> CanonicalSeasonSnapshot:
@@ -53,28 +54,6 @@ def _commit(service, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool 
     return committed
 
 
-def _attested_additions(baseline: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    migration = baseline.get("migration") if isinstance(baseline.get("migration"), Mapping) else {}
-    additions: dict[str, dict[str, Any]] = {}
-    for key in ("publication_omissions", "materializations"):
-        for entry in migration.get(key) or []:
-            if not isinstance(entry, Mapping):
-                continue
-            tournament_id = str(entry.get("tournament_id") or "")
-            if not tournament_id:
-                continue
-            additions[tournament_id] = {
-                "id": tournament_id,
-                "date": str(entry.get("date") or ""),
-                "start_time": str(entry.get("start_time") or ""),
-                "arena": str(entry.get("arena") or ""),
-                "host_club": str(entry.get("host_club") or ""),
-                "age_group": str(entry.get("age_group") or ""),
-                "participants": sorted(str(participant) for participant in entry.get("participants") or []),
-            }
-    return additions
-
-
 def _assert_published_sealed_reconciliation(
     service,
     snapshot: CanonicalSeasonSnapshot,
@@ -88,11 +67,17 @@ def _assert_published_sealed_reconciliation(
     baseline = active_baseline(snapshot.decisions)
     if baseline is None:
         return
+    current_projection = projection_from_canonical_schedule(snapshot.schedule)
+    published_projection, attested_additions = published_baseline_reconciliation(
+        service,
+        baseline,
+        current_projection=current_projection,
+    )
     report = reconcile_published_baseline(
-        published_projection=baseline_projection(baseline),
-        current_projection=projection_from_canonical_plan(snapshot.schedule.get("plan") or {}),
+        published_projection=published_projection,
+        current_projection=current_projection,
         history=snapshot.decisions.get("history") or [],
-        attested_additions=_attested_additions(baseline),
+        attested_additions=attested_additions,
     )
     if report.get("ok"):
         return

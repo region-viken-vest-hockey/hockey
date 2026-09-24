@@ -462,6 +462,8 @@ GitHub Pages is a static publication target, not the planning system of record. 
 
 Spond exports and per-club review packets remain private/review artifacts unless deliberately distributed separately. WordPress is the editorial/navigation layer and should link/embed generated Pages output rather than copy schedules by hand.
 
+The publication guard compares the export and canonical state through one versioned full operational tournament projection (stable id, age group, placement, roster identity, canonical occupancy duration/end, cancellation and guest-reservation facts) owned by `pipeline/export_projection_guard`. It reports field-level differences and fails closed on an unknown/incomplete projection schema, so a published booking/timetable fact can never be treated as unchanged merely because placement/participants match. A legacy published baseline that predates the versioned projection is backfilled read-only from the historically authoritative canonical schedule at its recorded publication revision; the immutable baseline record is never rewritten and no historical duration or status is invented.
+
 ## Generated data
 
 Generated checkpoints, exports, reports, visualizations and evidence are not maintained documentation. Keep them under runtime/export/test/CI locations; promote only durable conclusions into current docs or ADRs.

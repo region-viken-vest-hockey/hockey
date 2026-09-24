@@ -148,7 +148,7 @@ def test_published_canonical_export_preserves_conflicting_canonical_placement(tm
             "export_id": "published-export",
             "canonical_revision": "rev-1",
             "lifecycle_status": "published",
-            "schedule_projection": tournament_projection(candidate),
+            "schedule_projection": tournament_projection(candidate, problem),
         },
     )
 
@@ -180,7 +180,7 @@ def test_export_guard_rejects_unexplained_canonical_tournament_removal(tmp_path)
             published_export_guard={
                 "export_id": "published-export",
                 "lifecycle_status": "published",
-                "schedule_projection": tournament_projection(candidate),
+                "schedule_projection": tournament_projection(candidate, problem),
             },
         )
 

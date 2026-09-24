@@ -23,11 +23,15 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 )
 from tournament_scheduler.published_baseline import (
     is_published_sealed,
-    projection_from_canonical_plan,
+    projection_from_canonical_schedule,
 )
 
 from .export_lifecycle import read_export_manifest
-from .export_projection_guard import diff_tournament_projection
+from .export_projection_guard import (
+    FULL_OPERATIONAL_PROJECTION_SCHEMA,
+    FULL_OPERATIONAL_PROJECTION_VERSION,
+    diff_tournament_projection,
+)
 
 
 def _season_root(repo_dir: str | os.PathLike[str]) -> Path:
@@ -51,7 +55,22 @@ def _require_projection(value: Any) -> dict[str, dict[str, Any]]:
             "stable-id schedule_projection"
         )
     projection: dict[str, dict[str, Any]] = {}
-    required_fields = {"id", "date", "start_time", "arena", "host_club", "age_group", "participants"}
+    required_fields = {
+        "projection_schema",
+        "projection_schema_version",
+        "id",
+        "date",
+        "start_time",
+        "arena",
+        "host_club",
+        "age_group",
+        "duration_minutes",
+        "end_time",
+        "cancelled",
+        "cancellation_reason",
+        "participants",
+        "guest_slots",
+    }
     for tournament_id, entry in value.items():
         stable_id = str(tournament_id or "")
         if not stable_id:
@@ -71,10 +90,21 @@ def _require_projection(value: Any) -> dict[str, dict[str, Any]]:
                 f"Refusing publication: schedule_projection entry {stable_id!r} has mismatched id "
                 f"{entry.get('id')!r}"
             )
+        if (
+            entry.get("projection_schema") != FULL_OPERATIONAL_PROJECTION_SCHEMA
+            or entry.get("projection_schema_version") != FULL_OPERATIONAL_PROJECTION_VERSION
+        ):
+            raise RuntimeError(
+                f"Refusing publication: schedule_projection entry {stable_id!r} has unsupported projection schema"
+            )
         participants = entry.get("participants")
         if not isinstance(participants, list):
             raise RuntimeError(
                 f"Refusing publication: schedule_projection entry {stable_id!r} has malformed participants"
+            )
+        if not isinstance(entry.get("guest_slots"), list):
+            raise RuntimeError(
+                f"Refusing publication: schedule_projection entry {stable_id!r} has malformed guest_slots"
             )
         projection[stable_id] = dict(entry)
     return projection
@@ -116,7 +146,7 @@ def _publication_context(
         )
 
     published_projection = _require_projection(manifest.get("schedule_projection"))
-    current_projection = projection_from_canonical_plan(schedule.get("plan") or {})
+    current_projection = projection_from_canonical_schedule(schedule)
     delta = diff_tournament_projection(published_projection, current_projection)
     if delta["changed"]:
         raise RuntimeError(

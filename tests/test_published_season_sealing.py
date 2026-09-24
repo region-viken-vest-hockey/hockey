@@ -14,8 +14,13 @@ from __future__ import annotations
 
 from pathlib import Path
 import copy
+import json
 
 import pytest
+
+from tournament_scheduler.infrastructure.canonical_revision_history import (
+    revision_snapshot_path,
+)
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
 from tournament_scheduler.canonical_state import canonical_state_revision, schedule_fingerprint
@@ -26,7 +31,12 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonStore,
 )
 from tournament_scheduler.pipeline.export_lifecycle import write_draft_manifest
-from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
+from tournament_scheduler.pipeline.export_projection_guard import (
+    ExportProjectionError,
+    assert_export_preserves_canonical_plan,
+    diff_tournament_projection,
+    tournament_projection,
+)
 from tournament_scheduler.pipeline.publication_lifecycle import (
     assert_publication_allowed,
     record_publication_seal,
@@ -46,7 +56,18 @@ from tournament_scheduler.application.canonical_season.scoped_mutation import (
 )
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 
-_tp = tournament_projection
+def _problem(plan: dict | None = None) -> dict:
+    ages = {
+        str(t.get("age_group") or "U10")
+        for t in (plan or {}).get("tournaments", [])
+        if isinstance(t, dict)
+    }
+    ages.add("U10")
+    return {"ice_time_minutes": {age: 120 for age in ages}}
+
+
+def _tp(plan: dict) -> dict:
+    return tournament_projection(plan, _problem(plan))
 
 
 def _team(club: str, label: str, age_group: str = "U10") -> dict:
@@ -85,6 +106,7 @@ def _write_canonical(
         "fingerprint": fingerprint,
         "plan_schema_version": 1,
         "plan": plan,
+        "verification_context": {"problem": _problem(plan)},
     }
     decisions = {
         "schema_version": DECISIONS_SCHEMA_VERSION,
@@ -217,6 +239,149 @@ def test_reconciliation_fails_closed_on_unknown_history_event() -> None:
     assert "unknown canonical history event" in report["unexplained_delta"]["replay_error"]
 
 
+def test_reconciliation_replays_typed_cancellation_guest_and_duration_mutations() -> None:
+    plan = {
+        "tournaments": [
+            _tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha"),
+            _tournament("rvv-2", "2026-11-15", "10:00", "B", "Beta"),
+        ]
+    }
+    baseline = _tp(plan)
+
+    # A batch cancellation is a typed, replayed schedule mutation.
+    cancelled = copy.deepcopy(plan)
+    cancelled["tournaments"][0]["cancelled"] = True
+    cancelled["tournaments"][0]["cancellation_reason"] = "hall closed"
+    report = reconcile_published_baseline(
+        published_projection=baseline,
+        current_projection=tournament_projection(cancelled, _problem(cancelled)),
+        history=[
+            {
+                "event": "batch_maintenance",
+                "details": {"cancellations": [{"tournament_id": "rvv-1", "reason": "hall closed"}]},
+            }
+        ],
+        attested_additions={},
+    )
+    assert report["ok"] is True
+
+    # A guest reservation is replayed from its typed slot history.
+    reserved = copy.deepcopy(plan)
+    reserved["tournaments"][1]["guest_slots"] = [{"id": "guest:rvv-2:1", "status": "open"}]
+    report = reconcile_published_baseline(
+        published_projection=baseline,
+        current_projection=tournament_projection(reserved, _problem(reserved)),
+        history=[
+            {
+                "event": "reserve_guest_slot",
+                "tournament_id": "rvv-2",
+                "details": {"slots": [{"id": "guest:rvv-2:1", "status": "open"}], "displaced_teams": []},
+            }
+        ],
+        attested_additions={},
+    )
+    assert report["ok"] is True
+
+    # A semantic ice-time migration is a typed, replayed occupancy change.
+    duration_baseline = tournament_projection(plan, {"ice_time_minutes": {"U10": 120}})
+    duration_current = tournament_projection(plan, {"ice_time_minutes": {"U10": 150}})
+    report = reconcile_published_baseline(
+        published_projection=duration_baseline,
+        current_projection=duration_current,
+        history=[
+            {
+                "event": "reconcile_config",
+                "details": {
+                    "semantic_migrations": [
+                        {
+                            "field": "ice_time_minutes",
+                            "age_group_changes": {"U10": {"old_value": 120, "migrated_value": 150}},
+                        }
+                    ]
+                },
+            }
+        ],
+        attested_additions={},
+    )
+    assert report["ok"] is True
+
+    # Unrelated rows may not change without their own recorded mutation.
+    unrelated = copy.deepcopy(cancelled)
+    unrelated["tournaments"][1]["start_time"] = "13:00"
+    report = reconcile_published_baseline(
+        published_projection=baseline,
+        current_projection=tournament_projection(unrelated, _problem(unrelated)),
+        history=[
+            {
+                "event": "batch_maintenance",
+                "details": {"cancellations": [{"tournament_id": "rvv-1", "reason": "hall closed"}]},
+            }
+        ],
+        attested_additions={},
+    )
+    assert report["ok"] is False
+
+
+def test_full_operational_projection_detects_age_duration_cancellation_and_guest_drift() -> None:
+    plan = {"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]}
+    baseline = tournament_projection(plan, {"ice_time_minutes": {"U10": 120, "U11": 120}})
+
+    age_changed = copy.deepcopy(plan)
+    age_changed["tournaments"][0]["age_group"] = "U11"
+    delta = diff_tournament_projection(
+        baseline,
+        tournament_projection(age_changed, {"ice_time_minutes": {"U10": 120, "U11": 120}}),
+    )
+    assert delta["changed"] is True
+    assert delta["field_changes"][0]["fields"]["age_group"] == {"before": "U10", "after": "U11"}
+
+    longer = tournament_projection(plan, {"ice_time_minutes": {"U10": 150}})
+    delta = diff_tournament_projection(baseline, longer)
+    assert delta["duration_changes"][0]["fields"]["duration_minutes"] == {"before": 120, "after": 150}
+
+    cancelled = copy.deepcopy(plan)
+    cancelled["tournaments"][0]["cancelled"] = True
+    cancelled["tournaments"][0]["cancellation_reason"] = "hall closed"
+    delta = diff_tournament_projection(baseline, tournament_projection(cancelled, _problem(cancelled)))
+    assert delta["cancellation_changes"][0]["fields"]["cancelled"] == {"before": False, "after": True}
+
+    guest = copy.deepcopy(plan)
+    guest["tournaments"][0]["guest_slots"] = [{"id": "guest:rvv-1:1", "status": "open"}]
+    delta = diff_tournament_projection(baseline, tournament_projection(guest, _problem(guest)))
+    assert delta["guest_slot_changes"][0]["tournament_id"] == "rvv-1"
+
+    evidence_only = copy.deepcopy(plan)
+    evidence_only["tournaments"][0]["approval_status"] = "approved"
+    assert diff_tournament_projection(baseline, tournament_projection(evidence_only, _problem(evidence_only)))["changed"] is False
+
+    with pytest.raises(ExportProjectionError) as excinfo:
+        assert_export_preserves_canonical_plan(
+            canonical_plan=plan,
+            proposed_plan=plan,
+            canonical_problem={"ice_time_minutes": {"U10": 120}},
+            proposed_problem={"ice_time_minutes": {"U10": 150}},
+        )
+    assert excinfo.value.report["canonical_delta"]["duration_changes"]
+
+
+def test_projection_diff_fails_closed_on_legacy_or_incomplete_schema() -> None:
+    current = _tp({"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]})
+    legacy = {
+        "rvv-1": {
+            "id": "rvv-1",
+            "date": "2026-10-11",
+            "start_time": "10:00",
+            "arena": "A",
+            "host_club": "Alpha",
+            "age_group": "U10",
+            "participants": current["rvv-1"]["participants"],
+        }
+    }
+    delta = diff_tournament_projection(legacy, current)
+    assert delta["changed"] is True
+    assert delta["schema_errors"][0]["reason"] == "unsupported_projection_schema"
+
+
 # ---------------------------------------------------------------------------
 # Lifecycle sealing and guards
 # ---------------------------------------------------------------------------
@@ -268,6 +433,68 @@ def test_seal_records_baseline_and_state(tmp_path: Path) -> None:
     status = CanonicalSeasonService(root=root).season_lifecycle_report("2026-2027")
     assert status["state"] == "published_sealed"
     assert status["reconciliation"]["ok"] is True
+
+
+def test_legacy_published_baseline_is_backfilled_from_publication_revision(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)
+
+    # Simulate a baseline recorded before the versioned operational projection:
+    # strip the operational fields the legacy record never carried.
+    store = CanonicalSeasonStore(root)
+    snapshot = store.load("2026-2027")
+    decisions = copy.deepcopy(snapshot.decisions)
+    baseline = decisions["season_lifecycle"]["published_baseline"]
+    legacy_fields = (
+        "projection_schema",
+        "projection_schema_version",
+        "duration_minutes",
+        "end_time",
+        "cancelled",
+        "cancellation_reason",
+        "guest_slots",
+    )
+    for entry in baseline["tournaments"]:
+        for field in legacy_fields:
+            entry.pop(field, None)
+    for key in ("publication_omissions", "materializations"):
+        for entry in (baseline.get("migration") or {}).get(key) or []:
+            for field in legacy_fields:
+                entry.pop(field, None)
+
+    revision = str(baseline["canonical_revision"])
+    publication_tournaments = _tournaments_abc()[:2]
+    snapshot_path = revision_snapshot_path("2026-2027", revision, season_root=root)
+    snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+    snapshot_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "season": "2026-2027",
+                "revision": revision,
+                "plan": {"tournaments": publication_tournaments},
+                "verification_context": {"problem": _problem({"tournaments": publication_tournaments})},
+            }
+        ),
+        encoding="utf-8",
+    )
+    store.write(
+        CanonicalSeasonSnapshot(
+            season="2026-2027",
+            schedule=snapshot.schedule,
+            decisions=decisions,
+        )
+    )
+
+    report = CanonicalSeasonService(root=root).season_lifecycle_report("2026-2027")
+    assert report["reconciliation"]["ok"] is True, report["reconciliation"]["unexplained_delta"]
+
+    # The immutable baseline record itself is never rewritten by the read.
+    reloaded = store.load("2026-2027")
+    assert reloaded.decisions["season_lifecycle"]["published_baseline"]["tournaments"][0].get(
+        "projection_schema"
+    ) is None
 
 
 def test_seal_fails_closed_on_unsupported_materialization(tmp_path: Path) -> None:
@@ -622,6 +849,33 @@ def test_publication_refused_when_export_no_longer_matches_canonical(tmp_path: P
         assert_publication_allowed(export_dir, repo_dir=tmp_path)
 
 
+def test_publication_refuses_age_group_and_duration_drift(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)
+    altered = copy.deepcopy(_tp({"tournaments": _tournaments_abc()}))
+    altered["rvv-1"]["age_group"] = "U11"
+    altered["rvv-1"]["duration_minutes"] = altered["rvv-1"]["duration_minutes"] + 30
+
+    export_dir = _first_publication_export(tmp_path, root, projection=altered)
+    with pytest.raises(RuntimeError, match="no longer matches the current canonical schedule"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)
+
+
+def test_publication_refuses_cancellation_and_guest_drift(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)
+    altered = copy.deepcopy(_tp({"tournaments": _tournaments_abc()}))
+    altered["rvv-1"]["cancelled"] = True
+    altered["rvv-1"]["cancellation_reason"] = "hall closed"
+    altered["rvv-2"]["guest_slots"] = [{"id": "guest:rvv-2:1", "status": "open", "external_team": None}]
+
+    export_dir = _first_publication_export(tmp_path, root, projection=altered)
+    with pytest.raises(RuntimeError, match="no longer matches the current canonical schedule"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)
+
+
 def test_second_publication_appends_history_without_rewriting_first(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -708,7 +962,7 @@ def test_promote_force_cannot_replace_sealed_season(tmp_path: Path) -> None:
         publication_id="2026-09-28T0908",
         canonical_revision=str(schedule.get("revision")),
         published_at="2026-09-28T09:14:53+00:00",
-        published_projection=tournament_projection(schedule.get("plan") or {}),
+        published_projection=tournament_projection(schedule.get("plan") or {}, _problem(schedule.get("plan") or {})),
         root=root,
         actor="tester",
     )

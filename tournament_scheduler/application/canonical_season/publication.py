@@ -20,7 +20,7 @@ from tournament_scheduler.published_baseline import (
     build_baseline_record,
     lifecycle_record,
     projection_entry,
-    projection_from_canonical_plan,
+    projection_from_canonical_schedule,
     publication_history,
 )
 from tournament_scheduler.published_mutation_history import (
@@ -63,7 +63,7 @@ def seal_published_season(
     resolved_actor = _operator_identity(actor)
     now = _now_iso()
 
-    current_projection = projection_from_canonical_plan(snapshot.plan)
+    current_projection = projection_from_canonical_schedule(snapshot.schedule)
 
     omission_entries: dict[str, dict[str, Any]] = {}
     if publication_canonical_projection is not None:
