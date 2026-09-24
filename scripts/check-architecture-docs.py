@@ -107,8 +107,10 @@ def check_architecture() -> tuple[list[str], list[str]]:
         errors.append("system architecture must link the semantic planning model")
     if "(planning-model.md)" not in README.read_text(encoding="utf-8"):
         errors.append("architecture README must link the semantic model")
-    if "(docs/architecture/planning-model.md)" not in AGENTS.read_text(encoding="utf-8"):
-        errors.append("shared agent instructions must link the semantic model")
+    # AGENTS.md stays concise: its existing architecture-doc routing is enough.
+    # Keep the detailed model discoverable through the maintained documentation index.
+    if "(architecture/planning-model.md)" not in (ROOT / "docs/README.md").read_text(encoding="utf-8"):
+        errors.append("documentation index must link the semantic planning model")
     return errors, diagrams
 
 
