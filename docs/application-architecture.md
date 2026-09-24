@@ -1,6 +1,6 @@
 # RVV Miniputt application architecture
 
-This document defines the current application-layer dependency rules. It is intentionally structural; operational policy belongs in `.agents/skills/rvv/SKILL.md`, while the higher-level ownership boundary is documented in ADR 0002.
+This document defines the current application-layer dependency rules. It is intentionally structural; operational policy belongs in `.agents/skills/rvv/SKILL.md`, while the higher-level ownership boundary is documented in ADR 0002. For system/data flow, rule semantics, search/Pareto decisions and promoted-season authority, use the focused [planning and decision diagrams](architecture/planning-model.md); do not duplicate those semantics in a dependency diagram.
 
 ## Dependency rules
 
