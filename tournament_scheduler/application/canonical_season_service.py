@@ -141,6 +141,14 @@ class CanonicalSeasonService:
     ) -> dict[str, Any]:
         return _config_reconciliation.reconcile_config(self, season=season, input_path=input_path, actor=actor, note=note, dry_run=dry_run)
 
+    def _assert_published_sealed_reconciliation(
+        self,
+        snapshot: CanonicalSeasonSnapshot,
+        *,
+        action: str,
+    ) -> None:
+        return _lifecycle._assert_published_sealed_reconciliation(self, snapshot=snapshot, action=action)
+
     def _assert_request_constraints_satisfied(
         self,
         plan: Mapping[str, Any],
@@ -350,8 +358,9 @@ class CanonicalSeasonService:
         allow_manual_placement: bool = False,
         allow_host_confirmation: bool = False,
         operation: str = "global_regeneration",
+        _targeted_contract: Any | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation)
+        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation, _targeted_contract=_targeted_contract)
 
     def season_lifecycle_report(self, season: str) -> dict[str, Any]:
         return _lifecycle_status.season_lifecycle_report(self, season=season)

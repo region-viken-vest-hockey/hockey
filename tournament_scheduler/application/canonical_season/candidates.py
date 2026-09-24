@@ -29,9 +29,13 @@ from tournament_scheduler.operational_acceptability import (
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
-from tournament_scheduler.published_baseline import assert_season_allows_global_regeneration
+from tournament_scheduler.published_baseline import (
+    assert_season_allows_global_regeneration,
+    is_published_sealed,
+)
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
+from .scoped_mutation import ScopedMutationContract, validate_scoped_mutation_contract
 from .shared import (
     PENDING_REVIEW_STATUS,
     _operator_identity,
@@ -217,6 +221,7 @@ def apply_candidate(
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
     operation: str = "global_regeneration",
+    _targeted_contract: ScopedMutationContract | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     """Apply a verified replan candidate to canonical season state.
 
@@ -234,9 +239,26 @@ def apply_candidate(
 
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
-    assert_season_allows_global_regeneration(decisions, operation=operation)
     baseline = build_canonical_baseline(schedule, decisions)
     normalized_candidate = extract_candidate(candidate)
+    if is_published_sealed(decisions):
+        if _targeted_contract is None:
+            assert_season_allows_global_regeneration(decisions, operation=operation)
+        validate_scoped_mutation_contract(
+            schedule=schedule,
+            decisions=decisions,
+            candidate=normalized_candidate,
+            contract=_targeted_contract,
+            operation=operation,
+        )
+    elif _targeted_contract is not None:
+        validate_scoped_mutation_contract(
+            schedule=schedule,
+            decisions=decisions,
+            candidate=normalized_candidate,
+            contract=_targeted_contract,
+            operation=operation,
+        )
 
     # A reservation is durable canonical state: a replan/apply must not
     # silently drop or rewrite one. Filling and releasing are the only
@@ -394,7 +416,7 @@ def apply_candidate(
             ),
         )
     cost = change_cost(baseline, plan, weights=change_weights)
-    committed = service._commit(
-        snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
-    )
+    updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
+    service._assert_published_sealed_reconciliation(updated_snapshot, action=operation)
+    committed = service._commit(updated_snapshot)
     return committed.schedule, committed.decisions, cost

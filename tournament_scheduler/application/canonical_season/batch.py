@@ -565,9 +565,9 @@ def batch_maintenance(
             "operational_acceptable": bool(operational_acceptability.get("ok")),
         },
     )
-    committed = service._commit(
-        snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
-    )
+    updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
+    service._assert_published_sealed_reconciliation(updated_snapshot, action="batch")
+    committed = service._commit(updated_snapshot)
     report["committed"] = True
     report["revision"] = committed.schedule.get("revision")
     report["canonical_state_revision"] = canonical_state_revision(

@@ -13,6 +13,7 @@ publication-boundary auto-seal hook.
 from __future__ import annotations
 
 from pathlib import Path
+import copy
 
 import pytest
 
@@ -38,6 +39,10 @@ from tournament_scheduler.published_baseline import (
 )
 from tournament_scheduler.published_mutation_history import (
     reconcile_published_baseline,
+)
+from tournament_scheduler.application.canonical_season.scoped_mutation import (
+    contract_history_details,
+    make_scoped_mutation_contract,
 )
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 
@@ -169,6 +174,49 @@ def test_reconciliation_detects_unexplained_placement_change() -> None:
     assert report["unexplained_delta"]["placement_changes"][0]["tournament_id"] == "rvv-1"
 
 
+def test_reconciliation_replays_generic_repair_after_records() -> None:
+    baseline = _tp({"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]})
+    current = _tp({"tournaments": [_tournament("rvv-1", "2026-10-11", "13:00", "A", "Alpha")]})
+    report = reconcile_published_baseline(
+        published_projection=baseline,
+        current_projection=current,
+        history=[
+            {
+                "event": "repair_option_applied",
+                "tournament_id": "rvv-1",
+                "details": {
+                    "option_id": "repair-1",
+                    "after_records": {
+                        "rvv-1": {
+                            "id": "rvv-1",
+                            "date": "2026-10-11",
+                            "start_time": "13:00",
+                            "arena": "A",
+                            "host_club": "Alpha",
+                            "age_group": "U10",
+                            "participants": baseline["rvv-1"]["participants"],
+                        }
+                    },
+                },
+            }
+        ],
+        attested_additions={},
+    )
+    assert report["ok"] is True
+
+
+def test_reconciliation_fails_closed_on_unknown_history_event() -> None:
+    baseline = _tp({"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]})
+    report = reconcile_published_baseline(
+        published_projection=baseline,
+        current_projection=baseline,
+        history=[{"event": "mystery_schedule_mutation"}],
+        attested_additions={},
+    )
+    assert report["ok"] is False
+    assert "unknown canonical history event" in report["unexplained_delta"]["replay_error"]
+
+
 # ---------------------------------------------------------------------------
 # Lifecycle sealing and guards
 # ---------------------------------------------------------------------------
@@ -251,6 +299,13 @@ def test_sealed_season_guards_global_regeneration(tmp_path: Path) -> None:
     with pytest.raises(SeasonSealedError):
         apply_candidate(season="2026-2027", candidate={"tournaments": []}, root=root)
     with pytest.raises(SeasonSealedError):
+        apply_candidate(
+            season="2026-2027",
+            candidate={"tournaments": []},
+            root=root,
+            operation="targeted_mutation",
+        )
+    with pytest.raises(SeasonSealedError):
         normalize_placements(season="2026-2027", root=root, dry_run=False)
     with pytest.raises(SeasonSealedError):
         replan_around_baseline(
@@ -268,6 +323,95 @@ def test_sealed_season_guards_global_regeneration(tmp_path: Path) -> None:
     approve_tournament(season="2026-2027", tournament_id="rvv-1", root=root, actor="tester")
     status = CanonicalSeasonService(root=root).season_lifecycle_report("2026-2027")
     assert status["reconciliation"]["ok"] is True
+
+
+def test_sealed_season_allows_scoped_repair_with_replayable_history(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load("2026-2027")
+    candidate = copy.deepcopy(snapshot.schedule["plan"])
+    candidate["tournaments"][0]["start_time"] = "11:30"
+    contract = make_scoped_mutation_contract(
+        schedule=snapshot.schedule,
+        decisions=snapshot.decisions,
+        candidate=candidate,
+        affected_tournament_ids=["rvv-1"],
+    )
+
+    service.apply_candidate(
+        season="2026-2027",
+        candidate=candidate,
+        actor="tester",
+        operation="targeted_repair",
+        _targeted_contract=contract,
+        _history_event={
+            "event": "repair_option_applied",
+            "tournament_id": "rvv-1",
+            "details": {
+                "option_id": "repair-1",
+                "finding_id": "finding-1",
+                "changed_tournament_ids": ["rvv-1"],
+                **contract_history_details(contract),
+            },
+        },
+    )
+
+    status = service.season_lifecycle_report("2026-2027")
+    assert status["reconciliation"]["ok"] is True
+    latest = service.load("2026-2027")
+    assert latest.schedule["plan"]["tournaments"][1:] == snapshot.schedule["plan"]["tournaments"][1:]
+    assert latest.decisions["history"][-1]["event"] == "repair_option_applied"
+
+
+def test_sealed_scoped_mutation_enforces_expected_revision_and_scope(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load("2026-2027")
+    candidate = copy.deepcopy(snapshot.schedule["plan"])
+    candidate["tournaments"][0]["start_time"] = "11:30"
+    contract = make_scoped_mutation_contract(
+        schedule=snapshot.schedule,
+        decisions=snapshot.decisions,
+        candidate=candidate,
+        affected_tournament_ids=["rvv-1"],
+    )
+    forged_candidate = copy.deepcopy(candidate)
+    forged_candidate["tournaments"][1]["start_time"] = "11:45"
+
+    with pytest.raises(Exception, match="outside its declared scope"):
+        service.apply_candidate(
+            season="2026-2027",
+            candidate=forged_candidate,
+            operation="targeted_repair",
+            _targeted_contract=contract,
+        )
+
+    service.approve_tournament(season="2026-2027", tournament_id="rvv-1", actor="tester")
+    with pytest.raises(Exception, match="expected canonical revision"):
+        service.apply_candidate(
+            season="2026-2027",
+            candidate=candidate,
+            operation="targeted_repair",
+            _targeted_contract=contract,
+        )
+
+
+def test_sealed_move_reconciles_immediately(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)
+    service = CanonicalSeasonService(root=root)
+    service.move_tournament(
+        season="2026-2027",
+        tournament_id="rvv-1",
+        start_time="11:00",
+        actor="tester",
+    )
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
 
 
 def test_normalize_placements_dry_run_is_diagnostic_on_sealed_season(tmp_path: Path) -> None:

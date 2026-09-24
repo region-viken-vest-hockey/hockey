@@ -395,12 +395,21 @@ def swap_participants(
             "team's schedule: " + ", ".join(regressions)
         )
 
+    from .scoped_mutation import make_scoped_mutation_contract
+
+    targeted_contract = make_scoped_mutation_contract(
+        schedule=schedule,
+        decisions=decisions,
+        candidate=plan,
+        affected_tournament_ids=[tournament_a_id, tournament_b_id],
+    )
     updated_schedule, updated_decisions, applied_cost = service.apply_candidate(
         season=season,
         candidate=plan,
         problem=resolved_problem,
         actor=actor,
         operation="targeted_mutation",
+        _targeted_contract=targeted_contract,
         _new_change_protections=new_protections,
         _history_event={
             "event": "participant_swap",

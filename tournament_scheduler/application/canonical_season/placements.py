@@ -324,5 +324,7 @@ def move_tournament(
             "run_id": run_id,
         },
     )
-    committed = service._commit(snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions))
+    updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
+    service._assert_published_sealed_reconciliation(updated_snapshot, action="move")
+    committed = service._commit(updated_snapshot)
     return committed.schedule

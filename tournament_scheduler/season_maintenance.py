@@ -580,8 +580,19 @@ def apply_repair(
             "operational_acceptability": acceptability,
         }
 
+    from .application.canonical_season.scoped_mutation import (
+        contract_history_details,
+        make_scoped_mutation_contract,
+    )
     from .season_state import apply_candidate
 
+    changed_tournament_ids = _changed_tournament_ids(plan, result_candidate)
+    targeted_contract = make_scoped_mutation_contract(
+        schedule=schedule,
+        decisions=decisions,
+        candidate=result_candidate,
+        affected_tournament_ids=changed_tournament_ids,
+    )
     updated_schedule, updated_decisions, cost = apply_candidate(
         season=season,
         candidate=result_candidate,
@@ -591,6 +602,18 @@ def apply_repair(
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
         operation="targeted_repair",
+        _targeted_contract=targeted_contract,
+        _history_event={
+            "event": "repair_option_applied",
+            "tournament_id": str(changed_tournament_ids[0] if changed_tournament_ids else ""),
+            "note": f"Applied repair option {option_id}",
+            "details": {
+                "option_id": option_id,
+                "finding_id": finding_id,
+                "changed_tournament_ids": changed_tournament_ids,
+                **contract_history_details(targeted_contract),
+            },
+        },
     )
     new_revision = canonical_state_revision(updated_schedule, updated_decisions)
     fresh_verification = verify_candidate(dict(updated_schedule.get("plan") or {}), problem)
