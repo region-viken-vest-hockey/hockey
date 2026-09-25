@@ -1,0 +1,8 @@
+Endringer
+ 
+17 okt U12 1500-1640 – > 1415-1530
+05 des U8  1000-1235 ->   06 des 1000-1235 BYTTE DATO!
+21 feb U9 1000-1235 -> 0900->1135
+
+
+Rest is booked as per season_plan
