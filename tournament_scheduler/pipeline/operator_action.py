@@ -626,13 +626,44 @@ def _execute_publish_pages(
     # blocks publication instead of silently publishing a mismatched or stale
     # Excel/HTML pair.
     from .export_lifecycle import read_export_manifest
-    from .export_parity.gate import publish_parity_gate
+    from .export_parity.gate import (
+        is_canonical_export_checkpoint,
+        is_canonical_season_manifest,
+        publish_parity_gate,
+    )
 
     # The source manifest identifies whether this is a canonical season export
     # and supplies the frozen projection/current revision; the sanitized public
     # bundle does not carry it, so it is threaded through to the post-bundle
-    # re-verification below.
+    # re-verification below. The durable Stage 4 checkpoint is consulted
+    # independently: a deleted/corrupted lifecycle manifest must fail closed
+    # instead of downgrading a canonical export to a routine bundle.
     source_manifest = read_export_manifest(export_dir)
+    if is_canonical_export_checkpoint(export_checkpoint) and not is_canonical_season_manifest(
+        source_manifest if isinstance(source_manifest, dict) else {}
+    ):
+        _emit_publication_trace(
+            work_dir,
+            run_id,
+            status="blocked",
+            export_dir=export_dir,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            detail="canonical export lifecycle manifest missing or unreadable",
+        )
+        return _with_collision_warning(CapabilityResult.failed(
+            "Publisering blokkert: Stage 4-eksporten er en kanonisk sesongeksport, men "
+            "livssyklusmanifesten (export_manifest.json) mangler eller er uleselig. "
+            "Kanonisk ferskhet, projeksjonsvern og publiseringsseil kan ikke verifiseres; "
+            "regenerer eksporten før publisering.",
+            capability="pages_publish",
+            evidence=[
+                "export_parity_status=blocked",
+                f"canonical_season={export_checkpoint.get('canonical_season')}",
+                f"export_manifest_readable={source_manifest is not None}",
+                "export_parity_reason=missing_lifecycle_manifest",
+            ],
+            artifacts=[],
+        ))
     parity_block = publish_parity_gate(
         export_dir=export_dir, repo_dir=repo_dir, manifest=source_manifest
     )

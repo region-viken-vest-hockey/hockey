@@ -936,8 +936,18 @@ def run(
     # (and therefore publication); it is never a silent pass. The export
     # manifest is deliberately not consulted here -- it is written below from
     # the same facts, so reading it would only add a second authority.
+    #
+    # The standard season-plan workbook+page are always expected together, so a
+    # missing half (an exporter that returned without writing, or a file that
+    # disappeared) is still verified and persisted as ``NOT_CHECKABLE`` instead
+    # of silently skipping parity. A non-standard/legacy bundle keeps the old
+    # "only when both halves exist" behavior.
     export_parity: dict[str, Any] | None = None
-    if not errors and (primary_export_path / f"{basename}.xlsx").exists() and (primary_export_path / f"{basename}.html").exists():
+    expected_season_pair = basename == DEFAULT_BASENAME
+    pair_present = (primary_export_path / f"{basename}.xlsx").exists() and (
+        primary_export_path / f"{basename}.html"
+    ).exists()
+    if (not errors and pair_present) or expected_season_pair:
         try:
             from .export_parity import verify_export_parity, write_parity_report
 
@@ -961,13 +971,28 @@ def run(
                 )
             elif export_parity["status"] == "NOT_CHECKABLE":
                 # Not a silent pass: the status is persisted and the publication
-                # preflight re-verifies it and blocks a non-PASS pair. It is not
-                # an export failure so a legacy/non-canonical export shape is
-                # still produced for review.
-                logger.warning(
-                    "XLSX/HTML-artefaktparitet kunne ikke verifiseres: %s",
-                    "; ".join(str(reason.get("message") or reason) for reason in export_parity.get("reasons", [])),
+                # preflight re-verifies it and blocks a non-PASS pair. A missing
+                # half of the expected season pair is an export failure so a
+                # canonical export cannot complete with an unverifiable pair; a
+                # legacy/non-canonical export shape is still produced for review.
+                missing_half = any(
+                    reason.get("code") in {"artifact_missing", "artifacts_missing"}
+                    for reason in export_parity.get("reasons", [])
                 )
+                details = [
+                    str(reason.get("message") or reason)
+                    for reason in export_parity.get("reasons", [])
+                ]
+                if expected_season_pair and missing_half:
+                    errors.append(
+                        f"XLSX/HTML-artefaktparitet: {export_parity['status']} — "
+                        + "; ".join(details[:5])
+                    )
+                else:
+                    logger.warning(
+                        "XLSX/HTML-artefaktparitet kunne ikke verifiseres: %s",
+                        "; ".join(details),
+                    )
         except Exception as exc:  # noqa: BLE001 - parity must fail closed
             errors.append(f"Kunne ikke verifisere XLSX/HTML-artefaktparitet: {exc}")
 

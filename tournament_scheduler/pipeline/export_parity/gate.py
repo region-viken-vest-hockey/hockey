@@ -91,6 +91,23 @@ def is_canonical_season_manifest(manifest: dict[str, Any]) -> bool:
     return manifest.get("schedule_projection") is not None
 
 
+def is_canonical_export_checkpoint(checkpoint: dict[str, Any] | None) -> bool:
+    """True when a Stage 4 export checkpoint independently records canonical intent.
+
+    The on-disk lifecycle manifest can be deleted, truncated or corrupted
+    without touching the durable Stage 4 checkpoint. Reading canonical intent
+    from the checkpoint is what lets publication refuse a damaged canonical
+    export instead of silently treating it as a routine non-season bundle.
+    """
+
+    if not isinstance(checkpoint, dict):
+        return False
+    if str(checkpoint.get("canonical_season") or ""):
+        return True
+    lifecycle = checkpoint.get("export_lifecycle")
+    return is_canonical_season_manifest(lifecycle if isinstance(lifecycle, dict) else {})
+
+
 def publish_parity_gate(
     *,
     export_dir: str | Path,
@@ -171,6 +188,7 @@ def parity_status_of(report: dict[str, Any]) -> str:
 
 __all__ = [
     "CanonicalFreshness",
+    "is_canonical_export_checkpoint",
     "is_canonical_season_manifest",
     "publish_parity_gate",
     "resolve_canonical_freshness",
