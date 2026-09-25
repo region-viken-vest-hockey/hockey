@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 from tournament_scheduler.pipeline.registered_teams import (
@@ -81,7 +82,7 @@ class TestRegisteredTeamsPublish:
 
         proc = subprocess.run(
             [
-                "python3",
+                sys.executable,
                 "-m",
                 "tournament_scheduler.cli.rvv_cli",
                 "registered-teams",
