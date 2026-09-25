@@ -254,3 +254,62 @@ def test_swap_participants_honours_the_same_acceptance(tmp_path: Path) -> None:
     assert result["dry_run"] is False
     accepted = result["swap"]["regression_acceptance"]["accepted_regressions"]
     assert [(item["team"], item["code"]) for item in accepted] == [("W1", GAP_CODE)]
+
+
+def test_batch_analyses_each_same_label_team_passing_through_one_tournament(
+    tmp_path: Path,
+) -> None:
+    # Two distinct teams labelled "Common" (clubs P and Q) pass through A in
+    # one chained batch; each must keep its own consequence analysis.
+    candidate = _candidate()
+    tournaments = {tournament["id"]: tournament for tournament in candidate["tournaments"]}
+    tournaments["u10-a-20260912"] = _tournament(
+        "u10-a-20260912",
+        "2026-09-12",
+        "Kongsberg",
+        "Arena A",
+        [("Kongsberg", "K1"), ("X", "X1"), ("P", "Common"), ("Z", "Z1")],
+        "10:00",
+    )
+    tournaments["u10-c-20261018"] = _tournament(
+        "u10-c-20261018",
+        "2026-10-18",
+        "C",
+        "Arena C",
+        [("C", "C1"), ("C", "C2"), ("D", "D1"), ("Q", "Common")],
+        "14:00",
+    )
+    tournaments["u10-d-20261101"] = _tournament(
+        "u10-d-20261101",
+        "2026-11-01",
+        "E",
+        "Arena D",
+        [("E", "E1"), ("E", "E2"), ("F", "F1"), ("T", "T1")],
+        "10:00",
+    )
+    candidate["tournaments"] = list(tournaments.values())
+    _work_dir, root = _promote(tmp_path, candidate=candidate)
+
+    operations = [
+        {"op": "swap_participants", "tournament_a": "u10-a-20260912", "team_a": "Common",
+         "tournament_b": "u10-b-20260920", "team_b": "W1"},
+        {"op": "swap_participants", "tournament_a": "u10-a-20260912", "team_a": "W1",
+         "tournament_b": "u10-c-20261018", "team_b": "Common"},
+        {"op": "swap_participants", "tournament_a": "u10-a-20260912", "team_a": "Common",
+         "tournament_b": "u10-d-20261101", "team_b": "T1"},
+    ]
+    preview = batch_maintenance(
+        season=SEASON,
+        root=root,
+        operations=operations,
+        scope=["u10-a-20260912", "u10-b-20260920", "u10-c-20261018", "u10-d-20261101"],
+        request_id="chained-same-label",
+        actor="tester",
+        dry_run=True,
+    )
+
+    analysed = set(preview["team_consequences"])
+    assert {"P|Common|U10", "Q|Common|U10", "W|W1|U10", "T|T1|U10"} <= analysed
+    by_identity = preview["team_consequences"]
+    assert "2026-09-20" in by_identity["P|Common|U10"]["after"]["tournament_dates"]
+    assert "2026-11-01" in by_identity["Q|Common|U10"]["after"]["tournament_dates"]

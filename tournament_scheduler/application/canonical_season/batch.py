@@ -418,16 +418,18 @@ def batch_maintenance(
             compare_team_schedule_consequence,
         )
 
+        # Each affected team is analysed once, original -> final plan, keyed by
+        # its full identity: chained swaps may move several distinct teams
+        # with one label through the same tournament.
         for swap in applied_swaps:
-            for tournament_key, team_key, identity in (
-                ("tournament_a_id", "team_a", swap["identity_a"]),
-                ("tournament_b_id", "team_b", swap["identity_b"]),
-            ):
-                key = f"{swap[tournament_key]}:{swap[team_key]['label']}"
+            for identity in (swap["identity_a"], swap["identity_b"]):
+                key = "|".join(str(part) for part in identity)
+                if key in team_consequences:
+                    continue
                 team_consequences[key] = compare_team_schedule_consequence(
                     before_plan,
                     candidate_plan,
-                    identity,
+                    tuple(identity),
                     problem=resolved_problem,
                 )
     regression_acceptance = evaluate_regression_acceptances(
