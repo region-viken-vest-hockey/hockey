@@ -527,6 +527,41 @@ class TestComputeSharedRegistrationFacts:
         assert facts[0]["age_group"] == "U10"
         assert set(facts[0]["constituents"]) == {"Kongsberg", "Tønsberg"}
 
+    def test_returns_facts_row_even_when_the_probe_plan_is_empty(self):
+        """A joint registration must still surface a hosting decision when
+        the probe pass produces no tournaments (an empty/cheap baseline or a
+        probe that placed nothing) -- never a silent ``[]`` skip that would
+        drop the run-scoped ``shared_host_assignment`` choice."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        for probe_result in (None, MagicMock(tournaments=[])):
+            fake_planner = MagicMock()
+            fake_planner.build_plan.return_value = probe_result
+            with patch.object(sp, "_make_planner", return_value=fake_planner):
+                facts = compute_shared_registration_facts(
+                    _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+                )
+            assert len(facts) == 1
+            assert facts[0]["registration"] == "Kongsberg/Tønsberg"
+            assert facts[0]["age_group"] == "U10"
+            assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+
+    def test_returns_facts_row_when_the_probe_plan_build_raises(self):
+        """A probe-build failure must not be treated as "no joint
+        registration": the facts row is still surfaced with zero hosting
+        counts so the decision is retained."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        fake_planner = MagicMock()
+        fake_planner.build_plan.side_effect = RuntimeError("probe exploded")
+        with patch.object(sp, "_make_planner", return_value=fake_planner):
+            facts = compute_shared_registration_facts(
+                _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+            )
+        assert len(facts) == 1
+        assert facts[0]["registration"] == "Kongsberg/Tønsberg"
+        assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+
 
 class TestSharedHostDecisionWiring:
     """issue #274: `run()` must consume an externally-made shared-host

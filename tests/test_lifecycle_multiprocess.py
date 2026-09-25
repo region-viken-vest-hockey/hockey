@@ -76,7 +76,11 @@ def _write_minimal_workbook(path: Path) -> None:
             "deltakelser_per_lag_etter_jul",
         ]
     )
-    age_groups.append(["U10", 2, 15, 30, 2, 2])
+    # ``ice_time_minutes`` must satisfy the per-series-round booking floor
+    # (>= 120 for U10), matching tests/test_cli_smoke.py, or Stage 1 config
+    # validation fails and the non-strict checkpoint loses the computed
+    # ``teams`` (which would silently drop the joint-registration decision).
+    age_groups.append(["U10", 2, 15, 120, 2, 2])
 
     teams = wb.create_sheet("Lag")
     teams.append(["club", "label", "age_group"])

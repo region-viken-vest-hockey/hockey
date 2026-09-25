@@ -158,7 +158,10 @@ def compute_shared_registration_facts(
     fallback order purely to gather realistic "who already hosts how much"
     facts — the probe plan itself is discarded, never persisted. Returns
     ``[]`` immediately, without paying for a probe build, when the roster
-    has no joint/shared-club registration (the common case).
+    has no joint/shared-club registration (the common case). When a joint
+    registration exists but the probe pass produces no tournaments (or fails
+    to build), the facts row is still returned with zero hosting counts so
+    the caller can never silently skip the run-scoped hosting decision.
     """
     roster = _build_roster(config)
     team_dicts = [{"club": t.club, "age_group": t.age_group} for t in roster.teams]
@@ -191,9 +194,20 @@ def compute_shared_registration_facts(
         cheap_baseline=bool(config.get("stage3_cheap_baseline", False)),
         rounds_per_tournament_config=_build_rounds_per_tournament(config),
     )
-    probe_plan = probe_planner.build_plan(planning_start, end_date)
+    try:
+        probe_plan = probe_planner.build_plan(planning_start, end_date)
+    except Exception:
+        # A probe-build failure still leaves the joint registration to decide;
+        # fall back to zero hosting counts so the caller's exception backstop
+        # can never turn this into a silent "no joint registrations" skip.
+        probe_plan = None
     if probe_plan is None or not probe_plan.tournaments:
-        return []
+        # A joint registration still needs an explicit hosting decision even
+        # when the probe pass produced no tournaments (an empty/cheap baseline,
+        # a probe that placed nothing, or a probe-build failure above).
+        # ``shared_registration_facts`` already supports an empty tournament
+        # list (zero hosting counts), so the decision is never silently dropped.
+        return shared_registration_facts(team_dicts, [], club_calendar_status)
 
     tournament_dicts = [
         {"host_club": t.host_club, "age_group": t.age_group, "cancelled": t.cancelled}
