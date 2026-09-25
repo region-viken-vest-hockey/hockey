@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Mapping
 
 from tournament_scheduler.canonical_state import (
@@ -51,6 +52,38 @@ def _commit(service, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool 
     )
     committed = snapshot.with_decisions(decisions)
     service.store.write(committed, require_absent=require_absent)
+    return committed
+
+
+def _commit_history_only(
+    service,
+    snapshot: CanonicalSeasonSnapshot,
+) -> CanonicalSeasonSnapshot:
+    """Persist a history-only change without semantic migration or revision recompute.
+
+    Canonical history compaction changes only ``history`` and must preserve every
+    other durable field -- including the stored ``canonical_state_revision`` --
+    byte-for-byte. A pending semantic migration (legacy participation-acceptance
+    ids) is refused rather than silently applied alongside the history change,
+    so compaction never performs a second, unannounced semantic migration.
+    """
+
+    decisions = dict(snapshot.decisions)
+    probe = deepcopy(decisions)
+    if migrate_participation_acceptance_ids(probe):
+        raise SeasonStateError(
+            "Refusing history-only commit: the canonical state carries legacy "
+            "participation-acceptance ids that a normal commit would migrate; "
+            "migrate via a normal canonical mutation before compacting history"
+        )
+    guard_violations = protection_violations(snapshot.schedule.get("plan") or {}, decisions)
+    if guard_violations:
+        messages = "; ".join(str(item.get("message")) for item in guard_violations)
+        raise SeasonStateError(
+            "Refusing canonical commit: it would undo an accepted change: " + messages
+        )
+    committed = snapshot.with_decisions(decisions)
+    service.store.write(committed)
     return committed
 
 

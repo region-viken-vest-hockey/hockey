@@ -32,6 +32,7 @@ from tournament_scheduler.canonical_history_summary import verification_summary
 from tournament_scheduler.canonical_state import (
     CANONICAL_STATE_REVISION_KEY,
     compute_canonical_state_revision,
+    migrate_participation_acceptance_ids,
     schedule_fingerprint,
 )
 from tournament_scheduler.infrastructure.canonical_compaction_backup import (
@@ -70,19 +71,17 @@ def _compact_event_details(
     *,
     season: str,
     entry: Mapping[str, Any],
-    archive: bool,
     root: str,
     dry_run: bool = False,
 ) -> tuple[dict[str, Any], str | None]:
     """Return (new_details, archived_evidence_hash) for one history entry.
 
-    The archived hash is ``None`` when the entry was already bounded or when
-    ``archive`` is disabled and the full evidence is dropped. In dry-run mode
-    the reference is computed but the archive file is not written. The narrow
-    transform touches *only* the oversized ``verification_result``; every other
-    detail field (including the operational-acceptability verdict with its full
-    profiles) is preserved verbatim. An unknown or ambiguous evidence shape is
-    refused rather than silently stripped.
+    The archived hash is ``None`` when the entry was already bounded. In
+    dry-run mode the reference is computed but the archive file is not written.
+    The narrow transform touches *only* the oversized ``verification_result``;
+    every other detail field (including the operational-acceptability verdict
+    with its full profiles) is preserved verbatim. An unknown or ambiguous
+    evidence shape is refused rather than silently stripped.
     """
 
     details = deepcopy(dict(entry.get("details") or {}))
@@ -100,24 +99,27 @@ def _compact_event_details(
                 "Refusing compaction: a history event carries a non-object "
                 "verification_result; unknown evidence shapes are never silently stripped"
             )
-        if archive:
-            ref = evidence_ref(verification_result)
-            archived_hash = str(ref.get("sha256") or "")
-            if not dry_run:
-                archive_move_evidence(
-                    season,
-                    tournament_id=tournament_id,
-                    canonical_revision=canonical_revision,
-                    event_at=event_at,
-                    verification_result=verification_result,
-                    root=root,
-                )
+        ref = evidence_ref(
+            verification_result,
+            tournament_id=tournament_id or None,
+            canonical_revision=canonical_revision or None,
+            event_at=event_at or None,
+        )
+        archived_hash = str(ref.get("sha256") or "")
+        if not dry_run:
+            archive_move_evidence(
+                season,
+                tournament_id=tournament_id,
+                canonical_revision=canonical_revision,
+                event_at=event_at,
+                verification_result=verification_result,
+                root=root,
+            )
         details.pop(VERIFICATION_RESULT_KEY, None)
         details[VERIFICATION_SUMMARY_KEY] = verification_summary(
             verification_result, tournament_id=tournament_id or None
         )
-        if archive:
-            details[EVIDENCE_REF_KEY] = ref
+        details[EVIDENCE_REF_KEY] = ref
     elif VERIFICATION_SUMMARY_KEY in details:
         # Already compacted. A retained evidence reference must resolve and
         # match, otherwise the required archive is missing and compaction fails
@@ -190,7 +192,6 @@ def compact_history(
     actor: str | None = None,
     note: str = "",
     dry_run: bool = False,
-    archive: bool = True,
 ) -> dict[str, Any]:
     """Migrate oversized inline move evidence into the durable archive.
 
@@ -200,7 +201,8 @@ def compact_history(
     canonical-state revision and schedule fingerprint are unchanged by
     construction and asserted explicitly, the full canonical semantic projection
     is asserted structurally equal, and published-baseline replay/reconciliation
-    is asserted unchanged for sealed seasons.
+    is asserted unchanged for sealed seasons. Compaction always retains the full
+    per-move evidence in the durable archive; there is no drop-evidence path.
     """
 
     snapshot = service.load(season)
@@ -211,6 +213,16 @@ def compact_history(
     before_fingerprint = schedule_fingerprint(schedule.get("plan") or {})
     stored_revision = str(decisions.get(CANONICAL_STATE_REVISION_KEY) or "")
 
+    # Refuse early, before any archive/backup side effect, when a normal commit
+    # would migrate legacy participation-acceptance ids: the history-only commit
+    # must not silently perform that semantic migration.
+    if migrate_participation_acceptance_ids(deepcopy(decisions)):
+        raise SeasonStateError(
+            "Refusing compaction: the canonical state carries legacy "
+            "participation-acceptance ids that a normal commit would migrate; "
+            "migrate via a normal canonical mutation before compacting history"
+        )
+
     before_bytes = _json_size(decisions)
     history = decisions.get("history")
     if not isinstance(history, list):
@@ -219,7 +231,6 @@ def compact_history(
     compacted: list[dict[str, Any]] = []
     archived_hashes: list[str] = []
     archived_count = 0
-    dropped_count = 0
     already_compacted = 0
     compacted_indices: list[int] = []
 
@@ -238,17 +249,12 @@ def compact_history(
             service,
             season=season,
             entry=entry,
-            archive=archive,
             root=root,
             dry_run=dry_run,
         )
         if archived_hash is not None:
             archived_hashes.append(archived_hash)
             archived_count += 1
-            compacted_indices.append(index)
-        elif has_result:
-            # ``archive=False`` dropped the full result without retaining it.
-            dropped_count += 1
             compacted_indices.append(index)
         else:
             # Already carried a bounded summary rather than a full result.
@@ -283,10 +289,8 @@ def compact_history(
     report = {
         "season": season,
         "dry_run": dry_run,
-        "archive": archive,
         "history_events": len(history),
         "compacted_moves": archived_count,
-        "dropped_moves": dropped_count,
         "already_compacted": already_compacted,
         "archived_evidence_hashes": archived_hashes,
         "before_revision": before_revision,
@@ -299,7 +303,7 @@ def compact_history(
         "replay_parity": replay_parity,
     }
 
-    nothing_to_compact = archived_count == 0 and dropped_count == 0
+    nothing_to_compact = archived_count == 0
 
     if dry_run:
         if nothing_to_compact:
@@ -344,10 +348,21 @@ def compact_history(
     report["backup"] = backup_manifest
 
     committed = snapshot.with_decisions(decisions)
-    # Commit through the single shared lifecycle boundary so the write stays
-    # owned by the persistence lifecycle (and the revision recompute is a no-op
-    # by construction: history is not part of the semantic revision hash).
-    service._commit(committed)
+    # Commit through the dedicated history-only lifecycle boundary, which never
+    # runs a semantic migration (for example legacy participation-acceptance id
+    # rewrites) and never recomputes the stored canonical-state revision.
+    final = service._commit_history_only(committed)
+    # Validate the state actually committed: a history-only migration must not
+    # have silently performed another semantic migration or changed the stored
+    # revision. These are the exact identities asserted before the commit.
+    if _semantic_projection(snapshot.decisions) != _semantic_projection(final.decisions):
+        raise SeasonStateError(
+            "Compaction changed a top-level decisions field on commit; refusing to write"
+        )
+    if str(final.decisions.get(CANONICAL_STATE_REVISION_KEY) or "") != stored_revision:
+        raise SeasonStateError(
+            "Compaction changed the stored canonical-state revision on commit; refusing to write"
+        )
     report["committed"] = True
     return report
 

@@ -425,15 +425,27 @@ of the full result) and a summarized operational-acceptability verdict -- rather
 than embedding the full `verify_candidate` result, which is whole-season
 repeated evidence and once dominated `decisions.json`. The exact full result
 stays in the immediate dry-run/CLI response. When complete per-move evidence
-must be retained, it is stored in a durable, revision-bound, content-addressed
-archive under `season/<season>/evidence/` (`canonical_evidence_archive`), which
-the store's directory swap carries forward and which a reader verifies by
-checksum; a missing/invalid referenced archive fails closed rather than being
-treated as verified. Existing oversized history is migrated deliberately and
-idempotently by `season compact-history` (explicit `--dry-run` to preview or
-`--apply` to commit). The narrow transform extracts *only* the oversized
+must be retained, it is stored in a durable, content-addressed archive under
+`season/<season>/evidence/` (`canonical_evidence_archive`). The shared archive
+file holds only the hash-bound verification result; event-specific provenance
+(tournament id, canonical revision and event time) lives on each referencing
+event's `evidence_ref`, so two events carrying identical proof each keep their
+own identity. A reader verifies the stored result against its content hash; a
+missing/invalid referenced archive fails closed rather than being treated as
+verified. The archive is immutable (create-once), so the store's directory swap
+carries it forward by hardlink rather than re-copying it on every mutation, and
+the swap is crash-durable (staged contents and directory entries are fsynced;
+an interrupted swap is recovered from the backup on the next write). Existing
+oversized history is migrated deliberately and idempotently by
+`season compact-history` (explicit `--dry-run` to preview or `--apply` to
+commit); compaction always retains the full evidence in the archive and there is
+no drop-evidence path. The narrow transform extracts *only* the oversized
 `verification_result`; every other event field, including the full
-operational-acceptability verdict, is preserved verbatim. Before any mutation
+operational-acceptability verdict, is preserved verbatim. Compaction commits
+through a dedicated history-only boundary that refuses a pending semantic
+migration (legacy participation-acceptance ids) and preserves the stored
+canonical-state revision exactly, and it asserts that identity after the commit.
+Before any mutation
 the complete original `decisions.json` is backed up byte-for-byte into a
 content-addressed, checksum-verified archive with a migration manifest under
 `season/<season>/evidence/backup/` (`canonical_compaction_backup`), so the

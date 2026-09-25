@@ -1782,12 +1782,6 @@ def build_parser() -> argparse.ArgumentParser:
     season_compact.add_argument("--actor", default=None, help="Operator identity for the compaction record")
     season_compact.add_argument("--note", default="", help="Optional note for the compaction")
     season_compact.add_argument(
-        "--no-archive",
-        dest="archive",
-        action="store_false",
-        help="Drop the full evidence instead of archiving it (not recommended)",
-    )
-    season_compact.add_argument(
         "--dry-run", action="store_true", help="Report what compaction would change without writing"
     )
     season_compact.add_argument(

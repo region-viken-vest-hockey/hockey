@@ -233,12 +233,11 @@ def compact_history(
     actor: str | None = None,
     note: str = "",
     dry_run: bool = False,
-    archive: bool = True,
 ) -> dict[str, Any]:
     """Migrate oversized inline move evidence into the durable archive."""
 
     return _service(root).compact_history(
-        season=season, actor=actor, note=note, dry_run=dry_run, archive=archive
+        season=season, actor=actor, note=note, dry_run=dry_run
     )
 
 

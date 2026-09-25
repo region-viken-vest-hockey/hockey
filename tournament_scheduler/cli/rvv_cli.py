@@ -1559,7 +1559,6 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 actor=args.actor,
                 note=args.note,
                 dry_run=dry_run,
-                archive=bool(getattr(args, "archive", True)),
             )
             if args.json:
                 print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
@@ -1571,8 +1570,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(
                     f"  moves: {report['history_events']} events, "
                     f"{report['compacted_moves']} archived, "
-                    f"{report['already_compacted']} already bounded, "
-                    f"{report['dropped_moves']} dropped"
+                    f"{report['already_compacted']} already bounded"
                 )
                 _console.print(
                     f"  size: {report['before_decisions_chars']} -> "

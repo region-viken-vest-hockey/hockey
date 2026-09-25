@@ -27,6 +27,7 @@ from tournament_scheduler.canonical_history_summary import (
 )
 from tournament_scheduler.canonical_state import (
     CANONICAL_STATE_REVISION_KEY,
+    PARTICIPATION_ACCEPTANCES_KEY,
     compute_canonical_state_revision,
     schedule_fingerprint,
 )
@@ -470,6 +471,95 @@ def test_compact_history_preserves_top_level_decisions_verbatim(tmp_path: Path) 
         assert compacted[key] == value, f"top-level decisions field {key!r} changed"
 
 
+def test_compact_history_refuses_pending_acceptance_id_migration(tmp_path: Path) -> None:
+    """A history-only migration must not silently migrate legacy acceptance ids."""
+
+    result = _large_verification_result()
+    root = tmp_path / "season"
+    schedule, decisions = _write_season(
+        root, history=[_move_entry("T1", "2026-10-17", result)]
+    )
+    # A legacy participation-acceptance id (omits age_group) that a normal
+    # commit would migrate. Compaction must refuse rather than do both at once.
+    decisions[PARTICIPATION_ACCEPTANCES_KEY] = [
+        {
+            "club": "ClubA",
+            "label": "TeamA",
+            "age_group": "U10",
+            "scope": "season",
+            "id": "participation_acceptance:ClubA:TeamA:season",
+        }
+    ]
+    decisions[CANONICAL_STATE_REVISION_KEY] = compute_canonical_state_revision(schedule, decisions)
+    original = json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    (root / YEAR / "decisions.json").write_text(original, encoding="utf-8")
+
+    service = CanonicalSeasonService(root=root)
+    with pytest.raises(SeasonStateError):
+        service.compact_history(season=YEAR)
+
+    # Nothing was committed: no backup, no archive, decisions byte-for-byte intact.
+    assert (root / YEAR / "decisions.json").read_text(encoding="utf-8") == original
+    assert list(moves_dir(YEAR, root=root).glob("*.json")) == []
+    assert list(backup_dir(YEAR, root=root).glob("*")) == []
+
+
+def test_identical_evidence_keeps_event_specific_provenance(tmp_path: Path) -> None:
+    """Two events with identical proof share one archive but keep distinct provenance."""
+
+    result = _large_verification_result()
+    root = tmp_path / "season"
+    entry_a = _move_entry("T1", "2026-10-17", result, at="2026-09-25T10:00:00+00:00")
+    entry_b = _move_entry("T2", "2026-10-18", result, at="2026-09-25T11:00:00+00:00")
+    entry_b["details"]["before_canonical_revision"] = "rev-before-2"
+    _write_season(root, history=[entry_a, entry_b])
+
+    service = CanonicalSeasonService(root=root)
+    report = service.compact_history(season=YEAR)
+    assert report["compacted_moves"] == 2
+
+    compacted = service.load(YEAR).decisions
+    refs = [
+        entry["details"]["evidence_ref"]
+        for entry in compacted["history"]
+        if entry.get("event") == "move"
+    ]
+    assert len(refs) == 2
+    # The shared archive file is addressed by the proof only; each event's ref
+    # carries its own provenance.
+    assert refs[0]["sha256"] == refs[1]["sha256"]
+    assert refs[0]["path"] == refs[1]["path"]
+    assert refs[0]["tournament_id"] == "T1"
+    assert refs[1]["tournament_id"] == "T2"
+    assert refs[0]["event_at"] == "2026-09-25T10:00:00+00:00"
+    assert refs[1]["event_at"] == "2026-09-25T11:00:00+00:00"
+    assert refs[0]["canonical_revision"] == "rev-before"
+    assert refs[1]["canonical_revision"] == "rev-before-2"
+
+    # One shared file holds the hash-bound result; both refs resolve to it.
+    assert len(list(moves_dir(YEAR, root=root).glob("*.json"))) == 1
+    for ref in refs:
+        payload = load_move_evidence(YEAR, ref, root=root)
+        assert payload["verification_result"]["ok"] is True
+
+
+def test_verification_summary_fails_closed_on_malformed_ok() -> None:
+    """A missing/non-boolean 'ok' verdict must raise, never be reported successful."""
+
+    with pytest.raises(ValueError):
+        verification_summary({"violations": []}, tournament_id="T1")
+    with pytest.raises(ValueError):
+        verification_summary({"ok": "yes"}, tournament_id="T1")
+    with pytest.raises(ValueError):
+        verification_summary({"ok": 1}, tournament_id="T1")
+    with pytest.raises(ValueError):
+        verification_summary({"ok": None}, tournament_id="T1")
+
+    # A real boolean (True or False) is accepted.
+    assert verification_summary({"ok": False, "violations": []}, tournament_id="T1")["ok"] is False
+    assert verification_summary({"ok": True, "violations": []}, tournament_id="T1")["ok"] is True
+
+
 def test_compact_history_refuses_unknown_evidence_shape(tmp_path: Path) -> None:
     """A non-object verification_result is refused, never silently stripped."""
 
@@ -496,10 +586,10 @@ def test_compact_history_commit_failure_preserves_original(tmp_path: Path) -> No
 
     service = CanonicalSeasonService(root=root)
 
-    def _boom(snapshot, *, require_absent: bool = False):
+    def _boom(snapshot):
         raise SeasonStateError("simulated commit failure")
 
-    service._commit = _boom  # type: ignore[method-assign]
+    service._commit_history_only = _boom  # type: ignore[method-assign]
 
     with pytest.raises(SeasonStateError):
         service.compact_history(season=YEAR)
@@ -508,30 +598,27 @@ def test_compact_history_commit_failure_preserves_original(tmp_path: Path) -> No
     assert (root / YEAR / "decisions.json").read_bytes() == original_bytes
 
 
-def test_compact_history_dropped_evidence_still_backs_up_original(tmp_path: Path) -> None:
-    """Even --no-archive drops are reversible via the byte-for-byte backup."""
+def test_compact_history_always_archives_full_evidence(tmp_path: Path) -> None:
+    """There is no drop-evidence path: every full result is retained in the archive."""
 
     result = _large_verification_result()
     root = tmp_path / "season"
     _write_season(root, history=[_move_entry("T1", "2026-10-17", result)])
-    original_bytes = (root / YEAR / "decisions.json").read_bytes()
 
     service = CanonicalSeasonService(root=root)
-    report = service.compact_history(season=YEAR, archive=False)
-    assert report["dropped_moves"] == 1
-    assert report["compacted_moves"] == 0
+    report = service.compact_history(season=YEAR)
+    assert report["compacted_moves"] == 1
+    assert "dropped_moves" not in report
 
     compacted = service.load(YEAR).decisions
     move_details = compacted["history"][0]["details"]
     assert "verification_result" not in move_details
-    assert "evidence_ref" not in move_details
+    assert "evidence_ref" in move_details
     assert "verification_summary" in move_details
-
-    # The complete original (including the dropped full evidence) is recoverable.
-    _manifest, backup_bytes = load_compaction_backup(
-        YEAR, report["backup"]["backup_id"], root=root
-    )
-    assert backup_bytes == original_bytes
+    # The full evidence is retained in the archive, never silently dropped.
+    ref = move_details["evidence_ref"]
+    archived = load_move_evidence(YEAR, ref, root=root)
+    assert archived["verification_result"] == result
 
 
 def test_compaction_on_sealed_season_reports_replay_parity(tmp_path: Path) -> None:

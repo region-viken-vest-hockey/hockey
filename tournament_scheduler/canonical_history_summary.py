@@ -94,9 +94,15 @@ def verification_summary(result: Mapping[str, Any], *, tournament_id: str | None
     """
 
     counts = {field: len(result.get(field) or []) for field in _COUNTED_LIST_FIELDS}
+    ok = result.get("ok")
+    if not isinstance(ok, bool):
+        raise ValueError(
+            "Verification result is missing a boolean 'ok' verdict; "
+            "refusing to summarize a malformed result as successful"
+        )
     summary: dict[str, Any] = {
         "schema_version": VERIFICATION_SUMMARY_SCHEMA_VERSION,
-        "ok": bool(result.get("ok", True)),
+        "ok": ok,
         "verification_hash": verification_hash(result),
         "counts": counts,
     }

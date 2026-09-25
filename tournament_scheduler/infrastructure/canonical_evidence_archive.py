@@ -10,9 +10,13 @@ Git-tracked with the canonical season state. Every file is addressed by the
 stable SHA-256 of the canonical JSON serialization of the *verification result
 it preserves*, so the same evidence is stored once no matter how many history
 entries reference it, and a reader can always detect truncation or corruption.
-Writes are atomic (stage + fsync + replace) and the stored checksum is
-re-verified on read; a missing or invalid referenced archive is an explicit
-error, never silently treated as verified evidence.
+The shared content-addressed file holds only the hash-bound verification result
+itself; event-specific provenance (``tournament_id``, canonical revision and
+event time) lives on each referencing event's ``evidence_ref`` so two distinct
+events that carry identical proof each keep their own identity. Writes are
+atomic (stage + fsync + replace) and the stored checksum is re-verified on
+read; a missing or invalid referenced archive is an explicit error, never
+silently treated as verified evidence.
 """
 
 from __future__ import annotations
@@ -45,8 +49,22 @@ def moves_dir(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
     return Path(root) / season / EVIDENCE_SUBDIR / MOVES_SUBDIR
 
 
-def evidence_ref(verification_result: Mapping[str, Any]) -> dict[str, Any]:
-    """Return the content-addressed reference for one verification result."""
+def evidence_ref(
+    verification_result: Mapping[str, Any],
+    *,
+    tournament_id: str | None = None,
+    canonical_revision: str | None = None,
+    event_at: str | None = None,
+) -> dict[str, Any]:
+    """Return the content-addressed reference plus event-specific provenance.
+
+    ``sha256``/``path`` address the *verification result only*, so identical
+    payloads share one archive file no matter how many events reference it.
+    The per-event provenance (``tournament_id``, ``canonical_revision``,
+    ``event_at``) lives on each referencing event's ref, not in the shared file,
+    so every event keeps its own identity even when two events carry identical
+    proof.
+    """
 
     digest = verification_hash(verification_result)
     return {
@@ -54,6 +72,9 @@ def evidence_ref(verification_result: Mapping[str, Any]) -> dict[str, Any]:
         "algorithm": "sha256",
         "sha256": digest,
         "path": f"{EVIDENCE_SUBDIR}/{MOVES_SUBDIR}/{digest}.json",
+        "tournament_id": tournament_id,
+        "canonical_revision": canonical_revision,
+        "event_at": event_at,
     }
 
 
@@ -72,16 +93,20 @@ def archive_move_evidence(
     Re-archiving identical evidence is idempotent (same content, same path).
     """
 
-    ref = evidence_ref(verification_result)
+    ref = evidence_ref(
+        verification_result,
+        tournament_id=tournament_id,
+        canonical_revision=canonical_revision,
+        event_at=event_at,
+    )
     directory = moves_dir(season, root=root)
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / f"{ref['sha256']}.json"
+    # The shared file holds only the hash-bound verification result; per-event
+    # provenance is carried on each referencing event's ``evidence_ref``.
     payload: dict[str, Any] = {
         "schema_version": ARCHIVE_SCHEMA_VERSION,
         "evidence_hash": ref["sha256"],
-        "tournament_id": tournament_id,
-        "canonical_revision": canonical_revision,
-        "event_at": event_at,
         "verification_result": verification_result,
     }
     if target.exists():

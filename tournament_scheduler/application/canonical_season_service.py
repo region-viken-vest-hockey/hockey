@@ -96,6 +96,9 @@ class CanonicalSeasonService:
     def _commit(self, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool = False) -> CanonicalSeasonSnapshot:
         return _lifecycle._commit(self, snapshot=snapshot, require_absent=require_absent)
 
+    def _commit_history_only(self, snapshot: CanonicalSeasonSnapshot) -> CanonicalSeasonSnapshot:
+        return _lifecycle._commit_history_only(self, snapshot=snapshot)
+
     def season_baseline_show(self, season: str) -> dict[str, Any]:
         return _baseline.season_baseline_show(self, season=season)
 
@@ -106,9 +109,8 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
         dry_run: bool = False,
-        archive: bool = True,
     ) -> dict[str, Any]:
-        return _history.compact_history(self, season=season, actor=actor, note=note, dry_run=dry_run, archive=archive)
+        return _history.compact_history(self, season=season, actor=actor, note=note, dry_run=dry_run)
 
     def history_inventory(
         self,
