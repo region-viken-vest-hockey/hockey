@@ -99,6 +99,10 @@ def _compact_event_details(
                 "Refusing compaction: a history event carries a non-object "
                 "verification_result; unknown evidence shapes are never silently stripped"
             )
+        # Validate the result *before* archiving anything: a malformed result
+        # (missing/non-boolean ``ok``) must be refused without writing malformed
+        # evidence into the durable archive.
+        summary = verification_summary(verification_result, tournament_id=tournament_id or None)
         ref = evidence_ref(
             verification_result,
             tournament_id=tournament_id or None,
@@ -116,9 +120,7 @@ def _compact_event_details(
                 root=root,
             )
         details.pop(VERIFICATION_RESULT_KEY, None)
-        details[VERIFICATION_SUMMARY_KEY] = verification_summary(
-            verification_result, tournament_id=tournament_id or None
-        )
+        details[VERIFICATION_SUMMARY_KEY] = summary
         details[EVIDENCE_REF_KEY] = ref
     elif VERIFICATION_SUMMARY_KEY in details:
         # Already compacted. A retained evidence reference must resolve and

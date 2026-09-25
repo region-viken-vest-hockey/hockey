@@ -576,6 +576,23 @@ def test_compact_history_refuses_unknown_evidence_shape(tmp_path: Path) -> None:
     assert list(backup_dir(YEAR, root=root).glob("*")) == []
 
 
+def test_compact_history_refuses_malformed_ok_before_archiving(tmp_path: Path) -> None:
+    """A malformed verification result is refused before any evidence is archived."""
+
+    result = _large_verification_result()
+    del result["ok"]
+    root = tmp_path / "season"
+    _write_season(root, history=[_move_entry("T1", "2026-10-17", result)])
+
+    service = CanonicalSeasonService(root=root)
+    with pytest.raises(ValueError):
+        service.compact_history(season=YEAR)
+
+    # Validation failed before archiving: no evidence and no backup were written.
+    assert list(moves_dir(YEAR, root=root).glob("*.json")) == []
+    assert list(backup_dir(YEAR, root=root).glob("*")) == []
+
+
 def test_compact_history_commit_failure_preserves_original(tmp_path: Path) -> None:
     """A failed final swap leaves the original active state intact."""
 

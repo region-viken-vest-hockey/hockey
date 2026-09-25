@@ -15,7 +15,7 @@ Both files are always installed together through one staged directory swap, so a
 failed write can never leave only ``schedule.json`` or only ``decisions.json``
 behind. The swap is crash-durable: staged file contents and directory entries
 are fsynced before the swap, and an interruption between the two renames is
-recovered on the next write by restoring the backup. Durable auxiliary
+recovered on the next write or read by restoring the backup. Durable auxiliary
 artifacts (the content-addressed evidence archive) are carried forward by
 hardlink rather than re-copied, since they are strictly create-once/immutable;
 a copy fallback keeps evidence when hardlinks are unavailable. There is
@@ -66,6 +66,7 @@ def load_export_context(
     season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
 ) -> dict[str, Any] | None:
     """Return the persisted public export context, or ``None`` for legacy seasons."""
+    _recover_season(season, root=root)
     path = export_context_path(season, root=root)
     if not path.exists():
         return None
@@ -99,6 +100,7 @@ def season_id_from_plan(plan_dict: dict[str, Any]) -> str:
 
 
 def load_schedule(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
+    _recover_season(season, root=root)
     payload = load_json(schedule_path(season, root=root))
     version = int(payload.get("schema_version", 0) or 0)
     if version != SEASON_STATE_SCHEMA_VERSION:
@@ -109,6 +111,7 @@ def load_schedule(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_
 
 
 def load_decisions(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
+    _recover_season(season, root=root)
     payload = load_json(decisions_path(season, root=root))
     version = int(payload.get("schema_version", 0) or 0)
     if version != DECISIONS_SCHEMA_VERSION:
@@ -147,18 +150,19 @@ def _carry_forward_evidence(existing_evidence: Path, staging_evidence: Path) -> 
 
 
 def _fsync_directory(path: Path) -> None:
-    """Make a directory's entries durable (no-op where unsupported)."""
+    """Make a directory's entries durable, raising when that cannot be guaranteed.
+
+    A no-op on platforms without directory-fsync support (Windows). An fsync
+    failure is surfaced rather than swallowed: the caller is promising crash
+    durability, and silently ignoring the failure would report a durable write
+    that is not actually durable.
+    """
 
     if os.name == "nt":
         return
-    try:
-        fd = os.open(path, os.O_RDONLY)
-    except OSError:
-        return
+    fd = os.open(path, os.O_RDONLY)
     try:
         os.fsync(fd)
-    except OSError:
-        pass
     finally:
         os.close(fd)
 
@@ -189,6 +193,21 @@ def _recover_interrupted_swap(season_directory: Path, backup: Path) -> None:
     os.replace(backup, season_directory)
 
 
+def _recover_season(
+    season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
+) -> None:
+    """Restore the last durable state for a season if a swap was interrupted.
+
+    Reads and writes both recover a season whose active directory is missing but
+    whose backup still holds the last committed state, so an interrupted swap is
+    never observed as a missing season by a read.
+    """
+
+    directory = season_dir(season, root=root)
+    backup = directory.parent / f".{directory.name}.backup"
+    _recover_interrupted_swap(directory, backup)
+
+
 def _write_season_state_atomic(
     season_directory: Path,
     schedule_payload: dict[str, Any],
@@ -201,7 +220,7 @@ def _write_season_state_atomic(
 
     The directory is staged and swapped, so a failure never leaves only
     ``schedule.json`` or only ``decisions.json`` behind, and a crash between the
-    two renames is recovered on the next write by restoring the backup.
+    two renames is recovered on the next write or read by restoring the backup.
     ``require_absent`` refuses to replace existing canonical state (used by
     deliberate promotion); mutation callers replace it and rely on the swap for
     rollback.
@@ -262,11 +281,11 @@ def _write_season_state_atomic(
             _fsync_directory(parent)
             try:
                 os.replace(staging, season_directory)
-                _fsync_directory(parent)
             except Exception:
                 os.replace(backup, season_directory)
                 _fsync_directory(parent)
                 raise
+            _fsync_directory(parent)
             shutil.rmtree(backup, ignore_errors=True)
             _fsync_directory(parent)
         else:

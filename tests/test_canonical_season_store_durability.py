@@ -152,3 +152,49 @@ def test_write_rolls_back_on_swap_failure(tmp_path: Path, monkeypatch) -> None:
 
     # The prior canonical state is restored and remains loadable.
     assert store.load(SEASON).decisions == original_decisions
+
+
+def test_load_recovers_from_interrupted_swap(tmp_path: Path) -> None:
+    """A normal read recovers the last durable state after an interrupted swap."""
+
+    root = tmp_path / "season"
+    store = CanonicalSeasonStore(root)
+    store.write(_snapshot())
+
+    season_dir = root / SEASON
+    backup = root / f".{SEASON}.backup"
+    # Simulate a crash after the active directory was moved to backup but before
+    # the staged directory was installed: only the backup remains.
+    os.replace(season_dir, backup)
+    assert not season_dir.exists()
+    assert backup.exists()
+
+    # A read (not a write) must restore the last committed state instead of
+    # failing with a missing season.
+    snapshot = store.load(SEASON)
+    assert snapshot.schedule["schema_version"] == 1
+    assert season_dir.exists()
+    assert not backup.exists()
+
+
+def test_write_surfaces_directory_fsync_failure(tmp_path: Path, monkeypatch) -> None:
+    """A directory fsync failure is raised, never silently ignored."""
+
+    root = tmp_path / "season"
+    store = CanonicalSeasonStore(root)
+    store.write(_snapshot())
+    original_decisions = store.load(SEASON).decisions
+
+    def _boom_dir_fsync(path):
+        raise OSError("simulated directory fsync failure")
+
+    monkeypatch.setattr(
+        "tournament_scheduler.infrastructure.canonical_season_store._fsync_directory",
+        _boom_dir_fsync,
+    )
+
+    with pytest.raises(OSError):
+        store.write(_snapshot())
+
+    # The swap never happened, so the prior canonical state is intact.
+    assert store.load(SEASON).decisions == original_decisions
