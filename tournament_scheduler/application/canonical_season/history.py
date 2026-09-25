@@ -60,6 +60,10 @@ from .shared import _now_iso, _operator_identity, published_baseline_reconciliat
 VERIFICATION_RESULT_KEY = "verification_result"
 VERIFICATION_SUMMARY_KEY = "verification_summary"
 EVIDENCE_REF_KEY = "evidence_ref"
+# Only historical ``move`` events embedded the oversized whole-season result;
+# compaction transforms that known shape and refuses any other event type that
+# unexpectedly carries one.
+MOVE_EVENT = "move"
 
 
 def _json_size(payload: Any) -> int:
@@ -241,7 +245,20 @@ def compact_history(
         if not isinstance(entry, Mapping):
             compacted.append(entry)
             continue
+        event = entry.get("event")
         original_details = entry.get("details") if isinstance(entry.get("details"), Mapping) else {}
+        if event != MOVE_EVENT:
+            # Only historical ``move`` events embedded the oversized
+            # whole-season result. A non-move event carrying direct evidence is
+            # an unexpected shape and is refused, never silently transformed.
+            if VERIFICATION_RESULT_KEY in original_details:
+                raise SeasonStateError(
+                    "Refusing compaction: a non-move history event carries an inline "
+                    f"verification_result (event={event!r}); unknown event evidence "
+                    "shapes are never silently transformed"
+                )
+            compacted.append(entry)
+            continue
         has_result = VERIFICATION_RESULT_KEY in original_details
         has_summary = VERIFICATION_SUMMARY_KEY in original_details
         if not (has_result or has_summary):
@@ -400,6 +417,7 @@ def history_inventory(
 
 __all__ = [
     "EVIDENCE_REF_KEY",
+    "MOVE_EVENT",
     "VERIFICATION_RESULT_KEY",
     "VERIFICATION_SUMMARY_KEY",
     "compact_history",

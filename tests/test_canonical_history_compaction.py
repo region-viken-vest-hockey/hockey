@@ -576,6 +576,57 @@ def test_compact_history_refuses_unknown_evidence_shape(tmp_path: Path) -> None:
     assert list(backup_dir(YEAR, root=root).glob("*")) == []
 
 
+def test_compact_history_rejects_verification_result_on_non_move_event(tmp_path: Path) -> None:
+    """Only historical move events may carry inline evidence; others are refused."""
+
+    root = tmp_path / "season"
+    entry = {
+        "event": "participant_replacement",
+        "tournament_id": "T1",
+        "actor": "operator",
+        "at": "2026-09-25T10:00:00+00:00",
+        "details": {"verification_result": _large_verification_result()},
+    }
+    _write_season(root, history=[entry])
+
+    service = CanonicalSeasonService(root=root)
+    with pytest.raises(SeasonStateError):
+        service.compact_history(season=YEAR)
+
+    # Nothing was transformed, archived or backed up.
+    assert list(moves_dir(YEAR, root=root).glob("*.json")) == []
+    assert list(backup_dir(YEAR, root=root).glob("*")) == []
+    assert service.load(YEAR).decisions["history"][0]["details"]["verification_result"]
+
+
+def test_compact_history_leaves_non_move_events_untouched(tmp_path: Path) -> None:
+    """A non-move event's bounded summary is not treated as compactable evidence."""
+
+    root = tmp_path / "season"
+    entry = {
+        "event": "participant_replacement",
+        "tournament_id": "T1",
+        "actor": "operator",
+        "at": "2026-09-25T10:00:00+00:00",
+        "details": {
+            "verification_summary": {
+                "schema_version": 1,
+                "ok": True,
+                "verification_hash": "abc",
+                "counts": {},
+            }
+        },
+    }
+    _write_season(root, history=[entry])
+
+    service = CanonicalSeasonService(root=root)
+    report = service.compact_history(season=YEAR)
+    assert report["compacted_moves"] == 0
+    assert report["already_compacted"] == 0
+    assert report["committed"] is False
+    assert service.load(YEAR).decisions["history"][0]["details"]["verification_summary"]
+
+
 def test_compact_history_refuses_malformed_ok_before_archiving(tmp_path: Path) -> None:
     """A malformed verification result is refused before any evidence is archived."""
 

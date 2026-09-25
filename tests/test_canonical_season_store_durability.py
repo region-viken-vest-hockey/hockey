@@ -12,11 +12,14 @@ from __future__ import annotations
 
 import os
 import shutil
+import threading
 from pathlib import Path
 
 import pytest
 
+import tournament_scheduler.infrastructure.canonical_season_store as store_module
 from tournament_scheduler.infrastructure.canonical_season_store import (
+    CanonicalCommitDurabilityError,
     CanonicalSeasonSnapshot,
     CanonicalSeasonStore,
 )
@@ -24,7 +27,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 SEASON = "2026-2027"
 
 
-def _snapshot(season: str = SEASON) -> CanonicalSeasonSnapshot:
+def _snapshot(season: str = SEASON, *, marker: str = "") -> CanonicalSeasonSnapshot:
     schedule = {
         "schema_version": 1,
         "plan": {
@@ -33,7 +36,7 @@ def _snapshot(season: str = SEASON) -> CanonicalSeasonSnapshot:
             "tournaments": [],
         },
     }
-    decisions = {"schema_version": 1, "decisions": {}}
+    decisions = {"schema_version": 1, "decisions": {"marker": marker}}
     return CanonicalSeasonSnapshot(season=season, schedule=schedule, decisions=decisions)
 
 
@@ -198,3 +201,119 @@ def test_write_surfaces_directory_fsync_failure(tmp_path: Path, monkeypatch) -> 
 
     # The swap never happened, so the prior canonical state is intact.
     assert store.load(SEASON).decisions == original_decisions
+
+
+def test_reader_recovery_waits_for_active_writer(tmp_path: Path, monkeypatch) -> None:
+    """A reader entering recovery mid-swap waits instead of clobbering the writer.
+
+    The writer renames the active directory to the backup, then installs the
+    staged tree. A reader that lands in that window must block on the shared
+    season-directory lock and observe the newly installed state, rather than
+    restoring the backup from underneath the writer and racing the second rename.
+    """
+
+    root = tmp_path / "season"
+    store = CanonicalSeasonStore(root)
+    store.write(_snapshot(marker="old"))
+
+    season_dir = root / SEASON
+    backup = root / f".{SEASON}.backup"
+
+    real_replace = os.replace
+    at_install = threading.Event()
+    allow_install = threading.Event()
+
+    def _paused_install_replace(src, dst):
+        if Path(src).name.endswith(".tmp"):
+            at_install.set()
+            assert allow_install.wait(timeout=5)
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(os, "replace", _paused_install_replace)
+
+    writer_result: dict[str, object] = {}
+
+    def _writer() -> None:
+        try:
+            store.write(_snapshot(marker="new"))
+            writer_result["ok"] = True
+        except BaseException as exc:  # pragma: no cover - diagnostic only
+            writer_result["exc"] = exc
+
+    writer_thread = threading.Thread(target=_writer)
+    writer_thread.start()
+    assert at_install.wait(timeout=5)
+
+    # The writer sits between its two renames: active absent, backup present.
+    assert not season_dir.exists()
+    assert backup.exists()
+
+    reader_result: dict[str, object] = {}
+
+    def _reader() -> None:
+        reader_result["marker"] = store.load(SEASON).decisions["decisions"]["marker"]
+
+    reader_thread = threading.Thread(target=_reader)
+    reader_thread.start()
+    reader_thread.join(timeout=0.5)
+    # The reader must wait for the writer, not restore the backup underneath it.
+    assert reader_thread.is_alive()
+
+    allow_install.set()
+    writer_thread.join(timeout=5)
+    reader_thread.join(timeout=5)
+
+    assert "exc" not in writer_result
+    assert writer_result.get("ok") is True
+    assert not writer_thread.is_alive()
+    assert not reader_thread.is_alive()
+    # The reader observed the committed new state, after the writer finished.
+    assert reader_result["marker"] == "new"
+    # The writer's own swap consumed the backup; the reader did not clobber it.
+    assert not backup.exists()
+
+
+def test_post_install_fsync_failure_is_committed_and_recoverable(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A failure after the install rename is committed, not an ambiguous rollback."""
+
+    root = tmp_path / "season"
+    store = CanonicalSeasonStore(root)
+    store.write(_snapshot(marker="old"))
+
+    backup = root / f".{SEASON}.backup"
+    real_replace = os.replace
+    real_fsync_directory = store_module._fsync_directory
+    installed = {"done": False}
+
+    def _tracking_replace(src, dst):
+        result = real_replace(src, dst)
+        if Path(src).name.endswith(".tmp"):
+            installed["done"] = True
+        return result
+
+    def _failing_post_install_fsync(path):
+        if installed["done"]:
+            raise OSError("simulated post-install directory fsync failure")
+        return real_fsync_directory(path)
+
+    monkeypatch.setattr(os, "replace", _tracking_replace)
+    monkeypatch.setattr(store_module, "_fsync_directory", _failing_post_install_fsync)
+
+    with pytest.raises(CanonicalCommitDurabilityError) as excinfo:
+        store.write(_snapshot(marker="new"))
+    # The error reports a committed write, not a rolled-back one.
+    assert excinfo.value.committed is True
+
+    # The new state is active; the previous state is preserved at the backup so
+    # an interrupted durability finalization is still recoverable.
+    assert store.load(SEASON).decisions["decisions"]["marker"] == "new"
+    assert backup.exists()
+
+    # A subsequent write completes cleanly, consumes the stale backup and keeps
+    # the committed new state.
+    monkeypatch.undo()
+    store.write(_snapshot(marker="newer"))
+    assert store.load(SEASON).decisions["decisions"]["marker"] == "newer"
+    assert not backup.exists()

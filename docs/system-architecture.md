@@ -435,13 +435,24 @@ missing/invalid referenced archive fails closed rather than being treated as
 verified. The archive is immutable (create-once), so the store's directory swap
 carries it forward by hardlink rather than re-copying it on every mutation, and
 the swap is crash-durable (staged contents and directory entries are fsynced;
-an interrupted swap is recovered from the backup on the next write). Existing
-oversized history is migrated deliberately and idempotently by
-`season compact-history` (explicit `--dry-run` to preview or `--apply` to
-commit); compaction always retains the full evidence in the archive and there is
-no drop-evidence path. The narrow transform extracts *only* the oversized
-`verification_result`; every other event field, including the full
-operational-acceptability verdict, is preserved verbatim. Compaction commits
+an interrupted swap is recovered from the backup on the next write). Read-time
+recovery takes the same exclusive per-season-directory lock as the writer's
+swap, so a reader that lands in the brief window between the two renames waits
+for the writer instead of restoring the backup from underneath it; a writer that
+crashed mid-swap has already released the lock, so its backup is still recovered
+on the next read or write. Once the install rename has happened the new state is
+committed, so a failure in the post-install durability/cleanup step is reported
+as a committed-write durability error (`CanonicalCommitDurabilityError`) rather
+than an ambiguous rolled-back failure. Existing oversized history is migrated
+deliberately and idempotently by `season compact-history` (explicit `--dry-run`
+to preview or `--apply` to commit); compaction always retains the full evidence
+in the archive and there is no drop-evidence path. The narrow transform applies
+only to historical `move` events (the only event type that embedded the
+oversized result) and extracts *only* the oversized `verification_result`; every
+other event field, including the full
+operational-acceptability verdict, is preserved verbatim, and any other event
+type carrying a `verification_result` is refused as an unexpected shape rather
+than silently transformed. Compaction commits
 through a dedicated history-only boundary that refuses a pending semantic
 migration (legacy participation-acceptance ids) and preserves the stored
 canonical-state revision exactly, and it asserts that identity after the commit.

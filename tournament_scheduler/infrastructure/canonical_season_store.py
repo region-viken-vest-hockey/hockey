@@ -18,9 +18,13 @@ are fsynced before the swap, and an interruption between the two renames is
 recovered on the next write or read by restoring the backup. Durable auxiliary
 artifacts (the content-addressed evidence archive) are carried forward by
 hardlink rather than re-copied, since they are strictly create-once/immutable;
-a copy fallback keeps evidence when hardlinks are unavailable. There is
-intentionally no locking/CAS machinery: RVV does not run concurrent
-canonical-season writers.
+a copy fallback keeps evidence when hardlinks are unavailable. Readers and the
+writer coordinate through an exclusive advisory per-season-directory lock, so a
+read never mistakes the writer's in-progress rename window for an interrupted
+swap and never restores the backup from underneath the writer. There is
+intentionally no cross-process CAS/versioning machinery beyond that lock: RVV
+does not run concurrent canonical-season writers, but reads can run alongside a
+write.
 """
 
 from __future__ import annotations
@@ -29,9 +33,15 @@ import json
 import os
 import shutil
 import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterator, Mapping
+
+try:  # pragma: no cover - platform dependent
+    import fcntl
+except ImportError:  # pragma: no cover - Windows
+    fcntl = None  # type: ignore[assignment]
 
 SEASON_STATE_SCHEMA_VERSION = 1
 DECISIONS_SCHEMA_VERSION = 1
@@ -44,6 +54,21 @@ EVIDENCE_DIR_NAME = "evidence"
 
 class SeasonStateError(RuntimeError):
     """Raised when canonical season state cannot be read or written safely."""
+
+
+class CanonicalCommitDurabilityError(SeasonStateError):
+    """The new season state is installed but its durability could not be confirmed.
+
+    Raised when the atomic install rename succeeded but a later directory fsync
+    or backup cleanup failed. The write is *committed* (the new state is
+    active); the error distinguishes an uncertain durability/finalization step
+    from a rolled-back failure, so a caller never mistakes it for an unchanged
+    season.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.committed = True
 
 
 def season_dir(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> Path:
@@ -66,11 +91,11 @@ def load_export_context(
     season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
 ) -> dict[str, Any] | None:
     """Return the persisted public export context, or ``None`` for legacy seasons."""
-    _recover_season(season, root=root)
-    path = export_context_path(season, root=root)
-    if not path.exists():
-        return None
-    return load_json(path)
+    with _season_read_lock(season, root=root):
+        path = export_context_path(season, root=root)
+        if not path.exists():
+            return None
+        return load_json(path)
 
 
 def _json_bytes(payload: Mapping[str, Any]) -> bytes:
@@ -100,8 +125,8 @@ def season_id_from_plan(plan_dict: dict[str, Any]) -> str:
 
 
 def load_schedule(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
-    _recover_season(season, root=root)
-    payload = load_json(schedule_path(season, root=root))
+    with _season_read_lock(season, root=root):
+        payload = load_json(schedule_path(season, root=root))
     version = int(payload.get("schema_version", 0) or 0)
     if version != SEASON_STATE_SCHEMA_VERSION:
         raise SeasonStateError(f"Unsupported schedule schema_version: {version!r}")
@@ -111,8 +136,8 @@ def load_schedule(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_
 
 
 def load_decisions(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
-    _recover_season(season, root=root)
-    payload = load_json(decisions_path(season, root=root))
+    with _season_read_lock(season, root=root):
+        payload = load_json(decisions_path(season, root=root))
     version = int(payload.get("schema_version", 0) or 0)
     if version != DECISIONS_SCHEMA_VERSION:
         raise SeasonStateError(f"Unsupported decisions schema_version: {version!r}")
@@ -178,6 +203,40 @@ def _fsync_tree(root: Path) -> None:
         _fsync_directory(directory)
 
 
+@contextmanager
+def _season_directory_lock(season_directory: Path) -> Iterator[None]:
+    """Serialize the writer's directory swap against read-time crash recovery.
+
+    The swap temporarily renames the active season directory away before
+    installing the staged tree, so for a brief window the active directory is
+    absent while the last durable state sits at ``backup``. A concurrent reader
+    must not mistake that in-progress window for an interrupted swap and restore
+    the backup underneath the active writer. Both the writer's swap and a
+    reader's recovery take this exclusive advisory lock, so recovery waits for
+    the writer to finish (then observes a present active directory), while a
+    genuinely crashed writer has already released the lock for the next reader.
+
+    The lock is advisory and per-season. It is a no-op where ``fcntl`` is
+    unavailable (Windows), matching the prior best-effort behavior there.
+    """
+
+    if fcntl is None:  # pragma: no cover - Windows fallback
+        yield
+        return
+    parent = season_directory.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    lock_path = parent / f".{season_directory.name}.lock"
+    fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+
+
 def _recover_interrupted_swap(season_directory: Path, backup: Path) -> None:
     """Restore the last durable state if a previous swap was interrupted.
 
@@ -193,14 +252,11 @@ def _recover_interrupted_swap(season_directory: Path, backup: Path) -> None:
     os.replace(backup, season_directory)
 
 
-def _recover_season(
-    season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
-) -> None:
+def _recover_if_needed(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> None:
     """Restore the last durable state for a season if a swap was interrupted.
 
-    Reads and writes both recover a season whose active directory is missing but
-    whose backup still holds the last committed state, so an interrupted swap is
-    never observed as a missing season by a read.
+    Called only while the season-directory lock is held, so it can never race
+    the writer's swap.
     """
 
     directory = season_dir(season, root=root)
@@ -208,7 +264,53 @@ def _recover_season(
     _recover_interrupted_swap(directory, backup)
 
 
+@contextmanager
+def _season_read_lock(
+    season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
+) -> Iterator[None]:
+    """Take the season lock and recover an interrupted swap before reading.
+
+    The lock is held across both recovery and the read itself, so a reader can
+    neither observe the writer's brief ``active directory renamed away`` window
+    as a missing season nor restore the backup from underneath an active writer.
+    A crashed writer has already released the lock, so its backup is recovered
+    here on the next read.
+    """
+
+    directory = season_dir(season, root=root)
+    with _season_directory_lock(directory):
+        _recover_if_needed(season, root=root)
+        yield
+
+
 def _write_season_state_atomic(
+    season_directory: Path,
+    schedule_payload: dict[str, Any],
+    decisions_payload: dict[str, Any],
+    *,
+    require_absent: bool,
+    export_context: dict[str, Any] | None = None,
+) -> None:
+    """Install the canonical season-state files under the swap/recovery lock.
+
+    The exclusive season-directory lock serializes this swap against read-time
+    crash recovery, so a reader that observes the brief window where the active
+    directory has been renamed to the backup cannot restore the backup from
+    underneath the in-progress writer.
+    """
+
+    season_directory.parent.mkdir(parents=True, exist_ok=True)
+    with _season_directory_lock(season_directory):
+        _write_season_state_locked(
+            season_directory,
+            schedule_payload,
+            decisions_payload,
+            require_absent=require_absent,
+            export_context=export_context,
+        )
+
+
+def _write_season_state_locked(
     season_directory: Path,
     schedule_payload: dict[str, Any],
     decisions_payload: dict[str, Any],
@@ -282,15 +384,32 @@ def _write_season_state_atomic(
             try:
                 os.replace(staging, season_directory)
             except Exception:
+                # The install never happened: roll the original state back.
                 os.replace(backup, season_directory)
                 _fsync_directory(parent)
                 raise
-            _fsync_directory(parent)
-            shutil.rmtree(backup, ignore_errors=True)
-            _fsync_directory(parent)
+            # From here the new state is installed and authoritative. A failure
+            # finalizing durability (post-install fsync or backup cleanup) is a
+            # committed-write durability error, never a rolled-back failure: the
+            # caller must not mistake it for an unchanged season.
+            try:
+                _fsync_directory(parent)
+                shutil.rmtree(backup, ignore_errors=True)
+                _fsync_directory(parent)
+            except OSError as exc:
+                raise CanonicalCommitDurabilityError(
+                    f"Committed canonical {season_directory.name} (new state installed) "
+                    f"but could not finalize its durability: {exc}"
+                ) from exc
         else:
             os.replace(staging, season_directory)
-            _fsync_directory(parent)
+            try:
+                _fsync_directory(parent)
+            except OSError as exc:
+                raise CanonicalCommitDurabilityError(
+                    f"Committed canonical {season_directory.name} (new state installed) "
+                    f"but could not finalize its durability: {exc}"
+                ) from exc
     finally:
         if staging.exists():
             shutil.rmtree(staging, ignore_errors=True)
@@ -364,6 +483,7 @@ class CanonicalSeasonStore:
 
 
 __all__ = [
+    "CanonicalCommitDurabilityError",
     "CanonicalSeasonSnapshot",
     "CanonicalSeasonStore",
     "DECISIONS_SCHEMA_VERSION",
