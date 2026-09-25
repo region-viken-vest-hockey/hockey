@@ -40,6 +40,32 @@ def _snapshot(season: str = SEASON, *, marker: str = "") -> CanonicalSeasonSnaps
     return CanonicalSeasonSnapshot(season=season, schedule=schedule, decisions=decisions)
 
 
+def _marked_snapshot(season: str = SEASON, *, marker: str) -> CanonicalSeasonSnapshot:
+    """A snapshot whose three canonical files all carry the same version marker."""
+
+    schedule = {
+        "schema_version": 1,
+        "snapshot_marker": marker,
+        "plan": {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "tournaments": [],
+        },
+    }
+    decisions = {
+        "schema_version": 1,
+        "snapshot_marker": marker,
+        "decisions": {"marker": marker},
+    }
+    export_context = {"snapshot_marker": marker}
+    return CanonicalSeasonSnapshot(
+        season=season,
+        schedule=schedule,
+        decisions=decisions,
+        export_context=export_context,
+    )
+
+
 def _add_evidence(root: Path, season: str, name: str, content: bytes) -> Path:
     evidence_dir = root / season / "evidence" / "moves"
     evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -316,4 +342,107 @@ def test_post_install_fsync_failure_is_committed_and_recoverable(
     monkeypatch.undo()
     store.write(_snapshot(marker="newer"))
     assert store.load(SEASON).decisions["decisions"]["marker"] == "newer"
+    assert not backup.exists()
+
+
+def test_snapshot_load_holds_one_lock_across_all_three_files(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A write cannot land between the schedule and decisions reads.
+
+    ``CanonicalSeasonStore.load`` reads all three canonical files under one lock
+    acquisition, so a concurrent writer commits entirely before or entirely
+    after the load; the loaded snapshot is never a torn old/new mix.
+    """
+
+    root = tmp_path / "season"
+    store = CanonicalSeasonStore(root)
+    store.write(_marked_snapshot(marker="old"))
+
+    real_load_schedule_unlocked = store_module._load_schedule_unlocked
+    schedule_read = threading.Event()
+    allow_continue = threading.Event()
+
+    def _paused_load_schedule_unlocked(season, *, root):
+        result = real_load_schedule_unlocked(season, root=root)
+        schedule_read.set()
+        assert allow_continue.wait(timeout=5)
+        return result
+
+    monkeypatch.setattr(
+        store_module, "_load_schedule_unlocked", _paused_load_schedule_unlocked
+    )
+
+    loaded: dict[str, object] = {}
+
+    def _loader() -> None:
+        loaded["snapshot"] = store.load(SEASON)
+
+    loader_thread = threading.Thread(target=_loader)
+    loader_thread.start()
+    assert schedule_read.wait(timeout=5)
+
+    writer_done = threading.Event()
+
+    def _writer() -> None:
+        store.write(_marked_snapshot(marker="new"))
+        writer_done.set()
+
+    writer_thread = threading.Thread(target=_writer)
+    writer_thread.start()
+    # The writer cannot commit while the loader holds the lock across the load.
+    assert not writer_done.wait(timeout=0.5)
+    assert writer_thread.is_alive()
+
+    allow_continue.set()
+    loader_thread.join(timeout=5)
+    writer_thread.join(timeout=5)
+    assert not loader_thread.is_alive()
+    assert not writer_thread.is_alive()
+    assert writer_done.is_set()
+
+    snapshot = loaded["snapshot"]
+    markers = {
+        snapshot.schedule["snapshot_marker"],  # type: ignore[union-attr]
+        snapshot.decisions["snapshot_marker"],  # type: ignore[union-attr]
+        snapshot.export_context["snapshot_marker"],  # type: ignore[union-attr]
+    }
+    # Read entirely before the blocked writer committed, so all three files are
+    # old -- never an old schedule with new decisions or vice versa.
+    assert markers == {"old"}
+
+
+def test_backup_cleanup_failure_is_non_fatal_and_cleaned_later(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A failed previous-state cleanup does not fail an already-committed write."""
+
+    root = tmp_path / "season"
+    store = CanonicalSeasonStore(root)
+    store.write(_marked_snapshot(marker="old"))
+
+    backup = root / f".{SEASON}.backup"
+    real_rmtree = shutil.rmtree
+    failed = {"once": False}
+
+    def _failing_rmtree(path, *args, **kwargs):
+        # Fail only the post-install removal of the retained previous state.
+        if Path(path) == backup and not failed["once"]:
+            failed["once"] = True
+            raise OSError("simulated backup cleanup failure")
+        return real_rmtree(path, *args, **kwargs)
+
+    monkeypatch.setattr(shutil, "rmtree", _failing_rmtree)
+
+    # The write still commits: the new state is active even though the previous
+    # state could not be removed, and no durability error is raised.
+    store.write(_marked_snapshot(marker="new"))
+    assert failed["once"] is True
+    assert store.load(SEASON).decisions["snapshot_marker"] == "new"
+    assert backup.exists()
+
+    # The retained backup is harmless and is removed by the next write.
+    monkeypatch.undo()
+    store.write(_marked_snapshot(marker="newer"))
+    assert store.load(SEASON).decisions["snapshot_marker"] == "newer"
     assert not backup.exists()

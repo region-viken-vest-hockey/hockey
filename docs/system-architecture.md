@@ -441,9 +441,13 @@ swap, so a reader that lands in the brief window between the two renames waits
 for the writer instead of restoring the backup from underneath it; a writer that
 crashed mid-swap has already released the lock, so its backup is still recovered
 on the next read or write. Once the install rename has happened the new state is
-committed, so a failure in the post-install durability/cleanup step is reported
-as a committed-write durability error (`CanonicalCommitDurabilityError`) rather
-than an ambiguous rolled-back failure. Existing oversized history is migrated
+committed, so a failure of the post-install directory fsync is reported as a
+committed-write durability error (`CanonicalCommitDurabilityError`) rather than
+an ambiguous rolled-back failure; a failure to remove the previous-state backup
+afterward is explicitly non-fatal (a retained backup is never restored while the
+active directory exists and is removed by the next write). A full snapshot load
+reads all three canonical files under one lock acquisition, so a writer never
+tears it into a mix of old and new. Existing oversized history is migrated
 deliberately and idempotently by `season compact-history` (explicit `--dry-run`
 to preview or `--apply` to commit); compaction always retains the full evidence
 in the archive and there is no drop-evidence path. The narrow transform applies

@@ -87,15 +87,27 @@ def export_context_path(season: str, *, root: str | os.PathLike[str] = DEFAULT_S
     return season_dir(season, root=root) / "export_context.json"
 
 
+def _load_export_context_unlocked(
+    season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
+) -> dict[str, Any] | None:
+    """Read the export context without taking the season lock.
+
+    Callers must already hold the season lock (see :func:`_season_read_lock`) so
+    the read cannot race a concurrent swap.
+    """
+
+    path = export_context_path(season, root=root)
+    if not path.exists():
+        return None
+    return load_json(path)
+
+
 def load_export_context(
     season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
 ) -> dict[str, Any] | None:
     """Return the persisted public export context, or ``None`` for legacy seasons."""
     with _season_read_lock(season, root=root):
-        path = export_context_path(season, root=root)
-        if not path.exists():
-            return None
-        return load_json(path)
+        return _load_export_context_unlocked(season, root=root)
 
 
 def _json_bytes(payload: Mapping[str, Any]) -> bytes:
@@ -124,9 +136,13 @@ def season_id_from_plan(plan_dict: dict[str, Any]) -> str:
     raise SeasonStateError("Cannot infer season id; pass --season explicitly")
 
 
-def load_schedule(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
-    with _season_read_lock(season, root=root):
-        payload = load_json(schedule_path(season, root=root))
+def _load_schedule_unlocked(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
+    """Read and validate the schedule without taking the season lock.
+
+    Callers must already hold the season lock (see :func:`_season_read_lock`).
+    """
+
+    payload = load_json(schedule_path(season, root=root))
     version = int(payload.get("schema_version", 0) or 0)
     if version != SEASON_STATE_SCHEMA_VERSION:
         raise SeasonStateError(f"Unsupported schedule schema_version: {version!r}")
@@ -135,15 +151,29 @@ def load_schedule(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_
     return payload
 
 
-def load_decisions(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
+def load_schedule(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
     with _season_read_lock(season, root=root):
-        payload = load_json(decisions_path(season, root=root))
+        return _load_schedule_unlocked(season, root=root)
+
+
+def _load_decisions_unlocked(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
+    """Read and validate the decisions without taking the season lock.
+
+    Callers must already hold the season lock (see :func:`_season_read_lock`).
+    """
+
+    payload = load_json(decisions_path(season, root=root))
     version = int(payload.get("schema_version", 0) or 0)
     if version != DECISIONS_SCHEMA_VERSION:
         raise SeasonStateError(f"Unsupported decisions schema_version: {version!r}")
     if not isinstance(payload.get("decisions"), dict):
         raise SeasonStateError("Canonical decisions file is missing its decisions object")
     return payload
+
+
+def load_decisions(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
+    with _season_read_lock(season, root=root):
+        return _load_decisions_unlocked(season, root=root)
 
 
 def _carry_forward_evidence(existing_evidence: Path, staging_evidence: Path) -> list[Path]:
@@ -172,6 +202,23 @@ def _carry_forward_evidence(existing_evidence: Path, staging_evidence: Path) -> 
             shutil.copy2(src, dst)
             copied.append(dst)
     return copied
+
+
+def _discard_previous_state(backup: Path) -> None:
+    """Best-effort removal of the previous state after a committed swap.
+
+    The new state is already installed and its durability confirmed by this
+    point, so a failure to remove the previous state is explicitly **non-fatal**:
+    while the active directory exists, recovery never restores the backup, and
+    the next write removes it before swapping again. This deliberately does not
+    raise, so a transient cleanup failure is not misreported as a failed commit.
+    """
+
+    try:
+        shutil.rmtree(backup)
+    except OSError:
+        # A retained backup is harmless and is cleaned up by the next write.
+        pass
 
 
 def _fsync_directory(path: Path) -> None:
@@ -389,12 +436,20 @@ def _write_season_state_locked(
                 _fsync_directory(parent)
                 raise
             # From here the new state is installed and authoritative. A failure
-            # finalizing durability (post-install fsync or backup cleanup) is a
-            # committed-write durability error, never a rolled-back failure: the
-            # caller must not mistake it for an unchanged season.
+            # of the post-install parent fsync is a committed-write durability
+            # error, never a rolled-back failure: the caller must not mistake it
+            # for an unchanged season.
             try:
                 _fsync_directory(parent)
-                shutil.rmtree(backup, ignore_errors=True)
+            except OSError as exc:
+                raise CanonicalCommitDurabilityError(
+                    f"Committed canonical {season_directory.name} (new state installed) "
+                    f"but could not finalize its durability: {exc}"
+                ) from exc
+            # Previous-state cleanup is best-effort and explicitly non-fatal; the
+            # fsync below is not.
+            _discard_previous_state(backup)
+            try:
                 _fsync_directory(parent)
             except OSError as exc:
                 raise CanonicalCommitDurabilityError(
@@ -465,11 +520,18 @@ class CanonicalSeasonStore:
         return load_export_context(season, root=self.root)
 
     def load(self, season: str) -> CanonicalSeasonSnapshot:
+        # Read all three files under one lock acquisition so a concurrent writer
+        # can never produce a torn snapshot (for example an old schedule with new
+        # decisions). The unlocked helpers must only be called while holding it.
+        with _season_read_lock(season, root=self.root):
+            schedule = _load_schedule_unlocked(season, root=self.root)
+            decisions = _load_decisions_unlocked(season, root=self.root)
+            export_context = _load_export_context_unlocked(season, root=self.root)
         return CanonicalSeasonSnapshot(
             season=season,
-            schedule=load_schedule(season, root=self.root),
-            decisions=load_decisions(season, root=self.root),
-            export_context=load_export_context(season, root=self.root),
+            schedule=schedule,
+            decisions=decisions,
+            export_context=export_context,
         )
 
     def write(self, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool = False) -> None:
