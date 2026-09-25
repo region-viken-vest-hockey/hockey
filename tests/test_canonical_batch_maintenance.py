@@ -602,3 +602,27 @@ def test_batch_three_team_rotation_protects_only_the_net_rosters(tmp_path: Path)
     by_id = _tournaments_by_id(root)
     assert "C2" in {team["label"] for team in by_id["u10-a-20260912"]["teams"]}
     assert "W1" in {team["label"] for team in by_id["u10-c-20261018"]["teams"]}
+
+
+def test_batch_swap_and_swap_back_adds_no_roster_protection(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    swap = {
+        "op": "swap_participants",
+        "tournament_a": "u10-a-20260912",
+        "team_a": "Y1",
+        "tournament_b": "u10-b-20260920",
+        "team_b": "W1",
+    }
+    swap_back = {**swap, "team_a": "W1", "team_b": "Y1"}
+    preview = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[swap, swap_back],
+        scope=["u10-a-20260912", "u10-b-20260920"],
+        request_id="net-zero",
+        actor="tester",
+        dry_run=True,
+    )
+    # Roster order/games may be regenerated, but membership is unchanged, so
+    # nothing may be newly protected.
+    assert preview["protections_to_add"] == []

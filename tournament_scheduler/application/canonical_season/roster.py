@@ -203,6 +203,7 @@ def swap_participants(
         RegressionAcceptanceError,
         evaluate_regression_acceptances,
         parse_regression_acceptances,
+        regression_acceptance_refusals,
     )
 
     try:
@@ -332,7 +333,7 @@ def swap_participants(
     regression_acceptance = evaluate_regression_acceptances(
         team_consequences, regression_acceptances
     )
-    consequence_acceptable = not regression_acceptance["unaccepted_regressions"]
+    consequence_acceptable = bool(regression_acceptance["acceptable"])
     protection_request_id = str(request_id or "")
     protection_created_at = _now_iso()
     new_protections = build_swap_protections(
@@ -403,22 +404,9 @@ def swap_participants(
         )
 
     if not consequence_acceptable:
-        regressions = [
-            f"{item['consequence']}:{item['code']}"
-            for item in regression_acceptance["unaccepted_regressions"]
-        ]
         raise SeasonStateError(
-            "Refusing canonical participant swap: it materially worsens an affected "
-            "team's schedule: " + ", ".join(regressions)
-        )
-    if regression_acceptance["unmatched_acceptances"]:
-        raise SeasonStateError(
-            "Refusing canonical participant swap: regression acceptance(s) match no "
-            "material regression: "
-            + ", ".join(
-                f"{item['team']}={item['code']}"
-                for item in regression_acceptance["unmatched_acceptances"]
-            )
+            "Refusing canonical participant swap: it "
+            + "; ".join(regression_acceptance_refusals(regression_acceptance))
         )
 
     from .scoped_mutation import authorize_participant_swap

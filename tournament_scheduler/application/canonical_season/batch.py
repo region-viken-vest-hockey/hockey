@@ -6,7 +6,6 @@ import copy
 from typing import Any, Mapping
 
 from tournament_scheduler.canonical_state import (
-    CHANGE_PROTECTIONS_KEY,
     canonical_state_revision,
     compute_canonical_state_revision,
     schedule_fingerprint,
@@ -14,7 +13,7 @@ from tournament_scheduler.canonical_state import (
 from tournament_scheduler.change_protections import (
     append_change_protections,
     build_move_protections,
-    build_swap_protections,
+    build_net_roster_protections,
     protection_violations,
 )
 from tournament_scheduler.request_constraints import (
@@ -196,6 +195,7 @@ def batch_maintenance(
         RegressionAcceptanceError,
         evaluate_regression_acceptances,
         parse_regression_acceptances,
+        regression_acceptance_refusals,
     )
 
     try:
@@ -281,19 +281,6 @@ def batch_maintenance(
                 team_b_label=operation["team_b"],
                 problem=resolved_problem,
             )
-            new_protections.extend(
-                build_swap_protections(
-                    team_a=result["team_a"],
-                    tournament_a_id=operation["tournament_a"],
-                    team_b=result["team_b"],
-                    tournament_b_id=operation["tournament_b"],
-                    request_id=resolved_request_id,
-                    actor=resolved_actor,
-                    note=note,
-                    created_at=now,
-                    source_revision=before_canonical_revision,
-                )
-            )
             applied_swaps.append(
                 {
                     "tournament_a_id": operation["tournament_a"],
@@ -328,20 +315,22 @@ def batch_maintenance(
         if tournament.get("id")
     }
 
-    # Roster protections describe the net result too: chained swaps (for
-    # example a three-team rotation) route one team through an intermediate
-    # tournament, and that transient assignment must not be protected.
-    transient_ids = {
-        str(violation.get("protection_id") or "")
-        for violation in protection_violations(
-            candidate_plan, {CHANGE_PROTECTIONS_KEY: new_protections}
+    # Roster protections, like placement protections below, are derived from
+    # the original -> final membership, so chained swaps protect only their
+    # net result (no transient or undone assignment is protected).
+    if applied_swaps:
+        new_protections.extend(
+            build_net_roster_protections(
+                before_plan=before_plan,
+                after_plan=candidate_plan,
+                tournament_ids=scope_ids,
+                request_id=resolved_request_id,
+                actor=resolved_actor,
+                note=note,
+                created_at=now,
+                source_revision=before_canonical_revision,
+            )
         )
-    }
-    new_protections = [
-        protection
-        for protection in new_protections
-        if str(protection.get("id") or "") not in transient_ids
-    ]
 
     # Placement protections are derived from the final pre-batch -> final
     # difference, so a repeated move of one tournament protects the result.
@@ -444,7 +433,7 @@ def batch_maintenance(
     regression_acceptance = evaluate_regression_acceptances(
         team_consequences, regression_acceptances
     )
-    consequence_acceptable = not regression_acceptance["unaccepted_regressions"]
+    consequence_acceptable = bool(regression_acceptance["acceptable"])
 
     reconcile_plan_derived_state(
         candidate_plan, verification_result, problem=resolved_problem
@@ -484,18 +473,10 @@ def batch_maintenance(
             f"final candidate leaves {len(constraint_violations)} active "
             "request-constraint violation(s)"
         )
-    if not consequence_acceptable:
-        refusal_reasons.append(
-            "final candidate materially worsens an affected team's schedule"
-        )
-    if regression_acceptance["unmatched_acceptances"]:
-        refusal_reasons.append(
-            "regression acceptance(s) match no material regression in the final candidate: "
-            + ", ".join(
-                f"{item['team']}={item['code']}"
-                for item in regression_acceptance["unmatched_acceptances"]
-            )
-        )
+    refusal_reasons.extend(
+        f"final candidate {reason}" if reason.startswith("materially") else reason
+        for reason in regression_acceptance_refusals(regression_acceptance)
+    )
 
     updated_schedule = {
         **schedule,

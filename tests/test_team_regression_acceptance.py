@@ -36,12 +36,13 @@ SEASON = "2026-2027"
 GAP_CODE = "more_gaps_under_7_days"
 
 
-def _analysis(label: str, *codes: str) -> dict:
+def _analysis(label: str, *codes: str, club: str = "C", age_group: str = "U10") -> dict:
+    team = {"club": club, "label": label, "age_group": age_group}
     return {
         "acceptable": not codes,
         "material_regressions": [{"code": code} for code in codes],
-        "before": {"team": {"club": "C", "label": label, "age_group": "U10"}},
-        "after": {"team": {"club": "C", "label": label, "age_group": "U10"}},
+        "before": {"team": dict(team)},
+        "after": {"team": dict(team)},
     }
 
 
@@ -86,7 +87,49 @@ def test_evaluate_rejects_acceptance_that_matches_nothing() -> None:
     result = evaluate_regression_acceptances({"a:W1": _analysis("W1")}, acceptances)
 
     assert result["acceptable"] is False
-    assert result["unmatched_acceptances"] == [{"team": "Z1", "code": GAP_CODE}]
+    assert result["unmatched_acceptances"] == [
+        {"acceptance": f"Z1={GAP_CODE}", "code": GAP_CODE}
+    ]
+
+
+def test_parse_accepts_fully_qualified_identity() -> None:
+    parsed = parse_regression_acceptances([f"Ringerike|Ringerike 2|U11={GAP_CODE}"], "ok")
+    assert parsed == [
+        {
+            "team": "Ringerike 2",
+            "code": GAP_CODE,
+            "reason": "ok",
+            "club": "Ringerike",
+            "age_group": "U11",
+        }
+    ]
+    with pytest.raises(RegressionAcceptanceError, match="club"):
+        parse_regression_acceptances([f"Ringerike|Ringerike 2={GAP_CODE}"], "ok")
+
+
+def test_evaluate_refuses_label_shared_by_several_affected_teams() -> None:
+    consequences = {
+        "a:Ringerike 2": _analysis("Ringerike 2", GAP_CODE, club="Ringerike", age_group="U11"),
+        "b:Ringerike 2": _analysis("Ringerike 2", GAP_CODE, club="Ringerike", age_group="U12"),
+    }
+    ambiguous = evaluate_regression_acceptances(
+        consequences, parse_regression_acceptances([f"Ringerike 2={GAP_CODE}"], "ok")
+    )
+    assert ambiguous["acceptable"] is False
+    assert ambiguous["accepted_regressions"] == []
+    assert ambiguous["ambiguous_acceptances"][0]["candidates"] == [
+        "Ringerike|Ringerike 2|U11",
+        "Ringerike|Ringerike 2|U12",
+    ]
+
+    qualified = evaluate_regression_acceptances(
+        consequences,
+        parse_regression_acceptances([f"Ringerike|Ringerike 2|U11={GAP_CODE}"], "ok"),
+    )
+    assert [(item["age_group"], item["code"]) for item in qualified["accepted_regressions"]] == [
+        ("U11", GAP_CODE)
+    ]
+    assert [item["age_group"] for item in qualified["unaccepted_regressions"]] == ["U12"]
 
 
 def _regressing_candidate() -> dict:
@@ -175,12 +218,15 @@ def test_batch_refuses_unmatched_acceptance(tmp_path: Path) -> None:
     _work_dir, root = _promote(tmp_path, candidate=_regressing_candidate())
     before = (_schedule_bytes(root), _decisions_bytes(root))
 
+    kwargs = dict(
+        accept_regressions=[f"W1={GAP_CODE}", "Y1=travel_materially_worse"],
+        accept_regression_reason="blanket",
+    )
+    preview = _batch(root, dry_run=True, **kwargs)
+    assert preview["consequence_acceptable"] is False
+    assert preview["regression_acceptance"]["acceptable"] is False
     with pytest.raises(SeasonStateError, match="match no material regression"):
-        _batch(
-            root,
-            accept_regressions=[f"W1={GAP_CODE}", "Y1=travel_materially_worse"],
-            accept_regression_reason="blanket",
-        )
+        _batch(root, **kwargs)
     assert (_schedule_bytes(root), _decisions_bytes(root)) == before
 
 
