@@ -301,6 +301,15 @@ Use `--dry-run` to compare plausible exchange partners. A preview may be returne
 
 Once selected, repeat the same command without `--dry-run`. The repository regenerates both tournaments' games, runs full hard verification, preserves hosting responsibility/guest reservations/locks, and writes durable protections for both resulting assignments.
 
+The per-team consequence gate is a default refusal, not a soft goal. When the operator explicitly accepts one named trade-off (for example "Sandefjord may play 11 and 17 October"), `swap-participants` and `batch` accept a narrow opt-in:
+
+```bash
+  --accept-team-regression "<team label>=<regression code>" \
+  --accept-regression-reason "<operator's reason>"
+```
+
+It covers only that exact material regression code for that exact affected team (`more_gaps_under_7_days`, `more_gaps_under_14_days`, `temporal_coverage_materially_worse`, `more_repeated_opponent_excess`, `travel_materially_worse`). Every other material regression still refuses. An acceptance that matches no regression in the candidate refuses the command, and the reason is mandatory. The dry-run reports `regression_acceptance` (accepted, unaccepted, unmatched), and a committed change records the accepted regressions and reason in decision history. Use it only when the operator has accepted that specific team/regression. Never infer it from a candidate merely being the best available, and never pass it pre-emptively.
+
 If all otherwise-good candidates are blocked by a prior accepted request, do not release that request automatically. Follow the supersession rules in **Process incoming club/operator change requests**.
 
 ## Repair a localized finding against the promoted season

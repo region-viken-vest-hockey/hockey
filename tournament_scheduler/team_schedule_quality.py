@@ -455,11 +455,131 @@ def compare_changed_team_schedule_consequence(
     return result
 
 
+# Schedule-quality regressions an operator may explicitly accept for one named
+# team. Participation-count/hard-maximum regressions are deliberately absent:
+# they are structural or hard-rule concerns (waivers), not quality trade-offs.
+ACCEPTABLE_REGRESSION_CODES = frozenset(
+    {
+        "more_gaps_under_7_days",
+        "more_gaps_under_14_days",
+        "temporal_coverage_materially_worse",
+        "more_repeated_opponent_excess",
+        "travel_materially_worse",
+    }
+)
+
+
+class RegressionAcceptanceError(ValueError):
+    """An operator regression acceptance is malformed or incomplete."""
+
+
+def parse_regression_acceptances(
+    raw: Any,
+    reason: str | None,
+) -> list[dict[str, str]]:
+    """Normalize explicit operator acceptances of named team regressions.
+
+    Each item is ``"<team label>=<regression code>"`` or a mapping with
+    ``team`` and ``code``. Acceptances are never implied: a non-empty reason is
+    mandatory, and only schedule-quality codes may be accepted.
+    """
+
+    items = list(raw or [])
+    if not items:
+        return []
+    resolved_reason = str(reason or "").strip()
+    if not resolved_reason:
+        raise RegressionAcceptanceError(
+            "Accepting a team-schedule regression requires an explicit operator reason"
+        )
+    acceptances: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in items:
+        if isinstance(item, Mapping):
+            team = str(item.get("team") or "").strip()
+            code = str(item.get("code") or "").strip()
+        else:
+            team, separator, code = str(item).rpartition("=")
+            team, code = team.strip(), code.strip()
+            if not separator:
+                team, code = "", ""
+        if not team or not code:
+            raise RegressionAcceptanceError(
+                f"Regression acceptance must be '<team label>=<regression code>': {item!r}"
+            )
+        if code not in ACCEPTABLE_REGRESSION_CODES:
+            raise RegressionAcceptanceError(
+                f"Regression code {code!r} cannot be accepted; acceptable codes: "
+                + ", ".join(sorted(ACCEPTABLE_REGRESSION_CODES))
+            )
+        if (team, code) in seen:
+            continue
+        seen.add((team, code))
+        acceptances.append({"team": team, "code": code, "reason": resolved_reason})
+    return acceptances
+
+
+def _consequence_team_label(analysis: Mapping[str, Any]) -> str:
+    for side in ("after", "before"):
+        team = (analysis.get(side) or {}).get("team") or {}
+        if team.get("label"):
+            return str(team["label"])
+    return ""
+
+
+def evaluate_regression_acceptances(
+    team_consequences: Mapping[str, Mapping[str, Any]],
+    acceptances: list[Mapping[str, str]] | None,
+) -> dict[str, Any]:
+    """Apply explicit operator acceptances to per-team consequence analyses.
+
+    A material regression is waived only when an acceptance names exactly that
+    team label and regression code. Every other material regression still
+    refuses. An acceptance that matches no material regression in the
+    candidate is itself a refusal, so acceptances cannot be supplied
+    pre-emptively or as a blanket override.
+    """
+
+    accepted: list[dict[str, Any]] = []
+    unaccepted: list[dict[str, Any]] = []
+    matched: set[tuple[str, str]] = set()
+    wanted = {
+        (str(item.get("team") or ""), str(item.get("code") or "")): item
+        for item in acceptances or []
+    }
+    for key, analysis in team_consequences.items():
+        label = _consequence_team_label(analysis)
+        for regression in analysis.get("material_regressions") or []:
+            code = str(regression.get("code") or "")
+            entry = {"consequence": key, "team": label, "code": code, "regression": dict(regression)}
+            acceptance = wanted.get((label, code))
+            if acceptance is not None:
+                matched.add((label, code))
+                accepted.append({**entry, "reason": str(acceptance.get("reason") or "")})
+            else:
+                unaccepted.append(entry)
+    unmatched = [
+        {"team": team, "code": code}
+        for (team, code) in wanted
+        if (team, code) not in matched
+    ]
+    return {
+        "acceptable": not unaccepted and not unmatched,
+        "accepted_regressions": accepted,
+        "unaccepted_regressions": unaccepted,
+        "unmatched_acceptances": unmatched,
+    }
+
+
 __all__ = [
+    "ACCEPTABLE_REGRESSION_CODES",
+    "RegressionAcceptanceError",
     "TeamIdentity",
     "compare_changed_team_schedule_consequence",
     "compare_team_schedule_consequence",
     "compare_team_schedule_profiles",
+    "evaluate_regression_acceptances",
+    "parse_regression_acceptances",
     "team_participation_effect",
     "team_schedule_profile",
 ]

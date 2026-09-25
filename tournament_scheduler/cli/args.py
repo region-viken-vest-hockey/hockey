@@ -32,6 +32,28 @@ def _add_operational_opt_in_flags(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_regression_acceptance_flags(parser: argparse.ArgumentParser) -> None:
+    """Add the explicit operator acceptance of named team-schedule regressions."""
+
+    parser.add_argument(
+        "--accept-team-regression",
+        dest="accept_team_regressions",
+        action="append",
+        default=None,
+        metavar="TEAM=CODE",
+        help=(
+            "Explicitly accept one named material regression for one affected team, "
+            "e.g. 'Sandefjord=more_gaps_under_7_days' (repeatable); only when the "
+            "operator has accepted that exact trade-off; not the default"
+        ),
+    )
+    parser.add_argument(
+        "--accept-regression-reason",
+        default=None,
+        help="Mandatory operator reason recorded with any accepted team-schedule regression",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="rvv-miniputt",
@@ -1270,6 +1292,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Validate and preview the swap without writing canonical state",
     )
+    _add_regression_acceptance_flags(season_swap)
     season_swap.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_swap.add_argument("--json", action="store_true", help="Print swap result as JSON")
 
@@ -1340,6 +1363,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate and report every gate without writing canonical state",
     )
     _add_operational_opt_in_flags(season_batch)
+    _add_regression_acceptance_flags(season_batch)
     season_batch.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_batch.add_argument("--json", action="store_true", help="Print the batch report as JSON")
 

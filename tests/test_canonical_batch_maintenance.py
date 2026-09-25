@@ -552,3 +552,53 @@ def test_batch_rejects_unknown_scope_id(tmp_path: Path) -> None:
             request_id="unknown-scope",
             actor="tester",
         )
+
+
+def test_batch_three_team_rotation_protects_only_the_net_rosters(tmp_path: Path) -> None:
+    # Y1 -> B, W1 -> C, C1 -> A as two chained swaps: W1 passes through A
+    # transiently, which must not leave a protection the final roster undoes.
+    _work_dir, root = _promote(tmp_path)
+    operations = [
+        {
+            "op": "swap_participants",
+            "tournament_a": "u10-a-20260912",
+            "team_a": "Y1",
+            "tournament_b": "u10-b-20260920",
+            "team_b": "W1",
+        },
+        {
+            "op": "swap_participants",
+            "tournament_a": "u10-a-20260912",
+            "team_a": "W1",
+            "tournament_b": "u10-c-20261018",
+            "team_b": "C2",
+        },
+    ]
+    kwargs = dict(
+        season="2026-2027",
+        root=root,
+        operations=operations,
+        scope=["u10-a-20260912", "u10-b-20260920", "u10-c-20261018"],
+        request_id="rotation",
+        actor="tester",
+    )
+    preview = batch_maintenance(**kwargs, dry_run=True)
+    protected = {
+        (protection["kind"], protection["tournament_id"], protection["team"]["label"])
+        for protection in preview["protections_to_add"]
+    }
+    assert ("must_participate", "u10-a-20260912", "W1") not in protected
+    assert ("must_not_participate", "u10-c-20261018", "W1") not in protected
+    assert ("must_participate", "u10-c-20261018", "W1") in protected
+
+    # The fixture's rotation widens C2's season gap; accept exactly that so the
+    # commit exercises the protection gate rather than the consequence gate.
+    result = batch_maintenance(
+        **kwargs,
+        accept_regressions=["C2=temporal_coverage_materially_worse"],
+        accept_regression_reason="test fixture trade-off",
+    )
+    assert result["committed"] is True
+    by_id = _tournaments_by_id(root)
+    assert "C2" in {team["label"] for team in by_id["u10-a-20260912"]["teams"]}
+    assert "W1" in {team["label"] for team in by_id["u10-c-20261018"]["teams"]}

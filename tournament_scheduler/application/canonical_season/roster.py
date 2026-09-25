@@ -181,6 +181,8 @@ def swap_participants(
     note: str = "",
     dry_run: bool = False,
     request_id: str | None = None,
+    accept_regressions: list[Any] | None = None,
+    accept_regression_reason: str | None = None,
 ) -> dict[str, Any]:
     """Swap one RVV participant between two same-age canonical tournaments.
 
@@ -189,10 +191,26 @@ def swap_participants(
     for both rosters, and validates the whole season through the same
     canonical lock, guest-slot, hard-verification and hosting-responsibility
     gates used by apply_candidate.
+
+    Material regressions of either affected team refuse the swap unless the
+    operator explicitly accepts that exact team/regression with a reason.
     """
 
     if tournament_a_id == tournament_b_id:
         raise SeasonStateError("Participant swap requires two different tournaments")
+
+    from tournament_scheduler.team_schedule_quality import (
+        RegressionAcceptanceError,
+        evaluate_regression_acceptances,
+        parse_regression_acceptances,
+    )
+
+    try:
+        regression_acceptances = parse_regression_acceptances(
+            accept_regressions, accept_regression_reason
+        )
+    except RegressionAcceptanceError as exc:
+        raise SeasonStateError(f"Refusing canonical participant swap: {exc}") from exc
 
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
@@ -311,10 +329,10 @@ def swap_participants(
             problem=resolved_problem,
         ),
     }
-    consequence_acceptable = all(
-        analysis.get("acceptable", False)
-        for analysis in team_consequences.values()
+    regression_acceptance = evaluate_regression_acceptances(
+        team_consequences, regression_acceptances
     )
+    consequence_acceptable = not regression_acceptance["unaccepted_regressions"]
     protection_request_id = str(request_id or "")
     protection_created_at = _now_iso()
     new_protections = build_swap_protections(
@@ -347,6 +365,7 @@ def swap_participants(
         "candidate_revision": candidate_revision,
         "team_consequences": team_consequences,
         "consequence_acceptable": consequence_acceptable,
+        "regression_acceptance": regression_acceptance,
         "existing_change_protection_violations": existing_protection_violations,
         "change_protection_acceptable": not existing_protection_violations,
         "request_constraint_violations": constraint_violations,
@@ -384,15 +403,22 @@ def swap_participants(
         )
 
     if not consequence_acceptable:
-        regressions = []
-        for team_name, analysis in team_consequences.items():
-            for regression in analysis.get("material_regressions", []):
-                regressions.append(
-                    f"{team_name}:{regression.get('code')}"
-                )
+        regressions = [
+            f"{item['consequence']}:{item['code']}"
+            for item in regression_acceptance["unaccepted_regressions"]
+        ]
         raise SeasonStateError(
             "Refusing canonical participant swap: it materially worsens an affected "
             "team's schedule: " + ", ".join(regressions)
+        )
+    if regression_acceptance["unmatched_acceptances"]:
+        raise SeasonStateError(
+            "Refusing canonical participant swap: regression acceptance(s) match no "
+            "material regression: "
+            + ", ".join(
+                f"{item['team']}={item['code']}"
+                for item in regression_acceptance["unmatched_acceptances"]
+            )
         )
 
     from .scoped_mutation import authorize_participant_swap
