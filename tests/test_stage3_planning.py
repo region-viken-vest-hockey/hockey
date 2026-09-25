@@ -531,7 +531,9 @@ class TestComputeSharedRegistrationFacts:
         """A joint registration must still surface a hosting decision when
         the probe pass produces no tournaments (an empty/cheap baseline or a
         probe that placed nothing) -- never a silent ``[]`` skip that would
-        drop the run-scoped ``shared_host_assignment`` choice."""
+        drop the run-scoped ``shared_host_assignment`` choice. A successful
+        empty probe is a legitimate zero-count result, so the row must NOT be
+        tagged ``probe_unavailable`` (zero is a verified fact here)."""
         from tournament_scheduler.pipeline import stage3_planning as sp
 
         for probe_result in (None, MagicMock(tournaments=[])):
@@ -545,11 +547,14 @@ class TestComputeSharedRegistrationFacts:
             assert facts[0]["registration"] == "Kongsberg/Tønsberg"
             assert facts[0]["age_group"] == "U10"
             assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+            assert not facts[0].get("probe_unavailable")
 
     def test_returns_facts_row_when_the_probe_plan_build_raises(self):
         """A probe-build failure must not be treated as "no joint
         registration": the facts row is still surfaced with zero hosting
-        counts so the decision is retained."""
+        counts so the decision is retained. Because those zero counts are now
+        *unknown* rather than a verified zero, the row must carry the
+        ``probe_unavailable`` flag."""
         from tournament_scheduler.pipeline import stage3_planning as sp
 
         fake_planner = MagicMock()
@@ -561,6 +566,25 @@ class TestComputeSharedRegistrationFacts:
         assert len(facts) == 1
         assert facts[0]["registration"] == "Kongsberg/Tønsberg"
         assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+        assert facts[0].get("probe_unavailable") is True
+
+    def test_returns_facts_row_when_make_planner_raises(self):
+        """Planner construction (or any of its argument builders) raising
+        must not skip the joint-host decision either -- the whole optional
+        probe pass lives inside one fallback boundary, so a construction
+        failure still yields a tagged facts row instead of propagating to the
+        caller's last-resort backstop and being equated with "no joint
+        registrations"."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        with patch.object(sp, "_make_planner", side_effect=RuntimeError("planner construction exploded")):
+            facts = compute_shared_registration_facts(
+                _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+            )
+        assert len(facts) == 1
+        assert facts[0]["registration"] == "Kongsberg/Tønsberg"
+        assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+        assert facts[0].get("probe_unavailable") is True
 
 
 class TestSharedHostDecisionWiring:

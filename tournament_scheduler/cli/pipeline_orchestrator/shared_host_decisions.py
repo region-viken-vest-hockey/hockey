@@ -71,8 +71,21 @@ def _resolve_shared_host_decisions(
     try:
         facts_rows = compute_shared_registration_facts(cfg, scraping, start, end)
     except Exception as exc:
-        log_fn(f"Delt vertskap: kunne ikke beregne fakta — hopper over: {exc}")
+        # Last-resort backstop: only roster/planning-window discovery failures
+        # should reach here — the probe pass inside compute_shared_registration_facts
+        # already converts its own preparation/build failures into a tagged
+        # facts row. Log loudly rather than silently equating a facts failure
+        # with "no joint registrations".
+        log_fn(f"Delt vertskap: kunne ikke beregne fakta — behandler som ukjent: {exc}")
         facts_rows = []
+
+    degraded_rows = [row for row in facts_rows if row.get("probe_unavailable")]
+    if degraded_rows:
+        log_fn(
+            "Delt vertskap: probe-planet kunne ikke bygges — vertskaps-tall er "
+            "UKJENT (ikke bekreftet null); avgjørelsen beholdes med degradert grunnlag."
+        )
+
     pending_rows = [
         row for row in facts_rows
         if (row.get("registration"), row.get("age_group")) not in considered_keys

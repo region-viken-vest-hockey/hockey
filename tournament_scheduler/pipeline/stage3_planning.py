@@ -159,9 +159,16 @@ def compute_shared_registration_facts(
     facts — the probe plan itself is discarded, never persisted. Returns
     ``[]`` immediately, without paying for a probe build, when the roster
     has no joint/shared-club registration (the common case). When a joint
-    registration exists but the probe pass produces no tournaments (or fails
-    to build), the facts row is still returned with zero hosting counts so
-    the caller can never silently skip the run-scoped hosting decision.
+    registration exists, the facts row is still returned with zero hosting
+    counts so the caller can never silently skip the run-scoped hosting
+    decision. The entire optional probe pass — planner construction, its
+    argument builders and ``build_plan`` — sits inside one fallback boundary
+    so a construction failure (not just a probe-build failure) still yields
+    the facts row tagged ``probe_unavailable=True`` instead of propagating
+    up to a caller that might equate it with "no joint registrations". A
+    successful-but-empty probe is a legitimate zero-count result and is
+    returned *without* that flag: zero is then a verified fact, not an
+    unknown.
     """
     roster = _build_roster(config)
     team_dicts = [{"club": t.club, "age_group": t.age_group} for t in roster.teams]
@@ -174,39 +181,51 @@ def compute_shared_registration_facts(
     planning_start = datetime.combine(effective.effective_start_date, datetime.min.time())
     club_calendar_status = _build_club_calendar_status(scraping_result)
 
-    probe_planner = _make_planner(
-        roster,
-        _build_parallel_games(config),
-        _build_club_arenas(config),
-        config.get("maxHostingDeviation", 1),
-        _build_round_length(config),
-        _build_ice_time(config),
-        _build_events_by_club(scraping_result),
-        config.get("fairness_thresholds", {}),
-        config.get("target_tournament_count"),
-        config.get("participation_targets_by_age_group"),
-        seed=None,
-        max_hosting_days_per_month=config.get("max_hosting_days_per_month"),
-        penalty_hints=None,
-        allow_penalty_hint_relaxation=bool(config.get("allow_penalty_hint_relaxation", True)),
-        club_calendar_status=club_calendar_status,
-        club_busy_intervals=_build_club_busy_intervals(scraping_result),
-        cheap_baseline=bool(config.get("stage3_cheap_baseline", False)),
-        rounds_per_tournament_config=_build_rounds_per_tournament(config),
-    )
+    probe_plan = None
+    probe_unavailable = False
     try:
+        probe_planner = _make_planner(
+            roster,
+            _build_parallel_games(config),
+            _build_club_arenas(config),
+            config.get("maxHostingDeviation", 1),
+            _build_round_length(config),
+            _build_ice_time(config),
+            _build_events_by_club(scraping_result),
+            config.get("fairness_thresholds", {}),
+            config.get("target_tournament_count"),
+            config.get("participation_targets_by_age_group"),
+            seed=None,
+            max_hosting_days_per_month=config.get("max_hosting_days_per_month"),
+            penalty_hints=None,
+            allow_penalty_hint_relaxation=bool(config.get("allow_penalty_hint_relaxation", True)),
+            club_calendar_status=club_calendar_status,
+            club_busy_intervals=_build_club_busy_intervals(scraping_result),
+            cheap_baseline=bool(config.get("stage3_cheap_baseline", False)),
+            rounds_per_tournament_config=_build_rounds_per_tournament(config),
+        )
         probe_plan = probe_planner.build_plan(planning_start, end_date)
     except Exception:
-        # A probe-build failure still leaves the joint registration to decide;
-        # fall back to zero hosting counts so the caller's exception backstop
-        # can never turn this into a silent "no joint registrations" skip.
+        # A joint registration still needs an explicit hosting decision when
+        # the probe could not be prepared/built (planner construction or any
+        # argument builder or build_plan raised). The zero hosting counts we
+        # return here are *unknown*, not a verified zero, so tag the row with
+        # ``probe_unavailable`` for the caller/LLM to surface as degraded
+        # provenance instead of being misled by fabricated zeros.
         probe_plan = None
+        probe_unavailable = True
+
+    if probe_unavailable:
+        facts = shared_registration_facts(team_dicts, [], club_calendar_status)
+        for row in facts:
+            row["probe_unavailable"] = True
+        return facts
+
     if probe_plan is None or not probe_plan.tournaments:
         # A joint registration still needs an explicit hosting decision even
-        # when the probe pass produced no tournaments (an empty/cheap baseline,
-        # a probe that placed nothing, or a probe-build failure above).
-        # ``shared_registration_facts`` already supports an empty tournament
-        # list (zero hosting counts), so the decision is never silently dropped.
+        # when a successfully built probe pass produced no tournaments (an
+        # empty/cheap baseline or a probe that placed nothing) — a legitimate
+        # zero-count result, never a silent ``[]`` skip.
         return shared_registration_facts(team_dicts, [], club_calendar_status)
 
     tournament_dicts = [

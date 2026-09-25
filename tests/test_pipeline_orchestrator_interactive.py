@@ -1476,6 +1476,40 @@ class TestSharedHostInteractiveDecision:
             "assign_shared_host", "request_operator",
         }
 
+    def test_probe_construction_failure_still_pauses_for_the_decision(self, state, tmp_path):
+        """A planner-construction/facts-preparation failure (``_make_planner``
+        raising) must never skip the shared-host decision: the resolver must
+        still emit the ``shared_host_assignment`` pause with degraded
+        provenance (``probe_unavailable``) rather than fall through to Stage
+        3 with an implicit deterministic host choice."""
+        cfg = _joint_club_cfg()
+        args = _args(work_dir=str(tmp_path), resume_from="3")
+
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
+            return_value=(({"sources": [], "blocked": []}, False, False)),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.pipeline.stage3_planning._make_planner",
+            side_effect=RuntimeError("planner construction exploded"),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
+        ) as run_stage3:
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 2
+        run_stage3.assert_not_called()
+
+        from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _read_shared_host_state
+        shared_state = _read_shared_host_state(state)
+        assert shared_state["pending"] == {"registration": "Kongsberg/Tønsberg", "age_group": "U10"}
+        assert shared_state["last_context"]["capability"] == "shared_host_assignment"
+        assert shared_state["last_context"]["facts"].get("probe_unavailable") is True
+
     def test_answering_the_decision_resumes_and_threads_it_into_stage3(self, state, tmp_path):
         cfg = _joint_club_cfg()
 
