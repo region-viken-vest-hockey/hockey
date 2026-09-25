@@ -9,6 +9,7 @@ Read the publication and semantic-audit sections in `.agents/skills/rvv/SKILL.md
 - `.pipeline/stage4_export.json` must reference a usable export in its `data.output_files` map;
 - `data.errors` must be empty;
 - the current export must satisfy the repository's semantic-audit gate (`PASS`, or an explicitly operator-approved `REVIEW_REQUIRED` where the repository permits it);
+- the current export must satisfy the XLSX/HTML artifact-parity + canonical freshness preflight (`export_parity.json` status `PASS`). A `FAIL` or `NOT_CHECKABLE` pair is refused; regenerate the projection from current canonical state instead of publishing it. Inspect an existing pair read-only with `scripts/rvv-miniputt export-parity --export-dir <dir> [--json]`;
 - hard verification and public-bundle sanitization remain mandatory;
 - when a promoted canonical season exists, the export being audited/published must represent the intended current canonical season revision/decision state. If `season move`, `season apply`, `season approve`, `season unapprove` or another canonical mutation happened after the current export, regenerate with `scripts/rvv-miniputt season export --season <season>` and audit that fresh projection before publishing.
 

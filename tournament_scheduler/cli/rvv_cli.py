@@ -3102,6 +3102,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_stage3_session(args)
     elif args.command == "waiver":
         return _cmd_waiver(args)
+    elif args.command == "export-parity":
+        from .export_parity_command import _cmd_export_parity
+
+        return _cmd_export_parity(args)
     else:
         parser.print_help()
         return 0

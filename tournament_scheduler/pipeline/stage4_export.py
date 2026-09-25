@@ -668,6 +668,13 @@ def run(
             rules_report=rules_report,
             round_length_for_age_group=round_length_for_age_group,
             ice_time_for_age_group=ice_time_for_age_group,
+            decision_status={"approval": approval_status, "booking": booking_status},
+            season_metadata={
+                "season": canonical_season,
+                "canonical_revision": canonical_revision,
+                "export_fingerprint": export_fingerprint,
+                "generated_at": generated_at,
+            },
         )
         output_files["excel"] = excel_path
     except Exception as exc:  # noqa: BLE001
@@ -912,6 +919,47 @@ def run(
     except Exception as exc:  # noqa: BLE001
         errors.append(f"Normalisering av Excel-filer feilet: {exc}")
 
+    # Artifact-parity preflight: verify the actual generated XLSX/HTML bytes
+    # against each other and the frozen canonical projection before the export
+    # is considered complete. A FAIL or NOT_CHECKABLE result blocks the export
+    # (and therefore publication); it is never a silent pass. The export
+    # manifest is deliberately not consulted here -- it is written below from
+    # the same facts, so reading it would only add a second authority.
+    export_parity: dict[str, Any] | None = None
+    if not errors and (primary_export_path / f"{basename}.xlsx").exists() and (primary_export_path / f"{basename}.html").exists():
+        try:
+            from .export_parity import verify_export_parity, write_parity_report
+
+            export_parity = verify_export_parity(
+                primary_export_path,
+                basename=basename,
+                required_canonical_revision=str(canonical_revision or ""),
+                manifest={},
+                expected_projection=schedule_projection,
+                checked_at=generated_at,
+            )
+            write_parity_report(primary_export_path, export_parity)
+            if export_parity["status"] == "FAIL":
+                details = [
+                    str(reason.get("message") or reason)
+                    for reason in export_parity.get("reasons", [])
+                ]
+                errors.append(
+                    f"XLSX/HTML-artefaktparitet: {export_parity['status']} — "
+                    + "; ".join(details[:5])
+                )
+            elif export_parity["status"] == "NOT_CHECKABLE":
+                # Not a silent pass: the status is persisted and the publication
+                # preflight re-verifies it and blocks a non-PASS pair. It is not
+                # an export failure so a legacy/non-canonical export shape is
+                # still produced for review.
+                logger.warning(
+                    "XLSX/HTML-artefaktparitet kunne ikke verifiseres: %s",
+                    "; ".join(str(reason.get("message") or reason) for reason in export_parity.get("reasons", [])),
+                )
+        except Exception as exc:  # noqa: BLE001 - parity must fail closed
+            errors.append(f"Kunne ikke verifisere XLSX/HTML-artefaktparitet: {exc}")
+
     lifecycle_manifest = None
     pruned_exports: list[str] = []
     if not errors and _TIMESTAMP_DIR_RE.match(primary_export_path.name):
@@ -956,6 +1004,7 @@ def run(
         "export_lifecycle": lifecycle_manifest,
         "supersedes": supersedes,
         "export_projection_guard": export_projection_guard,
+        "export_parity": export_parity,
     }
     if normalization_report:
         checkpoint["placement_normalization"] = normalization_report

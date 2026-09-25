@@ -620,6 +620,25 @@ def _execute_publish_pages(
                 result.status = "warning"
         return result
 
+    # Artifact-parity/freshness preflight (read-only). It applies only to a real
+    # season-plan artifact pair; a legacy or non-season bundle is left to the
+    # existing sanitization/audit/approval gates. A FAIL or NOT_CHECKABLE result
+    # blocks publication instead of silently publishing a mismatched or stale
+    # Excel/HTML pair.
+    from .export_parity.gate import publish_parity_gate
+
+    parity_block = publish_parity_gate(export_dir=export_dir, repo_dir=repo_dir)
+    if parity_block is not None:
+        _emit_publication_trace(
+            work_dir,
+            run_id,
+            status="blocked",
+            export_dir=export_dir,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            detail="export artifact parity gate",
+        )
+        return _with_collision_warning(parity_block)
+
     # A raw Stage 4 export may contain rosters, contact info, or internal
     # notes (Spond exports, review_packets/) that must never reach a
     # public URL — sanitize into a separate bundle first (issue #18) and

@@ -82,7 +82,12 @@ class TestSeasonPlanExporter:
         rows = list(overview.iter_rows(values_only=True))
 
         header, *data_rows = rows
-        assert header == ("Dato", "Ukedag", "Aldersgruppe", "Arena", "Vertsklubb", "Lag", "Lengst anslått reise", "Starttid", "Sluttid")
+        assert header == (
+            "Dato", "Ukedag", "Aldersgruppe", "Arena", "Vertsklubb", "Lag",
+            "Lengst anslått reise", "Starttid", "Sluttid", "Turnerings-ID",
+            "Avlyst", "Avlysningsårsak", "Godkjenning", "Låst", "Bookingsstatus",
+            "Booking krever oppfølging",
+        )
         assert len(data_rows) == len(sample_plan.tournaments)
 
         for tournament, row in zip(sample_plan.tournaments, data_rows):
