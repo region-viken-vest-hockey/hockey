@@ -1773,6 +1773,32 @@ def build_parser() -> argparse.ArgumentParser:
     season_baseline_replace.add_argument("--note", default="", help="Why the worse state is deliberately accepted")
     season_baseline_replace.add_argument("--json", action="store_true", help="Print baseline result as JSON")
 
+    season_compact = season_sub.add_parser(
+        "compact-history",
+        help="Migrate oversized inline move-verification evidence into the durable archive",
+    )
+    season_compact.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_compact.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_compact.add_argument("--actor", default=None, help="Operator identity for the compaction record")
+    season_compact.add_argument("--note", default="", help="Optional note for the compaction")
+    season_compact.add_argument(
+        "--dry-run", action="store_true", help="Report what compaction would change without writing"
+    )
+    season_compact.add_argument(
+        "--apply", action="store_true", help="Apply the compaction (backup + verify + atomic swap)"
+    )
+    season_compact.add_argument("--json", action="store_true", help="Print the compaction report as JSON")
+
+    season_inventory = season_sub.add_parser(
+        "inventory",
+        help="Read-only size/shape inventory of season, export and pipeline artifacts",
+    )
+    season_inventory.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_inventory.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_inventory.add_argument("--export-root", default="export", help="Export root directory (default: export)")
+    season_inventory.add_argument("--pipeline-root", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
+    season_inventory.add_argument("--json", action="store_true", help="Print the inventory as JSON")
+
     season_repair = season_sub.add_parser(
         "repair-options",
         help="Enumerate deterministic repair options for one selected finding",

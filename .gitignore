@@ -181,6 +181,8 @@ node_modules
 .pipeline/
 export/.DS_Store
 MagicMock/mock.work_dir/**/run_manifest.json
+# Advisory per-season canonical swap/recovery locks (ephemeral, local).
+season/.*.lock
 
 # CLI/test scratch output must never be committed.
 cli-smoke-tmp/

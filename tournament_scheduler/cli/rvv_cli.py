@@ -1313,6 +1313,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         calendar_booking_candidates,
         calendar_booking_findings,
         change_protection_report,
+        compact_history,
         confirm_calendar_booking,
         decisions_path,
         reconcile_calendar_bookings,
@@ -1321,6 +1322,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         guest_slot_candidates,
         guest_slot_report,
         holiday_date_exception_report,
+        history_inventory,
         move_tournament,
         load_decisions,
         load_export_context,
@@ -1539,6 +1541,101 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     _console.print(
                         "  [yellow]⚠[/yellow] stale approvals (reapprove or unapprove): "
                         + ", ".join(entry["tournament_id"] for entry in report["stale_approvals"])
+                    )
+            return 0
+
+        if args.season_command == "compact-history":
+            dry_run = bool(getattr(args, "dry_run", False))
+            apply_flag = bool(getattr(args, "apply", False))
+            if dry_run and apply_flag:
+                _console.print("[red]✗[/red] Specify only one of --dry-run or --apply.")
+                return 2
+            if not dry_run and not apply_flag:
+                _console.print("[red]✗[/red] Specify --dry-run to preview or --apply to apply the compaction.")
+                return 2
+            report = compact_history(
+                season=args.season,
+                root=args.root,
+                actor=args.actor,
+                note=args.note,
+                dry_run=dry_run,
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Compacted decision history for {args.season}[/bold]"
+                    f"{' [dry-run]' if report['dry_run'] else ''}"
+                )
+                _console.print(
+                    f"  moves: {report['history_events']} events, "
+                    f"{report['compacted_moves']} archived, "
+                    f"{report['already_compacted']} already bounded"
+                )
+                _console.print(
+                    f"  size: {report['before_decisions_chars']} -> "
+                    f"{report['after_decisions_chars']} chars "
+                    f"(saved {report['chars_saved']})"
+                )
+                _console.print(
+                    f"  revision: {report['before_revision']} -> {report['after_revision']}"
+                )
+                backup = report.get("backup")
+                if isinstance(backup, dict):
+                    if report.get("dry_run"):
+                        _console.print(
+                            f"  backup (would create): {backup.get('backup_id')} "
+                            f"({backup.get('decisions_bytes')} bytes)"
+                        )
+                    else:
+                        _console.print(
+                            f"  backup: {backup.get('backup_id')} "
+                            f"({backup.get('decisions_bytes')} bytes)"
+                        )
+            return 0
+
+        if args.season_command == "inventory":
+            report = history_inventory(
+                season=args.season,
+                root=args.root,
+                export_root=getattr(args, "export_root", "export"),
+                pipeline_root=getattr(args, "pipeline_root", ".pipeline"),
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                season_inv = report["season"]
+                export_inv = report["export"]
+                pipeline_inv = report["pipeline"]
+                _console.print(f"[bold]Inventory for {args.season}[/bold]")
+                _console.print(
+                    f"  season: {season_inv['total_bytes']} bytes across "
+                    f"{len(season_inv['files'])} files"
+                )
+                _console.print(
+                    f"  decisions history: {season_inv['history']['events']} events "
+                    f"({', '.join(f'{k}={v}' for k, v in sorted(season_inv['history']['events_by_type'].items()))})"
+                )
+                for event in season_inv["history"]["largest_events"]:
+                    _console.print(
+                        f"    largest event: {event['event']} {event['tournament_id']} "
+                        f"({event['bytes']} bytes)"
+                    )
+                _console.print(
+                    f"  export: {export_inv['directory_count']} directories, "
+                    f"{export_inv['total_bytes']} bytes; "
+                    f"cleanup-eligible superseded: {export_inv['cleanup_eligible_superseded']}"
+                )
+                _console.print(
+                    f"  pipeline: {pipeline_inv['total_bytes']} bytes"
+                )
+                backups = season_inv.get("compaction_backups") or []
+                _console.print(f"  compaction backups: {len(backups)}")
+                for backup in backups[:5]:
+                    _console.print(
+                        f"    {backup.get('backup_id', '')[:12]} "
+                        f"({backup.get('decisions_bytes')} bytes, "
+                        f"{backup.get('compacted_event_indices') and len(backup['compacted_event_indices'])} events)"
                     )
             return 0
 

@@ -416,6 +416,63 @@ includes `age_group`
 (`participation_acceptance:<club>:<label>:<age_group>:<scope>`); legacy ids are
 migrated explicitly.
 
+Decision history stores bounded provenance, not repeated whole-season evidence.
+A `season move` records a concise, immutable entry (`canonical_history_summary`)
+-- event/actor/timestamp, tournament id, before/after placement, canonical
+revision and fingerprints, request/note, a `verification_summary` (verifier
+`ok`, bounded per-list counts, tournament-scoped finding ids, and a content hash
+of the full result) and a summarized operational-acceptability verdict -- rather
+than embedding the full `verify_candidate` result, which is whole-season
+repeated evidence and once dominated `decisions.json`. The exact full result
+stays in the immediate dry-run/CLI response. When complete per-move evidence
+must be retained, it is stored in a durable, content-addressed archive under
+`season/<season>/evidence/` (`canonical_evidence_archive`). The shared archive
+file holds only the hash-bound verification result; event-specific provenance
+(tournament id, canonical revision and event time) lives on each referencing
+event's `evidence_ref`, so two events carrying identical proof each keep their
+own identity. A reader verifies the stored result against its content hash; a
+missing/invalid referenced archive fails closed rather than being treated as
+verified. The archive is immutable (create-once), so the store's directory swap
+carries it forward by hardlink rather than re-copying it on every mutation, and
+the swap is crash-durable (staged contents and directory entries are fsynced;
+an interrupted swap is recovered from the backup on the next write). Read-time
+recovery takes the same exclusive per-season-directory lock as the writer's
+swap, so a reader that lands in the brief window between the two renames waits
+for the writer instead of restoring the backup from underneath it; a writer that
+crashed mid-swap has already released the lock, so its backup is still recovered
+on the next read or write. Once the install rename has happened the new state is
+committed, so a failure of the post-install directory fsync is reported as a
+committed-write durability error (`CanonicalCommitDurabilityError`) rather than
+an ambiguous rolled-back failure; a failure to remove the previous-state backup
+afterward is explicitly non-fatal (a retained backup is never restored while the
+active directory exists and is removed by the next write). A full snapshot load
+reads all three canonical files under one lock acquisition, so a writer never
+tears it into a mix of old and new. Existing oversized history is migrated
+deliberately and idempotently by `season compact-history` (explicit `--dry-run`
+to preview or `--apply` to commit); compaction always retains the full evidence
+in the archive and there is no drop-evidence path. The narrow transform applies
+only to historical `move` events (the only event type that embedded the
+oversized result) and extracts *only* the oversized `verification_result`; every
+other event field, including the full
+operational-acceptability verdict, is preserved verbatim, and any other event
+type carrying a `verification_result` is refused as an unexpected shape rather
+than silently transformed. Compaction commits
+through a dedicated history-only boundary that refuses a pending semantic
+migration (legacy participation-acceptance ids) and preserves the stored
+canonical-state revision exactly, and it asserts that identity after the commit.
+Before any mutation
+the complete original `decisions.json` is backed up byte-for-byte into a
+content-addressed, checksum-verified archive with a migration manifest under
+`season/<season>/evidence/backup/` (`canonical_compaction_backup`), so the
+migration is reversible and auditable; a failed swap leaves the original state
+intact and the backup is never duplicated on an idempotent re-run. Compaction
+preserves every replay-critical event in order and asserts the canonical
+revision, schedule fingerprint, full semantic projection and (for sealed
+seasons) published-baseline replay/reconciliation are unchanged before
+committing. `season inventory` is a read-only size/shape report
+of `season/`, `export/` and `.pipeline/` and reports cleanup eligibility only
+through the conservative superseded-export manifest, never by age.
+
 Verifier-derived plan projections have one owner,
 `plan_derived_state.reconcile_plan_derived_state`. Every canonical write and the
 Stage 4 renderer call it, so hosting coverage/imbalance and repair logs,
