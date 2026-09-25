@@ -88,9 +88,11 @@ def archive_move_evidence(
         _verify_existing_archive(target, ref["sha256"])
         return ref
 
-    staging = Path(
-        tempfile.mkstemp(prefix=f".{ref['sha256']}.", suffix=".tmp", dir=directory)[1]
+    staging_fd, staging_name = tempfile.mkstemp(
+        prefix=f".{ref['sha256']}.", suffix=".tmp", dir=directory
     )
+    os.close(staging_fd)
+    staging = Path(staging_name)
     try:
         staging.write_bytes(_json_bytes(payload))
         with staging.open("rb") as handle:
