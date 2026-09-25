@@ -85,6 +85,20 @@ def normalize_participants(values: Iterable[Any]) -> tuple[str, ...]:
     return tuple(sorted(text for text in (normalize_text(value) for value in values) if text))
 
 
+def normalize_game(round_number: Any, home: Any, away: Any, slot: Any) -> str:
+    """Stable game identity: ``round|home|away|0-based-parallel-slot``."""
+    round_text = normalize_text(round_number)
+    try:
+        slot_text = str(int(slot))
+    except (TypeError, ValueError):
+        slot_text = normalize_text(slot)
+    return "|".join((round_text, normalize_text(home), normalize_text(away), slot_text))
+
+
+def normalize_games(values: Iterable[str]) -> tuple[str, ...]:
+    return tuple(sorted(normalize_text(value) for value in values if normalize_text(value)))
+
+
 def yes_no(value: Any) -> bool:
     return normalize_text(value).lower() in {"ja", "yes", "true", "1", "x"}
 
@@ -101,6 +115,7 @@ class TournamentRecord:
     host_club: str = ""
     age_group: str = ""
     participants: tuple[str, ...] = ()
+    games: tuple[str, ...] = ()
     cancelled: bool = False
     cancellation_reason: str = ""
     approval_status: str = ""

@@ -26,7 +26,7 @@ def _comparable_fields(a: ArtifactProjection, b: ArtifactProjection) -> tuple[li
     one-sided field and must be reported as a mismatch, not skipped, so it is
     only declared uncheckable when the format genuinely lacks the column.
     """
-    fields = ["date", "start_time", "end_time", "arena", "host_club", "age_group", "participants", "cancelled"]
+    fields = ["date", "start_time", "end_time", "arena", "host_club", "age_group", "participants", "games", "cancelled"]
     uncheckable: list[str] = []
     a_unsupported = set(a.unsupported_fields)
     b_unsupported = set(b.unsupported_fields)

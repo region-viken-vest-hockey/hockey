@@ -16,6 +16,8 @@ from typing import Any
 from .records import (
     ArtifactProjection,
     TournamentRecord,
+    normalize_game,
+    normalize_games,
     normalize_iso_date,
     normalize_participants,
     normalize_text,
@@ -79,6 +81,7 @@ def _read_payload(payload: list[Any]) -> list[TournamentRecord]:
                     for team in (item.get("p") or [])
                     if isinstance(team, dict)
                 ),
+                games=_read_games(item.get("m")),
                 cancelled=bool(item.get("cx", False)),
                 cancellation_reason=normalize_text(item.get("cr")),
                 approval_status=normalize_text(item.get("ap")),
@@ -88,3 +91,14 @@ def _read_payload(payload: list[Any]) -> list[TournamentRecord]:
             )
         )
     return records
+
+
+def _read_games(raw: Any) -> tuple[str, ...]:
+    """Normalize the HTML game payload ``[home, away, parallel_slot, round]``."""
+    games: list[str] = []
+    for game in raw or []:
+        if not isinstance(game, (list, tuple)) or len(game) < 4:
+            continue
+        home, away, slot, round_number = game[0], game[1], game[2], game[3]
+        games.append(normalize_game(round_number, home, away, slot))
+    return normalize_games(games)

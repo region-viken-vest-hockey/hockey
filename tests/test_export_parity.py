@@ -387,6 +387,31 @@ def test_comparator_reports_missing_extra_and_duplicate_ids():
     assert comparison["missing_ids"] == ["rvv-2"]
 
 
+def test_edited_excel_game_row_is_detected(tmp_path):
+    export_dir, xlsx, _ = _export_pair(tmp_path)
+    workbook = openpyxl.load_workbook(xlsx)
+    target_sheet = None
+    for name in workbook.sheetnames:
+        first = workbook[name].cell(row=1, column=1).value
+        if isinstance(first, str) and first.startswith("Turnerings-ID: rvv-0001"):
+            target_sheet = workbook[name]
+            break
+    assert target_sheet is not None
+    header_row = next(
+        row
+        for row in range(1, target_sheet.max_row + 1)
+        if tuple(target_sheet.cell(row=row, column=col).value for col in range(1, 5))
+        == ("Runde", "Hjemmelag", "Bortelag", "Parallellbane")
+    )
+    target_sheet.cell(row=header_row + 1, column=2).value = "Feil Hjemmelag"
+    workbook.save(xlsx)
+
+    report = verify_export_parity(export_dir)
+
+    assert report["status"] == STATUS_FAIL
+    assert any(m["tournament_id"] == "rvv-0001" and m["field"] == "games" for m in report["comparison"]["mismatches"])
+
+
 def test_three_cancelled_rows_compare_despite_different_presentation(tmp_path):
     teams = [Team(club=f"Club{i}", label=f"U10-{i}", age_group="U10") for i in range(4)]
     tournaments = [

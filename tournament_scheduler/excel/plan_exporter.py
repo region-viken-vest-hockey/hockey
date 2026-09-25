@@ -382,6 +382,10 @@ class SeasonPlanExporter:
 
     def _write_tournament_sheet(self, sheet: Worksheet, tournament: Tournament) -> None:
         _cancelled_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+        # Stable identity on the sheet itself so the artifact-parity reader can
+        # key this tournament's games without guessing from the title (which is
+        # ambiguous for two same-day/same-host/same-age tournaments).
+        sheet.append([f"Turnerings-ID: {tournament.id}"])
         title_row = (
             f"{self._format_date(tournament.date)} ({self._weekday_name(tournament.date)}) — "
             f"{tournament.age_group} — {tournament.arena}"
