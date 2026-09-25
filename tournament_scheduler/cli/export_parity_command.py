@@ -40,12 +40,16 @@ def _cmd_export_parity(args: argparse.Namespace) -> int:
 
     required_revision = ""
     requires_fresh = False
+    canonical_publication = False
+    canonical_lookup_failed = False
     if not args.allow_historical:
         season = str(args.season or manifest.get("canonical_season") or "")
         if season:
-            required_revision, requires_fresh = resolve_canonical_freshness(
-                season=season, season_root=args.season_root
-            )
+            freshness = resolve_canonical_freshness(season=season, season_root=args.season_root)
+            required_revision = freshness.revision
+            requires_fresh = freshness.requires_fresh_export
+            canonical_publication = True
+            canonical_lookup_failed = not freshness.determined
         if args.expected_revision:
             required_revision = args.expected_revision
 
@@ -55,6 +59,8 @@ def _cmd_export_parity(args: argparse.Namespace) -> int:
         required_canonical_revision=required_revision,
         requires_fresh_export=requires_fresh,
         manifest=manifest,
+        canonical_publication=canonical_publication,
+        canonical_lookup_failed=canonical_lookup_failed,
     )
     if args.write_report:
         write_parity_report(export_dir, report)

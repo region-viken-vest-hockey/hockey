@@ -85,6 +85,65 @@ def normalize_participants(values: Iterable[Any]) -> tuple[str, ...]:
     return tuple(sorted(text for text in (normalize_text(value) for value in values) if text))
 
 
+def participant_separator() -> str:
+    """Canonical participant-identity separator (single owner: published_baseline)."""
+
+    from tournament_scheduler.published_baseline import PARTICIPANT_SEPARATOR
+
+    return PARTICIPANT_SEPARATOR
+
+
+def participant_identity(club: Any, label: Any, age_group: Any) -> str:
+    """Normalize a full ``club|label|age`` canonical participant identity.
+
+    The club component is resolved through the canonical club registry so a
+    legacy alias in one artifact/projection does not read as a different team
+    than the canonical name in the other.
+    """
+
+    club_name = normalize_text(club)
+    if club_name:
+        try:
+            from tournament_scheduler.club_registry import canonicalize_club_name
+
+            club_name = canonicalize_club_name(club_name)
+        except Exception:  # noqa: BLE001 - identity normalization must not fail parity
+            pass
+    return participant_separator().join((club_name, normalize_text(label), normalize_text(age_group)))
+
+
+def normalize_participant_keys(values: Iterable[Any]) -> tuple[str, ...]:
+    """Normalize canonical participant identities, preserving full identity.
+
+    A key is ``club|label|age``; a legacy plain label (no separator) is kept as
+    a label-only identity rather than being misparsed into the club slot.
+    """
+
+    separator = participant_separator()
+    normalized: list[str] = []
+    for value in values or []:
+        text = str(value or "")
+        if separator in text:
+            club, label, age_group = text.split(separator, 2)
+            normalized.append(participant_identity(club, label, age_group))
+        elif normalize_text(text):
+            normalized.append(participant_identity("", text, ""))
+    return tuple(sorted(set(normalized)))
+
+
+def participant_label(key: Any) -> str:
+    """Return the human label component of a canonical participant identity."""
+
+    text = str(key or "")
+    separator = participant_separator()
+    if separator in text:
+        from tournament_scheduler.published_baseline import participant_parts
+
+        _, label, _ = participant_parts(text)
+        return normalize_text(label)
+    return normalize_text(text)
+
+
 def normalize_game(round_number: Any, home: Any, away: Any, slot: Any) -> str:
     """Stable game identity: ``round|home|away|0-based-parallel-slot``."""
     round_text = normalize_text(round_number)
@@ -114,7 +173,15 @@ class TournamentRecord:
     arena: str = ""
     host_club: str = ""
     age_group: str = ""
+    # Human label set and the full ``club|label|age`` identities where the
+    # format carries them. Both are compared against the frozen projection so a
+    # format that can only expose labels does not silently hide a club/age
+    # reassignment that the other format (HTML) can expose.
     participants: tuple[str, ...] = ()
+    participant_keys: tuple[str, ...] = ()
+    # ``(open, filled, reserved, released)`` guest-reservation counts. Empty
+    # when a format carries no guest information at all.
+    guest_slots_summary: tuple[int, ...] = ()
     games: tuple[str, ...] = ()
     cancelled: bool = False
     cancellation_reason: str = ""

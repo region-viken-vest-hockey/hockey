@@ -19,9 +19,11 @@ from .records import (
     normalize_game,
     normalize_games,
     normalize_iso_date,
+    normalize_participant_keys,
     normalize_participants,
     normalize_text,
     normalize_time,
+    participant_identity,
 )
 
 _TOURNAMENTS_RE = re.compile(r"^\s*const\s+TOURNAMENTS\s*=\s*(\[.*\]);\s*$", re.MULTILINE)
@@ -81,6 +83,14 @@ def _read_payload(payload: list[Any]) -> list[TournamentRecord]:
                     for team in (item.get("p") or [])
                     if isinstance(team, dict)
                 ),
+                participant_keys=normalize_participant_keys(
+                    participant_identity(
+                        (team or {}).get("c"), (team or {}).get("l"), (team or {}).get("g")
+                    )
+                    for team in (item.get("p") or [])
+                    if isinstance(team, dict)
+                ),
+                guest_slots_summary=_read_guest_summary(item.get("gs")),
                 games=_read_games(item.get("m")),
                 cancelled=bool(item.get("cx", False)),
                 cancellation_reason=normalize_text(item.get("cr")),
@@ -91,6 +101,21 @@ def _read_payload(payload: list[Any]) -> list[TournamentRecord]:
             )
         )
     return records
+
+
+def _read_guest_summary(raw: Any) -> tuple[int, ...]:
+    """Return ``(open, filled, reserved, released)`` from the ``gs`` payload."""
+
+    if not isinstance(raw, dict):
+        return ()
+
+    def _count(name: str) -> int:
+        try:
+            return int(raw.get(name) or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    return (_count("o"), _count("f"), _count("r"), _count("rel"))
 
 
 def _read_games(raw: Any) -> tuple[str, ...]:

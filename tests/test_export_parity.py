@@ -439,3 +439,215 @@ def test_three_cancelled_rows_compare_despite_different_presentation(tmp_path):
     report = verify_export_parity(export_dir)
 
     assert report["status"] == STATUS_PASS, report["reasons"]
+
+
+# ---------------------------------------------------------------------------
+# Review regressions: fail-closed publication invariant
+# ---------------------------------------------------------------------------
+
+import re  # noqa: E402
+
+from tournament_scheduler.canonical_state import compute_canonical_state_revision  # noqa: E402
+from tournament_scheduler.infrastructure.canonical_season_store import (  # noqa: E402
+    CanonicalSeasonSnapshot,
+    CanonicalSeasonStore,
+)
+from tournament_scheduler.pipeline.export_projection_guard import tournament_projection  # noqa: E402
+from tournament_scheduler.serialization.season_plan import season_plan_to_dict  # noqa: E402
+
+_CANONICAL_SEASON = "2026-2027"
+_ICE = {"U10": 150, "U12": 120}
+_TOURNAMENTS_RE = re.compile(r"(?m)^\s*const\s+TOURNAMENTS\s*=\s*(\[.*\]);\s*$")
+
+
+def _canonical_export(tmp_path: Path):
+    """Write a canonical-season store + a real export pair + lifecycle manifest."""
+
+    plan = _fixture()
+    problem = {"ice_time_minutes": _ICE}
+    plan_dict = season_plan_to_dict(plan)
+    projection = tournament_projection(plan_dict, problem)
+    schedule = {
+        "schema_version": 1,
+        "season": _CANONICAL_SEASON,
+        "plan": plan_dict,
+        "verification_context": {"problem": problem},
+    }
+    decisions = {"schema_version": 1, "season": _CANONICAL_SEASON, "decisions": {}}
+    revision = compute_canonical_state_revision(schedule, decisions)
+    decisions["canonical_state_revision"] = revision
+    CanonicalSeasonStore(tmp_path / "season").write(
+        CanonicalSeasonSnapshot(season=_CANONICAL_SEASON, schedule=schedule, decisions=decisions)
+    )
+
+    export_dir = tmp_path / "export"
+    export_dir.mkdir()
+    approval = _approval_status()
+    booking = _booking_status()
+    SeasonPlanExporter().export(
+        plan,
+        str(export_dir / "season_plan.xlsx"),
+        ice_time_for_age_group=_ICE,
+        decision_status={"approval": approval, "booking": booking},
+        season_metadata={"season": _CANONICAL_SEASON, "canonical_revision": revision},
+    )
+    HtmlExporter().export(
+        plan,
+        str(export_dir / "season_plan.html"),
+        pipeline_meta={
+            "canonical_revision": revision,
+            "approval_status": approval,
+            "booking_status": booking,
+        },
+        ice_time_for_age_group=_ICE,
+    )
+    (export_dir / "export_manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "canonical_season": _CANONICAL_SEASON,
+                "canonical_revision": revision,
+                "schedule_projection": projection,
+                "lifecycle_status": "draft",
+            }
+        ),
+        encoding="utf-8",
+    )
+    return export_dir, export_dir / "season_plan.xlsx", export_dir / "season_plan.html", projection, revision
+
+
+def _mutate_html_payload(html: Path, mutate) -> None:
+    text = html.read_text(encoding="utf-8")
+    match = _TOURNAMENTS_RE.search(text)
+    assert match is not None
+    payload = json.loads(match.group(1))
+    mutate(payload)
+    replacement = "const TOURNAMENTS = " + json.dumps(payload, ensure_ascii=False) + ";"
+    html.write_text(text[: match.start()] + replacement + text[match.end():], encoding="utf-8")
+
+
+def test_publish_gate_blocks_deleted_canonical_xlsx(tmp_path):
+    export_dir, xlsx, _, _, _ = _canonical_export(tmp_path)
+    assert publish_parity_gate(export_dir=export_dir, repo_dir=tmp_path) is None
+
+    xlsx.unlink()
+
+    blocked = publish_parity_gate(export_dir=export_dir, repo_dir=tmp_path)
+    assert blocked is not None
+    assert any("artifact_missing" in str(evidence) for evidence in blocked.evidence)
+
+
+def test_publish_gate_blocks_deleted_canonical_html(tmp_path):
+    export_dir, _, html, _, _ = _canonical_export(tmp_path)
+    html.unlink()
+
+    blocked = publish_parity_gate(export_dir=export_dir, repo_dir=tmp_path)
+    assert blocked is not None
+    assert any("artifact_missing" in str(evidence) for evidence in blocked.evidence)
+
+
+def test_canonical_publication_requires_each_revision_and_fails_closed(tmp_path):
+    export_dir, xlsx, html, _, _ = _canonical_export(tmp_path)
+
+    # Each artifact and the manifest must carry the required revision; blank
+    # metadata is not a silent pass.
+    blank = export_dir / "blank"
+    blank.mkdir()
+    workbook = openpyxl.load_workbook(xlsx)
+    for row in workbook["Eksportmetadata"].iter_rows():
+        if row[0].value == "Kanonisk revisjon":
+            row[1].value = ""
+    blank_xlsx = blank / "season_plan.xlsx"
+    workbook.save(blank_xlsx)
+    revision_meta = re.search(r'<meta\s+name="season-revision"\s+content="([^"]*)"', html.read_text(encoding="utf-8"))
+    assert revision_meta is not None
+    blank_html = html.read_text(encoding="utf-8").replace(revision_meta.group(1), "")
+    (blank / "season_plan.html").write_text(blank_html, encoding="utf-8")
+
+    report = verify_export_parity(
+        blank,
+        manifest={"canonical_revision": ""},
+        canonical_publication=True,
+        required_canonical_revision="rev-target",
+    )
+    assert report["status"] == STATUS_NOT_CHECKABLE
+    assert any(reason["code"] == "missing_canonical_revision" for reason in report["reasons"])
+
+    # An unreadable/absent canonical lookup is NOT_CHECKABLE, not a pass.
+    report = verify_export_parity(
+        export_dir,
+        canonical_publication=True,
+        canonical_lookup_failed=True,
+    )
+    assert report["status"] == STATUS_NOT_CHECKABLE
+    assert any(reason["code"] == "canonical_state_unreadable" for reason in report["reasons"])
+
+
+def test_projection_comparison_detects_end_and_roster_changes_in_both_artifacts(tmp_path):
+    export_dir, xlsx, html, projection, revision = _canonical_export(tmp_path)
+
+    workbook = openpyxl.load_workbook(xlsx)
+    sheet = workbook["Sesongoversikt"]
+    header = [cell.value for cell in sheet[1]]
+    end_col = header.index("Sluttid") + 1
+    teams_col = header.index("Lag") + 1
+    id_col = header.index("Turnerings-ID") + 1
+    row = next(
+        index for index in range(2, sheet.max_row + 1) if sheet.cell(row=index, column=id_col).value == "rvv-0001"
+    )
+    sheet.cell(row=row, column=end_col).value = "23:59"
+    sheet.cell(row=row, column=teams_col).value = "Feil Lag A, Feil Lag B"
+    workbook.save(xlsx)
+
+    def _mutate(payload):
+        for entry in payload:
+            if entry["id"] == "rvv-0001":
+                entry["te"] = "23:59"
+                for team in entry["p"]:
+                    team["l"] = "Feil Lag A" if team["l"].endswith("0") else "Feil Lag B"
+
+    _mutate_html_payload(html, _mutate)
+
+    report = verify_export_parity(export_dir, expected_projection=projection)
+
+    assert report["status"] == STATUS_FAIL, report["reasons"]
+    fields = {m["field"] for m in report["projection_mismatches"]}
+    assert {"end_time", "participants"} <= fields
+
+
+def test_projection_comparison_detects_participant_identity_shift(tmp_path):
+    export_dir, _, html, projection, _ = _canonical_export(tmp_path)
+
+    def _mutate(payload):
+        for entry in payload:
+            if entry["id"] == "rvv-0001":
+                entry["p"][0]["c"] = "FeilKlubb"
+
+    _mutate_html_payload(html, _mutate)
+
+    report = verify_export_parity(export_dir, expected_projection=projection)
+
+    assert report["status"] == STATUS_FAIL, report["reasons"]
+    assert any(m["field"] == "participants_identity" for m in report["projection_mismatches"])
+
+
+def test_published_bundle_is_reverified_after_sanitization(tmp_path):
+    from tournament_scheduler.pipeline import pages_bundle
+
+    export_dir, _, _, _, _ = _canonical_export(tmp_path)
+    bundle_dir = tmp_path / "public_bundle"
+    result = pages_bundle.build_public_bundle(str(export_dir), str(bundle_dir))
+    assert result.is_terminal_success
+
+    manifest = json.loads((export_dir / "export_manifest.json").read_text(encoding="utf-8"))
+    assert publish_parity_gate(export_dir=bundle_dir, repo_dir=tmp_path, manifest=manifest) is None
+
+    # A sanitization/transformation that changes the published payload must be
+    # caught by re-verifying the bundle, not only the source bytes.
+    def _mutate(payload):
+        payload[0]["a"] = "Feil arena"
+
+    _mutate_html_payload(bundle_dir / "season_plan.html", _mutate)
+
+    blocked = publish_parity_gate(export_dir=bundle_dir, repo_dir=tmp_path, manifest=manifest)
+    assert blocked is not None

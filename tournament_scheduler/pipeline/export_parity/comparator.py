@@ -14,6 +14,10 @@ from .records import (
     STATUS_FIELDS,
     ArtifactProjection,
     TournamentRecord,
+    normalize_participant_keys,
+    normalize_participants,
+    normalize_text,
+    participant_label,
 )
 
 
@@ -95,19 +99,94 @@ def _render(value: Any) -> Any:
     return value
 
 
+# Canonical operational facts a frozen projection carries and every artifact
+# pair should be able to confirm. ``participants`` is handled separately because
+# only one format may carry the full ``club|label|age`` identity, while both
+# carry labels. ``guest_slots`` is validated from the representable summary.
+_PROJECTION_FIELDS: tuple[str, ...] = (
+    "date",
+    "start_time",
+    "end_time",
+    "arena",
+    "host_club",
+    "age_group",
+    "cancelled",
+    "cancellation_reason",
+)
+
+
+def _projection_value(entry: dict[str, Any], field: str) -> Any:
+    value = entry.get(field)
+    if isinstance(value, bool):
+        return value
+    if field in {"date", "start_time", "end_time"}:
+        return normalize_text(value)
+    return normalize_text(value) if isinstance(value, str) else value
+
+
+def _record_value(record: TournamentRecord, field: str) -> Any:
+    value = record.field(field)
+    if isinstance(value, bool):
+        return value
+    return normalize_text(value)
+
+
+def _duration_minutes(start_time: Any, end_time: Any) -> int | None:
+    start = normalize_text(start_time)
+    end = normalize_text(end_time)
+    if len(start) < 4 or len(end) < 4:
+        return None
+    try:
+        start_h, start_m = (int(part) for part in start[:5].split(":"))
+        end_h, end_m = (int(part) for part in end[:5].split(":"))
+    except (TypeError, ValueError):
+        return None
+    minutes = (end_h * 60 + end_m) - (start_h * 60 + start_m)
+    return minutes if minutes > 0 else None
+
+
+def _projection_participants(entry: dict[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return ``(labels, full_identities)`` from a projection participant list."""
+
+    keys = entry.get("participants") or []
+    labels = normalize_participants(participant_label(key) for key in keys)
+    return labels, normalize_participant_keys(keys)
+
+
+def _projection_guest_summary(entry: dict[str, Any]) -> tuple[int, ...]:
+    slots = entry.get("guest_slots") or []
+    open_count = 0
+    filled = 0
+    released = 0
+    for slot in slots:
+        status = normalize_text((slot or {}).get("status")) if isinstance(slot, dict) else ""
+        if status == "open":
+            open_count += 1
+        elif status == "filled":
+            filled += 1
+        elif status == "released":
+            released += 1
+    return (open_count, filled, open_count + filled, released)
+
+
 def records_against_projection(
-    records_by_id: dict[str, TournamentRecord],
+    artifact: ArtifactProjection,
     projection: dict[str, dict[str, Any]],
     *,
     kind: str,
-) -> list[dict[str, Any]]:
-    """Compare projected schedule placement fields against a frozen projection.
+) -> dict[str, list[dict[str, Any]]]:
+    """Compare every representable canonical operational fact in *artifact*.
 
-    Participants are intentionally excluded here: the canonical projection
-    carries ``club|label|age`` keys, while the artifacts carry labels; the
-    authoritative participant comparison already happens artifact-to-artifact.
+    Placement/interval/cancellation facts and participant identities are
+    compared explicitly. A participant identity is only comparable when the
+    format carries it (HTML does, XLSX labels alone do not); the other format is
+    expected to confirm it. A projected fact no artifact can represent is
+    reported as uncheckable, never silently skipped.
     """
+
+    records_by_id = artifact.records_by_id()
     mismatches: list[dict[str, Any]] = []
+    uncheckable: list[dict[str, Any]] = []
     projection_ids = set(projection)
     for tournament_id in sorted(projection_ids - set(records_by_id)):
         mismatches.append({"tournament_id": tournament_id, "field": "id", kind: "missing", "projection": "present"})
@@ -116,11 +195,16 @@ def records_against_projection(
     for tournament_id in sorted(projection_ids & set(records_by_id)):
         record = records_by_id[tournament_id]
         entry = projection[tournament_id]
-        for field in ("date", "start_time", "arena", "host_club", "age_group"):
+        for field in _PROJECTION_FIELDS:
             if field not in entry:
                 continue
-            expected = entry.get(field)
-            actual = record.field(field)
+            # A non-strict diagnostic projection leaves an unknown occupied
+            # interval empty/zero; that is "not carried", not a real empty
+            # value to compare against.
+            if field == "end_time" and not normalize_text(entry.get("end_time")):
+                continue
+            expected = _projection_value(entry, field)
+            actual = _record_value(record, field)
             if actual != expected:
                 mismatches.append(
                     {
@@ -131,4 +215,69 @@ def records_against_projection(
                         "artifact": actual,
                     }
                 )
-    return mismatches
+        if "duration_minutes" in entry and entry.get("duration_minutes") not in (None, ""):
+            try:
+                expected_duration = int(entry.get("duration_minutes"))
+            except (TypeError, ValueError):
+                expected_duration = None
+            if expected_duration is not None and expected_duration <= 0:
+                expected_duration = None
+            derived = _duration_minutes(record.start_time, record.end_time)
+            if expected_duration is not None and derived is not None and derived != expected_duration:
+                mismatches.append(
+                    {
+                        "tournament_id": tournament_id,
+                        "field": "duration_minutes",
+                        kind: "projection_mismatch",
+                        "projection": expected_duration,
+                        "artifact": derived,
+                    }
+                )
+        if "participants" in entry:
+            expected_labels, expected_ids = _projection_participants(entry)
+            if record.participants != expected_labels:
+                mismatches.append(
+                    {
+                        "tournament_id": tournament_id,
+                        "field": "participants",
+                        kind: "projection_mismatch",
+                        "projection": list(expected_labels),
+                        "artifact": list(record.participants),
+                    }
+                )
+            if record.participant_keys and record.participant_keys != expected_ids:
+                mismatches.append(
+                    {
+                        "tournament_id": tournament_id,
+                        "field": "participants_identity",
+                        kind: "projection_mismatch",
+                        "projection": list(expected_ids),
+                        "artifact": list(record.participant_keys),
+                    }
+                )
+        expected_guest = _projection_guest_summary(entry)
+        if any(expected_guest):
+            if record.guest_slots_summary:
+                if record.guest_slots_summary != expected_guest:
+                    mismatches.append(
+                        {
+                            "tournament_id": tournament_id,
+                            "field": "guest_slots",
+                            kind: "projection_mismatch",
+                            "projection": list(expected_guest),
+                            "artifact": list(record.guest_slots_summary),
+                        }
+                    )
+            elif kind == "html":
+                # HTML is the format that carries guest-reservation summaries;
+                # a canonical reservation it cannot show is a real gap.
+                uncheckable.append(
+                    {
+                        "tournament_id": tournament_id,
+                        "field": "guest_slots",
+                        kind: "projection_uncheckable",
+                        "projection": list(expected_guest),
+                        "artifact": None,
+                    }
+                )
+    return {"mismatches": mismatches, "uncheckable": uncheckable}

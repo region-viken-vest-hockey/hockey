@@ -20,8 +20,16 @@ def evaluate_freshness(
     manifest_revision: str,
     required_revision: str = "",
     requires_fresh_export: bool = False,
+    canonical_required: bool = False,
+    lookup_failed: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Return ``(failures, not_checkable)`` freshness findings."""
+    """Return ``(failures, not_checkable)`` freshness findings.
+
+    ``canonical_required`` marks publication of an identified canonical season
+    export. In that mode freshness must fail closed: the current canonical
+    revision has to be determinable, and *each* artifact and the manifest must
+    carry it, not merely one matching value among several.
+    """
 
     failures: list[dict[str, Any]] = []
     not_checkable: list[dict[str, Any]] = []
@@ -61,8 +69,44 @@ def evaluate_freshness(
                     }
                 )
 
-    if required_revision:
-        observed = {revision for revision in (primary_revision, secondary_revision, manifest_revision) if revision}
+    revisions = {"xlsx": primary_revision, "html": secondary_revision, "manifest": manifest_revision}
+
+    if canonical_required:
+        if lookup_failed or not required_revision:
+            not_checkable.append(
+                {
+                    "code": "canonical_state_unreadable" if lookup_failed else "missing_canonical_revision",
+                    "message": (
+                        "The current canonical revision could not be determined for this canonical "
+                        "season export, so freshness cannot be proven."
+                    ),
+                }
+            )
+        else:
+            for kind, revision in revisions.items():
+                if not revision:
+                    not_checkable.append(
+                        {
+                            "code": "missing_canonical_revision",
+                            "message": (
+                                f"{kind} does not carry a canonical revision, so freshness against "
+                                f"{required_revision} cannot be verified."
+                            ),
+                        }
+                    )
+            stale = sorted({revision for revision in revisions.values() if revision and revision != required_revision})
+            if stale:
+                failures.append(
+                    {
+                        "code": "stale_canonical_revision",
+                        "message": (
+                            "Export artifacts do not match the current canonical revision "
+                            f"{required_revision}; stale revisions: {', '.join(stale)}"
+                        ),
+                    }
+                )
+    elif required_revision:
+        observed = {revision for revision in revisions.values() if revision}
         if not observed:
             not_checkable.append(
                 {

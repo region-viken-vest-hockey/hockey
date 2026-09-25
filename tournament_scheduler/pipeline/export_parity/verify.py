@@ -60,6 +60,8 @@ def verify_export_parity(
     manifest: dict[str, Any] | None = None,
     expected_projection: dict[str, dict[str, Any]] | None = None,
     checked_at: str | None = None,
+    canonical_publication: bool = False,
+    canonical_lookup_failed: bool = False,
 ) -> dict[str, Any]:
     """Verify ``<basename>.xlsx`` against ``<basename>.html`` in *export_dir*.
 
@@ -146,20 +148,32 @@ def verify_export_parity(
             {"code": "uncheckable_field", "message": f"field {field!r} is not carried by both artifacts"}
         )
 
+    projection_uncheckable: list[dict[str, Any]] = []
     if isinstance(projection, dict) and projection:
-        projection_mismatches = []
+        projection_mismatches: list[dict[str, Any]] = []
         for kind, artifact in (("xlsx", primary), ("html", secondary)):
-            projection_mismatches.extend(
-                records_against_projection(artifact.records_by_id(), projection, kind=kind)
-            )
+            result = records_against_projection(artifact, projection, kind=kind)
+            projection_mismatches.extend(result["mismatches"])
+            projection_uncheckable.extend(result["uncheckable"])
         report["projection_mismatches"] = projection_mismatches
+        report["projection_uncheckable"] = projection_uncheckable
         if projection_mismatches:
             problems.append(
                 {
                     "code": "projection_mismatch",
                     "message": (
-                        f"{len(projection_mismatches)} placement fact(s) differ from the frozen "
-                        "canonical schedule projection"
+                        f"{len(projection_mismatches)} canonical operational fact(s) differ from the "
+                        "frozen canonical schedule projection"
+                    ),
+                }
+            )
+        for field in sorted({entry["field"] for entry in projection_uncheckable}):
+            problems.append(
+                {
+                    "code": "projection_field_uncheckable",
+                    "message": (
+                        f"canonical projection field {field!r} is not carried by any artifact, so its "
+                        "parity cannot be verified"
                     ),
                 }
             )
@@ -170,6 +184,8 @@ def verify_export_parity(
         manifest_revision=manifest_revision,
         required_revision=required_canonical_revision,
         requires_fresh_export=requires_fresh_export,
+        canonical_required=canonical_publication,
+        lookup_failed=canonical_lookup_failed,
     )
     problems.extend(freshness_failures)
     problems.extend(freshness_not_checkable)
@@ -180,7 +196,12 @@ def verify_export_parity(
         for problem in problems
     ):
         report["status"] = STATUS_FAIL
-    elif freshness_not_checkable or comparison["uncheckable_fields"] or unsupported:
+    elif (
+        freshness_not_checkable
+        or comparison["uncheckable_fields"]
+        or projection_uncheckable
+        or unsupported
+    ):
         report["status"] = STATUS_NOT_CHECKABLE
     else:
         report["status"] = STATUS_PASS

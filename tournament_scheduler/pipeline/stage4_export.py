@@ -436,6 +436,17 @@ def run(
 
     round_length_for_age_group: dict[str, int] = dict(effective_config.get("round_length_minutes", {}))
     ice_time_for_age_group: dict[str, int] = dict(effective_config.get("ice_time_minutes") or effective_config.get("round_length_minutes", {}))
+    # The projection's occupied interval is derived from the export problem's
+    # ice-time contract. When the pipeline config does not carry ice times (for
+    # example a canonical `season export` with an explicit verification
+    # problem), the printed end times must still agree with that contract
+    # rather than rendering empty and failing artifact parity.
+    if not ice_time_for_age_group and isinstance(export_problem, dict):
+        for age_group, minutes in (export_problem.get("ice_time_minutes") or {}).items():
+            try:
+                ice_time_for_age_group[str(age_group)] = int(minutes)
+            except (TypeError, ValueError):
+                continue
     # issue #314: a fresh recomputation is authoritative even when it comes
     # back empty. A truthiness fallback here (`derived_collisions or
     # stored`) cannot tell "not recomputed" from "recomputed and zero", so a

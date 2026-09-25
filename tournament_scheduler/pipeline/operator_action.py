@@ -625,9 +625,17 @@ def _execute_publish_pages(
     # existing sanitization/audit/approval gates. A FAIL or NOT_CHECKABLE result
     # blocks publication instead of silently publishing a mismatched or stale
     # Excel/HTML pair.
+    from .export_lifecycle import read_export_manifest
     from .export_parity.gate import publish_parity_gate
 
-    parity_block = publish_parity_gate(export_dir=export_dir, repo_dir=repo_dir)
+    # The source manifest identifies whether this is a canonical season export
+    # and supplies the frozen projection/current revision; the sanitized public
+    # bundle does not carry it, so it is threaded through to the post-bundle
+    # re-verification below.
+    source_manifest = read_export_manifest(export_dir)
+    parity_block = publish_parity_gate(
+        export_dir=export_dir, repo_dir=repo_dir, manifest=source_manifest
+    )
     if parity_block is not None:
         _emit_publication_trace(
             work_dir,
@@ -662,6 +670,24 @@ def _execute_publish_pages(
             detail="public bundle rejected before publication",
         )
         return bundle_result
+
+    # build_public_bundle rewrites/redacts the HTML while copying the workbook,
+    # so the verified source bytes are not what gets published. Re-verify the
+    # sanitized pair (same canonical revision and frozen projection when the
+    # source was a canonical season export) before the git publish step runs.
+    published_parity_block = publish_parity_gate(
+        export_dir=public_bundle_dir, repo_dir=repo_dir, manifest=source_manifest
+    )
+    if published_parity_block is not None:
+        _emit_publication_trace(
+            work_dir,
+            run_id,
+            status="blocked",
+            export_dir=public_bundle_dir,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            detail="sanitized bundle artifact parity gate",
+        )
+        return _with_collision_warning(published_parity_block)
 
     def _is_routine_public_asset(path: str) -> bool:
         return (
