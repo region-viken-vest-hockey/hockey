@@ -265,6 +265,8 @@ def swap_participants(
     note: str = "",
     dry_run: bool = False,
     request_id: str | None = None,
+    accept_regressions: list[Any] | None = None,
+    accept_regression_reason: str | None = None,
 ) -> dict[str, Any]:
     """Swap one participant between two same-age canonical tournaments."""
 
@@ -279,6 +281,8 @@ def swap_participants(
         note=note,
         dry_run=dry_run,
         request_id=request_id,
+        accept_regressions=accept_regressions,
+        accept_regression_reason=accept_regression_reason,
     )
 
 
@@ -401,6 +405,8 @@ def batch_maintenance(
     request_id: str | None = None,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
+    accept_regressions: list[Any] | None = None,
+    accept_regression_reason: str | None = None,
 ) -> dict[str, Any]:
     """Atomically compose several scoped canonical mutations in one commit."""
 
@@ -415,6 +421,8 @@ def batch_maintenance(
         request_id=request_id,
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
+        accept_regressions=accept_regressions,
+        accept_regression_reason=accept_regression_reason,
     )
 
 
