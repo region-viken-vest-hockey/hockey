@@ -1336,11 +1336,13 @@ def _cmd_season(args: argparse.Namespace) -> int:
         release_guest_slot,
         release_banned_dates,
         disallow_holiday_dates,
+        release_participation_withdrawals,
         release_request_constraints,
         request_constraint_report,
         reserve_guest_slot,
         replace_participant,
         remove_participant,
+        withdrawal_report,
         rename_teams,
         schedule_path,
         swap_participants,
@@ -2188,6 +2190,53 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
                 revision = result.get("candidate_revision") if result["dry_run"] else result.get("revision")
                 _console.print(f"  revision: {revision}")
+            return 0
+
+
+        if args.season_command == "withdrawals":
+            report = withdrawal_report(
+                args.season,
+                root=args.root,
+                include_released=bool(args.all),
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Participation withdrawals {args.season}[/bold] "
+                    f"({report['active_count']} active, {report['superseded_count']} superseded)"
+                )
+                for record in report["withdrawals"]:
+                    team = record.get("team") or {}
+                    marker = (
+                        "[yellow]⚠[/yellow]"
+                        if record.get("superseded")
+                        else "[dim]·[/dim]"
+                    )
+                    _console.print(
+                        f"  {marker} {record.get('id')} [{record.get('status')}] "
+                        f"{team.get('label')} {record.get('tournament_id')} "
+                        f"request={record.get('request_id') or '-'}"
+                    )
+            return 0
+
+
+        if args.season_command == "release-withdrawal":
+            result = release_participation_withdrawals(
+                season=args.season,
+                root=args.root,
+                withdrawal_ids=list(args.withdrawal_ids or []),
+                request_id=args.request_id,
+                actor=args.actor,
+                note=args.note,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] Released {len(result['released_withdrawal_ids'])} "
+                    f"withdrawal record(s); {result['active_count']} remain active"
+                )
             return 0
 
 

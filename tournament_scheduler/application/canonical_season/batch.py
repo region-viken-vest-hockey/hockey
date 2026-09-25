@@ -46,6 +46,11 @@ from .shared import (
     _placement_snapshot,
 )
 from .placements import _apply_move_to_plan
+from .removal_policy import (
+    evaluate_removal_consequences,
+    require_no_avoidable_underfill,
+    require_registered_removal_target,
+)
 from .roster import _apply_swap_to_plan
 from .withdrawal import _apply_remove_participant_to_plan
 
@@ -351,12 +356,22 @@ def batch_maintenance(
                 }
             )
             if operation.get("reconcile_withdrawal"):
+                removed_identity = (
+                    removal["removed_identity"][0],
+                    removal["removed_identity"][1],
+                    removal["removed_identity"][2],
+                )
+                require_registered_removal_target(
+                    resolved_problem,
+                    removed_identity=removed_identity,
+                    remove_team_label=operation["remove_team"],
+                )
                 withdrawal_records.extend(
                     build_withdrawal_records(
                         team={
-                            "club": removal["removed_identity"][0],
-                            "label": removal["removed_identity"][1],
-                            "age_group": removal["removed_identity"][2],
+                            "club": removed_identity[0],
+                            "label": removed_identity[1],
+                            "age_group": removed_identity[2],
                         },
                         tournament_ids=[operation["tournament_id"]],
                         request_id=resolved_request_id,
@@ -368,6 +383,20 @@ def batch_maintenance(
                 )
         else:  # pragma: no cover - normalization already rejects unknown operators
             raise SeasonStateError(f"Unsupported batch operation {op!r}")
+
+    # A removal without a withdrawal reconciliation keeps the full registered
+    # pool, so an avoidably underfilled result must fail closed exactly as the
+    # single-operation path does. Use the shared eligibility boundary rather
+    # than relying on the generic final verification message.
+    non_reconciled_removal_ids = [
+        str(removal["tournament_id"])
+        for removal in applied_removals
+        if not removal.get("reconcile_withdrawal")
+    ]
+    if non_reconciled_removal_ids and resolved_problem:
+        require_no_avoidable_underfill(
+            candidate_plan, resolved_problem, non_reconciled_removal_ids
+        )
 
     candidate_tournaments = {
         str(tournament.get("id") or ""): tournament
@@ -519,47 +548,27 @@ def batch_maintenance(
                 )
     removed_team_consequences: dict[str, Any] = {}
     if applied_removals:
-        from tournament_scheduler.team_schedule_quality import (
-            compare_changed_team_schedule_consequence,
-        )
-
         # The withdrawn team's own shortfall is the operator's deliberate
-        # decision; only the remaining participants can block the batch.
-        for removal in applied_removals:
-            identity = (
+        # decision; only the remaining participants can block the batch. The
+        # shared boundary keeps this identical to the single-operation path.
+        removal_ids = [str(removal["tournament_id"]) for removal in applied_removals]
+        removed_identities = [
+            (
                 removal["removed_team"]["club"],
                 removal["removed_team"]["label"],
                 removal["removed_team"]["age_group"],
             )
-            removed_team_consequences["|".join(identity)] = (
-                compare_changed_team_schedule_consequence(
-                    before_plan,
-                    candidate_plan,
-                    identity,
-                    problem=candidate_problem,
-                    membership_role="removed",
-                )
-            )
-            tournament = candidate_tournaments.get(str(removal["tournament_id"]))
-            age_group = str((tournament or {}).get("age_group") or identity[2])
-            for team in (tournament or {}).get("teams", []) or []:
-                if bool(team.get("guest", False)):
-                    continue
-                remaining = (
-                    str(team.get("club") or ""),
-                    str(team.get("label") or ""),
-                    str(team.get("age_group") or age_group),
-                )
-                key = "|".join(remaining)
-                if key in team_consequences or key in removed_team_consequences:
-                    continue
-                team_consequences[key] = compare_changed_team_schedule_consequence(
-                    before_plan,
-                    candidate_plan,
-                    remaining,
-                    problem=candidate_problem,
-                    membership_role="retained",
-                )
+            for removal in applied_removals
+        ]
+        removed_team_consequences, removal_retained = evaluate_removal_consequences(
+            before_plan,
+            candidate_plan,
+            problem=candidate_problem,
+            removed_identities=removed_identities,
+            tournament_ids=removal_ids,
+        )
+        for key, consequence in removal_retained.items():
+            team_consequences.setdefault(key, consequence)
     regression_acceptance = evaluate_regression_acceptances(
         team_consequences, regression_acceptances
     )

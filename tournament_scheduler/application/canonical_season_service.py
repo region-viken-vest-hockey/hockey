@@ -362,6 +362,25 @@ class CanonicalSeasonService:
     ) -> dict[str, Any]:
         return _withdrawal.remove_participant(self, season=season, tournament_ids=tournament_ids, remove_team_label=remove_team_label, reconcile_withdrawal=reconcile_withdrawal, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, accept_regressions=accept_regressions, accept_regression_reason=accept_regression_reason)
 
+    def withdrawal_report(
+        self,
+        season: str,
+        *,
+        include_released: bool = False,
+    ) -> dict[str, Any]:
+        return _withdrawal.withdrawal_report(self, season, include_released=include_released)
+
+    def release_participation_withdrawals(
+        self,
+        *,
+        season: str,
+        withdrawal_ids: list[str] | None = None,
+        request_id: str | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        return _withdrawal.release_participation_withdrawals(self, season=season, withdrawal_ids=withdrawal_ids, request_id=request_id, actor=actor, note=note)
+
     def batch_maintenance(
         self,
         *,

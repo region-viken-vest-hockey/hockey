@@ -300,7 +300,9 @@ def _resolve_plan_problem(
         resolved = project_exceptions_into_problem(resolved, decisions)
         resolved = project_banned_dates_into_problem(resolved, decisions)
         resolved = project_associations_into_problem(resolved, decisions, schedule.get("plan") or {})
-        resolved = project_into_problem(resolved, decisions=decisions)
+        resolved = project_into_problem(
+            resolved, decisions=decisions, plan=schedule.get("plan") or {}
+        )
     return resolved
 
 

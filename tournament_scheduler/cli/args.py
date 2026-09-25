@@ -1317,6 +1317,41 @@ def build_parser() -> argparse.ArgumentParser:
     season_remove.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_remove.add_argument("--json", action="store_true", help="Print removal result as JSON")
 
+    season_withdrawals = season_sub.add_parser(
+        "withdrawals",
+        help="List canonical participation-withdrawal records and their eligibility status",
+    )
+    season_withdrawals.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_withdrawals.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_withdrawals.add_argument(
+        "--all",
+        action="store_true",
+        help="Include released withdrawal records (provenance is retained either way)",
+    )
+    season_withdrawals.add_argument("--json", action="store_true", help="Print withdrawal ledger as JSON")
+
+    season_release_withdrawal = season_sub.add_parser(
+        "release-withdrawal",
+        help="Release a withdrawal record after a participant is restored or registration is reconciled",
+    )
+    season_release_withdrawal.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_release_withdrawal.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_release_withdrawal.add_argument(
+        "--withdrawal-id",
+        dest="withdrawal_ids",
+        action="append",
+        default=None,
+        help="Withdrawal record id to release (repeatable)",
+    )
+    season_release_withdrawal.add_argument(
+        "--request-id",
+        default=None,
+        help="Release every active withdrawal recorded by this request id",
+    )
+    season_release_withdrawal.add_argument("--actor", default=None, help="Operator identity")
+    season_release_withdrawal.add_argument("--note", default="", help="Why the withdrawal is being released (audit reason)")
+    season_release_withdrawal.add_argument("--json", action="store_true", help="Print release result as JSON")
+
     season_swap = season_sub.add_parser(
         "swap-participants",
         help="Swap one participant between two same-age canonical tournaments and verify the full season",

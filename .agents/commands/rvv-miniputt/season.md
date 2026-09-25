@@ -323,6 +323,20 @@ scripts/rvv-miniputt season batch \
   --dry-run --json
 ```
 
+### Superseding a withdrawal
+
+A withdrawal record is additive and revision-bound. It reduces the eligible shape pool only while its team is genuinely absent from the scoped tournament *and* still part of the registered pool: the projection is recomputed against the current plan and registration, so a restored participant or a reconciled registration stops reducing eligibility automatically and `season withdrawals` marks the record `superseded`. Release any obsolete record explicitly so the audit trail stays unambiguous -- release never deletes it:
+
+```bash
+scripts/rvv-miniputt season withdrawals --season <season> --json
+scripts/rvv-miniputt season release-withdrawal \
+  --season <season> \
+  --request-id <withdraw-request-id> \
+  --note "restored after registration reconciliation"
+```
+
+`--withdrawal-id <id>` (repeatable) selects individual records; `--request-id` selects every active record created by one withdrawal request. Release flips the record's status to `released` while keeping its id, team, scope and provenance, and advances the canonical-state revision as a decision-only write.
+
 ## Swap tournament participants safely
 
 When the operator wants one team moved out of a tournament and another team exchanged into it, use the first-class canonical swap capability rather than hand-editing rosters:

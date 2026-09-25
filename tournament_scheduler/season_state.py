@@ -103,6 +103,7 @@ __all__ = [
     "refresh_calendars",
     "release_banned_dates",
     "release_change_protections",
+    "release_participation_withdrawals",
     "disallow_holiday_dates",
     "release_guest_slot",
     "release_request_constraints",
@@ -112,6 +113,7 @@ __all__ = [
     "seal_published_season",
     "season_lifecycle_report",
     "verify_sealed_reconciliation",
+    "withdrawal_report",
     "schedule_fingerprint",
     "schedule_path",
     "season_baseline_advance",
@@ -313,6 +315,37 @@ def remove_participant(
         request_id=request_id,
         accept_regressions=accept_regressions,
         accept_regression_reason=accept_regression_reason,
+    )
+
+
+def withdrawal_report(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    include_released: bool = False,
+) -> dict[str, Any]:
+    """Return the canonical participation-withdrawal ledger for a season."""
+
+    return _service(root).withdrawal_report(season, include_released=include_released)
+
+
+def release_participation_withdrawals(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    withdrawal_ids: list[str] | None = None,
+    request_id: str | None = None,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Release withdrawal records after a participant is restored or registration reconciled."""
+
+    return _service(root).release_participation_withdrawals(
+        season=season,
+        withdrawal_ids=withdrawal_ids,
+        request_id=request_id,
+        actor=actor,
+        note=note,
     )
 
 
