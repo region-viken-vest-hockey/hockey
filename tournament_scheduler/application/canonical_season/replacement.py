@@ -7,6 +7,7 @@ from datetime import date as _date
 from typing import Any, Mapping
 
 from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
+from tournament_scheduler.canonical_history_summary import verification_summary
 from tournament_scheduler.canonical_state import (
     canonical_state_revision,
     schedule_fingerprint,
@@ -385,7 +386,9 @@ def replace_participant(
         "added_team": {"club": added_identity[0], "label": added_identity[1]},
         "before_fingerprint": replacement["before_fingerprint"],
         "candidate_revision": candidate_revision,
-        "verification_result": result,
+        # Bounded summary instead of the full whole-season verification result;
+        # the exact result stays in the dry-run/CLI response below.
+        "verification_summary": verification_summary(result, tournament_id=tournament_id),
         "regenerated_games_count": len(candidate_tournament.get("games") or []),
         "guest_reservation_integrity": {
             "ok": guest_integrity_ok,
@@ -414,6 +417,10 @@ def replace_participant(
     }
 
     if dry_run:
+        # The dry-run/CLI response carries the exact full verification result
+        # for review; the committed history stores only the bounded summary.
+        preview_details = dict(details)
+        preview_details["verification_result"] = result
         return {
             "season": season,
             "dry_run": True,
@@ -423,7 +430,7 @@ def replace_participant(
             "candidate_fingerprint": candidate_revision,
             "verification_result": result,
             "change_cost": cost,
-            "replacement": details,
+            "replacement": preview_details,
         }
 
     if not guest_integrity_ok:

@@ -30,6 +30,10 @@ from typing import Any, Mapping
 SEASON_STATE_SCHEMA_VERSION = 1
 DECISIONS_SCHEMA_VERSION = 1
 DEFAULT_SEASON_ROOT = Path("season")
+# Durable auxiliary canonical-season artifacts (for example the content-addressed
+# move-evidence archive) that live alongside the two canonical files and must
+# survive the atomic directory swap rather than being dropped by it.
+EVIDENCE_DIR_NAME = "evidence"
 
 
 class SeasonStateError(RuntimeError):
@@ -140,6 +144,12 @@ def _write_season_state_atomic(
         if export_context is not None:
             (staging / "export_context.json").write_bytes(_json_bytes(export_context))
             staged_files.append(staging / "export_context.json")
+        # Durable auxiliary artifacts (the content-addressed evidence archive)
+        # are carried forward verbatim so a mutation never drops retained
+        # evidence referenced by decision history.
+        existing_evidence = season_directory / EVIDENCE_DIR_NAME
+        if existing_evidence.is_dir():
+            shutil.copytree(existing_evidence, staging / EVIDENCE_DIR_NAME)
         for staged_file in staged_files:
             with staged_file.open("rb") as handle:
                 os.fsync(handle.fileno())

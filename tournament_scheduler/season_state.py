@@ -70,6 +70,8 @@ __all__ = [
     "calendar_booking_candidates",
     "calendar_booking_findings",
     "change_protection_report",
+    "compact_history",
+    "history_inventory",
     "confirm_calendar_booking",
     "reconcile_calendar_bookings",
     "decisions_path",
@@ -221,6 +223,36 @@ def move_tournament(
         request_id=request_id,
         allow_manual_placement=allow_manual_placement,
         allow_host_confirmation=allow_host_confirmation,
+    )
+
+
+def compact_history(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+    archive: bool = True,
+) -> dict[str, Any]:
+    """Migrate oversized inline move evidence into the durable archive."""
+
+    return _service(root).compact_history(
+        season=season, actor=actor, note=note, dry_run=dry_run, archive=archive
+    )
+
+
+def history_inventory(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    export_root: str | os.PathLike[str] = "export",
+    pipeline_root: str | os.PathLike[str] = ".pipeline",
+) -> dict[str, Any]:
+    """Return a read-only size/shape inventory of canonical state and artifacts."""
+
+    return _service(root).history_inventory(
+        season=season, export_root=export_root, pipeline_root=pipeline_root
     )
 
 

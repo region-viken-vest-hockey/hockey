@@ -1313,6 +1313,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         calendar_booking_candidates,
         calendar_booking_findings,
         change_protection_report,
+        compact_history,
         confirm_calendar_booking,
         decisions_path,
         reconcile_calendar_bookings,
@@ -1321,6 +1322,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         guest_slot_candidates,
         guest_slot_report,
         holiday_date_exception_report,
+        history_inventory,
         move_tournament,
         load_decisions,
         load_export_context,
@@ -1540,6 +1542,75 @@ def _cmd_season(args: argparse.Namespace) -> int:
                         "  [yellow]⚠[/yellow] stale approvals (reapprove or unapprove): "
                         + ", ".join(entry["tournament_id"] for entry in report["stale_approvals"])
                     )
+            return 0
+
+        if args.season_command == "compact-history":
+            report = compact_history(
+                season=args.season,
+                root=args.root,
+                actor=args.actor,
+                note=args.note,
+                dry_run=bool(getattr(args, "dry_run", False)),
+                archive=bool(getattr(args, "archive", True)),
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Compacted decision history for {args.season}[/bold]"
+                    f"{' [dry-run]' if report['dry_run'] else ''}"
+                )
+                _console.print(
+                    f"  moves: {report['history_events']} events, "
+                    f"{report['compacted_moves']} archived, "
+                    f"{report['already_compacted']} already bounded, "
+                    f"{report['dropped_moves']} dropped"
+                )
+                _console.print(
+                    f"  size: {report['before_decisions_chars']} -> "
+                    f"{report['after_decisions_chars']} chars "
+                    f"(saved {report['chars_saved']})"
+                )
+                _console.print(
+                    f"  revision: {report['before_revision']} -> {report['after_revision']}"
+                )
+            return 0
+
+        if args.season_command == "inventory":
+            report = history_inventory(
+                season=args.season,
+                root=args.root,
+                export_root=getattr(args, "export_root", "export"),
+                pipeline_root=getattr(args, "pipeline_root", ".pipeline"),
+            )
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                season_inv = report["season"]
+                export_inv = report["export"]
+                pipeline_inv = report["pipeline"]
+                _console.print(f"[bold]Inventory for {args.season}[/bold]")
+                _console.print(
+                    f"  season: {season_inv['total_bytes']} bytes across "
+                    f"{len(season_inv['files'])} files"
+                )
+                _console.print(
+                    f"  decisions history: {season_inv['history']['events']} events "
+                    f"({', '.join(f'{k}={v}' for k, v in sorted(season_inv['history']['events_by_type'].items()))})"
+                )
+                for event in season_inv["history"]["largest_events"]:
+                    _console.print(
+                        f"    largest event: {event['event']} {event['tournament_id']} "
+                        f"({event['bytes']} bytes)"
+                    )
+                _console.print(
+                    f"  export: {export_inv['directory_count']} directories, "
+                    f"{export_inv['total_bytes']} bytes; "
+                    f"cleanup-eligible superseded: {export_inv['cleanup_eligible_superseded']}"
+                )
+                _console.print(
+                    f"  pipeline: {pipeline_inv['total_bytes']} bytes"
+                )
             return 0
 
         if args.season_command == "lifecycle":

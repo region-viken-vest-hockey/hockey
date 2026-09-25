@@ -54,6 +54,7 @@ from .canonical_season import (
     config_reconciliation as _config_reconciliation,
     constraints as _constraints,
     guest_slots as _guest_slots,
+    history as _history,
     lifecycle as _lifecycle,
     lifecycle_status as _lifecycle_status,
     normalization as _normalization,
@@ -97,6 +98,31 @@ class CanonicalSeasonService:
 
     def season_baseline_show(self, season: str) -> dict[str, Any]:
         return _baseline.season_baseline_show(self, season=season)
+
+    def compact_history(
+        self,
+        *,
+        season: str,
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+        archive: bool = True,
+    ) -> dict[str, Any]:
+        return _history.compact_history(self, season=season, actor=actor, note=note, dry_run=dry_run, archive=archive)
+
+    def history_inventory(
+        self,
+        *,
+        season: str,
+        export_root: str | os.PathLike[str] = "export",
+        pipeline_root: str | os.PathLike[str] = ".pipeline",
+    ) -> dict[str, Any]:
+        return _history.history_inventory(
+            self,
+            season=season,
+            export_root=str(export_root),
+            pipeline_root=str(pipeline_root),
+        )
 
     def season_baseline_create(
         self,

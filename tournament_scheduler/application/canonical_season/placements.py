@@ -5,6 +5,10 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
+from tournament_scheduler.canonical_history_summary import (
+    operational_acceptability_summary,
+    verification_summary,
+)
 from tournament_scheduler.canonical_state import (
     canonical_state_revision,
     schedule_fingerprint,
@@ -319,8 +323,13 @@ def move_tournament(
             "before_fingerprint": before_fingerprint,
             "after_fingerprint": fingerprint,
             "before_canonical_revision": before_canonical_revision,
-            "verification_result": result,
-            "operational_acceptability": operational_acceptability,
+            # The full whole-season verification result is repeated evidence,
+            # not the move event itself: persist a bounded, verifiable summary
+            # (counts + tournament-scoped findings + content hash) instead of
+            # duplicating the full payload in every move entry. The exact full
+            # result stays in the dry-run preview / CLI response above.
+            "verification_summary": verification_summary(result, tournament_id=tournament_id),
+            "operational_acceptability": operational_acceptability_summary(operational_acceptability),
             "run_id": run_id,
         },
     )

@@ -416,6 +416,26 @@ includes `age_group`
 (`participation_acceptance:<club>:<label>:<age_group>:<scope>`); legacy ids are
 migrated explicitly.
 
+Decision history stores bounded provenance, not repeated whole-season evidence.
+A `season move` records a concise, immutable entry (`canonical_history_summary`)
+-- event/actor/timestamp, tournament id, before/after placement, canonical
+revision and fingerprints, request/note, a `verification_summary` (verifier
+`ok`, bounded per-list counts, tournament-scoped finding ids, and a content hash
+of the full result) and a summarized operational-acceptability verdict -- rather
+than embedding the full `verify_candidate` result, which is whole-season
+repeated evidence and once dominated `decisions.json`. The exact full result
+stays in the immediate dry-run/CLI response. When complete per-move evidence
+must be retained, it is stored in a durable, revision-bound, content-addressed
+archive under `season/<season>/evidence/` (`canonical_evidence_archive`), which
+the store's directory swap carries forward and which a reader verifies by
+checksum; a missing/invalid referenced archive fails closed rather than being
+treated as verified. Existing oversized history is migrated deliberately and
+idempotently by `season compact-history`, which preserves every replay-critical
+event in order and asserts the canonical revision, schedule fingerprint and
+event replay are unchanged. `season inventory` is a read-only size/shape report
+of `season/`, `export/` and `.pipeline/` and reports cleanup eligibility only
+through the conservative superseded-export manifest, never by age.
+
 Verifier-derived plan projections have one owner,
 `plan_derived_state.reconcile_plan_derived_state`. Every canonical write and the
 Stage 4 renderer call it, so hosting coverage/imbalance and repair logs,
