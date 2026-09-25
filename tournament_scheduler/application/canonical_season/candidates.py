@@ -13,6 +13,9 @@ from tournament_scheduler.change_protections import (
     append_change_protections,
     protection_violations,
 )
+from tournament_scheduler.participation_withdrawals import (
+    append_withdrawal_records,
+)
 from tournament_scheduler.request_constraints import (
     request_constraint_violations,
 )
@@ -223,6 +226,7 @@ def apply_candidate(
     allow_guest_slot_changes: bool = False,
     _history_event: Mapping[str, Any] | None = None,
     _new_change_protections: list[dict[str, Any]] | None = None,
+    _new_participation_withdrawals: list[dict[str, Any]] | None = None,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
     operation: str = "global_regeneration",
@@ -409,6 +413,8 @@ def apply_candidate(
     }
     if _new_change_protections:
         append_change_protections(updated_decisions, _new_change_protections)
+    if _new_participation_withdrawals:
+        append_withdrawal_records(updated_decisions, _new_participation_withdrawals)
     if _history_event:
         history_tournament_id = str(_history_event.get("tournament_id") or "")
         history_tournament = next(

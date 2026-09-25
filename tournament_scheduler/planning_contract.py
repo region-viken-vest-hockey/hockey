@@ -66,6 +66,9 @@ from tournament_scheduler.effective_tournament_shape import (
 from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
 from tournament_scheduler.operator_waivers import find_participation_waiver
 from tournament_scheduler.participation_targets import SEASON_SCOPE, evaluate_participation
+from tournament_scheduler.participation_withdrawals import (
+    withdrawn_team_count_for_tournament as _withdrawn_team_count_for_tournament,
+)
 from tournament_scheduler.tournament_identity import validate_tournament_identity
 from tournament_scheduler.planning_contract_distribution import (
     home_representation as _home_representation,
@@ -1164,9 +1167,19 @@ def verify_candidate(
         # input-constrained adaptation (the whole pool is too small) is
         # non-blocking evidence instead.
         shape_age_group = str(t.get("age_group") or "")
+        # A recorded participation withdrawal reduces the *eligible* shape pool
+        # for exactly the tournaments it scopes, without rewriting the
+        # registered roster or `valid_teams` (historical participations stay
+        # legal). This is what makes a genuine season/age-group withdrawal legal
+        # while a one-tournament absence without a record still fails closed.
+        shape_registered_count = max(
+            0,
+            registered_count_by_age_group.get(shape_age_group, 0)
+            - _withdrawn_team_count_for_tournament(problem, str(t_id), shape_age_group),
+        )
         shape = compute_effective_tournament_shape(
             shape_age_group,
-            registered_count_by_age_group.get(shape_age_group, 0),
+            shape_registered_count,
             configured_rounds=rounds_per_tournament.get(shape_age_group),
             parallel_game_capacity=parallel_games_capacity.get(shape_age_group),
         )

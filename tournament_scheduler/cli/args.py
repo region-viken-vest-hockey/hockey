@@ -1275,6 +1275,48 @@ def build_parser() -> argparse.ArgumentParser:
     season_replace.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_replace.add_argument("--json", action="store_true", help="Print replacement result as JSON")
 
+    season_remove = season_sub.add_parser(
+        "remove-participant",
+        help=(
+            "Remove one participant from one or more canonical tournaments without a replacement; "
+            "pass --reconcile-withdrawal for a genuine season/age-group withdrawal"
+        ),
+    )
+    season_remove.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_remove.add_argument(
+        "--tournament-id",
+        dest="tournament_ids",
+        action="append",
+        required=True,
+        help="Durable tournament id to remove the participant from (repeatable, comma-separated accepted)",
+    )
+    season_remove.add_argument("--remove-team", required=True, help="Existing participant label to remove")
+    season_remove.add_argument(
+        "--reconcile-withdrawal",
+        action="store_true",
+        help=(
+            "Record a revision-bound season/age-group withdrawal so the eligible shape pool is "
+            "reduced for exactly these tournaments; omit for a one-event absence that fails "
+            "closed if the smaller shape is not independently legal"
+        ),
+    )
+    season_remove.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_remove.add_argument("--actor", default=None, help="Operator identity")
+    season_remove.add_argument("--note", default="", help="Removal/withdrawal note or reason for decisions history")
+    season_remove.add_argument(
+        "--request-id",
+        required=True,
+        help="Stable source/request id recorded on automatic change protections and withdrawal records",
+    )
+    season_remove.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and preview the removal without writing canonical state",
+    )
+    _add_regression_acceptance_flags(season_remove)
+    season_remove.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
+    season_remove.add_argument("--json", action="store_true", help="Print removal result as JSON")
+
     season_swap = season_sub.add_parser(
         "swap-participants",
         help="Swap one participant between two same-age canonical tournaments and verify the full season",

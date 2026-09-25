@@ -92,6 +92,7 @@ __all__ = [
     "normalize_placements",
     "reopen_planning",
     "replace_participant",
+    "remove_participant",
     "rename_teams",
     "swap_participants",
     "participation_acceptance_id",
@@ -280,6 +281,38 @@ def replace_participant(
         note=note,
         dry_run=dry_run,
         request_id=request_id,
+    )
+
+
+def remove_participant(
+    *,
+    season: str,
+    tournament_ids: list[str],
+    remove_team_label: str,
+    reconcile_withdrawal: bool = False,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+    request_id: str | None = None,
+    accept_regressions: list[Any] | None = None,
+    accept_regression_reason: str | None = None,
+) -> dict[str, Any]:
+    """Remove one participant from one or more same-age canonical tournaments."""
+
+    return _service(root).remove_participant(
+        season=season,
+        tournament_ids=tournament_ids,
+        remove_team_label=remove_team_label,
+        reconcile_withdrawal=reconcile_withdrawal,
+        problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+        request_id=request_id,
+        accept_regressions=accept_regressions,
+        accept_regression_reason=accept_regression_reason,
     )
 
 

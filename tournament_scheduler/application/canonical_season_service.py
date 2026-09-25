@@ -63,6 +63,7 @@ from .canonical_season import (
     replacement as _replacement,
     roster as _roster,
     team_rename as _team_rename,
+    withdrawal as _withdrawal,
 )
 from .canonical_season.shared import (
     APPROVED_STATUS,
@@ -344,6 +345,23 @@ class CanonicalSeasonService:
     ) -> dict[str, Any]:
         return _replacement.replace_participant(self, season=season, tournament_id=tournament_id, remove_team_label=remove_team_label, add_team_label=add_team_label, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id)
 
+    def remove_participant(
+        self,
+        *,
+        season: str,
+        tournament_ids: list[str],
+        remove_team_label: str,
+        reconcile_withdrawal: bool = False,
+        problem: dict[str, Any] | None = None,
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+        request_id: str | None = None,
+        accept_regressions: list[Any] | None = None,
+        accept_regression_reason: str | None = None,
+    ) -> dict[str, Any]:
+        return _withdrawal.remove_participant(self, season=season, tournament_ids=tournament_ids, remove_team_label=remove_team_label, reconcile_withdrawal=reconcile_withdrawal, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, accept_regressions=accept_regressions, accept_regression_reason=accept_regression_reason)
+
     def batch_maintenance(
         self,
         *,
@@ -387,12 +405,13 @@ class CanonicalSeasonService:
         allow_guest_slot_changes: bool = False,
         _history_event: Mapping[str, Any] | None = None,
         _new_change_protections: list[dict[str, Any]] | None = None,
+        _new_participation_withdrawals: list[dict[str, Any]] | None = None,
         allow_manual_placement: bool = False,
         allow_host_confirmation: bool = False,
         operation: str = "global_regeneration",
         _scoped_authorization: Any | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation, _scoped_authorization=_scoped_authorization)
+        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, _new_participation_withdrawals=_new_participation_withdrawals, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation, _scoped_authorization=_scoped_authorization)
 
     def season_lifecycle_report(self, season: str) -> dict[str, Any]:
         return _lifecycle_status.season_lifecycle_report(self, season=season)

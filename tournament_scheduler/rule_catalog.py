@@ -158,12 +158,23 @@ _HARD: tuple[RuleEntry, ...] = (
             "input-constrained scarce shape is surfaced separately, never as a soft preference."
         ),
         canonical_owner="tournament_scheduler.effective_tournament_shape",
-        input_source="planning_problem registered pool + rounds_per_tournament",
+        input_source=(
+            "planning_problem registered pool + rounds_per_tournament, reduced per tournament by "
+            "scoped revision-bound participation_withdrawals records "
+            "(tournament_scheduler.participation_withdrawals); the registered roster is never rewritten"
+        ),
         verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
-        mutation_providers=("tournament_scheduler.participant_roster_sizing",),
+        mutation_providers=(
+            "tournament_scheduler.participant_roster_sizing",
+            "tournament_scheduler.application.canonical_season.withdrawal",
+        ),
         search_providers=("tournament_scheduler.participant_roster_repair",),
         evidence_projection=("verify_candidate.violations", "verify_candidate.input_constrained_shapes"),
-        tests=("tests/test_effective_tournament_shape.py", "tests/test_planning_contract.py"),
+        tests=(
+            "tests/test_effective_tournament_shape.py",
+            "tests/test_planning_contract.py",
+            "tests/test_participant_removal.py",
+        ),
         verifier_codes=("bye_team_not_allowed",),
         finding_codes=("input_constrained_shape",),
     ),

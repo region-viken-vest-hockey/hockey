@@ -1340,6 +1340,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         request_constraint_report,
         reserve_guest_slot,
         replace_participant,
+        remove_participant,
         rename_teams,
         schedule_path,
         swap_participants,
@@ -2154,6 +2155,39 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     _console.print(
                         f"  {source['club']} {source['age_group']}: {source['label']} -> {target['label']}"
                     )
+            return 0
+
+
+        if args.season_command == "remove-participant":
+            tournament_ids: list[str] = []
+            for item in args.tournament_ids or []:
+                tournament_ids.extend(part.strip() for part in str(item).split(",") if part.strip())
+            result = remove_participant(
+                season=args.season,
+                tournament_ids=tournament_ids,
+                remove_team_label=args.remove_team,
+                reconcile_withdrawal=bool(args.reconcile_withdrawal),
+                root=args.root,
+                problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
+                actor=args.actor,
+                note=args.note,
+                dry_run=bool(args.dry_run),
+                request_id=args.request_id,
+                accept_regressions=getattr(args, "accept_team_regressions", None),
+                accept_regression_reason=getattr(args, "accept_regression_reason", None),
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                action = "Validated participant-removal preview" if result["dry_run"] else "Removed participant"
+                removal = result["removal"]
+                _console.print(
+                    f"[green]✓[/green] {action}: {removal['removed_team']['label']} from "
+                    + ", ".join(removal["tournament_ids"])
+                    + (" (season withdrawal reconciled)" if removal.get("reconcile_withdrawal") else "")
+                )
+                revision = result.get("candidate_revision") if result["dry_run"] else result.get("revision")
+                _console.print(f"  revision: {revision}")
             return 0
 
 

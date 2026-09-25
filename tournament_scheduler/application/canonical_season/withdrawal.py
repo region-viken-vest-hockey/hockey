@@ -1,0 +1,474 @@
+"""Scoped participant removal and season/age-group withdrawal mutations.
+
+This module owns the canonical participant-removal use case. Two related but
+deliberately distinct outcomes share one atomic operation:
+
+* **one-tournament participant absence** -- remove one participant from one
+  tournament and regenerate its games *without* changing the registered
+  eligible pool. If the reduced shape is avoidably underfilled the operation
+  fails closed; the operator must make an explicit withdrawal decision.
+* **genuine season/age-group withdrawal** -- the same removal, together with a
+  revision-bound :mod:`tournament_scheduler.participation_withdrawals` record
+  that reduces the *eligible* shape pool for exactly the affected tournaments.
+  The registered roster and any historical participation are preserved.
+
+Both paths share the single canonical load -> mutate -> verify -> reconcile ->
+history -> revision -> atomic-write lifecycle. No date, host, arena or booked
+occupancy interval is changed, and completed tournaments are never rewritten.
+"""
+
+from __future__ import annotations
+
+import copy
+from typing import Any, Mapping
+
+from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
+from tournament_scheduler.canonical_history_summary import verification_summary
+from tournament_scheduler.canonical_state import (
+    canonical_state_revision,
+    schedule_fingerprint,
+)
+from tournament_scheduler.change_protections import (
+    build_net_roster_protections,
+    protection_violations,
+)
+from tournament_scheduler.infrastructure.canonical_season_store import (
+    SeasonStateError,
+)
+from tournament_scheduler.participation_withdrawals import (
+    build_withdrawal_records,
+    project_into_problem,
+    team_identity as _team_identity,
+)
+from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.request_constraints import request_constraint_violations
+
+from .replacement import _affected_participation_counts
+from .shared import (
+    _operator_identity,
+    _now_iso,
+    _resolve_plan_problem,
+    _regenerate_tournament_games,
+    _guest_reservation_signature,
+)
+
+
+def _apply_remove_participant_to_plan(
+    plan: dict[str, Any],
+    *,
+    tournament_id: str,
+    remove_team_label: str,
+    problem: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Remove one RVV participant from one tournament and regenerate its games."""
+
+    tournaments = plan.get("tournaments", []) or []
+    target = next((t for t in tournaments if str(t.get("id") or "") == tournament_id), None)
+    if target is None:
+        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+    if target.get("cancelled"):
+        raise SeasonStateError(f"Tournament {tournament_id} is cancelled and cannot participate in a roster removal")
+    age_group = str(target.get("age_group") or "")
+
+    matches = [
+        (index, team)
+        for index, team in enumerate(target.get("teams", []) or [])
+        if str(team.get("label") or "") == remove_team_label
+    ]
+    if not matches:
+        raise SeasonStateError(f"Team {remove_team_label!r} is not a participant in tournament {tournament_id}")
+    if len(matches) > 1:
+        raise SeasonStateError(f"Team label {remove_team_label!r} is ambiguous in tournament {tournament_id}")
+    index, removed_team = matches[0]
+    if bool(removed_team.get("guest", False)):
+        raise SeasonStateError(
+            f"Team {remove_team_label!r} in tournament {tournament_id} is a guest participant; "
+            "use the guest-slot lifecycle instead"
+        )
+
+    removed_identity = _team_identity(removed_team, age_group)
+    if removed_identity[2] != age_group:
+        raise SeasonStateError(
+            f"Cannot remove {remove_team_label!r}: participant age group "
+            f"{removed_identity[2] or '<missing>'} does not match tournament {age_group}"
+        )
+
+    before_fingerprint = approval_fingerprint(target)
+    del target["teams"][index]
+    _regenerate_tournament_games(target, problem)
+    return {
+        "tournament": target,
+        "removed_team": copy.deepcopy(removed_team),
+        "removed_identity": removed_identity,
+        "age_group": age_group,
+        "before_fingerprint": before_fingerprint,
+    }
+
+
+def _remaining_team_identities(
+    plan: Mapping[str, Any],
+    tournament_ids: list[str],
+) -> tuple[tuple[str, str, str], ...]:
+    """Return the distinct non-guest participants left in the affected scope."""
+
+    wanted = {str(item) for item in tournament_ids}
+    identities: set[tuple[str, str, str]] = set()
+    for tournament in plan.get("tournaments", []) or []:
+        if str(tournament.get("id") or "") not in wanted:
+            continue
+        age_group = str(tournament.get("age_group") or "")
+        for team in tournament.get("teams", []) or []:
+            if bool(team.get("guest", False)):
+                continue
+            identities.add(_team_identity(team, age_group))
+    return tuple(sorted(identities))
+
+
+def remove_participant(
+    service,
+    *,
+    season: str,
+    tournament_ids: list[str],
+    remove_team_label: str,
+    reconcile_withdrawal: bool = False,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+    request_id: str | None = None,
+    accept_regressions: list[Any] | None = None,
+    accept_regression_reason: str | None = None,
+) -> dict[str, Any]:
+    """Remove one participant from one or more same-age canonical tournaments."""
+
+    resolved_request_id = str(request_id or "").strip()
+    if not resolved_request_id:
+        raise SeasonStateError(
+            "Refusing canonical participant removal: a stable --request-id is required so the "
+            "operation is auditable and revision-bound"
+        )
+    resolved_tournament_ids = [str(item).strip() for item in tournament_ids if str(item).strip()]
+    if not resolved_tournament_ids:
+        raise SeasonStateError("Refusing canonical participant removal: at least one --tournament-id is required")
+    if len(set(resolved_tournament_ids)) != len(resolved_tournament_ids):
+        raise SeasonStateError("Refusing canonical participant removal: duplicate --tournament-id values")
+
+    snapshot = service.load(season)
+    schedule, decisions = snapshot.schedule, snapshot.decisions
+    resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
+    if resolved_problem is None:
+        raise SeasonStateError(
+            "Participant removal requires a promoted verification-context problem so the "
+            "candidate shape, hosting responsibility and pool legality can be verified"
+        )
+    before_plan = schedule.get("plan") or {}
+    plan = copy.deepcopy(before_plan)
+    before_canonical_revision = canonical_state_revision(schedule, decisions)
+
+    by_id = {
+        str(tournament.get("id") or ""): tournament
+        for tournament in plan.get("tournaments", []) or []
+        if tournament.get("id")
+    }
+    age_groups: set[str] = set()
+    for tournament_id in resolved_tournament_ids:
+        tournament = by_id.get(tournament_id)
+        if tournament is None:
+            raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+        if tournament.get("cancelled"):
+            raise SeasonStateError(
+                f"Tournament {tournament_id} is cancelled and cannot participate in a roster removal"
+            )
+        age_groups.add(str(tournament.get("age_group") or ""))
+        resolved = resolve_approval(
+            decisions.get("decisions", {}).get(tournament_id, {}),
+            tournament,
+        )
+        if resolved["participants_locked"]:
+            raise SeasonStateError(
+                f"Tournament {tournament_id} has an active participant lock; unapprove it explicitly first"
+            )
+    if len(age_groups) != 1:
+        raise SeasonStateError(
+            "Refusing canonical participant removal: all affected tournaments must share one age "
+            "group so the removed team identity is unambiguous"
+        )
+    age_group = next(iter(age_groups))
+
+    removals = [
+        _apply_remove_participant_to_plan(
+            plan,
+            tournament_id=tournament_id,
+            remove_team_label=remove_team_label,
+            problem=resolved_problem,
+        )
+        for tournament_id in resolved_tournament_ids
+    ]
+    removed_identities = {removal["removed_identity"] for removal in removals}
+    if len(removed_identities) != 1:
+        raise SeasonStateError(
+            "Refusing canonical participant removal: the label resolves to different team "
+            "identities across the affected tournaments"
+        )
+    removed_identity = next(iter(removed_identities))
+    removed_team = removals[0]["removed_team"]
+
+    if reconcile_withdrawal:
+        registered = [
+            team
+            for team in resolved_problem.get("teams", []) or []
+            if isinstance(team, Mapping) and _team_identity(team, age_group) == removed_identity
+        ]
+        if not registered:
+            raise SeasonStateError(
+                f"Refusing withdrawal reconciliation: {remove_team_label!r} is not a registered "
+                f"{age_group} participant in the canonical problem"
+            )
+    else:
+        # Fail closed before the expensive gates: without a withdrawal record the
+        # full registered pool is used, so an avoidably underfilled result is
+        # never silently accepted as a one-event absence.
+        preview = verify_candidate(copy.deepcopy(plan), resolved_problem)
+        shape_violations = [
+            violation
+            for violation in preview.get("violations", [])
+            if violation.get("code") == "bye_team_not_allowed"
+            and str(violation.get("tournament_id") or "") in set(resolved_tournament_ids)
+        ]
+        if shape_violations:
+            messages = "; ".join(str(item.get("message")) for item in shape_violations)
+            raise SeasonStateError(
+                "Refusing canonical participant removal: removing the participant would leave an "
+                "avoidably underfilled shape and no withdrawal reconciliation was requested. "
+                "Re-run with --reconcile-withdrawal only for a genuine season/age-group "
+                "withdrawal. " + messages
+            )
+
+    request_actor = _operator_identity(actor)
+    created_at = _now_iso()
+    withdrawal_records = (
+        build_withdrawal_records(
+            team=removed_team,
+            tournament_ids=resolved_tournament_ids,
+            request_id=resolved_request_id,
+            actor=request_actor,
+            note=note,
+            created_at=created_at,
+            source_revision=before_canonical_revision,
+        )
+        if reconcile_withdrawal
+        else []
+    )
+    verification_problem = project_into_problem(resolved_problem, records=withdrawal_records)
+
+    from tournament_scheduler.canonical_baseline import (
+        build_canonical_baseline,
+        change_cost,
+        verify_canonical_locks,
+    )
+
+    baseline = build_canonical_baseline(schedule, decisions)
+    lock_violations = verify_canonical_locks(baseline, plan)
+    if lock_violations:
+        messages = "; ".join(str(v.get("message")) for v in lock_violations)
+        raise SeasonStateError(
+            f"Refusing canonical participant removal: candidate violates canonical locks: {messages}"
+        )
+
+    result = verify_candidate(plan, verification_problem)
+    if not result.get("ok", True):
+        messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
+        raise SeasonStateError(f"Refusing canonical participant removal: candidate fails hard verification: {messages}")
+
+    from tournament_scheduler.hosting_responsibility import (
+        unexplained_responsibility_transfers,
+    )
+
+    transfers = unexplained_responsibility_transfers(
+        before_plan,
+        plan,
+        verification_problem,
+    )
+    if transfers:
+        messages = "; ".join(str(entry.get("message")) for entry in transfers)
+        raise SeasonStateError(
+            f"Refusing canonical participant removal: candidate transfers hosting responsibility: {messages}"
+        )
+
+    before_guest_signature = _guest_reservation_signature(before_plan)
+    after_guest_signature = _guest_reservation_signature(plan)
+    guest_integrity_ok = before_guest_signature == after_guest_signature
+    reconcile_plan_derived_state(plan, result, problem=verification_problem)
+    existing_protection_violations = protection_violations(plan, decisions)
+    constraint_violations = request_constraint_violations(plan, decisions)
+    candidate_revision = schedule_fingerprint(plan)
+    cost = change_cost(baseline, plan)
+
+    from tournament_scheduler.team_schedule_quality import (
+        RegressionAcceptanceError,
+        compare_changed_team_schedule_consequence,
+        evaluate_regression_acceptances,
+        parse_regression_acceptances,
+        regression_acceptance_refusals,
+    )
+
+    try:
+        regression_acceptances = parse_regression_acceptances(accept_regressions, accept_regression_reason)
+    except RegressionAcceptanceError as exc:
+        raise SeasonStateError(f"Refusing canonical participant removal: {exc}") from exc
+
+    # The withdrawn team's own participation shortfall is the operator's
+    # deliberate decision, reported for audit but not a schedule-quality
+    # regression. Only the *remaining* teams in the affected scope can block the
+    # operation.
+    removed_consequence = compare_changed_team_schedule_consequence(
+        before_plan,
+        plan,
+        removed_identity,
+        problem=verification_problem,
+        membership_role="removed",
+    )
+    team_consequences: dict[str, Any] = {}
+    for identity in _remaining_team_identities(plan, resolved_tournament_ids):
+        if identity == removed_identity:
+            continue
+        key = "|".join(str(part) for part in identity)
+        if key in team_consequences:
+            continue
+        team_consequences[key] = compare_changed_team_schedule_consequence(
+            before_plan,
+            plan,
+            identity,
+            problem=verification_problem,
+            membership_role="retained",
+        )
+    regression_acceptance = evaluate_regression_acceptances(team_consequences, regression_acceptances)
+    consequence_acceptable = bool(regression_acceptance["acceptable"])
+
+    participation_counts = _affected_participation_counts(
+        before_plan,
+        plan,
+        (removed_identity,),
+        verification_problem,
+    )
+    new_protections = build_net_roster_protections(
+        before_plan=before_plan,
+        after_plan=plan,
+        tournament_ids=resolved_tournament_ids,
+        request_id=resolved_request_id,
+        actor=request_actor,
+        note=note,
+        created_at=created_at,
+        source_revision=before_canonical_revision,
+        source_event="participant_removal",
+    )
+    details = {
+        "tournament_ids": list(resolved_tournament_ids),
+        "age_group": age_group,
+        "removed_team": {"club": removed_identity[0], "label": removed_identity[1]},
+        "reconcile_withdrawal": bool(reconcile_withdrawal),
+        "regenerated_games": {
+            removal["tournament"].get("id"): len(removal["tournament"].get("games") or []) for removal in removals
+        },
+        "candidate_revision": candidate_revision,
+        "verification_summary": verification_summary(result, tournament_id=resolved_tournament_ids[0]),
+        "guest_reservation_integrity": {
+            "ok": guest_integrity_ok,
+            "before": before_guest_signature,
+            "after": after_guest_signature,
+        },
+        "hosting_responsibility_transfers": transfers,
+        "hosting_responsibility_ok": not transfers,
+        "removed_team_consequence": removed_consequence,
+        "team_consequences": team_consequences,
+        "participation_counts": participation_counts,
+        "consequence_acceptable": consequence_acceptable,
+        "regression_acceptance": regression_acceptance,
+        "existing_change_protection_violations": existing_protection_violations,
+        "change_protection_acceptable": not existing_protection_violations,
+        "request_constraint_violations": constraint_violations,
+        "request_constraint_acceptable": not constraint_violations,
+        "protections_to_add": new_protections,
+        "withdrawals_to_add": withdrawal_records,
+        "request_id": resolved_request_id,
+        "can_apply_unchanged": bool(
+            result.get("ok", True)
+            and guest_integrity_ok
+            and not transfers
+            and not existing_protection_violations
+            and not constraint_violations
+            and consequence_acceptable
+        ),
+    }
+
+    if dry_run:
+        preview_details = dict(details)
+        preview_details["verification_result"] = result
+        return {
+            "season": season,
+            "dry_run": True,
+            "current_revision": schedule.get("revision"),
+            "current_fingerprint": schedule.get("fingerprint"),
+            "candidate_revision": candidate_revision,
+            "candidate_fingerprint": candidate_revision,
+            "verification_result": result,
+            "change_cost": cost,
+            "removal": preview_details,
+        }
+
+    if not guest_integrity_ok:
+        raise SeasonStateError("Refusing canonical participant removal: it would change reserved guest slots")
+    if existing_protection_violations:
+        messages = "; ".join(str(item.get("message")) for item in existing_protection_violations)
+        raise SeasonStateError("Refusing canonical participant removal: it would undo an accepted change: " + messages)
+    if constraint_violations:
+        messages = "; ".join(str(item.get("message")) for item in constraint_violations)
+        raise SeasonStateError(
+            "Refusing canonical participant removal: it violates an active request constraint: " + messages
+        )
+    if not consequence_acceptable:
+        reasons = regression_acceptance_refusals(regression_acceptance)
+        raise SeasonStateError("Refusing canonical participant removal: " + "; ".join(reasons))
+
+    from .scoped_mutation import authorize_participant_removal
+
+    scoped_authorization = authorize_participant_removal(
+        schedule=schedule,
+        decisions=decisions,
+        candidate=plan,
+        tournament_ids=resolved_tournament_ids,
+        remove_team_label=remove_team_label,
+        team=removed_team,
+        reconcile_withdrawal=bool(reconcile_withdrawal),
+        request_id=resolved_request_id,
+        actor=request_actor,
+        note=note,
+        created_at=created_at,
+    )
+    updated_schedule, updated_decisions, applied_cost = service.apply_candidate(
+        season=season,
+        candidate=plan,
+        problem=verification_problem,
+        actor=actor,
+        operation="targeted_mutation",
+        _scoped_authorization=scoped_authorization,
+        _new_change_protections=new_protections,
+        _new_participation_withdrawals=withdrawal_records,
+        _history_event={
+            "event": "participant_removal",
+            "tournament_id": resolved_tournament_ids[0],
+            "previous_fingerprint": removals[0]["before_fingerprint"],
+            "note": note,
+            "details": details,
+        },
+    )
+    return {
+        "season": season,
+        "dry_run": False,
+        "revision": updated_schedule.get("revision"),
+        "canonical_state_revision": canonical_state_revision(updated_schedule, updated_decisions),
+        "verification_result": result,
+        "change_cost": applied_cost,
+        "removal": details,
+    }
