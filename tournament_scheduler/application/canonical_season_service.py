@@ -296,8 +296,10 @@ class CanonicalSeasonService:
         note: str = "",
         dry_run: bool = False,
         request_id: str | None = None,
+        accept_regressions: list[Any] | None = None,
+        accept_regression_reason: str | None = None,
     ) -> dict[str, Any]:
-        return _roster.swap_participants(self, season=season, tournament_a_id=tournament_a_id, team_a_label=team_a_label, tournament_b_id=tournament_b_id, team_b_label=team_b_label, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id)
+        return _roster.swap_participants(self, season=season, tournament_a_id=tournament_a_id, team_a_label=team_a_label, tournament_b_id=tournament_b_id, team_b_label=team_b_label, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, accept_regressions=accept_regressions, accept_regression_reason=accept_regression_reason)
 
     def replace_participant(
         self,
@@ -327,8 +329,10 @@ class CanonicalSeasonService:
         request_id: str | None = None,
         allow_manual_placement: bool = False,
         allow_host_confirmation: bool = False,
+        accept_regressions: list[Any] | None = None,
+        accept_regression_reason: str | None = None,
     ) -> dict[str, Any]:
-        return _batch.batch_maintenance(self, season=season, operations=operations, scope=scope, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation)
+        return _batch.batch_maintenance(self, season=season, operations=operations, scope=scope, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, accept_regressions=accept_regressions, accept_regression_reason=accept_regression_reason)
 
     def rename_teams(
         self,

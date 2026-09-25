@@ -2073,6 +2073,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 note=args.note,
                 dry_run=bool(args.dry_run),
                 request_id=args.request_id,
+                accept_regressions=getattr(args, "accept_team_regressions", None),
+                accept_regression_reason=getattr(args, "accept_regression_reason", None),
             )
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
@@ -2124,6 +2126,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 request_id=args.request_id,
                 allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
                 allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
+                accept_regressions=getattr(args, "accept_team_regressions", None),
+                accept_regression_reason=getattr(args, "accept_regression_reason", None),
             )
             if args.json:
                 print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))

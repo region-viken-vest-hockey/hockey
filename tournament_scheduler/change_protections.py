@@ -100,6 +100,83 @@ def build_swap_protections(
     return records
 
 
+def build_net_roster_protections(
+    *,
+    before_plan: Mapping[str, Any],
+    after_plan: Mapping[str, Any],
+    tournament_ids: list[str] | set[str],
+    request_id: str,
+    actor: str,
+    note: str,
+    created_at: str,
+    source_revision: str,
+    source_event: str = "participant_swap",
+) -> list[dict[str, Any]]:
+    """Protect the net roster change of the given tournaments.
+
+    Derived from the original -> final membership per (tournament, full team
+    identity), so chained operations protect only their result: a transient
+    assignment (three-team rotation) or a change that is undone within the
+    same operation set (swap and swap back) creates no protection.
+    """
+
+    def rosters(plan: Mapping[str, Any]) -> dict[str, dict[tuple[str, str, str], dict[str, str]]]:
+        result: dict[str, dict[tuple[str, str, str], dict[str, str]]] = {}
+        for tournament in plan.get("tournaments", []) or []:
+            tournament_id = str(tournament.get("id") or "")
+            if tournament_id not in wanted:
+                continue
+            age_group = str(tournament.get("age_group") or "")
+            members: dict[tuple[str, str, str], dict[str, str]] = {}
+            for team in tournament.get("teams", []) or []:
+                if bool(team.get("guest", False)):
+                    continue
+                identity = team_identity(team, age_group)
+                members[identity] = {
+                    "club": identity[0],
+                    "label": identity[1],
+                    "age_group": identity[2],
+                }
+            result[tournament_id] = members
+        return result
+
+    wanted = {str(item) for item in tournament_ids}
+    before = rosters(before_plan)
+    after = rosters(after_plan)
+    records: list[dict[str, Any]] = []
+    for tournament_id in sorted(wanted):
+        before_members = before.get(tournament_id, {})
+        after_members = after.get(tournament_id, {})
+        changes = [
+            (MUST_PARTICIPATE, after_members[identity])
+            for identity in sorted(set(after_members) - set(before_members))
+        ] + [
+            (MUST_NOT_PARTICIPATE, before_members[identity])
+            for identity in sorted(set(before_members) - set(after_members))
+        ]
+        for kind, team in changes:
+            record = {
+                "kind": kind,
+                "status": ACTIVE,
+                "team": dict(team),
+                "tournament_id": tournament_id,
+                "request_id": request_id,
+                "created_at": created_at,
+                "created_by": actor,
+                "note": note or "",
+                "source_event": source_event,
+            }
+            record["id"] = _protection_id(
+                kind=kind,
+                team=record["team"],
+                tournament_id=tournament_id,
+                request_id=request_id,
+                source_revision=source_revision,
+            )
+            records.append(record)
+    return records
+
+
 def build_participant_replacement_protections(
     *,
     removed_team: Mapping[str, Any],
@@ -285,6 +362,7 @@ __all__ = [
     "active_change_protections",
     "append_change_protections",
     "build_move_protections",
+    "build_net_roster_protections",
     "build_participant_replacement_protections",
     "build_swap_protections",
     "protection_violations",

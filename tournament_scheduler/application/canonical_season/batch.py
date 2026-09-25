@@ -13,7 +13,7 @@ from tournament_scheduler.canonical_state import (
 from tournament_scheduler.change_protections import (
     append_change_protections,
     build_move_protections,
-    build_swap_protections,
+    build_net_roster_protections,
     protection_violations,
 )
 from tournament_scheduler.request_constraints import (
@@ -162,6 +162,8 @@ def batch_maintenance(
     request_id: str | None = None,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
+    accept_regressions: list[Any] | None = None,
+    accept_regression_reason: str | None = None,
 ) -> dict[str, Any]:
     """Compose several canonical mutations against one in-memory candidate.
 
@@ -189,6 +191,19 @@ def batch_maintenance(
         raise SeasonStateError(
             "Refusing canonical batch: a stable --request-id is required so the batch is auditable"
         )
+    from tournament_scheduler.team_schedule_quality import (
+        RegressionAcceptanceError,
+        evaluate_regression_acceptances,
+        parse_regression_acceptances,
+        regression_acceptance_refusals,
+    )
+
+    try:
+        regression_acceptances = parse_regression_acceptances(
+            accept_regressions, accept_regression_reason
+        )
+    except RegressionAcceptanceError as exc:
+        raise SeasonStateError(f"Refusing canonical batch: {exc}") from exc
     scope_ids = {str(item).strip() for item in (scope or []) if str(item).strip()}
     if not scope_ids:
         raise SeasonStateError(
@@ -266,19 +281,6 @@ def batch_maintenance(
                 team_b_label=operation["team_b"],
                 problem=resolved_problem,
             )
-            new_protections.extend(
-                build_swap_protections(
-                    team_a=result["team_a"],
-                    tournament_a_id=operation["tournament_a"],
-                    team_b=result["team_b"],
-                    tournament_b_id=operation["tournament_b"],
-                    request_id=resolved_request_id,
-                    actor=resolved_actor,
-                    note=note,
-                    created_at=now,
-                    source_revision=before_canonical_revision,
-                )
-            )
             applied_swaps.append(
                 {
                     "tournament_a_id": operation["tournament_a"],
@@ -312,6 +314,23 @@ def batch_maintenance(
         for tournament in candidate_plan.get("tournaments", []) or []
         if tournament.get("id")
     }
+
+    # Roster protections, like placement protections below, are derived from
+    # the original -> final membership, so chained swaps protect only their
+    # net result (no transient or undone assignment is protected).
+    if applied_swaps:
+        new_protections.extend(
+            build_net_roster_protections(
+                before_plan=before_plan,
+                after_plan=candidate_plan,
+                tournament_ids=scope_ids,
+                request_id=resolved_request_id,
+                actor=resolved_actor,
+                note=note,
+                created_at=now,
+                source_revision=before_canonical_revision,
+            )
+        )
 
     # Placement protections are derived from the final pre-batch -> final
     # difference, so a repeated move of one tournament protects the result.
@@ -399,26 +418,24 @@ def batch_maintenance(
             compare_team_schedule_consequence,
         )
 
+        # Each affected team is analysed once, original -> final plan, keyed by
+        # its full identity: chained swaps may move several distinct teams
+        # with one label through the same tournament.
         for swap in applied_swaps:
-            for tournament_key, team_key, identity in (
-                ("tournament_a_id", "team_a", swap["identity_a"]),
-                ("tournament_b_id", "team_b", swap["identity_b"]),
-            ):
-                key = f"{swap[tournament_key]}:{swap[team_key]['label']}"
+            for identity in (swap["identity_a"], swap["identity_b"]):
+                key = "|".join(str(part) for part in identity)
+                if key in team_consequences:
+                    continue
                 team_consequences[key] = compare_team_schedule_consequence(
                     before_plan,
                     candidate_plan,
-                    identity,
+                    tuple(identity),
                     problem=resolved_problem,
                 )
-    consequence_acceptable = (
-        all(
-            analysis.get("acceptable", False)
-            for analysis in team_consequences.values()
-        )
-        if team_consequences
-        else True
+    regression_acceptance = evaluate_regression_acceptances(
+        team_consequences, regression_acceptances
     )
+    consequence_acceptable = bool(regression_acceptance["acceptable"])
 
     reconcile_plan_derived_state(
         candidate_plan, verification_result, problem=resolved_problem
@@ -458,10 +475,10 @@ def batch_maintenance(
             f"final candidate leaves {len(constraint_violations)} active "
             "request-constraint violation(s)"
         )
-    if not consequence_acceptable:
-        refusal_reasons.append(
-            "final candidate materially worsens an affected team's schedule"
-        )
+    refusal_reasons.extend(
+        f"final candidate {reason}" if reason.startswith("materially") else reason
+        for reason in regression_acceptance_refusals(regression_acceptance)
+    )
 
     updated_schedule = {
         **schedule,
@@ -513,6 +530,7 @@ def batch_maintenance(
         "request_constraint_acceptable": not constraint_violations,
         "team_consequences": team_consequences,
         "consequence_acceptable": consequence_acceptable,
+        "regression_acceptance": regression_acceptance,
         "change_cost": candidate_cost,
         "protections_to_add": new_protections,
         "refused": bool(refusal_reasons),
@@ -563,6 +581,7 @@ def batch_maintenance(
             ],
             "verification_ok": bool(verification_result.get("ok", True)),
             "operational_acceptable": bool(operational_acceptability.get("ok")),
+            "accepted_regressions": regression_acceptance["accepted_regressions"],
         },
     )
     updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
