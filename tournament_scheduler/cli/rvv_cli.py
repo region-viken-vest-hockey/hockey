@@ -1545,12 +1545,20 @@ def _cmd_season(args: argparse.Namespace) -> int:
             return 0
 
         if args.season_command == "compact-history":
+            dry_run = bool(getattr(args, "dry_run", False))
+            apply_flag = bool(getattr(args, "apply", False))
+            if dry_run and apply_flag:
+                _console.print("[red]✗[/red] Specify only one of --dry-run or --apply.")
+                return 2
+            if not dry_run and not apply_flag:
+                _console.print("[red]✗[/red] Specify --dry-run to preview or --apply to apply the compaction.")
+                return 2
             report = compact_history(
                 season=args.season,
                 root=args.root,
                 actor=args.actor,
                 note=args.note,
-                dry_run=bool(getattr(args, "dry_run", False)),
+                dry_run=dry_run,
                 archive=bool(getattr(args, "archive", True)),
             )
             if args.json:
@@ -1574,6 +1582,18 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(
                     f"  revision: {report['before_revision']} -> {report['after_revision']}"
                 )
+                backup = report.get("backup")
+                if isinstance(backup, dict):
+                    if report.get("dry_run"):
+                        _console.print(
+                            f"  backup (would create): {backup.get('backup_id')} "
+                            f"({backup.get('decisions_bytes')} bytes)"
+                        )
+                    else:
+                        _console.print(
+                            f"  backup: {backup.get('backup_id')} "
+                            f"({backup.get('decisions_bytes')} bytes)"
+                        )
             return 0
 
         if args.season_command == "inventory":
@@ -1611,6 +1631,14 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(
                     f"  pipeline: {pipeline_inv['total_bytes']} bytes"
                 )
+                backups = season_inv.get("compaction_backups") or []
+                _console.print(f"  compaction backups: {len(backups)}")
+                for backup in backups[:5]:
+                    _console.print(
+                        f"    {backup.get('backup_id', '')[:12]} "
+                        f"({backup.get('decisions_bytes')} bytes, "
+                        f"{backup.get('compacted_event_indices') and len(backup['compacted_event_indices'])} events)"
+                    )
             return 0
 
         if args.season_command == "lifecycle":

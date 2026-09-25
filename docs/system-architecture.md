@@ -430,9 +430,19 @@ archive under `season/<season>/evidence/` (`canonical_evidence_archive`), which
 the store's directory swap carries forward and which a reader verifies by
 checksum; a missing/invalid referenced archive fails closed rather than being
 treated as verified. Existing oversized history is migrated deliberately and
-idempotently by `season compact-history`, which preserves every replay-critical
-event in order and asserts the canonical revision, schedule fingerprint and
-event replay are unchanged. `season inventory` is a read-only size/shape report
+idempotently by `season compact-history` (explicit `--dry-run` to preview or
+`--apply` to commit). The narrow transform extracts *only* the oversized
+`verification_result`; every other event field, including the full
+operational-acceptability verdict, is preserved verbatim. Before any mutation
+the complete original `decisions.json` is backed up byte-for-byte into a
+content-addressed, checksum-verified archive with a migration manifest under
+`season/<season>/evidence/backup/` (`canonical_compaction_backup`), so the
+migration is reversible and auditable; a failed swap leaves the original state
+intact and the backup is never duplicated on an idempotent re-run. Compaction
+preserves every replay-critical event in order and asserts the canonical
+revision, schedule fingerprint, full semantic projection and (for sealed
+seasons) published-baseline replay/reconciliation are unchanged before
+committing. `season inventory` is a read-only size/shape report
 of `season/`, `export/` and `.pipeline/` and reports cleanup eligibility only
 through the conservative superseded-export manifest, never by age.
 

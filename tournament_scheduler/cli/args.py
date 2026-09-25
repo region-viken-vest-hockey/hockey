@@ -1790,6 +1790,9 @@ def build_parser() -> argparse.ArgumentParser:
     season_compact.add_argument(
         "--dry-run", action="store_true", help="Report what compaction would change without writing"
     )
+    season_compact.add_argument(
+        "--apply", action="store_true", help="Apply the compaction (backup + verify + atomic swap)"
+    )
     season_compact.add_argument("--json", action="store_true", help="Print the compaction report as JSON")
 
     season_inventory = season_sub.add_parser(

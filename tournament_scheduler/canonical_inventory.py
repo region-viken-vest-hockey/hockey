@@ -110,6 +110,12 @@ def _season_inventory(season: str, *, root: str | os.PathLike[str]) -> dict[str,
         "bytes": _dir_size(evidence_directory) if evidence_directory.exists() else None,
     }
 
+    from tournament_scheduler.infrastructure.canonical_compaction_backup import (
+        list_compaction_backups,
+    )
+
+    backups = list_compaction_backups(season, root=root)
+
     return {
         "season": season,
         "directory": str(directory),
@@ -122,6 +128,7 @@ def _season_inventory(season: str, *, root: str | os.PathLike[str]) -> dict[str,
             "largest_detail_keys_cumulative_bytes": largest_detail_examples,
         },
         "evidence_archive": evidence,
+        "compaction_backups": backups,
     }
 
 

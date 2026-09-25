@@ -11,6 +11,13 @@ inline payload with the bounded summary plus an evidence reference, and verifies
 that the canonical-state revision, schedule fingerprint and event replay are all
 unchanged before committing atomically.
 
+Before any mutation the migration also preserves the *complete original*
+``decisions.json`` byte-for-byte into a durable, content-addressed backup with a
+migration manifest (see
+:mod:`tournament_scheduler.infrastructure.canonical_compaction_backup`), so the
+transformation is reversible and auditable even though the compacted history is
+smaller.
+
 Compaction is opt-in, reviewable and idempotent. It never rewrites the published
 schedule and never generates a planning candidate.
 """
@@ -21,14 +28,16 @@ import json
 from copy import deepcopy
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_history_summary import (
-    operational_acceptability_summary,
-    verification_summary,
-)
+from tournament_scheduler.canonical_history_summary import verification_summary
 from tournament_scheduler.canonical_state import (
     CANONICAL_STATE_REVISION_KEY,
     compute_canonical_state_revision,
     schedule_fingerprint,
+)
+from tournament_scheduler.infrastructure.canonical_compaction_backup import (
+    compaction_backup_id,
+    create_compaction_backup,
+    load_compaction_backup,
 )
 from tournament_scheduler.infrastructure.canonical_evidence_archive import (
     archive_move_evidence,
@@ -38,11 +47,18 @@ from tournament_scheduler.infrastructure.canonical_evidence_archive import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
+from tournament_scheduler.published_baseline import (
+    active_baseline,
+    is_published_sealed,
+    projection_from_canonical_schedule,
+)
+from tournament_scheduler.published_mutation_history import reconcile_published_baseline
+
+from .shared import _now_iso, _operator_identity, published_baseline_reconciliation
 
 VERIFICATION_RESULT_KEY = "verification_result"
 VERIFICATION_SUMMARY_KEY = "verification_summary"
 EVIDENCE_REF_KEY = "evidence_ref"
-OPERATIONAL_ACCEPTABILITY_KEY = "operational_acceptability"
 
 
 def _json_size(payload: Any) -> int:
@@ -62,7 +78,11 @@ def _compact_event_details(
 
     The archived hash is ``None`` when the entry was already bounded or when
     ``archive`` is disabled and the full evidence is dropped. In dry-run mode
-    the reference is computed but the archive file is not written.
+    the reference is computed but the archive file is not written. The narrow
+    transform touches *only* the oversized ``verification_result``; every other
+    detail field (including the operational-acceptability verdict with its full
+    profiles) is preserved verbatim. An unknown or ambiguous evidence shape is
+    refused rather than silently stripped.
     """
 
     details = deepcopy(dict(entry.get("details") or {}))
@@ -73,9 +93,13 @@ def _compact_event_details(
     tournament_id = str(entry.get("tournament_id") or "")
 
     archived_hash: str | None = None
-    verification_result = details.get(VERIFICATION_RESULT_KEY)
-
-    if isinstance(verification_result, Mapping):
+    if VERIFICATION_RESULT_KEY in details:
+        verification_result = details.get(VERIFICATION_RESULT_KEY)
+        if not isinstance(verification_result, Mapping):
+            raise SeasonStateError(
+                "Refusing compaction: a history event carries a non-object "
+                "verification_result; unknown evidence shapes are never silently stripped"
+            )
         if archive:
             ref = evidence_ref(verification_result)
             archived_hash = str(ref.get("sha256") or "")
@@ -102,15 +126,61 @@ def _compact_event_details(
         if isinstance(ref, Mapping):
             load_move_evidence(season, ref, root=root)
 
-    if OPERATIONAL_ACCEPTABILITY_KEY in details and isinstance(
-        details.get(OPERATIONAL_ACCEPTABILITY_KEY), Mapping
-    ):
-        acceptability = details[OPERATIONAL_ACCEPTABILITY_KEY]
-        # Already summarized (no profiles) or an empty legacy record.
-        if "before_profile" in acceptability or "after_profile" in acceptability:
-            details[OPERATIONAL_ACCEPTABILITY_KEY] = operational_acceptability_summary(acceptability)
-
     return details, archived_hash
+
+
+def _semantic_projection(decisions: Mapping[str, Any]) -> dict[str, Any]:
+    """Return every top-level decisions field except the replay-only ``history``."""
+
+    return {key: value for key, value in decisions.items() if key != "history"}
+
+
+def _published_replay_parity(
+    service,
+    schedule: Mapping[str, Any],
+    before_decisions: Mapping[str, Any],
+    after_decisions: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Assert published-baseline replay/reconciliation is unchanged.
+
+    Only meaningful for a published-sealed season with an active baseline; for
+    un-sealed seasons the reconciliation invariant does not apply and ``None``
+    is returned. Any replay/reconciliation change raises rather than committing.
+    """
+
+    if not is_published_sealed(before_decisions):
+        return None
+    baseline = active_baseline(before_decisions)
+    if baseline is None:
+        return None
+    current_projection = projection_from_canonical_schedule(schedule)
+    published_projection, attested_additions = published_baseline_reconciliation(
+        service,
+        baseline,
+        current_projection=current_projection,
+    )
+
+    def reconcile(decisions: Mapping[str, Any]) -> dict[str, Any]:
+        return reconcile_published_baseline(
+            published_projection=published_projection,
+            current_projection=current_projection,
+            history=decisions.get("history") or [],
+            attested_additions=attested_additions,
+        )
+
+    before_report = reconcile(before_decisions)
+    after_report = reconcile(after_decisions)
+    if before_report.get("ok") != after_report.get("ok") or before_report.get(
+        "unexplained_delta"
+    ) != after_report.get("unexplained_delta"):
+        raise SeasonStateError(
+            "Compaction changed published-baseline replay/reconciliation; refusing to write"
+        )
+    return {
+        "ok": bool(before_report.get("ok")),
+        "published_tournament_count": before_report.get("published_tournament_count"),
+        "applied_mutation_count": before_report.get("applied_mutation_count"),
+    }
 
 
 def compact_history(
@@ -125,10 +195,12 @@ def compact_history(
     """Migrate oversized inline move evidence into the durable archive.
 
     Returns a bounded report. With ``dry_run`` nothing is written; otherwise the
+    complete original ``decisions.json`` is backed up byte-for-byte, the
     compacted decisions are installed through the store's atomic swap, the
     canonical-state revision and schedule fingerprint are unchanged by
-    construction and asserted explicitly, and every retained evidence reference
-    is checksum-verified.
+    construction and asserted explicitly, the full canonical semantic projection
+    is asserted structurally equal, and published-baseline replay/reconciliation
+    is asserted unchanged for sealed seasons.
     """
 
     snapshot = service.load(season)
@@ -149,23 +221,17 @@ def compact_history(
     archived_count = 0
     dropped_count = 0
     already_compacted = 0
-    summarized_operational = 0
+    compacted_indices: list[int] = []
 
     root = str(getattr(service.store, "root", "season"))
-    for entry in history:
+    for index, entry in enumerate(history):
         if not isinstance(entry, Mapping):
             compacted.append(entry)
             continue
         original_details = entry.get("details") if isinstance(entry.get("details"), Mapping) else {}
-        should_process = (
-            VERIFICATION_RESULT_KEY in original_details
-            or VERIFICATION_SUMMARY_KEY in original_details
-            or (
-                isinstance(original_details.get(OPERATIONAL_ACCEPTABILITY_KEY), Mapping)
-                and "before_profile" in original_details.get(OPERATIONAL_ACCEPTABILITY_KEY, {})
-            )
-        )
-        if not should_process:
+        has_result = VERIFICATION_RESULT_KEY in original_details
+        has_summary = VERIFICATION_SUMMARY_KEY in original_details
+        if not (has_result or has_summary):
             compacted.append(entry)
             continue
         details, archived_hash = _compact_event_details(
@@ -179,18 +245,14 @@ def compact_history(
         if archived_hash is not None:
             archived_hashes.append(archived_hash)
             archived_count += 1
-        elif VERIFICATION_RESULT_KEY in original_details:
+            compacted_indices.append(index)
+        elif has_result:
             # ``archive=False`` dropped the full result without retaining it.
             dropped_count += 1
+            compacted_indices.append(index)
         else:
             # Already carried a bounded summary rather than a full result.
             already_compacted += 1
-        original_acceptability = original_details.get(OPERATIONAL_ACCEPTABILITY_KEY)
-        if (
-            isinstance(original_acceptability, Mapping)
-            and "before_profile" in original_acceptability
-        ):
-            summarized_operational += 1
         new_entry = dict(entry)
         new_entry["details"] = details
         compacted.append(new_entry)
@@ -211,6 +273,12 @@ def compact_history(
         )
     if str(decisions.get(CANONICAL_STATE_REVISION_KEY) or "") != stored_revision:
         raise SeasonStateError("Compaction changed the stored canonical-state revision; refusing to write")
+    if _semantic_projection(snapshot.decisions) != _semantic_projection(decisions):
+        raise SeasonStateError(
+            "Compaction changed a top-level decisions field; refusing to write"
+        )
+
+    replay_parity = _published_replay_parity(service, schedule, snapshot.decisions, decisions)
 
     report = {
         "season": season,
@@ -220,7 +288,6 @@ def compact_history(
         "compacted_moves": archived_count,
         "dropped_moves": dropped_count,
         "already_compacted": already_compacted,
-        "summarized_operational": summarized_operational,
         "archived_evidence_hashes": archived_hashes,
         "before_revision": before_revision,
         "after_revision": after_revision,
@@ -229,10 +296,52 @@ def compact_history(
         "before_decisions_chars": before_bytes,
         "after_decisions_chars": after_bytes,
         "chars_saved": before_bytes - after_bytes,
+        "replay_parity": replay_parity,
     }
 
+    nothing_to_compact = archived_count == 0 and dropped_count == 0
+
     if dry_run:
+        if nothing_to_compact:
+            report["backup"] = None
+        else:
+            original_bytes = _read_original_decisions_bytes(service, season)
+            report["backup"] = {
+                "dry_run": True,
+                "backup_id": compaction_backup_id(original_bytes),
+                "decisions_bytes": len(original_bytes),
+                "compacted_event_indices": compacted_indices,
+            }
         return report
+
+    if nothing_to_compact:
+        # Idempotent no-op: nothing oversized remained, so no backup is created
+        # and the canonical state is left byte-for-byte untouched.
+        report["committed"] = False
+        report["backup"] = None
+        return report
+
+    # Durable byte-for-byte backup of the complete original, created and
+    # verified *before* the compacted state is installed, so a failed swap
+    # always leaves the original active state plus a safe immutable backup.
+    original_bytes = _read_original_decisions_bytes(service, season)
+    backup_manifest = create_compaction_backup(
+        season=season,
+        decisions_bytes=original_bytes,
+        source_canonical_revision=stored_revision,
+        schedule_fingerprint=str(schedule.get("fingerprint") or before_fingerprint),
+        original_path=str(service.store.decisions_path(season)),
+        actor=_operator_identity(actor),
+        note=note or "",
+        created_at=_now_iso(),
+        history_event_count=len(history),
+        compacted_event_indices=compacted_indices,
+        archived_evidence_hashes=archived_hashes,
+        root=root,
+    )
+    # Verify the backup round-trips before relying on it.
+    load_compaction_backup(season, str(backup_manifest["backup_id"]), root=root)
+    report["backup"] = backup_manifest
 
     committed = snapshot.with_decisions(decisions)
     # Commit through the single shared lifecycle boundary so the write stays
@@ -241,6 +350,16 @@ def compact_history(
     service._commit(committed)
     report["committed"] = True
     return report
+
+
+def _read_original_decisions_bytes(service, season: str) -> bytes:
+    """Return the exact on-disk bytes of ``decisions.json`` before compaction."""
+
+    path = service.store.decisions_path(season)
+    try:
+        return path.read_bytes()
+    except OSError as exc:
+        raise SeasonStateError(f"Cannot read canonical decisions for backup: {exc}") from exc
 
 
 def history_inventory(
