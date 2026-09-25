@@ -8,6 +8,7 @@ import pytest
 
 from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
 from tournament_scheduler.pipeline.stage3_planning import (
+    SharedHostFactsDiscoveryError,
     compute_shared_registration_facts,
     run,
 )
@@ -578,6 +579,36 @@ class TestComputeSharedRegistrationFacts:
         from tournament_scheduler.pipeline import stage3_planning as sp
 
         with patch.object(sp, "_make_planner", side_effect=RuntimeError("planner construction exploded")):
+            facts = compute_shared_registration_facts(
+                _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+            )
+        assert len(facts) == 1
+        assert facts[0]["registration"] == "Kongsberg/Tønsberg"
+        assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+        assert facts[0].get("probe_unavailable") is True
+
+    def test_raises_when_roster_cannot_be_built(self):
+        """A roster-build failure is the one unrecoverable discovery failure:
+        without roster facts, ``[]`` could mean "no joint registrations" or
+        "we never looked", so the caller must be told to block rather than
+        receive a silent empty list."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        with patch.object(sp, "_build_roster", side_effect=RuntimeError("roster exploded")):
+            with pytest.raises(SharedHostFactsDiscoveryError):
+                compute_shared_registration_facts(
+                    _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+                )
+
+    def test_effective_start_date_failure_yields_degraded_facts_row(self):
+        """Effective-start-date preparation happens *before* the probe pass but
+        *after* roster-derived facts are known, so a failure there must still
+        surface the joint-registration facts row with unknown hosting counts
+        (``probe_unavailable``), never propagate as a "no joint registrations"
+        skip."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        with patch.object(sp, "compute_effective_start_date", side_effect=RuntimeError("bad start date")):
             facts = compute_shared_registration_facts(
                 _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
             )

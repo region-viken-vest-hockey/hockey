@@ -52,7 +52,10 @@ def _resolve_shared_host_decisions(
     from ...application.decisions import decide, record_llm_decision
     from ...llm_judge import get_judge_if_headless
     from ...pipeline.run_log_paths import resolve_active_run_log_dir
-    from ...pipeline.stage3_planning import compute_shared_registration_facts
+    from ...pipeline.stage3_planning import (
+        SharedHostFactsDiscoveryError,
+        compute_shared_registration_facts,
+    )
     from ...shared_host_decision import (
         build_shared_host_decision_context,
         build_shared_host_decision_prompt,
@@ -70,14 +73,19 @@ def _resolve_shared_host_decisions(
 
     try:
         facts_rows = compute_shared_registration_facts(cfg, scraping, start, end)
+    except SharedHostFactsDiscoveryError:
+        # Roster facts could not be derived, so "no joint registrations"
+        # cannot be told apart from "we failed to look". Fail closed: let the
+        # caller block instead of continuing to Stage 3 with an implicit
+        # deterministic host choice.
+        raise
     except Exception as exc:
-        # Last-resort backstop: only roster/planning-window discovery failures
-        # should reach here — the probe pass inside compute_shared_registration_facts
-        # already converts its own preparation/build failures into a tagged
-        # facts row. Log loudly rather than silently equating a facts failure
-        # with "no joint registrations".
-        log_fn(f"Delt vertskap: kunne ikke beregne fakta — behandler som ukjent: {exc}")
-        facts_rows = []
+        # Any remaining, unrecovered facts-discovery failure is likewise a
+        # "failed discovery" — never a verified empty list — so fail closed
+        # rather than equating it with "no joint registrations".
+        raise SharedHostFactsDiscoveryError(
+            f"Delt vertskap: kunne ikke beregne fakta: {exc}"
+        ) from exc
 
     degraded_rows = [row for row in facts_rows if row.get("probe_unavailable")]
     if degraded_rows:

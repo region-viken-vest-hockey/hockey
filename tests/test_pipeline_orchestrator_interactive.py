@@ -1510,6 +1510,33 @@ class TestSharedHostInteractiveDecision:
         assert shared_state["last_context"]["capability"] == "shared_host_assignment"
         assert shared_state["last_context"]["facts"].get("probe_unavailable") is True
 
+    def test_roster_discovery_failure_blocks_stage3(self, state, tmp_path):
+        """A roster-discovery failure (before the recoverable probe pass) must
+        never be equated with "no joint registrations": the resolver blocks
+        the run (exit 1) instead of proceeding to Stage 3 with an implicit
+        deterministic host choice."""
+        cfg = _joint_club_cfg()
+        args = _args(work_dir=str(tmp_path), resume_from="3")
+
+        with patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage1",
+            return_value=(cfg, False),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage2",
+            return_value=(({"sources": [], "blocked": []}, False, False)),
+        ), patch(
+            "tournament_scheduler.llm_judge.get_judge_if_headless", return_value=None,
+        ), patch(
+            "tournament_scheduler.pipeline.stage3_planning._build_roster",
+            side_effect=RuntimeError("roster exploded"),
+        ), patch(
+            "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
+        ) as run_stage3:
+            exit_code = _cmd_run_interactive(args)
+
+        assert exit_code == 1
+        run_stage3.assert_not_called()
+
     def test_answering_the_decision_resumes_and_threads_it_into_stage3(self, state, tmp_path):
         cfg = _joint_club_cfg()
 

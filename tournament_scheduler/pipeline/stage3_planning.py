@@ -99,6 +99,16 @@ class Stage3Error(RuntimeError):
         super().__init__(f"Stage 3 feilet: {reason}")
 
 
+class SharedHostFactsDiscoveryError(RuntimeError):
+    """Raised when shared/joint-club registration facts cannot be derived at
+    all (e.g. the roster cannot be built from config).
+
+    This is distinct from a *verified* "no joint registrations" result: the
+    caller cannot tell "there is nothing to decide" apart from "we failed to
+    look", so it must block/abort rather than continue to Stage 3 with an
+    implicit deterministic host choice."""
+
+
 def _extract_planning_critic_hints(config: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, float] | None]:
     """Return structured planning critic metadata and flat planner penalties.
 
@@ -169,49 +179,78 @@ def compute_shared_registration_facts(
     successful-but-empty probe is a legitimate zero-count result and is
     returned *without* that flag: zero is then a verified fact, not an
     unknown.
+
+    The only *unrecoverable* failure is building the roster itself: without
+    it there are no roster-derived facts at all, so ``[]`` could equally mean
+    "no joint registrations" or "we never looked". That case raises
+    :class:`SharedHostFactsDiscoveryError` so the caller blocks instead of
+    continuing to Stage 3 with an implicit deterministic host choice.
     """
-    roster = _build_roster(config)
+    try:
+        roster = _build_roster(config)
+    except Exception as exc:
+        # The roster is the one non-optional input for joint-registration
+        # facts. If it cannot be built we cannot distinguish "no joint
+        # registrations" from "we failed to look", so this is a hard
+        # discovery failure the caller must block on (never a silent empty
+        # list that continues to Stage 3 with an implicit host choice).
+        raise SharedHostFactsDiscoveryError(
+            "Delt vertskap: kunne ikke bygge lagliste fra config"
+        ) from exc
+
     team_dicts = [{"club": t.club, "age_group": t.age_group} for t in roster.teams]
     if not any("/" in str(d.get("club") or "") for d in team_dicts):
         return []
 
     from ..hosting_coverage import shared_registration_facts
 
-    effective = compute_effective_start_date(start_date.date(), today=today)
-    planning_start = datetime.combine(effective.effective_start_date, datetime.min.time())
-    club_calendar_status = _build_club_calendar_status(scraping_result)
-
-    probe_plan = None
+    # Roster-derived facts are available, so every remaining input is
+    # recoverable: effective-start/calendar-status preparation failures and
+    # the optional probe pass all sit inside one boundary that yields a
+    # degraded facts row (unknown hosting counts) instead of propagating to
+    # a caller that might equate a failure with "no joint registrations".
     probe_unavailable = False
     try:
-        probe_planner = _make_planner(
-            roster,
-            _build_parallel_games(config),
-            _build_club_arenas(config),
-            config.get("maxHostingDeviation", 1),
-            _build_round_length(config),
-            _build_ice_time(config),
-            _build_events_by_club(scraping_result),
-            config.get("fairness_thresholds", {}),
-            config.get("target_tournament_count"),
-            config.get("participation_targets_by_age_group"),
-            seed=None,
-            max_hosting_days_per_month=config.get("max_hosting_days_per_month"),
-            penalty_hints=None,
-            allow_penalty_hint_relaxation=bool(config.get("allow_penalty_hint_relaxation", True)),
-            club_calendar_status=club_calendar_status,
-            club_busy_intervals=_build_club_busy_intervals(scraping_result),
-            cheap_baseline=bool(config.get("stage3_cheap_baseline", False)),
-            rounds_per_tournament_config=_build_rounds_per_tournament(config),
-        )
-        probe_plan = probe_planner.build_plan(planning_start, end_date)
+        effective = compute_effective_start_date(start_date.date(), today=today)
+        planning_start = datetime.combine(effective.effective_start_date, datetime.min.time())
+        club_calendar_status = _build_club_calendar_status(scraping_result)
+        try:
+            probe_planner = _make_planner(
+                roster,
+                _build_parallel_games(config),
+                _build_club_arenas(config),
+                config.get("maxHostingDeviation", 1),
+                _build_round_length(config),
+                _build_ice_time(config),
+                _build_events_by_club(scraping_result),
+                config.get("fairness_thresholds", {}),
+                config.get("target_tournament_count"),
+                config.get("participation_targets_by_age_group"),
+                seed=None,
+                max_hosting_days_per_month=config.get("max_hosting_days_per_month"),
+                penalty_hints=None,
+                allow_penalty_hint_relaxation=bool(config.get("allow_penalty_hint_relaxation", True)),
+                club_calendar_status=club_calendar_status,
+                club_busy_intervals=_build_club_busy_intervals(scraping_result),
+                cheap_baseline=bool(config.get("stage3_cheap_baseline", False)),
+                rounds_per_tournament_config=_build_rounds_per_tournament(config),
+            )
+            probe_plan = probe_planner.build_plan(planning_start, end_date)
+        except Exception:
+            # A joint registration still needs an explicit hosting decision when
+            # the probe could not be prepared/built (planner construction or any
+            # argument builder or build_plan raised). The zero hosting counts we
+            # return here are *unknown*, not a verified zero, so tag the row with
+            # ``probe_unavailable`` for the caller/LLM to surface as degraded
+            # provenance instead of being misled by fabricated zeros.
+            probe_plan = None
+            probe_unavailable = True
     except Exception:
-        # A joint registration still needs an explicit hosting decision when
-        # the probe could not be prepared/built (planner construction or any
-        # argument builder or build_plan raised). The zero hosting counts we
-        # return here are *unknown*, not a verified zero, so tag the row with
-        # ``probe_unavailable`` for the caller/LLM to surface as degraded
-        # provenance instead of being misled by fabricated zeros.
+        # Effective-start or calendar-status preparation failed before the
+        # probe boundary. The roster facts still stand, so surface the facts
+        # row with unknown hosting counts rather than propagating a failure
+        # the caller could mistake for "no joint registrations".
+        club_calendar_status = {}
         probe_plan = None
         probe_unavailable = True
 

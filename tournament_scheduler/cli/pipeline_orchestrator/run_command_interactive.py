@@ -22,6 +22,7 @@ from .interactive_state_io import (
 from .manifest import _manifest_start_run
 from .run_log import _resolve_resume_stage
 from .shared_host_decisions import _resolve_shared_host_decisions
+from ...pipeline.stage3_planning import SharedHostFactsDiscoveryError
 from .stage1 import _run_stage1
 from .stage2 import _run_stage2
 from .stage3_optimize_variants import _run_stage3_pareto_optimize, _run_stage3_v2_optimize
@@ -520,9 +521,17 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
             # above already returned, and a resumed `--resume-from 4` run skips
             # this entirely (shared-host decisions were already resolved and
             # baked into the checkpoint the first time Stage 3 ran).
-            pause_code, shared_host_decisions = _resolve_shared_host_decisions(
-                state, cfg, scraping, start, end, _log, interactive=True,
-            )
+            try:
+                pause_code, shared_host_decisions = _resolve_shared_host_decisions(
+                    state, cfg, scraping, start, end, _log, interactive=True,
+                )
+            except SharedHostFactsDiscoveryError as exc:
+                # Facts discovery failed (e.g. the roster could not be
+                # built), so a required joint-host decision cannot be
+                # resolved. Block the run instead of continuing to Stage 3
+                # with an implicit deterministic host choice.
+                _console.print(f"[red]✗[/red] {exc}")
+                return 1
             if pause_code is not None:
                 return pause_code
 
