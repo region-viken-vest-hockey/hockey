@@ -620,6 +620,64 @@ def _execute_publish_pages(
                 result.status = "warning"
         return result
 
+    # Artifact-parity/freshness preflight (read-only). It applies only to a real
+    # season-plan artifact pair; a legacy or non-season bundle is left to the
+    # existing sanitization/audit/approval gates. A FAIL or NOT_CHECKABLE result
+    # blocks publication instead of silently publishing a mismatched or stale
+    # Excel/HTML pair.
+    from .export_lifecycle import read_export_manifest
+    from .export_parity.gate import (
+        is_canonical_export_checkpoint,
+        is_canonical_season_manifest,
+        publish_parity_gate,
+    )
+
+    # The source manifest identifies whether this is a canonical season export
+    # and supplies the frozen projection/current revision; the sanitized public
+    # bundle does not carry it, so it is threaded through to the post-bundle
+    # re-verification below. The durable Stage 4 checkpoint is consulted
+    # independently: a deleted/corrupted lifecycle manifest must fail closed
+    # instead of downgrading a canonical export to a routine bundle.
+    source_manifest = read_export_manifest(export_dir)
+    if is_canonical_export_checkpoint(export_checkpoint) and not is_canonical_season_manifest(
+        source_manifest if isinstance(source_manifest, dict) else {}
+    ):
+        _emit_publication_trace(
+            work_dir,
+            run_id,
+            status="blocked",
+            export_dir=export_dir,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            detail="canonical export lifecycle manifest missing or unreadable",
+        )
+        return _with_collision_warning(CapabilityResult.failed(
+            "Publisering blokkert: Stage 4-eksporten er en kanonisk sesongeksport, men "
+            "livssyklusmanifesten (export_manifest.json) mangler eller er uleselig. "
+            "Kanonisk ferskhet, projeksjonsvern og publiseringsseil kan ikke verifiseres; "
+            "regenerer eksporten før publisering.",
+            capability="pages_publish",
+            evidence=[
+                "export_parity_status=blocked",
+                f"canonical_season={export_checkpoint.get('canonical_season')}",
+                f"export_manifest_readable={source_manifest is not None}",
+                "export_parity_reason=missing_lifecycle_manifest",
+            ],
+            artifacts=[],
+        ))
+    parity_block = publish_parity_gate(
+        export_dir=export_dir, repo_dir=repo_dir, manifest=source_manifest
+    )
+    if parity_block is not None:
+        _emit_publication_trace(
+            work_dir,
+            run_id,
+            status="blocked",
+            export_dir=export_dir,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            detail="export artifact parity gate",
+        )
+        return _with_collision_warning(parity_block)
+
     # A raw Stage 4 export may contain rosters, contact info, or internal
     # notes (Spond exports, review_packets/) that must never reach a
     # public URL — sanitize into a separate bundle first (issue #18) and
@@ -643,6 +701,24 @@ def _execute_publish_pages(
             detail="public bundle rejected before publication",
         )
         return bundle_result
+
+    # build_public_bundle rewrites/redacts the HTML while copying the workbook,
+    # so the verified source bytes are not what gets published. Re-verify the
+    # sanitized pair (same canonical revision and frozen projection when the
+    # source was a canonical season export) before the git publish step runs.
+    published_parity_block = publish_parity_gate(
+        export_dir=public_bundle_dir, repo_dir=repo_dir, manifest=source_manifest
+    )
+    if published_parity_block is not None:
+        _emit_publication_trace(
+            work_dir,
+            run_id,
+            status="blocked",
+            export_dir=public_bundle_dir,
+            export_fingerprint=export_checkpoint.get("export_fingerprint"),
+            detail="sanitized bundle artifact parity gate",
+        )
+        return _with_collision_warning(published_parity_block)
 
     def _is_routine_public_asset(path: str) -> bool:
         return (

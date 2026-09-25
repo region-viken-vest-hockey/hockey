@@ -507,3 +507,24 @@ def test_confidence_gate_ok_verdict_skips_gate(tmp_path: Path) -> None:
             result = _cmd_run(args)
 
     assert result == 0
+
+
+def test_shared_host_facts_discovery_failure_aborts_before_stage3(tmp_path: Path) -> None:
+    """A roster/facts-discovery failure (before the recoverable probe pass)
+    must abort the run before Stage 3 instead of being equated with "no joint
+    registrations" and continuing to plan with an implicit deterministic host
+    choice."""
+    args = _make_args(tmp_path)
+
+    patches = _all_stage_patches()
+    with patch(
+        "tournament_scheduler.pipeline.stage3_planning._build_roster",
+        side_effect=RuntimeError("roster exploded"),
+    ), patch(
+        "tournament_scheduler.cli.pipeline_orchestrator.run_command._run_stage3",
+    ) as run_stage3:
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5]:
+            result = _cmd_run(args)
+
+    assert result == 1
+    run_stage3.assert_not_called()

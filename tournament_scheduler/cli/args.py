@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from .args_audit import add_operator_audit_subparsers as _add_operator_audit_subparsers
+from .args_export_parity import add_export_parity_parser as _add_export_parity_parser
 from ..operator_waivers import WAIVABLE_RULE_IDS
 
 
@@ -2748,5 +2749,7 @@ def build_parser() -> argparse.ArgumentParser:
     waiver_revoke.add_argument("--actor", default=None, help="Operator identity (defaults from RVV_OPERATOR/USER)")
     waiver_revoke.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
     waiver_revoke.add_argument("--json", action="store_true", help="Print the revoked record as JSON")
+
+    _add_export_parity_parser(sub)
 
     return parser

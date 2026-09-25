@@ -460,6 +460,40 @@ def _write_export(work_dir, *, content: str = "<h1>plan</h1>") -> None:
     assert not errors, errors
 
 
+def _write_canonical_export_checkpoint(work_dir, *, manifest: str | None) -> None:
+    """Stage 4 checkpoint that independently records canonical-season intent.
+
+    ``manifest`` optionally writes an ``export_manifest.json`` with exactly the
+    given (possibly malformed) content; ``None`` leaves the lifecycle manifest
+    absent, so the publish path must fail closed from the checkpoint alone.
+    """
+
+    export_dir = work_dir / "export"
+    export_dir.mkdir(exist_ok=True)
+    (export_dir / "season_plan.html").write_text("<h1>plan</h1>", encoding="utf-8")
+    (export_dir / "season_plan.xlsx").write_bytes(b"workbook-bytes")
+    if manifest is not None:
+        (export_dir / "export_manifest.json").write_text(manifest, encoding="utf-8")
+    PipelineState(work_dir).write_stage(
+        StageName.EXPORT,
+        {
+            "output_files": {
+                "html": str(export_dir / "season_plan.html"),
+                "excel": str(export_dir / "season_plan.xlsx"),
+            },
+            "canonical_season": "2026-2027",
+            "canonical_revision": "rev-123",
+            "export_fingerprint": "canonical-fp",
+            "export_lifecycle": {
+                "canonical_season": "2026-2027",
+                "canonical_revision": "rev-123",
+                "schedule_projection": {"rvv-0001": {}},
+            },
+        },
+        status=StageStatus.DONE,
+    )
+
+
 def _write_activity_export_files(work_dir) -> None:
     export_dir = work_dir / "export"
     (export_dir / "activities.json").write_text('{"activities": []}', encoding="utf-8")
@@ -523,6 +557,46 @@ class TestPublishPagesApprovalGate:
         assert manifest["pages_run_id"] == "legacy"
         assert manifest["pages_bundle_fingerprint"]
         assert "export_lifecycle_status=published" in result.evidence
+
+    def test_publish_refuses_canonical_export_with_missing_manifest(self, tmp_path, monkeypatch):
+        """A canonical export whose lifecycle manifest was deleted must fail
+        closed instead of degrading to a routine bundle."""
+        _init_repo(tmp_path)
+        _write_canonical_export_checkpoint(tmp_path, manifest=None)
+
+        from tournament_scheduler.pipeline import pages_publish
+
+        published: list[dict] = []
+        monkeypatch.setattr(pages_publish, "publish", lambda **kwargs: published.append(kwargs))
+
+        action = DEFAULT_REGISTRY.build(
+            "publish_pages", work_dir=str(tmp_path), repo_dir=str(tmp_path), push=False, confirm_public=True
+        )
+        result = DEFAULT_REGISTRY.execute(action, approved=True)
+
+        assert result.status == "failed"
+        assert published == []
+        assert any("missing_lifecycle_manifest" in evidence for evidence in result.evidence)
+
+    def test_publish_refuses_canonical_export_with_corrupt_manifest(self, tmp_path, monkeypatch):
+        """A canonical export whose lifecycle manifest is unreadable must not be
+        treated as a non-season bundle either."""
+        _init_repo(tmp_path)
+        _write_canonical_export_checkpoint(tmp_path, manifest="{not valid json")
+
+        from tournament_scheduler.pipeline import pages_publish
+
+        published: list[dict] = []
+        monkeypatch.setattr(pages_publish, "publish", lambda **kwargs: published.append(kwargs))
+
+        action = DEFAULT_REGISTRY.build(
+            "publish_pages", work_dir=str(tmp_path), repo_dir=str(tmp_path), push=False, confirm_public=True
+        )
+        result = DEFAULT_REGISTRY.execute(action, approved=True)
+
+        assert result.status == "failed"
+        assert published == []
+        assert any("missing_lifecycle_manifest" in evidence for evidence in result.evidence)
 
     def test_publish_reports_incomplete_when_export_state_persistence_fails(self, tmp_path, monkeypatch):
         _init_repo(tmp_path)

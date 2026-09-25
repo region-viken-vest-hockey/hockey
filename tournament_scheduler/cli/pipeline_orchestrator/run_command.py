@@ -15,6 +15,7 @@ from .refinement_reexport import _run_refinement_and_reexport
 from .run_command_interactive import _cmd_run_interactive
 from .run_log import _resolve_resume_stage, _write_run_log
 from .shared_host_decisions import _resolve_shared_host_decisions
+from ...pipeline.stage3_planning import SharedHostFactsDiscoveryError
 from .stage1 import _run_approval_gate, _run_stage1
 from .stage2 import _run_stage2
 from .stage3_run import _run_stage3
@@ -155,9 +156,19 @@ def _cmd_run(args: argparse.Namespace) -> int:
     # function) — `interactive=False` means a missing headless judge falls
     # back to the deterministic legacy order rather than pausing, matching
     # every other decision point's no-judge behavior here.
-    _, shared_host_decisions = _resolve_shared_host_decisions(
-        state, cfg, scraping, start, end, _log, interactive=False,
-    )
+    try:
+        _, shared_host_decisions = _resolve_shared_host_decisions(
+            state, cfg, scraping, start, end, _log, interactive=False,
+        )
+    except SharedHostFactsDiscoveryError as exc:
+        # Facts discovery failed (e.g. the roster could not be built), so a
+        # required joint-host decision cannot be resolved. Abort rather than
+        # continue to Stage 3 with an implicit deterministic host choice.
+        _console.print(f"[red]✗[/red] {exc}")
+        _manifest_record(args.work_dir, "planning", "failed", str(exc))
+        _manifest_finalize(args.work_dir, "failed")
+        _write_run_log(args, state, log_start, log_lines, success=False)
+        return 1
 
     _manifest_set_active(args.work_dir, "planning")
     for attempt in range(1, max_plan_attempts + 1):

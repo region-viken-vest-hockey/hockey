@@ -8,6 +8,7 @@ import pytest
 
 from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
 from tournament_scheduler.pipeline.stage3_planning import (
+    SharedHostFactsDiscoveryError,
     compute_shared_registration_facts,
     run,
 )
@@ -526,6 +527,95 @@ class TestComputeSharedRegistrationFacts:
         assert facts[0]["registration"] == "Kongsberg/Tønsberg"
         assert facts[0]["age_group"] == "U10"
         assert set(facts[0]["constituents"]) == {"Kongsberg", "Tønsberg"}
+
+    def test_returns_facts_row_even_when_the_probe_plan_is_empty(self):
+        """A joint registration must still surface a hosting decision when
+        the probe pass produces no tournaments (an empty/cheap baseline or a
+        probe that placed nothing) -- never a silent ``[]`` skip that would
+        drop the run-scoped ``shared_host_assignment`` choice. A successful
+        empty probe is a legitimate zero-count result, so the row must NOT be
+        tagged ``probe_unavailable`` (zero is a verified fact here)."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        for probe_result in (None, MagicMock(tournaments=[])):
+            fake_planner = MagicMock()
+            fake_planner.build_plan.return_value = probe_result
+            with patch.object(sp, "_make_planner", return_value=fake_planner):
+                facts = compute_shared_registration_facts(
+                    _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+                )
+            assert len(facts) == 1
+            assert facts[0]["registration"] == "Kongsberg/Tønsberg"
+            assert facts[0]["age_group"] == "U10"
+            assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+            assert not facts[0].get("probe_unavailable")
+
+    def test_returns_facts_row_when_the_probe_plan_build_raises(self):
+        """A probe-build failure must not be treated as "no joint
+        registration": the facts row is still surfaced with zero hosting
+        counts so the decision is retained. Because those zero counts are now
+        *unknown* rather than a verified zero, the row must carry the
+        ``probe_unavailable`` flag."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        fake_planner = MagicMock()
+        fake_planner.build_plan.side_effect = RuntimeError("probe exploded")
+        with patch.object(sp, "_make_planner", return_value=fake_planner):
+            facts = compute_shared_registration_facts(
+                _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+            )
+        assert len(facts) == 1
+        assert facts[0]["registration"] == "Kongsberg/Tønsberg"
+        assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+        assert facts[0].get("probe_unavailable") is True
+
+    def test_returns_facts_row_when_make_planner_raises(self):
+        """Planner construction (or any of its argument builders) raising
+        must not skip the joint-host decision either -- the whole optional
+        probe pass lives inside one fallback boundary, so a construction
+        failure still yields a tagged facts row instead of propagating to the
+        caller's last-resort backstop and being equated with "no joint
+        registrations"."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        with patch.object(sp, "_make_planner", side_effect=RuntimeError("planner construction exploded")):
+            facts = compute_shared_registration_facts(
+                _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+            )
+        assert len(facts) == 1
+        assert facts[0]["registration"] == "Kongsberg/Tønsberg"
+        assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+        assert facts[0].get("probe_unavailable") is True
+
+    def test_raises_when_roster_cannot_be_built(self):
+        """A roster-build failure is the one unrecoverable discovery failure:
+        without roster facts, ``[]`` could mean "no joint registrations" or
+        "we never looked", so the caller must be told to block rather than
+        receive a silent empty list."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        with patch.object(sp, "_build_roster", side_effect=RuntimeError("roster exploded")):
+            with pytest.raises(SharedHostFactsDiscoveryError):
+                compute_shared_registration_facts(
+                    _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+                )
+
+    def test_effective_start_date_failure_yields_degraded_facts_row(self):
+        """Effective-start-date preparation happens *before* the probe pass but
+        *after* roster-derived facts are known, so a failure there must still
+        surface the joint-registration facts row with unknown hosting counts
+        (``probe_unavailable``), never propagate as a "no joint registrations"
+        skip."""
+        from tournament_scheduler.pipeline import stage3_planning as sp
+
+        with patch.object(sp, "compute_effective_start_date", side_effect=RuntimeError("bad start date")):
+            facts = compute_shared_registration_facts(
+                _make_joint_club_config(), {}, datetime(2025, 9, 1), datetime(2025, 12, 15),
+            )
+        assert len(facts) == 1
+        assert facts[0]["registration"] == "Kongsberg/Tønsberg"
+        assert facts[0]["hosted_by_constituent"] == {"Kongsberg": 0, "Tønsberg": 0}
+        assert facts[0].get("probe_unavailable") is True
 
 
 class TestSharedHostDecisionWiring:

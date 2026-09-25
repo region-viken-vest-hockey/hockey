@@ -436,6 +436,17 @@ def run(
 
     round_length_for_age_group: dict[str, int] = dict(effective_config.get("round_length_minutes", {}))
     ice_time_for_age_group: dict[str, int] = dict(effective_config.get("ice_time_minutes") or effective_config.get("round_length_minutes", {}))
+    # The projection's occupied interval is derived from the export problem's
+    # ice-time contract. When the pipeline config does not carry ice times (for
+    # example a canonical `season export` with an explicit verification
+    # problem), the printed end times must still agree with that contract
+    # rather than rendering empty and failing artifact parity.
+    if not ice_time_for_age_group and isinstance(export_problem, dict):
+        for age_group, minutes in (export_problem.get("ice_time_minutes") or {}).items():
+            try:
+                ice_time_for_age_group[str(age_group)] = int(minutes)
+            except (TypeError, ValueError):
+                continue
     # issue #314: a fresh recomputation is authoritative even when it comes
     # back empty. A truthiness fallback here (`derived_collisions or
     # stored`) cannot tell "not recomputed" from "recomputed and zero", so a
@@ -668,6 +679,13 @@ def run(
             rules_report=rules_report,
             round_length_for_age_group=round_length_for_age_group,
             ice_time_for_age_group=ice_time_for_age_group,
+            decision_status={"approval": approval_status, "booking": booking_status},
+            season_metadata={
+                "season": canonical_season,
+                "canonical_revision": canonical_revision,
+                "export_fingerprint": export_fingerprint,
+                "generated_at": generated_at,
+            },
         )
         output_files["excel"] = excel_path
     except Exception as exc:  # noqa: BLE001
@@ -912,6 +930,72 @@ def run(
     except Exception as exc:  # noqa: BLE001
         errors.append(f"Normalisering av Excel-filer feilet: {exc}")
 
+    # Artifact-parity preflight: verify the actual generated XLSX/HTML bytes
+    # against each other and the frozen canonical projection before the export
+    # is considered complete. A FAIL or NOT_CHECKABLE result blocks the export
+    # (and therefore publication); it is never a silent pass. The export
+    # manifest is deliberately not consulted here -- it is written below from
+    # the same facts, so reading it would only add a second authority.
+    #
+    # The standard season-plan workbook+page are always expected together, so a
+    # missing half (an exporter that returned without writing, or a file that
+    # disappeared) is still verified and persisted as ``NOT_CHECKABLE`` instead
+    # of silently skipping parity. A non-standard/legacy bundle keeps the old
+    # "only when both halves exist" behavior.
+    export_parity: dict[str, Any] | None = None
+    expected_season_pair = basename == DEFAULT_BASENAME
+    pair_present = (primary_export_path / f"{basename}.xlsx").exists() and (
+        primary_export_path / f"{basename}.html"
+    ).exists()
+    if (not errors and pair_present) or expected_season_pair:
+        try:
+            from .export_parity import verify_export_parity, write_parity_report
+
+            export_parity = verify_export_parity(
+                primary_export_path,
+                basename=basename,
+                required_canonical_revision=str(canonical_revision or ""),
+                manifest={},
+                expected_projection=schedule_projection,
+                checked_at=generated_at,
+            )
+            write_parity_report(primary_export_path, export_parity)
+            if export_parity["status"] == "FAIL":
+                details = [
+                    str(reason.get("message") or reason)
+                    for reason in export_parity.get("reasons", [])
+                ]
+                errors.append(
+                    f"XLSX/HTML-artefaktparitet: {export_parity['status']} — "
+                    + "; ".join(details[:5])
+                )
+            elif export_parity["status"] == "NOT_CHECKABLE":
+                # Not a silent pass: the status is persisted and the publication
+                # preflight re-verifies it and blocks a non-PASS pair. A missing
+                # half of the expected season pair is an export failure so a
+                # canonical export cannot complete with an unverifiable pair; a
+                # legacy/non-canonical export shape is still produced for review.
+                missing_half = any(
+                    reason.get("code") in {"artifact_missing", "artifacts_missing"}
+                    for reason in export_parity.get("reasons", [])
+                )
+                details = [
+                    str(reason.get("message") or reason)
+                    for reason in export_parity.get("reasons", [])
+                ]
+                if expected_season_pair and missing_half:
+                    errors.append(
+                        f"XLSX/HTML-artefaktparitet: {export_parity['status']} — "
+                        + "; ".join(details[:5])
+                    )
+                else:
+                    logger.warning(
+                        "XLSX/HTML-artefaktparitet kunne ikke verifiseres: %s",
+                        "; ".join(details),
+                    )
+        except Exception as exc:  # noqa: BLE001 - parity must fail closed
+            errors.append(f"Kunne ikke verifisere XLSX/HTML-artefaktparitet: {exc}")
+
     lifecycle_manifest = None
     pruned_exports: list[str] = []
     if not errors and _TIMESTAMP_DIR_RE.match(primary_export_path.name):
@@ -956,6 +1040,7 @@ def run(
         "export_lifecycle": lifecycle_manifest,
         "supersedes": supersedes,
         "export_projection_guard": export_projection_guard,
+        "export_parity": export_parity,
     }
     if normalization_report:
         checkpoint["placement_normalization"] = normalization_report

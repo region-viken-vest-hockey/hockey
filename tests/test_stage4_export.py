@@ -1174,6 +1174,37 @@ class TestRunStage4:
         assert "season-revision" not in html_text
         assert "$SEASON_REVISION_META$" not in html_text
 
+    def test_missing_half_of_season_pair_is_persisted_not_checkable(self, tmp_path, monkeypatch):
+        """A season export that emits only one of the two artifacts must still
+        run parity, persist ``NOT_CHECKABLE`` and refuse to complete cleanly."""
+        import tournament_scheduler.pipeline.stage4_export as stage4_module
+
+        class _NoHtmlExporter:
+            def export(self, *args, **kwargs):  # noqa: ANN002, ANN003
+                return None
+
+        monkeypatch.setattr(stage4_module, "HtmlExporter", _NoHtmlExporter)
+
+        export_dir = tmp_path / "export"
+        state = PipelineState(tmp_path / "pipeline")
+        result = run(
+            _make_plan_dict(),
+            state,
+            export_dir=str(export_dir),
+            timestamped_export=False,
+            build_timestamp="2025-01-02T03:04:05+00:00",
+            strict=False,
+        )
+
+        assert not (export_dir / "season_plan.html").exists()
+        parity = result["export_parity"]
+        assert parity is not None
+        assert parity["status"] == "NOT_CHECKABLE"
+        assert any(reason["code"] == "artifact_missing" for reason in parity["reasons"])
+        assert (export_dir / "export_parity.json").exists()
+        assert any("artefaktparitet" in error for error in result["errors"])
+        assert state.is_failed(StageName.EXPORT)
+
     def test_stage4_spond_export_uses_tournament_rows(self, tmp_path):
         state = PipelineState(tmp_path / "pipeline")
         input_path = tmp_path / "input.xlsx"

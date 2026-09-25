@@ -15,7 +15,7 @@ The resulting workbook is saved to a user-specified `.xlsx` path.
 """
 
 from datetime import date
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import openpyxl
 from openpyxl.styles import PatternFill
@@ -37,7 +37,16 @@ _NORWEGIAN_WEEKDAYS = [
     "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag",
 ]
 
-_OVERVIEW_HEADERS = ["Dato", "Ukedag", "Aldersgruppe", "Arena", "Vertsklubb", "Lag", "Lengst anslått reise", "Starttid", "Sluttid"]
+_OVERVIEW_HEADERS = [
+    "Dato", "Ukedag", "Aldersgruppe", "Arena", "Vertsklubb", "Lag",
+    "Lengst anslått reise", "Starttid", "Sluttid",
+    # Stable identity and decision status appended for artifact parity. The
+    # leading columns stay byte-identical so existing consumers keep working.
+    "Turnerings-ID", "Avlyst", "Avlysningsårsak", "Godkjenning", "Låst",
+    "Bookingsstatus", "Booking krever oppfølging",
+]
+_METADATA_HEADERS = ["Felt", "Verdi"]
+_METADATA_SHEET = "Eksportmetadata"
 _GAMES_HEADERS = ["Runde", "Hjemmelag", "Bortelag", "Parallellbane"]
 _CLUB_SUMMARY_HEADERS = ["Lag", "Aldersgruppe", "Dato", "Ukedag", "Motstander(e)", "Vertsarena"]
 _RULES_HEADERS = ["Regel", "Forklaring", "Kategori"]
@@ -67,6 +76,8 @@ class SeasonPlanExporter:
         rules_report: Optional[List[Dict[str, str]]] = None,
         round_length_for_age_group: Optional[Dict[str, int]] = None,
         ice_time_for_age_group: Optional[Dict[str, int]] = None,
+        decision_status: Optional[Mapping[str, Any]] = None,
+        season_metadata: Optional[Mapping[str, Any]] = None,
     ) -> str:
         """Build and save the workbook for `plan` to `output_path`.
 
@@ -78,15 +89,33 @@ class SeasonPlanExporter:
         booking-window minutes) is used to compute each tournament's occupied
         end time for the "Sluttid" overview column.
 
+        ``decision_status`` is the export's read-only approval/booking status
+        projection (``{"approval": ..., "booking": ...}``). It only annotates
+        the overview for artifact parity; it never becomes a write contract.
+        ``season_metadata`` embeds the canonical revision/fingerprint in the
+        ``Eksportmetadata`` sheet so parity freshness is checkable from bytes.
+
         Returns the path the workbook was saved to.
         """
         self.workbook = openpyxl.Workbook()
 
+        approval_by_id, booking_by_id = self._decision_index(decision_status)
         overview_sheet = self.workbook.active
         overview_sheet.title = "Sesongoversikt"
-        self._write_overview_sheet(overview_sheet, plan, ice_time_for_age_group or {})
+        self._write_overview_sheet(
+            overview_sheet,
+            plan,
+            ice_time_for_age_group or {},
+            approval_by_id=approval_by_id,
+            booking_by_id=booking_by_id,
+        )
 
         used_titles = {overview_sheet.title}
+
+        if season_metadata:
+            metadata_sheet = self.workbook.create_sheet(title=_METADATA_SHEET)
+            used_titles.add(metadata_sheet.title)
+            self._write_metadata_sheet(metadata_sheet, season_metadata)
 
         if rules_report:
             rules_sheet = self.workbook.create_sheet(title="Regler og avgjørelser")
@@ -129,17 +158,25 @@ class SeasonPlanExporter:
         sheet: Worksheet,
         plan: SeasonPlan,
         ice_time_for_age_group: Optional[Dict[str, int]] = None,
+        *,
+        approval_by_id: Optional[Dict[str, Mapping[str, Any]]] = None,
+        booking_by_id: Optional[Dict[str, Mapping[str, Any]]] = None,
     ) -> None:
         sheet.append(_OVERVIEW_HEADERS)
         self._style_header_row(sheet)
 
         ice_time_for_age_group = ice_time_for_age_group or {}
+        approval_by_id = approval_by_id or {}
+        booking_by_id = booking_by_id or {}
 
         _cancelled_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
         for tournament in plan.tournaments:
             travel_info = self._travel_info(tournament)
             status_prefix = "(AVLYST) " if tournament.cancelled else ""
             end_time = tournament_end_time(tournament, ice_time_for_age_group)
+            approval = approval_by_id.get(str(tournament.id)) or {}
+            booking = booking_by_id.get(str(tournament.id)) or {}
+            lock = bool(approval.get("placement_locked") or approval.get("participants_locked"))
             row = [
                 status_prefix + self._format_date(tournament.date),
                 self._weekday_name(tournament.date),
@@ -150,12 +187,54 @@ class SeasonPlanExporter:
                 travel_info,
                 tournament.start_time or "",
                 end_time or "",
+                tournament.id,
+                "Ja" if tournament.cancelled else "",
+                tournament.cancellation_reason or "",
+                str(approval.get("status") or ""),
+                "Ja" if lock else "",
+                str(booking.get("status") or ""),
+                "Ja" if booking.get("needs_attention") else "",
             ]
             sheet.append(row)
             if tournament.cancelled:
                 for cell in sheet[sheet.max_row]:
                     cell.fill = _cancelled_fill
 
+        self._autosize_columns(sheet)
+
+    @staticmethod
+    def _decision_index(
+        decision_status: Optional[Mapping[str, Any]],
+    ) -> tuple[Dict[str, Mapping[str, Any]], Dict[str, Mapping[str, Any]]]:
+        """Index the read-only approval/booking status projection by tournament id."""
+        report = decision_status if isinstance(decision_status, Mapping) else {}
+        approval = report.get("approval") if isinstance(report.get("approval"), Mapping) else {}
+        booking = report.get("booking") if isinstance(report.get("booking"), Mapping) else {}
+
+        def _index(section: Mapping[str, Any]) -> Dict[str, Mapping[str, Any]]:
+            entries = section.get("tournaments") if isinstance(section, Mapping) else None
+            return {
+                str(entry.get("tournament_id")): entry
+                for entry in (entries or [])
+                if isinstance(entry, Mapping) and entry.get("tournament_id")
+            }
+
+        return _index(approval), _index(booking)
+
+    def _write_metadata_sheet(self, sheet: Worksheet, metadata: Mapping[str, Any]) -> None:
+        """Write export provenance so parity freshness is checkable from bytes."""
+        sheet.append(_METADATA_HEADERS)
+        self._style_header_row(sheet)
+        labels = (
+            ("Sesong", "season"),
+            ("Kanonisk revisjon", "canonical_revision"),
+            ("Eksport-fingerprint", "export_fingerprint"),
+            ("Generert", "generated_at"),
+        )
+        for label, key in labels:
+            value = metadata.get(key)
+            if value:
+                sheet.append([label, str(value)])
         self._autosize_columns(sheet)
 
     # ------------------------------------------------------------------
@@ -303,6 +382,10 @@ class SeasonPlanExporter:
 
     def _write_tournament_sheet(self, sheet: Worksheet, tournament: Tournament) -> None:
         _cancelled_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+        # Stable identity on the sheet itself so the artifact-parity reader can
+        # key this tournament's games without guessing from the title (which is
+        # ambiguous for two same-day/same-host/same-age tournaments).
+        sheet.append([f"Turnerings-ID: {tournament.id}"])
         title_row = (
             f"{self._format_date(tournament.date)} ({self._weekday_name(tournament.date)}) — "
             f"{tournament.age_group} — {tournament.arena}"
