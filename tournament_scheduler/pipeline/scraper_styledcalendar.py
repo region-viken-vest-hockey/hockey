@@ -148,10 +148,18 @@ def _parse_iso(value: Any) -> datetime | None:
 
 
 def _as_naive_datetime(value: Any) -> datetime | None:
-    """Normalize an icalendar-resolved occurrence boundary to a naive local datetime."""
+    """Normalize an icalendar-resolved occurrence boundary to a naive local datetime.
+
+    The API's timestamps already carry the event's own Europe/Oslo wall-clock
+    offset (e.g. +02:00 in summer). Stripping tzinfo directly keeps that
+    wall-clock value; converting via ``.astimezone()`` would instead shift it
+    to the *process's* local timezone, which is wrong here and is exactly
+    what made this non-deterministic between a machine set to Oslo time and
+    a UTC CI runner.
+    """
     if isinstance(value, datetime):
         if value.tzinfo is not None:
-            return value.astimezone().replace(tzinfo=None)
+            return value.replace(tzinfo=None)
         return value
     # icalendar can resolve an all-day/date-only occurrence to a plain date.
     try:
