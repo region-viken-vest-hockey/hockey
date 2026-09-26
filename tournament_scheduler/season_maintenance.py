@@ -43,6 +43,11 @@ from .quality_objectives import (
     quality_objective_vector,
     with_unresolved_obligations_count,
 )
+from .repair_adoption_guard import (
+    RepairPassLedger,
+    adoption_history_summary,
+    evaluate_adoption,
+)
 from .request_constraints import (
     active_request_constraints,
     constraint_violations,
@@ -364,6 +369,82 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     }
 
 
+def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, Any]:
+    """Run the catalog-driven season-wide completion gate over canonical state.
+
+    The audit is exhaustive by construction: it combines the ordinary
+    ``verify_candidate`` result, the final minimum-size/game-integrity verifier
+    and the canonical-lock verifier with the live finding inventory, resolves
+    every catalogued hard/obligation check against that evidence and reports
+    skipped checks as incomplete rather than as a pass. Reconciliation is read
+    from the canonical lifecycle owner, so a stale or unreconciled season cannot
+    report a green completion.
+    """
+    from .canonical_baseline import verify_canonical_locks
+    from .final_verification import verify_final_candidate
+    from .repair_adoption_guard import (
+        normalized_assignment_fingerprint,
+        season_wide_audit,
+    )
+    from .season_state import season_lifecycle_report
+
+    schedule, decisions, plan, problem = load_context(season, root=root)
+    revision = canonical_state_revision(schedule, decisions)
+    verification = verify_candidate(plan, problem)
+    final = verify_final_candidate(dict(plan), dict(problem))
+    locks = verify_canonical_locks(build_canonical_baseline(schedule, decisions), dict(plan))
+    merged_violations: List[Dict[str, Any]] = []
+    seen_violations: set = set()
+    for violation in list(final.get("violations") or []) + list(locks or []):
+        key = (
+            str(violation.get("code") or ""),
+            str(violation.get("tournament_id") or ""),
+            str(violation.get("team") or ""),
+        )
+        if key in seen_violations:
+            continue
+        seen_violations.add(key)
+        merged_violations.append(dict(violation))
+    merged_verification = {
+        **verification,
+        "ok": bool(verification.get("ok")) and bool(final.get("ok")) and not locks,
+        "violations": merged_violations,
+    }
+    findings = _findings(plan, problem, verification)
+    from .calendar_bookings import association_findings
+
+    findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))
+    annotate_findings(findings)
+    for finding in findings:
+        finding.setdefault("search_coverage", cheap_search_coverage(finding))
+    score = with_unresolved_obligations_count(score_candidate(dict(plan), problem=dict(problem)))
+    lifecycle = season_lifecycle_report(season, root=root)
+    reconciliation = lifecycle.get("reconciliation") or None
+    audit = season_wide_audit(
+        plan=plan,
+        findings=findings,
+        verification=merged_verification,
+        score=score,
+        reconciliation=reconciliation,
+        expected_fingerprint=normalized_assignment_fingerprint(plan),
+        covered_verifier_owners=(
+            "tournament_scheduler.final_verification.verify_final_candidate",
+            "tournament_scheduler.canonical_baseline.verify_canonical_locks",
+        ),
+    )
+    return {
+        "schema_version": SEASON_MAINTENANCE_SCHEMA_VERSION,
+        "season": season,
+        "revision": revision,
+        "candidate_fingerprint": _plan_fingerprint(plan),
+        "lifecycle": {
+            "state": lifecycle.get("state"),
+            "reconciliation": reconciliation,
+        },
+        "audit": audit,
+    }
+
+
 def repair_options(
     season: str,
     finding_id: str,
@@ -464,6 +545,8 @@ def apply_repair(
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
+    accept_regressions: Any = (),
+    regression_reason: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Atomically apply one verified option to canonical state and return the delta.
 
@@ -567,6 +650,58 @@ def apply_repair(
     )
     preview["changed_tournament_ids"] = _changed_tournament_ids(plan, result_candidate)
     preview["change_cost"] = change_cost(build_canonical_baseline(schedule, decisions), result_candidate)
+
+    # Cross-rule adoption guard: a repair that fixes its triggering finding but
+    # introduces a material regression elsewhere (more back-to-back pairs, a
+    # participation guardrail regression, concentrated opponent exposure,
+    # materially worse travel/temporal coverage) or revisits an already-adopted
+    # assignment is refused unless the operator explicitly accepts the exact
+    # regression code with a reason. This is deliberately measured on the whole
+    # season, not only on the directly affected squads.
+    pass_ledger = RepairPassLedger.from_history(decisions.get("history") or [])
+    before_findings = _findings(plan, problem, before_verification)
+    candidate_findings = _findings(result_candidate, problem, verification)
+    pass_baseline = decisions.get("season_baseline")
+    try:
+        adoption = evaluate_adoption(
+            plan,
+            result_candidate,
+            problem=problem,
+            before_findings=before_findings,
+            candidate_findings=candidate_findings,
+            pass_baseline=pass_baseline if isinstance(pass_baseline, Mapping) else None,
+            ledger=pass_ledger,
+            accept_regressions=accept_regressions,
+            regression_reason=regression_reason,
+            trigger_rule=str(resolved_finding.get("rule_id") or resolved_finding.get("code") or ""),
+            finding_id=str(resolved_finding.get("finding_id") or finding_id or ""),
+            option_id=option_id,
+            priority_improved=_priority_improved(preview),
+        )
+    except ValueError as exc:
+        return _rejected_delta(
+            season,
+            revision,
+            "invalid_regression_override",
+            option_id=option_id,
+            error=str(exc),
+        )
+    if not adoption["adoptable"]:
+        reason = (
+            "cross_rule_adoption_cycle"
+            if adoption["cycle_detected"]
+            else "cross_rule_adoption_regression"
+        )
+        return _rejected_delta(
+            season,
+            revision,
+            reason,
+            option_id=option_id,
+            verification=verification,
+            adoption=adoption,
+            delta=preview,
+        )
+    preview["adoption"] = adoption
     if dry_run:
         return {
             "season": season,
@@ -578,6 +713,7 @@ def apply_repair(
             "finding": resolved_finding,
             "delta": preview,
             "operational_acceptability": acceptability,
+            "adoption": adoption,
         }
 
     from .application.canonical_season.scoped_mutation import (
@@ -618,6 +754,20 @@ def apply_repair(
                 "option_id": option_id,
                 "finding_id": finding_id,
                 "changed_tournament_ids": changed_tournament_ids,
+                "adoption": adoption_history_summary(
+                    adoption,
+                    affected_tournament_ids=changed_tournament_ids,
+                    affected_team_ids=_changed_team_ids(plan, result_candidate),
+                    revision=revision,
+                    decision_id=option_id,
+                    baseline_revision=str(
+                        (adoption.get("baseline_comparison") or {}).get("baseline_revision") or ""
+                    ),
+                    baseline_fingerprint=str(
+                        pass_ledger.baseline_fingerprint or adoption["before_fingerprint"]
+                    ),
+                    note=f"Applied repair option {option_id}",
+                ),
                 **authorization_history_details(scoped_authorization),
             },
         },
@@ -640,6 +790,7 @@ def apply_repair(
         "revision_after": new_revision,
         "delta": delta,
         "operational_acceptability": acceptability,
+        "adoption": adoption,
         "fresh_findings": list_findings(season, root=root),
     }
 
@@ -2304,6 +2455,62 @@ def _unresolved_avoidability_count(verification: Mapping[str, Any], avoidability
         if str(deviation.get("avoidability") or "") == avoidability
         and _deviation_is_unresolved(deviation)
     )
+
+
+def _priority_improved(delta: Mapping[str, Any]) -> bool:
+    """True when the candidate improves a strictly higher-priority defect tier.
+
+    Tiers follow the catalog precedence: hard constraints, then operational
+    obligations, then strong-goal/soft defects. A candidate that reduces a
+    higher tier may still carry a lower-tier soft regression as a reported
+    trade-off; a candidate that only reshuffles the same tier does not.
+    """
+
+    def total(tier: Iterable[tuple[str, str]]) -> tuple[int, int]:
+        before = sum(int(delta.get(before_key, 0) or 0) for before_key, _ in tier)
+        after = sum(int(delta.get(after_key, 0) or 0) for _, after_key in tier)
+        return before, after
+
+    hard = total((("hard_violations_before", "hard_violations_after"),))
+    obligations = total(
+        (
+            ("unresolved_hosting_obligations_before", "unresolved_hosting_obligations_after"),
+            ("manual_placements_before", "manual_placements_after"),
+            ("unresolved_placement_obligations_before", "unresolved_placement_obligations_after"),
+        )
+    )
+    goals = total(
+        (
+            ("hosting_balance_imbalances_before", "hosting_balance_imbalances_after"),
+            ("participation_deviations_before", "participation_deviations_after"),
+        )
+    )
+    if hard[1] != hard[0]:
+        return hard[1] < hard[0]
+    if obligations[1] != obligations[0]:
+        return obligations[1] < obligations[0]
+    return goals[1] < goals[0]
+
+
+def _changed_team_ids(before: Mapping[str, Any], after: Mapping[str, Any]) -> List[str]:
+    """Return ``club|label|age_group`` identities of teams in changed tournaments."""
+    changed = set(_changed_tournament_ids(before, after))
+    identities: set[str] = set()
+    for plan in (before, after):
+        for tournament in plan.get("tournaments") or []:
+            if str(tournament.get("id")) not in changed:
+                continue
+            for team in tournament.get("teams") or []:
+                identities.add(
+                    "|".join(
+                        (
+                            str(team.get("club") or ""),
+                            str(team.get("label") or ""),
+                            str(team.get("age_group") or ""),
+                        )
+                    )
+                )
+    return sorted(identities)
 
 
 def _changed_tournament_ids(before: Mapping[str, Any], after: Mapping[str, Any]) -> List[str]:

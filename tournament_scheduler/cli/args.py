@@ -1925,6 +1925,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show all known/accepted findings when a baseline exists (default emphasizes NEW/REGRESSED)",
     )
 
+    season_audit = season_sub.add_parser(
+        "audit",
+        help="Run the catalog-driven season-wide completion gate (exhaustive coverage report)",
+    )
+    season_audit.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_audit.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_audit.add_argument("--json", action="store_true", help="Print the audit report as JSON")
+
     season_baseline = season_sub.add_parser(
         "baseline",
         help="Create, advance or inspect the accepted season-quality baseline",
@@ -2046,6 +2054,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Validate and preview the repair without writing canonical state"
     )
     season_apply_repair.add_argument("--json", action="store_true", help="Print the apply result/delta as JSON")
+    season_apply_repair.add_argument(
+        "--accept-regression",
+        dest="accept_regressions",
+        action="append",
+        default=None,
+        metavar="CODE",
+        help=(
+            "Explicitly accept one named cross-rule material regression (for example "
+            "'more_gaps_under_7_days'); repeatable and never the default"
+        ),
+    )
+    season_apply_repair.add_argument(
+        "--accept-regression-reason",
+        default=None,
+        help="Mandatory operator reason recorded with any accepted cross-rule regression",
+    )
     _add_operational_opt_in_flags(season_apply_repair)
 
     season_accept_deviation = season_sub.add_parser(
