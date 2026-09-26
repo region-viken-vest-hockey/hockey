@@ -336,13 +336,14 @@ class TestBookupNavigateToDate:
 class TestBookupCoverageRecord:
     """P1: coverage is only `complete` once the requested window was inspected."""
 
-    def test_complete_only_when_start_and_end_were_inspected(self) -> None:
-        from datetime import date
+    def test_complete_only_when_every_requested_date_was_inspected(self) -> None:
+        from datetime import date, timedelta
 
         from tournament_scheduler.pipeline.source_integrity import INTEGRITY_COMPLETE
 
+        week = [date(2026, 10, 5) + timedelta(days=offset) for offset in range(28)]
         record = _bookup_coverage_record(
-            [date(2026, 10, 5), date(2026, 10, 11), date(2026, 10, 26), date(2026, 11, 1)],
+            week,
             datetime(2026, 10, 5),
             datetime(2026, 11, 1),
             [],
@@ -351,6 +352,24 @@ class TestBookupCoverageRecord:
         assert record["status"] == INTEGRITY_COMPLETE
         assert record["navigation_complete"] is True
         assert record["exceptions"] == []
+
+    def test_interior_week_gap_is_partial(self) -> None:
+        from datetime import date
+
+        from tournament_scheduler.pipeline.source_integrity import INTEGRITY_PARTIAL
+
+        # Start and end weeks are present, but Oct 12-25 was skipped: the
+        # boundaries alone must not be read as continuous coverage.
+        record = _bookup_coverage_record(
+            [date(2026, 10, 5), date(2026, 10, 11), date(2026, 10, 26), date(2026, 11, 1)],
+            datetime(2026, 10, 5),
+            datetime(2026, 11, 1),
+            [],
+        )
+
+        assert record["status"] == INTEGRITY_PARTIAL
+        assert record["navigation_complete"] is False
+        assert any("2026-10-12..2026-10-25" in reason for reason in record["exceptions"])
 
     def test_early_end_of_window_exit_is_partial(self) -> None:
         from datetime import date
@@ -366,7 +385,7 @@ class TestBookupCoverageRecord:
 
         assert record["status"] == INTEGRITY_PARTIAL
         assert record["navigation_complete"] is False
-        assert any("slutt" in reason for reason in record["exceptions"])
+        assert any("2026-10-12" in reason for reason in record["exceptions"])
 
     def test_failed_start_navigation_is_partial(self) -> None:
         from datetime import date
@@ -381,7 +400,7 @@ class TestBookupCoverageRecord:
         )
 
         assert record["status"] == INTEGRITY_PARTIAL
-        assert any("start" in reason for reason in record["exceptions"])
+        assert any("2026-10-05" in reason for reason in record["exceptions"])
 
     def test_navigation_exception_is_partial(self) -> None:
         from datetime import date

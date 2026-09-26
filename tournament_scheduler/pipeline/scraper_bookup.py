@@ -161,12 +161,14 @@ def _bookup_coverage_record(
     end_date: datetime,
     exceptions: list[str],
 ) -> dict[str, Any]:
-    """Turn the inspected week range into a BookUp coverage record.
+    """Turn the inspected week/date set into a BookUp coverage record.
 
-    Complete only when the inspected week range actually reaches the requested
-    start and end; a calendar that silently stopped early (or whose initial
-    navigation missed the start) stays ``partial`` rather than being read as a
-    fully-known calendar.
+    Complete only when **every** requested date was actually displayed; the
+    inspected set must cover the requested start, every interior day and the
+    requested end. Taking only ``min``/``max`` would let a run that skipped an
+    interior week still look complete, so events in the gap could be read as
+    free ice. A calendar that silently stopped early, skipped a week, or whose
+    initial navigation missed the start stays ``partial``.
     """
 
     if exceptions:
@@ -181,20 +183,42 @@ def _bookup_coverage_record(
             "navigation_complete": False,
             "exceptions": ["BookUp-kalenderen viste ingen ukeoverskrifter."],
         }
-    first = min(inspected_dates)
-    last = max(inspected_dates)
-    missing: list[str] = []
-    if first > start_date.date():
-        missing.append(f"BookUp-start {start_date.date()} ble ikke inspisert (første={first}).")
-    if last < end_date.date():
-        missing.append(f"BookUp-slutt {end_date.date()} ble ikke inspisert (siste={last}).")
-    if missing:
+    missing_ranges = _missing_date_ranges(set(inspected_dates), start_date.date(), end_date.date())
+    if missing_ranges:
+        summary = ", ".join(
+            f"{start.isoformat()}" if start == end else f"{start.isoformat()}..{end.isoformat()}"
+            for start, end in missing_ranges[:5]
+        )
+        more = "" if len(missing_ranges) <= 5 else f" (+{len(missing_ranges) - 5} flere)"
         return {
             "status": INTEGRITY_PARTIAL,
             "navigation_complete": False,
-            "exceptions": missing,
+            "exceptions": [f"BookUp-dekningen manglet datoer: {summary}{more}."],
         }
     return {"status": INTEGRITY_COMPLETE, "navigation_complete": True, "exceptions": []}
+
+
+def _missing_date_ranges(
+    inspected: set[date],
+    start: date,
+    end: date,
+) -> list[tuple[date, date]]:
+    """Return the contiguous ``[start, end]`` date ranges in *start*..*end* not inspected."""
+
+    missing: list[tuple[date, date]] = []
+    run_start: date | None = None
+    current = start
+    while current <= end:
+        if current not in inspected:
+            if run_start is None:
+                run_start = current
+        elif run_start is not None:
+            missing.append((run_start, current - timedelta(days=1)))
+            run_start = None
+        current += timedelta(days=1)
+    if run_start is not None:
+        missing.append((run_start, end))
+    return missing
 
 
 def _deduplicate_bookup_events(events: list[CalendarEvent]) -> list[CalendarEvent]:
