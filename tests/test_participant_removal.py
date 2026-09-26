@@ -755,6 +755,44 @@ def test_durable_withdrawal_projection_blocks_reintroduction_and_registration_en
     assert projected[WITHDRAWN_INELIGIBLE_FIELD] == []
 
 
+def test_registration_reconciliation_of_final_team_clears_obsolete_withdrawals() -> None:
+    """P2: a present-but-empty authoritative pool is not the same as no pool."""
+
+    problem = _problem()
+    records = build_withdrawal_records(
+        team={"club": "Echo", "label": "Echo 1", "age_group": "U10"},
+        tournament_ids=["u10-a", "u10-b"],
+        request_id="withdraw-echo",
+        actor="tester",
+        note="",
+        created_at="2026-09-22T00:00:00+00:00",
+        source_revision="rev-1",
+        effective_from="2026-10-03",
+    )
+    teams = [dict(team) for team in problem["teams"]]
+    plan = {
+        "tournaments": [
+            _tournament("u10-a", "2026-10-03", "Alfa", [t for t in teams if t["label"] != "Echo 1"]),
+            _tournament("u10-b", "2026-10-10", "Bravo", [t for t in teams if t["label"] != "Echo 1"]),
+        ]
+    }
+
+    # The registered pool is present but explicitly empty after the final team
+    # is reconciled away: every obsolete withdrawal stops reducing/blocking.
+    empty_pool_problem = dict(problem)
+    empty_pool_problem["teams"] = []
+    projected = project_into_problem(empty_pool_problem, records=records, plan=plan)
+    assert projected["withdrawn_tournament_teams"] == []
+    assert projected[WITHDRAWN_INELIGIBLE_FIELD] == []
+
+    # An absent/unavailable pool is not evidence of ineligibility, so the
+    # withdrawal projection is preserved.
+    absent_pool_problem = {key: value for key, value in problem.items() if key != "teams"}
+    projected = project_into_problem(absent_pool_problem, records=records, plan=plan)
+    assert len(projected["withdrawn_tournament_teams"]) == 1
+    assert len(projected[WITHDRAWN_INELIGIBLE_FIELD]) == 1
+
+
 def test_withdrawn_team_cannot_be_reintroduced_by_verification(tmp_path: Path) -> None:
     """P1: a later rebuild cannot silently regain a withdrawn participant."""
 

@@ -8,9 +8,11 @@ deliberately distinct outcomes share one atomic operation:
   eligible pool. If the reduced shape is avoidably underfilled the operation
   fails closed; the operator must make an explicit withdrawal decision.
 * **genuine season/age-group withdrawal** -- the same removal, together with a
-  revision-bound :mod:`tournament_scheduler.participation_withdrawals` record
-  that reduces the *eligible* shape pool for exactly the affected tournaments.
-  The registered roster and any historical participation are preserved.
+  durable, revision-bound :mod:`tournament_scheduler.participation_withdrawals`
+  record that makes the team ineligible for the **whole age group** from the
+  earliest affected tournament (`effective_from`). The per-tournament ids are
+  the roster-mutation scope and provenance, not the eligibility scope. The
+  registered roster and any historical participation are preserved.
 
 Both paths share the single canonical load -> mutate -> verify -> reconcile ->
 history -> revision -> atomic-write lifecycle. No date, host, arena or booked

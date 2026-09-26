@@ -487,10 +487,16 @@ def _filter_registered_entries(
     *,
     problem: Mapping[str, Any] | None,
 ) -> list[dict[str, Any]]:
-    """Drop entries whose team is no longer in the registered eligible pool."""
+    """Drop entries whose team is no longer in the registered eligible pool.
 
-    registered_full, registered_ageless = registered_team_identities(problem)
-    if not (registered_full or registered_ageless):
+    An absent/unavailable pool (no ``teams`` key at all) must not be treated as
+    an empty pool: a season whose problem simply does not carry the registered
+    roster is not evidence that every team became ineligible. A *present* pool
+    -- including an explicitly empty ``teams`` list after registration
+    reconciliation removes the last team -- is authoritative and filters.
+    """
+
+    if not isinstance(problem, Mapping) or not isinstance(problem.get("teams"), list):
         return entries
     return [
         entry
