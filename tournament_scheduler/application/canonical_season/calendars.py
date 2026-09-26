@@ -21,6 +21,7 @@ from tournament_scheduler.calendar_bookings import (
     MANUAL_BOOKING_STATUS_CHOICES,
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
     association_findings,
+    booking_assessment,
     booking_status_report as _booking_status_report,
     event_covers_tournament_interval,
     event_fingerprint,
@@ -359,6 +360,38 @@ def calendar_booking_candidates(
         "canonical_state_revision": canonical_state_revision(schedule, decisions),
         "booking_candidates": rows,
     }
+
+
+def calendar_booking_assessment(
+    service,
+    *,
+    season: str,
+    club: str | None = None,
+    problem: dict[str, Any] | None = None,
+    date_window_days: int = 7,
+) -> dict[str, Any]:
+    """Return a read-only, revision/source-bound booking crosswalk for the season.
+
+    This is the #453 assessment boundary: it proposes plausible
+    tournament<->event relations (including changed-date/non-overlapping
+    candidates, competing mappings, group bookings and unmatched events) but
+    never persists an association or claims that calendar absence proves a
+    tournament is unbooked. Only the exact canonical revision and each club's
+    calendar fingerprint it reports are authoritative; a caller must re-run it
+    after any change rather than trusting a cached result.
+    """
+
+    snapshot = service.load(season)
+    resolved_problem = _resolve_plan_problem(snapshot.schedule, problem, snapshot.decisions)
+    return booking_assessment(
+        problem=resolved_problem,
+        plan=snapshot.schedule.get("plan") or {},
+        decisions=snapshot.decisions,
+        canonical_state_revision=canonical_state_revision(snapshot.schedule, snapshot.decisions),
+        season=season,
+        clubs=[club] if club else None,
+        date_window_days=date_window_days,
+    )
 
 
 def calendar_booking_findings(service, *, season: str, problem: dict[str, Any] | None = None) -> dict[str, Any]:

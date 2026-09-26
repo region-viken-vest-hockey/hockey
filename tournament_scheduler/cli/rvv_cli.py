@@ -1310,6 +1310,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         banned_date_report,
         batch_maintenance,
         booking_status_report,
+        calendar_booking_assessment,
         calendar_booking_candidates,
         calendar_booking_findings,
         change_protection_report,
@@ -2038,6 +2039,55 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"[green]✓[/green] {prefix} calendar booking for {args.tournament_id}"
                 )
                 _console.print(f"  event: {args.event_fingerprint}")
+            return 0
+
+        if args.season_command == "booking-assessment":
+            result = calendar_booking_assessment(
+                season=args.season,
+                root=args.root,
+                club=args.club,
+                date_window_days=args.date_window_days,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                counts = result.get("counts") or {}
+                _console.print(
+                    f"[bold]Booking-vurdering {args.season}[/bold] "
+                    f"(revisjon {result.get('canonical_state_revision', '')[:12]}): "
+                    f"{counts.get('associated', 0)} assosiert, "
+                    f"{counts.get('manually_asserted', 0)} manuelt bekreftet, "
+                    f"{counts.get('proposed_unchanged', 0)} uendret forslag, "
+                    f"{counts.get('proposed_changed_slot', 0)} flyttet forslag, "
+                    f"{counts.get('competing_candidates', 0)} konkurrerende, "
+                    f"{counts.get('ambiguous', 0)} tvetydig, "
+                    f"{counts.get('unmatched', 0)} uten kandidat, "
+                    f"{counts.get('not_checkable', 0)} ikke kontrollerbar"
+                )
+                for row in result.get("tournaments", []):
+                    if row.get("classification") in {
+                        "competing_candidates",
+                        "ambiguous",
+                        "unmatched",
+                        "not_checkable",
+                        "proposed_changed_slot",
+                    }:
+                        _console.print(
+                            f"  [yellow]⚠[/yellow] {row.get('tournament_id')} "
+                            f"{row.get('classification')} ({row.get('host_club')} "
+                            f"{row.get('date')} {row.get('start_time')})"
+                        )
+                for row in result.get("events", []):
+                    if row.get("unmatched") or row.get("group_booking"):
+                        label = "gruppe" if row.get("group_booking") else "uten kandidat"
+                        _console.print(
+                            f"  [yellow]⚠[/yellow] {row.get('event_fingerprint')[:12]} "
+                            f"{label} {row.get('club')} {row.get('date')} "
+                            f"{row.get('start')}-{row.get('end')}"
+                        )
+                _console.print(
+                    "[dim]Read-only: ingen booking er bekreftet, ingen canonical state er endret.[/dim]"
+                )
             return 0
 
         if args.season_command == "calendar-booking-findings":

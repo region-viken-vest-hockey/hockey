@@ -83,6 +83,14 @@ class ClubCalendarSource:
     # does not contain this string (case-insensitive substring match). Useful
     # when a feed covers multiple arenas but RVV can only use one of them.
     location_filter: Optional[str] = None
+    # When set, the iCal scraper discards any event whose LOCATION field
+    # *does* contain this string (case-insensitive substring match) -- the
+    # inverse of `location_filter`. Useful when a feed is otherwise entirely
+    # one arena's evidence but a minority of entries are actually elsewhere
+    # (e.g. an away fixture whose resource label is suffixed with the
+    # destination city rather than a genuinely distinct LOCATION value that
+    # `location_filter` could select against).
+    location_exclude_substring: Optional[str] = None
     # issue #264: whether this club's *scraped* calendar entries represent a
     # generic club allocation it controls (busy in the public/arena calendar
     # so other bookers can't take it, but usable by the club itself for its
@@ -188,8 +196,18 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         note=(
             "This Teamup feed ('Frisk Asker Istider Askerhallen') is Askerhallen-"
             "only. No event's LOCATION/CATEGORIES ever mentions Varner Arena, so "
-            "no location filter is applied — every scraped event counts as "
-            "Askerhallen availability evidence."
+            "no inclusion location filter is applied — every scraped event "
+            "counts as Askerhallen availability evidence. A minority of "
+            "entries carry a ' - <city>' suffix on the title (informational "
+            "away-fixture notices, e.g. 'U15A - Stavanger' with no LOCATION at "
+            "all) or on the resource label (e.g. 'FA Jentegarderoben - "
+            "Stavanger 5', which still names a real home resource -- 'FA' -- "
+            "so it reads as hosting evidence, most likely a visiting team's "
+            "locker-room allocation for a match played at Askerhallen, not an "
+            "away trip). Which of these are genuinely away is not resolvable "
+            "from the feed alone; `sources status` surfaces the "
+            "' - <token>' title pattern as a review flag rather than guessing "
+            "an exclusion -- confirm with the club before excluding anything."
         ),
         location_filter=None,
         non_schedulable_arena_aliases=("Varner Arena",),

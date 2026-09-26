@@ -16,6 +16,7 @@ needs one of those and *why*.
 
 from __future__ import annotations
 
+import collections
 from datetime import datetime
 from typing import Any
 
@@ -30,6 +31,21 @@ _STALE_CACHE_SECONDS = 24 * 3600
 # Coarse heuristic threshold, not a hard validation rule (mirrors the
 # expected-event-count heuristic in stage2_scraping.py).
 _DUPLICATE_RATIO_WARNING_THRESHOLD = 0.3
+
+# A scraper that hardcodes a fallback start-time/duration instead of parsing
+# it from the source (the Jutul StyledCalendar bug, issue found operator-side
+# 2026-09-26: month view never renders per-event times, and the scraper had
+# defaulted every event to a synthetic 00:00 start / flat one-hour duration)
+# produces a very distinctive fingerprint: almost every event shares the
+# exact same duration AND starts at literal midnight. Real bookings naturally
+# cluster around common durations too, so this only fires when *both*
+# signals are near-universal, not just one.
+_MONOCULTURE_MIN_EVENTS = 20
+_MONOCULTURE_RATIO_THRESHOLD = 0.9
+
+# Fixed/deterministic allocation sources (Sandefjord's weekly block) are
+# uniform by design -- that's real domain knowledge, not a scraper defect.
+_MONOCULTURE_EXEMPT_SOURCE_TYPES = {"fixed_allocation"}
 
 _CONFIDENCE_BY_STATUS = {"ok": 1.0, "warning": 0.6, "blocked": 0.2, "failed": 0.0}
 
@@ -82,6 +98,84 @@ def _duplicate_ratio(events: list[dict[str, Any]]) -> float:
         return 0.0
     unique = len(set(keys))
     return 1.0 - (unique / len(keys))
+
+
+def _hardcoded_value_signal(events: list[dict[str, Any]], source_type: str) -> str | None:
+    """Detect a scraper that fabricates start-time/duration instead of parsing it.
+
+    Returns a problem description, or ``None``. Only fires when *both* the
+    modal duration and a literal-midnight start dominate the event set --
+    either signal alone is a normal real-world pattern (many bookings share a
+    duration; a handful of genuine all-day entries start at midnight).
+    """
+    if source_type in _MONOCULTURE_EXEMPT_SOURCE_TYPES:
+        return None
+    if not events or len(events) < _MONOCULTURE_MIN_EVENTS:
+        return None
+
+    durations = collections.Counter(e.get("duration_hours") for e in events)
+    _, top_duration_count = durations.most_common(1)[0]
+    duration_ratio = top_duration_count / len(events)
+
+    midnight_count = sum(
+        1 for e in events
+        if not e.get("all_day") and str(e.get("datetime") or "")[11:16] == "00:00"
+    )
+    midnight_ratio = midnight_count / len(events)
+
+    if duration_ratio >= _MONOCULTURE_RATIO_THRESHOLD and midnight_ratio >= _MONOCULTURE_RATIO_THRESHOLD:
+        return (
+            f"{round(duration_ratio * 100)}% av hendelsene har identisk varighet og "
+            f"{round(midnight_ratio * 100)}% starter kl. 00:00 uten å være heldagshendelser "
+            "-- dette matcher mønsteret til en skraper som fyller inn en fallback-verdi i "
+            "stedet for å lese faktisk start/varighet fra kilden, ikke ekte bookinger."
+        )
+    return None
+
+
+def _non_schedulable_arena_signal(
+    club_name: str | None,
+    events: list[dict[str, Any]],
+) -> str | None:
+    """Flag events an existing per-club arena classifier tags as non-schedulable.
+
+    Some clubs' registry entry documents a shared feed covering more than one
+    physical arena (e.g. Frisk Asker's Teamup feed also carries Varner Arena,
+    which RVV can never book -- see ``non_schedulable_arena_aliases`` on
+    :class:`~tournament_scheduler.club_registry.ClubCalendarSource``). Event
+    dicts optionally carry an ``arena`` tag from that per-club classifier
+    (:func:`~tournament_scheduler.pipeline.scraper_event_helpers._classify_frisk_asker_arena`
+    for Frisk Asker today). This surfaces a review flag when a material share
+    of *included* events tag as a non-schedulable arena instead of silently
+    trusting or silently dropping them -- the correct interpretation depends
+    on real-world arena-naming knowledge this module cannot verify from the
+    feed alone.
+    """
+    if not club_name or not events:
+        return None
+    try:
+        from ..club_registry import CLUB_REGISTRY
+    except ImportError:
+        return None
+    entry = CLUB_REGISTRY.get(club_name)
+    if entry is None or not entry.non_schedulable_arena_aliases:
+        return None
+
+    aliases = set(entry.non_schedulable_arena_aliases)
+    tagged = [str(e.get("arena")) for e in events if e.get("arena")]
+    if not tagged:
+        return None
+    flagged = sum(1 for arena in tagged if arena in aliases)
+    if flagged == 0:
+        return None
+    ratio = flagged / len(events)
+    return (
+        f"{flagged} av {len(events)} hendelser ({round(ratio * 100)}%) er merket som "
+        f"{'/'.join(sorted(aliases))} av den klubbspesifikke klassifisereren, et arena-alias "
+        f"RVV aldri kan booke -- bekreft med klubben om disse faktisk er {entry.arena}-belegg "
+        "eller om de bør ekskluderes fra tilgjengelighetsbevis (se historikken til "
+        "`location_filter` for denne kilden: samme spørsmål har blitt løst begge veier før)."
+    )
 
 
 def _strategy_label(source_name: str) -> str | None:
@@ -200,11 +294,35 @@ def _source_health_result(
             status = "warning"
             problems.append(str(expectation.get("message") or "Kildens kalenderdata ser mistenkelig ut for perioden."))
 
-        dup_ratio = _duplicate_ratio(source.get("events") or cache_entry.get("events") or [])
+        source_events = source.get("events") or cache_entry.get("events") or []
+        dup_ratio = _duplicate_ratio(source_events)
         if dup_ratio > _DUPLICATE_RATIO_WARNING_THRESHOLD:
             status = "warning"
             problems.append(f"{round(dup_ratio * 100)}% av hendelsene ser ut til å være duplikater.")
             suggested_actions.append("Sjekk kilden for gjentatte oppføringer eller en feil i skraperen.")
+
+        hardcoded_signal = _hardcoded_value_signal(source_events, str(source.get("type") or ""))
+        if hardcoded_signal:
+            status = "warning"
+            requires_human = True
+            problems.append(hardcoded_signal)
+            suggested_actions.append(
+                "Sjekk skraperen for en fallback-standardverdi som brukes i stedet for faktisk parset tid/varighet."
+            )
+
+        try:
+            from ..club_registry import club_for_source_name as _club_for_source_name
+        except ImportError:
+            _club_for_source_name = None  # type: ignore[assignment]
+        club_name = _club_for_source_name(name) if _club_for_source_name else None
+        arena_signal = _non_schedulable_arena_signal(club_name, source_events)
+        if arena_signal:
+            status = "warning"
+            requires_human = True
+            problems.append(arena_signal)
+            suggested_actions.append(
+                "Avklar med klubben hvilke LOCATION-verdier som faktisk er hallen RVV kan booke."
+            )
 
         if status == "ok" and cache_age_seconds is not None and cache_age_seconds > _STALE_CACHE_SECONDS:
             status = "warning"
