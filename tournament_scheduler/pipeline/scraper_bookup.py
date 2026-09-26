@@ -9,10 +9,11 @@ Playwright ``frame`` context and FullCalendar DOM semantics.
 from __future__ import annotations
 
 import json as _json
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from ..models import CalendarEvent
+from .source_integrity import INTEGRITY_COMPLETE, INTEGRITY_PARTIAL, with_coverage
 
 
 def _playwright_call_with_timeout(callable_obj: Any, *args: Any, timeout: int, **kwargs: Any) -> Any:
@@ -50,6 +51,13 @@ def _run_bookup_scraper(
     events: list[CalendarEvent] = []
     raw_html: str = ""
 
+    # Coverage evidence: a swallowed navigation/timeout must never let Stage 2
+    # read a partial BookUp calendar as fully known. Start unproven and only
+    # claim complete once the inspected week range actually covers the requested
+    # start and end.
+    inspected_dates: list[date] = []
+    coverage_exceptions: list[str] = []
+
     start_date_ref = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end_date_ref = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
     total_days = (end_date_ref - start_date_ref).days
@@ -66,7 +74,10 @@ def _run_bookup_scraper(
             frame = page.frame(url=lambda u: "app.html" in u)
             if not frame:
                 browser.close()
-                return [], raw_html
+                return with_coverage(
+                    [], status=INTEGRITY_PARTIAL, navigation_complete=False,
+                    exceptions=["BookUp app.html iframe not found"],
+                ), raw_html
 
             # Click "Se tilgjengelighet" if it's still there to reveal the
             # calendar (best-effort — it can already be visible/hidden).
@@ -79,18 +90,23 @@ def _run_bookup_scraper(
 
             try:
                 frame.locator("text=Tilgjengelighetskalender").first.wait_for(timeout=15_000)
-            except Exception:
+            except Exception as exc:
                 browser.close()
-                return [], raw_html
+                return with_coverage(
+                    [], status=INTEGRITY_PARTIAL, navigation_complete=False,
+                    exceptions=[f"BookUp calendar did not render: {exc}"],
+                ), raw_html
 
             # Navigate to start month if possible
             _bookup_navigate_to_date(frame, start_date_ref)
+            inspected_dates.extend(_bookup_visible_dates(frame))
 
             # Scrape week by week
             for week_idx in range(max_weeks):
                 frame.wait_for_timeout(1_500)
                 page_content = frame.content()
                 raw_html += page_content
+                inspected_dates.extend(_bookup_visible_dates(frame))
 
                 week_events = _parse_bookup_timegrid(frame, club_name=name, read_details=False)
                 # Filter to date range
@@ -104,16 +120,105 @@ def _run_bookup_scraper(
                     try:
                         next_btn.first.click(timeout=5_000)
                         frame.wait_for_timeout(1_500)
-                    except Exception:
+                    except Exception as exc:
+                        coverage_exceptions.append(f"BookUp week navigation stopped early: {exc}")
                         break
                 else:
                     break
 
             browser.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        coverage_exceptions.append(f"BookUp scrape raised: {exc}")
 
-    return _deduplicate_bookup_events(events), raw_html
+    return with_coverage(
+        _deduplicate_bookup_events(events),
+        **_bookup_coverage_record(inspected_dates, start_date_ref, end_date_ref, coverage_exceptions),
+    ), raw_html
+
+
+def _bookup_visible_dates(frame: Any) -> list[date]:
+    """Return the ISO dates currently rendered in the FullCalendar DOM."""
+
+    try:
+        raw = frame.evaluate(
+            "JSON.stringify(Array.from(document.querySelectorAll('.fc-day-header[data-date]')).map(e => e.getAttribute('data-date')))"
+        )
+        values = _json.loads(raw) if isinstance(raw, str) else []
+    except Exception:
+        return []
+    parsed: list[date] = []
+    for value in values or []:
+        try:
+            parsed.append(datetime.strptime(str(value), "%Y-%m-%d").date())
+        except ValueError:
+            continue
+    return parsed
+
+
+def _bookup_coverage_record(
+    inspected_dates: list[date],
+    start_date: datetime,
+    end_date: datetime,
+    exceptions: list[str],
+) -> dict[str, Any]:
+    """Turn the inspected week/date set into a BookUp coverage record.
+
+    Complete only when **every** requested date was actually displayed; the
+    inspected set must cover the requested start, every interior day and the
+    requested end. Taking only ``min``/``max`` would let a run that skipped an
+    interior week still look complete, so events in the gap could be read as
+    free ice. A calendar that silently stopped early, skipped a week, or whose
+    initial navigation missed the start stays ``partial``.
+    """
+
+    if exceptions:
+        return {
+            "status": INTEGRITY_PARTIAL,
+            "navigation_complete": False,
+            "exceptions": list(exceptions),
+        }
+    if not inspected_dates:
+        return {
+            "status": INTEGRITY_PARTIAL,
+            "navigation_complete": False,
+            "exceptions": ["BookUp-kalenderen viste ingen ukeoverskrifter."],
+        }
+    missing_ranges = _missing_date_ranges(set(inspected_dates), start_date.date(), end_date.date())
+    if missing_ranges:
+        summary = ", ".join(
+            f"{start.isoformat()}" if start == end else f"{start.isoformat()}..{end.isoformat()}"
+            for start, end in missing_ranges[:5]
+        )
+        more = "" if len(missing_ranges) <= 5 else f" (+{len(missing_ranges) - 5} flere)"
+        return {
+            "status": INTEGRITY_PARTIAL,
+            "navigation_complete": False,
+            "exceptions": [f"BookUp-dekningen manglet datoer: {summary}{more}."],
+        }
+    return {"status": INTEGRITY_COMPLETE, "navigation_complete": True, "exceptions": []}
+
+
+def _missing_date_ranges(
+    inspected: set[date],
+    start: date,
+    end: date,
+) -> list[tuple[date, date]]:
+    """Return the contiguous ``[start, end]`` date ranges in *start*..*end* not inspected."""
+
+    missing: list[tuple[date, date]] = []
+    run_start: date | None = None
+    current = start
+    while current <= end:
+        if current not in inspected:
+            if run_start is None:
+                run_start = current
+        elif run_start is not None:
+            missing.append((run_start, current - timedelta(days=1)))
+            run_start = None
+        current += timedelta(days=1)
+    if run_start is not None:
+        missing.append((run_start, end))
+    return missing
 
 
 def _deduplicate_bookup_events(events: list[CalendarEvent]) -> list[CalendarEvent]:

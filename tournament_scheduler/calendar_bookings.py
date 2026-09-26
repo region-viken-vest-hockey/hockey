@@ -1098,6 +1098,12 @@ def booking_assessment(
     calendar_status = (problem or {}).get("club_calendar_status") or {}
     if not isinstance(calendar_status, Mapping):
         calendar_status = {}
+    source_integrity = (problem or {}).get("club_source_integrity") or {}
+    if not isinstance(source_integrity, Mapping):
+        source_integrity = {}
+    coverage_proven = (problem or {}).get("club_coverage_proven") or {}
+    if not isinstance(coverage_proven, Mapping):
+        coverage_proven = {}
 
     all_clubs = sorted(
         {
@@ -1115,14 +1121,29 @@ def booking_assessment(
         trusted = status == "known"
         if trusted:
             trusted_clubs.add(club)
+        if trusted:
+            source_trust = "trusted"
+        elif status == "untrusted":
+            source_trust = "untrusted"
+        elif status == "source_review_required":
+            source_trust = "source_review_required"
+        else:
+            source_trust = "unknown"
         sources[club] = {
             "club": club,
             "status": status,
-            "source_trust": "trusted" if trusted else ("untrusted" if status == "untrusted" else "unknown"),
+            "source_trust": source_trust,
             "source_review_required": not trusted,
+            # The deterministic per-club integrity verdict (complete/suspicious/
+            # partial/failed) and whether the source structurally covered the
+            # whole requested window. A source that is not coverage-proven can
+            # never support a negative occupancy claim.
+            "source_integrity": str(source_integrity.get(club) or "unknown"),
+            "coverage_proven": bool(coverage_proven.get(club, False)),
             # Absence in an otherwise trustworthy source is still only an
             # observation about the current slot; a negative booking claim needs
-            # independent proof that the source covered the whole booking window.
+            # independent proof that the source covered the whole booking window
+            # *and* explicit club authority for the attribution.
             "trusted_for_negative_claim": False,
             "event_count": sum(1 for e in events if str(e.get("club") or "") == club),
             "calendar_fingerprint": club_calendar_fingerprint(problem, club),

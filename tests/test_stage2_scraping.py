@@ -1609,3 +1609,141 @@ class TestScrapeSourceIsolated:
 
         assert _COMMON_SOURCE_KEYS.issubset(result.keys())
         assert result["event_count"] == 0
+
+
+class TestSourceIntegrityWiring:
+    """Stage 2 fails closed when a completed scrape is partial/suspicious."""
+
+    def test_partial_coverage_downgrades_club_calendar_status(self, tmp_path):
+        from tournament_scheduler.pipeline.source_integrity import (
+            INTEGRITY_PARTIAL,
+            with_coverage,
+        )
+
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources(
+            [{"name": "Ringerike", "type": SOURCE_ICAL, "url": "https://example.com/feed.ics"}]
+        )
+        annotated = with_coverage(
+            [_make_event()],
+            status=INTEGRITY_PARTIAL,
+            navigation_complete=False,
+            exceptions=["uke mangler"],
+        )
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_ical_scraper",
+            return_value=annotated,
+        ):
+            result = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1))
+
+        assert result["club_calendar_status"]["Ringerike"] == "source_review_required"
+        assert result["club_source_integrity"]["Ringerike"] == INTEGRITY_PARTIAL
+        assert result["club_coverage_proven"]["Ringerike"] is False
+        assert result["sources"][0]["integrity"]["status"] == INTEGRITY_PARTIAL
+
+    def test_suspicious_expectation_downgrades_club_calendar_status(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = {
+            "start_date": "2025-09-01",
+            "end_date": "2025-12-01",
+            "teams": [{"club": "Ringerike", "label": "Ringerike U10", "age_group": "U10"}],
+            "sources": [{"name": "Ringerike", "type": SOURCE_ICAL, "url": "https://example.com/feed.ics"}],
+        }
+        # A single event over a full autumn window trips the coarse
+        # minimum-count expectation and must not be read as a known calendar.
+        events = [_make_event(name="Booking 1")]
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_ical_scraper",
+            return_value=events,
+        ):
+            result = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1))
+
+        assert result["club_calendar_status"]["Ringerike"] == "source_review_required"
+        assert result["club_source_integrity"]["Ringerike"] == "suspicious"
+        assert result["club_coverage_proven"]["Ringerike"] is False
+
+
+class TestSourceIntegrityWindowAndAuthority:
+    """P1/P2 review follow-ups: unproven coverage, window comparability, authority."""
+
+    def test_clean_browser_source_without_coverage_is_review_required(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources(
+            [{"name": "Jar", "type": SOURCE_OUTLOOK, "url": "https://example.com/forum"}]
+        )
+        events = [_make_event(name=f"Booking {day}") for day in range(3)]
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_forumbooking_scraper",
+            return_value=(events, ""),
+        ):
+            result = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1))
+
+        # The browser source returned a clean list, but gave no navigation
+        # proof, so it must not be read as a fully-known calendar.
+        assert result["sources"][0]["integrity"]["status"] == "complete"
+        assert result["sources"][0]["integrity"]["coverage_proven"] is False
+        assert result["club_calendar_status"]["Jar"] == "source_review_required"
+        assert result["club_coverage_proven"]["Jar"] is False
+
+    def test_operator_confirmed_authority_does_not_imply_coverage(self, tmp_path):
+        from tournament_scheduler.pipeline.source_integrity import (
+            INTEGRITY_PARTIAL,
+            with_coverage,
+        )
+
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = {
+            "start_date": "2025-09-01",
+            "end_date": "2025-12-01",
+            "teams": [{"club": "Ringerike", "label": "Ringerike U10", "age_group": "U10"}],
+            "operator_confirmed_available_clubs": ["Ringerike"],
+            "sources": [{"name": "Ringerike", "type": SOURCE_ICAL, "url": "https://example.com/feed.ics"}],
+        }
+        annotated = with_coverage(
+            [_make_event()],
+            status=INTEGRITY_PARTIAL,
+            navigation_complete=False,
+            exceptions=["uke mangler"],
+        )
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_ical_scraper",
+            return_value=annotated,
+        ):
+            result = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1))
+
+        # Operator confirmation restores placement authority, never coverage or
+        # negative booking evidence.
+        assert result["club_calendar_status"]["Ringerike"] == "known"
+        assert result["club_source_integrity"]["Ringerike"] == INTEGRITY_PARTIAL
+        assert result["club_coverage_proven"]["Ringerike"] is False
+
+    def test_shorter_previous_window_is_not_a_count_regression(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources(
+            [{"name": "Ringerike", "type": SOURCE_ICAL, "url": "https://example.com/feed.ics"}]
+        )
+        # A previous scrape over a *different* (much shorter) window: comparing
+        # raw counts would look like scraper data loss.
+        ScrapedDataCache(work_dir=str(state.work_dir)).write(
+            {
+                "_meta": {"start_date": "2025-01-01", "end_date": "2025-01-31"},
+                "sources": {},
+                "previous_sources": {"Ringerike": {"event_count": 100}},
+            }
+        )
+        events = [_make_event(name=f"Booking {day}") for day in range(5)]
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_ical_scraper",
+            return_value=events,
+        ):
+            result = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1))
+
+        integrity = result["sources"][0]["integrity"]
+        assert integrity["status"] == "complete"
+        assert not any("falt fra" in reason for reason in integrity["reasons"])
+        assert result["club_calendar_status"]["Ringerike"] == "known"

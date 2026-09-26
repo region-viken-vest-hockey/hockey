@@ -145,6 +145,38 @@ def _build_club_calendar_status(scraping_result: dict[str, Any] | None) -> dict[
     return {str(club): str(value) for club, value in raw.items()}
 
 
+def _build_club_source_integrity(scraping_result: dict[str, Any] | None) -> dict[str, str]:
+    """Reconstruct the per-club source-integrity verdict from the checkpoint.
+
+    ``club_calendar_status`` already fails closed (a partial/suspicious source
+    becomes ``source_review_required``); this exposes the underlying per-club
+    integrity status so evidence/assessment consumers can explain *why* a club
+    is not ``known`` without re-reading mutable ``.pipeline`` state.
+    """
+    if not scraping_result:
+        return {}
+    raw = scraping_result.get("club_source_integrity", {})
+    if not isinstance(raw, dict):
+        return {}
+    return {str(club): str(value) for club, value in raw.items()}
+
+
+def _build_club_coverage_proven(scraping_result: dict[str, Any] | None) -> dict[str, bool]:
+    """Reconstruct the per-club coverage-proof map from the checkpoint.
+
+    True only when *every* configured source for the club structurally covers
+    the requested window (an iCal/feed fetch or an explicit scraper coverage
+    report). A browser week/month navigator without an explicit proof is not
+    coverage-proven, so it can never support a negative occupancy claim.
+    """
+    if not scraping_result:
+        return {}
+    raw = scraping_result.get("club_coverage_proven", {})
+    if not isinstance(raw, dict):
+        return {}
+    return {str(club): bool(value) for club, value in raw.items()}
+
+
 def _build_club_busy_intervals(
     scraping_result: dict[str, Any] | None,
 ) -> dict[str, list[dict[str, str]]]:

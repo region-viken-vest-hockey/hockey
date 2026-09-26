@@ -451,3 +451,30 @@ def test_booking_assessment_cli_is_read_only_and_structured(tmp_path, capsys):
     assert payload["canonical_state_revision"]
     assert payload["counts"]["unresolved_tournaments"] == 1
     assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "pending_review"
+
+
+def test_source_review_required_fails_closed_to_not_checkable(tmp_path):
+    """A completed-but-untrustworthy source must not yield a positive proposal."""
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    result = _assess(
+        root,
+        _problem([_event("2026-09-12", "10:00", "12:00")], status="source_review_required"),
+    )
+
+    assert _tournament_row(result, "t1")["classification"] == "not_checkable"
+    source = result["sources"]["A"]
+    assert source["source_trust"] == "source_review_required"
+    assert source["source_review_required"] is True
+    assert source["trusted_for_negative_claim"] is False
+
+
+def test_source_integrity_and_coverage_are_reported_per_club(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    problem = _problem([_event("2026-09-12", "10:00", "12:00")])
+    problem["club_source_integrity"] = {"A": "suspicious"}
+    problem["club_coverage_proven"] = {"A": False}
+
+    source = _assess(root, problem)["sources"]["A"]
+
+    assert source["source_integrity"] == "suspicious"
+    assert source["coverage_proven"] is False
