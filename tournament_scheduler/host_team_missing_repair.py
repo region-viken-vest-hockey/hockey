@@ -31,6 +31,7 @@ from . import planning_half
 from .application.decisions import DecisionContext
 from .effective_tournament_shape import compute_effective_tournament_shape
 from .game_generation import generate_tournament_games
+from .occupancy import effective_required_ice_minutes
 from .host_representation import clubs_represent_same_club, constituent_clubs, host_eligible_teams
 from .models import Team
 from .operator_waivers import find_participation_waiver
@@ -518,13 +519,25 @@ def _duration_minutes(tournament, problem):
     """Return the authoritative occupancy minutes for *tournament*.
 
     The promoted verification problem's ``ice_time_minutes`` is the current
-    canonical hall-occupancy contract. A persisted tournament/obligation
-    ``duration_minutes`` value may be legacy evidence and must not override the
-    current problem value when one is available.
+    canonical hall-occupancy contract, adapted to this tournament's own
+    feasible round count via the canonical ``occupancy`` module (issue
+    #473) rather than the flat configured value. A persisted
+    tournament/obligation ``duration_minutes`` value may be legacy evidence
+    and must not override the current problem value when one is available.
     """
     age_group = tournament.get("age_group")
     ice = (problem.get("ice_time_minutes") or {}).get(age_group)
     if isinstance(ice, int) and ice > 0:
+        round_count = max((int(g.get("round_number") or 0) for g in tournament.get("games") or []), default=0)
+        if round_count > 0:
+            occupancy = effective_required_ice_minutes(
+                age_group,
+                ice,
+                (problem.get("round_length_minutes") or {}).get(age_group),
+                round_count,
+                nominal_round_count=(problem.get("rounds_per_tournament") or {}).get(age_group),
+            )
+            return occupancy.booked_minutes
         return ice
     value = tournament.get("duration_minutes")
     if isinstance(value, int) and value > 0:

@@ -189,7 +189,11 @@ def test_reconcile_config_rederives_legacy_unresolved_obligation_durations(tmp_p
     option_report = repair_options(
         YEAR, "unplaced_placement:U10:2026-12-19:1", root=root
     )
-    assert option_report["options"][0]["evidence"]["end_time"] == "12:20"
+    # issue #473: the repair candidate has only 2 participants, so its own
+    # feasible round count is below the U10 nominal 5, and the effective
+    # occupancy is reduced -- floored here at U10's 120-minute governing
+    # minimum rather than the flat reconciled 140.
+    assert option_report["options"][0]["evidence"]["end_time"] == "12:00"
 
 
 def test_cli_maintenance_uses_reconciled_canonical_problem_instead_of_stale_pipeline(tmp_path: Path) -> None:

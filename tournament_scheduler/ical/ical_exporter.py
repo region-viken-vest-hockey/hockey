@@ -61,11 +61,13 @@ class ICalExporter:
         start_hour: int = 9,
         round_length_for_age_group: Optional[dict[str, int]] = None,
         ice_time_for_age_group: Optional[dict[str, int]] = None,
+        rounds_per_tournament_for_age_group: Optional[dict[str, int]] = None,
     ) -> None:
         self.game_duration_minutes = game_duration_minutes
         self.start_hour = start_hour
         self.round_length_for_age_group = round_length_for_age_group or {}
         self.ice_time_for_age_group = ice_time_for_age_group or {}
+        self.rounds_per_tournament_for_age_group = rounds_per_tournament_for_age_group or {}
 
     # ------------------------------------------------------------------
     # Internal helpers — tournament start/end datetimes
@@ -104,7 +106,12 @@ class ICalExporter:
         ``game_duration_minutes`` and the number of games.
         """
         if tournament.start_time:
-            duration = tournament_required_ice_minutes(tournament, self.ice_time_for_age_group)
+            duration = tournament_required_ice_minutes(
+                tournament,
+                self.ice_time_for_age_group,
+                rounds_per_tournament=self.rounds_per_tournament_for_age_group,
+                round_length_minutes=self.round_length_for_age_group,
+            )
             if duration > 0:
                 return dt_start + timedelta(minutes=duration)
 
@@ -324,7 +331,12 @@ class ICalExporter:
         built from the tournament's age group, arena, and team list.
         """
         dt_start = self._tournament_start_datetime(tournament)
-        duration = tournament_required_ice_minutes(tournament, self.ice_time_for_age_group)
+        duration = tournament_required_ice_minutes(
+            tournament,
+            self.ice_time_for_age_group,
+            rounds_per_tournament=self.rounds_per_tournament_for_age_group,
+            round_length_minutes=self.round_length_for_age_group,
+        )
         if tournament.start_time and duration > 0:
             dt_end = dt_start + timedelta(minutes=duration)
         else:

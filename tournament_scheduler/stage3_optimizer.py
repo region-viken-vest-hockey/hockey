@@ -73,7 +73,7 @@ from .planning_contract import (
     _team_identity,
     external_calendar_conflict,
 )
-from .occupancy import required_ice_minutes
+from .occupancy import effective_required_ice_minutes
 from .utils.slot_finder import parse_time
 
 # Fixed candidate start times for the move_slots search (issue #262 P1).
@@ -146,14 +146,22 @@ def _infer_rounds_per_tournament(tournament: Dict[str, Any], problem: Optional[D
 def _infer_duration_minutes(tournament: Dict[str, Any], problem: Optional[Dict[str, Any]]) -> int:
     if not problem:
         return 0
-    ice_time = (problem.get("ice_time_minutes") or problem.get("round_length_minutes") or {}).get(tournament.get("age_group"))
+    age_group = tournament.get("age_group")
+    ice_time = (problem.get("ice_time_minutes") or problem.get("round_length_minutes") or {}).get(age_group)
     if not isinstance(ice_time, int) or ice_time <= 0:
         return 0
     games = tournament.get("games") or []
     max_round = max((g.get("round_number", 0) for g in games), default=0)
     if max_round <= 0:
         return 0
-    return required_ice_minutes(ice_time, max_round)
+    occupancy = effective_required_ice_minutes(
+        age_group,
+        ice_time,
+        (problem.get("round_length_minutes") or {}).get(age_group),
+        max_round,
+        nominal_round_count=_infer_rounds_per_tournament(tournament, problem),
+    )
+    return occupancy.booked_minutes
 
 
 def _build_slots(

@@ -198,15 +198,43 @@ _HARD: tuple[RuleEntry, ...] = (
         id="tournament_ice_booking_duration",
         classification=HARD_CONSTRAINT,
         meaning=(
-            "A tournament's configured ice_time_minutes is the complete hall occupancy window. "
-            "It must be at least the actual rounds times round length plus the per-round "
-            "changeover buffer, and any governing per-series-round booking floor."
+            "A tournament's configured ice_time_minutes is the age group's nominal hall "
+            "occupancy window. The minimum-feasibility floor it must satisfy is the actual "
+            "rounds times round length plus the per-round changeover buffer, and any "
+            "governing per-series-round booking floor -- this floor is validation evidence "
+            "only and is never added on top of the booked window. This tournament instance's "
+            "actually booked/occupied minutes are the feasible-round-adapted effective "
+            "occupancy (tournament_scheduler.occupancy.effective_required_ice_minutes): when "
+            "its own feasible round count (derived from the finalized participating teams, "
+            "see tournament_roster_shape) falls short of the age group's nominal round count, "
+            "the booked window is reduced by exactly the ice time the missing rounds would "
+            "have consumed -- never by a team-count ratio, never below the minimum-feasibility "
+            "or governing floor, and never below an already-confirmed/manual external booking. "
+            "Full participation keeps the configured value unchanged."
         ),
         canonical_owner="tournament_scheduler.occupancy",
-        input_source="planning_problem ice_time_minutes + round_length_minutes + generated round count",
+        input_source=(
+            "planning_problem ice_time_minutes + round_length_minutes + rounds_per_tournament "
+            "(nominal) + generated round count (feasible, from effective_tournament_shape)"
+        ),
         verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
-        evidence_projection=("verify_candidate.violations", "rules_model tournament_duration"),
-        tests=("tests/test_occupancy.py", "tests/test_planning_contract.py", "tests/test_stage1_config.py"),
+        mutation_providers=(
+            "tournament_scheduler.effective_tournament_shape",
+            "tournament_scheduler.application.canonical_season.withdrawal",
+            "tournament_scheduler.application.canonical_season.replacement",
+            "tournament_scheduler.application.canonical_season.roster",
+        ),
+        evidence_projection=(
+            "verify_candidate.violations",
+            "rules_model tournament_duration",
+            "calendar_bookings.tournament_occupancy_interval_facts",
+        ),
+        tests=(
+            "tests/test_occupancy.py",
+            "tests/test_planning_contract.py",
+            "tests/test_stage1_config.py",
+            "tests/test_arena_conflicts.py",
+        ),
         verifier_codes=("ice_time_playing_minimum", "ice_time_governing_minimum"),
         waivable=False,
     ),

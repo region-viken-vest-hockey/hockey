@@ -12,6 +12,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping
 
+from tournament_scheduler.occupancy import effective_required_ice_minutes
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 CALENDAR_BOOKING_ASSOCIATIONS_KEY = "calendar_booking_associations"
@@ -396,17 +397,35 @@ def tournament_occupancy_interval_facts(
     tournament: Mapping[str, Any],
     problem: Mapping[str, Any] | None,
 ) -> dict[str, str]:
-    """Return the canonical occupied interval facts for one tournament."""
+    """Return the canonical occupied interval facts for one tournament.
+
+    ``duration_minutes`` is this tournament instance's feasible-round-adapted
+    effective occupancy (issue #473), not the flat configured age-group
+    value. ``nominal_format_minutes``/``effective_requested_minutes``
+    distinguish the unreduced configured window from the adapted one for
+    audit/reconciliation evidence.
+    """
 
     age_group = str(tournament.get("age_group") or "")
     start_time = str(tournament.get("start_time") or "")
-    duration = 0
+    round_count = _game_round_count(tournament)
     ice_time = (problem or {}).get("ice_time_minutes") or {}
+    configured_ice_time: int | None = None
     if isinstance(ice_time, Mapping):
         try:
-            duration = int((ice_time.get(age_group) or 0) or 0)
+            configured_ice_time = int(ice_time.get(age_group) or 0) or None
         except (TypeError, ValueError):
-            duration = 0
+            configured_ice_time = None
+    round_length = (problem or {}).get("round_length_minutes") or {}
+    nominal_rounds = (problem or {}).get("rounds_per_tournament") or {}
+    occupancy = effective_required_ice_minutes(
+        age_group,
+        configured_ice_time,
+        round_length.get(age_group) if isinstance(round_length, Mapping) else None,
+        round_count,
+        nominal_round_count=nominal_rounds.get(age_group) if isinstance(nominal_rounds, Mapping) else None,
+    )
+    duration = occupancy.booked_minutes
     start_minutes = _parse_hhmm(start_time)
     end_time = _format_hhmm(start_minutes + duration) if start_minutes is not None and duration > 0 else ""
     return {
@@ -415,7 +434,9 @@ def tournament_occupancy_interval_facts(
         "duration_minutes": str(duration),
         "end_time": end_time,
         "age_group": age_group,
-        "round_count": str(_game_round_count(tournament)),
+        "round_count": str(round_count),
+        "nominal_format_minutes": str(occupancy.nominal_format_minutes) if occupancy.nominal_format_minutes else "",
+        "effective_requested_minutes": str(occupancy.effective_requested_minutes),
     }
 
 

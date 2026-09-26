@@ -76,6 +76,7 @@ class SeasonPlanExporter:
         rules_report: Optional[List[Dict[str, str]]] = None,
         round_length_for_age_group: Optional[Dict[str, int]] = None,
         ice_time_for_age_group: Optional[Dict[str, int]] = None,
+        rounds_per_tournament_for_age_group: Optional[Dict[str, int]] = None,
         decision_status: Optional[Mapping[str, Any]] = None,
         season_metadata: Optional[Mapping[str, Any]] = None,
     ) -> str:
@@ -108,6 +109,8 @@ class SeasonPlanExporter:
             ice_time_for_age_group or {},
             approval_by_id=approval_by_id,
             booking_by_id=booking_by_id,
+            rounds_per_tournament_for_age_group=rounds_per_tournament_for_age_group or {},
+            round_length_for_age_group=round_length_for_age_group or {},
         )
 
         used_titles = {overview_sheet.title}
@@ -161,6 +164,8 @@ class SeasonPlanExporter:
         *,
         approval_by_id: Optional[Dict[str, Mapping[str, Any]]] = None,
         booking_by_id: Optional[Dict[str, Mapping[str, Any]]] = None,
+        rounds_per_tournament_for_age_group: Optional[Dict[str, int]] = None,
+        round_length_for_age_group: Optional[Dict[str, int]] = None,
     ) -> None:
         sheet.append(_OVERVIEW_HEADERS)
         self._style_header_row(sheet)
@@ -168,12 +173,19 @@ class SeasonPlanExporter:
         ice_time_for_age_group = ice_time_for_age_group or {}
         approval_by_id = approval_by_id or {}
         booking_by_id = booking_by_id or {}
+        rounds_per_tournament_for_age_group = rounds_per_tournament_for_age_group or {}
+        round_length_for_age_group = round_length_for_age_group or {}
 
         _cancelled_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
         for tournament in plan.tournaments:
             travel_info = self._travel_info(tournament)
             status_prefix = "(AVLYST) " if tournament.cancelled else ""
-            end_time = tournament_end_time(tournament, ice_time_for_age_group)
+            end_time = tournament_end_time(
+                tournament,
+                ice_time_for_age_group,
+                rounds_per_tournament=rounds_per_tournament_for_age_group,
+                round_length_minutes=round_length_for_age_group,
+            )
             approval = approval_by_id.get(str(tournament.id)) or {}
             booking = booking_by_id.get(str(tournament.id)) or {}
             lock = bool(approval.get("placement_locked") or approval.get("participants_locked"))

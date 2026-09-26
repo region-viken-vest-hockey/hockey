@@ -776,6 +776,8 @@ class SeasonPlanner:
                 age_group,
                 self.ice_time_for_age_group,
                 round_count_for_games(provisional_games),
+                rounds_per_tournament=self.rounds_per_tournament_for_age_group,
+                round_length_minutes=self.round_length_for_age_group,
             ).as_dict()
 
             # issue #323 P0: candidate hosts are derived only from the
@@ -1052,6 +1054,8 @@ class SeasonPlanner:
                         age_group,
                         self.ice_time_for_age_group,
                         round_count_for_games(retry_games),
+                        rounds_per_tournament=self.rounds_per_tournament_for_age_group,
+                        round_length_minutes=self.round_length_for_age_group,
                     ).as_dict()
                     retry_original_represented = bool(original_host_constituents & set(retry_candidate_hosts))
                     if not allow_participant_host_fallback and not retry_original_represented:
@@ -1289,6 +1293,8 @@ class SeasonPlanner:
                 if "må plasseres manuelt" not in (tournament.manual_booking_reason or "")
             ],
             self.ice_time_for_age_group,
+            rounds_per_tournament=self.rounds_per_tournament_for_age_group,
+            round_length_minutes=self.round_length_for_age_group,
         )
 
         plan.arena_counts = self._arena_counts(plan.tournaments)
@@ -1443,7 +1449,12 @@ class SeasonPlanner:
             for tournament in plan.tournaments:
                 if tournament.cancelled or tournament.manual_booking_reason:
                     continue
-                interval = tournament_interval(tournament, self.ice_time_for_age_group)
+                interval = tournament_interval(
+                    tournament,
+                    self.ice_time_for_age_group,
+                    rounds_per_tournament=self.rounds_per_tournament_for_age_group,
+                    round_length_minutes=self.round_length_for_age_group,
+                )
                 if interval is None or not interval.host_club:
                     continue
                 duration_minutes = int((interval.end - interval.start).total_seconds() // 60)
@@ -2213,7 +2224,12 @@ class SeasonPlanner:
             start_at = datetime.combine(tournament.date, datetime.min.time()).replace(hour=hour, minute=minute)
         except (TypeError, ValueError):
             return None
-        duration_minutes = tournament_required_ice_minutes(tournament, self.ice_time_for_age_group)
+        duration_minutes = tournament_required_ice_minutes(
+            tournament,
+            self.ice_time_for_age_group,
+            rounds_per_tournament=self.rounds_per_tournament_for_age_group,
+            round_length_minutes=self.round_length_for_age_group,
+        )
         if duration_minutes <= 0:
             return None
         return CalendarEvent(
@@ -2280,7 +2296,12 @@ class SeasonPlanner:
 
                 tournament.start_time = f"{cursor_minutes // 60:02d}:{cursor_minutes % 60:02d}"
 
-                duration_minutes = tournament_required_ice_minutes(tournament, self.ice_time_for_age_group)
+                duration_minutes = tournament_required_ice_minutes(
+                    tournament,
+                    self.ice_time_for_age_group,
+                    rounds_per_tournament=self.rounds_per_tournament_for_age_group,
+                    round_length_minutes=self.round_length_for_age_group,
+                )
                 cursor_minutes += duration_minutes + ARENA_DAY_SEQUENCE_BUFFER_MINUTES
 
         return sequence_failures
