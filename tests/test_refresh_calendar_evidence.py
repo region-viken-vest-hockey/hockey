@@ -684,6 +684,93 @@ def test_refresh_flags_review_when_manual_assertion_conflicts_with_valid_associa
     assert reconciliation["requires_review_count"] == 1
 
 
+def test_refresh_flags_review_when_confirmed_association_survives_degraded_source(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """#467 P1 (round 2): a valid association must not hide a degraded source.
+
+    `_classify_club_calendar_bookings` checks an existing association before the
+    club's calendar-status trust gate, so a previously confirmed event stays
+    `confirmed_booked` even when the latest scrape for that club has degraded to
+    `source_review_required`/untrusted. The booking authority must be
+    preserved, but the degraded source must still surface as its own review
+    concern instead of a fully green row.
+    """
+
+    root = _promote(tmp_path, host_club="Kongsberg")
+    _patch_refresh_inputs(
+        monkeypatch, busy=True, source_name="Kongsberg ishall", club="Kongsberg"
+    )
+    first = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+    event_fingerprint = first["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]["classified"][0][
+        "event_fingerprint"
+    ]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint,
+        tournament_id="u10-a-20260912",
+        actor="tester",
+        note="Matched to host calendar booking",
+    )
+
+    # The same event survives the next scrape (so the association still
+    # resolves), but this refresh's source for the club is now degraded.
+    _patch_refresh_inputs(
+        monkeypatch,
+        busy=True,
+        source_name="Kongsberg ishall",
+        club="Kongsberg",
+        calendar_status="source_review_required",
+    )
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    reconciliation = result["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]
+    row = reconciliation["classified"][0]
+    # The booking authority is preserved...
+    assert row["status"] == "confirmed_booked"
+    # ...but the degraded source must still require review.
+    assert row["source_integrity_concern"] is True
+    assert row["source_status"] == "source_review_required"
+    assert reconciliation["requires_review_count"] == 1
+
+
+def test_refresh_assessment_binds_to_the_actually_committed_revision(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """#467 P2 (round 2): the persisted crosswalk must not claim a stale revision.
+
+    `booking_assessment()` promises its `canonical_state_revision` field is the
+    exact revision a caller can reproduce the report against. Embedding the
+    assessment inside the committed `calendar_evidence` would be circular (the
+    commit recomputes the canonical revision from that very content), so the
+    refresh must compute it against the revision that is actually current once
+    the call returns: the committed revision for a live refresh, and
+    `before_revision` (unchanged, since nothing is written) for a dry run.
+    """
+
+    root = _promote(tmp_path, host_club="Kongsberg")
+    _patch_refresh_inputs(monkeypatch, busy=False, source_name="Kongsberg ishall", club="Kongsberg")
+
+    live = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+    live_assessment = live["planned_tournament_reconciliation"]["assessment"]
+    assert live_assessment["canonical_state_revision"] == live["canonical_state_revision"]
+
+    # The persisted evidence must not embed the (revision-bound, immediately
+    # stale) assessment at all -- only the deterministic per-club classification.
+    evidence = load_schedule("2026-2027", root=root)["verification_context"]["calendar_evidence"]
+    assert "assessment" not in evidence["planned_tournament_reconciliation"]
+    assert set(evidence["planned_tournament_reconciliation"].keys()) == {"clubs"}
+
+    preview = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", dry_run=True)
+    preview_assessment = preview["planned_tournament_reconciliation"]["assessment"]
+    current_revision = canonical_state_revision(
+        load_schedule("2026-2027", root=root), load_decisions("2026-2027", root=root)
+    )
+    assert preview_assessment["canonical_state_revision"] == current_revision == preview["canonical_state_revision"]
+
+
 def test_refresh_reconciles_kongsberg_moved_booking_via_assessment_crosswalk(
     tmp_path: Path, monkeypatch
 ) -> None:

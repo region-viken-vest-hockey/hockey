@@ -519,7 +519,7 @@ def refresh_calendars(
     # decisions or approvals, only surface what the fresh scrape shows so a
     # stale-cache placement mismatch cannot hide inside a "refresh succeeded"
     # result.
-    planned_tournament_reconciliation: dict[str, Any] = {"clubs": {}, "assessment": None}
+    planned_tournament_reconciliation: dict[str, Any] = {"clubs": {}}
     for reconcile_club in _AUTO_REFRESH_RECONCILE_CLUBS:
         hosted = [
             tournament
@@ -538,36 +538,37 @@ def refresh_calendars(
             now=fetched_at,
             source_revision=before_revision,
         )
-        # A row needs review either because the calendar classification alone is
-        # not confirmed_booked, or because it *is* confirmed_booked but conflicts
-        # with an active manual booking assertion (#454) -- a valid association
-        # coexisting with a later "not booked" assertion must never look green.
+        # A row needs review when: the calendar classification alone is not
+        # confirmed_booked; it is confirmed_booked but conflicts with an active
+        # manual booking assertion (#454) -- a valid association coexisting
+        # with a later "not booked" assertion must never look green; or it is
+        # confirmed_booked from a *pre-existing* association while this club's
+        # calendar status has degraded to source_review_required/untrusted --
+        # the booking authority still stands, but the degraded source is its
+        # own separate concern that must not be silently absorbed into a green
+        # row.
         requires_review = [
             row
             for row in classified_rows
-            if row["status"] != BOOKING_CONFIRMED_BOOKED or row.get("manual_conflict")
+            if row["status"] != BOOKING_CONFIRMED_BOOKED
+            or row.get("manual_conflict")
+            or row.get("source_integrity_concern")
         ]
         planned_tournament_reconciliation["clubs"][reconcile_club] = {
             "classified": classified_rows,
             "count": len(classified_rows),
             "requires_review_count": len(requires_review),
         }
-    if planned_tournament_reconciliation["clubs"]:
-        # #467 P2: the overlap-only classification above cannot distinguish a
-        # truly absent booking from one that moved to a non-overlapping
-        # slot/date. Reuse the existing read-only booking_assessment() crosswalk
-        # so a moved booking, competing candidates or an unmatched event stay
-        # visible to the operator instead of collapsing into the same
-        # "no_covering_event_for_current_slot" reason as a real absence.
-        planned_tournament_reconciliation["assessment"] = booking_assessment(
-            problem=resolved_problem,
-            plan=plan,
-            decisions=decisions,
-            canonical_state_revision=before_revision,
-            season=season,
-            clubs=list(planned_tournament_reconciliation["clubs"].keys()),
-        )
-    evidence_record["planned_tournament_reconciliation"] = planned_tournament_reconciliation
+    # The persisted evidence keeps only the deterministic per-club
+    # classification. The booking_assessment() crosswalk below explicitly
+    # binds itself to one exact canonical_state_revision (#467 P2 review): if
+    # it were embedded here, the very act of persisting it would change the
+    # canonical revision computed from this content, immediately
+    # invalidating its own binding. Compute and return it separately (see
+    # below) against whichever revision is actually current once this call
+    # returns, instead of baking a stale/circular one into schedule.json.
+    evidence_record["planned_tournament_reconciliation"] = copy.deepcopy(planned_tournament_reconciliation)
+    reconcile_clubs_present = list(planned_tournament_reconciliation["clubs"].keys())
 
     result = {
         "season": season,
@@ -589,10 +590,26 @@ def refresh_calendars(
         "manual_external_conflict_placements": list(
             verification.get("manual_external_conflict_placements") or []
         ),
-        "planned_tournament_reconciliation": planned_tournament_reconciliation,
+        "planned_tournament_reconciliation": {
+            "clubs": planned_tournament_reconciliation["clubs"],
+            "assessment": None,
+        },
     }
     if dry_run:
         result["canonical_state_revision"] = before_revision
+        if reconcile_clubs_present:
+            # Nothing is committed in a dry run, so the current canonical
+            # revision remains before_revision for as long as this result is
+            # read -- the exact-revision binding booking_assessment() promises
+            # is accurate here.
+            result["planned_tournament_reconciliation"]["assessment"] = booking_assessment(
+                problem=resolved_problem,
+                plan=plan,
+                decisions=decisions,
+                canonical_state_revision=before_revision,
+                season=season,
+                clubs=reconcile_clubs_present,
+            )
         return result
 
     schedule = preview_schedule
@@ -639,6 +656,21 @@ def refresh_calendars(
     findings_after = list_findings(season, root=service.store.root)
     result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
     result["previous_canonical_state_revision"] = before_revision
+    if reconcile_clubs_present:
+        # Compute the crosswalk against the actually committed state so its
+        # exact-revision binding matches what a caller reads immediately
+        # afterward (e.g. `season status`) -- computing it beforehand would
+        # bind it to before_revision, which is stale the instant this refresh
+        # commits (#467 P2 review).
+        committed_problem = _resolve_plan_problem(committed.schedule, None, committed.decisions)
+        result["planned_tournament_reconciliation"]["assessment"] = booking_assessment(
+            problem=committed_problem,
+            plan=committed.schedule.get("plan") or {},
+            decisions=committed.decisions,
+            canonical_state_revision=result["canonical_state_revision"],
+            season=season,
+            clubs=reconcile_clubs_present,
+        )
     result["findings_before"] = {
         "finding_count": findings_before.get("finding_count"),
         "baseline_comparison": findings_before.get("baseline_comparison"),
@@ -969,6 +1001,16 @@ def _classify_club_calendar_bookings(
                 "reason": reason,
                 "event_fingerprint": record.get("event_fingerprint"),
                 "manual_conflict": manual_conflict,
+                # A pre-existing valid association is checked *before* the
+                # trustworthy gate above, so it can still report
+                # confirmed_booked even when this club's calendar status has
+                # since degraded to source_review_required/untrusted. The
+                # booking authority is preserved (an association is not
+                # invalidated by a later bad scrape), but the degraded source
+                # must stay visible as its own concern rather than silently
+                # making the row look fully green.
+                "source_status": status,
+                "source_integrity_concern": not trustworthy,
             }
         )
     return rows, records
