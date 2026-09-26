@@ -2971,7 +2971,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
                 if result.get("canonical_state_revision"):
                     _console.print(f"  revision: {str(result.get('canonical_state_revision'))[:12]}")
-                for club, entry in (result.get("planned_tournament_reconciliation") or {}).items():
+                for club, entry in ((result.get("planned_tournament_reconciliation") or {}).get("clubs") or {}).items():
                     requires_review = entry.get("requires_review_count", 0)
                     marker = "[yellow]○[/yellow]" if requires_review else "[green]✓[/green]"
                     _console.print(

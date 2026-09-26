@@ -15,6 +15,7 @@ from tournament_scheduler.season_state import (
     SeasonStateError,
     booking_status_report,
     canonical_state_revision,
+    confirm_calendar_booking,
     load_decisions,
     load_schedule,
     move_tournament,
@@ -90,6 +91,8 @@ def _patch_refresh_inputs(
     sources: list[dict] | None = None,
     source_name: str = "Arena A",
     club: str = "A",
+    events_override: list[dict] | None = None,
+    calendar_status: str = "known",
 ) -> None:
     from tournament_scheduler.pipeline import stage1_config, stage2_scraping
 
@@ -103,8 +106,9 @@ def _patch_refresh_inputs(
         return {"sources": [{"name": source_name, "type": source_type, "url": source_url}]}
 
     def fake_stage2_run(config, state, start_date, end_date, **kwargs):
-        events = []
-        if busy:
+        if events_override is not None:
+            events = events_override
+        elif busy:
             events = [
                 {
                     "date": "12.09.2026",
@@ -113,6 +117,8 @@ def _patch_refresh_inputs(
                     "duration_hours": 2.0,
                 }
             ]
+        else:
+            events = []
         return {
             "sources": [
                 {
@@ -128,7 +134,7 @@ def _patch_refresh_inputs(
                 }
             ],
             "events_by_club": {club: events},
-            "club_calendar_status": {club: "known"},
+            "club_calendar_status": {club: calendar_status},
             "blocked": [],
             "empty_sources": [],
             "cached": [],
@@ -552,19 +558,41 @@ def test_refresh_reconciles_kongsberg_planned_tournament_without_confirmation(
 
     result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
 
-    reconciliation = result["planned_tournament_reconciliation"]["Kongsberg"]
+    reconciliation = result["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]
     assert reconciliation["count"] == 1
     assert reconciliation["requires_review_count"] == 1
     assert reconciliation["classified"][0]["tournament_id"] == "u10-a-20260912"
     assert reconciliation["classified"][0]["status"] == "ambiguous"
     assert reconciliation["classified"][0]["reason"] == "no_covering_event_for_current_slot"
+    assert reconciliation["classified"][0]["manual_conflict"] is False
+    assert result["planned_tournament_reconciliation"]["assessment"] is not None
 
     evidence = load_schedule("2026-2027", root=root)["verification_context"]["calendar_evidence"]
-    assert evidence["planned_tournament_reconciliation"]["Kongsberg"]["count"] == 1
+    assert evidence["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]["count"] == 1
     # Evidence-only: the reconciliation must never itself write booking decisions.
     decisions = load_decisions("2026-2027", root=root)
     assert "tournament_booking_evidence" not in decisions
     assert decisions["decisions"]["u10-a-20260912"]["status"] != "approved"
+
+
+def test_refresh_reconciles_ringerike_planned_tournament_without_confirmation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The #467 automatic reconciliation covers Ringerike as well as Kongsberg."""
+
+    root = _promote(tmp_path, host_club="Ringerike")
+    _patch_refresh_inputs(
+        monkeypatch, busy=False, source_name="Ringerike ishall", club="Ringerike"
+    )
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    reconciliation = result["planned_tournament_reconciliation"]["clubs"]["Ringerike"]
+    assert reconciliation["count"] == 1
+    assert reconciliation["requires_review_count"] == 1
+    assert reconciliation["classified"][0]["status"] == "ambiguous"
+    assert reconciliation["classified"][0]["reason"] == "no_covering_event_for_current_slot"
+    assert "Kongsberg" not in result["planned_tournament_reconciliation"]["clubs"]
 
 
 def test_refresh_reconciles_kongsberg_planned_tournament_with_overlapping_event(
@@ -579,9 +607,136 @@ def test_refresh_reconciles_kongsberg_planned_tournament_with_overlapping_event(
 
     result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
 
-    reconciliation = result["planned_tournament_reconciliation"]["Kongsberg"]
+    reconciliation = result["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]
     assert reconciliation["requires_review_count"] == 1
     assert reconciliation["classified"][0]["reason"] == "single_overlapping_event_requires_confirmation"
+
+
+def test_refresh_reconciles_kongsberg_planned_tournament_with_valid_association(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """An explicit, still-matching calendar association is reported confirmed_booked, no review needed."""
+
+    root = _promote(tmp_path, host_club="Kongsberg")
+    _patch_refresh_inputs(
+        monkeypatch, busy=True, source_name="Kongsberg ishall", club="Kongsberg"
+    )
+    first = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+    event_fingerprint = first["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]["classified"][0][
+        "event_fingerprint"
+    ]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint,
+        tournament_id="u10-a-20260912",
+        actor="tester",
+        note="Matched to host calendar booking",
+    )
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    reconciliation = result["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]
+    assert reconciliation["classified"][0]["status"] == "confirmed_booked"
+    assert reconciliation["classified"][0]["manual_conflict"] is False
+    assert reconciliation["requires_review_count"] == 0
+
+
+def test_refresh_flags_review_when_manual_assertion_conflicts_with_valid_association(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """#467 P1: a manually_not_booked assertion must not be hidden by a still-valid association."""
+
+    root = _promote(tmp_path, host_club="Kongsberg")
+    _patch_refresh_inputs(
+        monkeypatch, busy=True, source_name="Kongsberg ishall", club="Kongsberg"
+    )
+    first = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+    event_fingerprint = first["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]["classified"][0][
+        "event_fingerprint"
+    ]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint,
+        tournament_id="u10-a-20260912",
+        actor="tester",
+        note="Matched to host calendar booking",
+    )
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="u10-a-20260912",
+        booking_status="not-booked",
+        actor="clubrep",
+        note="club says the slot was released after all",
+        reference="email:2",
+    )
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    reconciliation = result["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]
+    row = reconciliation["classified"][0]
+    # The calendar-only classification still finds the still-valid association...
+    assert row["status"] == "confirmed_booked"
+    # ...but the composite reconciliation must not let that hide the conflict.
+    assert row["manual_conflict"] is True
+    assert reconciliation["requires_review_count"] == 1
+
+
+def test_refresh_reconciles_kongsberg_moved_booking_via_assessment_crosswalk(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """#467 P2: a booking moved to a non-overlapping slot must not read like a plain absence."""
+
+    root = _promote(tmp_path, host_club="Kongsberg")
+    moved_event = [
+        {
+            "date": "12.09.2026",
+            "name": "External booking",
+            "datetime": "2026-09-12T18:00:00",
+            "duration_hours": 2.0,
+        }
+    ]
+    _patch_refresh_inputs(
+        monkeypatch,
+        busy=False,
+        source_name="Kongsberg ishall",
+        club="Kongsberg",
+        events_override=moved_event,
+    )
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    reconciliation = result["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]
+    # The simple overlap classifier alone cannot distinguish this from a real absence.
+    assert reconciliation["classified"][0]["reason"] == "no_covering_event_for_current_slot"
+
+    assessment = result["planned_tournament_reconciliation"]["assessment"]
+    row = next(row for row in assessment["tournaments"] if row["tournament_id"] == "u10-a-20260912")
+    assert row["classification"] == "proposed_changed_slot"
+    assert row["candidate_count"] >= 1
+
+
+def test_refresh_reconciles_kongsberg_planned_tournament_with_untrusted_source(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """An unavailable/partial source must be reported not_checkable, never a negative claim."""
+
+    root = _promote(tmp_path, host_club="Kongsberg")
+    _patch_refresh_inputs(
+        monkeypatch,
+        busy=False,
+        source_name="Kongsberg ishall",
+        club="Kongsberg",
+        calendar_status="source_review_required",
+    )
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    reconciliation = result["planned_tournament_reconciliation"]["clubs"]["Kongsberg"]
+    assert reconciliation["classified"][0]["status"] == "not_checkable"
+    assert reconciliation["requires_review_count"] == 1
 
 
 def test_refresh_does_not_reconcile_unrelated_clubs(tmp_path: Path, monkeypatch) -> None:
@@ -592,7 +747,7 @@ def test_refresh_does_not_reconcile_unrelated_clubs(tmp_path: Path, monkeypatch)
 
     result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
 
-    assert result["planned_tournament_reconciliation"] == {}
+    assert result["planned_tournament_reconciliation"] == {"clubs": {}, "assessment": None}
 
 
 def test_refresh_archive_survives_interleaved_writer(tmp_path: Path, monkeypatch) -> None:

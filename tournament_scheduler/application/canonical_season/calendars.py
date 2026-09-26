@@ -12,6 +12,9 @@ from typing import Any, Mapping
 from tournament_scheduler.calendar_bookings import (
     BOOKING_AMBIGUOUS,
     BOOKING_CONFIRMED_BOOKED,
+    BOOKING_CONFIRMED_NOT_BOOKED,
+    BOOKING_MANUALLY_BOOKED,
+    BOOKING_MANUALLY_NOT_BOOKED,
     BOOKING_NOT_CHECKABLE,
     CALENDAR_BOOKING_ASSOCIATIONS_KEY,
     MANUAL_ASSERTION_REVOKED,
@@ -28,6 +31,7 @@ from tournament_scheduler.calendar_bookings import (
     find_event,
     iter_events,
     manual_assertion_for_tournament,
+    manual_assertion_projection_status,
     manual_assertion_stale_reasons,
     new_association_record,
     new_booking_evidence_record,
@@ -515,7 +519,7 @@ def refresh_calendars(
     # decisions or approvals, only surface what the fresh scrape shows so a
     # stale-cache placement mismatch cannot hide inside a "refresh succeeded"
     # result.
-    planned_tournament_reconciliation: dict[str, Any] = {}
+    planned_tournament_reconciliation: dict[str, Any] = {"clubs": {}, "assessment": None}
     for reconcile_club in _AUTO_REFRESH_RECONCILE_CLUBS:
         hosted = [
             tournament
@@ -534,12 +538,35 @@ def refresh_calendars(
             now=fetched_at,
             source_revision=before_revision,
         )
-        requires_review = [row for row in classified_rows if row["status"] != BOOKING_CONFIRMED_BOOKED]
-        planned_tournament_reconciliation[reconcile_club] = {
+        # A row needs review either because the calendar classification alone is
+        # not confirmed_booked, or because it *is* confirmed_booked but conflicts
+        # with an active manual booking assertion (#454) -- a valid association
+        # coexisting with a later "not booked" assertion must never look green.
+        requires_review = [
+            row
+            for row in classified_rows
+            if row["status"] != BOOKING_CONFIRMED_BOOKED or row.get("manual_conflict")
+        ]
+        planned_tournament_reconciliation["clubs"][reconcile_club] = {
             "classified": classified_rows,
             "count": len(classified_rows),
             "requires_review_count": len(requires_review),
         }
+    if planned_tournament_reconciliation["clubs"]:
+        # #467 P2: the overlap-only classification above cannot distinguish a
+        # truly absent booking from one that moved to a non-overlapping
+        # slot/date. Reuse the existing read-only booking_assessment() crosswalk
+        # so a moved booking, competing candidates or an unmatched event stay
+        # visible to the operator instead of collapsing into the same
+        # "no_covering_event_for_current_slot" reason as a real absence.
+        planned_tournament_reconciliation["assessment"] = booking_assessment(
+            problem=resolved_problem,
+            plan=plan,
+            decisions=decisions,
+            canonical_state_revision=before_revision,
+            season=season,
+            clubs=list(planned_tournament_reconciliation["clubs"].keys()),
+        )
     evidence_record["planned_tournament_reconciliation"] = planned_tournament_reconciliation
 
     result = {
@@ -601,7 +628,7 @@ def refresh_calendars(
             "previous_snapshot": evidence_record["previous_snapshot"],
             "planned_tournament_reconciliation": {
                 club: {"count": entry["count"], "requires_review_count": entry["requires_review_count"]}
-                for club, entry in planned_tournament_reconciliation.items()
+                for club, entry in planned_tournament_reconciliation["clubs"].items()
             },
         },
     )
@@ -800,6 +827,39 @@ def _approved_placement_locked(decisions: Mapping[str, Any], tournament_id: str)
     return str(record.get("status") or "") == APPROVED_STATUS and bool(record.get("placement_locked"))
 
 
+def _manual_conflict_with_classification(
+    *,
+    decisions: Mapping[str, Any],
+    resolved_problem: Mapping[str, Any],
+    tournament: Mapping[str, Any],
+    classified_status: str,
+) -> bool:
+    """Return whether an active manual assertion conflicts with *classified_status*.
+
+    ``_classify_club_calendar_bookings`` only looks at calendar-derived evidence
+    (associations/overlaps); it does not know about a durable manual booking
+    assertion (#454), so a valid calendar association can silently coexist with
+    a later active ``manually_not_booked`` assertion. Mirrors the conflict
+    semantics already used by :func:`~tournament_scheduler.calendar_bookings.booking_status_report`,
+    applied to a freshly computed (not-yet-persisted) classification rather
+    than the last persisted calendar evidence.
+    """
+
+    tournament_id = str(tournament.get("id") or "")
+    manual = manual_assertion_for_tournament(decisions, tournament_id)
+    if manual is None:
+        return False
+    if manual_assertion_stale_reasons(manual, problem=resolved_problem, tournament=tournament):
+        # A stale manual assertion itself requires operator re-confirmation.
+        return True
+    manual_status = manual_assertion_projection_status(manual)
+    if manual_status == BOOKING_MANUALLY_NOT_BOOKED and classified_status == BOOKING_CONFIRMED_BOOKED:
+        return True
+    if manual_status == BOOKING_MANUALLY_BOOKED and classified_status == BOOKING_CONFIRMED_NOT_BOOKED:
+        return True
+    return False
+
+
 def _classify_club_calendar_bookings(
     *,
     plan: Mapping[str, Any],
@@ -896,7 +956,21 @@ def _classify_club_calendar_bookings(
             reason=reason,
         )
         records.append(record)
-        rows.append({"tournament_id": tournament.get("id"), "status": booking_status, "reason": reason, "event_fingerprint": record.get("event_fingerprint")})
+        manual_conflict = _manual_conflict_with_classification(
+            decisions=decisions,
+            resolved_problem=resolved_problem,
+            tournament=tournament,
+            classified_status=booking_status,
+        )
+        rows.append(
+            {
+                "tournament_id": tournament.get("id"),
+                "status": booking_status,
+                "reason": reason,
+                "event_fingerprint": record.get("event_fingerprint"),
+                "manual_conflict": manual_conflict,
+            }
+        )
     return rows, records
 
 
