@@ -234,6 +234,50 @@ def test_age_group_conflict_blocks_positive_proposal(tmp_path):
     assert row["candidates"][0]["actionable"] is False
 
 
+def test_exact_match_with_conflicting_neighbor_stays_proposed_unchanged(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    result = _assess(
+        root,
+        _problem(
+            [
+                _event("2026-09-12", "10:00", "12:00", title="Miniputt U10"),
+                _event("2026-09-12", "13:00", "14:00", title="Miniputt U12"),
+            ]
+        ),
+    )
+
+    row = _tournament_row(result, "t1")
+    # The exact U10 match is not obscured by the unrelated U12 observation.
+    assert row["classification"] == "proposed_unchanged"
+    assert row["candidate_count"] == 2
+    conflicting = next(c for c in row["candidates"] if c["age_group_conflict"])
+    assert conflicting["actionable"] is False
+    # The observation is still visible on the event crosswalk.
+    conflicting_event = next(r for r in result["events"] if r["title"] == "Miniputt U12")
+    assert conflicting_event["candidate_tournaments"][0]["actionable"] is False
+
+
+def test_exact_match_with_arena_conflict_neighbor_stays_proposed_unchanged(tmp_path):
+    root = _promote(
+        tmp_path, [_tournament("t1", date_str="2026-09-12", arena="Arena A")]
+    )
+    result = _assess(
+        root,
+        _problem(
+            [
+                _event("2026-09-12", "10:00", "12:00"),
+                _event("2026-09-12", "13:00", "14:00", arena="Arena B"),
+            ]
+        ),
+    )
+
+    row = _tournament_row(result, "t1")
+    assert row["classification"] == "proposed_unchanged"
+    assert row["candidate_count"] == 2
+    conflicting = next(c for c in row["candidates"] if c["arena_mismatch"])
+    assert conflicting["actionable"] is False
+
+
 def test_authority_is_reported_separately_from_source_checkability(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
     known_problem = _problem([_event("2026-09-12", "10:00", "12:00")])

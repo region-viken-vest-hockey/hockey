@@ -991,6 +991,10 @@ def _assessment_tournament_row(
         else []
     )
     has_manual_authority = manual is not None and not manual_stale_reasons
+    # Observations with contradicting title/arena evidence stay in the report
+    # but are not credible competing matches; only actionable candidates may
+    # contest or resolve a proposal.
+    actionable = [candidate for candidate in candidates if candidate.get("actionable")]
     if has_manual_authority:
         classification = ASSESSMENT_MANUALLY_ASSERTED
     elif associated_event is not None:
@@ -999,24 +1003,24 @@ def _assessment_tournament_row(
         classification = ASSESSMENT_NOT_CHECKABLE
     elif not candidates:
         classification = ASSESSMENT_UNMATCHED
-    elif len(candidates) > 1:
-        # Several plausible events map to the same tournament; the assessment
+    elif len(actionable) > 1:
+        # Several credible events map to the same tournament; the assessment
         # refuses to pick one and leaves the competition visible.
         classification = ASSESSMENT_COMPETING_CANDIDATES
-    elif candidates[0]["event_fingerprint"] in shared_event_fingerprints:
-        # One event plausibly belongs to more than one tournament (one-to-many
-        # or group booking); do not silently bind it to this row.
-        classification = ASSESSMENT_COMPETING_CANDIDATES
-    else:
-        candidate = candidates[0]
-        if candidate["age_group_conflict"] or candidate["arena_mismatch"]:
-            # Contradicting title/arena evidence blocks an ordinary positive
-            # proposal; the row stays reviewable rather than being resolved.
-            classification = ASSESSMENT_AMBIGUOUS
+    elif len(actionable) == 1:
+        candidate = actionable[0]
+        if candidate["event_fingerprint"] in shared_event_fingerprints:
+            # One credible event plausibly belongs to more than one tournament
+            # (one-to-many or group booking); do not silently bind it here.
+            classification = ASSESSMENT_COMPETING_CANDIDATES
         elif candidate["covers_current_interval"] and candidate["relation"] == RELATION_SAME_DATE_OVERLAP:
             classification = ASSESSMENT_PROPOSED_UNCHANGED
         else:
             classification = ASSESSMENT_PROPOSED_CHANGED_SLOT
+    else:
+        # Only conflicting/observation candidates remain; keep the row
+        # reviewable rather than resolving it or calling it contested.
+        classification = ASSESSMENT_AMBIGUOUS
 
     if has_manual_authority:
         authority: str | None = (
@@ -1180,13 +1184,17 @@ def booking_assessment(
         )
         candidates_by_tournament[tournament_id] = candidates
 
-    # An event that plausibly belongs to more than one tournament is one-to-many
-    # (or a group booking); every affected tournament competes for it instead of
-    # the assessment silently binding it to whichever row sorts first.
+    # An actionable event that plausibly belongs to more than one tournament is
+    # one-to-many (or a group booking); every affected tournament competes for
+    # it instead of the assessment silently binding it to whichever row sorts
+    # first. Non-actionable observations do not create competition.
     shared_event_fingerprints = {
         event_fp
         for event_fp, entries in candidates_by_event.items()
-        if len({tournament_id for tournament_id, _ in entries}) > 1
+        if len(
+            {tournament_id for tournament_id, candidate in entries if candidate.get("actionable")}
+        )
+        > 1
     }
 
     tournament_rows: list[dict[str, Any]] = []
