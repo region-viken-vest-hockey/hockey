@@ -133,3 +133,28 @@ def test_json_commands_emit_only_machine_parseable_stdout(argv: list[str], tmp_p
     # The entire stdout must be one JSON document (whitespace aside).
     parsed = json.loads(result.stdout)
     assert parsed is not None
+
+
+def test_season_publication_evidence_json_is_machine_readable(tmp_path: Path) -> None:
+    from tests.test_published_season_sealing import _tournaments_abc, _write_canonical
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+
+    result = _run_cli(
+        [
+            "season",
+            "publication-evidence",
+            "--season",
+            "2026-2027",
+            "--root",
+            str(root),
+            "--json",
+        ]
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Traceback" not in result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["season"] == "2026-2027"
+    assert payload["active_publication"] is None
+    assert payload["retained_evidence"] == []

@@ -189,8 +189,20 @@ def build_baseline_record(
     actor: str | None = None,
     note: str = "",
     migration: Mapping[str, Any] | None = None,
+    publication_evidence: Mapping[str, Any] | None = None,
+    previous_publication: Mapping[str, Any] | None = None,
+    republish_delta: Mapping[str, Any] | None = None,
+    republish_decision_changes: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build one immutable publication baseline record from a real projection."""
+    """Build one immutable publication baseline record from a real projection.
+
+    ``publication_evidence`` is the immutable reference to the public artifact
+    (Pages run/commit and bundle fingerprint). ``previous_publication`` links a
+    replacement publication to the exact version it replaced, and
+    ``republish_delta`` records the stable-id schedule delta from that version.
+    All three are persisted unchanged in ``decisions.json`` so a later republish
+    can prove what it replaced and rollback remains reachable.
+    """
 
     tournaments = _normalized_projection_tournaments(projection)
     record: dict[str, Any] = {
@@ -206,6 +218,14 @@ def build_baseline_record(
     }
     if migration is not None:
         record["migration"] = dict(migration)
+    if publication_evidence is not None:
+        record["publication_evidence"] = dict(publication_evidence)
+    if previous_publication is not None:
+        record["previous_publication"] = dict(previous_publication)
+    if republish_delta is not None:
+        record["republish_delta"] = dict(republish_delta)
+    if republish_decision_changes is not None:
+        record["republish_decision_changes"] = dict(republish_decision_changes)
     return record
 
 

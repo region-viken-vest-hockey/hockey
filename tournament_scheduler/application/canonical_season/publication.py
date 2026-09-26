@@ -17,18 +17,28 @@ from tournament_scheduler.published_baseline import (
     SEASON_LIFECYCLE_KEY,
     STATE_PUBLISHED_SEALED,
     PublishedBaselineError,
+    active_baseline,
     build_baseline_record,
     lifecycle_record,
     projection_entry,
+    projection_fingerprint,
     projection_from_canonical_schedule,
     publication_history,
+)
+from tournament_scheduler.pipeline.publication_evidence import (
+    PublicationEvidenceError,
+    build_republish_delta,
+    decision_snapshot,
+    diff_decision_snapshot,
+    previous_publication_link,
+    validate_publication_evidence,
 )
 from tournament_scheduler.published_mutation_history import (
     omission_projection,
     reconcile_published_baseline,
 )
 
-from .shared import _now_iso, _operator_identity
+from .shared import _now_iso, _operator_identity, published_baseline_reconciliation
 
 
 def seal_published_season(
@@ -43,6 +53,7 @@ def seal_published_season(
     materializations: Iterable[Mapping[str, Any]] = (),
     actor: str | None = None,
     note: str = "",
+    publication_evidence: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Record the immutable published baseline and seal the season.
 
@@ -121,6 +132,45 @@ def seal_published_season(
             f"mutations. Unexplained delta: {reconciliation['unexplained_delta']}"
         )
 
+    existing = lifecycle_record(decisions)
+    history = publication_history(decisions)
+    previous_baseline = active_baseline(decisions)
+    previous_link = previous_publication_link(previous_baseline)
+    republish_delta = None
+    decision_changes = None
+    if previous_baseline is not None:
+        previous_projection, _attested = published_baseline_reconciliation(
+            service,
+            previous_baseline,
+            current_projection=current_projection,
+        )
+        republish_delta = build_republish_delta(previous_projection, current_projection)
+        previous_evidence = previous_baseline.get("publication_evidence")
+        before_snapshot = (
+            previous_evidence.get("decision_snapshot")
+            if isinstance(previous_evidence, Mapping)
+            else None
+        )
+        if isinstance(before_snapshot, Mapping):
+            decision_changes = diff_decision_snapshot(
+                before_snapshot, decision_snapshot(decisions)
+            )
+
+    resolved_evidence = None
+    if publication_evidence is not None:
+        try:
+            resolved_evidence = validate_publication_evidence(publication_evidence)
+        except PublicationEvidenceError as exc:
+            raise PublishedBaselineError(str(exc)) from exc
+        expected_fingerprint = projection_fingerprint(published_projection)
+        if resolved_evidence["projection_fingerprint"] != expected_fingerprint:
+            raise PublishedBaselineError(
+                "Refusing to seal: publication evidence projection fingerprint "
+                f"{resolved_evidence['projection_fingerprint']} does not match the published "
+                f"projection {expected_fingerprint}"
+            )
+        resolved_evidence["decision_snapshot"] = decision_snapshot(decisions)
+
     migration = {
         "actor": resolved_actor,
         "at": now,
@@ -137,10 +187,12 @@ def seal_published_season(
         actor=resolved_actor,
         note=note,
         migration=migration,
+        publication_evidence=resolved_evidence,
+        previous_publication=previous_link,
+        republish_delta=republish_delta,
+        republish_decision_changes=decision_changes,
     )
 
-    existing = lifecycle_record(decisions)
-    history = publication_history(decisions)
     already = next(
         (
             entry
@@ -152,12 +204,13 @@ def seal_published_season(
         None,
     )
     revised_history = history if already is not None else history + [baseline_record]
+    stored_baseline = already or baseline_record
     updated_lifecycle = {
         **existing,
         "state": STATE_PUBLISHED_SEALED,
         "sealed_at": existing.get("sealed_at") or now,
         "sealed_by": existing.get("sealed_by") or resolved_actor,
-        "published_baseline": already or baseline_record,
+        "published_baseline": stored_baseline,
         "publication_history": revised_history,
     }
     previous_revision = decisions.get("canonical_state_revision")
@@ -174,6 +227,10 @@ def seal_published_season(
         "projection_fingerprint": baseline_record.get("projection_fingerprint"),
         "canonical_state_revision_before": previous_revision,
         "canonical_state_revision_after": committed.decisions.get("canonical_state_revision"),
+        "publication_evidence": stored_baseline.get("publication_evidence"),
+        "previous_publication": stored_baseline.get("previous_publication"),
+        "republish_delta": stored_baseline.get("republish_delta"),
+        "republish_decision_changes": stored_baseline.get("republish_decision_changes"),
         "reconciliation": {
             "applied_mutation_count": reconciliation["applied_mutation_count"],
             "publication_omissions": [entry["tournament_id"] for entry in omission_records],

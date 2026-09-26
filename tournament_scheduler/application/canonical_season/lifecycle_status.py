@@ -38,6 +38,12 @@ from .shared import (
     _operator_identity,
     published_baseline_reconciliation,
 )
+from tournament_scheduler.pipeline.publication_evidence import (
+    build_republish_delta,
+    decision_snapshot,
+    diff_decision_snapshot,
+    list_publication_evidence,
+)
 
 
 def _reconcile(
@@ -131,6 +137,63 @@ def verify_sealed_reconciliation(service, *, season: str) -> dict[str, Any]:
     return report
 
 
+def publication_evidence_report(service, *, season: str) -> dict[str, Any]:
+    """Read-only republish evidence: what a replacement publication would change.
+
+    Reports the exact previously published revision (from authoritative
+    publication history, never from a supplied export directory or the moving
+    ``latest/`` path), the stable-id schedule delta to current canonical state,
+    the decision-only changes, and the retained immutable evidence records.
+    """
+
+    snapshot = service.load(season)
+    decisions = snapshot.decisions
+    current_projection = projection_from_canonical_schedule(snapshot.schedule)
+    state = lifecycle_state(decisions)
+    season_root = getattr(service.store, "root", "season")
+    report: dict[str, Any] = {
+        "season": season,
+        "state": state,
+        "sealed": state == STATE_PUBLISHED_SEALED,
+        "current_canonical_revision": decisions.get("canonical_state_revision"),
+        "publication_count": len(publication_history(decisions)),
+        "active_publication": None,
+        "published_to_canonical_delta": None,
+        "decision_changes": None,
+        "retained_evidence": list_publication_evidence(season_root, season),
+    }
+    baseline = active_baseline(decisions)
+    if baseline is None:
+        return report
+
+    published_projection, _attested = published_baseline_reconciliation(
+        service,
+        baseline,
+        current_projection=current_projection,
+    )
+    evidence = baseline.get("publication_evidence")
+    before_snapshot = evidence.get("decision_snapshot") if isinstance(evidence, Mapping) else None
+    decision_changes = (
+        diff_decision_snapshot(before_snapshot, decision_snapshot(decisions))
+        if isinstance(before_snapshot, Mapping)
+        else None
+    )
+    report["active_publication"] = {
+        "publication_id": baseline.get("publication_id"),
+        "canonical_revision": baseline.get("canonical_revision"),
+        "published_at": baseline.get("published_at"),
+        "projection_fingerprint": baseline.get("projection_fingerprint"),
+        "tournament_count": baseline.get("tournament_count"),
+        "publication_evidence": evidence,
+        "previous_publication": baseline.get("previous_publication"),
+    }
+    report["published_to_canonical_delta"] = build_republish_delta(
+        published_projection, current_projection
+    )
+    report["decision_changes"] = decision_changes
+    return report
+
+
 def reopen_planning(
     service,
     *,
@@ -186,6 +249,7 @@ def reopen_planning(
 
 
 __all__ = [
+    "publication_evidence_report",
     "reopen_planning",
     "season_lifecycle_report",
     "verify_sealed_reconciliation",

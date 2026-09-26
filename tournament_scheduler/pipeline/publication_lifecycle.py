@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from tournament_scheduler.canonical_state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import (
@@ -22,7 +22,9 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     load_schedule,
 )
 from tournament_scheduler.published_baseline import (
+    active_baseline,
     is_published_sealed,
+    projection_fingerprint,
     projection_from_canonical_schedule,
 )
 
@@ -31,6 +33,11 @@ from .export_projection_guard import (
     FULL_OPERATIONAL_PROJECTION_SCHEMA,
     FULL_OPERATIONAL_PROJECTION_VERSION,
     diff_tournament_projection,
+)
+from .publication_evidence import (
+    build_publication_evidence,
+    has_immutable_reference,
+    write_publication_evidence,
 )
 
 
@@ -167,6 +174,7 @@ def assert_publication_allowed(
     export_dir: str | os.PathLike[str],
     *,
     repo_dir: str | os.PathLike[str] = ".",
+    branch: str = "gh-pages",
 ) -> dict[str, Any] | None:
     """Refuse to publish an export that cannot be defended against the sealed baseline.
 
@@ -176,6 +184,12 @@ def assert_publication_allowed(
        recorded canonical mutations (unexplained drift is never published);
     2. the export's own projection must still equal the current canonical
        projection, so an old export cannot republish a superseded schedule.
+
+    For a *replacement* publication it additionally verifies that the previous
+    published version is retained behind an immutable reference, so the public
+    snapshot being replaced stays reachable for rollback. A branch that cannot
+    be inspected reports ``unverified`` rather than pretending the previous
+    version was checked.
 
     Returns the reconciliation report when the season is sealed, ``None`` when
     the export is not a canonical-season export or the season is not sealed.
@@ -191,6 +205,15 @@ def assert_publication_allowed(
     if not is_published_sealed(decisions):
         return None
 
+    baseline = active_baseline(decisions)
+    if baseline is None:
+        raise RuntimeError(
+            "Refusing publication: season is published_sealed but has no published "
+            "baseline; the previous public version cannot be identified. Inspect "
+            "'season lifecycle --season <season> --json' and repair the lifecycle "
+            "state (for example with 'season seal-published') before publishing."
+        )
+
     report = verify_sealed_reconciliation(season, root=_season_root(repo_dir))
     if not report.get("ok", True):
         raise RuntimeError(
@@ -199,6 +222,73 @@ def assert_publication_allowed(
             f"{report.get('unexplained_delta')}"
         )
 
+    recoverability = _previous_publication_recoverability(
+        season=season,
+        baseline=baseline,
+        repo_dir=repo_dir,
+        branch=branch,
+    )
+    if recoverability is not None:
+        report = {**report, "previous_publication": recoverability}
+    return report
+
+
+def _previous_publication_recoverability(
+    *,
+    season: str,
+    baseline: Mapping[str, Any] | None,
+    repo_dir: str | os.PathLike[str],
+    branch: str,
+) -> dict[str, Any] | None:
+    """Verify the replaced public bundle is retained behind an immutable reference."""
+
+    if not isinstance(baseline, Mapping):
+        return None
+    evidence = baseline.get("publication_evidence")
+    run_id = ""
+    bundle_fingerprint = ""
+    if isinstance(evidence, Mapping):
+        run_id = str(evidence.get("run_id") or "")
+        bundle_fingerprint = str(evidence.get("bundle_fingerprint") or "")
+    if not run_id:
+        from .export_lifecycle import find_published_exports_for_season
+
+        publication_id = str(baseline.get("publication_id") or "")
+        for record in find_published_exports_for_season(season, season_root=_season_root(repo_dir)):
+            if str(record.get("export_id") or "") == publication_id:
+                run_id = str(record.get("pages_run_id") or "")
+                bundle_fingerprint = bundle_fingerprint or str(
+                    record.get("pages_bundle_fingerprint") or ""
+                )
+                break
+    if not has_immutable_reference(
+        {"run_id": run_id, "bundle_fingerprint": bundle_fingerprint}
+    ):
+        raise RuntimeError(
+            "Refusing publication: the previous published baseline "
+            f"{baseline.get('publication_id')!r} has no immutable artifact reference; "
+            "rollback cannot be guaranteed. Backfill it with 'season seal-published' "
+            "before replacing the public snapshot."
+        )
+    report: dict[str, Any] = {
+        "publication_id": baseline.get("publication_id"),
+        "run_id": run_id,
+        "bundle_fingerprint": bundle_fingerprint,
+    }
+    if run_id:
+        from . import pages_publish
+
+        retained = pages_publish.published_run_snapshot_exists(
+            run_id, repo_dir=str(repo_dir), branch=branch
+        )
+        if retained is False:
+            raise RuntimeError(
+                "Refusing publication: the previous published run "
+                f"{run_id!r} has no immutable /runs/{run_id}/ snapshot on '{branch}'; "
+                "the version being replaced would not be recoverable. Restore the "
+                "snapshot (or roll back) before publishing."
+            )
+        report["run_snapshot_retained"] = "true" if retained else "unknown"
     return report
 
 
@@ -209,6 +299,11 @@ def record_publication_seal(
     actor: str | None = None,
 ) -> dict[str, Any] | None:
     """Record the published baseline and seal the season (first publication).
+
+    On a replacement publication the new immutable baseline carries the
+    previous publication link, the exact stable-id delta against it and an
+    immutable reference to the public bundle just published. The before/after
+    evidence is also retained under ``season/<season>/evidence/publications/``.
 
     Returns ``None`` when the export is not a canonical-season export. Canonical
     exports fail closed when the manifest, durable canonical state or stable-id
@@ -223,9 +318,20 @@ def record_publication_seal(
     publication_id = str(manifest.get("export_id") or "")
     if not publication_id:
         raise RuntimeError("Refusing publication: canonical export manifest is missing export_id")
+    evidence = build_publication_evidence(
+        run_id=str(manifest.get("pages_run_id") or ""),
+        canonical_revision=context["current_revision"],
+        projection_fingerprint=projection_fingerprint(context["published_projection"]),
+        bundle_fingerprint=str(manifest.get("pages_bundle_fingerprint") or ""),
+        export_id=publication_id,
+        export_fingerprint=str(manifest.get("export_fingerprint") or ""),
+        pages_branch=str(manifest.get("pages_branch") or ""),
+        pages_commit=str(manifest.get("pages_commit") or ""),
+        published_at=str(manifest.get("published_at") or manifest.get("generated_at") or ""),
+    )
     from ..season_state import seal_published_season
 
-    return seal_published_season(
+    report = seal_published_season(
         season=season,
         publication_id=publication_id,
         canonical_revision=context["current_revision"],
@@ -234,7 +340,19 @@ def record_publication_seal(
         actor=actor,
         note="first/next successful publication",
         root=_season_root(repo_dir),
+        publication_evidence=evidence,
     )
+    report["evidence_files"] = write_publication_evidence(
+        season_root=_season_root(repo_dir),
+        season=season,
+        publication_id=publication_id,
+        evidence=report.get("publication_evidence") or evidence,
+        previous_publication=report.get("previous_publication"),
+        republish_delta=report.get("republish_delta"),
+        canonical_revision=context["current_revision"],
+        decision_changes=report.get("republish_decision_changes"),
+    )
+    return report
 
 
 __all__ = [

@@ -246,6 +246,43 @@ def _planned_bundle_contents(export_dir: Path) -> dict[str, bytes]:
     return contents
 
 
+# ---------------------------------------------------------------------------
+# Immutable snapshot retention (republish safety)
+# ---------------------------------------------------------------------------
+
+
+def published_run_snapshot_exists(
+    run_id: str,
+    *,
+    repo_dir: str = ".",
+    branch: str = "gh-pages",
+    remote: str = "origin",
+) -> bool | None:
+    """Whether the immutable ``/runs/<run_id>/`` snapshot is retained on *branch*.
+
+    Returns ``None`` when the branch cannot be inspected at all (not a git repo,
+    or no local/remote branch yet), so a caller can distinguish "verified
+    missing" from "not checkable" instead of treating a failed inspection as a
+    missing archive. Read-only; never fetches and never writes.
+    """
+
+    try:
+        repo_root = _require_git_repo_root(repo_dir)
+    except PagesPublishError:
+        return None
+    compare_ref = None
+    for candidate in (branch, f"{remote}/{branch}", f"origin/{branch}", "FETCH_HEAD"):
+        if _commit_ref_exists(repo_root, candidate):
+            compare_ref = candidate
+            break
+    if compare_ref is None:
+        return None
+    proc = _git(["ls-tree", "-r", "--name-only", compare_ref, f"runs/{run_id}/"], cwd=repo_root)
+    if proc.returncode != 0:
+        return False
+    return bool(proc.stdout.strip())
+
+
 def diff_latest(bundle_dir: str, *, repo_dir: str = ".", branch: str = "gh-pages") -> dict[str, list[str]]:
     """Read-only preview of what publishing *bundle_dir* would change under ``/latest/``.
 

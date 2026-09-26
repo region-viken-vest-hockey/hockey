@@ -1422,3 +1422,287 @@ def test_promote_force_cannot_replace_sealed_season(tmp_path: Path) -> None:
     )
     with pytest.raises(SeasonSealedError):
         promote_from_stage3(work_dir=work_dir, root=root, actor="tester", force=True)
+
+
+# ---------------------------------------------------------------------------
+# First-class sealed-season republish evidence
+# ---------------------------------------------------------------------------
+
+
+def _full_projection(root: Path) -> dict:
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    return _tp(snapshot.schedule["plan"])
+
+
+def _seal_full(
+    root: Path,
+    *,
+    publication_id: str,
+    canonical_revision: str,
+    run_id: str,
+    published_at: str = "2026-09-21T09:14:53+00:00",
+) -> dict:
+    from tournament_scheduler.pipeline.publication_evidence import build_publication_evidence
+    from tournament_scheduler.published_baseline import projection_fingerprint
+
+    projection = _full_projection(root)
+    evidence = build_publication_evidence(
+        run_id=run_id,
+        canonical_revision=canonical_revision,
+        projection_fingerprint=projection_fingerprint(projection),
+        bundle_fingerprint=f"bundle-{run_id}",
+        pages_branch="gh-pages",
+        pages_commit=f"commit-{run_id}",
+        published_at=published_at,
+    )
+    return CanonicalSeasonService(root=root).seal_published_season(
+        season="2026-2027",
+        publication_id=publication_id,
+        canonical_revision=canonical_revision,
+        published_at=published_at,
+        published_projection=projection,
+        publication_canonical_projection=projection,
+        actor="tester",
+        publication_evidence=evidence,
+    )
+
+
+def test_replacement_seal_links_previous_and_records_exact_delta(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+
+    service = CanonicalSeasonService(root=root)
+    service.move_tournament(season="2026-2027", tournament_id="rvv-1", start_time="11:00", actor="tester")
+
+    report = _seal_full(
+        root, publication_id="2026-09-28T0908", canonical_revision="rev-2", run_id="run-2"
+    )
+
+    assert report["publication_evidence"]["run_id"] == "run-2"
+    assert report["previous_publication"]["publication_id"] == "2026-09-21T0908"
+    assert report["previous_publication"]["publication_evidence"]["run_id"] == "run-1"
+    summary = report["republish_delta"]["summary"]
+    assert summary["changed"] == 1
+    assert summary["unchanged"] == 2
+    assert report["republish_delta"]["delta"]["placement_changes"][0]["tournament_id"] == "rvv-1"
+
+    lifecycle = CanonicalSeasonStore(root).load("2026-2027").decisions["season_lifecycle"]
+    # The replaced baseline is preserved byte-for-byte as history, never rewritten.
+    assert [entry["publication_id"] for entry in lifecycle["publication_history"]] == [
+        "2026-09-21T0908",
+        "2026-09-28T0908",
+    ]
+    assert lifecycle["publication_history"][0].get("previous_publication") is None
+    assert lifecycle["publication_history"][0]["tournaments"][0]["start_time"] == "10:00"
+
+
+def test_replacement_seal_does_not_mutate_canonical_schedule(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    before = CanonicalSeasonStore(root).load("2026-2027").schedule["plan"]
+
+    _seal_full(root, publication_id="2026-09-28T0908", canonical_revision="rev-2", run_id="run-2")
+
+    after = CanonicalSeasonStore(root).load("2026-2027").schedule["plan"]
+    assert after == before
+
+
+def test_replacement_seal_rejects_mismatched_evidence_fingerprint(tmp_path: Path) -> None:
+    from tournament_scheduler.pipeline.publication_evidence import build_publication_evidence
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    projection = _full_projection(root)
+    evidence = build_publication_evidence(
+        run_id="run-1",
+        canonical_revision="rev-1",
+        projection_fingerprint="not-the-projection",
+    )
+    with pytest.raises(PublishedBaselineError, match="projection fingerprint"):
+        CanonicalSeasonService(root=root).seal_published_season(
+            season="2026-2027",
+            publication_id="2026-09-21T0908",
+            canonical_revision="rev-1",
+            published_at="2026-09-21T09:14:53+00:00",
+            published_projection=projection,
+            publication_canonical_projection=projection,
+            publication_evidence=evidence,
+        )
+
+
+def test_record_publication_seal_writes_retained_before_after_evidence(tmp_path: Path) -> None:
+    from tournament_scheduler.pipeline.export_lifecycle import promote_export_manifest
+    from tournament_scheduler.pipeline.publication_evidence import read_publication_evidence
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    revision = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+    export_dir = tmp_path / "export" / "2026-09-28T0908"
+    export_dir.mkdir(parents=True)
+    write_draft_manifest(
+        export_dir,
+        export_id="2026-09-28T0908",
+        generated_at="2026-09-28T09:08:01+00:00",
+        export_fingerprint="fp",
+        source_run_id="run",
+        canonical_season="2026-2027",
+        canonical_revision=revision,
+        schedule_projection=_tp({"tournaments": _tournaments_abc()}),
+    )
+    promote_export_manifest(
+        export_dir,
+        expected_export_fingerprint="fp",
+        source_run_id="run",
+        pages_run_id="run-1",
+        pages_bundle_fingerprint="bundle-1",
+        pages_commit="commit-1",
+        pages_branch="gh-pages",
+    )
+
+    report = record_publication_seal(export_dir, repo_dir=tmp_path)
+    assert report["publication_evidence"]["run_id"] == "run-1"
+    assert report["publication_evidence"]["bundle_fingerprint"] == "bundle-1"
+    assert report["evidence_files"]["json"]
+    record = read_publication_evidence(tmp_path / "season", "2026-2027", "2026-09-28T0908")
+    assert record is not None
+    assert record["publication_evidence"]["run_id"] == "run-1"
+
+
+def _canonical_export_for_current_state(tmp_path: Path, root: Path, publication_id: str):
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    revision = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+    export_dir = tmp_path / "export" / publication_id
+    export_dir.mkdir(parents=True)
+    write_draft_manifest(
+        export_dir,
+        export_id=publication_id,
+        generated_at="2026-09-28T09:08:01+00:00",
+        export_fingerprint="fp",
+        source_run_id="run",
+        canonical_season="2026-2027",
+        canonical_revision=revision,
+        schedule_projection=_tp({"tournaments": _tournaments_abc()}),
+    )
+    return export_dir
+
+
+def test_publication_guard_refuses_when_previous_bundle_has_no_immutable_reference(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)  # legacy seal: no publication_evidence / Pages reference
+    export_dir = _canonical_export_for_current_state(tmp_path, root, "2026-09-28T0908")
+
+    with pytest.raises(RuntimeError, match="no immutable artifact reference"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)
+
+
+def _init_local_repo(path: Path) -> None:
+    import subprocess
+
+    def git(*args: str) -> None:
+        subprocess.run(["git", *args], cwd=path, check=True, capture_output=True, text=True)
+
+    path.mkdir(parents=True, exist_ok=True)
+    git("init", "-b", "main")
+    git("config", "user.email", "t@example.com")
+    git("config", "user.name", "Test")
+    (path / "README.md").write_text("x\n", encoding="utf-8")
+    git("add", "README.md")
+    git("commit", "-m", "init")
+
+
+def test_publication_guard_refuses_when_previous_run_snapshot_is_missing(
+    tmp_path: Path,
+) -> None:
+    from tournament_scheduler.pipeline import pages_publish
+
+    local = tmp_path / "local"
+    _init_local_repo(local)
+    root = local / "season"
+    _write_canonical(root, _tournaments_abc())
+
+    # A replaceable baseline whose immutable reference points at a run that was
+    # never actually published: the version being replaced would be unrecoverable.
+    _seal_full(
+        root,
+        publication_id="2026-09-21T0908",
+        canonical_revision="rev-1",
+        run_id="never-published-run",
+    )
+    export_dir = _canonical_export_for_current_state(tmp_path, root, "2026-09-28T0908")
+
+    # A published branch already exists (an unrelated run), but the run being
+    # replaced has no immutable snapshot on it.
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "season_plan.html").write_text("<h1>plan</h1>", encoding="utf-8")
+    first = pages_publish.publish(
+        export_dir=str(bundle), run_id="unrelated-run", repo_dir=str(local), push=False
+    )
+    assert first.status == "ok"
+
+    with pytest.raises(RuntimeError, match="no immutable /runs/never-published-run/ snapshot"):
+        assert_publication_allowed(export_dir, repo_dir=local)
+
+    # Once the previous run's immutable snapshot actually exists, the guard passes.
+    result = pages_publish.publish(
+        export_dir=str(bundle), run_id="never-published-run", repo_dir=str(local), push=False
+    )
+    assert result.status == "ok"
+    report = assert_publication_allowed(export_dir, repo_dir=local)
+    assert report["previous_publication"]["run_snapshot_retained"] == "true"
+
+
+def test_publication_evidence_report_shows_active_revision_and_delta(tmp_path: Path) -> None:
+    from tournament_scheduler.season_state import publication_evidence_report
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    CanonicalSeasonService(root=root).move_tournament(
+        season="2026-2027", tournament_id="rvv-1", start_time="11:00", actor="tester"
+    )
+
+    report = publication_evidence_report("2026-2027", root=root)
+    assert report["active_publication"]["publication_id"] == "2026-09-21T0908"
+    assert report["active_publication"]["publication_evidence"]["run_id"] == "run-1"
+    assert report["published_to_canonical_delta"]["summary"]["changed"] == 1
+
+
+def test_publication_guard_refuses_sealed_state_without_a_baseline(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    store = CanonicalSeasonStore(root)
+    snapshot = store.load("2026-2027")
+    decisions = copy.deepcopy(snapshot.decisions)
+    decisions["season_lifecycle"] = {"state": "published_sealed"}
+    store.write(
+        CanonicalSeasonSnapshot(season="2026-2027", schedule=snapshot.schedule, decisions=decisions)
+    )
+    export_dir = _canonical_export_for_current_state(tmp_path, root, "2026-09-28T0908")
+
+    with pytest.raises(RuntimeError, match="has no published baseline"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)
+
+
+def test_republish_seal_invokes_no_planning_or_scrape_path(tmp_path: Path, monkeypatch) -> None:
+    import tournament_scheduler.pipeline.stage4_export as stage4_export
+    import tournament_scheduler.season_state as season_state
+
+    def _boom(*_args, **_kwargs):
+        raise AssertionError("republish must not invoke a planning/scrape path")
+
+    monkeypatch.setattr(season_state, "promote_from_stage3", _boom)
+    monkeypatch.setattr(stage4_export, "run", _boom)
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    export_dir = _canonical_export_for_current_state(tmp_path, root, "2026-09-28T0908")
+
+    report = record_publication_seal(export_dir, repo_dir=tmp_path)
+    assert report["state"] == "published_sealed"

@@ -515,7 +515,9 @@ make operator-run
 
 ## Publication
 
-Planning/export does not imply publication. The export being published must represent the current canonical revision. If canonical schedule/decision state changed since the current export, run `season export` first and perform a fresh semantic audit. A successful publication records an immutable published baseline and seals the season (first publication) or appends a new publication revision; a publication of a sealed season is refused when canonical state no longer reconciles to the published baseline plus recorded canonical mutations, or when the export no longer matches the sealed canonical schedule. A legacy export without an embedded `schedule_projection` cannot auto-seal and is reported together with the `season seal-published` migration command.
+Planning/export does not imply publication. The export being published must represent the current canonical revision. If canonical schedule/decision state changed since the current export, run `season export` first and perform a fresh semantic audit. A successful publication records an immutable published baseline and seals the season (first publication) or appends a new publication revision; a publication of a sealed season is refused when canonical state no longer reconciles to the published baseline plus recorded canonical mutations, or when the export no longer matches the sealed canonical schedule. A replacement publication also refuses when the previous published bundle has no immutable reference or its `/runs/<run_id>/` snapshot is verifiably missing, and it links the previous publication to the new one with the exact stable-id republish delta retained under `season/<season>/evidence/publications/`. A legacy export without an embedded `schedule_projection` cannot auto-seal and is reported together with the `season seal-published` migration command.
+
+For the end-to-end export-and-republish-an-existing-published-season workflow, follow [`republish.md`](../commands/rvv-miniputt/republish.md). Resolve the current published run from authoritative publication history (`season lifecycle --json`, `season publication-evidence --json`, `operator publish-history --json`) -- never from an arbitrary export directory or the moving `latest/` path.
 
 Useful commands:
 
@@ -524,6 +526,7 @@ make audit-context
 make audit-evidence ARGS='--item 2'
 make audit-run BACKEND=<claude|openai|llm_bridge>
 make audit-submit RESULT_FILE=<path>
+scripts/rvv-miniputt season publication-evidence --season <season> --json
 make publish-preview
 make publish CONFIRM_PUBLIC=1
 make verify-publish

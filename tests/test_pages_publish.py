@@ -11,6 +11,7 @@ from tournament_scheduler.pipeline.pages_publish import (
     diff_latest,
     list_publication_history,
     publish,
+    published_run_snapshot_exists,
     resolve_urls,
     rollback_to_run,
     target_fingerprint,
@@ -403,3 +404,35 @@ class TestPublicationHistory:
             ("publish", "run-2"),
             ("publish", "run-1"),
         ]
+
+
+class TestPublishedRunSnapshotRetention:
+    def test_none_when_not_a_git_repo(self, tmp_path):
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+        assert published_run_snapshot_exists("run-1", repo_dir=str(tmp_path)) is None
+
+    def test_none_when_branch_does_not_exist(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        assert published_run_snapshot_exists("run-1", repo_dir=str(local)) is None
+
+    def test_false_for_a_run_that_was_never_published(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+        assert publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local)).status == "ok"
+
+        assert published_run_snapshot_exists("run-1", repo_dir=str(local)) is True
+        assert published_run_snapshot_exists("missing-run", repo_dir=str(local)) is False
+
+    def test_previous_run_survives_a_later_publish(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        first = tmp_path / "export-first"
+        _write_export_bundle(first, content="<h1>first</h1>")
+        second = tmp_path / "export-second"
+        _write_export_bundle(second, content="<h1>second</h1>")
+        assert publish(export_dir=str(first), run_id="run-1", repo_dir=str(local)).status == "ok"
+        assert publish(export_dir=str(second), run_id="run-2", repo_dir=str(local)).status == "ok"
+
+        assert published_run_snapshot_exists("run-1", repo_dir=str(local)) is True
+        assert published_run_snapshot_exists("run-2", repo_dir=str(local)) is True
