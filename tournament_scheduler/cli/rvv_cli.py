@@ -2971,6 +2971,13 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
                 if result.get("canonical_state_revision"):
                     _console.print(f"  revision: {str(result.get('canonical_state_revision'))[:12]}")
+                for club, entry in (result.get("planned_tournament_reconciliation") or {}).items():
+                    requires_review = entry.get("requires_review_count", 0)
+                    marker = "[yellow]○[/yellow]" if requires_review else "[green]✓[/green]"
+                    _console.print(
+                        f"  {marker} {club}: {entry.get('count', 0)} planned tournament(s) checked against "
+                        f"the fresh scrape, {requires_review} require review"
+                    )
                 if not result.get("verification_ok"):
                     _console.print("[yellow]New calendar conflicts/findings may require repair before export.[/yellow]")
             return 0

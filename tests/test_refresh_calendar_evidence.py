@@ -60,11 +60,16 @@ def _candidate() -> dict:
     }
 
 
-def _promote(tmp_path: Path) -> Path:
+def _promote(tmp_path: Path, *, host_club: str = "A") -> Path:
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
     state = PipelineState(work_dir)
     candidate = _candidate()
+    if host_club != "A":
+        candidate["tournaments"][0]["host_club"] = host_club
+        for team in candidate["tournaments"][0]["teams"]:
+            if team["club"] == "A":
+                team["club"] = host_club
     state.write_stage(StageName.PLANNING, {"plan": candidate}, status=StageStatus.DONE)
     problem = build_problem_from_candidate(candidate)
     problem["ice_time_minutes"] = {"U10": 120}
@@ -84,6 +89,7 @@ def _patch_refresh_inputs(
     source_type: str = "ical",
     sources: list[dict] | None = None,
     source_name: str = "Arena A",
+    club: str = "A",
 ) -> None:
     from tournament_scheduler.pipeline import stage1_config, stage2_scraping
 
@@ -121,8 +127,8 @@ def _patch_refresh_inputs(
                     "scrape_timestamp": "2026-08-01T12:00:00+00:00",
                 }
             ],
-            "events_by_club": {"A": events},
-            "club_calendar_status": {"A": "known"},
+            "events_by_club": {club: events},
+            "club_calendar_status": {club: "known"},
             "blocked": [],
             "empty_sources": [],
             "cached": [],
@@ -532,6 +538,61 @@ def test_refresh_legacy_duplicate_source_name_policy_has_no_false_drift(
     # The current entries carry extra registry fields; the persisted policy now
     # pins them for the next refresh.
     assert evidence["source_policy"]["sources"][0]["club"] is None
+
+
+def test_refresh_reconciles_kongsberg_planned_tournament_without_confirmation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """#467: a refresh must independently classify Kongsberg-hosted placements, not just rescrape."""
+
+    root = _promote(tmp_path, host_club="Kongsberg")
+    _patch_refresh_inputs(
+        monkeypatch, busy=False, source_name="Kongsberg ishall", club="Kongsberg"
+    )
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    reconciliation = result["planned_tournament_reconciliation"]["Kongsberg"]
+    assert reconciliation["count"] == 1
+    assert reconciliation["requires_review_count"] == 1
+    assert reconciliation["classified"][0]["tournament_id"] == "u10-a-20260912"
+    assert reconciliation["classified"][0]["status"] == "ambiguous"
+    assert reconciliation["classified"][0]["reason"] == "no_covering_event_for_current_slot"
+
+    evidence = load_schedule("2026-2027", root=root)["verification_context"]["calendar_evidence"]
+    assert evidence["planned_tournament_reconciliation"]["Kongsberg"]["count"] == 1
+    # Evidence-only: the reconciliation must never itself write booking decisions.
+    decisions = load_decisions("2026-2027", root=root)
+    assert "tournament_booking_evidence" not in decisions
+    assert decisions["decisions"]["u10-a-20260912"]["status"] != "approved"
+
+
+def test_refresh_reconciles_kongsberg_planned_tournament_with_overlapping_event(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A single overlapping event is surfaced as ambiguous, requiring explicit confirmation."""
+
+    root = _promote(tmp_path, host_club="Kongsberg")
+    _patch_refresh_inputs(
+        monkeypatch, busy=True, source_name="Kongsberg ishall", club="Kongsberg"
+    )
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    reconciliation = result["planned_tournament_reconciliation"]["Kongsberg"]
+    assert reconciliation["requires_review_count"] == 1
+    assert reconciliation["classified"][0]["reason"] == "single_overlapping_event_requires_confirmation"
+
+
+def test_refresh_does_not_reconcile_unrelated_clubs(tmp_path: Path, monkeypatch) -> None:
+    """The automatic #467 reconciliation is scoped to Kongsberg/Ringerike, not every club."""
+
+    root = _promote(tmp_path)  # host_club defaults to "A"
+    _patch_refresh_inputs(monkeypatch, busy=False)
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    assert result["planned_tournament_reconciliation"] == {}
 
 
 def test_refresh_archive_survives_interleaved_writer(tmp_path: Path, monkeypatch) -> None:
