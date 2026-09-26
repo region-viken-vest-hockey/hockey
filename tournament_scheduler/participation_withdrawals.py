@@ -551,13 +551,18 @@ def project_into_problem(
     if records:
         combined.extend(dict(record) for record in records if isinstance(record, Mapping))
     new_entries = _record_entries(combined)
-
-    shape_entries = _dedupe_entries(
-        [*withdrawn_entries(resolved), *new_entries]
+    # When the caller supplies authoritative *decisions*, those are the complete
+    # active set: rebuild the fields from them instead of unioning whatever
+    # projections an earlier pass left on the problem. Otherwise stale entries
+    # (e.g. a record that was just released) would survive re-projection. When
+    # only *records* are supplied for a candidate under construction, the
+    # existing authoritative projections must be preserved and extended.
+    base_shape = [] if decisions is not None else withdrawn_entries(resolved)
+    base_ineligible = (
+        [] if decisions is not None else withdrawn_ineligible_entries(resolved)
     )
-    ineligible_entries = _dedupe_entries(
-        [*withdrawn_ineligible_entries(resolved), *new_entries]
-    )
+    shape_entries = _dedupe_entries([*base_shape, *new_entries])
+    ineligible_entries = _dedupe_entries([*base_ineligible, *new_entries])
     if plan is not None:
         shape_entries = _filter_scoped_entries(
             shape_entries, plan=plan, problem=resolved

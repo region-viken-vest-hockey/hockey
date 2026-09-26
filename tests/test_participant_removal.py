@@ -509,8 +509,169 @@ def test_release_withdrawal_with_atomic_restore_preserves_provenance(tmp_path: P
         assert record["release_reason"] == "Echo returned to the age group"
         assert record["request_id"] == "withdraw-echo"
     assert any(
-        event["event"] == "release_participation_withdrawal" for event in decisions["history"]
+        event["event"] == "participant_restoration" for event in decisions["history"]
     )
+
+
+def test_selective_release_rebuilds_projections_from_active_records(tmp_path: Path) -> None:
+    """P1: releasing one of two withdrawals leaves only the active scope behind."""
+
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    service = CanonicalSeasonService(root=root)
+    remove_participant(
+        season="2026-2027",
+        tournament_ids=["u10-a", "u10-b"],
+        remove_team_label="Echo 1",
+        reconcile_withdrawal=True,
+        root=root,
+        request_id="withdraw-echo",
+        actor="tester",
+    )
+    remove_participant(
+        season="2026-2027",
+        tournament_ids=["u10-a", "u10-b"],
+        remove_team_label="Delta 1",
+        reconcile_withdrawal=True,
+        root=root,
+        request_id="withdraw-delta",
+        actor="tester",
+    )
+
+    # Releasing Echo restores it, leaving only Delta withdrawn.
+    release_participation_withdrawals(
+        season="2026-2027",
+        root=root,
+        request_id="withdraw-echo",
+        actor="tester",
+        note="Echo returns",
+        restore_participants=True,
+    )
+    decisions = load_decisions("2026-2027", root=root)
+    active = [
+        record for record in decisions["participation_withdrawals"] if record["status"] == "active"
+    ]
+    assert [record["team"]["label"] for record in active] == ["Delta 1"]
+
+    plan = load_schedule("2026-2027", root=root)["plan"]
+    projected = project_into_problem(_problem(), decisions=decisions, plan=plan)
+    shape_labels = {
+        (entry["club"], entry["label"]) for entry in projected["withdrawn_tournament_teams"]
+    }
+    ineligible_labels = {
+        (entry["club"], entry["label"]) for entry in projected[WITHDRAWN_INELIGIBLE_FIELD]
+    }
+    assert shape_labels == {("Delta", "Delta 1")}
+    assert ineligible_labels == {("Delta", "Delta 1")}
+
+    # Re-projecting a problem that still carries both stale entries rebuilds
+    # from the authoritative active decisions instead of unioning them.
+    stale = project_into_problem(
+        _problem(),
+        records=[
+            *build_withdrawal_records(
+                team={"club": "Echo", "label": "Echo 1", "age_group": "U10"},
+                tournament_ids=["u10-a", "u10-b"],
+                request_id="withdraw-echo",
+                actor="tester",
+                note="",
+                created_at="2026-09-22T00:00:00+00:00",
+                source_revision="rev-1",
+                effective_from="2026-10-03",
+            ),
+            *build_withdrawal_records(
+                team={"club": "Delta", "label": "Delta 1", "age_group": "U10"},
+                tournament_ids=["u10-a", "u10-b"],
+                request_id="withdraw-delta",
+                actor="tester",
+                note="",
+                created_at="2026-09-22T00:00:00+00:00",
+                source_revision="rev-1",
+                effective_from="2026-10-03",
+            ),
+        ],
+    )
+    assert len(stale["withdrawn_tournament_teams"]) == 2
+    rebuilt = project_into_problem(stale, decisions=decisions, plan=plan)
+    assert {
+        (entry["club"], entry["label"]) for entry in rebuilt["withdrawn_tournament_teams"]
+    } == {("Delta", "Delta 1")}
+    assert {
+        (entry["club"], entry["label"]) for entry in rebuilt[WITHDRAWN_INELIGIBLE_FIELD]
+    } == {("Delta", "Delta 1")}
+
+
+def test_sealed_restore_replays_and_reconciles(tmp_path: Path) -> None:
+    """P1: restoration is a typed, replayable sealed-season mutation."""
+
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=True)
+    service = CanonicalSeasonService(root=root)
+    service.remove_participant(
+        season="2026-2027",
+        tournament_ids=["u10-a", "u10-b"],
+        remove_team_label="Echo 1",
+        reconcile_withdrawal=True,
+        request_id="sealed-withdraw-echo",
+        actor="tester",
+        note="Echo withdrew",
+    )
+    assert service.verify_sealed_reconciliation("2026-2027")["ok"] is True
+
+    result = service.release_participation_withdrawals(
+        season="2026-2027",
+        request_id="sealed-withdraw-echo",
+        actor="tester",
+        note="Echo returns",
+        restore_participants=True,
+    )
+    assert result["restored_participants"] is True
+    assert service.verify_sealed_reconciliation("2026-2027")["ok"] is True
+    snapshot = service.load("2026-2027")
+    event = snapshot.decisions["history"][-1]
+    assert event["event"] == "participant_restoration"
+    assert event["details"]["after_records"]
+
+
+def test_release_restore_refuses_active_request_constraint_without_write(tmp_path: Path) -> None:
+    """P1: restoration runs the request-constraint gate and writes nothing on refusal."""
+
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    service = CanonicalSeasonService(root=root)
+    # The gap constraint is recorded while Echo still plays both tournaments,
+    # then the withdrawal makes it vacuously satisfied; restoring Echo would
+    # reintroduce the seven-day gap.
+    service.add_request_constraint(
+        season="2026-2027",
+        type="minimum_gap",
+        request_id="echo-gap",
+        teams=[{"club": "Echo", "label": "Echo 1", "age_group": "U10"}],
+        min_days=10,
+        actor="tester",
+    )
+    service.remove_participant(
+        season="2026-2027",
+        tournament_ids=["u10-a", "u10-b"],
+        remove_team_label="Echo 1",
+        reconcile_withdrawal=True,
+        request_id="withdraw-echo",
+        actor="tester",
+    )
+    schedule_file = root / "2026-2027" / "schedule.json"
+    decisions_file = root / "2026-2027" / "decisions.json"
+    before = (schedule_file.read_bytes(), decisions_file.read_bytes())
+
+    with pytest.raises(SeasonStateError, match="request constraint"):
+        service.release_participation_withdrawals(
+            season="2026-2027",
+            request_id="withdraw-echo",
+            actor="tester",
+            note="premature restore",
+            restore_participants=True,
+        )
+    assert (schedule_file.read_bytes(), decisions_file.read_bytes()) == before
+    assert withdrawal_report("2026-2027", root=root)["active_count"] == 1
 
 
 def test_durable_withdrawal_projection_blocks_reintroduction_and_registration_ends_it() -> None:

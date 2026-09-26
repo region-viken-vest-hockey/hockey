@@ -40,12 +40,14 @@ from tournament_scheduler.pipeline.export_projection_guard import (
 OPERATION_PARTICIPANT_SWAP = "participant_swap"
 OPERATION_PARTICIPANT_REPLACEMENT = "participant_replacement"
 OPERATION_PARTICIPANT_REMOVAL = "participant_removal"
+OPERATION_PARTICIPANT_RESTORATION = "participant_restoration"
 OPERATION_BOUNDED_REPAIR = "bounded_repair"
 
 _PERMITTED_HISTORY_EVENT = {
     OPERATION_PARTICIPANT_SWAP: "participant_swap",
     OPERATION_PARTICIPANT_REPLACEMENT: "participant_replacement",
     OPERATION_PARTICIPANT_REMOVAL: "participant_removal",
+    OPERATION_PARTICIPANT_RESTORATION: "participant_restoration",
     OPERATION_BOUNDED_REPAIR: "repair_option_applied",
 }
 
@@ -187,6 +189,7 @@ def _authoritative_problem(
     decisions: Mapping[str, Any],
     *,
     extra_withdrawals: Iterable[Mapping[str, Any]] | None = None,
+    released_withdrawal_ids: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     """Rebuild the canonical maintenance problem from durable canonical state.
 
@@ -202,7 +205,10 @@ def _authoritative_problem(
     from tournament_scheduler.canonical_state import PARTICIPATION_ACCEPTANCES_KEY
     from tournament_scheduler.participation_targets import search_evidence_from_acceptances
 
-    problem = _resolve_plan_problem(schedule, None, decisions)
+    effective_decisions = _decisions_with_released_withdrawals(
+        decisions, released_withdrawal_ids
+    )
+    problem = _resolve_plan_problem(schedule, None, effective_decisions)
     if problem is None:
         # A legacy promoted season without a stored verification context can
         # still perform a placement-only swap; reproduction then matches the
@@ -221,6 +227,31 @@ def _authoritative_problem(
 
         problem = project_into_problem(problem, records=extra_withdrawals)
     return problem
+
+
+def _decisions_with_released_withdrawals(
+    decisions: Mapping[str, Any],
+    released_withdrawal_ids: Iterable[str] | None,
+) -> dict[str, Any]:
+    """Return decisions with the named withdrawal records treated as released."""
+
+    released = {str(item) for item in (released_withdrawal_ids or []) if str(item)}
+    if not released:
+        return dict(decisions)
+    from tournament_scheduler.canonical_state import PARTICIPATION_WITHDRAWALS_KEY
+    from tournament_scheduler.participation_withdrawals import RELEASED
+
+    effective = dict(decisions)
+    effective[PARTICIPATION_WITHDRAWALS_KEY] = [
+        {
+            **record,
+            "status": RELEASED,
+        }
+        if isinstance(record, Mapping) and str(record.get("id") or "") in released
+        else record
+        for record in decisions.get(PARTICIPATION_WITHDRAWALS_KEY, []) or []
+    ]
+    return effective
 
 
 def _authorization_withdrawal_records(
@@ -263,6 +294,19 @@ def _authorization_withdrawal_records(
     )
 
 
+def _authorization_released_withdrawal_ids(
+    authorization: ScopedMutationAuthorization,
+) -> list[str]:
+    """Return the withdrawal ids a restoration authorization releases."""
+
+    parameters = authorization.parameters or {}
+    return [
+        str(item)
+        for item in parameters.get("released_withdrawal_ids") or []
+        if str(item)
+    ]
+
+
 def _reproduce_operation(
     *,
     schedule: Mapping[str, Any],
@@ -278,6 +322,7 @@ def _reproduce_operation(
         schedule,
         decisions,
         extra_withdrawals=_authorization_withdrawal_records(authorization, schedule),
+        released_withdrawal_ids=_authorization_released_withdrawal_ids(authorization),
     )
 
     if operation == OPERATION_PARTICIPANT_SWAP:
@@ -315,6 +360,24 @@ def _reproduce_operation(
                 plan,
                 tournament_id=tournament_id,
                 remove_team_label=remove_team_label,
+                problem=problem,
+            )
+    elif operation == OPERATION_PARTICIPANT_RESTORATION:
+        from .withdrawal import _apply_add_participant_to_plan
+
+        tournament_ids = [
+            str(item) for item in parameters.get("tournament_ids") or [] if str(item)
+        ]
+        if not tournament_ids:
+            raise SeasonStateError("Refusing participant restoration: no affected tournaments")
+        team = parameters.get("team")
+        if not isinstance(team, Mapping):
+            raise SeasonStateError("Refusing participant restoration: missing participant identity")
+        for tournament_id in tournament_ids:
+            _apply_add_participant_to_plan(
+                plan,
+                tournament_id=tournament_id,
+                team=team,
                 problem=problem,
             )
     elif operation == OPERATION_BOUNDED_REPAIR:
@@ -510,6 +573,47 @@ def authorize_participant_removal(
     )
 
 
+def authorize_participant_restoration(
+    *,
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+    tournament_ids: Iterable[str],
+    team: Mapping[str, Any],
+    released_withdrawal_ids: Iterable[str] | None = None,
+    request_id: str | None = None,
+    actor: str | None = None,
+    note: str = "",
+) -> ScopedMutationAuthorization:
+    """Authorize a scoped participant restoration (the withdrawal reversal)."""
+
+    parameters: dict[str, Any] = {
+        "tournament_ids": [str(item) for item in tournament_ids if str(item)],
+        "team": {
+            "club": str(team.get("club") or ""),
+            "label": str(team.get("label") or ""),
+            "age_group": str(team.get("age_group") or ""),
+        },
+        "released_withdrawal_ids": [
+            str(item) for item in (released_withdrawal_ids or []) if str(item)
+        ],
+    }
+    if request_id is not None:
+        parameters["request_id"] = str(request_id)
+    if actor is not None:
+        parameters["actor"] = str(actor)
+    if note:
+        parameters["note"] = str(note)
+    return _authorize_operation(
+        schedule=schedule,
+        decisions=decisions,
+        candidate=candidate,
+        operation=OPERATION_PARTICIPANT_RESTORATION,
+        parameters=parameters,
+        description="participant restoration",
+    )
+
+
 def authorize_bounded_repair(
     *,
     schedule: Mapping[str, Any],
@@ -644,6 +748,7 @@ def validate_scoped_mutation_authorization(
             schedule,
             decisions,
             extra_withdrawals=_authorization_withdrawal_records(authorization, schedule),
+            released_withdrawal_ids=_authorization_released_withdrawal_ids(authorization),
         ),
         "history_event": permitted_history_event_for_authorization(authorization),
         "history_details": details,
@@ -712,12 +817,14 @@ __all__ = [
     "OPERATION_BOUNDED_REPAIR",
     "OPERATION_PARTICIPANT_REMOVAL",
     "OPERATION_PARTICIPANT_REPLACEMENT",
+    "OPERATION_PARTICIPANT_RESTORATION",
     "OPERATION_PARTICIPANT_SWAP",
     "ScopedMutationAuthorization",
     "authorization_history_details",
     "authorize_bounded_repair",
     "authorize_participant_removal",
     "authorize_participant_replacement",
+    "authorize_participant_restoration",
     "authorize_participant_swap",
     "changed_tournament_ids",
     "is_scoped_mutation_authorization",

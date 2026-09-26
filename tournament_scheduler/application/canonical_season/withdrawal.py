@@ -33,7 +33,6 @@ from tournament_scheduler.canonical_state import (
 from tournament_scheduler.change_protections import (
     ACTIVE as CHANGE_PROTECTION_ACTIVE,
     MUST_NOT_PARTICIPATE,
-    RELEASED as CHANGE_PROTECTION_RELEASED,
     build_net_roster_protections,
     protection_violations,
 )
@@ -42,7 +41,6 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 )
 from tournament_scheduler.participation_withdrawals import (
     ACTIVE as WITHDRAWAL_ACTIVE,
-    RELEASED as WITHDRAWAL_RELEASED,
     SCOPE_AGE_GROUP,
     active_withdrawals,
     build_withdrawal_records,
@@ -66,7 +64,6 @@ from .shared import (
     _operator_identity,
     _now_iso,
     _append_decision_history,
-    _reconcile_decisions,
     _resolve_plan_problem,
     _regenerate_tournament_games,
     _guest_reservation_signature,
@@ -261,10 +258,17 @@ def release_participation_withdrawals(
     explicitly restored one) is re-verified against the post-release eligible
     pool before anything is written, so a premature release that would leave
     e.g. four-team fields in a now-five-team pool is refused with no canonical
-    write. ``restore_participants`` is the authorized reversal path: the
-    withdrawn teams are added back to the tournaments they were removed from
-    and the record is released in one atomic, verified commit. Provenance is
-    never erased -- only the record's ``status`` changes.
+    write.
+
+    ``restore_participants`` is the authorized reversal path. It runs through
+    the same complete canonical mutation boundary as apply/batch: a typed,
+    replayable ``participant_restoration`` authorization is reproduced from the
+    current revision, the candidate is checked for hard verification, request
+    constraints, locks, protections, guest integrity, operational
+    acceptability and hosting responsibility, and the sealed published-baseline
+    replay runs at the apply boundary. The record release and the removal's
+    ``must_not_participate`` guards are released in the same atomic commit.
+    Provenance is never erased -- only the record's ``status`` changes.
     """
 
     wanted_ids = {str(value) for value in (withdrawal_ids or []) if str(value)}
@@ -275,14 +279,14 @@ def release_participation_withdrawals(
         )
 
     snapshot = service.load(season)
-    decisions = copy.deepcopy(snapshot.decisions)
-    records = decisions.get(PARTICIPATION_WITHDRAWALS_KEY, []) or []
+    decisions = snapshot.decisions
     now = _now_iso()
     resolved_actor = _operator_identity(actor)
     released: list[str] = []
+    released_requests: set[str] = set()
     restorations: list[tuple[str, dict[str, Any]]] = []
-    for record in records:
-        if not isinstance(record, dict):
+    for record in decisions.get(PARTICIPATION_WITHDRAWALS_KEY, []) or []:
+        if not isinstance(record, Mapping):
             continue
         if str(record.get("status") or WITHDRAWAL_ACTIVE) != WITHDRAWAL_ACTIVE:
             continue
@@ -290,11 +294,8 @@ def release_participation_withdrawals(
         matches_request = bool(wanted_request) and str(record.get("request_id") or "") == wanted_request
         if not (matches_id or matches_request):
             continue
-        record["status"] = WITHDRAWAL_RELEASED
-        record["released_at"] = now
-        record["released_by"] = resolved_actor
-        record["release_reason"] = note or ""
         released.append(str(record.get("id") or ""))
+        released_requests.add(str(record.get("request_id") or ""))
         if restore_participants and isinstance(record.get("team"), Mapping):
             team = dict(record["team"])
             for tournament_id in record_tournament_ids(record):
@@ -303,69 +304,110 @@ def release_participation_withdrawals(
     if not released:
         raise SeasonStateError("No active participation withdrawals matched the release request")
 
-    problem = _resolve_plan_problem(snapshot.schedule, None, decisions)
-    plan = copy.deepcopy(snapshot.schedule.get("plan") or {})
-    released_protections: list[str] = []
-    if restore_participants:
-        from tournament_scheduler.participation_withdrawals import (
-            is_registered_participant,
+    released_protections = _matching_must_not_participate_protections(
+        decisions,
+        released_requests=released_requests,
+        restorations=restorations,
+    )
+
+    if not restore_participants:
+        return _release_withdrawals_decision_only(
+            service,
+            season=season,
+            snapshot=snapshot,
+            released=released,
+            released_protections=released_protections,
+            actor=resolved_actor,
+            note=note,
+            now=now,
         )
 
-        restoration_keys: set[tuple[str, tuple[str, str, str]]] = set()
-        for tournament_id, team in restorations:
-            identity = (
-                str(team.get("club") or ""),
-                str(team.get("label") or ""),
-                str(team.get("age_group") or ""),
-            )
-            if problem is None or not is_registered_participant(problem, identity):
-                raise SeasonStateError(
-                    f"Refusing withdrawal release: cannot restore {identity[1]!r} because it is no "
-                    "longer part of the registered eligible pool"
-                )
-            _apply_add_participant_to_plan(
-                plan, tournament_id=tournament_id, team=team, problem=problem
-            )
-            restoration_keys.add((tournament_id, identity))
+    resume = _restore_participants(
+        service,
+        season=season,
+        snapshot=snapshot,
+        restorations=restorations,
+        released=released,
+        released_protections=released_protections,
+        request_id=wanted_request,
+        actor=resolved_actor,
+        note=note,
+    )
+    return resume
 
-        # The authorized reversal also releases the ``must_not_participate``
-        # guards the removal created, otherwise the restored roster conflicts
-        # with its own accepted-change evidence.
-        released_requests = {
-            str(record.get("request_id") or "")
-            for record in records
-            if isinstance(record, dict)
-            and str(record.get("id") or "") in set(released)
-        }
-        for protection in decisions.get(CHANGE_PROTECTIONS_KEY, []) or []:
-            if not isinstance(protection, dict):
-                continue
-            if (
-                str(protection.get("status") or CHANGE_PROTECTION_ACTIVE)
-                != CHANGE_PROTECTION_ACTIVE
-            ):
-                continue
-            if str(protection.get("kind") or "") != MUST_NOT_PARTICIPATE:
-                continue
-            if str(protection.get("request_id") or "") not in released_requests:
-                continue
-            protection_team = protection.get("team") or {}
-            key = (
-                str(protection.get("tournament_id") or ""),
-                (
-                    str(protection_team.get("club") or ""),
-                    str(protection_team.get("label") or ""),
-                    str(protection_team.get("age_group") or ""),
-                ),
-            )
-            if key not in restoration_keys:
-                continue
-            protection["status"] = CHANGE_PROTECTION_RELEASED
-            protection["released_at"] = now
-            protection["released_by"] = resolved_actor
-            protection["release_reason"] = note or ""
-            released_protections.append(str(protection.get("id") or ""))
 
+def _matching_must_not_participate_protections(
+    decisions: Mapping[str, Any],
+    *,
+    released_requests: set[str],
+    restorations: list[tuple[str, dict[str, Any]]],
+) -> list[str]:
+    """Return the removal guards the release must also release."""
+
+    restoration_keys = {
+        (
+            str(tournament_id),
+            (
+                str((team or {}).get("club") or ""),
+                str((team or {}).get("label") or ""),
+                str((team or {}).get("age_group") or ""),
+            ),
+        )
+        for tournament_id, team in restorations
+    }
+    released: list[str] = []
+    for protection in decisions.get(CHANGE_PROTECTIONS_KEY, []) or []:
+        if not isinstance(protection, Mapping):
+            continue
+        if (
+            str(protection.get("status") or CHANGE_PROTECTION_ACTIVE)
+            != CHANGE_PROTECTION_ACTIVE
+        ):
+            continue
+        if str(protection.get("kind") or "") != MUST_NOT_PARTICIPATE:
+            continue
+        if str(protection.get("request_id") or "") not in released_requests:
+            continue
+        protection_team = protection.get("team") or {}
+        key = (
+            str(protection.get("tournament_id") or ""),
+            (
+                str(protection_team.get("club") or ""),
+                str(protection_team.get("label") or ""),
+                str(protection_team.get("age_group") or ""),
+            ),
+        )
+        if key not in restoration_keys:
+            continue
+        released.append(str(protection.get("id") or ""))
+    return released
+
+
+def _release_withdrawals_decision_only(
+    service,
+    *,
+    season: str,
+    snapshot,
+    released: list[str],
+    released_protections: list[str],
+    actor: str,
+    note: str,
+    now: str,
+) -> dict[str, Any]:
+    """Verified decision-only release for a schedule that does not change."""
+
+    from .candidates import _with_released_records
+
+    working = _with_released_records(
+        snapshot.decisions,
+        withdrawal_ids=released,
+        protection_ids=released_protections,
+        actor=actor,
+        now=now,
+        note=note,
+    )
+    problem = _resolve_plan_problem(snapshot.schedule, None, working)
+    plan = copy.deepcopy(snapshot.schedule.get("plan") or {})
     result = (
         verify_candidate(copy.deepcopy(plan), problem)
         if problem
@@ -393,49 +435,27 @@ def release_participation_withdrawals(
         raise SeasonStateError(
             f"Refusing withdrawal release: candidate violates canonical locks: {messages}"
         )
-    if restore_participants:
-        existing_protection_violations = protection_violations(plan, decisions)
-        if existing_protection_violations:
-            messages = "; ".join(
-                str(item.get("message")) for item in existing_protection_violations
-            )
-            raise SeasonStateError(
-                "Refusing withdrawal release: it would undo an accepted change: " + messages
-            )
+    constraint_violations = request_constraint_violations(plan, working)
+    if constraint_violations:
+        messages = "; ".join(str(item.get("message")) for item in constraint_violations)
+        raise SeasonStateError(
+            "Refusing withdrawal release: it violates an active request constraint: " + messages
+        )
 
-    decisions["updated_at"] = now
     _append_decision_history(
-        decisions,
+        working,
         event="release_participation_withdrawal",
         tournament_id="",
-        actor=resolved_actor,
+        actor=actor,
         now=now,
         note=note,
         details={
             "released_withdrawal_ids": released,
             "released_protection_ids": released_protections,
-            "request_id": wanted_request,
-            "restored_participants": bool(restore_participants),
+            "restored_participants": False,
         },
     )
-    if restore_participants:
-        new_revision = schedule_fingerprint(plan)
-        updated_schedule = {
-            **snapshot.schedule,
-            "updated_at": now,
-            "revision": new_revision,
-            "fingerprint": new_revision,
-            "plan": plan,
-        }
-        decisions["schedule_fingerprint"] = new_revision
-        decisions["decisions"] = _reconcile_decisions(
-            decisions.get("decisions", {}), plan, now=now
-        )
-        committed = service._commit(
-            snapshot.with_schedule(updated_schedule).with_decisions(decisions)
-        )
-    else:
-        committed = service._commit(snapshot.with_decisions(decisions))
+    committed = service._commit(snapshot.with_decisions(working))
     return {
         "season": season,
         "canonical_state_revision": canonical_state_revision(
@@ -443,9 +463,104 @@ def release_participation_withdrawals(
         ),
         "released_withdrawal_ids": released,
         "released_protection_ids": released_protections,
-        "restored_participants": bool(restore_participants),
+        "restored_participants": False,
         "active_count": len(active_withdrawals(committed.decisions)),
     }
+
+
+def _restore_participants(
+    service,
+    *,
+    season: str,
+    snapshot,
+    restorations: list[tuple[str, dict[str, Any]]],
+    released: list[str],
+    released_protections: list[str],
+    request_id: str,
+    actor: str,
+    note: str,
+) -> dict[str, Any]:
+    """Atomically reverse a withdrawal through the complete apply boundary."""
+
+    from tournament_scheduler.participation_withdrawals import (
+        is_registered_participant,
+    )
+
+    identities = {
+        (
+            str((team or {}).get("club") or ""),
+            str((team or {}).get("label") or ""),
+            str((team or {}).get("age_group") or ""),
+        )
+        for _tournament_id, team in restorations
+    }
+    if len(identities) != 1:
+        raise SeasonStateError(
+            "Refusing withdrawal release: --restore-participant requires the released records "
+            "to share one participant identity"
+        )
+    identity = next(iter(identities))
+    registered_problem = _resolve_plan_problem(snapshot.schedule, None, snapshot.decisions)
+    if registered_problem is None or not is_registered_participant(registered_problem, identity):
+        raise SeasonStateError(
+            f"Refusing withdrawal release: cannot restore {identity[1]!r} because it is no longer "
+            "part of the registered eligible pool"
+        )
+
+    team = {"club": identity[0], "label": identity[1], "age_group": identity[2]}
+    restoration_tournament_ids = sorted(
+        {str(tournament_id) for tournament_id, _team in restorations if str(tournament_id)}
+    )
+    plan = copy.deepcopy(snapshot.schedule.get("plan") or {})
+    for tournament_id in restoration_tournament_ids:
+        _apply_add_participant_to_plan(
+            plan, tournament_id=tournament_id, team=team, problem=registered_problem
+        )
+
+    from .scoped_mutation import authorize_participant_restoration
+
+    authorization = authorize_participant_restoration(
+        schedule=snapshot.schedule,
+        decisions=snapshot.decisions,
+        candidate=plan,
+        tournament_ids=restoration_tournament_ids,
+        team=team,
+        released_withdrawal_ids=released,
+        request_id=request_id or (released[0] if released else ""),
+        actor=actor,
+        note=note,
+    )
+    updated_schedule, updated_decisions, _cost = service.apply_candidate(
+        season=season,
+        candidate=plan,
+        problem=None,
+        actor=actor,
+        operation="participant_restoration",
+        _scoped_authorization=authorization,
+        _history_event={
+            "event": "participant_restoration",
+            "tournament_id": "",
+            "note": note,
+            "details": {
+                "released_withdrawal_ids": released,
+                "released_protection_ids": released_protections,
+                "restored_participants": True,
+            },
+        },
+        _release_participation_withdrawal_ids=released,
+        _release_change_protection_ids=released_protections,
+    )
+    return {
+        "season": season,
+        "canonical_state_revision": canonical_state_revision(
+            updated_schedule, updated_decisions
+        ),
+        "released_withdrawal_ids": released,
+        "released_protection_ids": released_protections,
+        "restored_participants": True,
+        "active_count": len(active_withdrawals(updated_decisions)),
+    }
+
 
 
 def remove_participant(

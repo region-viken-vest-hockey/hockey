@@ -426,12 +426,14 @@ class CanonicalSeasonService:
         _history_event: Mapping[str, Any] | None = None,
         _new_change_protections: list[dict[str, Any]] | None = None,
         _new_participation_withdrawals: list[dict[str, Any]] | None = None,
+        _release_participation_withdrawal_ids: list[str] | None = None,
+        _release_change_protection_ids: list[str] | None = None,
         allow_manual_placement: bool = False,
         allow_host_confirmation: bool = False,
         operation: str = "global_regeneration",
         _scoped_authorization: Any | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, _new_participation_withdrawals=_new_participation_withdrawals, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation, _scoped_authorization=_scoped_authorization)
+        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, _new_participation_withdrawals=_new_participation_withdrawals, _release_participation_withdrawal_ids=_release_participation_withdrawal_ids, _release_change_protection_ids=_release_change_protection_ids, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation, _scoped_authorization=_scoped_authorization)
 
     def season_lifecycle_report(self, season: str) -> dict[str, Any]:
         return _lifecycle_status.season_lifecycle_report(self, season=season)

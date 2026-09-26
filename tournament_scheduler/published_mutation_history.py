@@ -322,6 +322,14 @@ def replay_recorded_mutations(
                             entry, _participant_key(removed_team, age_group)
                         )
                         applied.append({"event": "participant_removal", "tournament_id": tournament_id})
+        elif kind == "participant_restoration":
+            after_records = details.get("after_records")
+            if not isinstance(after_records, Mapping):
+                raise PublishedMutationHistoryError(
+                    "participant restoration history is missing after_records"
+                )
+            for tournament_id in _apply_after_records(projection, after_records):
+                applied.append({"event": "participant_restoration", "tournament_id": tournament_id})
         elif kind == "participant_swap":
             _apply_swap(projection, details)
             applied.append({"event": "participant_swap"})
