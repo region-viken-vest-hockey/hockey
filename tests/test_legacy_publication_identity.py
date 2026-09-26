@@ -351,3 +351,36 @@ def test_real_sep_21_baseline_reconciles_with_durable_history() -> None:
     )
     assert report["ok"] is True, report["unexplained_delta"]
     assert sorted(omissions) == ["rvv-0033", "rvv-0057"]
+
+
+def test_manual_booking_assertion_history_is_decision_only_for_reconciliation() -> None:
+    """A recorded manual booking assertion never moves or roster-changes a
+    tournament, so publication reconciliation must treat both
+    ``set_manual_booking_assertion`` and ``clear_manual_booking_assertion``
+    as decision-only history, not an unreplayable schedule mutation.
+    """
+
+    from tournament_scheduler.published_mutation_history import reconcile_published_baseline
+
+    plan = {"tournaments": [_tournament("rvv-0001", "2026-10-17", "14:15", "Tonsberghallen", "Tønsberg", "U12", ["A", "B"])]}
+    projection = tournament_projection(plan, _problem(plan))
+
+    history = [
+        {
+            "event": "set_manual_booking_assertion",
+            "tournament_id": "rvv-0001",
+            "assertion": {"booking_status": "booked"},
+        },
+        {
+            "event": "clear_manual_booking_assertion",
+            "tournament_id": "rvv-0001",
+        },
+    ]
+
+    report = reconcile_published_baseline(
+        published_projection=projection,
+        current_projection=projection,
+        history=history,
+        attested_additions={},
+    )
+    assert report["ok"] is True, report["unexplained_delta"]

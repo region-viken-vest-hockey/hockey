@@ -944,7 +944,7 @@
       }
     }
   ],
-  "canonical_state_revision": "2642b61526092ac3d2046a68a027a4e6d7643be0a41820bf3b1849154de9a8ac",
+  "canonical_state_revision": "4812c997f0d6e2aaf7581a503e547e0326ea58a8dc4661485605dd0fa6ec68e8",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -11736,6 +11736,470 @@
       "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
       "tournament_fingerprint": "f8df5010da0a6fdb4b3513346cf1846bcbfffe9a26b9c1d7d3034559593eeb5d",
       "tournament_id": "rvv-0102"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:04:07.453709+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-10-17",
+          "duration_minutes": "100",
+          "end_time": "15:55",
+          "round_count": "3",
+          "start_time": "14:15"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "75",
+          "end": "15:30",
+          "start": "14:15"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: 17 okt U12 flyttet 1500-1640 -> 1415-1530",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0018"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:04:09.563238+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U8",
+          "date": "2026-12-06",
+          "duration_minutes": "155",
+          "end_time": "12:35",
+          "round_count": "5",
+          "start_time": "10:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "tournament",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: 05 des U8 flyttet til 06 des (BYTTE DATO), tid 1000-1235 uendret",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0076"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:04:11.616710+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2027-02-21",
+          "duration_minutes": "155",
+          "end_time": "11:35",
+          "round_count": "5",
+          "start_time": "09:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "tournament",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: 21 feb U9 flyttet 1000-1235 -> 0900-1135",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0156"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:05:21.911966+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-10-10",
+          "duration_minutes": "100",
+          "end_time": "15:40",
+          "round_count": "3",
+          "start_time": "14:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0005"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:05:27.535846+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2026-10-11",
+          "duration_minutes": "140",
+          "end_time": "16:50",
+          "round_count": "5",
+          "start_time": "14:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0008"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:05:32.965865+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-11-15",
+          "duration_minutes": "100",
+          "end_time": "11:40",
+          "round_count": "3",
+          "start_time": "10:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0045"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:05:38.725564+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-11-28",
+          "duration_minutes": "100",
+          "end_time": "17:25",
+          "round_count": "3",
+          "start_time": "15:45"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0066"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:05:44.156919+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-12-13",
+          "duration_minutes": "100",
+          "end_time": "11:40",
+          "round_count": "3",
+          "start_time": "10:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0091"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:05:49.977236+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-01-16",
+          "duration_minutes": "140",
+          "end_time": "16:20",
+          "round_count": "5",
+          "start_time": "14:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0132"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:05:55.355550+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-01-17",
+          "duration_minutes": "140",
+          "end_time": "12:20",
+          "round_count": "5",
+          "start_time": "10:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0108"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:06:00.975868+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U7",
+          "date": "2027-01-23",
+          "duration_minutes": "155",
+          "end_time": "16:35",
+          "round_count": "5",
+          "start_time": "14:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0115"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:06:06.496070+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-01-30",
+          "duration_minutes": "100",
+          "end_time": "15:40",
+          "round_count": "3",
+          "start_time": "14:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0124"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:06:11.986143+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-01-30",
+          "duration_minutes": "140",
+          "end_time": "18:20",
+          "round_count": "5",
+          "start_time": "16:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0159"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:06:17.385633+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-01-31",
+          "duration_minutes": "140",
+          "end_time": "12:20",
+          "round_count": "5",
+          "start_time": "10:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0094"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:06:22.727048+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-02-13",
+          "duration_minutes": "100",
+          "end_time": "15:40",
+          "round_count": "3",
+          "start_time": "14:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0141"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:06:28.143358+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-03-14",
+          "duration_minutes": "140",
+          "end_time": "12:20",
+          "round_count": "5",
+          "start_time": "10:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0172"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-26T15:06:40.908200+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-03-14",
+          "duration_minutes": "100",
+          "end_time": "14:10",
+          "round_count": "3",
+          "start_time": "12:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "892760e7a335d57505519a0e3614e873f70cf66c951ab5dd12dcfa3a2a4d282b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0183"
     }
   ],
   "holiday_date_exceptions": [
@@ -11760,6 +12224,625 @@
       "source_revision": "308d878c54be819f517c2417e26abf1fe32d9e216adc1919c1b231054b3009a0",
       "status": "active",
       "type": "holiday_date_exception"
+    }
+  ],
+  "manual_booking_assertions": [
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:04:07.453709+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-10-17",
+        "duration_minutes": "100",
+        "end_time": "15:55",
+        "round_count": "3",
+        "start_time": "14:15"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-17",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0018:2026-09-26T15:04:07.453709+00:00",
+      "note": "Club email: 17 okt U12 flyttet 1500-1640 -> 1415-1530",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "2642b61526092ac3d2046a68a027a4e6d7643be0a41820bf3b1849154de9a8ac",
+      "source_scope": "tournament",
+      "start_time": "14:15",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "75",
+        "end": "15:30",
+        "start": "14:15"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Tonsberghallen",
+        "date": "2026-10-17",
+        "host_club": "Tønsberg",
+        "start_time": "14:15"
+      },
+      "tournament_id": "rvv-0018"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:04:09.563238+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U8",
+        "date": "2026-12-06",
+        "duration_minutes": "155",
+        "end_time": "12:35",
+        "round_count": "5",
+        "start_time": "10:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-12-06",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0076:2026-09-26T15:04:09.563238+00:00",
+      "note": "Club email: 05 des U8 flyttet til 06 des (BYTTE DATO), tid 1000-1235 uendret",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "0775182bee97899753d50edfda4cece47977634154d5ce455d58332f74c761ab",
+      "source_scope": "tournament",
+      "start_time": "10:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Tonsberghallen",
+        "date": "2026-12-06",
+        "host_club": "Tønsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0076"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:04:11.616710+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2027-02-21",
+        "duration_minutes": "155",
+        "end_time": "11:35",
+        "round_count": "5",
+        "start_time": "09:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-02-21",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0156:2026-09-26T15:04:11.616710+00:00",
+      "note": "Club email: 21 feb U9 flyttet 1000-1235 -> 0900-1135",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "c53000a09bcba047fa76302d53a76997d1bf4d22c3c5499c5bbec810e9d7cf56",
+      "source_scope": "tournament",
+      "start_time": "09:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Tonsberghallen",
+        "date": "2027-02-21",
+        "host_club": "Tønsberg",
+        "start_time": "09:00"
+      },
+      "tournament_id": "rvv-0156"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:05:21.911966+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-10-10",
+        "duration_minutes": "100",
+        "end_time": "15:40",
+        "round_count": "3",
+        "start_time": "14:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-10",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0005:2026-09-26T15:05:21.911966+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "b600ef397c6bd934cca9551b58f56283ab51e1378e77697d91aa495a2b28f7b4",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Tonsberghallen",
+        "date": "2026-10-10",
+        "host_club": "Tønsberg",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0005"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:05:27.535846+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2026-10-11",
+        "duration_minutes": "140",
+        "end_time": "16:50",
+        "round_count": "5",
+        "start_time": "14:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-11",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0008:2026-09-26T15:05:27.535846+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "f865cf12efe93da363c70114ea533942cabb7d63db2c9ef29bbcd9bd2c76ca7d",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:30",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Tonsberghallen",
+        "date": "2026-10-11",
+        "host_club": "Tønsberg",
+        "start_time": "14:30"
+      },
+      "tournament_id": "rvv-0008"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:05:32.965865+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-11-15",
+        "duration_minutes": "100",
+        "end_time": "11:40",
+        "round_count": "3",
+        "start_time": "10:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-15",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0045:2026-09-26T15:05:32.965865+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "01c9aa0d43610b7255c517f6a20398c9cc819b16567767cf9822100a3d3e689d",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "10:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Tonsberghallen",
+        "date": "2026-11-15",
+        "host_club": "Tønsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0045"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:05:38.725564+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-11-28",
+        "duration_minutes": "100",
+        "end_time": "17:25",
+        "round_count": "3",
+        "start_time": "15:45"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-28",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0066:2026-09-26T15:05:38.725564+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "4266aad1aba5df499ccbce38c846ea730ed4f2bc46b6c712181a23232c98eb84",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:45",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Tonsberghallen",
+        "date": "2026-11-28",
+        "host_club": "Tønsberg",
+        "start_time": "15:45"
+      },
+      "tournament_id": "rvv-0066"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:05:44.156919+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-12-13",
+        "duration_minutes": "100",
+        "end_time": "11:40",
+        "round_count": "3",
+        "start_time": "10:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-12-13",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0091:2026-09-26T15:05:44.156919+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "275403906d026a2bdc4cab3694a13e4a07ca2c3e8532e376f2d168e1f2c68272",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "10:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Tonsberghallen",
+        "date": "2026-12-13",
+        "host_club": "Tønsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0091"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:05:49.977236+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2027-01-16",
+        "duration_minutes": "140",
+        "end_time": "16:20",
+        "round_count": "5",
+        "start_time": "14:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-16",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0132:2026-09-26T15:05:49.977236+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "43412bac15977b810d305e70d47b6d164e695063d3a245383cdcdb86714c94f5",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Tonsberghallen",
+        "date": "2027-01-16",
+        "host_club": "Tønsberg",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0132"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:05:55.355550+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2027-01-17",
+        "duration_minutes": "140",
+        "end_time": "12:20",
+        "round_count": "5",
+        "start_time": "10:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-17",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0108:2026-09-26T15:05:55.355550+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "0a6db93873b4583139ba79bb94c35df3a20fbd8c4b024d5f9d0428597af1b2f3",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "10:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Tonsberghallen",
+        "date": "2027-01-17",
+        "host_club": "Tønsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0108"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:06:00.975868+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U7",
+        "date": "2027-01-23",
+        "duration_minutes": "155",
+        "end_time": "16:35",
+        "round_count": "5",
+        "start_time": "14:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-23",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0115:2026-09-26T15:06:00.975868+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "8a3483a07468014e91019ef77f63094d2b2a942e895bd731fd39ac3cf4a8796f",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Tonsberghallen",
+        "date": "2027-01-23",
+        "host_club": "Tønsberg",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0115"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:06:06.496070+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-01-30",
+        "duration_minutes": "100",
+        "end_time": "15:40",
+        "round_count": "3",
+        "start_time": "14:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-30",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0124:2026-09-26T15:06:06.496070+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "ec6cf9ff8256fa7b68da2fec5590466d445ea28f4ce2096e32fc4cab1709c2e4",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Tonsberghallen",
+        "date": "2027-01-30",
+        "host_club": "Tønsberg",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0124"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:06:11.986143+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2027-01-30",
+        "duration_minutes": "140",
+        "end_time": "18:20",
+        "round_count": "5",
+        "start_time": "16:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-30",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0159:2026-09-26T15:06:11.986143+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "d35c8c2c85b66e2f3f9aa82d546ef87f958c30435e74d1bcc6dd69c6c429a19a",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "16:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Tonsberghallen",
+        "date": "2027-01-30",
+        "host_club": "Tønsberg",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0159"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:06:17.385633+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2027-01-31",
+        "duration_minutes": "140",
+        "end_time": "12:20",
+        "round_count": "5",
+        "start_time": "10:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-31",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0094:2026-09-26T15:06:17.385633+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "28f55f838ef7e383c9dbdc7be3cc3e6eacac5d73a17516d552c06e1565a72c56",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "10:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Tonsberghallen",
+        "date": "2027-01-31",
+        "host_club": "Tønsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0094"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:06:22.727048+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-02-13",
+        "duration_minutes": "100",
+        "end_time": "15:40",
+        "round_count": "3",
+        "start_time": "14:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-02-13",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0141:2026-09-26T15:06:22.727048+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "77b5e840ebeb6cf5fce6748366695dc5196c0ab233bc586c374ddbc4648830f1",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Tonsberghallen",
+        "date": "2027-02-13",
+        "host_club": "Tønsberg",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0141"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:06:28.143358+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2027-03-14",
+        "duration_minutes": "140",
+        "end_time": "12:20",
+        "round_count": "5",
+        "start_time": "10:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-14",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0172:2026-09-26T15:06:28.143358+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "69802720ec1b58204a1a8ab18bf90cabb76f1ed778e8f3521503749580ef07f1",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "10:00",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Tonsberghallen",
+        "date": "2027-03-14",
+        "host_club": "Tønsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0172"
+    },
+    {
+      "arena": "Tonsberghallen",
+      "asserted_at": "2026-09-26T15:06:40.908200+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-03-14",
+        "duration_minutes": "100",
+        "end_time": "14:10",
+        "round_count": "3",
+        "start_time": "12:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-14",
+      "host_club": "Tønsberg",
+      "id": "manual_booking:rvv-0183:2026-09-26T15:06:40.908200+00:00",
+      "note": "Club email: rest is booked as per season_plan (no itemized per-tournament confirmation)",
+      "reference": "changes_and_confirmations/2026-27/Tønsberg.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_revision": "000ff43fdb907ede2dc0b7ce5bc40144568c656459c58c281d2ea1ce8c9123fb",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:30",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Tonsberghallen",
+        "date": "2027-03-14",
+        "host_club": "Tønsberg",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0183"
     }
   ],
   "request_constraints": [
@@ -19400,5 +20483,5 @@
       "tournament_id": "rvv-0168"
     }
   ],
-  "updated_at": "2026-09-25T11:07:04.963785+00:00"
+  "updated_at": "2026-09-26T15:06:40.908200+00:00"
 }
