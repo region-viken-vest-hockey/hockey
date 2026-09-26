@@ -665,12 +665,14 @@ def _scrape_source(
         elif source_type in _ICAL_SOURCE_TYPES:
             # Look up any per-source location filter registered in CLUB_REGISTRY
             _club_name = club_for_source_name(name)
-            _location_filter = (
-                CLUB_REGISTRY[_club_name].location_filter
-                if _club_name and _club_name in CLUB_REGISTRY
-                else None
+            _club_entry = CLUB_REGISTRY.get(_club_name) if _club_name else None
+            _location_filter = _club_entry.location_filter if _club_entry else None
+            _location_exclude_substring = _club_entry.location_exclude_substring if _club_entry else None
+            events = _run_ical_scraper(
+                url, name, start_date, end_date, source_type, calendar_cache,
+                location_filter=_location_filter,
+                location_exclude_substring=_location_exclude_substring,
             )
-            events = _run_ical_scraper(url, name, start_date, end_date, source_type, calendar_cache, location_filter=_location_filter)
             result["location_filter"] = _location_filter
         else:
             scraper_error = f"Ukjent kildetype '{source_type}'."

@@ -1,16 +1,39 @@
-"""StyledCalendar/FullCalendar scraper for Stage 2 (Bærum ishall / Jutul).
+"""StyledCalendar scraper for Stage 2 (Bærum ishall / Jutul).
 
-Provides :func:`_run_styledcalendar_scraper` which opens the StyledCalendar
-embed URL, switches to month view, iterates through each target month, and
-extracts events from rendered ``.fc-daygrid-event`` elements.
+Provides :func:`_run_styledcalendar_scraper`.
+
+StyledCalendar's public embed page (https://embed.styledcalendar.com/#<id>)
+renders a FullCalendar widget whose DOM never carries per-event start/end
+times as text -- month view shows only a title dot, and even the time-grid
+week/day views position events purely by CSS pixel offset with no time
+label. Browser/DOM scraping can therefore only ever recover the *date* of
+an event, never its real time or duration.
+
+The widget itself is backed by a plain JSON API
+(``/api/get-styled-calendar-events-data/?styledCalendarId=<id>``) that
+returns the *complete* underlying event set -- including recurrence rules
+-- with real ISO-8601 start/end timestamps, independent of whatever month
+happens to be in view. This module calls that API directly (no browser
+required) and decompresses its payload, which is compressed with the
+``lz-string`` ``compressToUTF16``/``decompressFromUTF16`` scheme (see
+:mod:`tournament_scheduler.utils.lzstring`).
 """
 
 from __future__ import annotations
 
-import json as _json
+import json
 from datetime import datetime
+from typing import Any
+
+import icalendar
+import recurring_ical_events
+import requests
 
 from ..models import CalendarEvent
+from ..utils.lzstring import decompress_from_utf16
+
+_EVENTS_API_URL = "https://embed.styledcalendar.com/api/get-styled-calendar-events-data/"
+_STYLED_CALENDAR_ID = "rYk5U1FtYNByMIMz2AoR"
 
 
 def _run_styledcalendar_scraper(
@@ -18,124 +41,120 @@ def _run_styledcalendar_scraper(
     start_date: datetime,
     end_date: datetime,
 ) -> tuple[list[CalendarEvent], str]:
-    """Scrape StyledCalendar/FullCalendar widget (Bærum ishall/Jutul).
+    """Fetch and expand StyledCalendar events (Bærum ishall/Jutul).
 
-    Opens the StyledCalendar embed URL directly, switches to month view,
-    iterates through each target month via the next-button, and extracts
-    events from the rendered ``.fc-daygrid-event`` elements.
+    Calls the widget's JSON events API directly, decompresses the
+    ``lz-string``-encoded event payload, expands any recurring events
+    (``RRULE``/``EXDATE``) against ``[start_date, end_date]``, and returns
+    one :class:`CalendarEvent` per occurrence with its real start time and
+    duration.
     """
-    from playwright.sync_api import sync_playwright
-
     events: list[CalendarEvent] = []
-    raw_html = ""
-    embed_url = "https://embed.styledcalendar.com/#rYk5U1FtYNByMIMz2AoR"
-
-    start_month = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    end_month = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    months_to_scrape = (
-        (end_month.year - start_month.year) * 12
-        + (end_month.month - start_month.month)
-        + 1
-    )
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(embed_url, timeout=30_000)
-            page.wait_for_timeout(8_000)  # Wait for JS render
-
-            # Switch to month view
-            month_btn = page.query_selector("button.fc-dayGridMonth-button")
-            if month_btn:
-                is_active = page.evaluate(
-                    "document.querySelector('button.fc-dayGridMonth-button')?.classList.contains('fc-button-active')"
-                )
-                if not is_active:
-                    month_btn.click()
-                    page.wait_for_timeout(1_000)
-
-            # Navigate to start month
-            for _ in range(24):  # Max 2 years of clicking
-                title = page.evaluate(
-                    "document.querySelector('.fc-toolbar-title')?.innerText || ''"
-                )
-                if not title:
-                    break
-                try:
-                    parts = title.lower().split()
-                    month_names = [
-                        "", "januar", "februar", "mars", "april", "mai", "juni",
-                        "juli", "august", "september", "oktober", "november", "desember",
-                    ]
-                    cur_month = month_names.index(parts[0]) if parts[0] in month_names else 0
-                    cur_year = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
-                except (ValueError, IndexError):
-                    break
-
-                if cur_year > start_month.year or (cur_year == start_month.year and cur_month >= start_month.month):
-                    break
-
-                next_btn = page.query_selector(".fc-next-button")
-                if next_btn:
-                    next_btn.click()
-                    page.wait_for_timeout(500)
-                else:
-                    break
-
-            # Extract each month
-            for month_idx in range(months_to_scrape):
-                page.wait_for_timeout(1_000)
-
-                # Extract events from current month view
-                raw = page.evaluate("""
-                    JSON.stringify(Array.from(document.querySelectorAll('.fc-daygrid-event')).map(e => {
-                        const day = e.closest('[data-date]');
-                        const date = day ? day.getAttribute('data-date') || '' : '';
-                        const title = (e.querySelector('.fc-event-title') || e).innerText.trim();
-                        return { date, title };
-                    }))
-                """)
-                raw_events = _json.loads(raw) if isinstance(raw, str) else []
-                if not isinstance(raw_events, list):
-                    raw_events = []
-
-                for item in raw_events:
-                    date_str = item.get("date", "")
-                    title = item.get("title", "")
-                    if not date_str or not title:
-                        continue
-                    try:
-                        dt = datetime.strptime(date_str, "%Y-%m-%d")
-                    except ValueError:
-                        continue
-                    events.append(CalendarEvent(
-                        date=dt.strftime("%d.%m.%Y"),
-                        name=title,
-                        datetime=dt,
-                        duration_hours=1.0,
-                    ))
-
-                # Navigate to next month
-                if month_idx < months_to_scrape - 1:
-                    next_btn = page.query_selector(".fc-next-button")
-                    if next_btn:
-                        next_btn.click()
-                        page.wait_for_timeout(500)
-                    else:
-                        break
-
-            browser.close()
+        response = requests.get(
+            _EVENTS_API_URL,
+            params={"styledCalendarId": _STYLED_CALENDAR_ID},
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        raw_events = _extract_raw_events(payload)
+        calendar = _build_icalendar(raw_events)
+        occurrences = recurring_ical_events.of(calendar).between(start_date, end_date)
     except Exception:
-        pass
+        return [], ""
 
-    # Deduplicate
-    seen: set[tuple[str, str]] = set()
-    unique: list[CalendarEvent] = []
-    for ev in events:
-        key = (ev.date, ev.name)
-        if key not in seen:
-            seen.add(key)
-            unique.append(ev)
+    for occurrence in occurrences:
+        title = str(occurrence.get("summary", "")).strip()
+        dtstart = occurrence.get("dtstart")
+        dtend = occurrence.get("dtend")
+        if not title or dtstart is None:
+            continue
+        start_dt = _as_naive_datetime(dtstart.dt)
+        if start_dt is None:
+            continue
+        if dtend is not None and (end_dt := _as_naive_datetime(dtend.dt)) is not None:
+            duration_hours = max((end_dt - start_dt).total_seconds() / 3600.0, 0.0)
+        else:
+            duration_hours = 0.0
 
-    return unique, raw_html
+        events.append(CalendarEvent(
+            date=start_dt.strftime("%d.%m.%Y"),
+            name=title,
+            datetime=start_dt,
+            duration_hours=duration_hours,
+        ))
+
+    return events, ""
+
+
+def _extract_raw_events(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Decompress and merge every ``compressedEvents`` blob in the API payload."""
+    raw_events: list[dict[str, Any]] = []
+    for entry in payload.get("compressedEventsAndIds") or []:
+        blob = entry.get("compressedEvents")
+        if not blob:
+            continue
+        decoded = decompress_from_utf16(blob)
+        if not decoded:
+            continue
+        parsed = json.loads(decoded)
+        if isinstance(parsed, list):
+            raw_events.extend(item for item in parsed if isinstance(item, dict))
+    return raw_events
+
+
+def _build_icalendar(raw_events: list[dict[str, Any]]) -> icalendar.Calendar:
+    """Build an in-memory :class:`icalendar.Calendar` from the API's raw event dicts."""
+    calendar = icalendar.Calendar()
+    for raw in raw_events:
+        start = _parse_iso(raw.get("start"))
+        end = _parse_iso(raw.get("end"))
+        if start is None or end is None:
+            continue
+
+        vevent = icalendar.Event()
+        vevent.add("summary", raw.get("title", ""))
+        vevent.add("uid", raw.get("id", ""))
+        vevent.add("dtstart", start)
+        vevent.add("dtend", end)
+
+        for rule in raw.get("recurrence") or []:
+            if not isinstance(rule, str):
+                continue
+            if rule.upper().startswith("RRULE:"):
+                try:
+                    vevent.add("rrule", icalendar.vRecur.from_ical(rule[len("RRULE:"):]))
+                except (ValueError, KeyError):
+                    continue
+
+        for exdate in raw.get("exdate") or []:
+            parsed_exdate = _parse_iso(exdate)
+            if parsed_exdate is not None:
+                vevent.add("exdate", parsed_exdate)
+
+        calendar.add_component(vevent)
+    return calendar
+
+
+def _parse_iso(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _as_naive_datetime(value: Any) -> datetime | None:
+    """Normalize an icalendar-resolved occurrence boundary to a naive local datetime."""
+    if isinstance(value, datetime):
+        if value.tzinfo is not None:
+            return value.astimezone().replace(tzinfo=None)
+        return value
+    # icalendar can resolve an all-day/date-only occurrence to a plain date.
+    try:
+        return datetime(value.year, value.month, value.day)
+    except AttributeError:
+        return None

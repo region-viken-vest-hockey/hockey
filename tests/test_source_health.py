@@ -144,6 +144,115 @@ class TestComputeSourceHealth:
         assert result.status == "ok"
         assert not any("duplikater" in p for p in result.problems)
 
+    def test_hardcoded_duration_and_midnight_start_is_warning(self, tmp_path):
+        """Regression guard for the Jutul StyledCalendar bug (2026-09-26):
+
+        the scraper couldn't read real times from the month-view DOM, so
+        every event silently defaulted to 00:00 / a flat 1h duration.
+        """
+        events = [
+            {"date": "05.09.2026", "datetime": "2026-09-05T00:00:00", "name": f"Jutul U{i}", "duration_hours": 1.0}
+            for i in range(30)
+        ]
+        _write_scraping_checkpoint(
+            tmp_path,
+            [{
+                "name": "Jutul",
+                "event_count": 30,
+                "blocked": False,
+                "type": "styledcalendar",
+                "events": events,
+                "event_expectation": {"status": "ok"},
+            }],
+        )
+        result = compute_source_health(str(tmp_path))[0]
+        assert result.status == "warning"
+        assert result.requires_human is True
+        assert any("identisk varighet" in p for p in result.problems)
+
+    def test_real_varied_times_are_not_flagged_as_hardcoded(self, tmp_path):
+        events = [
+            {"date": "05.09.2026", "datetime": f"2026-09-05T{15 + (i % 6):02d}:00:00", "name": f"Jutul U{i}", "duration_hours": 0.5 + (i % 3) * 0.5}
+            for i in range(30)
+        ]
+        _write_scraping_checkpoint(
+            tmp_path,
+            [{
+                "name": "Jutul",
+                "event_count": 30,
+                "blocked": False,
+                "type": "styledcalendar",
+                "events": events,
+                "event_expectation": {"status": "ok"},
+            }],
+        )
+        result = compute_source_health(str(tmp_path))[0]
+        assert result.status == "ok"
+
+    def test_fixed_allocation_uniform_durations_are_not_flagged(self, tmp_path):
+        events = [
+            {"date": f"{5 + i:02d}.09.2026", "datetime": f"2026-09-{5 + i:02d}T00:00:00", "name": "Fast istid", "duration_hours": 24}
+            for i in range(24)
+        ]
+        _write_scraping_checkpoint(
+            tmp_path,
+            [{
+                "name": "Sandefjord Penguins",
+                "event_count": 30,
+                "blocked": False,
+                "type": "fixed_allocation",
+                "events": events,
+                "event_expectation": {"status": "ok"},
+            }],
+        )
+        result = compute_source_health(str(tmp_path))[0]
+        assert result.status == "ok"
+
+    def test_non_schedulable_arena_alias_is_flagged_for_review(self, tmp_path):
+        """Frisk Asker's Teamup feed also carries Varner Arena, which RVV can
+
+        never book (see ``non_schedulable_arena_aliases`` in club_registry.py).
+        Events an existing per-club classifier tags with that alias should
+        surface as a review flag, not be silently trusted or silently dropped.
+        """
+        events = [
+            {"date": "05.09.2026", "datetime": "2026-09-05T17:00:00", "name": "U15", "location": "1+2", "arena": "Varner Arena"},
+            {"date": "06.09.2026", "datetime": "2026-09-06T17:00:00", "name": "U16", "location": "Idrettshallen", "arena": "Askerhallen"},
+        ]
+        _write_scraping_checkpoint(
+            tmp_path,
+            [{
+                "name": "Frisk Asker",
+                "event_count": 2,
+                "blocked": False,
+                "type": "ical",
+                "events": events,
+                "event_expectation": {"status": "ok"},
+            }],
+        )
+        result = compute_source_health(str(tmp_path))[0]
+        assert result.status == "warning"
+        assert result.requires_human is True
+        assert any("Varner Arena" in p for p in result.problems)
+
+    def test_no_arena_tags_present_is_not_flagged(self, tmp_path):
+        events = [
+            {"date": "05.09.2026", "datetime": "2026-09-05T17:00:00", "name": "U15"},
+        ]
+        _write_scraping_checkpoint(
+            tmp_path,
+            [{
+                "name": "Frisk Asker",
+                "event_count": 1,
+                "blocked": False,
+                "type": "ical",
+                "events": events,
+                "event_expectation": {"status": "ok"},
+            }],
+        )
+        result = compute_source_health(str(tmp_path))[0]
+        assert result.status == "ok"
+
     def test_stale_cache_beyond_ttl_is_warning(self, tmp_path):
         cache = ScrapedDataCache(work_dir=str(tmp_path))
         cache.write({"sources": {"Tonsberg": {"name": "Tonsberg", "event_count": 5, "scrape_timestamp": "2020-01-01T00:00:00", "events": []}}})
