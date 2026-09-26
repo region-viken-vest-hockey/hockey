@@ -1597,7 +1597,7 @@ def test_publication_guard_refuses_when_previous_bundle_has_no_immutable_referen
     _seal_abc(root)  # legacy seal: no publication_evidence / Pages reference
     export_dir = _canonical_export_for_current_state(tmp_path, root, "2026-09-28T0908")
 
-    with pytest.raises(RuntimeError, match="no immutable artifact reference"):
+    with pytest.raises(RuntimeError, match="has no immutable run id"):
         assert_publication_allowed(export_dir, repo_dir=tmp_path)
 
 
@@ -1646,16 +1646,60 @@ def test_publication_guard_refuses_when_previous_run_snapshot_is_missing(
     )
     assert first.status == "ok"
 
-    with pytest.raises(RuntimeError, match="no immutable /runs/never-published-run/ snapshot"):
+    with pytest.raises(RuntimeError, match="is not verifiably retained"):
         assert_publication_allowed(export_dir, repo_dir=local)
 
-    # Once the previous run's immutable snapshot actually exists, the guard passes.
+    # Once the previous run's immutable snapshot actually exists with the
+    # recorded bundle identity, the guard passes.
     result = pages_publish.publish(
-        export_dir=str(bundle), run_id="never-published-run", repo_dir=str(local), push=False
+        export_dir=str(bundle),
+        run_id="never-published-run",
+        repo_dir=str(local),
+        push=False,
+        bundle_fingerprint="bundle-never-published-run",
     )
     assert result.status == "ok"
     report = assert_publication_allowed(export_dir, repo_dir=local)
     assert report["previous_publication"]["run_snapshot_retained"] == "true"
+
+
+@pytest.mark.parametrize("break_kind", ["missing_meta", "fingerprint_mismatch"])
+def test_publication_guard_blocks_on_unverifiable_previous_snapshot(
+    tmp_path: Path, break_kind: str
+) -> None:
+    from tournament_scheduler.pipeline import pages_publish
+
+    local = tmp_path / "local"
+    _init_local_repo(local)
+    root = local / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_full(
+        root,
+        publication_id="2026-09-21T0908",
+        canonical_revision="rev-1",
+        run_id="never-published-run",
+    )
+    export_dir = _canonical_export_for_current_state(tmp_path, root, "2026-09-28T0908")
+
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "season_plan.html").write_text("<h1>plan</h1>", encoding="utf-8")
+    if break_kind == "missing_meta":
+        # Published without a bundle fingerprint: no _meta.json identity to verify.
+        assert pages_publish.publish(
+            export_dir=str(bundle), run_id="never-published-run", repo_dir=str(local), push=False
+        ).status == "ok"
+    else:
+        assert pages_publish.publish(
+            export_dir=str(bundle),
+            run_id="never-published-run",
+            repo_dir=str(local),
+            push=False,
+            bundle_fingerprint="different-bundle",
+        ).status == "ok"
+
+    with pytest.raises(RuntimeError, match="is not verifiably retained"):
+        assert_publication_allowed(export_dir, repo_dir=local)
 
 
 def test_publication_evidence_report_shows_active_revision_and_delta(tmp_path: Path) -> None:
@@ -1706,3 +1750,156 @@ def test_republish_seal_invokes_no_planning_or_scrape_path(tmp_path: Path, monke
 
     report = record_publication_seal(export_dir, repo_dir=tmp_path)
     assert report["state"] == "published_sealed"
+
+
+def test_replacement_seal_labels_missing_previous_decision_snapshot(tmp_path: Path) -> None:
+    """A legacy first publication without a decision snapshot must say so."""
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    projection = _full_projection(root)
+    CanonicalSeasonService(root=root).seal_published_season(
+        season="2026-2027",
+        publication_id="2026-09-21T0908",
+        canonical_revision="rev-1",
+        published_at="2026-09-21T09:14:53+00:00",
+        published_projection=projection,
+        publication_canonical_projection=projection,
+        actor="tester",
+        # No publication_evidence -> no decision snapshot on the legacy baseline.
+    )
+
+    report = _seal_full(
+        root, publication_id="2026-09-28T0908", canonical_revision="rev-2", run_id="run-2"
+    )
+    changes = report["republish_decision_changes"]
+    assert changes["available"] is False
+    assert changes["reason"] == "no_previous_decision_snapshot"
+    assert changes["changed"] is None
+
+
+def test_replacement_seal_rejects_conflicting_retained_evidence(tmp_path: Path) -> None:
+    from tournament_scheduler.pipeline.publication_evidence import (
+        PublicationEvidenceError,
+        write_publication_evidence,
+    )
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    report = _seal_full(
+        root, publication_id="2026-09-28T0908", canonical_revision="rev-2", run_id="run-2"
+    )
+    # A retry for the same publication and identical content is idempotent.
+    retry = write_publication_evidence(
+        season_root=root,
+        season="2026-2027",
+        publication_id="2026-09-28T0908",
+        evidence=report["publication_evidence"],
+        previous_publication=report["previous_publication"],
+        republish_delta=report["republish_delta"],
+        canonical_revision="rev-2",
+        decision_changes=report["republish_decision_changes"],
+    )
+    retry_again = write_publication_evidence(
+        season_root=root,
+        season="2026-2027",
+        publication_id="2026-09-28T0908",
+        evidence=report["publication_evidence"],
+        previous_publication=report["previous_publication"],
+        republish_delta=report["republish_delta"],
+        canonical_revision="rev-2",
+        decision_changes=report["republish_decision_changes"],
+    )
+    assert retry == retry_again
+    # A different canonical revision for the same publication id fails closed.
+    with pytest.raises(PublicationEvidenceError, match="conflicting"):
+        write_publication_evidence(
+            season_root=root,
+            season="2026-2027",
+            publication_id="2026-09-28T0908",
+            evidence=report["publication_evidence"],
+            previous_publication=report["previous_publication"],
+            republish_delta=report["republish_delta"],
+            canonical_revision="rev-3",
+            decision_changes=report["republish_decision_changes"],
+        )
+
+
+def test_publication_evidence_write_failure_is_recoverable_on_retry(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A failed evidence write must not duplicate history and must recover on retry."""
+
+    import tournament_scheduler.pipeline.publication_lifecycle as pub_lifecycle
+    from tournament_scheduler.pipeline.export_lifecycle import promote_export_manifest
+    from tournament_scheduler.pipeline.publication_evidence import read_publication_evidence
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    export_dir = _canonical_export_for_current_state(tmp_path, root, "2026-09-28T0908")
+    promote_export_manifest(
+        export_dir,
+        expected_export_fingerprint="fp",
+        source_run_id="run",
+        pages_run_id="run-1",
+        pages_bundle_fingerprint="bundle-1",
+        pages_commit="commit-1",
+        pages_branch="gh-pages",
+    )
+
+    calls = {"count": 0}
+    real_write = pub_lifecycle.write_publication_evidence
+
+    def flaky_write(**kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise OSError("disk full")
+        return real_write(**kwargs)
+
+    monkeypatch.setattr(pub_lifecycle, "write_publication_evidence", flaky_write)
+
+    with pytest.raises(OSError):
+        record_publication_seal(export_dir, repo_dir=tmp_path)
+
+    lifecycle = CanonicalSeasonStore(root).load("2026-2027").decisions["season_lifecycle"]
+    assert len(lifecycle["publication_history"]) == 1
+    assert read_publication_evidence(root, "2026-2027", "2026-09-28T0908") is None
+
+    report = record_publication_seal(export_dir, repo_dir=tmp_path)
+    lifecycle = CanonicalSeasonStore(root).load("2026-2027").decisions["season_lifecycle"]
+    assert len(lifecycle["publication_history"]) == 1
+    assert read_publication_evidence(root, "2026-2027", "2026-09-28T0908") is not None
+    assert report["evidence_files"]["json"]
+
+
+def test_already_sealed_retry_still_refuses_actual_schedule_drift(tmp_path: Path) -> None:
+    """The idempotent-retry revision relaxation must not hide real drift."""
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    published_revision = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+    _seal_full(
+        root,
+        publication_id="2026-09-28T0908",
+        canonical_revision=published_revision,
+        run_id="run-1",
+    )
+
+    export_dir = tmp_path / "export" / "2026-09-28T0908"
+    export_dir.mkdir(parents=True)
+    altered = _tp({"tournaments": _tournaments_abc()})
+    altered["rvv-1"]["start_time"] = "23:00"
+    write_draft_manifest(
+        export_dir,
+        export_id="2026-09-28T0908",
+        generated_at="2026-09-28T09:08:01+00:00",
+        export_fingerprint="fp",
+        source_run_id="run",
+        canonical_season="2026-2027",
+        canonical_revision=published_revision,
+        schedule_projection=altered,
+    )
+    with pytest.raises(RuntimeError, match="no longer matches the current canonical schedule"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)

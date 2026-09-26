@@ -22,6 +22,7 @@ evidence: it must never be the only copy of an operational fact.
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -157,6 +158,12 @@ def build_republish_delta(
     """
 
     delta = diff_tournament_projection(published_projection, current_projection)
+    if delta["schema_errors"]:
+        raise PublicationEvidenceError(
+            "republish delta cannot be trusted: the published or current projection "
+            "has an incomplete/legacy schema: "
+            + json.dumps(delta["schema_errors"][:5], ensure_ascii=False, sort_keys=True)
+        )
     changed_ids = {entry["tournament_id"] for entry in delta["field_changes"]}
     shared_ids = set(published_projection) & set(current_projection)
     return {
@@ -171,6 +178,51 @@ def build_republish_delta(
             "schema_errors": len(delta["schema_errors"]),
         },
     }
+
+
+def _normalized_booking_evidence(decisions: Mapping[str, Any]) -> list[dict[str, str]]:
+    """Deterministic, detail-preserving booking-evidence records.
+
+    Status alone loses the event/calendar reference that supports a
+    ``confirmed_booked`` conclusion, so a changed reference is invisible. Each
+    record keeps the identity and supporting fingerprints and is sorted so the
+    snapshot is stable across dictionary ordering.
+    """
+
+    records: list[dict[str, str]] = []
+    for entry in decisions.get("tournament_booking_evidence") or []:
+        if not isinstance(entry, Mapping):
+            continue
+        records.append(
+            {
+                "tournament_id": _text(entry.get("tournament_id")),
+                "evidence_id": _text(entry.get("id")),
+                "status": _text(entry.get("status") or entry.get("reason")),
+                "reason": _text(entry.get("reason")),
+                "event_fingerprint": _text(entry.get("event_fingerprint")),
+                "calendar_fingerprint": _text(entry.get("calendar_fingerprint")),
+                "checked_at": _text(entry.get("checked_at")),
+            }
+        )
+    return sorted(
+        records,
+        key=lambda item: (
+            item["tournament_id"],
+            item["evidence_id"],
+            item["status"],
+            item["event_fingerprint"],
+            item["checked_at"],
+        ),
+    )
+
+
+def _booking_by_tournament(records: Any) -> dict[str, list[dict[str, str]]]:
+    grouped: dict[str, list[dict[str, str]]] = {}
+    for entry in records or []:
+        if not isinstance(entry, Mapping):
+            continue
+        grouped.setdefault(_text(entry.get("tournament_id")), []).append(dict(entry))
+    return grouped
 
 
 def decision_snapshot(decisions: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -203,19 +255,12 @@ def decision_snapshot(decisions: Mapping[str, Any] | None) -> dict[str, Any]:
             if isinstance(entry, Mapping) and _text(entry.get("status") or "active") == "active"
         )
 
-    bookings: dict[str, str] = {}
-    for entry in resolved.get("tournament_booking_evidence") or []:
-        if not isinstance(entry, Mapping):
-            continue
-        tournament_id = _text(entry.get("tournament_id"))
-        if tournament_id:
-            bookings[tournament_id] = _text(entry.get("status") or entry.get("reason"))
-
     return {
+        "schema_version": PUBLICATION_EVIDENCE_SCHEMA_VERSION,
         "approvals": approvals,
         "change_protections": _active_ids("change_protections"),
         "request_constraints": _active_ids("request_constraints"),
-        "booking_evidence": bookings,
+        "booking_evidence": _normalized_booking_evidence(resolved),
     }
 
 
@@ -223,9 +268,24 @@ def diff_decision_snapshot(
     before: Mapping[str, Any] | None,
     after: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    """Compare two decision snapshots, separating evidence-only changes."""
+    """Compare two decision snapshots, separating evidence-only changes.
 
-    before = before if isinstance(before, Mapping) else {}
+    When the previous publication predates the decision snapshot (or was never
+    recorded), the comparison is explicitly reported as unavailable rather than
+    silently missing, so an operator is never told there were no approval or
+    booking changes when none could be checked.
+    """
+
+    if not isinstance(before, Mapping):
+        return {
+            "available": False,
+            "reason": "no_previous_decision_snapshot",
+            "changed": None,
+            "approval_changes": [],
+            "booking_changes": [],
+            "change_protections": {"added": [], "removed": []},
+            "request_constraints": {"added": [], "removed": []},
+        }
     after = after if isinstance(after, Mapping) else {}
 
     before_approvals = before.get("approvals") if isinstance(before.get("approvals"), Mapping) else {}
@@ -245,13 +305,13 @@ def diff_decision_snapshot(
         new = set(after.get(key) or [])
         return {"added": sorted(new - old), "removed": sorted(old - new)}
 
-    before_bookings = before.get("booking_evidence") if isinstance(before.get("booking_evidence"), Mapping) else {}
-    after_bookings = after.get("booking_evidence") if isinstance(after.get("booking_evidence"), Mapping) else {}
+    before_bookings = _booking_by_tournament(before.get("booking_evidence"))
+    after_bookings = _booking_by_tournament(after.get("booking_evidence"))
     booking_changes = [
         {
             "tournament_id": tournament_id,
-            "before": before_bookings.get(tournament_id),
-            "after": after_bookings.get(tournament_id),
+            "before": before_bookings.get(tournament_id, []),
+            "after": after_bookings.get(tournament_id, []),
         }
         for tournament_id in sorted(set(before_bookings) | set(after_bookings))
         if before_bookings.get(tournament_id) != after_bookings.get(tournament_id)
@@ -260,6 +320,8 @@ def diff_decision_snapshot(
     protections = _set_diff("change_protections")
     constraints = _set_diff("request_constraints")
     return {
+        "available": True,
+        "reason": None,
         "approval_changes": approval_changes,
         "booking_changes": booking_changes,
         "change_protections": protections,
@@ -289,6 +351,19 @@ def evidence_directory(
     return Path(season_root) / season / "evidence" / PUBLICATION_EVIDENCE_DIRNAME / publication_id
 
 
+def _atomic_write_text(path: Path, content: str) -> None:
+    """Write *content* to *path* atomically (temp file + rename)."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f".{path.name}.tmp-{os.getpid()}")
+    try:
+        tmp_path.write_text(content, encoding="utf-8")
+        os.replace(tmp_path, path)
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+
+
 def write_publication_evidence(
     *,
     season_root: str | Path,
@@ -302,38 +377,49 @@ def write_publication_evidence(
 ) -> dict[str, str]:
     """Write the retained before/after evidence for one publication.
 
+    The durable baseline in ``decisions.json`` is committed just before this
+    runs, so the write must be recoverable: both files are written atomically and
+    a retry for the same publication id is idempotent. A retry that would
+    overwrite a *different* evidence record for the same publication id fails
+    closed instead of silently replacing it.
+
     Returns the written paths. Callers must treat a write failure as an
     incomplete publication, not as a successful replacement.
     """
 
     target = evidence_directory(season_root, season, publication_id)
-    target.mkdir(parents=True, exist_ok=True)
-    record = {
+    json_path = target / PUBLICATION_EVIDENCE_JSON
+    markdown_path = target / PUBLICATION_EVIDENCE_MARKDOWN
+    fingerprint_payload = {
         "schema_version": PUBLICATION_EVIDENCE_SCHEMA_VERSION,
         "season": season,
         "publication_id": publication_id,
         "canonical_revision": canonical_revision,
-        "recorded_at": _now_iso(),
         "publication_evidence": dict(evidence),
         "previous_publication": dict(previous_publication) if previous_publication else None,
         "republish_delta": dict(republish_delta) if republish_delta else None,
         "decision_changes": dict(decision_changes) if decision_changes else None,
-        "record_fingerprint": stable_payload_sha256(
-            {
-                "publication_id": publication_id,
-                "canonical_revision": canonical_revision,
-                "publication_evidence": evidence,
-                "previous_publication": previous_publication,
-                "republish_delta": republish_delta,
-            }
-        ),
     }
-    json_path = target / PUBLICATION_EVIDENCE_JSON
-    json_path.write_text(
-        json.dumps(record, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
+    record_fingerprint = stable_payload_sha256(fingerprint_payload)
+
+    existing = read_publication_evidence(season_root, season, publication_id)
+    if existing is not None:
+        if str(existing.get("record_fingerprint") or "") != record_fingerprint:
+            raise PublicationEvidenceError(
+                "refusing to overwrite conflicting publication evidence for "
+                f"{publication_id!r} in {target}"
+            )
+        return {"json": str(json_path), "markdown": str(markdown_path)}
+
+    record = {
+        **fingerprint_payload,
+        "recorded_at": _now_iso(),
+        "record_fingerprint": record_fingerprint,
+    }
+    _atomic_write_text(
+        json_path, json.dumps(record, indent=2, ensure_ascii=False, default=str)
     )
-    markdown_path = target / PUBLICATION_EVIDENCE_MARKDOWN
-    markdown_path.write_text(_render_markdown(record), encoding="utf-8")
+    _atomic_write_text(markdown_path, _render_markdown(record))
     return {"json": str(json_path), "markdown": str(markdown_path)}
 
 

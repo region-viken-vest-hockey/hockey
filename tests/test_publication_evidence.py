@@ -174,9 +174,8 @@ class TestRepublishDelta:
     def test_fails_closed_on_legacy_or_incomplete_schema(self) -> None:
         baseline = self._baseline()
         legacy = {"rvv-1": {"id": "rvv-1", "date": "2026-10-11", "participants": []}}
-        delta = build_republish_delta(legacy, baseline)
-        assert delta["delta"]["changed"] is True
-        assert delta["summary"]["schema_errors"] >= 1
+        with pytest.raises(PublicationEvidenceError, match="schema"):
+            build_republish_delta(legacy, baseline)
 
 
 class TestDecisionChanges:
@@ -200,16 +199,61 @@ class TestDecisionChanges:
                 {"id": "change:2", "status": "active"},
             ],
             "request_constraints": [{"id": "request:1", "status": "active"}],
-            "tournament_booking_evidence": [{"tournament_id": "rvv-1", "status": "confirmed_booked"}],
+            "tournament_booking_evidence": [
+                {
+                    "id": "booking_evidence:rvv-1:1",
+                    "tournament_id": "rvv-1",
+                    "status": "confirmed_booked",
+                    "reason": "explicit_association",
+                    "event_fingerprint": "event-1",
+                    "calendar_fingerprint": "cal-1",
+                }
+            ],
         }
         before = decision_snapshot(before_decisions)
         after = decision_snapshot(after_decisions)
         changes = diff_decision_snapshot(before, after)
+        assert changes["available"] is True
         assert changes["changed"] is True
         assert changes["approval_changes"][0]["tournament_id"] == "rvv-1"
         assert changes["booking_changes"][0]["tournament_id"] == "rvv-1"
         assert changes["change_protections"]["added"] == ["change:2"]
         assert changes["request_constraints"]["added"] == ["request:1"]
+
+    def test_booking_reference_change_keeps_the_same_status_visible(self) -> None:
+        before = decision_snapshot(
+            {
+                "tournament_booking_evidence": [
+                    {
+                        "id": "booking_evidence:rvv-1:1",
+                        "tournament_id": "rvv-1",
+                        "status": "confirmed_booked",
+                        "event_fingerprint": "event-1",
+                    }
+                ]
+            }
+        )
+        after = decision_snapshot(
+            {
+                "tournament_booking_evidence": [
+                    {
+                        "id": "booking_evidence:rvv-1:2",
+                        "tournament_id": "rvv-1",
+                        "status": "confirmed_booked",
+                        "event_fingerprint": "event-2",
+                    }
+                ]
+            }
+        )
+        changes = diff_decision_snapshot(before, after)
+        assert changes["changed"] is True
+        assert changes["booking_changes"][0]["tournament_id"] == "rvv-1"
+
+    def test_missing_previous_snapshot_is_explicitly_unavailable(self) -> None:
+        changes = diff_decision_snapshot(None, decision_snapshot({"decisions": {}}))
+        assert changes["available"] is False
+        assert changes["reason"] == "no_previous_decision_snapshot"
+        assert changes["changed"] is None
 
     def test_identical_snapshots_report_no_change(self) -> None:
         decisions = {
@@ -219,10 +263,16 @@ class TestDecisionChanges:
             "tournament_booking_evidence": [],
         }
         changes = diff_decision_snapshot(decision_snapshot(decisions), decision_snapshot(decisions))
+        assert changes["available"] is True
         assert changes["changed"] is False
 
 
 class TestRetainedEvidence:
+    def _delta(self) -> dict:
+        plan = {"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]}
+        projection = _tp(plan)
+        return build_republish_delta(projection, projection)
+
     def test_write_read_and_list_round_trip(self, tmp_path: Path) -> None:
         evidence = build_publication_evidence(
             run_id="run-2",
@@ -238,10 +288,7 @@ class TestRetainedEvidence:
             publication_id="2026-09-28T0908",
             evidence=evidence,
             previous_publication={"publication_id": "2026-09-21T0908"},
-            republish_delta=build_republish_delta(
-                {"rvv-1": {"projection_schema": "x"}},
-                {"rvv-1": {"projection_schema": "x"}},
-            ),
+            republish_delta=self._delta(),
             canonical_revision="rev-2",
         )
         assert Path(files["json"]).exists()
@@ -254,6 +301,31 @@ class TestRetainedEvidence:
         assert [entry["publication_id"] for entry in listed] == ["2026-09-28T0908"]
         payload = json.loads(Path(files["json"]).read_text(encoding="utf-8"))
         assert payload["record_fingerprint"]
+
+    def test_retry_is_idempotent_and_conflicting_evidence_is_rejected(self, tmp_path: Path) -> None:
+        evidence = build_publication_evidence(
+            run_id="run-2",
+            canonical_revision="rev-2",
+            projection_fingerprint="proj-2",
+            bundle_fingerprint="bundle-2",
+        )
+        kwargs = dict(
+            season_root=tmp_path / "season",
+            season="2026-2027",
+            publication_id="2026-09-28T0908",
+            evidence=evidence,
+            previous_publication=None,
+            republish_delta=self._delta(),
+            canonical_revision="rev-2",
+        )
+        first = write_publication_evidence(**kwargs)
+        second = write_publication_evidence(**kwargs)
+        assert first == second
+
+        conflicting = dict(kwargs)
+        conflicting["canonical_revision"] = "rev-3"
+        with pytest.raises(PublicationEvidenceError, match="conflicting"):
+            write_publication_evidence(**conflicting)
 
     def test_rejects_unsafe_publication_id(self, tmp_path: Path) -> None:
         with pytest.raises(PublicationEvidenceError):

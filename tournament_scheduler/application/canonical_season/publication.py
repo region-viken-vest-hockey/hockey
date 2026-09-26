@@ -137,7 +137,7 @@ def seal_published_season(
     previous_baseline = active_baseline(decisions)
     previous_link = previous_publication_link(previous_baseline)
     republish_delta = None
-    decision_changes = None
+    before_snapshot = None
     if previous_baseline is not None:
         previous_projection, _attested = published_baseline_reconciliation(
             service,
@@ -146,15 +146,12 @@ def seal_published_season(
         )
         republish_delta = build_republish_delta(previous_projection, current_projection)
         previous_evidence = previous_baseline.get("publication_evidence")
-        before_snapshot = (
-            previous_evidence.get("decision_snapshot")
-            if isinstance(previous_evidence, Mapping)
-            else None
-        )
-        if isinstance(before_snapshot, Mapping):
-            decision_changes = diff_decision_snapshot(
-                before_snapshot, decision_snapshot(decisions)
-            )
+        if isinstance(previous_evidence, Mapping):
+            before_snapshot = previous_evidence.get("decision_snapshot")
+    decision_changes = diff_decision_snapshot(
+        before_snapshot if isinstance(before_snapshot, Mapping) else None,
+        decision_snapshot(decisions),
+    )
 
     resolved_evidence = None
     if publication_evidence is not None:

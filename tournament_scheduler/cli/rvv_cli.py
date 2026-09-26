@@ -1702,14 +1702,25 @@ def _cmd_season(args: argparse.Namespace) -> int:
                             f"(kjøring {(previous.get('publication_evidence') or {}).get('run_id') or 'ukjent'})"
                         )
                     summary = (report.get("published_to_canonical_delta") or {}).get("summary") or {}
-                    _console.print(
-                        "  avvik publisert -> kanonisk: "
-                        f"+{summary.get('added', 0)} -{summary.get('removed', 0)} "
-                        f"~{summary.get('changed', 0)} "
-                        f"({summary.get('unchanged', 0)} uendret)"
-                    )
+                    if report.get("blocked"):
+                        _console.print(
+                            "  [red]✗[/red] avvik kan ikke beregnes: "
+                            f"{report.get('delta_error')}"
+                        )
+                    else:
+                        _console.print(
+                            "  avvik publisert -> kanonisk: "
+                            f"+{summary.get('added', 0)} -{summary.get('removed', 0)} "
+                            f"~{summary.get('changed', 0)} "
+                            f"({summary.get('unchanged', 0)} uendret)"
+                        )
                     decision_changes = report.get("decision_changes") or {}
-                    if decision_changes:
+                    if decision_changes and not decision_changes.get("available", True):
+                        _console.print(
+                            "  beslutningsendringer: ikke tilgjengelig "
+                            f"({decision_changes.get('reason')})"
+                        )
+                    elif decision_changes:
                         protections = decision_changes.get("change_protections") or {}
                         constraints = decision_changes.get("request_constraints") or {}
                         _console.print(

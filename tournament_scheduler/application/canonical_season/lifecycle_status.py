@@ -39,6 +39,7 @@ from .shared import (
     published_baseline_reconciliation,
 )
 from tournament_scheduler.pipeline.publication_evidence import (
+    PublicationEvidenceError,
     build_republish_delta,
     decision_snapshot,
     diff_decision_snapshot,
@@ -187,9 +188,15 @@ def publication_evidence_report(service, *, season: str) -> dict[str, Any]:
         "publication_evidence": evidence,
         "previous_publication": baseline.get("previous_publication"),
     }
-    report["published_to_canonical_delta"] = build_republish_delta(
-        published_projection, current_projection
-    )
+    try:
+        report["published_to_canonical_delta"] = build_republish_delta(
+            published_projection, current_projection
+        )
+    except PublicationEvidenceError as exc:
+        # Fail closed: an incomplete/legacy baseline projection must never be
+        # presented to the operator as a valid republish delta.
+        report["blocked"] = True
+        report["delta_error"] = str(exc)
     report["decision_changes"] = decision_changes
     return report
 

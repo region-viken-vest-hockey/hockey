@@ -36,7 +36,6 @@ from .export_projection_guard import (
 )
 from .publication_evidence import (
     build_publication_evidence,
-    has_immutable_reference,
     write_publication_evidence,
 )
 
@@ -117,6 +116,32 @@ def _require_projection(value: Any) -> dict[str, dict[str, Any]]:
     return projection
 
 
+def _is_already_sealed_publication(
+    *,
+    decisions: Mapping[str, Any],
+    export_id: str,
+    manifest_revision: str,
+) -> bool:
+    """Whether this exact export already produced the active published baseline.
+
+    Sealing advances the canonical-state revision through a decision-only write,
+    so a retry of the *same* publication (for example to finish a failed evidence
+    write) legitimately sees a manifest revision that is now the baseline's
+    recorded revision rather than the current one. Any real schedule drift is
+    still caught by the projection comparison that always runs.
+    """
+
+    if not export_id:
+        return False
+    baseline = active_baseline(decisions)
+    if not isinstance(baseline, Mapping):
+        return False
+    return (
+        str(baseline.get("publication_id") or "") == export_id
+        and str(baseline.get("canonical_revision") or "") == manifest_revision
+    )
+
+
 def _publication_context(
     export_dir: str | os.PathLike[str],
     *,
@@ -145,7 +170,11 @@ def _publication_context(
         raise RuntimeError(
             "Refusing publication: canonical export manifest is missing canonical_revision"
         )
-    if manifest_revision != current_revision:
+    if manifest_revision != current_revision and not _is_already_sealed_publication(
+        decisions=decisions,
+        export_id=str(manifest.get("export_id") or ""),
+        manifest_revision=manifest_revision,
+    ):
         raise RuntimeError(
             "Refusing publication: the export was generated from canonical revision "
             f"{manifest_revision}, but current canonical revision is {current_revision}; "
@@ -240,16 +269,22 @@ def _previous_publication_recoverability(
     repo_dir: str | os.PathLike[str],
     branch: str,
 ) -> dict[str, Any] | None:
-    """Verify the replaced public bundle is retained behind an immutable reference."""
+    """Verify the replaced public bundle is retained behind an immutable reference.
+
+    Requires a concrete run id and a *verified* immutable snapshot (refreshed
+    remote target, matching ``_meta.json`` run id and recorded bundle
+    fingerprint). An unverifiable target is refused: a replacement must prove its
+    predecessor is still reachable for rollback.
+    """
 
     if not isinstance(baseline, Mapping):
         return None
     evidence = baseline.get("publication_evidence")
     run_id = ""
-    bundle_fingerprint = ""
+    expected_bundle_fingerprint = ""
     if isinstance(evidence, Mapping):
         run_id = str(evidence.get("run_id") or "")
-        bundle_fingerprint = str(evidence.get("bundle_fingerprint") or "")
+        expected_bundle_fingerprint = str(evidence.get("bundle_fingerprint") or "")
     if not run_id:
         from .export_lifecycle import find_published_exports_for_season
 
@@ -257,39 +292,42 @@ def _previous_publication_recoverability(
         for record in find_published_exports_for_season(season, season_root=_season_root(repo_dir)):
             if str(record.get("export_id") or "") == publication_id:
                 run_id = str(record.get("pages_run_id") or "")
-                bundle_fingerprint = bundle_fingerprint or str(
+                expected_bundle_fingerprint = expected_bundle_fingerprint or str(
                     record.get("pages_bundle_fingerprint") or ""
                 )
                 break
-    if not has_immutable_reference(
-        {"run_id": run_id, "bundle_fingerprint": bundle_fingerprint}
-    ):
+    if not run_id:
         raise RuntimeError(
             "Refusing publication: the previous published baseline "
-            f"{baseline.get('publication_id')!r} has no immutable artifact reference; "
-            "rollback cannot be guaranteed. Backfill it with 'season seal-published' "
-            "before replacing the public snapshot."
+            f"{baseline.get('publication_id')!r} has no immutable run id; rollback "
+            "cannot be verified. Backfill it with 'season seal-published' before "
+            "replacing the public snapshot."
         )
-    report: dict[str, Any] = {
+
+    from . import pages_publish
+
+    snapshot = pages_publish.verify_published_run_snapshot(
+        run_id,
+        repo_dir=str(repo_dir),
+        branch=branch,
+        expected_bundle_fingerprint=expected_bundle_fingerprint or None,
+    )
+    if not snapshot["verifiable"] or not snapshot["retained"] or snapshot["problems"]:
+        detail = "; ".join(snapshot["problems"]) or "snapshot could not be verified"
+        raise RuntimeError(
+            "Refusing publication: the previous published run "
+            f"{run_id!r} is not verifiably retained as an immutable "
+            f"/runs/{run_id}/ snapshot on '{branch}' ({detail}); the version being "
+            "replaced would not be recoverable."
+        )
+    return {
         "publication_id": baseline.get("publication_id"),
         "run_id": run_id,
-        "bundle_fingerprint": bundle_fingerprint,
+        "bundle_fingerprint": expected_bundle_fingerprint,
+        "snapshot_ref": snapshot["ref"],
+        "meta_bundle_fingerprint": snapshot["meta_bundle_fingerprint"],
+        "run_snapshot_retained": "true",
     }
-    if run_id:
-        from . import pages_publish
-
-        retained = pages_publish.published_run_snapshot_exists(
-            run_id, repo_dir=str(repo_dir), branch=branch
-        )
-        if retained is False:
-            raise RuntimeError(
-                "Refusing publication: the previous published run "
-                f"{run_id!r} has no immutable /runs/{run_id}/ snapshot on '{branch}'; "
-                "the version being replaced would not be recoverable. Restore the "
-                "snapshot (or roll back) before publishing."
-            )
-        report["run_snapshot_retained"] = "true" if retained else "unknown"
-    return report
 
 
 def record_publication_seal(
