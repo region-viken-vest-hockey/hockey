@@ -63,7 +63,20 @@ ice_time_minutes >= minimum_playing_requirement
 
 The 5 minutes per round is the normal transition/changeover allowance. When `rounds_per_tournament` is configured, Stage 1 should reject a configured booking window that cannot fit the configured format; final/candidate verification must also check the actual generated round count because effective tournament shape may reduce the number of rounds. Any governing minimum booking allocation (for example NIHF's two-hour floor for the applicable U7–U11 3v3 series rounds) is an additional independent lower bound; it must not be implemented by adding minutes to `ice_time_minutes` after the fact.
 
-Slot search, external-calendar conflict detection, arena overlap checks, optimizer feasibility and every export must use the same `ice_time_minutes` occupancy interval. A code path that adds a per-round buffer on top of `ice_time_minutes` violates this contract.
+Slot search, external-calendar conflict detection, arena overlap checks, optimizer feasibility and every export must use the same effective occupancy interval (see below). A code path that adds a per-round buffer on top of it violates this contract.
+
+`ice_time_minutes` is the age group's **nominal** configured window (see the "Do not reduce these values" rule below); it is never edited by this adaptive policy. A single tournament *instance*'s actually booked/occupied minutes are the **feasible-round-adapted effective occupancy**, owned by `tournament_scheduler.occupancy.effective_required_ice_minutes`: when that instance's own feasible round count (derived from the finalized participating teams -- fewer teams than the age group's nominal round count supports) falls short of `rounds_per_tournament`, the booked window is reduced by exactly the ice time the missing rounds would have consumed:
+
+```text
+removed_rounds = nominal_round_count - feasible_round_count
+effective_requested_minutes = max(
+    ice_time_minutes - removed_rounds * (round_length_minutes + 5),
+    minimum_playing_requirement(round_length_minutes, feasible_round_count),
+    governing_minimum(age_group),
+)
+```
+
+This is never a team-count ratio and never overwrites the configured age-group `ice_time_minutes` value. Full participation (`feasible_round_count >= nominal_round_count`) keeps the configured value unchanged, and an already-confirmed/manual external booking is never shortened by this reduction. Recompute this per instance whenever its participants change (withdrawal, replacement, swap); the existing calendar-booking staleness comparison (`tournament_occupancy_interval_facts`) picks up the change automatically because it recomputes the effective duration fresh.
 
 Migrated 2025–2026 `Istid` values are historical booking-window evidence used when establishing the configuration; they are references to review, not "base ice" values that receive another automatic round buffer.
 

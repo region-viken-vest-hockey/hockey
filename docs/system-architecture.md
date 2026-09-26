@@ -302,15 +302,17 @@ The rule has one planner-independent semantic owner, `hosting_responsibility`: i
 
 Registration or tournament-volume changes are a canonical fairness recompute, not an unexplained placement transfer: the target math changed, so the guard skips that age group rather than mislabeling the legal redistribution.
 
-### Tournament ice occupancy is the configured booking window
+### Tournament ice occupancy adapts to the tournament's own feasible round count
 
-`ice_time_minutes` is controlled input for the **total occupied/booked ice interval** of a tournament in that age group. It is not a base game duration. The canonical occupancy used by placement, calendar-conflict checks, arena overlap checks, optimization and exports is therefore:
+`ice_time_minutes` is controlled input for the **nominal** total occupied/booked ice interval of an age group. It is not a base game duration, and this adaptive policy never edits it. The canonical occupancy used by placement, calendar-conflict checks, arena overlap checks, optimization and exports is a single tournament *instance*'s effective occupancy:
 
 ```text
-tournament_occupancy_minutes = ice_time_minutes
+tournament_occupancy_minutes = effective ice_time_minutes
 ```
 
-The game format supplies independent lower-bound validation:
+`tournament_scheduler.occupancy.effective_required_ice_minutes` is the sole owner of "effective": when a tournament's own feasible round count (derived from the finalized participating teams via `effective_tournament_shape`, not the age group's nominal `rounds_per_tournament`) falls short of the nominal count -- for example an age group configured for 8 teams/5 rounds where only 4 teams actually registered, giving 3 feasible rounds -- the booked window is reduced by exactly the ice time the missing rounds would have consumed (`removed_rounds * (round_length_minutes + 5)`), never by a team-count ratio and never below the minimum-feasibility floor, the governing minimum, or an already-confirmed/manual external booking interval. Full participation keeps the configured value unchanged. Every consumer -- arena conflicts, slot search/repair, the Stage 3 optimizer, calendar-booking evidence, and every exporter -- calls this one function rather than re-deriving the reduction, so none of them can drift out of sync on which duration is authoritative. Recompute happens implicitly: canonical participant mutations (withdrawal, replacement, swap) regenerate the tournament's games, and every downstream duration read is a fresh call against the new round count, which also means the existing calendar-booking staleness check (`tournament_occupancy_interval_facts`) flags a stale manual/confirmed booking association without any new staleness mechanism.
+
+The game format supplies independent lower-bound validation, applied against the tournament's own actual round count (not the nominal one):
 
 ```text
 minimum_format_minutes =
@@ -323,7 +325,7 @@ Governing or local minimum booking requirements are additional lower bounds on t
 
 The configured window may intentionally be materially longer than the playing-format minimum. For the 2026–2027 RVV season, that margin is deliberate operational capacity for ice preparation/resurfacing (including Zamboni time), setup/clearance of goals and dividers, team turnover and small delays, and it preserves the effective windows already used in the published plan/club ice bookings. Treat that margin as part of the occupancy contract, not as inefficiency to remove automatically. The approved per-age-group values live in `docs/rvv-miniputt-input-formats.md`.
 
-This distinction is a cross-path scheduling invariant. Reusable occupancy/minimum-duration math belongs in a planner-independent deterministic owner and every slot finder, repair/search provider, verifier and renderer must consume that same contract. Do not compensate in a caller by adding setup/changeover/resurfacing minutes to `ice_time_minutes`, do not shrink the configured window merely to the format minimum, and do not let exports compute a different end time from the verifier.
+This distinction is a cross-path scheduling invariant. Reusable occupancy/minimum-duration math belongs in a planner-independent deterministic owner and every slot finder, repair/search provider, verifier and renderer must consume that same contract. Do not compensate in a caller by adding setup/changeover/resurfacing minutes to the effective occupancy, do not shrink the *configured* window merely to the format minimum (that stays a deliberate operator policy decision on the age-group default), and do not let exports compute a different end time from the verifier.
 
 ### Calendar availability is a classification, not a boolean
 

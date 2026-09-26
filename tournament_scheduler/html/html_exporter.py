@@ -82,6 +82,7 @@ class HtmlExporter:
         pipeline_meta: dict[str, Any] | None = None,
         round_length_for_age_group: dict[str, int] | None = None,
         ice_time_for_age_group: dict[str, int] | None = None,
+        rounds_per_tournament_for_age_group: dict[str, int] | None = None,
         age_groups: list[str] | None = None,
         calendars_path: str | None = None,
         input_html_path: str | None = None,
@@ -160,6 +161,8 @@ class HtmlExporter:
             ice_time_for_age_group,
             approval_by_tournament=approval_by_tournament,
             booking_by_tournament=booking_by_tournament,
+            rounds_per_tournament_for_age_group=rounds_per_tournament_for_age_group,
+            round_length_for_age_group=round_length_for_age_group,
         )
 
         # Count unique teams
@@ -433,11 +436,15 @@ class HtmlExporter:
         ice_time_for_age_group: dict[str, int] | None = None,
         approval_by_tournament: dict[str, Any] | None = None,
         booking_by_tournament: dict[str, Any] | None = None,
+        rounds_per_tournament_for_age_group: dict[str, int] | None = None,
+        round_length_for_age_group: dict[str, int] | None = None,
     ) -> str:
         """Serialize the plan's tournaments to the compact JSON format used by the HTML."""
         ice_time_for_age_group = ice_time_for_age_group or {}
         approval_by_tournament = approval_by_tournament or {}
         booking_by_tournament = booking_by_tournament or {}
+        rounds_per_tournament_for_age_group = rounds_per_tournament_for_age_group or {}
+        round_length_for_age_group = round_length_for_age_group or {}
         data = []
         # Presentation order is canonical and independent of the incidental
         # order of ``plan.tournaments`` (candidate refinement/repair/adoption
@@ -486,7 +493,12 @@ class HtmlExporter:
                 }
             if t.start_time:
                 entry["ts"] = t.start_time
-                end_time = tournament_end_time(t, ice_time_for_age_group)
+                end_time = tournament_end_time(
+                    t,
+                    ice_time_for_age_group,
+                    rounds_per_tournament=rounds_per_tournament_for_age_group,
+                    round_length_minutes=round_length_for_age_group,
+                )
                 if end_time:
                     entry["te"] = end_time
             if t.cancelled:
