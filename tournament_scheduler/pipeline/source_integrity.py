@@ -429,14 +429,23 @@ def downgrade_calendar_status_for_integrity(
 ) -> dict[str, str]:
     """Return *status* with suspicious/partial sources failing closed.
 
-    A club whose source is ``complete`` keeps its existing status. A club with a
-    ``suspicious`` or ``partial`` source is downgraded from ``known`` to the
-    explicit ``source_review_required`` tier so no consumer treats it as
-    trustworthy evidence for a negative occupancy claim. ``failed`` sources keep
-    the existing ``unknown``/``untrusted`` failure tier from
-    ``_group_club_calendar_status``. An explicitly operator-confirmed club and a
-    ``fixed_allocation`` source are never downgraded (their availability is a
-    deliberate fact, not a scrape result).
+    A club is only ``known`` when its calendar evidence is trustworthy for
+    automatic placement *and* the source proved it covered the requested window.
+    Any non-exempt source that is ``suspicious``/``partial`` **or** not
+    coverage-proven downgrades the club from ``known`` to the explicit
+    ``source_review_required`` tier, so no consumer treats an unproven calendar
+    as evidence for a negative occupancy claim. ``failed`` sources keep the
+    existing ``unknown``/``untrusted`` failure tier from
+    ``_group_club_calendar_status``.
+
+    A ``fixed_allocation`` source is never downgraded (its availability is a
+    deliberate fact, not a scrape result). An operator-confirmed club is also
+    never downgraded by this helper: the confirmation is out-of-band placement
+    authority, deliberately separate from scrape coverage. Operator
+    confirmation therefore does **not** make the source ``coverage_proven`` and
+    must not be read as negative booking evidence; the other per-club maps
+    (``club_coverage_proven`` / ``club_source_integrity``) continue to report the
+    actual scrape verdict.
     """
 
     confirmed = {str(club) for club in operator_confirmed}
@@ -453,7 +462,11 @@ def downgrade_calendar_status_for_integrity(
             continue
         if str(source.get("type") or "").lower() in _MONOCULTURE_EXEMPT_SOURCE_TYPES:
             continue
-        integrity_status = str((integrity.get(name) or {}).get("status") or "")
-        if integrity_status in {INTEGRITY_SUSPICIOUS, INTEGRITY_PARTIAL} and result.get(club) == "known":
+        entry = integrity.get(name) or {}
+        integrity_status = str(entry.get("status") or "")
+        coverage_proven = bool(entry.get("coverage_proven"))
+        if result.get(club) == "known" and (
+            integrity_status in {INTEGRITY_SUSPICIOUS, INTEGRITY_PARTIAL} or not coverage_proven
+        ):
             result[club] = "source_review_required"
     return result

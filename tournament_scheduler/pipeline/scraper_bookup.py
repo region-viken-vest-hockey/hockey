@@ -9,7 +9,7 @@ Playwright ``frame`` context and FullCalendar DOM semantics.
 from __future__ import annotations
 
 import json as _json
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from ..models import CalendarEvent
@@ -52,9 +52,10 @@ def _run_bookup_scraper(
     raw_html: str = ""
 
     # Coverage evidence: a swallowed navigation/timeout must never let Stage 2
-    # read a partial BookUp calendar as fully known.
-    coverage_status = INTEGRITY_COMPLETE
-    navigation_complete = True
+    # read a partial BookUp calendar as fully known. Start unproven and only
+    # claim complete once the inspected week range actually covers the requested
+    # start and end.
+    inspected_dates: list[date] = []
     coverage_exceptions: list[str] = []
 
     start_date_ref = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -98,12 +99,14 @@ def _run_bookup_scraper(
 
             # Navigate to start month if possible
             _bookup_navigate_to_date(frame, start_date_ref)
+            inspected_dates.extend(_bookup_visible_dates(frame))
 
             # Scrape week by week
             for week_idx in range(max_weeks):
                 frame.wait_for_timeout(1_500)
                 page_content = frame.content()
                 raw_html += page_content
+                inspected_dates.extend(_bookup_visible_dates(frame))
 
                 week_events = _parse_bookup_timegrid(frame, club_name=name, read_details=False)
                 # Filter to date range
@@ -118,8 +121,6 @@ def _run_bookup_scraper(
                         next_btn.first.click(timeout=5_000)
                         frame.wait_for_timeout(1_500)
                     except Exception as exc:
-                        coverage_status = INTEGRITY_PARTIAL
-                        navigation_complete = False
                         coverage_exceptions.append(f"BookUp week navigation stopped early: {exc}")
                         break
                 else:
@@ -127,16 +128,73 @@ def _run_bookup_scraper(
 
             browser.close()
     except Exception as exc:
-        coverage_status = INTEGRITY_PARTIAL
-        navigation_complete = False
         coverage_exceptions.append(f"BookUp scrape raised: {exc}")
 
     return with_coverage(
         _deduplicate_bookup_events(events),
-        status=coverage_status,
-        navigation_complete=navigation_complete,
-        exceptions=coverage_exceptions,
+        **_bookup_coverage_record(inspected_dates, start_date_ref, end_date_ref, coverage_exceptions),
     ), raw_html
+
+
+def _bookup_visible_dates(frame: Any) -> list[date]:
+    """Return the ISO dates currently rendered in the FullCalendar DOM."""
+
+    try:
+        raw = frame.evaluate(
+            "JSON.stringify(Array.from(document.querySelectorAll('.fc-day-header[data-date]')).map(e => e.getAttribute('data-date')))"
+        )
+        values = _json.loads(raw) if isinstance(raw, str) else []
+    except Exception:
+        return []
+    parsed: list[date] = []
+    for value in values or []:
+        try:
+            parsed.append(datetime.strptime(str(value), "%Y-%m-%d").date())
+        except ValueError:
+            continue
+    return parsed
+
+
+def _bookup_coverage_record(
+    inspected_dates: list[date],
+    start_date: datetime,
+    end_date: datetime,
+    exceptions: list[str],
+) -> dict[str, Any]:
+    """Turn the inspected week range into a BookUp coverage record.
+
+    Complete only when the inspected week range actually reaches the requested
+    start and end; a calendar that silently stopped early (or whose initial
+    navigation missed the start) stays ``partial`` rather than being read as a
+    fully-known calendar.
+    """
+
+    if exceptions:
+        return {
+            "status": INTEGRITY_PARTIAL,
+            "navigation_complete": False,
+            "exceptions": list(exceptions),
+        }
+    if not inspected_dates:
+        return {
+            "status": INTEGRITY_PARTIAL,
+            "navigation_complete": False,
+            "exceptions": ["BookUp-kalenderen viste ingen ukeoverskrifter."],
+        }
+    first = min(inspected_dates)
+    last = max(inspected_dates)
+    missing: list[str] = []
+    if first > start_date.date():
+        missing.append(f"BookUp-start {start_date.date()} ble ikke inspisert (første={first}).")
+    if last < end_date.date():
+        missing.append(f"BookUp-slutt {end_date.date()} ble ikke inspisert (siste={last}).")
+    if missing:
+        return {
+            "status": INTEGRITY_PARTIAL,
+            "navigation_complete": False,
+            "exceptions": missing,
+        }
+    return {"status": INTEGRITY_COMPLETE, "navigation_complete": True, "exceptions": []}
 
 
 def _deduplicate_bookup_events(events: list[CalendarEvent]) -> list[CalendarEvent]:

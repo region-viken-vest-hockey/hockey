@@ -520,14 +520,21 @@ def run(
     # Deterministic source-integrity verdict (fail closed for negative
     # occupancy claims). Previous counts come from the unified cache so a
     # suspicious count regression versus the last successful scrape is visible
-    # even though the coarse minimum-count expectation would not catch it.
-    previous_counts = {
-        str(entry_name): int(entry.get("event_count") or 0)
-        for entry_name, entry in (cache_data.get("previous_sources") or {}).items()
-        if isinstance(entry, dict) and entry.get("event_count") is not None
-    }
+    # even though the coarse minimum-count expectation would not catch it --
+    # but only when the previous scrape used the *same* requested window, so a
+    # deliberately shorter refresh cannot masquerade as scraper data loss.
     requested_start = start_date.strftime("%Y-%m-%d")
     requested_end = end_date.strftime("%Y-%m-%d")
+    previous_meta = cache_data.get("_meta") or {}
+    previous_counts: dict[str, int] = {}
+    if str(previous_meta.get("start_date") or "") == requested_start and str(
+        previous_meta.get("end_date") or ""
+    ) == requested_end:
+        previous_counts = {
+            str(entry_name): int(entry.get("event_count") or 0)
+            for entry_name, entry in (cache_data.get("previous_sources") or {}).items()
+            if isinstance(entry, dict) and entry.get("event_count") is not None
+        }
     source_integrity = integrity_by_source(
         source_results,
         requested_start=requested_start,

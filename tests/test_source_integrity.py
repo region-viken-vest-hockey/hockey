@@ -217,3 +217,24 @@ def test_club_integrity_status_reports_the_worst_sibling():
     integrity = integrity_by_source(sources)
 
     assert club_integrity_status(sources, integrity)["Holmen"] == INTEGRITY_PARTIAL
+
+
+def test_downgrade_marks_unproven_browser_source_as_review_required():
+    """P1: a clean browser source without coverage proof is not `known`."""
+    sources = [{"name": "Jar", "type": "forumbooking", "events": _ok_events(3), "event_count": 3}]
+    integrity = integrity_by_source(sources)
+    assert integrity["Jar"]["status"] == INTEGRITY_COMPLETE
+    assert integrity["Jar"]["coverage_proven"] is False
+
+    status = downgrade_calendar_status_for_integrity({"Jar": "known"}, sources, integrity)
+
+    assert status["Jar"] == "source_review_required"
+
+
+def test_coverage_proven_ical_source_stays_known():
+    sources = [{"name": "Frisk Asker", "type": "ical", "events": _ok_events(3), "event_count": 3}]
+    integrity = integrity_by_source(sources)
+
+    status = downgrade_calendar_status_for_integrity({"Frisk Asker": "known"}, sources, integrity)
+
+    assert status["Frisk Asker"] == "known"
