@@ -22,6 +22,7 @@ dependencies = [
 test = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
+    "pytest-xdist>=3.6",
     "PyYAML>=6.0",
 ]
 lint = [
@@ -48,13 +49,17 @@ python_functions = ["test_*"]
 # quick or full lane and must be selected explicitly (``scripts/check harness``
 # / ``scripts/check live``) so an unavailable external runtime or a flaky
 # upstream service can never silently disappear under a generic marker.
+#
+# Coverage is deliberately NOT part of the default addopts: every consumer
+# that runs this suite (scripts/check, CI) already passes --no-cov, so
+# instrumenting every test by default only taxes ad-hoc local runs (~4x
+# slower). Run `pytest --cov=tournament_scheduler --cov-report=html` directly
+# when you actually want a coverage report.
 addopts = [
     "--verbose",
+    "-n=auto",
     "-m",
     "not slow and not integration and not harness and not live",
-    "--cov=tournament_scheduler",
-    "--cov-report=term-missing",
-    "--cov-report=html",
 ]
 markers = [
     "slow: deterministic but long-running planner/real-workbook test; included in scripts/check full",

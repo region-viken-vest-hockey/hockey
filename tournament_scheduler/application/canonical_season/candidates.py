@@ -7,11 +7,20 @@ from typing import Any, Mapping
 
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_state import (
+    CHANGE_PROTECTIONS_KEY,
+    PARTICIPATION_WITHDRAWALS_KEY,
     schedule_fingerprint,
 )
 from tournament_scheduler.change_protections import (
+    ACTIVE as CHANGE_PROTECTION_ACTIVE,
+    RELEASED as CHANGE_PROTECTION_RELEASED,
     append_change_protections,
     protection_violations,
+)
+from tournament_scheduler.participation_withdrawals import (
+    ACTIVE as WITHDRAWAL_ACTIVE,
+    RELEASED as WITHDRAWAL_RELEASED,
+    append_withdrawal_records,
 )
 from tournament_scheduler.request_constraints import (
     request_constraint_violations,
@@ -34,7 +43,6 @@ from tournament_scheduler.published_baseline import (
     is_published_sealed,
 )
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
-
 from .scoped_mutation import (
     ScopedMutationAuthorization,
     permitted_history_event_for_authorization,
@@ -49,6 +57,68 @@ from .shared import (
     _reconcile_decisions,
     _guest_reservation_signature,
 )
+
+
+def _with_released_records(
+    decisions: Mapping[str, Any],
+    *,
+    withdrawal_ids: list[str] | None,
+    protection_ids: list[str] | None,
+    actor: str | None,
+    now: str,
+    note: str,
+) -> dict[str, Any]:
+    """Return decisions with the named withdrawal/protection records released.
+
+    Used by the atomic reversal path so a restoration can release its own
+    removal guards in the same commit that adds the participants back. The
+    released records are new mappings; the input decisions are never mutated.
+    """
+
+    wanted_withdrawals = {str(item) for item in (withdrawal_ids or []) if str(item)}
+    wanted_protections = {str(item) for item in (protection_ids or []) if str(item)}
+    if not wanted_withdrawals and not wanted_protections:
+        return dict(decisions)
+
+    resolved_actor = actor or os.environ.get("RVV_OPERATOR") or os.environ.get("USER") or "operator"
+    working: dict[str, Any] = dict(decisions)
+    if wanted_withdrawals:
+        records: list[Any] = []
+        for record in decisions.get(PARTICIPATION_WITHDRAWALS_KEY, []) or []:
+            if (
+                isinstance(record, Mapping)
+                and str(record.get("id") or "") in wanted_withdrawals
+                and str(record.get("status") or WITHDRAWAL_ACTIVE) == WITHDRAWAL_ACTIVE
+            ):
+                record = {
+                    **record,
+                    "status": WITHDRAWAL_RELEASED,
+                    "released_at": now,
+                    "released_by": resolved_actor,
+                    "release_reason": note or "",
+                }
+            records.append(record)
+        working[PARTICIPATION_WITHDRAWALS_KEY] = records
+    if wanted_protections:
+        protections: list[Any] = []
+        for record in decisions.get(CHANGE_PROTECTIONS_KEY, []) or []:
+            if (
+                isinstance(record, Mapping)
+                and str(record.get("id") or "") in wanted_protections
+                and str(record.get("status") or CHANGE_PROTECTION_ACTIVE)
+                == CHANGE_PROTECTION_ACTIVE
+            ):
+                record = {
+                    **record,
+                    "status": CHANGE_PROTECTION_RELEASED,
+                    "released_at": now,
+                    "released_by": resolved_actor,
+                    "release_reason": note or "",
+                }
+            protections.append(record)
+        working[CHANGE_PROTECTIONS_KEY] = protections
+    return working
+
 
 def _record_promotion_trace(
     work_dir: str | os.PathLike[str],
@@ -223,6 +293,9 @@ def apply_candidate(
     allow_guest_slot_changes: bool = False,
     _history_event: Mapping[str, Any] | None = None,
     _new_change_protections: list[dict[str, Any]] | None = None,
+    _new_participation_withdrawals: list[dict[str, Any]] | None = None,
+    _release_participation_withdrawal_ids: list[str] | None = None,
+    _release_change_protection_ids: list[str] | None = None,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
     operation: str = "global_regeneration",
@@ -243,6 +316,22 @@ def apply_candidate(
 
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
+    now = _now_iso()
+    # Releases are part of the same atomic decision write: apply them up front so
+    # the protection/constraint gates and the persisted decisions both see the
+    # post-release state (a restoration must not trip its own removal guard).
+    working_decisions = _with_released_records(
+        decisions,
+        withdrawal_ids=_release_participation_withdrawal_ids,
+        protection_ids=_release_change_protection_ids,
+        actor=actor,
+        now=now,
+        note=(
+            str(_history_event.get("note"))
+            if isinstance(_history_event, Mapping) and _history_event.get("note")
+            else operation
+        ),
+    )
     baseline = build_canonical_baseline(schedule, decisions)
     normalized_candidate = extract_candidate(candidate)
     scoped_validation: dict[str, Any] | None = None
@@ -284,7 +373,7 @@ def apply_candidate(
                 "Refusing canonical apply: it would change reserved guest slots on "
                 f"{changed}; use reserve/fill/release explicitly"
             )
-    accepted_change_violations = protection_violations(normalized_candidate, decisions)
+    accepted_change_violations = protection_violations(normalized_candidate, working_decisions)
     if accepted_change_violations:
         messages = "; ".join(
             str(item.get("message")) for item in accepted_change_violations
@@ -293,7 +382,7 @@ def apply_candidate(
             "Refusing canonical apply: it would undo an accepted change: " + messages
         )
     active_constraint_violations = request_constraint_violations(
-        normalized_candidate, decisions
+        normalized_candidate, working_decisions
     )
     if active_constraint_violations:
         messages = "; ".join(
@@ -402,13 +491,15 @@ def apply_candidate(
         },
     }
     updated_decisions = {
-        **decisions,
+        **working_decisions,
         "updated_at": now,
         "schedule_fingerprint": fingerprint,
-        "decisions": _reconcile_decisions(decisions.get("decisions", {}), plan, now=now),
+        "decisions": _reconcile_decisions(working_decisions.get("decisions", {}), plan, now=now),
     }
     if _new_change_protections:
         append_change_protections(updated_decisions, _new_change_protections)
+    if _new_participation_withdrawals:
+        append_withdrawal_records(updated_decisions, _new_participation_withdrawals)
     if _history_event:
         history_tournament_id = str(_history_event.get("tournament_id") or "")
         history_tournament = next(

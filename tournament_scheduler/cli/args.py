@@ -1275,6 +1275,91 @@ def build_parser() -> argparse.ArgumentParser:
     season_replace.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_replace.add_argument("--json", action="store_true", help="Print replacement result as JSON")
 
+    season_remove = season_sub.add_parser(
+        "remove-participant",
+        help=(
+            "Remove one participant from one or more canonical tournaments without a replacement; "
+            "pass --reconcile-withdrawal for a genuine season/age-group withdrawal"
+        ),
+    )
+    season_remove.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_remove.add_argument(
+        "--tournament-id",
+        dest="tournament_ids",
+        action="append",
+        required=True,
+        help="Durable tournament id to remove the participant from (repeatable, comma-separated accepted)",
+    )
+    season_remove.add_argument("--remove-team", required=True, help="Existing participant label to remove")
+    season_remove.add_argument(
+        "--reconcile-withdrawal",
+        action="store_true",
+        help=(
+            "Record a revision-bound season/age-group withdrawal so the eligible shape pool is "
+            "reduced for exactly these tournaments; omit for a one-event absence that fails "
+            "closed if the smaller shape is not independently legal"
+        ),
+    )
+    season_remove.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_remove.add_argument("--actor", default=None, help="Operator identity")
+    season_remove.add_argument("--note", default="", help="Removal/withdrawal note or reason for decisions history")
+    season_remove.add_argument(
+        "--request-id",
+        required=True,
+        help="Stable source/request id recorded on automatic change protections and withdrawal records",
+    )
+    season_remove.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate and preview the removal without writing canonical state",
+    )
+    _add_regression_acceptance_flags(season_remove)
+    season_remove.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
+    season_remove.add_argument("--json", action="store_true", help="Print removal result as JSON")
+
+    season_withdrawals = season_sub.add_parser(
+        "withdrawals",
+        help="List canonical participation-withdrawal records and their eligibility status",
+    )
+    season_withdrawals.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_withdrawals.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_withdrawals.add_argument(
+        "--all",
+        action="store_true",
+        help="Include released withdrawal records (provenance is retained either way)",
+    )
+    season_withdrawals.add_argument("--json", action="store_true", help="Print withdrawal ledger as JSON")
+
+    season_release_withdrawal = season_sub.add_parser(
+        "release-withdrawal",
+        help="Release a withdrawal record after a participant is restored or registration is reconciled",
+    )
+    season_release_withdrawal.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_release_withdrawal.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_release_withdrawal.add_argument(
+        "--withdrawal-id",
+        dest="withdrawal_ids",
+        action="append",
+        default=None,
+        help="Withdrawal record id to release (repeatable)",
+    )
+    season_release_withdrawal.add_argument(
+        "--request-id",
+        default=None,
+        help="Release every active withdrawal recorded by this request id",
+    )
+    season_release_withdrawal.add_argument(
+        "--restore-participant",
+        action="store_true",
+        help=(
+            "Atomically add the withdrawn team(s) back to the recorded tournaments, regenerate "
+            "their games and release the record in one verified commit (the authorized reversal)"
+        ),
+    )
+    season_release_withdrawal.add_argument("--actor", default=None, help="Operator identity")
+    season_release_withdrawal.add_argument("--note", default="", help="Why the withdrawal is being released (audit reason)")
+    season_release_withdrawal.add_argument("--json", action="store_true", help="Print release result as JSON")
+
     season_swap = season_sub.add_parser(
         "swap-participants",
         help="Swap one participant between two same-age canonical tournaments and verify the full season",

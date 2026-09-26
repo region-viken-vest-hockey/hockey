@@ -73,6 +73,7 @@ Classify the requested outcome before choosing a command:
 - **pure team-name/identity-label correction across the canonical season** (same club, same age group, same underlying team) -> evaluate `season rename-team --dry-run --request-id <id>` and apply it atomically; do not use registration-set reconciliation, `replace-participant`, or a replan;
 - **specific one-tournament participant substitution** ("replace team A with team B here") -> evaluate `season replace-participant --dry-run --request-id <id>`; an existing finding is not required;
 - **specific participant/roster exchange between two tournaments** -> evaluate `season swap-participants --dry-run --request-id <id>`; an existing finding is not required;
+- **one participant drops out with no same-age replacement** -> evaluate `season remove-participant --dry-run --request-id <id>` for one affected tournament, or an atomic `batch` of `remove_participant` operations when several tournaments lose the same team; pass `--reconcile-withdrawal` only for a genuine season/age-group withdrawal, never merely to make an underfilled candidate legal;
 - **general request to improve participation/placement** -> use current findings/repair-options/search first, then the smallest verified change;
 - **broader rebalance** -> only then escalate to baseline-aware `season replan` / `diff` / verified `apply`; on a `published_sealed` season these are refused, so complete the outcome through targeted canonical operations or a deliberate, operator-authorised `season reopen-planning`.
 
@@ -204,7 +205,7 @@ scripts/rvv-miniputt season batch \
   --dry-run --json
 ```
 
-`--scope` declares the affected tournament ids; every operation must reference only in-scope ids, and any tournament that changes outside the scope refuses the whole batch. Supported operations are `move` (any placement fields, `allow_cross_half` as needed), `swap_participants` (same-age roster exchange using the ordinary safe roster semantics) and `cancel` (mark a tournament cancelled). The dry-run report returns the declared scope, the ids actually changed, any changed ids outside scope (must be empty), the requested operations, the remaining request-constraint violations, the hard-verification and operational-acceptability verdicts, protection/approval/lock conflicts, guest-reservation integrity, the hosting-responsibility verdict, before/after canonical fingerprints/revisions, and per-team consequences where participants change. Repeat the same command without `--dry-run` to commit once. A batch that fixes only some of the pre-existing violations is refused without writing anything.
+`--scope` declares the affected tournament ids; every operation must reference only in-scope ids, and any tournament that changes outside the scope refuses the whole batch. Supported operations are `move` (any placement fields, `allow_cross_half` as needed), `swap_participants` (same-age roster exchange using the ordinary safe roster semantics), `cancel` (mark a tournament cancelled) and `remove_participant` (drop one participant from a tournament with no replacement; set `reconcile_withdrawal: true` per operation for a genuine season/age-group withdrawal, exactly like the single `season remove-participant` command). The dry-run report returns the declared scope, the ids actually changed, any changed ids outside scope (must be empty), the requested operations, the remaining request-constraint violations, the hard-verification and operational-acceptability verdicts, protection/approval/lock conflicts, guest-reservation integrity, the hosting-responsibility verdict, before/after canonical fingerprints/revisions, and per-team consequences where participants change. Repeat the same command without `--dry-run` to commit once. A batch that fixes only some of the pre-existing violations is refused without writing anything.
 
 Use this path only when several independent active constraints genuinely require a combined repair. One isolated violation still goes through the ordinary `season move` / `season swap-participants` commands, whose full-season constraint gate is unchanged.
 
@@ -283,6 +284,59 @@ scripts/rvv-miniputt season replace-participant \
 ```
 
 Do not invent a second tournament for a plain substitution. Use `swap-participants` only when the operator requested a two-tournament exchange.
+
+## Remove a participant with no replacement
+
+Use this when a registered team drops out and there is no same-age replacement team to substitute in. The command removes exactly one participant from one or more same-age tournaments, keeps every date/time/arena/host and booked occupancy interval, regenerates each affected tournament's games through the configured-rounds generator, records a change protection keyed to the request, and runs the full-season hard-verification/hosting-responsibility/consequence gates.
+
+```bash
+scripts/rvv-miniputt season remove-participant \
+  --season <season> \
+  --tournament-id <id> --tournament-id <id> \
+  --remove-team "<team>" \
+  --reconcile-withdrawal \
+  --request-id <request-id> \
+  --dry-run --json
+```
+
+Distinguish the two intents at the eligibility boundary -- do not choose the weaker one just because it makes the candidate pass:
+
+- **one-tournament participant absence** (omit `--reconcile-withdrawal`) changes only the named tournaments and keeps the full registered eligible pool. If the reduced shape is avoidably underfilled the command fails closed and no canonical state is written; make an explicit withdrawal decision or choose a different legal action.
+- **genuine season/age-group withdrawal** (`--reconcile-withdrawal`) additionally records a durable, revision-bound eligible-pool decision that makes the team ineligible for the **whole age group** from the earliest affected tournament (`effective_from`); the named tournament ids are the roster-mutation scope and provenance, not the eligibility scope. The verifier and game generator therefore see the correct active pool for every current and future tournament in the age group. The registered `Lag` roster and every earlier historical/completed tournament are never rewritten; the record is additive canonical provenance and is part of the canonical-state revision.
+
+The dry-run report returns `removal.can_apply_unchanged`, the `remove_team` consequence, the per-remaining-team `team_consequences`, the `withdrawals_to_add` records, guest-reservation integrity, hosting-responsibility and request-constraint verdicts, and the regenerated game counts. `--dry-run` never writes. A bare label must identify exactly one participant in each named tournament; a guest participant is refused (use the guest-slot lifecycle). Participant-locked tournaments must be unapproved explicitly first.
+
+When the same team withdraws from several tournaments in one request, use one atomic batch so nothing is written unless every tournament is updated together:
+
+```bash
+cat > /tmp/batch.json <<'JSON'
+[
+  {"op": "remove_participant", "tournament_id": "rvv-0158", "remove_team": "<team>", "reconcile_withdrawal": true},
+  {"op": "remove_participant", "tournament_id": "rvv-0162", "remove_team": "<team>", "reconcile_withdrawal": true}
+]
+JSON
+scripts/rvv-miniputt season batch \
+  --season <season> \
+  --operations /tmp/batch.json \
+  --scope rvv-0158 --scope rvv-0162 \
+  --request-id <request-id> \
+  --dry-run --json
+```
+
+### Superseding a withdrawal
+
+A genuine season/age-group withdrawal is **durable**: it reduces the eligible shape pool for the whole age group, so a later maintenance, rebuild or newly materialized tournament cannot silently reintroduce the team. The record is revision-bound and scoped with an `effective_from` date (the earliest affected tournament), so earlier historical/completed tournaments keep the team as provenance. An active withdrawal also makes the team **ineligible** for the age group: a roster that regains the team fails verification with `withdrawn_team_participating` instead of quietly restoring eligibility. Registration reconciliation (removing the team from the authoritative pool) ends the effect automatically; otherwise release the record explicitly:
+
+```bash
+scripts/rvv-miniputt season withdrawals --season <season> --json
+scripts/rvv-miniputt season release-withdrawal \
+  --season <season> \
+  --request-id <withdraw-request-id> \
+  --restore-participant \
+  --note "team returns to the age group"
+```
+
+`--withdrawal-id <id>` (repeatable) selects individual records; `--request-id` selects every active record created by one withdrawal request. Release is **verified, not a silent decision-only write**: the current schedule (or the explicitly restored one) is re-verified against the post-release eligible pool before anything is written, so a premature release that would leave underfilled fields in a now-larger pool is refused with no canonical write. `--restore-participant` is the authorized reversal and runs through the same complete canonical mutation boundary as apply/batch (typed and replayable on a sealed season, hard verification, request constraints, locks, change protections, guest integrity, operational acceptability, hosting responsibility and published-baseline replay): it adds the withdrawn team(s) back to the recorded tournaments, regenerates their games, releases the removal's `must_not_participate` guards and the withdrawal record in one atomic commit. Provenance is never erased -- only the record's `status` changes.
 
 ## Swap tournament participants safely
 

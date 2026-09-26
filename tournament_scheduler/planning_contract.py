@@ -66,6 +66,10 @@ from tournament_scheduler.effective_tournament_shape import (
 from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
 from tournament_scheduler.operator_waivers import find_participation_waiver
 from tournament_scheduler.participation_targets import SEASON_SCOPE, evaluate_participation
+from tournament_scheduler.participation_withdrawals import (
+    withdrawn_team_count_for_tournament as _withdrawn_team_count_for_tournament,
+    withdrawn_team_identities_for_tournament as _withdrawn_team_identities_for_tournament,
+)
 from tournament_scheduler.tournament_identity import validate_tournament_identity
 from tournament_scheduler.planning_contract_distribution import (
     home_representation as _home_representation,
@@ -1164,9 +1168,48 @@ def verify_candidate(
         # input-constrained adaptation (the whole pool is too small) is
         # non-blocking evidence instead.
         shape_age_group = str(t.get("age_group") or "")
+        # A durable participation withdrawal makes the team ineligible for the
+        # age group until it is explicitly released. This is verified
+        # independently of the shape rule so a roster that silently regains the
+        # team (a later maintenance, rebuild or newly materialized tournament)
+        # is refused rather than quietly restoring eligibility.
+        withdrawn_identities = _withdrawn_team_identities_for_tournament(
+            problem, str(t_id), shape_age_group, t.get("date")
+        )
+        if withdrawn_identities:
+            for team in t.get("teams", []) or []:
+                team_age_group = str(team.get("age_group") or shape_age_group)
+                identity = (
+                    str(team.get("club") or ""),
+                    str(team.get("label") or ""),
+                    team_age_group,
+                )
+                if identity in withdrawn_identities:
+                    _violate(
+                        "withdrawn_team_participating",
+                        f"Team {identity[1]!r} has withdrawn from {shape_age_group or 'the age group'} "
+                        f"and may not participate in tournament {t_id} until the withdrawal is "
+                        "explicitly released",
+                        t_id,
+                        club=identity[0],
+                        label=identity[1],
+                        age_group=team_age_group,
+                    )
+        # A recorded participation withdrawal reduces the *eligible* shape pool
+        # for the tournaments it scopes, without rewriting the registered
+        # roster or `valid_teams` (historical participations stay legal). This
+        # is what makes a genuine season/age-group withdrawal legal while a
+        # one-tournament absence without a record still fails closed.
+        shape_registered_count = max(
+            0,
+            registered_count_by_age_group.get(shape_age_group, 0)
+            - _withdrawn_team_count_for_tournament(
+                problem, str(t_id), shape_age_group, t.get("date")
+            ),
+        )
         shape = compute_effective_tournament_shape(
             shape_age_group,
-            registered_count_by_age_group.get(shape_age_group, 0),
+            shape_registered_count,
             configured_rounds=rounds_per_tournament.get(shape_age_group),
             parallel_game_capacity=parallel_games_capacity.get(shape_age_group),
         )

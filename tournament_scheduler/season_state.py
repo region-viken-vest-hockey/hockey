@@ -92,6 +92,7 @@ __all__ = [
     "normalize_placements",
     "reopen_planning",
     "replace_participant",
+    "remove_participant",
     "rename_teams",
     "swap_participants",
     "participation_acceptance_id",
@@ -102,6 +103,7 @@ __all__ = [
     "refresh_calendars",
     "release_banned_dates",
     "release_change_protections",
+    "release_participation_withdrawals",
     "disallow_holiday_dates",
     "release_guest_slot",
     "release_request_constraints",
@@ -111,6 +113,7 @@ __all__ = [
     "seal_published_season",
     "season_lifecycle_report",
     "verify_sealed_reconciliation",
+    "withdrawal_report",
     "schedule_fingerprint",
     "schedule_path",
     "season_baseline_advance",
@@ -280,6 +283,71 @@ def replace_participant(
         note=note,
         dry_run=dry_run,
         request_id=request_id,
+    )
+
+
+def remove_participant(
+    *,
+    season: str,
+    tournament_ids: list[str],
+    remove_team_label: str,
+    reconcile_withdrawal: bool = False,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+    request_id: str | None = None,
+    accept_regressions: list[Any] | None = None,
+    accept_regression_reason: str | None = None,
+) -> dict[str, Any]:
+    """Remove one participant from one or more same-age canonical tournaments."""
+
+    return _service(root).remove_participant(
+        season=season,
+        tournament_ids=tournament_ids,
+        remove_team_label=remove_team_label,
+        reconcile_withdrawal=reconcile_withdrawal,
+        problem=problem,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+        request_id=request_id,
+        accept_regressions=accept_regressions,
+        accept_regression_reason=accept_regression_reason,
+    )
+
+
+def withdrawal_report(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    include_released: bool = False,
+) -> dict[str, Any]:
+    """Return the canonical participation-withdrawal ledger for a season."""
+
+    return _service(root).withdrawal_report(season, include_released=include_released)
+
+
+def release_participation_withdrawals(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    withdrawal_ids: list[str] | None = None,
+    request_id: str | None = None,
+    actor: str | None = None,
+    note: str = "",
+    restore_participants: bool = False,
+) -> dict[str, Any]:
+    """Release withdrawal records after a participant is restored or registration reconciled."""
+
+    return _service(root).release_participation_withdrawals(
+        season=season,
+        withdrawal_ids=withdrawal_ids,
+        request_id=request_id,
+        actor=actor,
+        note=note,
+        restore_participants=restore_participants,
     )
 
 

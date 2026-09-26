@@ -30,6 +30,12 @@ from tournament_scheduler.operational_acceptability import (
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.participation_withdrawals import (
+    append_withdrawal_records,
+    build_withdrawal_records,
+    effective_from_for_tournaments,
+    project_into_problem,
+)
 
 from .shared import (
     _operator_identity,
@@ -41,7 +47,13 @@ from .shared import (
     _placement_snapshot,
 )
 from .placements import _apply_move_to_plan
+from .removal_policy import (
+    evaluate_removal_consequences,
+    require_no_avoidable_underfill,
+    require_registered_removal_target,
+)
 from .roster import _apply_swap_to_plan
+from .withdrawal import _apply_remove_participant_to_plan
 
 _BATCH_MOVE_FIELDS: tuple[str, ...] = ("date", "arena", "host_club", "start_time")
 
@@ -130,6 +142,21 @@ def _normalize_batch_operation(raw: Any) -> dict[str, Any]:
             "tournament_id": tournament_id,
             "reason": str(raw.get("reason") or raw.get("note") or ""),
         }
+    if op in ("remove_participant", "remove-participant", "participant_removal", "withdraw"):
+        tournament_id = str(raw.get("tournament_id") or raw.get("id") or "").strip()
+        remove_team = str(
+            raw.get("remove_team") or raw.get("team") or raw.get("remove_team_label") or ""
+        ).strip()
+        if not tournament_id or not remove_team:
+            raise SeasonStateError(
+                "A batch remove_participant operation requires tournament_id and remove_team"
+            )
+        return {
+            "op": "remove_participant",
+            "tournament_id": tournament_id,
+            "remove_team": remove_team,
+            "reconcile_withdrawal": bool(raw.get("reconcile_withdrawal", False)),
+        }
     raise SeasonStateError(f"Unsupported batch operation {op!r}")
 
 
@@ -145,6 +172,8 @@ def _batch_operation_tournament_ids(operation: Mapping[str, Any]) -> tuple[str, 
             str(operation.get("tournament_b") or ""),
         )
     if op == "cancel":
+        return (str(operation.get("tournament_id") or ""),)
+    if op == "remove_participant":
         return (str(operation.get("tournament_id") or ""),)
     return ()
 
@@ -249,6 +278,12 @@ def batch_maintenance(
     applied_moves: list[dict[str, Any]] = []
     applied_swaps: list[dict[str, Any]] = []
     applied_cancellations: list[dict[str, Any]] = []
+    applied_removals: list[dict[str, Any]] = []
+    # A durable withdrawal is one decision per team identity; the affected
+    # tournament ids are provenance, not the scope of the eligibility
+    # reduction. Collect every reconciled removal and build one record each.
+    reconciled_withdrawals: dict[tuple[str, str, str], set[str]] = {}
+    withdrawal_records: list[dict[str, Any]] = []
     new_protections: list[dict[str, Any]] = []
 
     for operation in normalized_operations:
@@ -306,14 +341,96 @@ def batch_maintenance(
                     reason=str(operation.get("reason") or ""),
                 )
             )
+        elif op == "remove_participant":
+            removal = _apply_remove_participant_to_plan(
+                candidate_plan,
+                tournament_id=operation["tournament_id"],
+                remove_team_label=operation["remove_team"],
+                problem=resolved_problem,
+            )
+            applied_removals.append(
+                {
+                    "tournament_id": operation["tournament_id"],
+                    "age_group": removal["age_group"],
+                    "removed_team": {
+                        "club": removal["removed_identity"][0],
+                        "label": removal["removed_identity"][1],
+                        "age_group": removal["removed_identity"][2],
+                    },
+                    "reconcile_withdrawal": bool(operation.get("reconcile_withdrawal", False)),
+                }
+            )
+            if operation.get("reconcile_withdrawal"):
+                removed_identity = (
+                    removal["removed_identity"][0],
+                    removal["removed_identity"][1],
+                    removal["removed_identity"][2],
+                )
+                require_registered_removal_target(
+                    resolved_problem,
+                    removed_identity=removed_identity,
+                    remove_team_label=operation["remove_team"],
+                )
+                reconciled_withdrawals.setdefault(removed_identity, set()).add(
+                    str(operation["tournament_id"])
+                )
         else:  # pragma: no cover - normalization already rejects unknown operators
             raise SeasonStateError(f"Unsupported batch operation {op!r}")
+
+    for identity, tournament_ids in sorted(reconciled_withdrawals.items()):
+        withdrawal_records.extend(
+            build_withdrawal_records(
+                team={
+                    "club": identity[0],
+                    "label": identity[1],
+                    "age_group": identity[2],
+                },
+                tournament_ids=sorted(tournament_ids),
+                request_id=resolved_request_id,
+                actor=resolved_actor,
+                note=note,
+                created_at=now,
+                source_revision=before_canonical_revision,
+                effective_from=effective_from_for_tournaments(
+                    candidate_plan, sorted(tournament_ids)
+                ),
+            )
+        )
+
+    # A removal without a withdrawal reconciliation keeps the full registered
+    # pool, so an avoidably underfilled result must fail closed exactly as the
+    # single-operation path does. Use the shared eligibility boundary rather
+    # than relying on the generic final verification message.
+    non_reconciled_removal_ids = [
+        str(removal["tournament_id"])
+        for removal in applied_removals
+        if not removal.get("reconcile_withdrawal")
+    ]
+    if non_reconciled_removal_ids and resolved_problem:
+        require_no_avoidable_underfill(
+            candidate_plan, resolved_problem, non_reconciled_removal_ids
+        )
 
     candidate_tournaments = {
         str(tournament.get("id") or ""): tournament
         for tournament in candidate_plan.get("tournaments", []) or []
         if tournament.get("id")
     }
+
+    # A batch-created withdrawal record must reduce the eligible shape pool for
+    # the *candidate* verification while the current state is still verified
+    # against the un-reconciled pool it actually has. Projecting against the
+    # final candidate plan also prevents a mixed batch that deliberately
+    # restores a participant from carrying a stale eligibility reduction; the
+    # verifier's ``withdrawn_team_participating`` rule independently keeps the
+    # durable withdrawal authoritative.
+    candidate_problem = (
+        project_into_problem(
+            resolved_problem, records=withdrawal_records, plan=candidate_plan
+        )
+        if resolved_problem
+        else resolved_problem
+    )
 
     # Roster protections, like placement protections below, are derived from
     # the original -> final membership, so chained swaps protect only their
@@ -329,6 +446,22 @@ def batch_maintenance(
                 note=note,
                 created_at=now,
                 source_revision=before_canonical_revision,
+            )
+        )
+    if applied_removals:
+        new_protections.extend(
+            build_net_roster_protections(
+                before_plan=before_plan,
+                after_plan=candidate_plan,
+                tournament_ids=[
+                    str(removal["tournament_id"]) for removal in applied_removals
+                ],
+                request_id=resolved_request_id,
+                actor=resolved_actor,
+                note=note,
+                created_at=now,
+                source_revision=before_canonical_revision,
+                source_event="participant_removal",
             )
         )
 
@@ -367,8 +500,8 @@ def batch_maintenance(
 
     baseline = build_canonical_baseline(schedule, decisions)
     verification_result = (
-        verify_candidate(candidate_plan, resolved_problem)
-        if resolved_problem
+        verify_candidate(candidate_plan, candidate_problem)
+        if candidate_problem
         else verify_candidate(candidate_plan)
     )
     before_verification = (
@@ -392,13 +525,13 @@ def batch_maintenance(
     guest_integrity_ok = before_guest_signature == after_guest_signature
 
     hosting_transfers: list[dict[str, Any]] = []
-    if resolved_problem:
+    if candidate_problem:
         from tournament_scheduler.hosting_responsibility import (
             unexplained_responsibility_transfers,
         )
 
         hosting_transfers = unexplained_responsibility_transfers(
-            before_plan, candidate_plan, resolved_problem
+            before_plan, candidate_plan, candidate_problem
         )
 
     changed_ids = sorted(
@@ -432,13 +565,36 @@ def batch_maintenance(
                     tuple(identity),
                     problem=resolved_problem,
                 )
+    removed_team_consequences: dict[str, Any] = {}
+    if applied_removals:
+        # The withdrawn team's own shortfall is the operator's deliberate
+        # decision; only the remaining participants can block the batch. The
+        # shared boundary keeps this identical to the single-operation path.
+        removal_ids = [str(removal["tournament_id"]) for removal in applied_removals]
+        removed_identities = [
+            (
+                removal["removed_team"]["club"],
+                removal["removed_team"]["label"],
+                removal["removed_team"]["age_group"],
+            )
+            for removal in applied_removals
+        ]
+        removed_team_consequences, removal_retained = evaluate_removal_consequences(
+            before_plan,
+            candidate_plan,
+            problem=candidate_problem,
+            removed_identities=removed_identities,
+            tournament_ids=removal_ids,
+        )
+        for key, consequence in removal_retained.items():
+            team_consequences.setdefault(key, consequence)
     regression_acceptance = evaluate_regression_acceptances(
         team_consequences, regression_acceptances
     )
     consequence_acceptable = bool(regression_acceptance["acceptable"])
 
     reconcile_plan_derived_state(
-        candidate_plan, verification_result, problem=resolved_problem
+        candidate_plan, verification_result, problem=candidate_problem
     )
     candidate_fingerprint = schedule_fingerprint(candidate_plan)
     candidate_cost = change_cost(baseline, candidate_plan)
@@ -494,6 +650,8 @@ def batch_maintenance(
         "decisions": _reconcile_decisions(decisions.get("decisions", {}), candidate_plan, now=now),
     }
     append_change_protections(updated_decisions, new_protections)
+    if withdrawal_records:
+        append_withdrawal_records(updated_decisions, withdrawal_records)
 
     report: dict[str, Any] = {
         "season": season,
@@ -508,6 +666,8 @@ def batch_maintenance(
         "moves": applied_moves,
         "swaps": applied_swaps,
         "cancellations": applied_cancellations,
+        "removals": applied_removals,
+        "removed_team_consequences": removed_team_consequences,
         "before_schedule_revision": before_fingerprint,
         "before_canonical_revision": before_canonical_revision,
         "candidate_schedule_revision": candidate_fingerprint,
@@ -576,6 +736,7 @@ def batch_maintenance(
             "moves": applied_moves,
             "swaps": applied_swaps,
             "cancellations": applied_cancellations,
+            "removals": applied_removals,
             "protections_added": [
                 str(protection.get("id") or "") for protection in new_protections
             ],

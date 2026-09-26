@@ -34,6 +34,7 @@ CANONICAL_STATE_REVISION_KEY = "canonical_state_revision"
 CHANGE_PROTECTIONS_KEY = "change_protections"
 PARTICIPATION_ACCEPTANCES_KEY = "participation_acceptances"
 PARTICIPATION_ACCEPTANCE_PREFIX = "participation_acceptance"
+PARTICIPATION_WITHDRAWALS_KEY = "participation_withdrawals"
 REQUEST_CONSTRAINTS_KEY = "request_constraints"
 BANNED_DATES_KEY = "banned_dates"
 HOLIDAY_DATE_EXCEPTIONS_KEY = "holiday_date_exceptions"
@@ -63,6 +64,7 @@ def compute_canonical_state_revision(
         "schedule_fingerprint": schedule_fingerprint(schedule.get("plan") or {}),
         "decisions": decisions.get("decisions") or {},
         "participation_acceptances": decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or [],
+        "participation_withdrawals": decisions.get(PARTICIPATION_WITHDRAWALS_KEY) or [],
         "change_protections": decisions.get(CHANGE_PROTECTIONS_KEY) or [],
         "request_constraints": decisions.get(REQUEST_CONSTRAINTS_KEY) or [],
         "banned_dates": decisions.get(BANNED_DATES_KEY) or [],
@@ -143,6 +145,7 @@ __all__ = [
     "CHANGE_PROTECTIONS_KEY",
     "PARTICIPATION_ACCEPTANCES_KEY",
     "PARTICIPATION_ACCEPTANCE_PREFIX",
+    "PARTICIPATION_WITHDRAWALS_KEY",
     "REQUEST_CONSTRAINTS_KEY",
     "SEASON_BASELINE_KEY",
     "SEASON_BASELINE_HISTORY_KEY",

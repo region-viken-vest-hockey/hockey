@@ -50,6 +50,7 @@ _DECISION_ONLY_EVENTS = {
     "refresh_calendar_evidence",
     "release_calendar_booking",
     "release_change_protection",
+    "release_participation_withdrawal",
     "release_request_constraint",
     "season_baseline_advance",
     "season_baseline_create",
@@ -142,6 +143,14 @@ def _remove_participant_label(entry: dict[str, Any] | None, label: str) -> None:
         return
     entry["participants"] = sorted(
         key for key in entry.get("participants") or [] if participant_parts(str(key))[1] != label
+    )
+
+
+def _remove_participant_key(entry: dict[str, Any] | None, key: str) -> None:
+    if entry is None or not key:
+        return
+    entry["participants"] = sorted(
+        participant for participant in entry.get("participants") or [] if participant != key
     )
 
 
@@ -242,6 +251,22 @@ def replay_recorded_mutations(
                     entry["cancelled"] = True
                     entry["cancellation_reason"] = str(cancellation.get("reason") or "")
                     applied.append({"event": "batch_cancel", "tournament_id": tournament_id})
+            for removal in details.get("removals") or []:
+                if not isinstance(removal, Mapping):
+                    raise PublishedMutationHistoryError("batch removal history entry is not an object")
+                tournament_id = str(removal.get("tournament_id") or "")
+                removed_team = removal.get("removed_team")
+                if not tournament_id or not isinstance(removed_team, Mapping):
+                    raise PublishedMutationHistoryError(
+                        "batch removal history is missing tournament id or removed team"
+                    )
+                entry = projection.get(tournament_id)
+                if entry is not None:
+                    age_group = str(entry.get("age_group") or "")
+                    _remove_participant_key(
+                        entry, _participant_key(removed_team, age_group)
+                    )
+                    applied.append({"event": "batch_removal", "tournament_id": tournament_id})
         elif kind == "reconcile_config":
             migrations = details.get("semantic_migrations")
             if not isinstance(migrations, list):
@@ -277,6 +302,35 @@ def replay_recorded_mutations(
             added = _participant_key(details.get("added_team") or {}, age_group)
             _replace_participant(projection.get(tournament_id), removed, added)
             applied.append({"event": "participant_replacement", "tournament_id": tournament_id})
+        elif kind == "participant_removal":
+            after_records = details.get("after_records")
+            if isinstance(after_records, Mapping):
+                for tournament_id in _apply_after_records(projection, after_records):
+                    applied.append({"event": "participant_removal", "tournament_id": tournament_id})
+            else:
+                tournament_ids = details.get("tournament_ids")
+                removed_team = details.get("removed_team")
+                if not isinstance(tournament_ids, list) or not isinstance(removed_team, Mapping):
+                    raise PublishedMutationHistoryError(
+                        "participant removal history is missing tournament ids or removed team"
+                    )
+                for raw_id in tournament_ids:
+                    tournament_id = str(raw_id or "")
+                    entry = projection.get(tournament_id)
+                    if entry is not None:
+                        age_group = str(entry.get("age_group") or "")
+                        _remove_participant_key(
+                            entry, _participant_key(removed_team, age_group)
+                        )
+                        applied.append({"event": "participant_removal", "tournament_id": tournament_id})
+        elif kind == "participant_restoration":
+            after_records = details.get("after_records")
+            if not isinstance(after_records, Mapping):
+                raise PublishedMutationHistoryError(
+                    "participant restoration history is missing after_records"
+                )
+            for tournament_id in _apply_after_records(projection, after_records):
+                applied.append({"event": "participant_restoration", "tournament_id": tournament_id})
         elif kind == "participant_swap":
             _apply_swap(projection, details)
             applied.append({"event": "participant_swap"})
