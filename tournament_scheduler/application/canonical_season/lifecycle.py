@@ -30,13 +30,22 @@ from tournament_scheduler.published_mutation_history import reconcile_published_
 from .shared import published_baseline_reconciliation
 
 
-def _commit(service, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool = False) -> CanonicalSeasonSnapshot:
+def _commit(
+    service,
+    snapshot: CanonicalSeasonSnapshot,
+    *,
+    require_absent: bool = False,
+    extra_evidence: Mapping[str, bytes] | None = None,
+) -> CanonicalSeasonSnapshot:
     """Persist a snapshot under one fresh canonical-state revision.
 
     The revision is computed from the *complete* new state, so schedule
     mutations and decision-only mutations both advance it. Derived
     projections and decisions must already have been reconciled by the
-    caller; the store installs both files atomically.
+    caller; the store installs both files atomically. ``extra_evidence`` maps
+    season-relative evidence paths to bytes that must be installed in the same
+    atomic swap as the canonical files (for example a content-addressed
+    pre-refresh snapshot referenced from the new decisions state).
     """
 
     decisions = dict(snapshot.decisions)
@@ -51,7 +60,9 @@ def _commit(service, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool 
         snapshot.schedule, decisions
     )
     committed = snapshot.with_decisions(decisions)
-    service.store.write(committed, require_absent=require_absent)
+    service.store.write(
+        committed, require_absent=require_absent, extra_evidence=extra_evidence
+    )
     return committed
 
 

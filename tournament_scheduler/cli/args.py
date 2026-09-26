@@ -1889,6 +1889,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Record partial evidence even if some sources are blocked (default: fail safely)",
     )
+    season_refresh.add_argument(
+        "--accept-source-policy-change",
+        action="store_true",
+        dest="accept_source_policy_change",
+        help=(
+            "Explicitly advance the promoted source policy when the configured input.xlsx "
+            "sources (URL, parser kind, trust/classification, coverage) changed since promotion"
+        ),
+    )
     season_refresh.add_argument("--json", action="store_true", help="Print refresh result as JSON")
 
     season_reconcile_config = season_sub.add_parser(

@@ -2941,9 +2941,21 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 note=args.note,
                 dry_run=args.dry_run,
                 allow_missing_sources=args.allow_missing_sources,
+                allow_source_policy_change=args.accept_source_policy_change,
             )
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            elif result.get("refused"):
+                _console.print(
+                    f"[yellow]○[/yellow] Refused calendar evidence refresh for {args.season}: "
+                    "the configured source policy changed since promotion"
+                )
+                for change in result.get("source_policy_changes") or []:
+                    _console.print(f"  [yellow]- {change}[/yellow]")
+                _console.print(
+                    "  Re-run with --accept-source-policy-change only after reviewing the diff, "
+                    "or restore the promoted source configuration."
+                )
             else:
                 action = "Previewed" if result.get("dry_run") else "Refreshed"
                 marker = "[yellow]○[/yellow]" if result.get("dry_run") else "[green]✓[/green]"

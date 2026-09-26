@@ -94,8 +94,19 @@ class CanonicalSeasonService:
     def load(self, season: str) -> CanonicalSeasonSnapshot:
         return self.store.load(season)
 
-    def _commit(self, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool = False) -> CanonicalSeasonSnapshot:
-        return _lifecycle._commit(self, snapshot=snapshot, require_absent=require_absent)
+    def _commit(
+        self,
+        snapshot: CanonicalSeasonSnapshot,
+        *,
+        require_absent: bool = False,
+        extra_evidence: Mapping[str, bytes] | None = None,
+    ) -> CanonicalSeasonSnapshot:
+        return _lifecycle._commit(
+            self,
+            snapshot=snapshot,
+            require_absent=require_absent,
+            extra_evidence=extra_evidence,
+        )
 
     def _commit_history_only(self, snapshot: CanonicalSeasonSnapshot) -> CanonicalSeasonSnapshot:
         return _lifecycle._commit_history_only(self, snapshot=snapshot)
@@ -156,8 +167,9 @@ class CanonicalSeasonService:
         note: str = "",
         dry_run: bool = False,
         allow_missing_sources: bool = False,
+        allow_source_policy_change: bool = False,
     ) -> dict[str, Any]:
-        return _calendars.refresh_calendars(self, season=season, input_path=input_path, work_dir=work_dir, actor=actor, note=note, dry_run=dry_run, allow_missing_sources=allow_missing_sources)
+        return _calendars.refresh_calendars(self, season=season, input_path=input_path, work_dir=work_dir, actor=actor, note=note, dry_run=dry_run, allow_missing_sources=allow_missing_sources, allow_source_policy_change=allow_source_policy_change)
 
     def reconcile_config(
         self,
