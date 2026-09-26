@@ -22,6 +22,7 @@ from tournament_scheduler.season_state import (
     booking_status_report,
     calendar_booking_candidates,
     calendar_booking_findings,
+    clear_manual_booking_assertion,
     confirm_calendar_booking,
     reconcile_calendar_bookings,
     load_decisions,
@@ -29,6 +30,7 @@ from tournament_scheduler.season_state import (
     load_schedule,
     move_tournament,
     promote_from_stage3,
+    set_manual_booking_assertion,
     unapprove_tournament,
 )
 
@@ -1273,3 +1275,423 @@ def test_season_move_cli_rejects_locked_and_allows_after_unapprove(tmp_path, cap
         ]
     ) == 0
     assert load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]["date"] == "2026-09-19"
+
+
+# ---------------------------------------------------------------------------
+# Manual club booking/rejection assertions
+# ---------------------------------------------------------------------------
+
+
+def _booking_row(report, tournament_id):
+    return next(row for row in report["tournaments"] if row["tournament_id"] == tournament_id)
+
+
+def _manual_set(root, *, tournament_id="t1", status="booked", problem, **overrides):
+    kwargs = {
+        "season": "2026-2027",
+        "root": root,
+        "tournament_id": tournament_id,
+        "booking_status": status,
+        "problem": problem,
+    }
+    kwargs.update(overrides)
+    return set_manual_booking_assertion(**kwargs)
+
+
+def test_manual_booking_assertion_is_durable_across_reconciliation(tmp_path):
+    """A manual booked assertion is source authority, not replaceable calendar evidence."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    result = _manual_set(
+        root,
+        problem=problem,
+        actor="booker",
+        note="Tønsberg email: all miniputt bookings are made",
+        reference="email:tønsberg-2026-09-24",
+        source_scope="club_wide_interpretation",
+    )
+    assert result["assertion"]["authority"] == "manual_club_confirmation"
+    assert result["assertion"]["source_scope"] == "club_wide_interpretation"
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_booked"
+    assert row["authority"] == "manual_club_confirmation_interpretation"
+    assert row["source_scope"] == "club_wide_interpretation"
+    assert row["needs_attention"] is False
+    assert report["counts"]["manually_booked"] == 1
+
+    # Routine reconciliation rewrites calendar evidence; it must never erase or
+    # demote the independent manual assertion.
+    for _ in range(2):
+        reconcile_calendar_bookings(season="2026-2027", root=root, club="A", problem=problem)
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_booked"
+    assert row["authority"] == "manual_club_confirmation_interpretation"
+    assert row["calendar_status"] == "ambiguous"
+    decisions = load_decisions("2026-2027", root=root)
+    assert [record["status"] for record in decisions["manual_booking_assertions"]] == ["active"]
+
+    html = _export_html_with_booking_report(root, problem, tmp_path)
+    assert '"bs": "manually_booked"' in html
+
+
+def test_manual_rejection_keeps_tournament_visible(tmp_path):
+    """Rejecting a proposed slot is not cancellation and not optimistic absence."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(
+        root,
+        status="not-booked",
+        problem=problem,
+        actor="booker",
+        note="club cannot host the assigned weekend",
+        reference="email:reject",
+    )
+    schedule = load_schedule("2026-2027", root=root)
+    assert [t["id"] for t in schedule["plan"]["tournaments"]] == ["t1"]
+    assert not schedule["plan"]["tournaments"][0].get("cancelled")
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_not_booked"
+    assert row["needs_attention"] is True
+    assert report["counts"]["manually_not_booked"] == 1
+
+
+def test_manual_assertion_conflict_with_calendar_association_flags_review(tmp_path):
+    """A calendar match conflicting with a manual rejection needs review, not overwrite."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem(
+        [
+            {
+                "date": "2026-09-12",
+                "start": "10:00",
+                "end": "12:00",
+                "availability": "fixed_busy",
+                "calendar_event": "Serieturneringer U10",
+            }
+        ]
+    )
+    event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)[
+        "booking_candidates"
+    ][0]["calendar_event"]["fingerprint"]
+    _manual_set(root, status="not-booked", problem=problem, note="club rejected the proposal")
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        problem=problem,
+        note="host calendar later matched",
+    )
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_not_booked"
+    assert row["calendar_status"] == "confirmed_booked"
+    assert "calendar_association_conflicts_with_manual_rejection" in row["follow_up_reasons"]
+    assert row["needs_attention"] is True
+    assert report["counts"]["conflicts"] == 1
+
+
+def test_manual_assertion_is_idempotent_and_supersession_is_explicit(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    first = _manual_set(root, problem=problem, note="confirmed", reference="email-1")
+    assert first["changed"] is True
+    assert first["idempotent"] is False
+
+    repeat = _manual_set(root, problem=problem, note="confirmed again", reference="email-1")
+    assert repeat["idempotent"] is True
+    assert repeat["changed"] is False
+
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, status="not-booked", problem=problem, reference="email-2")
+
+    superseded = _manual_set(
+        root,
+        status="not-booked",
+        problem=problem,
+        note="club corrected the earlier confirmation",
+        reference="email-2",
+        supersede=True,
+    )
+    assert superseded["assertion"]["supersedes"]
+    records = load_decisions("2026-2027", root=root)["manual_booking_assertions"]
+    assert [record["status"] for record in records].count("active") == 1
+    assert [record["status"] for record in records].count("superseded") == 1
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert _booking_row(report, "t1")["status"] == "manually_not_booked"
+
+
+def test_manual_assertion_fails_closed_on_bad_inputs(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, status="maybe", problem=problem)
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, tournament_id="rvv-9999", problem=problem)
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, problem=problem, expected_revision="deadbeef")
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, problem=problem, stated_start="10:00")
+
+
+def test_manual_assertion_stales_when_slot_changes(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="confirmed at current slot")
+    move_tournament(season="2026-2027", tournament_id="t1", root=root, date="2026-09-19")
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "stale"
+    assert "tournament_date_changed" in row["stale_reasons"]
+    assert row["evidence"]["booking_status"] == "booked"
+
+
+def test_manual_assertion_stated_duration_is_follow_up_not_occupancy_change(tmp_path):
+    """A source-stated 45-minute window against a 120-minute block stays a follow-up."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    result = _manual_set(
+        root,
+        problem=problem,
+        note="email states a shorter window than the canonical block",
+        stated_start="10:00",
+        stated_end="10:45",
+    )
+    assert result["assertion"]["asserted_interval"]["duration_minutes"] == "120"
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_booked"
+    assert "manual_booking_stated_end_differs_from_canonical" in row["follow_up_reasons"]
+    assert row["needs_attention"] is True
+    assert load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]["start_time"] == "10:00"
+
+
+def test_manual_assertion_clear_revokes_and_is_idempotent(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="wrong tournament")
+    cleared = clear_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        actor="booker",
+        note="recorded against the wrong id",
+    )
+    assert cleared["changed"] is True
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert _booking_row(report, "t1")["status"] != "manually_booked"
+    again = clear_manual_booking_assertion(
+        season="2026-2027", root=root, tournament_id="t1", actor="booker", note="again"
+    )
+    assert again["changed"] is False
+    records = load_decisions("2026-2027", root=root)["manual_booking_assertions"]
+    assert [record["status"] for record in records] == ["revoked"]
+    with pytest.raises(SeasonStateError):
+        clear_manual_booking_assertion(
+            season="2026-2027", root=root, tournament_id="rvv-9999", actor="booker"
+        )
+
+
+def test_manual_booking_cli_set_status_and_clear(tmp_path, capsys):
+    from tournament_scheduler.cli.rvv_cli import main
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    assert main(
+        [
+            "season", "booking-set",
+            "--season", "2026-2027",
+            "--root", str(root),
+            "--tournament-id", "t1",
+            "--status", "booked",
+            "--reference", "email:1",
+            "--note", "club confirmed",
+            "--json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    assert main(
+        [
+            "season", "booking-status",
+            "--season", "2026-2027",
+            "--root", str(root),
+            "--json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["counts"]["manually_booked"] == 1
+    assert main(
+        [
+            "season", "booking-clear",
+            "--season", "2026-2027",
+            "--root", str(root),
+            "--tournament-id", "t1",
+            "--note", "wrong",
+        ]
+    ) == 0
+    capsys.readouterr()
+    assert load_decisions("2026-2027", root=root)["manual_booking_assertions"][0]["status"] == "revoked"
+
+
+def test_manual_assertion_advances_canonical_revision(tmp_path):
+    """The durable manual overlay participates in canonical-state identity."""
+
+    from tournament_scheduler.canonical_state import canonical_state_revision
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    before = canonical_state_revision(
+        load_schedule("2026-2027", root=root), load_decisions("2026-2027", root=root)
+    )
+    result = _manual_set(root, problem=problem, note="club confirmed by email")
+    after = canonical_state_revision(
+        load_schedule("2026-2027", root=root), load_decisions("2026-2027", root=root)
+    )
+    assert after != before
+    assert result["canonical_state_revision"] == after
+
+    # The revision-bound guard fails closed after the advance.
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, status="not-booked", problem=problem, expected_revision=before)
+
+
+def test_manual_assertion_requires_traceable_source(tmp_path):
+    """A positive confirmation must carry a source reference or rationale."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, problem=problem)
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, status="not-booked", problem=problem)
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, problem=problem, note="   ", reference="   ")
+    # A rationale alone is enough; the provenance is recorded.
+    result = _manual_set(root, problem=problem, note="club called the booking team")
+    assert result["assertion"]["note"] == "club called the booking team"
+    assert result["assertion"]["reference"] == ""
+
+
+@pytest.mark.parametrize(
+    "start,end",
+    [
+        ("10:00", "10:00"),  # zero length
+        ("10:00", "09:00"),  # reversed / overnight
+        ("25:00", "26:00"),  # malformed hours
+        ("10:00", "bogus"),  # malformed minutes
+    ],
+)
+def test_manual_assertion_rejects_invalid_stated_interval(tmp_path, start, end):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, problem=problem, note="source window", stated_start=start, stated_end=end)
+    with pytest.raises(SeasonStateError):
+        _manual_set(root, problem=problem, note="source window", stated_start="10:00")
+    # Nothing was persisted by the rejected attempts.
+    assert "manual_booking_assertions" not in load_decisions("2026-2027", root=root)
+
+
+def test_manual_assertion_reconfirms_after_move_without_supersede(tmp_path):
+    """A moved slot stales the assertion; a fresh source re-confirms directly."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="confirmed at the original slot", reference="email-1")
+    move_tournament(season="2026-2027", tournament_id="t1", root=root, date="2026-09-19")
+    stale = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert _booking_row(stale, "t1")["status"] == "stale"
+
+    reconfirmed = _manual_set(
+        root,
+        problem=problem,
+        note="club re-confirmed the moved slot",
+        reference="email-2",
+    )
+    assert reconfirmed["changed"] is True
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_booked"
+    assert row["authority"] == "manual_club_confirmation"
+
+    records = load_decisions("2026-2027", root=root)["manual_booking_assertions"]
+    assert [record["status"] for record in records].count("active") == 1
+    superseded = next(record for record in records if record["status"] == "superseded")
+    assert superseded["supersede_reason"] == "club re-confirmed the moved slot"
+    assert superseded["superseded_stale_reasons"] == ["tournament_date_changed"]
+
+
+def test_manual_assertion_scope_change_requires_supersede(tmp_path):
+    """Changing direct confirmation vs. interpretation is a new decision, not a no-op."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="direct confirmation", reference="email-1")
+    with pytest.raises(SeasonStateError):
+        _manual_set(
+            root,
+            problem=problem,
+            note="direct confirmation",
+            reference="email-1",
+            source_scope="club_wide_interpretation",
+        )
+    superseded = _manual_set(
+        root,
+        problem=problem,
+        note="accepted as a club-wide interpretation",
+        reference="email-1",
+        source_scope="club_wide_interpretation",
+        supersede=True,
+    )
+    assert superseded["assertion"]["source_scope"] == "club_wide_interpretation"
+
+
+def test_manual_authority_preserves_actionable_calendar_warning(tmp_path):
+    """An independent stale calendar association stays visible next to manual authority."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem(
+        [
+            {
+                "date": "2026-09-12",
+                "start": "10:00",
+                "end": "12:00",
+                "availability": "fixed_busy",
+                "calendar_event": "Serieturneringer U10",
+            }
+        ]
+    )
+    event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)[
+        "booking_candidates"
+    ][0]["calendar_event"]["fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        problem=problem,
+        note="host calendar match",
+    )
+    # Simulate a canonical move through the legacy path so the association is
+    # now stale without being explicitly released.
+    schedule_path = root / "2026-2027" / "schedule.json"
+    saved = json.loads(schedule_path.read_text(encoding="utf-8"))
+    saved["plan"]["tournaments"][0]["date"] = "2026-09-19"
+    schedule_path.write_text(json.dumps(saved), encoding="utf-8")
+
+    _manual_set(root, problem=problem, note="club confirmed after the move", reference="email-1")
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_booked"
+    assert row["authority"] == "manual_club_confirmation"
+    assert row["calendar_status"] == "stale"
+    assert "calendar_booking_association_stale" in row["follow_up_reasons"]
+    assert row["needs_attention"] is True

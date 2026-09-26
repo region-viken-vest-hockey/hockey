@@ -238,6 +238,20 @@ Approval is never a hard-rule waiver. The repository re-verifies the current pla
 
 If an approval is reported as `stale_approval`, do not silently keep or recreate it. Inspect why the protected fields changed and require explicit reapproval after the intended current state is confirmed.
 
+### Manual club booking/rejection when no calendar can resolve it
+
+A blocked/empty calendar, a generic overlap, or an explicit club email that its bookings are made but not reflected in the public calendar is a normal source, not an emergency. Do **not** regenerate, reopen or replan the published season because a scrape failed; record the operator-accepted conclusion directly:
+
+```bash
+scripts/rvv-miniputt season booking-set --season <season> --tournament-id <id> --status booked \
+  --reference "<email id/date/sender>" --note "<concise source summary>"
+scripts/rvv-miniputt season booking-set --season <season> --tournament-id <id> --status not-booked \
+  --note "club rejected the assigned slot"
+scripts/rvv-miniputt season booking-clear --season <season> --tournament-id <id> --note "recorded against the wrong id"
+```
+
+This is durable, revision-bound source authority, not a scrape result: it lives in `manual_booking_assertions`, projects as `manually_booked`/`manually_not_booked` with `authority=manual_club_confirmation`, and a later `season reconcile-calendar-bookings`/`season refresh-calendars` never erases or demotes it. A contradicting calendar event surfaces as a review conflict instead of silently overwriting, and independent actionable calendar warnings (for example a stale association) stay visible as follow-up without demoting the club confirmation. A positive confirmation needs a traceable source: pass at least `--reference` or `--note`. Record the real source with `--reference`, and use `--source-scope club_wide_interpretation` when the assertion is one deliberately accepted per-tournament interpretation of a club-wide statement rather than a fabricated itemized confirmation; that scope projects as `authority=manual_club_confirmation_interpretation` (shown as `SKJØNNSVURDERT` in the plan). A source-stated interval that differs from canonical occupancy is captured with `--stated-start`/`--stated-end` as follow-up; canonical occupancy is never silently shrunk, the two values must be a same-day `HH:MM` window with end strictly after start (malformed, zero-length, reversed or overnight windows are rejected), and `--expected-revision` fails closed on stale state. Repeating the same assertion is idempotent. After a move or other material slot change the assertion becomes `stale`: re-confirm the new slot with a fresh `--reference`/`--note` and it is replaced directly, while the old record is kept as `superseded` audit history (no `--supersede` needed); changing the conclusion about a still-current slot requires `--supersede --note`; `season booking-clear` revokes an assertion recorded in error. Rejection never cancels or deletes the tournament (it stays visible as follow-up). Recording a manual booking assertion does not itself approve/lock the placement; use `season approve` when the booking is confirmed and the placement should be protected.
+
 ## Change an approved tournament
 
 Do not bypass approval protection. First revoke the approval/locks explicitly:

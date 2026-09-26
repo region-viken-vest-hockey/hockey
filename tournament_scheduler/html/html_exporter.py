@@ -133,7 +133,9 @@ class HtmlExporter:
                 '<option value="">Alle bookingstatuser</option>'
                 '<option value="needs_attention">Må følges opp</option>'
                 '<option value="confirmed_booked">Booket bekreftet</option>'
+                '<option value="manually_booked">Manuelt booket</option>'
                 '<option value="confirmed_not_booked">Ikke booket</option>'
+                '<option value="manually_not_booked">Manuelt ikke booket</option>'
                 '<option value="unknown">Ikke kontrollert</option>'
                 '<option value="stale">Utdatert/uklar</option>'
                 '</select>'
@@ -509,6 +511,10 @@ class HtmlExporter:
             if booking:
                 entry["bs"] = str(booking.get("status") or "unknown")
                 entry["ba"] = bool(booking.get("needs_attention"))
+                if booking.get("authority"):
+                    entry["bauth"] = str(booking.get("authority"))
+                if booking.get("source_scope"):
+                    entry["bscope"] = str(booking.get("source_scope"))
             data.append(entry)
         return json.dumps(data, ensure_ascii=False)
 

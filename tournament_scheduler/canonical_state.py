@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from tournament_scheduler.calendar_bookings import MANUAL_BOOKING_ASSERTIONS_KEY
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.published_baseline import SEASON_LIFECYCLE_KEY
 
@@ -73,6 +74,7 @@ def compute_canonical_state_revision(
         "season_baseline_history": decisions.get(SEASON_BASELINE_HISTORY_KEY) or [],
         "season_lifecycle": decisions.get(SEASON_LIFECYCLE_KEY) or {},
         "calendar_booking_associations": decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or [],
+        "manual_booking_assertions": decisions.get(MANUAL_BOOKING_ASSERTIONS_KEY) or [],
         "verification_context": schedule.get("verification_context"),
     }
     return stable_payload_sha256(payload)

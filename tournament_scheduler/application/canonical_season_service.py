@@ -616,6 +616,58 @@ class CanonicalSeasonService:
     ) -> dict[str, Any]:
         return _calendars.release_calendar_booking(self, season=season, event_fingerprint=event_fingerprint, tournament_id=tournament_id, actor=actor, note=note, dry_run=dry_run)
 
+    def set_manual_booking_assertion(
+        self,
+        *,
+        season: str,
+        tournament_id: str,
+        booking_status: str,
+        actor: str | None = None,
+        note: str = "",
+        reference: str = "",
+        source_scope: str = "tournament",
+        stated_start: str | None = None,
+        stated_end: str | None = None,
+        expected_revision: str | None = None,
+        supersede: bool = False,
+        problem: dict[str, Any] | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _calendars.set_manual_booking_assertion(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            booking_status=booking_status,
+            actor=actor,
+            note=note,
+            reference=reference,
+            source_scope=source_scope,
+            stated_start=stated_start,
+            stated_end=stated_end,
+            expected_revision=expected_revision,
+            supersede=supersede,
+            problem=problem,
+            dry_run=dry_run,
+        )
+
+    def clear_manual_booking_assertion(
+        self,
+        *,
+        season: str,
+        tournament_id: str,
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _calendars.clear_manual_booking_assertion(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+        )
+
     def approve_tournament(
         self,
         *,

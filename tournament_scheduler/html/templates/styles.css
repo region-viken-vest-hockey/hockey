@@ -376,13 +376,14 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .tournament-card.manual { border-left: 3px solid rgba(245, 158, 11, .5); }
 .tournament-card.manual::before { background: var(--amber); }
 .booking-badge { display:inline-flex; align-items:center; gap:4px; margin:0 0 8px 8px; padding:4px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; border:1px solid var(--border-dim); color:var(--text-muted); }
-.booking-badge--confirmed_booked { color:#22c55e; border-color:rgba(34,197,94,.45); }
-.booking-badge--confirmed_not_booked, .booking-badge--not_checkable { color:var(--text-muted); text-decoration:line-through; }
+.booking-badge--confirmed_booked, .booking-badge--manually_booked { color:#22c55e; border-color:rgba(34,197,94,.45); }
+.booking-badge--confirmed_not_booked, .booking-badge--manually_not_booked, .booking-badge--not_checkable { color:var(--text-muted); text-decoration:line-through; }
 .booking-badge--ambiguous, .booking-badge--stale { color:var(--amber); border-color:rgba(245,158,11,.55); }
 .heatmap-booking-item { display:inline-block; margin:0 1px; padding:1px 3px; border-radius:3px; }
-.heatmap-booking-confirmed_not_booked { opacity:.55; text-decoration:line-through; filter:grayscale(1); }
+.heatmap-booking-confirmed_not_booked, .heatmap-booking-manually_not_booked { opacity:.55; text-decoration:line-through; filter:grayscale(1); }
 .heatmap-booking-unknown { opacity:.7; }
 .heatmap-booking-ambiguous, .heatmap-booking-stale { outline:2px solid var(--amber); outline-offset:0; }
+.heatmap-booking-manually_booked { outline:2px solid #22c55e; outline-offset:0; }
 .heatmap-booking-legend { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--text-muted); border:1px solid var(--border-dim); border-radius:999px; padding:2px 6px; }
 
 /* Grouped manual work items and their candidate-weekend evidence. */

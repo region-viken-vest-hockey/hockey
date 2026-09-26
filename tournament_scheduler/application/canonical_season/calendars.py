@@ -14,6 +14,11 @@ from tournament_scheduler.calendar_bookings import (
     BOOKING_CONFIRMED_BOOKED,
     BOOKING_NOT_CHECKABLE,
     CALENDAR_BOOKING_ASSOCIATIONS_KEY,
+    MANUAL_ASSERTION_REVOKED,
+    MANUAL_ASSERTION_SCOPES,
+    MANUAL_ASSERTION_SUPERSEDED,
+    MANUAL_BOOKING_ASSERTIONS_KEY,
+    MANUAL_BOOKING_STATUS_CHOICES,
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
     association_findings,
     booking_status_report as _booking_status_report,
@@ -21,9 +26,13 @@ from tournament_scheduler.calendar_bookings import (
     event_fingerprint,
     find_event,
     iter_events,
+    manual_assertion_for_tournament,
+    manual_assertion_stale_reasons,
     new_association_record,
     new_booking_evidence_record,
+    new_manual_assertion_record,
     valid_active_associations,
+    validate_stated_interval,
 )
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_state import (
@@ -727,6 +736,284 @@ def release_calendar_booking(
             details={"event_fingerprint": event_fingerprint, "association_id": row.get("id")},
         )
     result = {"season": season, "dry_run": dry_run, "released": released}
+    if dry_run:
+        return result
+    committed = service._commit(snapshot.with_decisions(updated))
+    result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
+    return result
+
+
+def _manual_assertion_matches_existing(
+    existing: Mapping[str, Any] | None,
+    candidate: Mapping[str, Any],
+    *,
+    reference: str,
+) -> bool:
+    """Return whether a repeat assertion is the same deliberate statement."""
+
+    if existing is None:
+        return False
+    return (
+        str(existing.get("booking_status") or "") == str(candidate.get("booking_status") or "")
+        and str(existing.get("source_scope") or "tournament") == str(candidate.get("source_scope") or "tournament")
+        and dict(existing.get("tournament_facts") or {}) == dict(candidate.get("tournament_facts") or {})
+        and dict(existing.get("asserted_interval") or {}) == dict(candidate.get("asserted_interval") or {})
+        and dict(existing.get("stated_interval") or {}) == dict(candidate.get("stated_interval") or {})
+        and str(existing.get("reference") or "") == reference
+    )
+
+
+def set_manual_booking_assertion(
+    service,
+    *,
+    season: str,
+    tournament_id: str,
+    booking_status: str,
+    actor: str | None = None,
+    note: str = "",
+    reference: str = "",
+    source_scope: str = "tournament",
+    stated_start: str | None = None,
+    stated_end: str | None = None,
+    expected_revision: str | None = None,
+    supersede: bool = False,
+    problem: dict[str, Any] | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Record an explicit operator/club booking assertion for one tournament.
+
+    The assertion is durable, revision-bound source evidence rather than a
+    scrape result.  It never changes the schedule, approval state or
+    participants; the booking-status projection reports it as
+    ``manually_booked``/``manually_not_booked`` and a routine calendar
+    reconcile/refresh cannot erase or demote it.  A material canonical change
+    (date/start/duration/host/arena) invalidates it until the operator confirms
+    the new slot again; a stale assertion is replaced directly (retaining its
+    audit history) rather than requiring ``--supersede``, which is reserved for
+    changing the conclusion about the same still-current slot. Repeating the
+    identical assertion is a no-op; changing it requires an explicit
+    ``supersede`` with a reason. Positive confirmations must carry a traceable
+    source reference or rationale.
+    """
+
+    if booking_status not in MANUAL_BOOKING_STATUS_CHOICES:
+        raise SeasonStateError(
+            "Unknown manual booking status: "
+            f"{booking_status!r}; expected one of {', '.join(MANUAL_BOOKING_STATUS_CHOICES)}"
+        )
+    if source_scope not in MANUAL_ASSERTION_SCOPES:
+        raise SeasonStateError(
+            f"Unknown manual assertion source scope: {source_scope!r}; "
+            f"expected one of {', '.join(MANUAL_ASSERTION_SCOPES)}"
+        )
+    try:
+        stated_interval = validate_stated_interval(stated_start, stated_end) or None
+    except ValueError as exc:
+        raise SeasonStateError(str(exc)) from exc
+
+    snapshot = service.load(season)
+    schedule, decisions = snapshot.schedule, snapshot.decisions
+    current_revision = canonical_state_revision(schedule, decisions)
+    if expected_revision and expected_revision != current_revision:
+        raise SeasonStateError(
+            f"Stale canonical revision: expected {expected_revision}, current is {current_revision}"
+        )
+    plan = schedule["plan"]
+    tournament = next(
+        (t for t in plan.get("tournaments", []) or [] if str(t.get("id")) == tournament_id),
+        None,
+    )
+    if tournament is None:
+        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+    if tournament.get("cancelled"):
+        raise SeasonStateError(
+            f"Tournament {tournament_id} is cancelled and cannot carry a booking assertion"
+        )
+    if not (str(reference).strip() or str(note).strip()):
+        raise SeasonStateError(
+            "A manual booking assertion requires a traceable source reference (--reference) "
+            "or rationale (--note)"
+        )
+    resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
+    existing = manual_assertion_for_tournament(decisions, tournament_id)
+    existing_stale_reasons = (
+        manual_assertion_stale_reasons(existing, problem=resolved_problem, tournament=tournament)
+        if existing is not None
+        else []
+    )
+    now = _now_iso()
+    resolved_actor = _operator_identity(actor)
+    candidate = new_manual_assertion_record(
+        tournament=tournament,
+        booking_status=booking_status,
+        problem=resolved_problem,
+        actor=resolved_actor,
+        note=note,
+        reference=reference,
+        source_scope=source_scope,
+        stated_interval=stated_interval,
+        asserted_at=now,
+        source_revision=current_revision,
+    )
+    if _manual_assertion_matches_existing(existing, candidate, reference=reference):
+        return {
+            "season": season,
+            "dry_run": bool(dry_run),
+            "changed": False,
+            "idempotent": True,
+            "tournament_id": tournament_id,
+            "assertion": existing,
+            "canonical_state_revision": current_revision,
+        }
+    if existing is not None:
+        if not existing_stale_reasons and not supersede:
+            raise SeasonStateError(
+                f"Tournament {tournament_id} already has an active manual booking assertion "
+                f"({existing.get('booking_status')!r}); repeat it unchanged or pass --supersede "
+                "with a reason to replace it"
+            )
+        if not existing_stale_reasons and not note:
+            raise SeasonStateError("Superseding a manual booking assertion requires a --note reason")
+        candidate["supersedes"] = str(existing.get("id") or "")
+        candidate["reconfirms_stale_reasons"] = list(existing_stale_reasons)
+
+    updated = dict(decisions)
+    records = [
+        dict(record)
+        for record in updated.get(MANUAL_BOOKING_ASSERTIONS_KEY) or []
+        if isinstance(record, Mapping)
+    ]
+    if existing is not None:
+        existing_id = str(existing.get("id") or "")
+        supersede_reason = note or (
+            "re-confirmed after canonical slot change: " + ", ".join(existing_stale_reasons)
+            if existing_stale_reasons
+            else "superseded"
+        )
+        for record in records:
+            if str(record.get("id") or "") == existing_id:
+                record["status"] = MANUAL_ASSERTION_SUPERSEDED
+                record["superseded_at"] = now
+                record["superseded_by"] = candidate["id"]
+                record["supersede_reason"] = supersede_reason
+                if existing_stale_reasons:
+                    record["superseded_stale_reasons"] = list(existing_stale_reasons)
+    records.append(candidate)
+    updated[MANUAL_BOOKING_ASSERTIONS_KEY] = records
+    updated["updated_at"] = now
+    _append_decision_history(
+        updated,
+        event="set_manual_booking_assertion",
+        tournament_id=tournament_id,
+        actor=resolved_actor,
+        now=now,
+        note=note,
+        details={
+            "booking_status": booking_status,
+            "authority": candidate["authority"],
+            "source_scope": candidate["source_scope"],
+            "reference": reference or "",
+            "asserted_interval": candidate["asserted_interval"],
+            "stated_interval": candidate["stated_interval"],
+            "supersedes": candidate.get("supersedes") or "",
+            "reconfirms_stale_reasons": candidate.get("reconfirms_stale_reasons") or [],
+        },
+    )
+    result: dict[str, Any] = {
+        "season": season,
+        "dry_run": bool(dry_run),
+        "changed": True,
+        "idempotent": False,
+        "tournament_id": tournament_id,
+        "assertion": candidate,
+        "previous_assertion": existing,
+        "canonical_state_revision": current_revision,
+    }
+    result["booking_status"] = _booking_status_report(
+        problem=resolved_problem,
+        plan=plan,
+        decisions=updated,
+    )
+    if dry_run:
+        return result
+    committed = service._commit(snapshot.with_decisions(updated))
+    committed_problem = _resolve_plan_problem(committed.schedule, problem, committed.decisions)
+    result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
+    result["booking_status"] = _booking_status_report(
+        problem=committed_problem,
+        plan=committed.schedule.get("plan") or {},
+        decisions=committed.decisions,
+    )
+    return result
+
+
+def clear_manual_booking_assertion(
+    service,
+    *,
+    season: str,
+    tournament_id: str,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Revoke one active manual booking assertion without touching the schedule."""
+
+    snapshot = service.load(season)
+    schedule, decisions = snapshot.schedule, snapshot.decisions
+    current_revision = canonical_state_revision(schedule, decisions)
+    tournament = next(
+        (t for t in schedule["plan"].get("tournaments", []) or [] if str(t.get("id")) == tournament_id),
+        None,
+    )
+    if tournament is None:
+        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+    existing = manual_assertion_for_tournament(decisions, tournament_id)
+    if existing is None:
+        return {
+            "season": season,
+            "dry_run": bool(dry_run),
+            "changed": False,
+            "tournament_id": tournament_id,
+            "revoked": None,
+            "canonical_state_revision": current_revision,
+        }
+    now = _now_iso()
+    resolved_actor = _operator_identity(actor)
+    updated = dict(decisions)
+    records = [
+        dict(record)
+        for record in updated.get(MANUAL_BOOKING_ASSERTIONS_KEY) or []
+        if isinstance(record, Mapping)
+    ]
+    existing_id = str(existing.get("id") or "")
+    revoked: dict[str, Any] | None = None
+    for record in records:
+        if str(record.get("id") or "") == existing_id:
+            record["status"] = MANUAL_ASSERTION_REVOKED
+            record["revoked_at"] = now
+            record["revoked_by"] = resolved_actor
+            record["revoke_reason"] = note
+            revoked = record
+    updated[MANUAL_BOOKING_ASSERTIONS_KEY] = records
+    updated["updated_at"] = now
+    _append_decision_history(
+        updated,
+        event="clear_manual_booking_assertion",
+        tournament_id=tournament_id,
+        actor=resolved_actor,
+        now=now,
+        note=note,
+        details={"assertion_id": existing_id},
+    )
+    result: dict[str, Any] = {
+        "season": season,
+        "dry_run": bool(dry_run),
+        "changed": True,
+        "tournament_id": tournament_id,
+        "revoked": revoked,
+        "previous_assertion": existing,
+        "canonical_state_revision": current_revision,
+    }
     if dry_run:
         return result
     committed = service._commit(snapshot.with_decisions(updated))

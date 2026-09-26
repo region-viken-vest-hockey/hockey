@@ -252,13 +252,17 @@ function render() {
     if (t.bs) {
       var bookingLabels = {
         confirmed_booked: 'BOOKET BEKREFTET',
+        manually_booked: 'BOOKET (MANUELT BEKREFTET)',
         confirmed_not_booked: 'IKKE BOOKET',
+        manually_not_booked: 'IKKE BOOKET (MANUELT AVVIST)',
         unknown: 'IKKE KONTROLLERT',
         not_checkable: 'IKKE KONTROLLERBAR',
         ambiguous: 'UKLAR BOOKING',
         stale: 'BOOKINGGRUNNLAG UTDATERT'
       };
-      bookingBadge = '<div class="booking-badge booking-badge--' + t.bs + '">' + (bookingLabels[t.bs] || t.bs) + '</div>';
+      var bookingLabel = bookingLabels[t.bs] || t.bs;
+      if (t.bscope === 'club_wide_interpretation') bookingLabel += ' · SKJØNNSVURDERT';
+      bookingBadge = '<div class="booking-badge booking-badge--' + t.bs + '">' + bookingLabel + '</div>';
     }
     var approvalBadge = '';
     if (t.ap === 'approved') {

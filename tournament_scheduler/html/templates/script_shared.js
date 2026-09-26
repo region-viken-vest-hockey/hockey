@@ -164,7 +164,9 @@ function getClubFromTeam(team) {
   });
   [
     ['confirmed_booked', 'booket bekreftet'],
+    ['manually_booked', 'manuelt booket'],
     ['confirmed_not_booked', 'ikke booket'],
+    ['manually_not_booked', 'manuelt ikke booket'],
     ['unknown', 'ikke kontrollert'],
     ['ambiguous', 'uklar/utdatert']
   ].forEach(function(item) {
@@ -213,7 +215,9 @@ function getClubFromTeam(team) {
           const status = item.booking_status || 'unknown';
           const titleMap = {
             confirmed_booked: 'booket bekreftet',
+            manually_booked: 'manuelt booket',
             confirmed_not_booked: 'ikke booket',
+            manually_not_booked: 'manuelt ikke booket',
             unknown: 'ikke kontrollert',
             not_checkable: 'ikke kontrollerbar',
             ambiguous: 'uklar booking',

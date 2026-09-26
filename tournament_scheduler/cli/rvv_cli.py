@@ -1313,11 +1313,13 @@ def _cmd_season(args: argparse.Namespace) -> int:
         calendar_booking_candidates,
         calendar_booking_findings,
         change_protection_report,
+        clear_manual_booking_assertion,
         compact_history,
         confirm_calendar_booking,
         decisions_path,
         reconcile_calendar_bookings,
         release_calendar_booking,
+        set_manual_booking_assertion,
         fill_guest_slot,
         guest_slot_candidates,
         guest_slot_report,
@@ -2000,13 +2002,78 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(
                     f"[bold]Bookingstatus {args.season}[/bold]: "
                     f"{counts.get('confirmed_booked', 0)} booket, "
+                    f"{counts.get('manually_booked', 0)} manuelt booket, "
                     f"{counts.get('confirmed_not_booked', 0)} ikke booket, "
+                    f"{counts.get('manually_not_booked', 0)} manuelt ikke booket, "
                     f"{counts.get('unknown', 0)} ukjent, "
                     f"{counts.get('needs_attention', 0)} trenger oppfølging"
                 )
                 for row in result.get("tournaments", []):
                     if row.get("needs_attention"):
-                        _console.print(f"  [yellow]⚠[/yellow] {row.get('tournament_id')} {row.get('status')}")
+                        authority = f" ({row.get('authority')})" if row.get("authority") else ""
+                        _console.print(
+                            f"  [yellow]⚠[/yellow] {row.get('tournament_id')} "
+                            f"{row.get('status')}{authority}"
+                        )
+            return 0
+
+        if args.season_command == "booking-set":
+            result = set_manual_booking_assertion(
+                season=args.season,
+                root=args.root,
+                tournament_id=args.tournament_id,
+                booking_status=args.status,
+                actor=args.actor,
+                note=args.note,
+                reference=args.reference,
+                source_scope=args.source_scope,
+                stated_start=args.stated_start,
+                stated_end=args.stated_end,
+                expected_revision=args.expected_revision,
+                supersede=args.supersede,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                if result.get("idempotent"):
+                    _console.print(
+                        f"[green]✓[/green] Manual booking assertion for {args.tournament_id} "
+                        "already recorded (unchanged)"
+                    )
+                else:
+                    prefix = "Validated" if args.dry_run else "Recorded"
+                    _console.print(
+                        f"[green]✓[/green] {prefix} manual booking assertion for "
+                        f"{args.tournament_id}: {args.status} "
+                        f"(authority={result.get('assertion', {}).get('authority')})"
+                    )
+                    for reason in result.get("booking_status", {}).get("tournaments", []):
+                        if reason.get("tournament_id") == args.tournament_id:
+                            for follow in reason.get("follow_up_reasons") or []:
+                                _console.print(f"  [yellow]⚠[/yellow] {follow}")
+            return 0
+
+        if args.season_command == "booking-clear":
+            result = clear_manual_booking_assertion(
+                season=args.season,
+                root=args.root,
+                tournament_id=args.tournament_id,
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            elif result.get("changed"):
+                prefix = "Validated revocation of" if args.dry_run else "Revoked"
+                _console.print(
+                    f"[green]✓[/green] {prefix} manual booking assertion for {args.tournament_id}"
+                )
+            else:
+                _console.print(
+                    f"[yellow]•[/yellow] No active manual booking assertion for {args.tournament_id}"
+                )
             return 0
 
         if args.season_command == "reconcile-calendar-bookings":

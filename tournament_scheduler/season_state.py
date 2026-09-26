@@ -70,12 +70,14 @@ __all__ = [
     "calendar_booking_candidates",
     "calendar_booking_findings",
     "change_protection_report",
+    "clear_manual_booking_assertion",
     "compact_history",
     "history_inventory",
     "confirm_calendar_booking",
     "reconcile_calendar_bookings",
     "decisions_path",
     "release_calendar_booking",
+    "set_manual_booking_assertion",
     "effective_config_from_verification_problem",
     "export_context_path",
     "fill_guest_slot",
@@ -608,6 +610,58 @@ def release_calendar_booking(
     return _service(root).release_calendar_booking(
         season=season,
         event_fingerprint=event_fingerprint,
+        tournament_id=tournament_id,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+    )
+
+
+def set_manual_booking_assertion(
+    *,
+    season: str,
+    tournament_id: str,
+    booking_status: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    reference: str = "",
+    source_scope: str = "tournament",
+    stated_start: str | None = None,
+    stated_end: str | None = None,
+    expected_revision: str | None = None,
+    supersede: bool = False,
+    problem: dict[str, Any] | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).set_manual_booking_assertion(
+        season=season,
+        tournament_id=tournament_id,
+        booking_status=booking_status,
+        actor=actor,
+        note=note,
+        reference=reference,
+        source_scope=source_scope,
+        stated_start=stated_start,
+        stated_end=stated_end,
+        expected_revision=expected_revision,
+        supersede=supersede,
+        problem=problem,
+        dry_run=dry_run,
+    )
+
+
+def clear_manual_booking_assertion(
+    *,
+    season: str,
+    tournament_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).clear_manual_booking_assertion(
+        season=season,
         tournament_id=tournament_id,
         actor=actor,
         note=note,
