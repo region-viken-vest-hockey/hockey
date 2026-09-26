@@ -67,6 +67,7 @@ __all__ = [
     "batch_maintenance",
     "booking_status_report",
     "canonical_state_revision",
+    "calendar_booking_assessment",
     "calendar_booking_candidates",
     "calendar_booking_findings",
     "change_protection_report",
@@ -536,6 +537,16 @@ def calendar_booking_candidates(
     problem: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return _service(root).calendar_booking_candidates(season=season, club=club, problem=problem)
+
+
+def calendar_booking_assessment(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    club: str | None = None,
+    problem: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return _service(root).calendar_booking_assessment(season=season, club=club, problem=problem)
 
 
 def calendar_booking_findings(

@@ -134,6 +134,8 @@ scripts/rvv-miniputt season status --season 2026-2027
 scripts/rvv-miniputt season approvals --season 2026-2027
 scripts/rvv-miniputt season findings --season 2026-2027
 scripts/rvv-miniputt season findings --season 2026-2027 --all
+scripts/rvv-miniputt season booking-assessment --season 2026-2027 --json
+scripts/rvv-miniputt season booking-assessment --season 2026-2027 --club <host-club>
 scripts/rvv-miniputt season baseline create --season 2026-2027 --note "Accepted season baseline after initial planning"
 scripts/rvv-miniputt season baseline show --season 2026-2027
 scripts/rvv-miniputt season baseline advance --season 2026-2027
@@ -195,6 +197,17 @@ Approval lives in `decisions.json`, separate from schedule facts.
 ### Targeted changes
 
 Use `season move` for one known placement change. It preserves durable ID and rejects locked tournaments until explicitly unapproved. The move clones canonical state, applies only the requested date/arena/host/start-time fields, rejects default cross-half moves, verifies the complete candidate before writing, and records old/new placement plus before/after fingerprints in decisions history. Add `--dry-run` to perform the same validation without mutating `schedule.json` or `decisions.json`.
+
+### Booking evidence crosswalk
+
+`season booking-assessment` is the read-only, deterministic assessment boundary for matching scraped host calendars to canonical tournaments. It is a pure projection over the current canonical `schedule.json` and `decisions.json` plus the stored verification-context calendar: it never writes canonical state, never confirms an association and never claims that calendar absence proves a tournament is unbooked. The report is bound to the exact `canonical_state_revision` and to each club's `calendar_fingerprint`, so a second agent rerunning it against the same frozen inputs reproduces the same classifications; any schedule, decision or calendar change must be followed by a fresh run rather than trusting a cached result.
+
+It emits a machine-readable JSON object (the default text view summarises it) with a per-club source block (status, `source_trust`, `source_review_required`, event count, fingerprint, and an explicit `trusted_for_negative_claim: false`) and two crosswalks:
+
+- one row per hosted tournament with its canonical interval, any valid existing association, the active manual assertion (if any) and the complete bounded candidate list; candidates include same-day overlaps, same-day time shifts and changes within a bounded `date_window_days` (default 7) so a moved booking never disappears from the candidate set;
+- one row per calendar event with its candidate tournaments, `covered_tournament_ids`, `one_to_many` and `group_booking` flags.
+
+Each tournament is classified `associated`, `manually_asserted`, `proposed_unchanged`, `proposed_changed_slot`, `competing_candidates`, `unmatched` or `not_checkable`. A candidate carries evidence and counterevidence (including an age-group token mismatch in the title), and every `proposal_is_binding` is `false`. When one event plausibly belongs to several tournaments, or several plausible events map to one tournament, or a source is missing/untrusted, the row stays `competing_candidates`/`unmatched`/`not_checkable` rather than resolving the ambiguity. `season calendar-booking-findings`, `season booking-status` and the explicit `season confirm-calendar-booking` / `season booking-set` boundaries remain the only persistence paths; a `proposed_*` row is a claim to review, not an approval.
 
 ### Reserved guest places
 

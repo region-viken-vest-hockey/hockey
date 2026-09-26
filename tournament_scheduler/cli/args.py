@@ -1182,6 +1182,18 @@ def build_parser() -> argparse.ArgumentParser:
     season_approvals.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_approvals.add_argument("--json", action="store_true", help="Print the approval report as JSON")
 
+    season_booking_assessment = season_sub.add_parser(
+        "booking-assessment",
+        help=(
+            "Read-only, revision/source-bound tournament-event booking crosswalk "
+            "(candidates, competing mappings, group bookings, unmatched rows)"
+        ),
+    )
+    season_booking_assessment.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_booking_assessment.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_booking_assessment.add_argument("--club", default=None, help="Optional host club filter")
+    season_booking_assessment.add_argument("--json", action="store_true", help="Print structured JSON")
+
     season_booking_candidates = season_sub.add_parser(
         "calendar-booking-candidates",
         help="Return deterministic tournament candidates for scraped calendar bookings",

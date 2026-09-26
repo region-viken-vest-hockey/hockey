@@ -8,6 +8,7 @@ every other tournament.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping
 
@@ -33,6 +34,38 @@ BOOKING_MANUALLY_BOOKED = "manually_booked"
 BOOKING_MANUALLY_NOT_BOOKED = "manually_not_booked"
 ACTIVE = "active"
 STALE = "stale"
+
+# Read-only booking assessment vocabulary -------------------------------------
+# The assessment is an evidence/report projection: it proposes plausible
+# tournament<->calendar-event relations and keeps competing or unresolved cases
+# visible.  It never persists an association or claims that calendar absence
+# proves a tournament is unbooked.
+ASSESSMENT_SCHEMA_VERSION = 1
+DEFAULT_ASSESSMENT_DATE_WINDOW_DAYS = 7
+
+ASSESSMENT_ASSOCIATED = "associated"
+ASSESSMENT_MANUALLY_ASSERTED = "manually_asserted"
+ASSESSMENT_PROPOSED_UNCHANGED = "proposed_unchanged"
+ASSESSMENT_PROPOSED_CHANGED_SLOT = "proposed_changed_slot"
+ASSESSMENT_COMPETING_CANDIDATES = "competing_candidates"
+ASSESSMENT_UNMATCHED = "unmatched"
+ASSESSMENT_NOT_CHECKABLE = "not_checkable"
+
+RELATION_SAME_DATE_OVERLAP = "same_date_overlap"
+RELATION_SAME_DATE_TIME_SHIFT = "same_date_time_shift"
+RELATION_PROXIMATE_DATE_SHIFT = "proximate_date_shift"
+
+_ASSESSMENT_UNRESOLVED = {
+    ASSESSMENT_COMPETING_CANDIDATES,
+    ASSESSMENT_UNMATCHED,
+    ASSESSMENT_NOT_CHECKABLE,
+}
+_ASSESSMENT_RELATION_RANK = {
+    RELATION_SAME_DATE_OVERLAP: 0,
+    RELATION_SAME_DATE_TIME_SHIFT: 1,
+    RELATION_PROXIMATE_DATE_SHIFT: 2,
+}
+_AGE_TOKEN_RE = re.compile(r"\bU\s?(\d{1,2})\b", re.IGNORECASE)
 BOOKING_CONFIRMED_BOOKED = "confirmed_booked"
 BOOKING_CONFIRMED_NOT_BOOKED = "confirmed_not_booked"
 BOOKING_AMBIGUOUS = "ambiguous"
@@ -822,3 +855,409 @@ def association_findings(
                 }
             )
     return findings
+
+
+# ---------------------------------------------------------------------------
+# Read-only crosswalk assessment
+# ---------------------------------------------------------------------------
+
+
+def _assessment_parse_date(value: Any):
+    try:
+        return datetime.strptime(str(value or ""), "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
+
+
+def _assessment_age_tokens(value: Any) -> set[str]:
+    return {f"U{match}" for match in _AGE_TOKEN_RE.findall(str(value or ""))}
+
+
+def _assessment_overlaps(
+    tournament: Mapping[str, Any],
+    event: Mapping[str, Any],
+    problem: Mapping[str, Any] | None,
+) -> bool:
+    interval = tournament_occupancy_interval_facts(tournament, problem)
+    if str(event.get("date") or "") != interval["date"]:
+        return False
+    tournament_span = _parse_hhmm(interval["start_time"]), _parse_hhmm(interval["end_time"])
+    event_span = _parse_hhmm(event.get("start")), _parse_hhmm(event.get("end"))
+    if None in tournament_span or None in event_span:
+        return False
+    return tournament_span[0] < event_span[1] and event_span[0] < tournament_span[1]
+
+
+def _assessment_candidate(
+    tournament: Mapping[str, Any],
+    event: Mapping[str, Any],
+    *,
+    problem: Mapping[str, Any] | None,
+    date_window_days: int,
+) -> dict[str, Any] | None:
+    """Return one deterministic, bounded event<->tournament candidate row.
+
+    The candidate set deliberately includes non-overlapping same-day and
+    nearby-date possibilities so a changed slot never hides a booking.  It does
+    **not** decide the semantic match: every row carries the evidence and
+    counterevidence a harness/operator needs to adjudicate it.
+    """
+
+    if str(event.get("club") or "") != str(tournament.get("host_club") or ""):
+        return None
+    event_arena = str(event.get("arena") or event.get("location") or "").strip()
+    tournament_arena = str(tournament.get("arena") or "").strip()
+    if event_arena and tournament_arena and event_arena.lower() != tournament_arena.lower():
+        return None
+    event_date = _assessment_parse_date(event.get("date"))
+    tournament_date = _assessment_parse_date(tournament.get("date"))
+    if event_date is None or tournament_date is None:
+        return None
+    date_delta_days = (event_date - tournament_date).days
+    if abs(date_delta_days) > date_window_days:
+        return None
+
+    covers = event_covers_tournament_interval(event, tournament, problem)
+    overlaps = _assessment_overlaps(tournament, event, problem)
+    if date_delta_days == 0:
+        relation = RELATION_SAME_DATE_OVERLAP if overlaps else RELATION_SAME_DATE_TIME_SHIFT
+    else:
+        relation = RELATION_PROXIMATE_DATE_SHIFT
+
+    age_group = str(tournament.get("age_group") or "")
+    age_tokens = _assessment_age_tokens(event.get("calendar_event") or event.get("title"))
+    age_group_conflict = bool(age_tokens) and bool(age_group) and age_group.upper() not in age_tokens
+
+    evidence: list[str] = []
+    counterevidence: list[str] = []
+    if relation == RELATION_SAME_DATE_OVERLAP:
+        evidence.append("same_date_interval_overlap")
+    if covers:
+        evidence.append("event_covers_canonical_interval")
+    if age_tokens and age_group and not age_group_conflict:
+        evidence.append("event_title_age_group_matches")
+    if date_delta_days == 0:
+        evidence.append("same_calendar_date")
+    else:
+        counterevidence.append("event_date_differs_from_canonical")
+    if not covers:
+        counterevidence.append("canonical_slot_not_covered")
+    if age_group_conflict:
+        counterevidence.append("event_title_age_group_differs")
+
+    return {
+        "event_fingerprint": str(event.get("fingerprint") or event_fingerprint(event)),
+        "club": str(event.get("club") or ""),
+        "date": str(event.get("date") or ""),
+        "start": str(event.get("start") or ""),
+        "end": str(event.get("end") or ""),
+        "title": str(event.get("calendar_event") or event.get("title") or ""),
+        "availability": str(event.get("availability") or ""),
+        "relation": relation,
+        "date_delta_days": date_delta_days,
+        "covers_current_interval": bool(covers),
+        "overlaps_current_interval": bool(overlaps),
+        "age_group_conflict": age_group_conflict,
+        "evidence": sorted(evidence),
+        "counterevidence": sorted(counterevidence),
+    }
+
+
+def _assessment_tournament_row(
+    tournament: Mapping[str, Any],
+    *,
+    candidates: list[dict[str, Any]],
+    problem: Mapping[str, Any] | None,
+    decisions: Mapping[str, Any] | None,
+    associated_event: Mapping[str, Any] | None,
+    source_trusted: bool,
+    shared_event_fingerprints: set[str] | None = None,
+) -> dict[str, Any]:
+    tournament_id = str(tournament.get("id") or "")
+    shared_event_fingerprints = shared_event_fingerprints or set()
+    manual = manual_assertion_for_tournament(decisions, tournament_id)
+    manual_stale_reasons = (
+        manual_assertion_stale_reasons(manual, problem=problem, tournament=tournament)
+        if manual is not None
+        else []
+    )
+    if manual is not None and not manual_stale_reasons:
+        classification = ASSESSMENT_MANUALLY_ASSERTED
+    elif associated_event is not None:
+        classification = ASSESSMENT_ASSOCIATED
+    elif not source_trusted:
+        classification = ASSESSMENT_NOT_CHECKABLE
+    elif not candidates:
+        classification = ASSESSMENT_UNMATCHED
+    elif len(candidates) > 1:
+        # Several plausible events map to the same tournament; the assessment
+        # refuses to pick one and leaves the competition visible.
+        classification = ASSESSMENT_COMPETING_CANDIDATES
+    elif candidates[0]["event_fingerprint"] in shared_event_fingerprints:
+        # One event plausibly belongs to more than one tournament (one-to-many
+        # or group booking); do not silently bind it to this row.
+        classification = ASSESSMENT_COMPETING_CANDIDATES
+    else:
+        candidate = candidates[0]
+        if candidate["covers_current_interval"] and candidate["relation"] == RELATION_SAME_DATE_OVERLAP:
+            classification = ASSESSMENT_PROPOSED_UNCHANGED
+        else:
+            classification = ASSESSMENT_PROPOSED_CHANGED_SLOT
+
+    interval = tournament_occupancy_interval_facts(tournament, problem)
+    row: dict[str, Any] = {
+        "tournament_id": tournament_id,
+        "classification": classification,
+        "host_club": str(tournament.get("host_club") or ""),
+        "age_group": str(tournament.get("age_group") or ""),
+        "arena": str(tournament.get("arena") or ""),
+        "date": interval["date"],
+        "start_time": interval["start_time"],
+        "duration_minutes": interval["duration_minutes"],
+        "end_time": interval["end_time"],
+        "canonical_interval": interval,
+        "source_trusted": source_trusted,
+        "proposal_is_binding": False,
+        "candidate_count": len(candidates),
+        "candidates": candidates,
+    }
+    if associated_event is not None:
+        row["associated_event_fingerprint"] = str(
+            associated_event.get("fingerprint") or event_fingerprint(associated_event)
+        )
+    if manual is not None:
+        row["manual_authority"] = str(manual.get("authority") or "")
+        row["manual_booking_status"] = manual_assertion_projection_status(manual)
+        if manual_stale_reasons:
+            row["manual_assertion_stale_reasons"] = manual_stale_reasons
+    return row
+
+
+def booking_assessment(
+    *,
+    problem: Mapping[str, Any] | None,
+    plan: Mapping[str, Any] | None,
+    decisions: Mapping[str, Any] | None,
+    canonical_state_revision: str,
+    season: str = "",
+    clubs: Iterable[str] | None = None,
+    date_window_days: int = DEFAULT_ASSESSMENT_DATE_WINDOW_DAYS,
+) -> dict[str, Any]:
+    """Build a deterministic, read-only tournament<->event booking crosswalk.
+
+    The result is bound to the exact canonical revision and to each club's
+    calendar fingerprint, so a second agent rerunning it against the same frozen
+    inputs reproduces the same classifications.  It never writes canonical
+    state, never confirms a booking and never claims that calendar absence proves
+    a tournament is unbooked -- suspicious/untrusted sources fail closed to
+    ``not_checkable`` and unresolved semantics stay visible.
+    """
+
+    tournaments = list(_tournaments_by_id(plan).values())
+    events = list(iter_events(problem))
+    if clubs is not None:
+        wanted = {str(club) for club in clubs}
+        tournaments = [t for t in tournaments if str(t.get("host_club") or "") in wanted]
+        events = [e for e in events if str(e.get("club") or "") in wanted]
+
+    calendar_status = (problem or {}).get("club_calendar_status") or {}
+    if not isinstance(calendar_status, Mapping):
+        calendar_status = {}
+
+    all_clubs = sorted(
+        {
+            str(t.get("host_club") or "")
+            for t in tournaments
+            if str(t.get("host_club") or "")
+        }
+        | {str(e.get("club") or "") for e in events if str(e.get("club") or "")}
+    )
+
+    sources: dict[str, dict[str, Any]] = {}
+    trusted_clubs: set[str] = set()
+    for club in all_clubs:
+        status = str(calendar_status.get(club) or "missing")
+        trusted = status == "known"
+        if trusted:
+            trusted_clubs.add(club)
+        sources[club] = {
+            "club": club,
+            "status": status,
+            "source_trust": "trusted" if trusted else ("untrusted" if status == "untrusted" else "unknown"),
+            "source_review_required": not trusted,
+            # Absence in an otherwise trustworthy source is still only an
+            # observation about the current slot; a negative booking claim needs
+            # independent proof that the source covered the whole booking window.
+            "trusted_for_negative_claim": False,
+            "event_count": sum(1 for e in events if str(e.get("club") or "") == club),
+            "calendar_fingerprint": club_calendar_fingerprint(problem, club),
+        }
+
+    events_by_club: dict[str, list[dict[str, Any]]] = {}
+    for event in events:
+        events_by_club.setdefault(str(event.get("club") or ""), []).append(event)
+
+    valid_associations = valid_active_associations(decisions, problem=problem, plan=plan)
+    association_by_tournament = {
+        str(record.get("tournament_id") or ""): str(record.get("event_fingerprint") or "")
+        for record in valid_associations
+        if str(record.get("tournament_id") or "")
+    }
+    event_by_fingerprint = {
+        str(event.get("fingerprint") or event_fingerprint(event)): event for event in events
+    }
+
+    tournament_by_id: dict[str, Mapping[str, Any]] = {
+        str(tournament.get("id") or ""): tournament for tournament in tournaments
+    }
+    candidates_by_tournament: dict[str, list[dict[str, Any]]] = {}
+    candidates_by_event: dict[str, list[tuple[str, dict[str, Any]]]] = {}
+    for tournament in tournaments:
+        tournament_id = str(tournament.get("id") or "")
+        club = str(tournament.get("host_club") or "")
+        candidates: list[dict[str, Any]] = []
+        for event in events_by_club.get(club, []):
+            candidate = _assessment_candidate(
+                tournament,
+                event,
+                problem=problem,
+                date_window_days=date_window_days,
+            )
+            if candidate is not None:
+                candidates.append(candidate)
+                candidates_by_event.setdefault(candidate["event_fingerprint"], []).append(
+                    (tournament_id, candidate)
+                )
+        candidates.sort(
+            key=lambda item: (
+                _ASSESSMENT_RELATION_RANK.get(item["relation"], 99),
+                abs(int(item["date_delta_days"])),
+                item["date"],
+                item["start"],
+                item["end"],
+                item["event_fingerprint"],
+            )
+        )
+        candidates_by_tournament[tournament_id] = candidates
+
+    # An event that plausibly belongs to more than one tournament is one-to-many
+    # (or a group booking); every affected tournament competes for it instead of
+    # the assessment silently binding it to whichever row sorts first.
+    shared_event_fingerprints = {
+        event_fp
+        for event_fp, entries in candidates_by_event.items()
+        if len({tournament_id for tournament_id, _ in entries}) > 1
+    }
+
+    tournament_rows: list[dict[str, Any]] = []
+    for tournament_id, tournament in tournament_by_id.items():
+        club = str(tournament.get("host_club") or "")
+        associated_fp = association_by_tournament.get(tournament_id)
+        associated_event = event_by_fingerprint.get(associated_fp) if associated_fp else None
+        tournament_rows.append(
+            _assessment_tournament_row(
+                tournament,
+                candidates=candidates_by_tournament.get(tournament_id, []),
+                problem=problem,
+                decisions=decisions,
+                associated_event=associated_event,
+                source_trusted=club in trusted_clubs,
+                shared_event_fingerprints=shared_event_fingerprints,
+            )
+        )
+    tournament_rows.sort(key=lambda row: row["tournament_id"])
+
+    events_rows: list[dict[str, Any]] = []
+    for event in events:
+        event_fp = str(event.get("fingerprint") or event_fingerprint(event))
+        club = str(event.get("club") or "")
+        candidate_tournaments: list[dict[str, Any]] = []
+        covered_ids: list[str] = []
+        for tournament_id, candidate in candidates_by_event.get(event_fp, []):
+            tournament = tournament_by_id[tournament_id]
+            if candidate["covers_current_interval"]:
+                covered_ids.append(tournament_id)
+            candidate_tournaments.append(
+                {
+                    "tournament_id": tournament_id,
+                    "age_group": str(tournament.get("age_group") or ""),
+                    "arena": str(tournament.get("arena") or ""),
+                    "date": str(tournament.get("date") or ""),
+                    "start_time": str(tournament.get("start_time") or ""),
+                    "relation": candidate["relation"],
+                    "date_delta_days": candidate["date_delta_days"],
+                    "covers_current_interval": candidate["covers_current_interval"],
+                    "age_group_conflict": candidate["age_group_conflict"],
+                }
+            )
+        candidate_tournaments.sort(key=lambda item: (item["date"], item["start_time"], item["tournament_id"]))
+        events_rows.append(
+            {
+                "event_fingerprint": event_fp,
+                "club": club,
+                "date": str(event.get("date") or ""),
+                "start": str(event.get("start") or ""),
+                "end": str(event.get("end") or ""),
+                "title": str(event.get("calendar_event") or event.get("title") or ""),
+                "availability": str(event.get("availability") or ""),
+                "candidate_count": len(candidate_tournaments),
+                "candidate_tournaments": candidate_tournaments,
+                "covered_tournament_ids": sorted(covered_ids),
+                "one_to_many": len(candidate_tournaments) > 1,
+                "group_booking": len(covered_ids) > 1,
+                "unmatched": not candidate_tournaments,
+            }
+        )
+    events_rows.sort(key=lambda row: (row["club"], row["date"], row["start"], row["end"], row["event_fingerprint"]))
+
+    counts: dict[str, int] = {
+        ASSESSMENT_ASSOCIATED: 0,
+        ASSESSMENT_MANUALLY_ASSERTED: 0,
+        ASSESSMENT_PROPOSED_UNCHANGED: 0,
+        ASSESSMENT_PROPOSED_CHANGED_SLOT: 0,
+        ASSESSMENT_COMPETING_CANDIDATES: 0,
+        ASSESSMENT_UNMATCHED: 0,
+        ASSESSMENT_NOT_CHECKABLE: 0,
+    }
+    for row in tournament_rows:
+        counts[row["classification"]] = counts.get(row["classification"], 0) + 1
+    counts["unresolved_tournaments"] = sum(
+        1 for row in tournament_rows if row["classification"] in _ASSESSMENT_UNRESOLVED
+    )
+    counts["unresolved_events"] = sum(
+        1 for row in events_rows if row["unmatched"] or row["one_to_many"]
+    )
+    findings = association_findings(problem=problem, plan=plan, decisions=decisions)
+    counts["stale_associations"] = sum(
+        1 for finding in findings if finding.get("code") == "stale_calendar_booking_association"
+    )
+
+    unresolved = {
+        "tournament_ids": sorted(
+            row["tournament_id"] for row in tournament_rows if row["classification"] in _ASSESSMENT_UNRESOLVED
+        ),
+        "event_fingerprints": sorted(
+            row["event_fingerprint"] for row in events_rows if row["unmatched"] or row["one_to_many"]
+        ),
+    }
+
+    assessment: dict[str, Any] = {
+        "schema_version": ASSESSMENT_SCHEMA_VERSION,
+        "season": season,
+        "canonical_state_revision": str(canonical_state_revision),
+        "date_window_days": int(date_window_days),
+        "clubs": all_clubs,
+        "sources": sources,
+        "tournaments": tournament_rows,
+        "events": events_rows,
+        "counts": counts,
+        "unresolved": unresolved,
+        "findings": findings,
+        "limitations": [
+            "calendar_absence_is_not_proof_the_tournament_is_unbooked",
+            "proposals_are_advisory_until_an_explicit_operator_confirmation",
+            "source_coverage_proof_is_not_established_by_this_assessment",
+        ],
+    }
+    assessment["assessment_fingerprint"] = stable_payload_sha256(assessment)
+    return assessment
