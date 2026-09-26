@@ -859,10 +859,13 @@ def _execute_publish_pages(
                 artifacts=list(bundle_result.artifacts),
             ))
 
+    publication_guard: dict[str, Any] | None = None
     try:
         from .publication_lifecycle import assert_publication_allowed
 
-        assert_publication_allowed(export_dir, repo_dir=repo_dir)
+        publication_guard = assert_publication_allowed(
+            export_dir, repo_dir=repo_dir, branch=branch
+        )
     except Exception as exc:  # noqa: BLE001 - fail closed on a sealed-season guard failure.
         return _with_collision_warning(CapabilityResult.blocked(
             f"Publisering nektet fordi den publiserte sesongen ikke kan forsvars mot den seilede basislinjen: {exc}",
@@ -923,10 +926,24 @@ def _execute_publish_pages(
 
                 seal_report = record_publication_seal(export_dir, repo_dir=repo_dir)
                 if seal_report is not None:
+                    previous = seal_report.get("previous_publication") or {}
+                    delta_summary = (seal_report.get("republish_delta") or {}).get("summary") or {}
                     publish_result.evidence = list(publish_result.evidence) + [
                         f"season_lifecycle_state={seal_report.get('state')}",
                         f"published_baseline_projection={seal_report.get('projection_fingerprint')}",
+                        f"previous_publication_id={previous.get('publication_id')}",
+                        f"republish_added={delta_summary.get('added', 0)}",
+                        f"republish_removed={delta_summary.get('removed', 0)}",
+                        f"republish_changed={delta_summary.get('changed', 0)}",
+                        f"publication_evidence={(seal_report.get('evidence_files') or {}).get('json')}",
                     ]
+                    if isinstance(publication_guard, dict) and publication_guard.get(
+                        "previous_publication"
+                    ):
+                        publish_result.evidence = list(publish_result.evidence) + [
+                            "previous_run_retained="
+                            f"{(publication_guard.get('previous_publication') or {}).get('run_snapshot_retained', 'unknown')}"
+                        ]
             except Exception as exc:  # noqa: BLE001 - publication reached Pages; persistence is now incomplete.
                 publication_state_error = exc
                 publish_result.problems = list(publish_result.problems) + [

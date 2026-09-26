@@ -14,6 +14,7 @@ from tournament_scheduler.pipeline.pages_publish import (
     resolve_urls,
     rollback_to_run,
     target_fingerprint,
+    verify_published_run_snapshot,
 )
 
 
@@ -403,3 +404,126 @@ class TestPublicationHistory:
             ("publish", "run-2"),
             ("publish", "run-1"),
         ]
+
+
+class TestPublishedRunSnapshotVerification:
+    def test_unverifiable_when_not_a_git_repo(self, tmp_path):
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+        report = verify_published_run_snapshot("run-1", repo_dir=str(tmp_path))
+        assert report["verifiable"] is False
+        assert report["retained"] is False
+        assert report["problems"]
+
+    def test_unverifiable_when_branch_does_not_exist(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        report = verify_published_run_snapshot("run-1", repo_dir=str(local))
+        assert report["verifiable"] is False
+        assert report["problems"]
+
+    def test_unverifiable_when_configured_remote_is_unreachable(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+        assert publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local)).status == "ok"
+        # Point the configured remote at a non-existent path: the authoritative
+        # target cannot be refreshed, so the local branch must not be trusted.
+        _git(["remote", "set-url", "origin", str(tmp_path / "missing-remote.git")], cwd=local)
+        report = verify_published_run_snapshot(
+            "run-1", repo_dir=str(local), expected_bundle_fingerprint="bundle-1"
+        )
+        assert report["verifiable"] is False
+        assert report["problems"]
+
+    def test_verifies_run_and_fingerprint(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+        assert (
+            publish(
+                export_dir=str(export_dir),
+                run_id="run-1",
+                repo_dir=str(local),
+                bundle_fingerprint="bundle-1",
+            ).status
+            == "ok"
+        )
+
+        report = verify_published_run_snapshot(
+            "run-1", repo_dir=str(local), expected_bundle_fingerprint="bundle-1"
+        )
+        assert report["verifiable"] is True
+        assert report["retained"] is True
+        assert report["problems"] == []
+        assert report["meta_bundle_fingerprint"] == "bundle-1"
+
+    def test_missing_run_and_fingerprint_mismatch_are_blocking(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+        assert (
+            publish(
+                export_dir=str(export_dir),
+                run_id="run-1",
+                repo_dir=str(local),
+                bundle_fingerprint="bundle-1",
+            ).status
+            == "ok"
+        )
+
+        missing = verify_published_run_snapshot("missing-run", repo_dir=str(local))
+        assert missing["verifiable"] is True
+        assert missing["retained"] is False
+        assert missing["problems"]
+
+        mismatch = verify_published_run_snapshot(
+            "run-1", repo_dir=str(local), expected_bundle_fingerprint="other-bundle"
+        )
+        assert mismatch["retained"] is True
+        assert mismatch["problems"]
+
+    def test_refreshes_the_authoritative_remote_over_a_stale_local_branch(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        first = tmp_path / "export-first"
+        _write_export_bundle(first, content="<h1>first</h1>")
+        second = tmp_path / "export-second"
+        _write_export_bundle(second, content="<h1>second</h1>")
+        assert (
+            publish(
+                export_dir=str(first),
+                run_id="run-1",
+                repo_dir=str(local),
+                bundle_fingerprint="bundle-1",
+            ).status
+            == "ok"
+        )
+        assert (
+            publish(
+                export_dir=str(second),
+                run_id="run-2",
+                repo_dir=str(local),
+                bundle_fingerprint="bundle-2",
+            ).status
+            == "ok"
+        )
+        # Roll the local branch back behind the remote tip: the verification must
+        # still find run-2 by refreshing the authoritative remote target.
+        _git(["branch", "-f", "gh-pages", "gh-pages~1"], cwd=local)
+        report = verify_published_run_snapshot(
+            "run-2", repo_dir=str(local), expected_bundle_fingerprint="bundle-2"
+        )
+        assert report["verifiable"] is True
+        assert report["retained"] is True
+        assert report["problems"] == []
+
+    def test_previous_run_survives_a_later_publish(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        first = tmp_path / "export-first"
+        _write_export_bundle(first, content="<h1>first</h1>")
+        second = tmp_path / "export-second"
+        _write_export_bundle(second, content="<h1>second</h1>")
+        assert publish(export_dir=str(first), run_id="run-1", repo_dir=str(local)).status == "ok"
+        assert publish(export_dir=str(second), run_id="run-2", repo_dir=str(local)).status == "ok"
+
+        assert verify_published_run_snapshot("run-1", repo_dir=str(local))["retained"] is True
+        assert verify_published_run_snapshot("run-2", repo_dir=str(local))["retained"] is True

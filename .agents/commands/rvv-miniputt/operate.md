@@ -59,7 +59,7 @@ Use `.agents/commands/rvv-miniputt/guide.md` as the routing guide and then load 
 - **inspect status/evidence/logs** -> `status.md`, `logs.md`, and repository-owned evidence commands as appropriate.
 - **inspect/seal the published season lifecycle** -> `season.md`; a published season is maintenance-only (`published_sealed`); migrate/backfill a legacy published season with `season seal-published` before treating it as sealed.
 - **export/audit** -> `season.md` plus the semantic audit contract in the RVV skill.
-- **publish/rollback** -> `publish.md`, only after the exact current canonical export has a current semantic audit and the operator explicitly requested the public action.
+- **publish/rollback** -> `publish.md`, only after the exact current canonical export has a current semantic audit and the operator explicitly requested the public action. To **export and republish an already published/sealed season** after approved canonical changes, use `republish.md`: resolve the current published run from authoritative publication history, run `season export` (no replan), inspect `season publication-evidence --json`, audit, then publish only on explicit authorization.
 
 ## Completion standard
 

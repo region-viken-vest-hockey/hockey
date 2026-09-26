@@ -100,6 +100,7 @@ __all__ = [
     "participation_acceptance_id",
     "planning_checkpoint_from_schedule",
     "promote_from_stage3",
+    "publication_evidence_report",
     "record_participation_acceptance",
     "reconcile_config",
     "refresh_calendars",
@@ -964,6 +965,14 @@ def verify_sealed_reconciliation(
     return _service(root).verify_sealed_reconciliation(season)
 
 
+def publication_evidence_report(
+    season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
+) -> dict[str, Any]:
+    """Return the read-only republish/publication evidence report."""
+
+    return _service(root).publication_evidence_report(season)
+
+
 def seal_published_season(
     *,
     season: str,
@@ -976,6 +985,7 @@ def seal_published_season(
     materializations: list[dict[str, Any]] | None = None,
     actor: str | None = None,
     note: str = "",
+    publication_evidence: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Persist the immutable published baseline and seal the season."""
 
@@ -989,6 +999,7 @@ def seal_published_season(
         materializations=materializations or [],
         actor=actor,
         note=note,
+        publication_evidence=publication_evidence,
     )
 
 

@@ -1069,6 +1069,18 @@ def build_parser() -> argparse.ArgumentParser:
     season_lifecycle.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_lifecycle.add_argument("--json", action="store_true", help="Print the lifecycle report as JSON")
 
+    season_publication_evidence = season_sub.add_parser(
+        "publication-evidence",
+        help="Show the retained publication evidence and the published-to-canonical republish delta",
+    )
+    season_publication_evidence.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_publication_evidence.add_argument(
+        "--root", default="season", help="Canonical season-state root (default: season)"
+    )
+    season_publication_evidence.add_argument(
+        "--json", action="store_true", help="Print the publication evidence report as JSON"
+    )
+
     season_seal = season_sub.add_parser(
         "seal-published",
         help=(

@@ -441,6 +441,9 @@ class CanonicalSeasonService:
     def verify_sealed_reconciliation(self, season: str) -> dict[str, Any]:
         return _lifecycle_status.verify_sealed_reconciliation(self, season=season)
 
+    def publication_evidence_report(self, season: str) -> dict[str, Any]:
+        return _lifecycle_status.publication_evidence_report(self, season=season)
+
     def seal_published_season(
         self,
         *,
@@ -453,8 +456,9 @@ class CanonicalSeasonService:
         materializations: list[Mapping[str, Any]] | None = None,
         actor: str | None = None,
         note: str = "",
+        publication_evidence: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
-        return _publication.seal_published_season(self, season=season, publication_id=publication_id, canonical_revision=canonical_revision, published_at=published_at, published_projection=published_projection, publication_canonical_projection=publication_canonical_projection, materializations=materializations or [], actor=actor, note=note)
+        return _publication.seal_published_season(self, season=season, publication_id=publication_id, canonical_revision=canonical_revision, published_at=published_at, published_projection=published_projection, publication_canonical_projection=publication_canonical_projection, materializations=materializations or [], actor=actor, note=note, publication_evidence=publication_evidence)
 
     def reopen_planning(
         self,

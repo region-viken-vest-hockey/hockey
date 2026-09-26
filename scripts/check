@@ -151,8 +151,18 @@ run_named_phase() {
       # One run over every hermetic test: quick + slow + integration. The
       # command-line -m overrides the addopts default so nothing is skipped
       # twice, and durations make a performance regression visible.
+      #
+      # Inside `scripts/check full`, the very next phase (rules-report)
+      # rebuilds the canonical plan from scratch and re-verifies this exact
+      # test, so RVV_CHECK_SKIP_RULES_REPORT_DUP=1 (set only by run_full)
+      # deselects it here to avoid paying its ~100s+ real-search cost twice.
+      # Standalone `scripts/check full-tests` still covers it.
+      local deselect_args=()
+      if [[ "${RVV_CHECK_SKIP_RULES_REPORT_DUP:-}" == "1" ]]; then
+        deselect_args=(--deselect "tests/test_rules_report_doc.py::test_rules_report_markdown_matches_committed_doc")
+      fi
       run_phase "Full hermetic test suite (quick + slow + integration)" \
-        "$PYTHON_CMD" -m pytest --no-cov -q --durations=25 -m "not live and not harness"
+        "$PYTHON_CMD" -m pytest --no-cov -q --durations=25 -m "not live and not harness" "${deselect_args[@]}"
       ;;
     full)
       run_full
@@ -210,7 +220,11 @@ run_all() {
 run_full() {
   local phases=(lint full-tests rules-report rule-catalog architecture-docs)
   for named_phase in "${phases[@]}"; do
-    run_named_phase "$named_phase"
+    if [[ "$named_phase" == "full-tests" ]]; then
+      RVV_CHECK_SKIP_RULES_REPORT_DUP=1 run_named_phase "$named_phase"
+    else
+      run_named_phase "$named_phase"
+    fi
   done
 }
 

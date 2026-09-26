@@ -1675,6 +1675,67 @@ def _cmd_season(args: argparse.Namespace) -> int:
                         )
             return 0
 
+        if args.season_command == "publication-evidence":
+            from ..season_state import publication_evidence_report
+
+            report = publication_evidence_report(args.season, root=args.root)
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                active = report.get("active_publication")
+                _console.print(
+                    f"[bold]Publiseringsevidence {args.season}[/bold]: {report['state']}"
+                )
+                if active is None:
+                    _console.print("  Ingen aktiv publisert basislinje.")
+                else:
+                    evidence = active.get("publication_evidence") or {}
+                    _console.print(
+                        f"  aktiv publisering: {active.get('publication_id')} "
+                        f"(revisjon {active.get('canonical_revision')}, "
+                        f"kjøring {evidence.get('run_id') or 'ukjent'})"
+                    )
+                    previous = active.get("previous_publication")
+                    if previous:
+                        _console.print(
+                            f"  erstattet: {previous.get('publication_id')} "
+                            f"(kjøring {(previous.get('publication_evidence') or {}).get('run_id') or 'ukjent'})"
+                        )
+                    summary = (report.get("published_to_canonical_delta") or {}).get("summary") or {}
+                    if report.get("blocked"):
+                        _console.print(
+                            "  [red]✗[/red] avvik kan ikke beregnes: "
+                            f"{report.get('delta_error')}"
+                        )
+                    else:
+                        _console.print(
+                            "  avvik publisert -> kanonisk: "
+                            f"+{summary.get('added', 0)} -{summary.get('removed', 0)} "
+                            f"~{summary.get('changed', 0)} "
+                            f"({summary.get('unchanged', 0)} uendret)"
+                        )
+                    decision_changes = report.get("decision_changes") or {}
+                    if decision_changes and not decision_changes.get("available", True):
+                        _console.print(
+                            "  beslutningsendringer: ikke tilgjengelig "
+                            f"({decision_changes.get('reason')})"
+                        )
+                    elif decision_changes:
+                        protections = decision_changes.get("change_protections") or {}
+                        constraints = decision_changes.get("request_constraints") or {}
+                        _console.print(
+                            "  beslutningsendringer: "
+                            f"{len(decision_changes.get('approval_changes') or [])} godkjenning(er), "
+                            f"{len(decision_changes.get('booking_changes') or [])} booking, "
+                            f"{len(protections.get('added') or [])} nye / "
+                            f"{len(protections.get('removed') or [])} fjernede beskyttelser, "
+                            f"{len(constraints.get('added') or [])} nye / "
+                            f"{len(constraints.get('removed') or [])} fjernede krav"
+                        )
+                retained = report.get("retained_evidence") or []
+                _console.print(f"  lagret evidence: {len(retained)} fil(er)")
+            return 0
+
         if args.season_command == "seal-published":
             from ..infrastructure.canonical_revision_history import load_canonical_schedule_at_revision
             from ..pipeline.export_lifecycle import find_published_exports_for_season
