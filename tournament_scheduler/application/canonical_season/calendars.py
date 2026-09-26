@@ -12,7 +12,6 @@ from typing import Any, Mapping
 from tournament_scheduler.calendar_bookings import (
     BOOKING_AMBIGUOUS,
     BOOKING_CONFIRMED_BOOKED,
-    BOOKING_CONFIRMED_NOT_BOOKED,
     BOOKING_NOT_CHECKABLE,
     CALENDAR_BOOKING_ASSOCIATIONS_KEY,
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
@@ -439,6 +438,13 @@ def reconcile_calendar_bookings(
     merely overlaps a tournament is recorded as ``ambiguous`` so the operator /
     harness can own the semantic match through ``confirm-calendar-booking``;
     only an already-valid explicit association is reported ``confirmed_booked``.
+
+    Absence of an overlapping event is an observation about the *current*
+    canonical interval, not a booking outcome for the tournament: the booking
+    may have moved, the calendar may be incomplete, or attribution may be
+    unresolved.  It is therefore recorded as ``ambiguous`` for every approval
+    state, and only explicit source-supported negative/rejection evidence may
+    ever assert ``confirmed_not_booked``.
     """
 
     snapshot = service.load(season)
@@ -485,12 +491,16 @@ def reconcile_calendar_bookings(
                 reason = "single_overlapping_event_requires_confirmation"
             elif len(overlaps) == 0:
                 matched_event = None
+                # No event covers the *current* canonical interval. That is a
+                # statement about this slot, not proof that the tournament is
+                # unbooked elsewhere. Keep it as ambiguity that requires review
+                # instead of a final negative; a changed slot, incomplete source
+                # or incomplete attribution must remain visible.
+                booking_status = BOOKING_AMBIGUOUS
                 if _approved_placement_locked(decisions, tournament_id):
-                    booking_status = BOOKING_AMBIGUOUS
                     reason = "approved_placement_without_calendar_evidence"
                 else:
-                    booking_status = BOOKING_CONFIRMED_NOT_BOOKED
-                    reason = "no_overlapping_event_in_trustworthy_calendar"
+                    reason = "no_covering_event_for_current_slot"
             else:
                 booking_status = BOOKING_AMBIGUOUS
                 matched_event = None

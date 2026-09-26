@@ -25,6 +25,19 @@ BOOKING_UNKNOWN = "unknown"
 
 _ATTENTION_BOOKING_STATUSES = {BOOKING_CONFIRMED_NOT_BOOKED, BOOKING_AMBIGUOUS, BOOKING_NOT_CHECKABLE, STALE}
 
+# A ``confirmed_not_booked`` record is authoritative only when an explicit
+# source/operator rejected the booking. These reasons instead derive the
+# conclusion from the absence of an overlapping event at the current canonical
+# slot, which is an observation about that slot rather than proof about the
+# tournament. The projection keeps them as ambiguity requiring review.
+_ABSENCE_ONLY_NEGATIVE_REASONS = frozenset(
+    {
+        "no_overlapping_event_in_trustworthy_calendar",
+        "no_covering_event_for_current_slot",
+        "approved_placement_without_calendar_evidence",
+    }
+)
+
 
 def event_fingerprint(event: Mapping[str, Any]) -> str:
     """Return the stable identity for one normalized calendar interval."""
@@ -427,6 +440,17 @@ def booking_status_report(
                 # requiring review instead of staying confirmed.
                 status = BOOKING_AMBIGUOUS
                 stale_reasons = ["confirmed_booking_without_valid_association"]
+            elif (
+                record_status == BOOKING_CONFIRMED_NOT_BOOKED
+                and str(record.get("reason") or "") in _ABSENCE_ONLY_NEGATIVE_REASONS
+            ):
+                # Absence of an event at the current canonical slot is not
+                # authoritative negative evidence: the booking may have moved or
+                # the source may be incomplete. Surface it as ambiguity instead of
+                # a final "not booked" outcome; the raw evidence stays visible in
+                # ``row`` for provenance.
+                status = BOOKING_AMBIGUOUS
+                stale_reasons = ["absence_only_negative_booking_requires_review"]
             else:
                 status = record_status
         row = {
