@@ -524,6 +524,54 @@ def test_ledger_resets_visited_states_at_baseline_boundary() -> None:
     assert not ledger.has_visited("first-pass-baseline")
 
 
+def test_audit_blocks_on_unresolved_mandatory_operational_finding() -> None:
+    plan, problem = _wide_gap_season()
+    verification = verify_candidate(plan, problem)
+
+    report = season_wide_audit(
+        plan=plan,
+        findings=[
+            {
+                "finding_id": "unplaced_placement:U10:2026-10-10:1",
+                "code": "unplaced_tournament_placement",
+                "severity": "unresolved",
+            }
+        ],
+        verification=verification,
+        reconciliation={"ok": True},
+        catalog=[CATALOG_BY_ID["tournament_placement_obligation"]],
+    )
+
+    assert report["status"] == "FAIL"
+    assert report["ok"] is False
+    assert report["mandatory_finding_checks"] == ["tournament_placement_obligation"]
+    assert any("unresolved mandatory obligation" in reason for reason in report["reasons"])
+
+
+def test_audit_does_not_count_an_accepted_obligation_as_blocking() -> None:
+    plan, problem = _wide_gap_season()
+    verification = verify_candidate(plan, problem)
+
+    report = season_wide_audit(
+        plan=plan,
+        findings=[
+            {
+                "finding_id": "unplaced_placement:U10:2026-10-10:1",
+                "code": "unplaced_tournament_placement",
+                "rule_id": "tournament_placement_obligation",
+                "severity": "unresolved",
+                "accepted": True,
+            }
+        ],
+        verification=verification,
+        reconciliation={"ok": True},
+        catalog=[CATALOG_BY_ID["tournament_placement_obligation"]],
+    )
+
+    assert report["status"] == "PASS"
+    assert report["accepted_exceptions"] == ["tournament_placement_obligation"]
+
+
 def test_travel_measurement_unavailable_blocks_adoption(monkeypatch) -> None:
     before, problem = _wide_gap_season()
     candidate = _tightened_candidate()

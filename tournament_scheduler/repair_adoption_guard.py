@@ -1061,6 +1061,12 @@ def season_wide_audit(
     incomplete = [check for check in checks if check["status"] == "incomplete" and check["mandatory"]]
     violations = [check for check in checks if check["status"] == "violation"]
     accepted = [check for check in checks if check["status"] == "accepted_exception"]
+    # A catalogued mandatory check that resolved to an unresolved finding is a
+    # blocker regardless of the finding's severity label: an operational
+    # obligation is not a soft preference, so it must not be reported as a pass.
+    mandatory_findings = [
+        check for check in checks if check["status"] == "finding" and check["mandatory"]
+    ]
     soft_findings = [
         check for check in checks if check["status"] == "finding" and not check["mandatory"]
     ]
@@ -1091,6 +1097,7 @@ def season_wide_audit(
         verification_ok
         and coverage_ok
         and not violations
+        and not mandatory_findings
         and not blocking_findings
         and reconciliation_ok is True
         and revision_matches
@@ -1106,6 +1113,11 @@ def season_wide_audit(
     if violations:
         reasons.append(
             "hard violation(s): " + ", ".join(check["rule_id"] for check in violations)
+        )
+    if mandatory_findings:
+        reasons.append(
+            "unresolved mandatory obligation(s): "
+            + ", ".join(check["rule_id"] for check in mandatory_findings)
         )
     if blocking_findings:
         reasons.append(f"{len(blocking_findings)} unresolved hard finding(s)")
@@ -1134,6 +1146,7 @@ def season_wide_audit(
         "checks": checks,
         "incomplete_checks": [check["rule_id"] for check in incomplete],
         "violation_checks": [check["rule_id"] for check in violations],
+        "mandatory_finding_checks": [check["rule_id"] for check in mandatory_findings],
         "soft_finding_checks": [check["rule_id"] for check in soft_findings],
         "accepted_exceptions": [check["rule_id"] for check in accepted],
         "blocking_finding_count": len(blocking_findings),
