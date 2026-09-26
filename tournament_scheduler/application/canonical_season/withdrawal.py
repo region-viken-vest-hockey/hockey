@@ -455,6 +455,7 @@ def _release_withdrawals_decision_only(
             "restored_participants": False,
         },
     )
+    working["updated_at"] = now
     committed = service._commit(snapshot.with_decisions(working))
     return {
         "season": season,
