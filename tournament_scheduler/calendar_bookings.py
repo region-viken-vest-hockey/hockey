@@ -15,6 +15,21 @@ from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 CALENDAR_BOOKING_ASSOCIATIONS_KEY = "calendar_booking_associations"
 TOURNAMENT_BOOKING_EVIDENCE_KEY = "tournament_booking_evidence"
+# Explicit operator/club assertions live in their own durable decisions key so a
+# routine calendar reconcile/refresh that rewrites ``TOURNAMENT_BOOKING_EVIDENCE_KEY``
+# can never erase or demote them.  A manual assertion is a statement about the
+# booking whose authority is a person, not an event fingerprint.  The projection
+# keeps that typed authority distinct from a calendar-derived observation.
+MANUAL_BOOKING_ASSERTIONS_KEY = "manual_booking_assertions"
+MANUAL_SOURCE_CLUB_CONFIRMATION = "manual_club_confirmation"
+MANUAL_ASSERTION_ACTIVE = "active"
+MANUAL_ASSERTION_SUPERSEDED = "superseded"
+MANUAL_ASSERTION_REVOKED = "revoked"
+MANUAL_ASSERTION_SCOPES = ("tournament", "club_wide_interpretation")
+BOOKING_AUTHORITY_MANUAL = MANUAL_SOURCE_CLUB_CONFIRMATION
+BOOKING_AUTHORITY_CALENDAR = "calendar_event_association"
+BOOKING_MANUALLY_BOOKED = "manually_booked"
+BOOKING_MANUALLY_NOT_BOOKED = "manually_not_booked"
 ACTIVE = "active"
 STALE = "stale"
 BOOKING_CONFIRMED_BOOKED = "confirmed_booked"
@@ -22,8 +37,23 @@ BOOKING_CONFIRMED_NOT_BOOKED = "confirmed_not_booked"
 BOOKING_AMBIGUOUS = "ambiguous"
 BOOKING_NOT_CHECKABLE = "not_checkable"
 BOOKING_UNKNOWN = "unknown"
+BOOKING_MANUAL_UNKNOWN = "manual_unknown"
 
-_ATTENTION_BOOKING_STATUSES = {BOOKING_CONFIRMED_NOT_BOOKED, BOOKING_AMBIGUOUS, BOOKING_NOT_CHECKABLE, STALE}
+_STATUS_BOOKED = "booked"
+_STATUS_NOT_BOOKED = "not-booked"
+MANUAL_BOOKING_STATUS_CHOICES = (_STATUS_BOOKED, _STATUS_NOT_BOOKED)
+_MANUAL_CHOICE_TO_PROJECTION = {
+    _STATUS_BOOKED: BOOKING_MANUALLY_BOOKED,
+    _STATUS_NOT_BOOKED: BOOKING_MANUALLY_NOT_BOOKED,
+}
+
+_ATTENTION_BOOKING_STATUSES = {
+    BOOKING_CONFIRMED_NOT_BOOKED,
+    BOOKING_AMBIGUOUS,
+    BOOKING_NOT_CHECKABLE,
+    STALE,
+    BOOKING_MANUALLY_NOT_BOOKED,
+}
 
 # A ``confirmed_not_booked`` record is authoritative only when an explicit
 # source/operator rejected the booking. These reasons instead derive the
@@ -104,6 +134,163 @@ def active_associations(decisions: Mapping[str, Any] | None) -> list[dict[str, A
         for record in ((decisions or {}).get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or [])
         if isinstance(record, Mapping) and record.get("status", ACTIVE) == ACTIVE
     ]
+
+
+def manual_assertion_records(decisions: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    """Return every persisted manual booking assertion, newest state preserved."""
+
+    return [
+        dict(record)
+        for record in ((decisions or {}).get(MANUAL_BOOKING_ASSERTIONS_KEY) or [])
+        if isinstance(record, Mapping)
+    ]
+
+
+def active_manual_assertions(decisions: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    return [
+        record
+        for record in manual_assertion_records(decisions)
+        if str(record.get("status") or "") == MANUAL_ASSERTION_ACTIVE
+    ]
+
+
+def manual_assertion_for_tournament(
+    decisions: Mapping[str, Any] | None,
+    tournament_id: str,
+) -> dict[str, Any] | None:
+    """Return the newest active manual assertion for one tournament, if any."""
+
+    matches = [
+        record
+        for record in active_manual_assertions(decisions)
+        if str(record.get("tournament_id") or "") == tournament_id
+    ]
+    if not matches:
+        return None
+    return sorted(matches, key=lambda record: str(record.get("asserted_at") or ""))[-1]
+
+
+def manual_assertion_projection_status(assertion: Mapping[str, Any]) -> str:
+    """Map a persisted manual assertion to its booking-status projection."""
+
+    return _MANUAL_CHOICE_TO_PROJECTION.get(
+        str(assertion.get("booking_status") or ""),
+        BOOKING_MANUAL_UNKNOWN,
+    )
+
+
+def _manual_assertion_stale_reasons(
+    assertion: Mapping[str, Any],
+    *,
+    problem: Mapping[str, Any] | None,
+    tournament: Mapping[str, Any] | None,
+) -> list[str]:
+    """Return why a manual assertion no longer describes the canonical slot.
+
+    A material change to the occupied interval (date/start/duration/end) or any
+    other tournament fact invalidates the assertion: the operator confirmed a
+    specific slot, so the same statement must not silently carry to a new one.
+    """
+
+    if tournament is None:
+        return ["tournament_missing"]
+    reasons: list[str] = []
+    facts = assertion.get("tournament_facts") or {}
+    for key, value in tournament_booking_facts(tournament).items():
+        if str(facts.get(key) or "") != value:
+            reasons.append(f"tournament_{key}_changed")
+    stored_interval = assertion.get("asserted_interval") or {}
+    current_interval = tournament_occupancy_interval_facts(tournament, problem)
+    for key in ("date", "start_time", "duration_minutes", "end_time"):
+        if str(stored_interval.get(key) or "") != current_interval[key]:
+            reasons.append(f"tournament_{key}_changed")
+    return sorted(set(reasons))
+
+
+def _normalized_stated_interval(stated_interval: Mapping[str, Any] | None) -> dict[str, str]:
+    """Normalize an optional source-stated interval for durable comparison."""
+
+    if not isinstance(stated_interval, Mapping):
+        return {}
+    start = str(stated_interval.get("start") or "")
+    end = str(stated_interval.get("end") or "")
+    date = str(stated_interval.get("date") or "")
+    duration = 0
+    if start and end:
+        start_minutes = _parse_hhmm(start)
+        end_minutes = _parse_hhmm(end)
+        if start_minutes is not None and end_minutes is not None and end_minutes >= start_minutes:
+            duration = end_minutes - start_minutes
+    return {"date": date, "start": start, "end": end, "duration_minutes": str(duration)}
+
+
+def manual_assertion_interval_follow_up(assertion: Mapping[str, Any]) -> list[str]:
+    """Return follow-up reasons for a stated interval that differs from canonical.
+
+    A source may explicitly state an interval that disagrees with the canonical
+    occupancy (for example a 75-minute emailed booking against a 100-minute
+    canonical block).  The assertion stays booked; the discrepancy is surfaced
+    as follow-up instead of silently shrinking the canonical occupancy.
+    """
+
+    if manual_assertion_projection_status(assertion) != BOOKING_MANUALLY_BOOKED:
+        return []
+    stated = _normalized_stated_interval(assertion.get("stated_interval"))
+    if not any(stated.get(key) for key in ("date", "start", "end")):
+        return []
+    canonical = assertion.get("asserted_interval") or {}
+    reasons: list[str] = []
+    if stated.get("date") and stated["date"] != str(canonical.get("date") or ""):
+        reasons.append("manual_booking_stated_date_differs_from_canonical")
+    if stated.get("start") and stated["start"] != str(canonical.get("start_time") or ""):
+        reasons.append("manual_booking_stated_start_differs_from_canonical")
+    if stated.get("end") and stated["end"] != str(canonical.get("end_time") or ""):
+        reasons.append("manual_booking_stated_end_differs_from_canonical")
+    return reasons
+
+
+def new_manual_assertion_record(
+    *,
+    tournament: Mapping[str, Any],
+    booking_status: str,
+    problem: Mapping[str, Any] | None,
+    actor: str,
+    note: str,
+    reference: str,
+    source_scope: str,
+    stated_interval: Mapping[str, Any] | None,
+    asserted_at: str,
+    source_revision: str,
+    supersedes: str | None = None,
+) -> dict[str, Any]:
+    """Build one durable, revision-bound manual booking assertion record."""
+
+    tournament_id = str(tournament.get("id") or "")
+    if booking_status not in _MANUAL_CHOICE_TO_PROJECTION:
+        raise ValueError(f"Unknown manual booking status: {booking_status!r}")
+    return {
+        "id": f"manual_booking:{tournament_id}:{asserted_at}",
+        "schema_version": 1,
+        "status": MANUAL_ASSERTION_ACTIVE,
+        "booking_status": booking_status,
+        "authority": BOOKING_AUTHORITY_MANUAL,
+        "source": MANUAL_SOURCE_CLUB_CONFIRMATION,
+        "source_scope": source_scope if source_scope in MANUAL_ASSERTION_SCOPES else "tournament",
+        "tournament_id": tournament_id,
+        "host_club": str(tournament.get("host_club") or ""),
+        "arena": str(tournament.get("arena") or ""),
+        "date": str(tournament.get("date") or ""),
+        "start_time": str(tournament.get("start_time") or ""),
+        "tournament_facts": tournament_booking_facts(tournament),
+        "asserted_interval": tournament_occupancy_interval_facts(tournament, problem),
+        "stated_interval": _normalized_stated_interval(stated_interval),
+        "reference": str(reference or ""),
+        "note": note or "",
+        "asserted_at": asserted_at,
+        "asserted_by": actor,
+        "source_revision": source_revision,
+        "supersedes": supersedes,
+    }
 
 
 def _tournaments_by_id(plan: Mapping[str, Any] | None) -> dict[str, Mapping[str, Any]]:
@@ -390,6 +577,47 @@ def _booking_record_stale_reasons(
     return sorted(set(reasons))
 
 
+def _projected_calendar_status(
+    record: Mapping[str, Any] | None,
+    *,
+    tournament_id: str,
+    problem: Mapping[str, Any] | None,
+    tournaments: Mapping[str, Mapping[str, Any]],
+    active_assoc_ids: set[str],
+    assoc_stale_by_tournament: set[str],
+) -> tuple[str, list[str]]:
+    """Project one calendar-derived evidence record to an effective status.
+
+    Kept as the single implementation of the calendar-observation downgrades so
+    the manual-assertion branch and the calendar-only branch agree on what a
+    stored record actually means.
+    """
+
+    if tournament_id in active_assoc_ids:
+        return BOOKING_CONFIRMED_BOOKED, []
+    if tournament_id in assoc_stale_by_tournament:
+        return STALE, ["calendar_booking_association_stale"]
+    if record is None:
+        return BOOKING_UNKNOWN, []
+    stale_reasons = _booking_record_stale_reasons(record, problem=problem, tournaments=tournaments)
+    if stale_reasons:
+        return STALE, stale_reasons
+    record_status = str(record.get("status") or BOOKING_UNKNOWN)
+    if record_status == BOOKING_CONFIRMED_BOOKED:
+        # ``confirmed_booked`` is a statement about *current* proof: it requires
+        # a currently-valid explicit event-to-tournament association (handled
+        # above). A legacy single-overlap positive record, or one whose
+        # association was released without rebinding, is only weak positive
+        # evidence and must surface as requiring review.
+        return BOOKING_AMBIGUOUS, ["confirmed_booking_without_valid_association"]
+    if record_status == BOOKING_CONFIRMED_NOT_BOOKED and str(record.get("reason") or "") in _ABSENCE_ONLY_NEGATIVE_REASONS:
+        # Absence of an event at the current canonical slot is not authoritative
+        # negative evidence: the booking may have moved or the source may be
+        # incomplete. Surface it as ambiguity requiring review instead.
+        return BOOKING_AMBIGUOUS, ["absence_only_negative_booking_requires_review"]
+    return record_status, []
+
+
 def booking_status_report(
     *,
     problem: Mapping[str, Any] | None,
@@ -415,57 +643,91 @@ def booking_status_report(
             latest[tid] = dict(record)
 
     rows: list[dict[str, Any]] = []
-    counts = {BOOKING_UNKNOWN: 0, BOOKING_CONFIRMED_BOOKED: 0, BOOKING_CONFIRMED_NOT_BOOKED: 0, BOOKING_AMBIGUOUS: 0, BOOKING_NOT_CHECKABLE: 0, STALE: 0, "needs_attention": 0}
+    counts: dict[str, int] = {
+        BOOKING_UNKNOWN: 0,
+        BOOKING_CONFIRMED_BOOKED: 0,
+        BOOKING_CONFIRMED_NOT_BOOKED: 0,
+        BOOKING_AMBIGUOUS: 0,
+        BOOKING_NOT_CHECKABLE: 0,
+        STALE: 0,
+        BOOKING_MANUALLY_BOOKED: 0,
+        BOOKING_MANUALLY_NOT_BOOKED: 0,
+        "manual": 0,
+        "conflicts": 0,
+        "needs_attention": 0,
+    }
     for tid, tournament in sorted(tournaments.items()):
-        record = latest.get(tid)
-        status = BOOKING_UNKNOWN
+        calendar_record = latest.get(tid)
+        calendar_status, calendar_stale_reasons = _projected_calendar_status(
+            calendar_record,
+            tournament_id=tid,
+            problem=problem,
+            tournaments=tournaments,
+            active_assoc_ids=active_assoc_ids,
+            assoc_stale_by_tournament=assoc_stale_by_tournament,
+        )
+        manual = manual_assertion_for_tournament(decisions, tid)
+        authority: str | None = None
         stale_reasons: list[str] = []
-        if tid in active_assoc_ids:
-            status = BOOKING_CONFIRMED_BOOKED
-        elif tid in assoc_stale_by_tournament:
-            status = STALE
-            stale_reasons = ["calendar_booking_association_stale"]
-        elif record:
-            stale_reasons = _booking_record_stale_reasons(record, problem=problem, tournaments=tournaments)
-            record_status = str(record.get("status") or BOOKING_UNKNOWN)
-            if stale_reasons:
+        follow_up_reasons: list[str] = []
+        conflict = False
+        if manual is not None:
+            authority = BOOKING_AUTHORITY_MANUAL
+            counts["manual"] += 1
+            manual_stale = _manual_assertion_stale_reasons(manual, problem=problem, tournament=tournament)
+            if manual_stale:
+                # The operator confirmed a specific slot; a changed canonical
+                # slot invalidates the assertion rather than carrying it along.
                 status = STALE
-            elif record_status == BOOKING_CONFIRMED_BOOKED:
-                # Historical evidence is preserved in ``row["evidence"]``, but
-                # ``confirmed_booked`` is a statement about *current* proof: it
-                # requires a currently-valid explicit event-to-tournament
-                # association (handled above). A legacy single-overlap positive
-                # record, or one whose association was released without
-                # rebinding, is only weak positive evidence and must surface as
-                # requiring review instead of staying confirmed.
-                status = BOOKING_AMBIGUOUS
-                stale_reasons = ["confirmed_booking_without_valid_association"]
-            elif (
-                record_status == BOOKING_CONFIRMED_NOT_BOOKED
-                and str(record.get("reason") or "") in _ABSENCE_ONLY_NEGATIVE_REASONS
-            ):
-                # Absence of an event at the current canonical slot is not
-                # authoritative negative evidence: the booking may have moved or
-                # the source may be incomplete. Surface it as ambiguity instead of
-                # a final "not booked" outcome; the raw evidence stays visible in
-                # ``row`` for provenance.
-                status = BOOKING_AMBIGUOUS
-                stale_reasons = ["absence_only_negative_booking_requires_review"]
+                stale_reasons = manual_stale
             else:
-                status = record_status
-        row = {
-            "tournament_id": tid,
-            "status": status,
-            "host_club": str(tournament.get("host_club") or ""),
-            "age_group": str(tournament.get("age_group") or ""),
-            "arena": str(tournament.get("arena") or ""),
-            "date": str(tournament.get("date") or ""),
-            "start_time": str(tournament.get("start_time") or ""),
-            "needs_attention": status in _ATTENTION_BOOKING_STATUSES,
-            "stale_reasons": stale_reasons,
-        }
-        if record:
-            row["evidence"] = record
+                status = manual_assertion_projection_status(manual)
+                follow_up_reasons = manual_assertion_interval_follow_up(manual)
+                if status == BOOKING_MANUALLY_BOOKED and calendar_status == BOOKING_CONFIRMED_NOT_BOOKED:
+                    conflict = True
+                    follow_up_reasons.append("calendar_negative_conflicts_with_manual_booking")
+                elif status == BOOKING_MANUALLY_NOT_BOOKED and calendar_status == BOOKING_CONFIRMED_BOOKED:
+                    conflict = True
+                    follow_up_reasons.append("calendar_association_conflicts_with_manual_rejection")
+            row = {
+                "tournament_id": tid,
+                "status": status,
+                "authority": authority,
+                "host_club": str(tournament.get("host_club") or ""),
+                "age_group": str(tournament.get("age_group") or ""),
+                "arena": str(tournament.get("arena") or ""),
+                "date": str(tournament.get("date") or ""),
+                "start_time": str(tournament.get("start_time") or ""),
+                "needs_attention": status in _ATTENTION_BOOKING_STATUSES or bool(follow_up_reasons),
+                "stale_reasons": stale_reasons,
+                "follow_up_reasons": follow_up_reasons,
+                "calendar_status": calendar_status,
+                "evidence": manual,
+            }
+            if calendar_record:
+                row["calendar_evidence"] = calendar_record
+        else:
+            status = calendar_status
+            authority = BOOKING_AUTHORITY_CALENDAR if status == BOOKING_CONFIRMED_BOOKED else None
+            stale_reasons = calendar_stale_reasons
+            row = {
+                "tournament_id": tid,
+                "status": status,
+                "authority": authority,
+                "host_club": str(tournament.get("host_club") or ""),
+                "age_group": str(tournament.get("age_group") or ""),
+                "arena": str(tournament.get("arena") or ""),
+                "date": str(tournament.get("date") or ""),
+                "start_time": str(tournament.get("start_time") or ""),
+                "needs_attention": status in _ATTENTION_BOOKING_STATUSES,
+                "stale_reasons": stale_reasons,
+                "follow_up_reasons": [],
+                "calendar_status": status,
+            }
+            if calendar_record:
+                row["evidence"] = calendar_record
+        if conflict:
+            counts["conflicts"] += 1
         rows.append(row)
         counts.setdefault(status, 0)
         counts[status] += 1

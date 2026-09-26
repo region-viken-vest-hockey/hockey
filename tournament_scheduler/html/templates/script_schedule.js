@@ -252,7 +252,9 @@ function render() {
     if (t.bs) {
       var bookingLabels = {
         confirmed_booked: 'BOOKET BEKREFTET',
+        manually_booked: 'BOOKET (MANUELT BEKREFTET)',
         confirmed_not_booked: 'IKKE BOOKET',
+        manually_not_booked: 'IKKE BOOKET (MANUELT AVVIST)',
         unknown: 'IKKE KONTROLLERT',
         not_checkable: 'IKKE KONTROLLERBAR',
         ambiguous: 'UKLAR BOOKING',

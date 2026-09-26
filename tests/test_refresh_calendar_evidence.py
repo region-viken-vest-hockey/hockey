@@ -5,12 +5,14 @@ from pathlib import Path
 
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.season_state import (
+    booking_status_report,
     canonical_state_revision,
     load_decisions,
     load_schedule,
     promote_from_stage3,
     refresh_calendars,
     schedule_fingerprint,
+    set_manual_booking_assertion,
 )
 from tournament_scheduler.testing.reviewed_export import build_problem_from_candidate, write_reviewed_stage4_export
 
@@ -175,3 +177,34 @@ def test_refresh_calendars_new_conflict_is_not_hidden_by_approval(tmp_path: Path
     ]
     after_decisions = load_decisions("2026-2027", root=root)
     assert after_decisions["decisions"]["u10-a-20260912"]["status"] == "approved"
+
+
+def test_refresh_calendars_preserves_manual_booking_assertion(tmp_path: Path, monkeypatch) -> None:
+    """A calendar refresh must not erase or demote an explicit manual assertion."""
+
+    from tournament_scheduler.calendar_bookings import MANUAL_BOOKING_ASSERTIONS_KEY
+
+    root = _promote(tmp_path)
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="u10-a-20260912",
+        booking_status="booked",
+        actor="booker",
+        note="club confirmed by email; public calendar is not maintained",
+        reference="email:1",
+    )
+    before = booking_status_report(season="2026-2027", root=root)
+    assert before["tournaments"][0]["status"] == "manually_booked"
+
+    _patch_refresh_inputs(monkeypatch, busy=True)
+    refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    decisions = load_decisions("2026-2027", root=root)
+    records = decisions[MANUAL_BOOKING_ASSERTIONS_KEY]
+    assert [record["status"] for record in records] == ["active"]
+    assert records[0]["authority"] == "manual_club_confirmation"
+    after = booking_status_report(season="2026-2027", root=root)
+    row = after["tournaments"][0]
+    assert row["status"] == "manually_booked"
+    assert row["authority"] == "manual_club_confirmation"

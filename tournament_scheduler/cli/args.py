@@ -1208,6 +1208,69 @@ def build_parser() -> argparse.ArgumentParser:
     season_booking_status.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_status.add_argument("--json", action="store_true", help="Print structured JSON")
 
+    season_booking_set = season_sub.add_parser(
+        "booking-set",
+        help=(
+            "Record an explicit operator/club booking assertion for one tournament "
+            "without scraping; durable against calendar reconcile/refresh"
+        ),
+    )
+    season_booking_set.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_booking_set.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_booking_set.add_argument("--tournament-id", required=True, help="Canonical tournament id")
+    season_booking_set.add_argument(
+        "--status",
+        required=True,
+        choices=("booked", "not-booked"),
+        help="Manual conclusion: booked or not-booked/rejected",
+    )
+    season_booking_set.add_argument("--actor", default=None, help="Operator identity")
+    season_booking_set.add_argument("--note", default="", help="Audited rationale for this assertion")
+    season_booking_set.add_argument("--reference", default="", help="Source reference, e.g. email id/date/sender")
+    season_booking_set.add_argument(
+        "--source-scope",
+        default="tournament",
+        choices=("tournament", "club_wide_interpretation"),
+        help=(
+            "Whether this is a direct per-tournament assertion or one deliberately "
+            "accepted interpretation of a club-wide statement"
+        ),
+    )
+    season_booking_set.add_argument(
+        "--stated-start",
+        default=None,
+        help="Optional source-stated start time HH:MM (recorded separately from canonical occupancy)",
+    )
+    season_booking_set.add_argument(
+        "--stated-end",
+        default=None,
+        help="Optional source-stated end time HH:MM; a difference becomes a follow-up, never a silent duration change",
+    )
+    season_booking_set.add_argument(
+        "--expected-revision",
+        default=None,
+        help="Fail closed unless the canonical-state revision matches",
+    )
+    season_booking_set.add_argument(
+        "--supersede",
+        action="store_true",
+        help="Replace a different active assertion for this tournament (requires --note)",
+    )
+    season_booking_set.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
+    season_booking_set.add_argument("--json", action="store_true", help="Print structured JSON")
+
+    season_booking_clear = season_sub.add_parser(
+        "booking-clear",
+        help="Revoke an active manual booking assertion without touching the schedule",
+    )
+    season_booking_clear.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_booking_clear.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_booking_clear.add_argument("--tournament-id", required=True, help="Canonical tournament id")
+    season_booking_clear.add_argument("--actor", default=None, help="Operator identity")
+    season_booking_clear.add_argument("--note", default="", help="Audited reason for revoking the assertion")
+    season_booking_clear.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
+    season_booking_clear.add_argument("--json", action="store_true", help="Print structured JSON")
+
     season_reconcile_bookings = season_sub.add_parser(
         "reconcile-calendar-bookings",
         help="Record host-calendar booking evidence for one club (overlap is candidate evidence, never a confirmed booking)",
