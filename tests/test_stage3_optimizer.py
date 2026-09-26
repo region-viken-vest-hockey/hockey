@@ -910,3 +910,50 @@ class TestClubLevelOpponentIdentity:
             _group_metrics(concentrated_slots).max_subject_club_excess
             > _group_metrics(dispersed_slots).max_subject_club_excess
         )
+
+    def test_club_pair_incremental_matches_full_for_multi_squad_slots(self):
+        """Finding #3: a club pair is one co-attendance event per slot, not one
+        per cross-club squad pair, so removing one of several sibling squads
+        must not zero the pair."""
+
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _SearchState,
+            _build_slots,
+            _resolve_weights,
+        )
+
+        t1 = _tournament(
+            "t1",
+            "2026-01-05",
+            "Arena",
+            "U10",
+            [_team("A", "A1", "U10"), _team("A", "A2", "U10"), _team("B", "B1", "U10")],
+        )
+        t2 = _tournament(
+            "t2",
+            "2026-02-04",
+            "Arena",
+            "U10",
+            [_team("A", "A3", "U10"), _team("C", "C1", "U10"), _team("D", "D1", "U10")],
+        )
+        slots, _ = _build_slots({"tournaments": [t1, t2]}, None)
+        state = _SearchState(slots, {"U10": _resolve_weights(DEFAULT_WEIGHTS, None, "U10")})
+        assert state.total == state.full_objective(DEFAULT_WEIGHTS)
+        assert state.club_pair_counts[(("A", "U10"), ("B", "U10"))] == 1
+
+        # Swap A2 (one of two A squads in t1) with C1: (A, B) must remain.
+        pos_a = slots[0].team_ids.index(("A", "A2", "U10"))
+        pos_b = slots[1].team_ids.index(("C", "C1", "U10"))
+        state.apply_team_swap(0, pos_a, 1, pos_b)
+
+        assert state.club_pair_counts.get((("A", "U10"), ("B", "U10"))) == 1
+        assert state.club_pair_counts.get((("A", "U10"), ("C", "U10"))) == 1
+        assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-9)
+
+        # Revert and confirm equivalence holds on the way back too.
+        pos_a2 = slots[0].team_ids.index(("C", "C1", "U10"))
+        pos_b2 = slots[1].team_ids.index(("A", "A2", "U10"))
+        state.apply_team_swap(0, pos_a2, 1, pos_b2)
+        assert state.club_pair_counts.get((("A", "U10"), ("B", "U10"))) == 1
+        assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-9)

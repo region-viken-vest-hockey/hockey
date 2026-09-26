@@ -683,10 +683,38 @@ class _SearchState:
         if a[0] != b[0]:
             change += self._adjust_exposure(a, b[0], delta_count)
             change += self._adjust_exposure(b, a[0], delta_count)
-            age_group = self.age_group_by_team.get(a, "")
-            change += self._adjust_club_pair(
-                ((a[0], age_group), (b[0], age_group)), delta_count
-            )
+        return change
+
+    def _slot_club_pairs(self, slot_index: int) -> List[Tuple[ClubKey, ClubKey]]:
+        """Distinct club pairs represented in one slot (at most once each)."""
+
+        slot = self.slots[slot_index]
+        clubs = sorted({(identity[0], slot.age_group) for identity in slot.team_ids})
+        return [
+            (clubs[i], clubs[j])
+            for i in range(len(clubs))
+            for j in range(i + 1, len(clubs))
+        ]
+
+    def _apply_club_pair_changes(
+        self,
+        before_pairs: List[Tuple[ClubKey, ClubKey]],
+        after_pairs: List[Tuple[ClubKey, ClubKey]],
+    ) -> float:
+        """Apply the slot-level club-pair count delta, not the squad-pair count.
+
+        A club pair is counted once per slot no matter how many sibling squads
+        meet, so the counter must change only when the set of clubs in a slot
+        changes -- not once per cross-club squad pair.
+        """
+
+        before = Counter(before_pairs)
+        after = Counter(after_pairs)
+        change = 0.0
+        for pair in set(before) | set(after):
+            delta = after.get(pair, 0) - before.get(pair, 0)
+            if delta:
+                change += self._adjust_club_pair(pair, delta)
         return change
 
     def _adjust_club_pair(self, pair: Tuple[ClubKey, ClubKey], delta_count: int) -> float:
@@ -763,6 +791,10 @@ class _SearchState:
         team_a = a.team_ids[pos_a]
         team_b = b.team_ids[pos_b]
         delta = 0.0
+        affected_slots = [slot_a] if slot_a == slot_b else [slot_a, slot_b]
+        before_club_pairs: List[Tuple[ClubKey, ClubKey]] = []
+        for index in affected_slots:
+            before_club_pairs.extend(self._slot_club_pairs(index))
 
         for i, other in enumerate(a.team_ids):
             if i == pos_a:
@@ -787,6 +819,10 @@ class _SearchState:
         a.team_ids[pos_a], b.team_ids[pos_b] = team_b, team_a
         a.changed = True
         b.changed = True
+        after_club_pairs: List[Tuple[ClubKey, ClubKey]] = []
+        for index in affected_slots:
+            after_club_pairs.extend(self._slot_club_pairs(index))
+        delta += self._apply_club_pair_changes(before_club_pairs, after_club_pairs)
         delta += self._refresh_slot_change(slot_a)
         delta += self._refresh_slot_change(slot_b)
         self.total += delta
