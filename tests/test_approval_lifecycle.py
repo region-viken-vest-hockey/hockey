@@ -200,7 +200,7 @@ def test_calendar_booking_confirmation_binds_event_only_to_matching_tournament(t
     assert {p["tournament_id"] for p in verification["manual_external_conflict_placements"]} == {"t2"}
 
 
-def test_club_reconciliation_records_candidate_and_negative_booking_evidence_and_stales_on_move(tmp_path):
+def test_club_reconciliation_records_candidate_evidence_and_stales_on_move(tmp_path):
     root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-19")])
     problem = {
         "start_date": "2026-09-01",
@@ -227,12 +227,14 @@ def test_club_reconciliation_records_candidate_and_negative_booking_evidence_and
         problem=problem,
     )
     statuses = {row["tournament_id"]: row["status"] for row in result["classified"]}
-    assert statuses == {"t1": "ambiguous", "t2": "confirmed_not_booked"}
-    assert {row["tournament_id"]: row["reason"] for row in result["classified"]}["t1"] == "single_overlapping_event_requires_confirmation"
+    assert statuses == {"t1": "ambiguous", "t2": "ambiguous"}
+    reasons = {row["tournament_id"]: row["reason"] for row in result["classified"]}
+    assert reasons["t1"] == "single_overlapping_event_requires_confirmation"
+    assert reasons["t2"] == "no_covering_event_for_current_slot"
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     assert {row["tournament_id"]: row["status"] for row in report["tournaments"]} == statuses
     assert report["counts"]["confirmed_booked"] == 0
-    assert report["counts"]["confirmed_not_booked"] == 1
+    assert report["counts"]["confirmed_not_booked"] == 0
     assert report["counts"]["needs_attention"] == 2
 
     schedule_path = root / "2026-2027" / "schedule.json"
@@ -277,6 +279,19 @@ def _report_and_heatmap(root, problem):
         for item in club
     }
     return report, items
+
+
+def _export_html_with_booking_report(root, problem, tmp_path):
+    """Export the season HTML fed by the canonical booking-status projection."""
+
+    from tournament_scheduler.html.html_exporter import HtmlExporter
+    from tournament_scheduler.serialization.season_plan import season_plan_from_dict
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    plan = season_plan_from_dict(load_schedule("2026-2027", root=root)["plan"])
+    out_path = tmp_path / "season_plan.html"
+    HtmlExporter().export(plan, out_path, pipeline_meta={"booking_status": report})
+    return out_path.read_text(encoding="utf-8")
 
 
 def test_lone_unrelated_overlapping_event_is_not_confirmed_booked(tmp_path):
@@ -347,8 +362,12 @@ def test_reconcile_preserves_approved_placement_without_calendar_event(tmp_path,
     assert decision["placement_locked"] is True
 
 
-def test_reconcile_keeps_explicit_association_confirmed_and_records_negative(tmp_path):
-    """Only an explicit association makes a match confirmed_booked."""
+def test_reconcile_keeps_explicit_association_confirmed_and_absence_ambiguous(tmp_path):
+    """Only an explicit association makes a match confirmed_booked.
+
+    A trustworthy calendar with no event at ``t2``'s canonical slot is an
+    observation about that slot, not evidence that ``t2`` is unbooked.
+    """
 
     root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-19")])
     problem = _host_a_problem(
@@ -379,15 +398,15 @@ def test_reconcile_keeps_explicit_association_confirmed_and_records_negative(tmp
         season="2026-2027", root=root, club="A", note="reviewed complete host calendar", problem=problem
     )
     statuses = {row["tournament_id"]: row["status"] for row in result["classified"]}
-    assert statuses == {"t1": "confirmed_booked", "t2": "confirmed_not_booked"}
+    assert statuses == {"t1": "confirmed_booked", "t2": "ambiguous"}
     reasons = {row["tournament_id"]: row["reason"] for row in result["classified"]}
     assert reasons["t1"] == "explicit_calendar_booking_association"
-    assert reasons["t2"] == "no_overlapping_event_in_trustworthy_calendar"
+    assert reasons["t2"] == "no_covering_event_for_current_slot"
 
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     assert {row["tournament_id"]: row["status"] for row in report["tournaments"]} == statuses
     assert report["counts"]["confirmed_booked"] == 1
-    assert report["counts"]["confirmed_not_booked"] == 1
+    assert report["counts"]["confirmed_not_booked"] == 0
 
 
 def test_projection_downgrades_historical_weak_positive_booking_evidence(tmp_path):
@@ -491,6 +510,112 @@ def test_projection_requires_review_after_association_release(tmp_path):
     assert {tid: item["booking_status"] for tid, item in heatmap_items.items()} == {
         item["tournament_id"]: item["status"] for item in report["tournaments"]
     }
+
+
+def test_zero_overlap_never_projects_ikke_booket(tmp_path):
+    """The production shape: a pending tournament absent from a trusted calendar.
+
+    Zero overlap at the current canonical slot is an observation about that
+    slot. A changed slot, an explicit club confirmation or incomplete source
+    attribution may still mean the tournament is booked, so the classifier and
+    the booking-status/heatmap/HTML projection must never turn it into
+    ``confirmed_not_booked``.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+
+    result = reconcile_calendar_bookings(
+        season="2026-2027", root=root, club="A", note="reviewed complete host calendar", problem=problem
+    )
+    row = result["classified"][0]
+    assert row["status"] == "ambiguous"
+    assert row["reason"] == "no_covering_event_for_current_slot"
+
+    report, heatmap_items = _report_and_heatmap(root, problem)
+    assert report["tournaments"][0]["status"] == "ambiguous"
+    assert report["counts"]["confirmed_not_booked"] == 0
+    assert heatmap_items["t1"]["booking_status"] == "ambiguous"
+
+    html = _export_html_with_booking_report(root, problem, tmp_path)
+    assert '"bs": "ambiguous"' in html
+    assert '"bs": "confirmed_not_booked"' not in html
+
+
+def test_pending_non_overlapping_replacement_slot_stays_unresolved(tmp_path):
+    """A booking moved to a different time must not become IKKE BOOKET.
+
+    The canonical slot (10:00-12:00) is absent from the calendar while the
+    club change sheet moved it to 13:00-14:50. The replacement window is not an
+    automatic association, so the tournament stays ambiguous rather than being
+    declared unbooked.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem(
+        [
+            {
+                "date": "2026-09-12",
+                "start": "13:00",
+                "end": "14:50",
+                "availability": "fixed_busy",
+                "calendar_event": "Miniputt U10 (flyttet)",
+            }
+        ]
+    )
+
+    result = reconcile_calendar_bookings(
+        season="2026-2027", root=root, club="A", note="club change sheet", problem=problem
+    )
+    row = result["classified"][0]
+    assert row["status"] == "ambiguous"
+    assert row["reason"] == "no_covering_event_for_current_slot"
+    # The non-overlapping replacement window is not silently bound to t1.
+    assert not row["event_fingerprint"]
+
+    report, heatmap_items = _report_and_heatmap(root, problem)
+    assert report["counts"]["confirmed_not_booked"] == 0
+    assert heatmap_items["t1"]["booking_status"] == "ambiguous"
+
+
+def test_projection_distinguishes_explicit_negative_from_absence(tmp_path):
+    """Only explicit negative evidence may project as ``confirmed_not_booked``.
+
+    A persisted record whose reason is current-slot absence is an observation,
+    not a booking conclusion, so the projection downgrades it to ambiguity. A
+    record carrying explicit operator/source negative evidence stays
+    authoritative. Historical evidence is preserved either way.
+    """
+
+    from tournament_scheduler.calendar_bookings import TOURNAMENT_BOOKING_EVIDENCE_KEY
+
+    root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-19")])
+    problem = _host_a_problem([])
+    reconcile_calendar_bookings(
+        season="2026-2027", root=root, club="A", note="absence review", problem=problem
+    )
+
+    # Simulate one legacy absence-derived negative alongside one genuinely
+    # explicit negative through the persisted evidence boundary.
+    decisions_path = root / "2026-2027" / "decisions.json"
+    decisions = json.loads(decisions_path.read_text(encoding="utf-8"))
+    evidence = {row["tournament_id"]: row for row in decisions[TOURNAMENT_BOOKING_EVIDENCE_KEY]}
+    evidence["t1"]["status"] = "confirmed_not_booked"
+    evidence["t1"]["reason"] = "no_overlapping_event_in_trustworthy_calendar"
+    evidence["t2"]["status"] = "confirmed_not_booked"
+    evidence["t2"]["reason"] = "explicit_club_rejected_booking"
+    decisions_path.write_text(json.dumps(decisions), encoding="utf-8")
+
+    report, heatmap_items = _report_and_heatmap(root, problem)
+    statuses = {row["tournament_id"]: row["status"] for row in report["tournaments"]}
+    assert statuses == {"t1": "ambiguous", "t2": "confirmed_not_booked"}
+    t1 = next(row for row in report["tournaments"] if row["tournament_id"] == "t1")
+    assert "absence_only_negative_booking_requires_review" in t1["stale_reasons"]
+    assert t1["evidence"]["reason"] == "no_overlapping_event_in_trustworthy_calendar"
+    assert t1["evidence"]["status"] == "confirmed_not_booked"
+    assert report["counts"]["confirmed_not_booked"] == 1
+    assert heatmap_items["t1"]["booking_status"] == "ambiguous"
+    assert heatmap_items["t2"]["booking_status"] == "confirmed_not_booked"
 
 
 def test_club_reconciliation_does_not_record_negative_evidence_for_blocked_source(tmp_path):

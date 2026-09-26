@@ -15,6 +15,10 @@ from tournament_scheduler.pipeline.stage3_planning import (
 from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.season_planner import _normalize_penalty_hints
+from tournament_scheduler.testing.canonical_input import (
+    load_canonical_input_data,
+    load_canonical_season_window,
+)
 
 
 class _FixedDatetime(datetime):
@@ -87,6 +91,34 @@ def _make_duplicate_label_config():
     }
 
 
+@pytest.fixture(scope="module")
+def canonical_stage3_run(tmp_path_factory):
+    """Run Stage 3 once on the real canonical workbook and share the result.
+
+    ``test_accepts_canonical_workbook_config`` and
+    ``test_canonical_workbook_plan_covers_multiple_age_groups`` both build the
+    real canonical plan with identical inputs; running it twice cost ~87s of
+    pure duplicate work. Module scope keeps that cost paid once per test run
+    while both tests still assert against a real, freshly-built plan.
+
+    Module-scoped fixtures are set up before the function-scoped autouse
+    ``_stable_effective_start_date_today`` monkeypatch, so this pins the same
+    ``2025-08-25`` "today" itself via ``unittest.mock.patch`` — otherwise
+    ``run()`` sees the real wall clock, the fixed 2025 season window reads as
+    already in the past, and it silently takes the "reuse published plan"
+    shortcut instead of exercising the real search this test is meant to
+    cover.
+    """
+    data = load_canonical_input_data()
+    if not data.get("teams"):
+        pytest.skip("canonical input.xlsx has no registered teams")
+    start, end = load_canonical_season_window()
+    state = PipelineState(tmp_path_factory.mktemp("stage3-canonical-pipeline"))
+    with patch("tournament_scheduler.effective_start_date.datetime", _FixedDatetime):
+        result = run(data, {}, state, start, end)
+    return data, state, result
+
+
 class TestRunStage3:
     def test_season_planner_normalizes_structured_penalty_hints(self):
         assert _normalize_penalty_hints({
@@ -95,10 +127,8 @@ class TestRunStage3:
         }) == {"diversity_score": 70.0}
 
     @pytest.mark.slow
-    def test_accepts_canonical_workbook_config(self, tmp_path, canonical_input_data, canonical_season_window):
-        state = PipelineState(tmp_path / "pipeline")
-        start, end = canonical_season_window
-        result = run(canonical_input_data, {}, state, start, end)
+    def test_accepts_canonical_workbook_config(self, canonical_stage3_run):
+        canonical_input_data, state, result = canonical_stage3_run
 
         assert state.is_done(StageName.PLANNING)
         assert "plan" in result
@@ -110,10 +140,8 @@ class TestRunStage3:
         assert planned_age_groups
 
     @pytest.mark.slow
-    def test_canonical_workbook_plan_covers_multiple_age_groups(self, tmp_path, canonical_input_data, canonical_season_window):
-        state = PipelineState(tmp_path / "pipeline")
-        start, end = canonical_season_window
-        result = run(canonical_input_data, {}, state, start, end)
+    def test_canonical_workbook_plan_covers_multiple_age_groups(self, canonical_stage3_run):
+        _, _, result = canonical_stage3_run
 
         counts = Counter(t["age_group"] for t in result["plan"]["tournaments"])
         assert len(counts) >= 3
