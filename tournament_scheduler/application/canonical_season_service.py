@@ -583,9 +583,14 @@ class CanonicalSeasonService:
         season: str,
         club: str | None = None,
         problem: dict[str, Any] | None = None,
+        date_window_days: int = 7,
     ) -> dict[str, Any]:
         return _calendars.calendar_booking_assessment(
-            self, season=season, club=club, problem=problem
+            self,
+            season=season,
+            club=club,
+            problem=problem,
+            date_window_days=date_window_days,
         )
 
     def calendar_booking_findings(self, *, season: str, problem: dict[str, Any] | None = None) -> dict[str, Any]:

@@ -368,6 +368,7 @@ def calendar_booking_assessment(
     season: str,
     club: str | None = None,
     problem: dict[str, Any] | None = None,
+    date_window_days: int = 7,
 ) -> dict[str, Any]:
     """Return a read-only, revision/source-bound booking crosswalk for the season.
 
@@ -389,6 +390,7 @@ def calendar_booking_assessment(
         canonical_state_revision=canonical_state_revision(snapshot.schedule, snapshot.decisions),
         season=season,
         clubs=[club] if club else None,
+        date_window_days=date_window_days,
     )
 
 

@@ -2046,6 +2046,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 season=args.season,
                 root=args.root,
                 club=args.club,
+                date_window_days=args.date_window_days,
             )
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
@@ -2059,12 +2060,14 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"{counts.get('proposed_unchanged', 0)} uendret forslag, "
                     f"{counts.get('proposed_changed_slot', 0)} flyttet forslag, "
                     f"{counts.get('competing_candidates', 0)} konkurrerende, "
+                    f"{counts.get('ambiguous', 0)} tvetydig, "
                     f"{counts.get('unmatched', 0)} uten kandidat, "
                     f"{counts.get('not_checkable', 0)} ikke kontrollerbar"
                 )
                 for row in result.get("tournaments", []):
                     if row.get("classification") in {
                         "competing_candidates",
+                        "ambiguous",
                         "unmatched",
                         "not_checkable",
                         "proposed_changed_slot",

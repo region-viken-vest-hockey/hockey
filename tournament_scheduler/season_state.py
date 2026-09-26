@@ -545,8 +545,14 @@ def calendar_booking_assessment(
     root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
     club: str | None = None,
     problem: dict[str, Any] | None = None,
+    date_window_days: int = 7,
 ) -> dict[str, Any]:
-    return _service(root).calendar_booking_assessment(season=season, club=club, problem=problem)
+    return _service(root).calendar_booking_assessment(
+        season=season,
+        club=club,
+        problem=problem,
+        date_window_days=date_window_days,
+    )
 
 
 def calendar_booking_findings(

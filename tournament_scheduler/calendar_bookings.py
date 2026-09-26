@@ -48,6 +48,7 @@ ASSESSMENT_MANUALLY_ASSERTED = "manually_asserted"
 ASSESSMENT_PROPOSED_UNCHANGED = "proposed_unchanged"
 ASSESSMENT_PROPOSED_CHANGED_SLOT = "proposed_changed_slot"
 ASSESSMENT_COMPETING_CANDIDATES = "competing_candidates"
+ASSESSMENT_AMBIGUOUS = "ambiguous"
 ASSESSMENT_UNMATCHED = "unmatched"
 ASSESSMENT_NOT_CHECKABLE = "not_checkable"
 
@@ -57,6 +58,7 @@ RELATION_PROXIMATE_DATE_SHIFT = "proximate_date_shift"
 
 _ASSESSMENT_UNRESOLVED = {
     ASSESSMENT_COMPETING_CANDIDATES,
+    ASSESSMENT_AMBIGUOUS,
     ASSESSMENT_UNMATCHED,
     ASSESSMENT_NOT_CHECKABLE,
 }
@@ -907,8 +909,12 @@ def _assessment_candidate(
         return None
     event_arena = str(event.get("arena") or event.get("location") or "").strip()
     tournament_arena = str(tournament.get("arena") or "").strip()
-    if event_arena and tournament_arena and event_arena.lower() != tournament_arena.lower():
-        return None
+    # An arena mismatch is counterevidence, not a reason to drop the event: a
+    # genuinely moved booking may have changed venue as well as date/time, and
+    # hiding it would leave a stale canonical row looking unmatched.
+    arena_mismatch = bool(
+        event_arena and tournament_arena and event_arena.lower() != tournament_arena.lower()
+    )
     event_date = _assessment_parse_date(event.get("date"))
     tournament_date = _assessment_parse_date(tournament.get("date"))
     if event_date is None or tournament_date is None:
@@ -944,6 +950,8 @@ def _assessment_candidate(
         counterevidence.append("canonical_slot_not_covered")
     if age_group_conflict:
         counterevidence.append("event_title_age_group_differs")
+    if arena_mismatch:
+        counterevidence.append("event_arena_differs_from_canonical")
 
     return {
         "event_fingerprint": str(event.get("fingerprint") or event_fingerprint(event)),
@@ -958,6 +966,7 @@ def _assessment_candidate(
         "covers_current_interval": bool(covers),
         "overlaps_current_interval": bool(overlaps),
         "age_group_conflict": age_group_conflict,
+        "arena_mismatch": arena_mismatch,
         "evidence": sorted(evidence),
         "counterevidence": sorted(counterevidence),
     }
@@ -981,7 +990,8 @@ def _assessment_tournament_row(
         if manual is not None
         else []
     )
-    if manual is not None and not manual_stale_reasons:
+    has_manual_authority = manual is not None and not manual_stale_reasons
+    if has_manual_authority:
         classification = ASSESSMENT_MANUALLY_ASSERTED
     elif associated_event is not None:
         classification = ASSESSMENT_ASSOCIATED
@@ -999,10 +1009,25 @@ def _assessment_tournament_row(
         classification = ASSESSMENT_COMPETING_CANDIDATES
     else:
         candidate = candidates[0]
-        if candidate["covers_current_interval"] and candidate["relation"] == RELATION_SAME_DATE_OVERLAP:
+        if candidate["age_group_conflict"] or candidate["arena_mismatch"]:
+            # Contradicting title/arena evidence blocks an ordinary positive
+            # proposal; the row stays reviewable rather than being resolved.
+            classification = ASSESSMENT_AMBIGUOUS
+        elif candidate["covers_current_interval"] and candidate["relation"] == RELATION_SAME_DATE_OVERLAP:
             classification = ASSESSMENT_PROPOSED_UNCHANGED
         else:
             classification = ASSESSMENT_PROPOSED_CHANGED_SLOT
+
+    if has_manual_authority:
+        authority: str | None = (
+            BOOKING_AUTHORITY_MANUAL_INTERPRETATION
+            if str(manual.get("source_scope") or "") == "club_wide_interpretation"
+            else BOOKING_AUTHORITY_MANUAL
+        )
+    elif associated_event is not None:
+        authority = BOOKING_AUTHORITY_CALENDAR
+    else:
+        authority = None
 
     interval = tournament_occupancy_interval_facts(tournament, problem)
     row: dict[str, Any] = {
@@ -1016,7 +1041,13 @@ def _assessment_tournament_row(
         "duration_minutes": interval["duration_minutes"],
         "end_time": interval["end_time"],
         "canonical_interval": interval,
+        # Authority (a deliberate association/assertion) is reported separately
+        # from whether the current calendar source is checkable.  An explicit
+        # authority can stand even when the scrape is untrusted; the source
+        # review flag never silently demotes it.
+        "authority": authority,
         "source_trusted": source_trusted,
+        "calendar_source_checkable": source_trusted,
         "proposal_is_binding": False,
         "candidate_count": len(candidates),
         "candidates": candidates,
@@ -1124,6 +1155,15 @@ def booking_assessment(
                 date_window_days=date_window_days,
             )
             if candidate is not None:
+                # An observation from an untrusted source stays visible but is
+                # never an actionable proposal; contradicting title/arena
+                # evidence has the same effect.
+                candidate["source_trusted"] = club in trusted_clubs
+                candidate["actionable"] = bool(
+                    candidate["source_trusted"]
+                    and not candidate["age_group_conflict"]
+                    and not candidate["arena_mismatch"]
+                )
                 candidates.append(candidate)
                 candidates_by_event.setdefault(candidate["event_fingerprint"], []).append(
                     (tournament_id, candidate)
@@ -1188,6 +1228,9 @@ def booking_assessment(
                     "date_delta_days": candidate["date_delta_days"],
                     "covers_current_interval": candidate["covers_current_interval"],
                     "age_group_conflict": candidate["age_group_conflict"],
+                    "arena_mismatch": candidate["arena_mismatch"],
+                    "source_trusted": candidate["source_trusted"],
+                    "actionable": candidate["actionable"],
                 }
             )
         candidate_tournaments.sort(key=lambda item: (item["date"], item["start_time"], item["tournament_id"]))
@@ -1216,6 +1259,7 @@ def booking_assessment(
         ASSESSMENT_PROPOSED_UNCHANGED: 0,
         ASSESSMENT_PROPOSED_CHANGED_SLOT: 0,
         ASSESSMENT_COMPETING_CANDIDATES: 0,
+        ASSESSMENT_AMBIGUOUS: 0,
         ASSESSMENT_UNMATCHED: 0,
         ASSESSMENT_NOT_CHECKABLE: 0,
     }

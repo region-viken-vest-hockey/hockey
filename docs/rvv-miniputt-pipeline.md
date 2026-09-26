@@ -135,7 +135,7 @@ scripts/rvv-miniputt season approvals --season 2026-2027
 scripts/rvv-miniputt season findings --season 2026-2027
 scripts/rvv-miniputt season findings --season 2026-2027 --all
 scripts/rvv-miniputt season booking-assessment --season 2026-2027 --json
-scripts/rvv-miniputt season booking-assessment --season 2026-2027 --club <host-club>
+scripts/rvv-miniputt season booking-assessment --season 2026-2027 --club <host-club> --date-window-days 10
 scripts/rvv-miniputt season baseline create --season 2026-2027 --note "Accepted season baseline after initial planning"
 scripts/rvv-miniputt season baseline show --season 2026-2027
 scripts/rvv-miniputt season baseline advance --season 2026-2027
@@ -207,7 +207,9 @@ It emits a machine-readable JSON object (the default text view summarises it) wi
 - one row per hosted tournament with its canonical interval, any valid existing association, the active manual assertion (if any) and the complete bounded candidate list; candidates include same-day overlaps, same-day time shifts and changes within a bounded `date_window_days` (default 7) so a moved booking never disappears from the candidate set;
 - one row per calendar event with its candidate tournaments, `covered_tournament_ids`, `one_to_many` and `group_booking` flags.
 
-Each tournament is classified `associated`, `manually_asserted`, `proposed_unchanged`, `proposed_changed_slot`, `competing_candidates`, `unmatched` or `not_checkable`. A candidate carries evidence and counterevidence (including an age-group token mismatch in the title), and every `proposal_is_binding` is `false`. When one event plausibly belongs to several tournaments, or several plausible events map to one tournament, or a source is missing/untrusted, the row stays `competing_candidates`/`unmatched`/`not_checkable` rather than resolving the ambiguity. `season calendar-booking-findings`, `season booking-status` and the explicit `season confirm-calendar-booking` / `season booking-set` boundaries remain the only persistence paths; a `proposed_*` row is a claim to review, not an approval.
+The candidate window is bounded by `--date-window-days` (default 7) so a moved booking is not missed, but the window is still an explicit, tunable bound rather than an implicit nearest-overlap guess. An arena mismatch is counterevidence, not a reason to drop the event.
+
+Each tournament is classified `associated`, `manually_asserted`, `proposed_unchanged`, `proposed_changed_slot`, `competing_candidates`, `ambiguous`, `unmatched` or `not_checkable`. A candidate carries evidence and counterevidence (including an age-group token mismatch in the title or an arena mismatch), plus `source_trusted`/`actionable` flags: an observation from an untrusted source stays visible but can never be an actionable proposal, and contradicting title/arena evidence forces `ambiguous`. Every `proposal_is_binding` is `false`. `authority` (a deliberate calendar association or manual assertion) is reported separately from `calendar_source_checkable`, so an explicit authority is never silently demoted by an untrusted scrape. When one event plausibly belongs to several tournaments, or several plausible events map to one tournament, or a source is missing/untrusted, the row stays `competing_candidates`/`ambiguous`/`unmatched`/`not_checkable` rather than resolving the ambiguity. `season calendar-booking-findings`, `season booking-status` and the explicit `season confirm-calendar-booking` / `season booking-set` boundaries remain the only persistence paths; a `proposed_*` row is a claim to review, not an approval.
 
 ### Reserved guest places
 

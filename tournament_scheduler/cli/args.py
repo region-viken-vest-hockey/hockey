@@ -1192,6 +1192,12 @@ def build_parser() -> argparse.ArgumentParser:
     season_booking_assessment.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_booking_assessment.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_assessment.add_argument("--club", default=None, help="Optional host club filter")
+    season_booking_assessment.add_argument(
+        "--date-window-days",
+        type=int,
+        default=7,
+        help="Bounded +/- day window for plausible changed-date candidates (default: 7)",
+    )
     season_booking_assessment.add_argument("--json", action="store_true", help="Print structured JSON")
 
     season_booking_candidates = season_sub.add_parser(

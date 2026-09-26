@@ -76,8 +76,8 @@ def _problem(events, *, status="known"):
     }
 
 
-def _event(date_str, start, end, *, title="Miniputt U10", club="A"):
-    return {
+def _event(date_str, start, end, *, title="Miniputt U10", club="A", arena=None):
+    event = {
         "date": date_str,
         "start": start,
         "end": end,
@@ -85,6 +85,9 @@ def _event(date_str, start, end, *, title="Miniputt U10", club="A"):
         "calendar_event": title,
         "club": club,
     }
+    if arena is not None:
+        event["arena"] = arena
+    return event
 
 
 def _assess(root, problem, **kwargs):
@@ -185,6 +188,101 @@ def test_untrusted_source_fails_closed_to_not_checkable(tmp_path):
     source = result["sources"]["A"]
     assert source["source_trust"] == "untrusted"
     assert source["source_review_required"] is True
+
+
+def test_untrusted_source_exact_match_is_observation_not_actionable(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    result = _assess(
+        root,
+        _problem([_event("2026-09-12", "10:00", "12:00")], status="untrusted"),
+    )
+
+    row = _tournament_row(result, "t1")
+    # The apparently exact match stays visible but is not an actionable
+    # proposal and cannot become a positive classification.
+    assert row["classification"] == "not_checkable"
+    assert row["calendar_source_checkable"] is False
+    candidate = row["candidates"][0]
+    assert candidate["source_trusted"] is False
+    assert candidate["actionable"] is False
+
+
+def test_arena_mismatch_is_preserved_as_counterevidence(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", arena="Arena A")])
+    result = _assess(
+        root,
+        _problem([_event("2026-09-12", "10:00", "12:00", arena="Arena B")]),
+    )
+
+    row = _tournament_row(result, "t1")
+    assert row["classification"] == "ambiguous"
+    candidate = row["candidates"][0]
+    assert candidate["arena_mismatch"] is True
+    assert candidate["actionable"] is False
+    assert "event_arena_differs_from_canonical" in candidate["counterevidence"]
+
+
+def test_age_group_conflict_blocks_positive_proposal(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    result = _assess(
+        root,
+        _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U12")]),
+    )
+
+    row = _tournament_row(result, "t1")
+    assert row["classification"] == "ambiguous"
+    assert row["candidates"][0]["actionable"] is False
+
+
+def test_authority_is_reported_separately_from_source_checkability(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    known_problem = _problem([_event("2026-09-12", "10:00", "12:00")])
+    event_fp = _assess(root, known_problem)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="matched booking",
+        problem=known_problem,
+    )
+
+    row = _tournament_row(
+        _assess(root, _problem([_event("2026-09-12", "10:00", "12:00")], status="untrusted")),
+        "t1",
+    )
+    assert row["classification"] == "associated"
+    assert row["authority"] == "calendar_event_association"
+    assert row["calendar_source_checkable"] is False
+
+
+def test_date_window_days_is_configurable(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    problem = _problem([_event("2026-09-15", "10:00", "12:00")])
+    from tournament_scheduler.calendar_bookings import booking_assessment
+    from tournament_scheduler.season_state import load_schedule
+
+    plan = load_schedule("2026-2027", root=root)["plan"]
+    decisions = load_decisions("2026-2027", root=root)
+    narrow = booking_assessment(
+        problem=problem,
+        plan=plan,
+        decisions=decisions,
+        canonical_state_revision="rev",
+        season="2026-2027",
+        date_window_days=1,
+    )
+    assert narrow["tournaments"][0]["classification"] == "unmatched"
+    wide = booking_assessment(
+        problem=problem,
+        plan=plan,
+        decisions=decisions,
+        canonical_state_revision="rev",
+        season="2026-2027",
+        date_window_days=7,
+    )
+    assert wide["tournaments"][0]["classification"] == "proposed_changed_slot"
 
 
 def test_wrong_age_title_is_visible_counterevidence(tmp_path):
