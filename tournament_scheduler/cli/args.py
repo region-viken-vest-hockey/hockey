@@ -1244,7 +1244,10 @@ def build_parser() -> argparse.ArgumentParser:
     season_booking_set.add_argument(
         "--stated-end",
         default=None,
-        help="Optional source-stated end time HH:MM; a difference becomes a follow-up, never a silent duration change",
+        help=(
+            "Optional source-stated end time HH:MM, strictly after --stated-start on the same day "
+            "(overnight not supported); a difference becomes a follow-up, never a silent duration change"
+        ),
     )
     season_booking_set.add_argument(
         "--expected-revision",

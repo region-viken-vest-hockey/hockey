@@ -513,6 +513,8 @@ class HtmlExporter:
                 entry["ba"] = bool(booking.get("needs_attention"))
                 if booking.get("authority"):
                     entry["bauth"] = str(booking.get("authority"))
+                if booking.get("source_scope"):
+                    entry["bscope"] = str(booking.get("source_scope"))
             data.append(entry)
         return json.dumps(data, ensure_ascii=False)
 

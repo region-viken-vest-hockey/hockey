@@ -27,10 +27,12 @@ from tournament_scheduler.calendar_bookings import (
     find_event,
     iter_events,
     manual_assertion_for_tournament,
+    manual_assertion_stale_reasons,
     new_association_record,
     new_booking_evidence_record,
     new_manual_assertion_record,
     valid_active_associations,
+    validate_stated_interval,
 )
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_state import (
@@ -753,6 +755,7 @@ def _manual_assertion_matches_existing(
         return False
     return (
         str(existing.get("booking_status") or "") == str(candidate.get("booking_status") or "")
+        and str(existing.get("source_scope") or "tournament") == str(candidate.get("source_scope") or "tournament")
         and dict(existing.get("tournament_facts") or {}) == dict(candidate.get("tournament_facts") or {})
         and dict(existing.get("asserted_interval") or {}) == dict(candidate.get("asserted_interval") or {})
         and dict(existing.get("stated_interval") or {}) == dict(candidate.get("stated_interval") or {})
@@ -785,8 +788,12 @@ def set_manual_booking_assertion(
     ``manually_booked``/``manually_not_booked`` and a routine calendar
     reconcile/refresh cannot erase or demote it.  A material canonical change
     (date/start/duration/host/arena) invalidates it until the operator confirms
-    the new slot again.  Repeating the identical assertion is a no-op; changing
-    it requires an explicit ``supersede`` with a reason.
+    the new slot again; a stale assertion is replaced directly (retaining its
+    audit history) rather than requiring ``--supersede``, which is reserved for
+    changing the conclusion about the same still-current slot. Repeating the
+    identical assertion is a no-op; changing it requires an explicit
+    ``supersede`` with a reason. Positive confirmations must carry a traceable
+    source reference or rationale.
     """
 
     if booking_status not in MANUAL_BOOKING_STATUS_CHOICES:
@@ -799,11 +806,10 @@ def set_manual_booking_assertion(
             f"Unknown manual assertion source scope: {source_scope!r}; "
             f"expected one of {', '.join(MANUAL_ASSERTION_SCOPES)}"
         )
-    stated_interval: dict[str, str] | None = None
-    if stated_start or stated_end:
-        if not (stated_start and stated_end):
-            raise SeasonStateError("A stated source interval requires both --stated-start and --stated-end")
-        stated_interval = {"start": stated_start, "end": stated_end}
+    try:
+        stated_interval = validate_stated_interval(stated_start, stated_end) or None
+    except ValueError as exc:
+        raise SeasonStateError(str(exc)) from exc
 
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
@@ -823,8 +829,18 @@ def set_manual_booking_assertion(
         raise SeasonStateError(
             f"Tournament {tournament_id} is cancelled and cannot carry a booking assertion"
         )
+    if not (str(reference).strip() or str(note).strip()):
+        raise SeasonStateError(
+            "A manual booking assertion requires a traceable source reference (--reference) "
+            "or rationale (--note)"
+        )
     resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
     existing = manual_assertion_for_tournament(decisions, tournament_id)
+    existing_stale_reasons = (
+        manual_assertion_stale_reasons(existing, problem=resolved_problem, tournament=tournament)
+        if existing is not None
+        else []
+    )
     now = _now_iso()
     resolved_actor = _operator_identity(actor)
     candidate = new_manual_assertion_record(
@@ -850,15 +866,16 @@ def set_manual_booking_assertion(
             "canonical_state_revision": current_revision,
         }
     if existing is not None:
-        if not supersede:
+        if not existing_stale_reasons and not supersede:
             raise SeasonStateError(
                 f"Tournament {tournament_id} already has an active manual booking assertion "
                 f"({existing.get('booking_status')!r}); repeat it unchanged or pass --supersede "
                 "with a reason to replace it"
             )
-        if not note:
+        if not existing_stale_reasons and not note:
             raise SeasonStateError("Superseding a manual booking assertion requires a --note reason")
         candidate["supersedes"] = str(existing.get("id") or "")
+        candidate["reconfirms_stale_reasons"] = list(existing_stale_reasons)
 
     updated = dict(decisions)
     records = [
@@ -868,12 +885,19 @@ def set_manual_booking_assertion(
     ]
     if existing is not None:
         existing_id = str(existing.get("id") or "")
+        supersede_reason = note or (
+            "re-confirmed after canonical slot change: " + ", ".join(existing_stale_reasons)
+            if existing_stale_reasons
+            else "superseded"
+        )
         for record in records:
             if str(record.get("id") or "") == existing_id:
                 record["status"] = MANUAL_ASSERTION_SUPERSEDED
                 record["superseded_at"] = now
                 record["superseded_by"] = candidate["id"]
-                record["supersede_reason"] = note
+                record["supersede_reason"] = supersede_reason
+                if existing_stale_reasons:
+                    record["superseded_stale_reasons"] = list(existing_stale_reasons)
     records.append(candidate)
     updated[MANUAL_BOOKING_ASSERTIONS_KEY] = records
     updated["updated_at"] = now
@@ -892,6 +916,7 @@ def set_manual_booking_assertion(
             "asserted_interval": candidate["asserted_interval"],
             "stated_interval": candidate["stated_interval"],
             "supersedes": candidate.get("supersedes") or "",
+            "reconfirms_stale_reasons": candidate.get("reconfirms_stale_reasons") or [],
         },
     )
     result: dict[str, Any] = {

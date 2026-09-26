@@ -27,6 +27,7 @@ MANUAL_ASSERTION_SUPERSEDED = "superseded"
 MANUAL_ASSERTION_REVOKED = "revoked"
 MANUAL_ASSERTION_SCOPES = ("tournament", "club_wide_interpretation")
 BOOKING_AUTHORITY_MANUAL = MANUAL_SOURCE_CLUB_CONFIRMATION
+BOOKING_AUTHORITY_MANUAL_INTERPRETATION = "manual_club_confirmation_interpretation"
 BOOKING_AUTHORITY_CALENDAR = "calendar_event_association"
 BOOKING_MANUALLY_BOOKED = "manually_booked"
 BOOKING_MANUALLY_NOT_BOOKED = "manually_not_booked"
@@ -179,7 +180,7 @@ def manual_assertion_projection_status(assertion: Mapping[str, Any]) -> str:
     )
 
 
-def _manual_assertion_stale_reasons(
+def manual_assertion_stale_reasons(
     assertion: Mapping[str, Any],
     *,
     problem: Mapping[str, Any] | None,
@@ -205,6 +206,35 @@ def _manual_assertion_stale_reasons(
         if str(stored_interval.get(key) or "") != current_interval[key]:
             reasons.append(f"tournament_{key}_changed")
     return sorted(set(reasons))
+
+
+def validate_stated_interval(start: str | None, end: str | None) -> dict[str, str]:
+    """Validate and normalize an optional source-stated booking window.
+
+    Rejects malformed, zero-length and reversed windows. Overnight windows are
+    deliberately not supported: ``end`` must be strictly after ``start`` on the
+    same local date. A stated window that is longer or shorter than the
+    canonical occupancy is allowed (it becomes an explicit follow-up), but it
+    must be a real, positive interval so no silent zero-duration evidence is
+    persisted.
+    """
+
+    if not start and not end:
+        return {}
+    if not (start and end):
+        raise ValueError("A stated source interval requires both --stated-start and --stated-end")
+    start_minutes = _parse_hhmm(start)
+    end_minutes = _parse_hhmm(end)
+    if start_minutes is None:
+        raise ValueError(f"Invalid stated start time: {start!r}; expected HH:MM")
+    if end_minutes is None:
+        raise ValueError(f"Invalid stated end time: {end!r}; expected HH:MM")
+    if end_minutes <= start_minutes:
+        raise ValueError(
+            f"Invalid stated interval {start}-{end}: end must be after start on the same day; "
+            "overnight intervals are not supported"
+        )
+    return {"start": str(start), "end": str(end)}
 
 
 def _normalized_stated_interval(stated_interval: Mapping[str, Any] | None) -> dict[str, str]:
@@ -672,9 +702,16 @@ def booking_status_report(
         follow_up_reasons: list[str] = []
         conflict = False
         if manual is not None:
-            authority = BOOKING_AUTHORITY_MANUAL
             counts["manual"] += 1
-            manual_stale = _manual_assertion_stale_reasons(manual, problem=problem, tournament=tournament)
+            source_scope = str(manual.get("source_scope") or "tournament")
+            # A deliberate per-tournament interpretation of a club-wide statement
+            # is distinguishable from a direct per-tournament confirmation.
+            authority = (
+                BOOKING_AUTHORITY_MANUAL_INTERPRETATION
+                if source_scope == "club_wide_interpretation"
+                else BOOKING_AUTHORITY_MANUAL
+            )
+            manual_stale = manual_assertion_stale_reasons(manual, problem=problem, tournament=tournament)
             if manual_stale:
                 # The operator confirmed a specific slot; a changed canonical
                 # slot invalidates the assertion rather than carrying it along.
@@ -689,10 +726,15 @@ def booking_status_report(
                 elif status == BOOKING_MANUALLY_NOT_BOOKED and calendar_status == BOOKING_CONFIRMED_BOOKED:
                     conflict = True
                     follow_up_reasons.append("calendar_association_conflicts_with_manual_rejection")
+            # Independent calendar warnings stay actionable next to the manual
+            # authority; a failed/unverified scrape never downgrades the club's
+            # explicit confirmation.
+            follow_up_reasons.extend(calendar_stale_reasons)
             row = {
                 "tournament_id": tid,
                 "status": status,
                 "authority": authority,
+                "source_scope": source_scope,
                 "host_club": str(tournament.get("host_club") or ""),
                 "age_group": str(tournament.get("age_group") or ""),
                 "arena": str(tournament.get("arena") or ""),
@@ -702,6 +744,7 @@ def booking_status_report(
                 "stale_reasons": stale_reasons,
                 "follow_up_reasons": follow_up_reasons,
                 "calendar_status": calendar_status,
+                "calendar_stale_reasons": calendar_stale_reasons,
                 "evidence": manual,
             }
             if calendar_record:
@@ -714,6 +757,7 @@ def booking_status_report(
                 "tournament_id": tid,
                 "status": status,
                 "authority": authority,
+                "source_scope": "",
                 "host_club": str(tournament.get("host_club") or ""),
                 "age_group": str(tournament.get("age_group") or ""),
                 "arena": str(tournament.get("arena") or ""),
@@ -723,6 +767,7 @@ def booking_status_report(
                 "stale_reasons": stale_reasons,
                 "follow_up_reasons": [],
                 "calendar_status": status,
+                "calendar_stale_reasons": calendar_stale_reasons,
             }
             if calendar_record:
                 row["evidence"] = calendar_record

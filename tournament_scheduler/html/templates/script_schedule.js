@@ -260,7 +260,9 @@ function render() {
         ambiguous: 'UKLAR BOOKING',
         stale: 'BOOKINGGRUNNLAG UTDATERT'
       };
-      bookingBadge = '<div class="booking-badge booking-badge--' + t.bs + '">' + (bookingLabels[t.bs] || t.bs) + '</div>';
+      var bookingLabel = bookingLabels[t.bs] || t.bs;
+      if (t.bscope === 'club_wide_interpretation') bookingLabel += ' · SKJØNNSVURDERT';
+      bookingBadge = '<div class="booking-badge booking-badge--' + t.bs + '">' + bookingLabel + '</div>';
     }
     var approvalBadge = '';
     if (t.ap === 'approved') {
