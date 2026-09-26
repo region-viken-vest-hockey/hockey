@@ -515,6 +515,18 @@ class HtmlExporter:
                     entry["bauth"] = str(booking.get("authority"))
                 if booking.get("source_scope"):
                     entry["bscope"] = str(booking.get("source_scope"))
+                follow_up_reasons = list(booking.get("follow_up_reasons") or [])
+                if follow_up_reasons:
+                    entry["bfu"] = follow_up_reasons
+                    # A source-stated interval that disagrees with canonical
+                    # occupancy (e.g. a 75-minute emailed booking against a
+                    # 100-minute canonical block) must stay visible next to
+                    # the confirmed badge -- the follow-up reason alone does
+                    # not tell an operator what the two intervals actually are.
+                    evidence = booking.get("evidence")
+                    stated = evidence.get("stated_interval") if isinstance(evidence, dict) else None
+                    if isinstance(stated, dict) and stated.get("start") and stated.get("end"):
+                        entry["bsi"] = {"s": str(stated["start"]), "e": str(stated["end"])}
             data.append(entry)
         return json.dumps(data, ensure_ascii=False)
 

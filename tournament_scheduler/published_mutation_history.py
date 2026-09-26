@@ -44,6 +44,7 @@ _DECISION_ONLY_EVENTS = {
     "allow_holiday_date",
     "approve",
     "ban_date",
+    "clear_manual_booking_assertion",
     "confirm_calendar_booking",
     "disallow_holiday_date",
     "reconcile_calendar_bookings",
@@ -55,6 +56,7 @@ _DECISION_ONLY_EVENTS = {
     "season_baseline_advance",
     "season_baseline_create",
     "season_baseline_replace",
+    "set_manual_booking_assertion",
     "unapprove",
     "unban_date",
 }

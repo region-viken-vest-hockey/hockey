@@ -1475,6 +1475,30 @@ def test_manual_assertion_stated_duration_is_follow_up_not_occupancy_change(tmp_
     assert load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]["start_time"] == "10:00"
 
 
+def test_manual_assertion_stated_duration_discrepancy_is_visible_in_exported_html(tmp_path):
+    """A duration follow-up must survive into the HTML export, not just the report.
+
+    A ``ba`` badge alone renders an apparently confirmed booking with no
+    indication that the source-stated interval disagrees with canonical
+    occupancy; the follow-up reason and both intervals must be present in
+    the exported payload so an operator sees the discrepancy on the card.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(
+        root,
+        problem=problem,
+        note="email states a shorter window than the canonical block",
+        stated_start="10:00",
+        stated_end="10:45",
+    )
+    html = _export_html_with_booking_report(root, problem, tmp_path)
+    assert "manual_booking_stated_end_differs_from_canonical" in html
+    assert '"s": "10:00"' in html
+    assert '"e": "10:45"' in html
+
+
 def test_manual_assertion_clear_revokes_and_is_idempotent(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _host_a_problem([])

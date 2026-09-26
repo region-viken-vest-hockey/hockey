@@ -264,6 +264,24 @@ function render() {
       if (t.bscope === 'club_wide_interpretation') bookingLabel += ' · SKJØNNSVURDERT';
       bookingBadge = '<div class="booking-badge booking-badge--' + t.bs + '">' + bookingLabel + '</div>';
     }
+    var followUpBadge = '';
+    if (t.bfu && t.bfu.length) {
+      var followUpLabels = {
+        manual_booking_stated_date_differs_from_canonical: 'kilden oppgir avvikende dato',
+        manual_booking_stated_start_differs_from_canonical: 'kilden oppgir avvikende starttid',
+        manual_booking_stated_end_differs_from_canonical: 'kilden oppgir avvikende sluttid',
+        calendar_negative_conflicts_with_manual_booking: 'kalenderen motsier den manuelle bekreftelsen',
+        calendar_association_conflicts_with_manual_rejection: 'kalenderen motsier den manuelle avvisningen'
+      };
+      var followUpText = t.bfu.map(function (reason) { return followUpLabels[reason] || reason; }).join('; ');
+      if (t.bsi) {
+        followUpText += ' (kilde oppgir ' + t.bsi.s + '–' + t.bsi.e + ', kanonisk tid er uendret)';
+      }
+      followUpBadge = '<div class="followup-badge" title="' + followUpText + '">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+        'MÅ FØLGES OPP: ' + followUpText +
+        '</div>';
+    }
     var approvalBadge = '';
     if (t.ap === 'approved') {
       approvalBadge = '<div class="approval-badge' + (t.apl ? ' approval-badge--locked' : '') + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>GODKJENT' + (t.apl ? ' · LÅST' : '') + '</div>';
@@ -273,6 +291,7 @@ function render() {
     html += '<div class="tournament-card' + cancelledClass + manualClass + '" onclick="this.classList.toggle(\'expanded\')">' +
       approvalBadge +
       bookingBadge +
+      followUpBadge +
       guestBadge +
       manualBadge +
       confirmationBadge +
