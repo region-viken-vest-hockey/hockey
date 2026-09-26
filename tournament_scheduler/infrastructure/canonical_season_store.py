@@ -204,6 +204,53 @@ def _carry_forward_evidence(existing_evidence: Path, staging_evidence: Path) -> 
     return copied
 
 
+def _write_extra_evidence(
+    staging: Path, extra_evidence: Mapping[str, bytes]
+) -> list[Path]:
+    """Write caller-supplied evidence files into the staged season tree.
+
+    Keys are paths relative to the season directory. Files are written with the
+    same stage+fsync+replace discipline as the canonical files, inside the same
+    locked swap as ``schedule.json``/``decisions.json``, so a reference to a
+    newly archived artifact and the artifact itself are never installed
+    separately. An already carried-forward file is only accepted when its bytes
+    are identical, so a hardlinked active file is never truncated. Returns the
+    newly written files.
+    """
+
+    written: list[Path] = []
+    for relative_path, content in extra_evidence.items():
+        relative = Path(relative_path)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise SeasonStateError(
+                f"Refusing canonical commit: illegal evidence path {relative_path!r}"
+            )
+        target = staging / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            if target.read_bytes() == content:
+                continue
+            raise SeasonStateError(
+                "Refusing canonical commit: staged evidence "
+                f"{relative_path} already exists with different content"
+            )
+        staging_fd, staging_name = tempfile.mkstemp(
+            prefix=f".{target.name}.", suffix=".tmp", dir=target.parent
+        )
+        os.close(staging_fd)
+        temp = Path(staging_name)
+        try:
+            temp.write_bytes(content)
+            with temp.open("rb") as handle:
+                os.fsync(handle.fileno())
+            os.replace(temp, target)
+        finally:
+            if temp.exists():
+                temp.unlink(missing_ok=True)
+        written.append(target)
+    return written
+
+
 def _discard_previous_state(backup: Path) -> None:
     """Best-effort removal of the previous state after a committed swap.
 
@@ -337,6 +384,7 @@ def _write_season_state_atomic(
     *,
     require_absent: bool,
     export_context: dict[str, Any] | None = None,
+    extra_evidence: Mapping[str, bytes] | None = None,
 ) -> None:
     """Install the canonical season-state files under the swap/recovery lock.
 
@@ -354,6 +402,7 @@ def _write_season_state_atomic(
             decisions_payload,
             require_absent=require_absent,
             export_context=export_context,
+            extra_evidence=extra_evidence,
         )
 
 
@@ -364,6 +413,7 @@ def _write_season_state_locked(
     *,
     require_absent: bool,
     export_context: dict[str, Any] | None = None,
+    extra_evidence: Mapping[str, bytes] | None = None,
 ) -> None:
     """Install the canonical season-state files as one crash-durable boundary.
 
@@ -409,6 +459,11 @@ def _write_season_state_locked(
             copied_evidence = _carry_forward_evidence(
                 existing_evidence, staging / EVIDENCE_DIR_NAME
             )
+        # Newly archived evidence files are written into this same staged tree
+        # before the swap, so a schedule/decisions reference to them and the
+        # artifact itself are installed as one atomic boundary.
+        if extra_evidence:
+            _write_extra_evidence(staging, extra_evidence)
 
         # fsync the newly written primary files and any evidence files that had
         # to be copied (hardlinked evidence is already durable on disk).
@@ -534,13 +589,20 @@ class CanonicalSeasonStore:
             export_context=export_context,
         )
 
-    def write(self, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool = False) -> None:
+    def write(
+        self,
+        snapshot: CanonicalSeasonSnapshot,
+        *,
+        require_absent: bool = False,
+        extra_evidence: Mapping[str, bytes] | None = None,
+    ) -> None:
         _write_season_state_atomic(
             self.directory(snapshot.season),
             snapshot.schedule,
             snapshot.decisions,
             require_absent=require_absent,
             export_context=snapshot.export_context,
+            extra_evidence=extra_evidence,
         )
 
 

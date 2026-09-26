@@ -12,11 +12,13 @@ evidence record.
 
 The archive lives under ``season/<season>/evidence/calendar/`` and is therefore
 Git-tracked with the canonical state. The canonical-season store carries the
-whole ``evidence/`` tree forward by hardlink or copy on every atomic commit, so a
-later mutation never drops retained snapshot evidence. Writes are atomic
-(stage + fsync + replace), the stored checksum is re-verified on read, and a
-missing or invalid referenced snapshot is an explicit error rather than silently
-treated as absent.
+whole ``evidence/`` tree forward by hardlink or copy on every atomic commit, and
+:func:`calendar_snapshot_content` lets the refresh commit install a new snapshot
+in the *same* locked directory swap as ``schedule.json``/``decisions.json``, so a
+reference and its artifact are never written as two separate boundaries. The
+stored checksum is re-verified on read, the reference path/digest is enforced,
+and a missing or invalid referenced snapshot is an explicit error rather than
+silently treated as absent.
 """
 
 from __future__ import annotations
@@ -24,7 +26,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import tempfile
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -70,46 +71,23 @@ def calendar_snapshot_ref(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def archive_calendar_snapshot(
-    season: str,
-    *,
+def calendar_snapshot_content(
     snapshot: Mapping[str, Any],
-    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
-) -> dict[str, Any]:
-    """Write one pre-refresh snapshot durably and return its reference.
+) -> tuple[dict[str, Any], bytes]:
+    """Return ``(reference, bytes)`` for one snapshot without writing anything.
 
-    Re-archiving identical content is idempotent (same content, same path). An
-    existing file whose stored checksum no longer matches is refused rather than
-    overwritten.
+    The bytes are content-addressed by the reference digest and are installed
+    by the canonical-season store as part of the same atomic swap that commits
+    the reference to them.
     """
 
     ref = calendar_snapshot_ref(snapshot)
-    directory = calendar_snapshots_dir(season, root=root)
-    directory.mkdir(parents=True, exist_ok=True)
-    target = directory / f"{ref['sha256']}.json"
     payload: dict[str, Any] = {
         "schema_version": ARCHIVE_SCHEMA_VERSION,
         "snapshot_hash": ref["sha256"],
         "snapshot": snapshot,
     }
-    if target.exists():
-        _verify_existing_snapshot(target, ref["sha256"])
-        return ref
-
-    staging_fd, staging_name = tempfile.mkstemp(
-        prefix=f".{ref['sha256']}.", suffix=".tmp", dir=directory
-    )
-    os.close(staging_fd)
-    staging = Path(staging_name)
-    try:
-        staging.write_bytes(_json_bytes(payload))
-        with staging.open("rb") as handle:
-            os.fsync(handle.fileno())
-        os.replace(staging, target)
-    finally:
-        if staging.exists():
-            staging.unlink(missing_ok=True)
-    return ref
+    return ref, _json_bytes(payload)
 
 
 def load_calendar_snapshot(
@@ -165,29 +143,11 @@ def load_calendar_snapshot(
     return dict(snapshot)
 
 
-def _verify_existing_snapshot(path: Path, expected: str) -> None:
-    """Refuse to overwrite an archive that no longer matches its content hash."""
-
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise CalendarSnapshotArchiveError(
-            f"Existing calendar snapshot archive is not readable JSON: {exc}"
-        ) from exc
-    stored = str(payload.get("snapshot_hash") or "") if isinstance(payload, Mapping) else ""
-    snapshot = payload.get("snapshot") if isinstance(payload, Mapping) else None
-    if stored != expected or not isinstance(snapshot, Mapping) or stable_payload_sha256(snapshot) != expected:
-        raise CalendarSnapshotArchiveError(
-            f"Calendar snapshot archive {path} already exists with a different content hash; "
-            "refusing to overwrite"
-        )
-
-
 __all__ = [
     "ARCHIVE_SCHEMA_VERSION",
     "CALENDAR_SUBDIR",
     "CalendarSnapshotArchiveError",
-    "archive_calendar_snapshot",
+    "calendar_snapshot_content",
     "calendar_snapshot_ref",
     "calendar_snapshots_dir",
     "load_calendar_snapshot",

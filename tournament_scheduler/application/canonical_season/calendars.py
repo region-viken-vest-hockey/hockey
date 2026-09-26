@@ -42,8 +42,7 @@ from tournament_scheduler.canonical_state import (
 )
 from tournament_scheduler.club_registry import CLUB_REGISTRY, club_for_source_name
 from tournament_scheduler.infrastructure.canonical_calendar_snapshot_archive import (
-    archive_calendar_snapshot,
-    calendar_snapshot_ref,
+    calendar_snapshot_content,
 )
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.infrastructure.canonical_season_store import (
@@ -269,8 +268,19 @@ def _source_policy_changes(
                     {"field": "sources", "source": name, "change": "modified", "fields": field_changes}
                 )
         else:
-            before_signatures = sorted(_source_policy_signature(entry) for entry in before_entries)
-            after_signatures = sorted(_source_policy_signature(entry) for entry in after_entries)
+            # Project both sides onto the fields the promoted policy actually
+            # recorded, so a legacy name/type/url-only duplicate-name policy
+            # does not report drift merely because current entries now also
+            # carry registry/strategy fields.
+            compared_keys = sorted({key for entry in before_entries for key in entry})
+            before_signatures = sorted(
+                _source_policy_signature({key: entry.get(key) for key in compared_keys})
+                for entry in before_entries
+            )
+            after_signatures = sorted(
+                _source_policy_signature({key: entry.get(key) for key in compared_keys})
+                for entry in after_entries
+            )
             if before_signatures != after_signatures:
                 changes.append(
                     {
@@ -442,11 +452,7 @@ def refresh_calendars(
         "source_policy_fingerprint": promoted_policy_fingerprint,
         "prior_calendar_evidence": copy.deepcopy(current_evidence),
     }
-    snapshot_ref = calendar_snapshot_ref(previous_snapshot)
-    if not dry_run:
-        snapshot_ref = archive_calendar_snapshot(
-            season, snapshot=previous_snapshot, root=service.store.root
-        )
+    snapshot_ref, snapshot_bytes = calendar_snapshot_content(previous_snapshot)
 
     evidence_record = {
         "schema_version": 1,
@@ -550,7 +556,10 @@ def refresh_calendars(
             "previous_snapshot": evidence_record["previous_snapshot"],
         },
     )
-    committed = service._commit(snapshot.with_schedule(schedule).with_decisions(decisions))
+    committed = service._commit(
+        snapshot.with_schedule(schedule).with_decisions(decisions),
+        extra_evidence={snapshot_ref["path"]: snapshot_bytes},
+    )
     findings_after = list_findings(season, root=service.store.root)
     result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
     result["previous_canonical_state_revision"] = before_revision

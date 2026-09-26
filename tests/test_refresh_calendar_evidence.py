@@ -499,3 +499,61 @@ def test_load_calendar_snapshot_rejects_mismatched_reference(tmp_path: Path, mon
             {**ref, "path": f"evidence/calendar/{'0' * 64}.json"},
             root=root,
         )
+
+
+def test_refresh_legacy_duplicate_source_name_policy_has_no_false_drift(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A legacy name/type/url-only duplicate-name policy compares on those fields."""
+
+    root = _promote(tmp_path)
+    legacy_sources = [
+        {"name": "Arena A", "type": "ical", "url": "https://example.test/a.ics"},
+        {"name": "Arena A", "type": "ical", "url": "https://example.test/b.ics"},
+    ]
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    schedule["verification_context"]["calendar_evidence"] = {
+        "schema_version": 1,
+        "sources": legacy_sources,
+    }
+    schedule_path.write_text(
+        json.dumps(schedule, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    _patch_refresh_inputs(monkeypatch, busy=False, sources=legacy_sources)
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    assert result["source_policy_changes"] == []
+    evidence = load_schedule("2026-2027", root=root)["verification_context"]["calendar_evidence"]
+    # The current entries carry extra registry fields; the persisted policy now
+    # pins them for the next refresh.
+    assert evidence["source_policy"]["sources"][0]["club"] is None
+
+
+def test_refresh_archive_survives_interleaved_writer(tmp_path: Path, monkeypatch) -> None:
+    """The pre-refresh archive is installed in the same atomic swap as the reference."""
+
+    from tournament_scheduler.application.canonical_season import lifecycle
+
+    root = _promote(tmp_path)
+    _patch_refresh_inputs(monkeypatch, busy=True)
+
+    original_commit = lifecycle._commit
+
+    def interfering_commit(service, snapshot, **kwargs):
+        # Simulate another canonical writer swapping the season directory after a
+        # standalone archive write but before this commit, dropping the file.
+        archive_dir = root / "2026-2027" / "evidence" / "calendar"
+        if archive_dir.is_dir():
+            for archive_file in archive_dir.glob("*.json"):
+                archive_file.unlink()
+        return original_commit(service, snapshot, **kwargs)
+
+    monkeypatch.setattr(lifecycle, "_commit", interfering_commit)
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    snapshot = load_calendar_snapshot("2026-2027", result["previous_snapshot"], root=root)
+    assert snapshot["calendar_fingerprint"] == result["previous_calendar_fingerprint"]
+    assert (root / "2026-2027" / result["previous_snapshot"]["path"]).exists()

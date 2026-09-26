@@ -94,8 +94,19 @@ class CanonicalSeasonService:
     def load(self, season: str) -> CanonicalSeasonSnapshot:
         return self.store.load(season)
 
-    def _commit(self, snapshot: CanonicalSeasonSnapshot, *, require_absent: bool = False) -> CanonicalSeasonSnapshot:
-        return _lifecycle._commit(self, snapshot=snapshot, require_absent=require_absent)
+    def _commit(
+        self,
+        snapshot: CanonicalSeasonSnapshot,
+        *,
+        require_absent: bool = False,
+        extra_evidence: Mapping[str, bytes] | None = None,
+    ) -> CanonicalSeasonSnapshot:
+        return _lifecycle._commit(
+            self,
+            snapshot=snapshot,
+            require_absent=require_absent,
+            extra_evidence=extra_evidence,
+        )
 
     def _commit_history_only(self, snapshot: CanonicalSeasonSnapshot) -> CanonicalSeasonSnapshot:
         return _lifecycle._commit_history_only(self, snapshot=snapshot)
