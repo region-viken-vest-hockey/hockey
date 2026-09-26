@@ -139,6 +139,22 @@ def _source_policy_entry(source: Mapping[str, Any]) -> dict[str, Any]:
                 ],
             }
         )
+    # The broad registry kind above does not describe Stage 2's actual
+    # deterministic dispatch; snapshot the effective code-owned strategy so a
+    # change to the strategy table is visible as source-policy drift too.
+    from tournament_scheduler.pipeline.scraper_strategies import (
+        get_deterministic_scraper_type,
+        get_strategy,
+        needs_llm_agent,
+        requires_credentials,
+    )
+
+    strategy = get_strategy(club) if club else None
+    if strategy is not None:
+        entry["engine"] = strategy.engine.value
+        entry["deterministic_scraper"] = get_deterministic_scraper_type(strategy)
+        entry["requires_credentials"] = requires_credentials(strategy)
+        entry["needs_llm_agent"] = needs_llm_agent(strategy)
     return entry
 
 
@@ -174,7 +190,10 @@ def _source_policy_from_evidence(evidence: Mapping[str, Any] | None) -> dict[str
     if not isinstance(evidence, Mapping):
         return None
     persisted = evidence.get("source_policy")
-    if isinstance(persisted, Mapping) and persisted.get("sources"):
+    # An explicit ``sources`` list is authoritative even when it is empty: a
+    # refresh accepted with zero sources must still protect against a later
+    # silent addition, so emptiness is not treated as "no policy recorded".
+    if isinstance(persisted, Mapping) and isinstance(persisted.get("sources"), list):
         return copy.deepcopy(dict(persisted))
     sources = evidence.get("sources")
     if not isinstance(sources, list) or not sources:
@@ -194,6 +213,12 @@ def _source_policy_from_evidence(evidence: Mapping[str, Any] | None) -> dict[str
     return {"schema_version": _SOURCE_POLICY_SCHEMA_VERSION, "sources": entries}
 
 
+def _source_policy_signature(entry: Mapping[str, Any]) -> str:
+    """Return a stable content signature for one source-policy entry."""
+
+    return stable_payload_sha256(entry)
+
+
 def _source_policy_changes(
     promoted: Mapping[str, Any] | None,
     current: Mapping[str, Any],
@@ -203,7 +228,9 @@ def _source_policy_changes(
     Only fields actually present on the promoted policy are compared, so a
     legacy evidence record that recorded only name/type/url does not report a
     spurious change merely because the current policy now also carries the
-    code-owned parser/trust facts.
+    code-owned parser/trust facts. Sources are compared as a multiset keyed by
+    name: two configured rows may share a name, so a surviving row must never
+    mask the addition, removal or change of a same-name sibling.
     """
 
     if not isinstance(promoted, Mapping):
@@ -213,23 +240,25 @@ def _source_policy_changes(
         if key in promoted and promoted.get(key) != current.get(key):
             changes.append({"field": key, "before": promoted.get(key), "after": current.get(key)})
 
-    def _by_name(policy: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-        return {
-            str(entry.get("name")): dict(entry)
-            for entry in policy.get("sources") or []
-            if isinstance(entry, Mapping) and entry.get("name")
-        }
+    def _by_name(policy: Mapping[str, Any]) -> dict[str, list[dict[str, Any]]]:
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for entry in policy.get("sources") or []:
+            if isinstance(entry, Mapping) and entry.get("name"):
+                grouped.setdefault(str(entry["name"]), []).append(dict(entry))
+        return grouped
 
     promoted_sources = _by_name(promoted)
     current_sources = _by_name(current)
     for name in sorted(set(promoted_sources) | set(current_sources)):
-        before = promoted_sources.get(name)
-        after = current_sources.get(name)
-        if before is None:
-            changes.append({"field": "sources", "source": name, "change": "added", "after": after})
-        elif after is None:
-            changes.append({"field": "sources", "source": name, "change": "removed", "before": before})
-        else:
+        before_entries = promoted_sources.get(name, [])
+        after_entries = current_sources.get(name, [])
+        if not before_entries:
+            changes.append({"field": "sources", "source": name, "change": "added", "after": after_entries})
+        elif not after_entries:
+            changes.append({"field": "sources", "source": name, "change": "removed", "before": before_entries})
+        elif len(before_entries) == 1 and len(after_entries) == 1:
+            before = before_entries[0]
+            after = after_entries[0]
             field_changes = {
                 key: {"before": before.get(key), "after": after.get(key)}
                 for key in before
@@ -238,6 +267,21 @@ def _source_policy_changes(
             if field_changes:
                 changes.append(
                     {"field": "sources", "source": name, "change": "modified", "fields": field_changes}
+                )
+        else:
+            before_signatures = sorted(_source_policy_signature(entry) for entry in before_entries)
+            after_signatures = sorted(_source_policy_signature(entry) for entry in after_entries)
+            if before_signatures != after_signatures:
+                changes.append(
+                    {
+                        "field": "sources",
+                        "source": name,
+                        "change": "multiset_changed",
+                        "before_count": len(before_entries),
+                        "after_count": len(after_entries),
+                        "before": before_entries,
+                        "after": after_entries,
+                    }
                 )
     return changes
 

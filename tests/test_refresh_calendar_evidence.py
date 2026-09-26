@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 
@@ -81,6 +82,8 @@ def _patch_refresh_inputs(
     busy: bool,
     source_url: str = "https://example.test/a.ics",
     source_type: str = "ical",
+    sources: list[dict] | None = None,
+    source_name: str = "Arena A",
 ) -> None:
     from tournament_scheduler.pipeline import stage1_config, stage2_scraping
 
@@ -89,7 +92,9 @@ def _patch_refresh_inputs(
         return {}
 
     def fake_effective_config(state, *, input_path=None):
-        return {"sources": [{"name": "Arena A", "type": source_type, "url": source_url}]}
+        if sources is not None:
+            return {"sources": sources}
+        return {"sources": [{"name": source_name, "type": source_type, "url": source_url}]}
 
     def fake_stage2_run(config, state, start_date, end_date, **kwargs):
         events = []
@@ -105,7 +110,7 @@ def _patch_refresh_inputs(
         return {
             "sources": [
                 {
-                    "name": "Arena A",
+                    "name": source_name,
                     "type": source_type,
                     "url": source_url,
                     "events": events,
@@ -397,3 +402,100 @@ def test_calendar_snapshot_archive_fails_closed_on_corruption(tmp_path: Path, mo
 
     with pytest.raises(CalendarSnapshotArchiveError):
         load_calendar_snapshot("2026-2027", ref, root=root)
+
+
+def test_refresh_detects_drift_after_zero_source_policy(tmp_path: Path, monkeypatch) -> None:
+    """An empty recorded policy is authoritative, not treated as absent."""
+
+    root = _promote(tmp_path)
+    _patch_refresh_inputs(monkeypatch, busy=False, sources=[])
+    refresh_calendars(
+        season="2026-2027",
+        root=root,
+        input_path="input.xlsx",
+        actor="tester",
+        allow_missing_sources=True,
+    )
+    evidence = load_schedule("2026-2027", root=root)["verification_context"]["calendar_evidence"]
+    assert evidence["source_policy"]["sources"] == []
+
+    _patch_refresh_inputs(monkeypatch, busy=False)
+    preview = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", dry_run=True)
+
+    assert preview["refused"] is True
+    change = preview["source_policy_changes"][0]
+    assert change["change"] == "added"
+    assert change["source"] == "Arena A"
+
+
+def test_refresh_detects_duplicate_source_name_drift(tmp_path: Path, monkeypatch) -> None:
+    """A surviving same-name row must not mask an added/removed sibling."""
+
+    root = _promote(tmp_path)
+    base = [{"name": "Arena A", "type": "ical", "url": "https://example.test/a.ics"}]
+    _patch_refresh_inputs(monkeypatch, busy=False, sources=base)
+    refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    duplicate = base + [{"name": "Arena A", "type": "ical", "url": "https://example.test/b.ics"}]
+    _patch_refresh_inputs(monkeypatch, busy=False, sources=duplicate)
+    preview = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", dry_run=True)
+
+    assert preview["refused"] is True
+    change = preview["source_policy_changes"][0]
+    assert change["change"] == "multiset_changed"
+    assert change["before_count"] == 1
+    assert change["after_count"] == 2
+    assert preview["refusal_reasons"]
+
+
+def test_refresh_detects_stage2_dispatch_strategy_change(tmp_path: Path, monkeypatch) -> None:
+    """A code-owned strategy/engine change is source-policy drift, not silence."""
+
+    from tournament_scheduler.pipeline import scraper_strategies
+
+    root = _promote(tmp_path)
+    sources = [{"name": "Jutul", "type": "outlook", "url": "https://example.test/jutul/"}]
+    _patch_refresh_inputs(monkeypatch, busy=False, sources=sources, source_name="Jutul")
+    first = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+
+    assert first["source_policy_changes"] == []
+    evidence = load_schedule("2026-2027", root=root)["verification_context"]["calendar_evidence"]
+    entry = evidence["source_policy"]["sources"][0]
+    assert entry["engine"] == "styled_calendar"
+    assert entry["deterministic_scraper"] == "styledcalendar"
+    assert entry["needs_llm_agent"] is True
+
+    original = scraper_strategies.STRATEGIES["Jutul"]
+    monkeypatch.setitem(
+        scraper_strategies.STRATEGIES,
+        "Jutul",
+        dataclasses.replace(original, engine=scraper_strategies.CalendarEngine.OUTLOOK_IFRAME),
+    )
+    preview = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", dry_run=True)
+
+    assert preview["refused"] is True
+    change = preview["source_policy_changes"][0]
+    assert change["change"] == "modified"
+    assert change["fields"]["engine"] == {"before": "styled_calendar", "after": "outlook_iframe"}
+
+
+def test_load_calendar_snapshot_rejects_mismatched_reference(tmp_path: Path, monkeypatch) -> None:
+    """A substituted path/digest must not resolve to valid-looking content."""
+
+    from tournament_scheduler.infrastructure.canonical_calendar_snapshot_archive import (
+        CalendarSnapshotArchiveError,
+    )
+
+    root = _promote(tmp_path)
+    _patch_refresh_inputs(monkeypatch, busy=True)
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", actor="tester")
+    ref = result["previous_snapshot"]
+
+    with pytest.raises(CalendarSnapshotArchiveError):
+        load_calendar_snapshot("2026-2027", {**ref, "sha256": "not-a-digest"}, root=root)
+    with pytest.raises(CalendarSnapshotArchiveError):
+        load_calendar_snapshot(
+            "2026-2027",
+            {**ref, "path": f"evidence/calendar/{'0' * 64}.json"},
+            root=root,
+        )

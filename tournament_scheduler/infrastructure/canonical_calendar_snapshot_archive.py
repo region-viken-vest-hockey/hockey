@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any, Mapping
@@ -37,6 +38,10 @@ from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 ARCHIVE_SCHEMA_VERSION = 1
 CALENDAR_SUBDIR = "calendar"
+
+#: SHA-256 digests are content addresses, so the reference path is fully
+#: determined by the digest and a mismatch means the reference is corrupt.
+_HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 
 class CalendarSnapshotArchiveError(RuntimeError):
@@ -123,8 +128,16 @@ def load_calendar_snapshot(
         raise CalendarSnapshotArchiveError("Calendar snapshot reference is not an object")
     expected = str(ref.get("sha256") or "")
     relative_path = str(ref.get("path") or "")
-    if not expected or not relative_path:
-        raise CalendarSnapshotArchiveError("Calendar snapshot reference is missing sha256 or path")
+    if not _HEX64.fullmatch(expected):
+        raise CalendarSnapshotArchiveError(
+            f"Calendar snapshot reference has an invalid SHA-256 digest: {expected!r}"
+        )
+    expected_path = f"{EVIDENCE_SUBDIR}/{CALENDAR_SUBDIR}/{expected}.json"
+    if relative_path != expected_path:
+        raise CalendarSnapshotArchiveError(
+            "Calendar snapshot reference path does not match its content digest: "
+            f"{relative_path} != {expected_path}"
+        )
     path = (Path(root) / season / relative_path).resolve()
     allowed_root = calendar_snapshots_dir(season, root=root).resolve()
     if allowed_root not in path.parents and path.parent != allowed_root:
