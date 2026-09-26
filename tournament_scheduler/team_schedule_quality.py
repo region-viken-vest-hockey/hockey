@@ -9,8 +9,16 @@ The thresholds here are policy-level definitions of "material", deliberately
 kept deterministic and conservative:
 - creating an additional gap under 7 or 14 days is material;
 - worsening temporal coverage into the normal >60-day offender range is material;
-- increasing repeated-opponent excess beyond two meetings is material;
+- materially concentrating a squad's opponents on one opposing club is material;
 - increasing estimated season travel by at least 50 km and 25% is material.
+
+The subject is the individual squad, but the primary opponent identity is the
+*club within an age group* (see
+:mod:`tournament_scheduler.opponent_diversity`). Squad labels such as
+"Frisk Asker 1"/"Frisk Asker 2" are administrative: a swap that changes which
+sibling squad an opponent meets must not be treated as adding a new opponent.
+Exact squad-pair repetition is still reported for diagnostics, but a rise in
+that metric alone is never a material regression blocker.
 
 Small neutral trade-offs remain visible in the before/after profiles but do not
 block a swap.
@@ -24,6 +32,10 @@ from typing import Any, Mapping
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.club_distances import arena_to_club, distance
+from tournament_scheduler.opponent_diversity import (
+    MEASURE_CO_ATTENDANCE,
+    compute_opponent_diversity,
+)
 from tournament_scheduler.participation_targets import (
     HALVES,
     resolve_half_target,
@@ -43,6 +55,17 @@ PREFERRED_GAP_DAYS = 14
 MATERIAL_TEMPORAL_GAP_DELTA_DAYS = 14
 MATERIAL_TRAVEL_INCREASE_KM = 50
 MATERIAL_TRAVEL_INCREASE_RATIO = 0.25
+
+# A squad whose observed share of encounters with one opposing club is this
+# many times the share its squad supply predicts has a genuinely concentrated
+# opponent. The expected-share denominator means a club that supplies many
+# squads is not penalised merely for being available. A change is material
+# only when the index both rises materially and ends up concentrated.
+MATERIAL_CLUB_EXPOSURE_INDEX = 2.0
+MATERIAL_CLUB_EXPOSURE_INDEX_DELTA = 0.5
+# A single encounter with a new club is not concentration; require a real
+# repeated relationship before the normalized index can block anything.
+MATERIAL_CLUB_EXPOSURE_MIN_ENCOUNTERS = 3
 
 
 def _identity(team: Mapping[str, Any], fallback_age_group: str = "") -> TeamIdentity:
@@ -155,6 +178,24 @@ def team_schedule_profile(
     max_repeat = max(opponents.values(), default=0)
     repeat_excess_over_2 = sum(max(0, count - 2) for count in opponents.values())
 
+    # Club-level primary opponent identity (see opponent_diversity). The exact
+    # squad counts above are retained under `opponents` for diagnostics and
+    # serialized-report compatibility; diversity/exposure decisions read the
+    # club view below.
+    diversity = compute_opponent_diversity(plan, identity)
+    club_opponents = diversity.to_dict()
+    # Always keep the co-attendance proxy as well: when a before/after pair has
+    # different game coverage, the comparison uses this consistent proxy for
+    # both sides instead of silently skipping the concentration check.
+    co_attendance = compute_opponent_diversity(
+        plan, identity, measure=MEASURE_CO_ATTENDANCE
+    )
+    club_opponents["co_attendance"] = {
+        "measure": co_attendance.measure,
+        "distinct_clubs": co_attendance.distinct_clubs,
+        "club_counts": [record.to_dict() for record in co_attendance.clubs],
+    }
+
     return {
         "team": {"club": club, "label": label, "age_group": age_group},
         "tournament_count": len(dates),
@@ -171,6 +212,7 @@ def team_schedule_profile(
             "repeat_excess_over_2": repeat_excess_over_2,
             "counts": opponent_counts,
         },
+        "club_opponents": club_opponents,
         "travel_km": travel_km,
     }
 
@@ -237,12 +279,16 @@ def compare_team_schedule_profiles(
     old_repeat_excess = int(before_opponents.get("repeat_excess_over_2", 0) or 0)
     new_repeat_excess = int(after_opponents.get("repeat_excess_over_2", 0) or 0)
     if new_repeat_excess > old_repeat_excess:
-        material.append(
+        # Exact squad-pair repetition is diagnostic only. Squad labels are
+        # administrative, so a rise here must never block a repair on its own;
+        # the club-level exposure check below is the material protection.
+        warnings.append(
             {
                 "code": "more_repeated_opponent_excess",
                 "before": old_repeat_excess,
                 "after": new_repeat_excess,
                 "delta": new_repeat_excess - old_repeat_excess,
+                "measure": "exact_squad",
             }
         )
     old_unique = int(before_opponents.get("unique_opponents", 0) or 0)
@@ -254,6 +300,90 @@ def compare_team_schedule_profiles(
                 "before": old_unique,
                 "after": new_unique,
                 "delta": new_unique - old_unique,
+            }
+        )
+
+    # Club-level primary opponent identity: opportunity-aware exposure. A club
+    # supplying many squads is expected to be met more often, so only a rise in
+    # the squad-supply-normalized exposure index that ends up concentrated is a
+    # material regression. `exposure_index` is absent in profiles produced
+    # before this contract existed, in which case the check is skipped.
+    before_section = before.get("club_opponents") or {}
+    after_section = after.get("club_opponents") or {}
+    before_measure = before_section.get("measure")
+    after_measure = after_section.get("measure")
+    use_co_attendance = bool(
+        before_measure and after_measure and before_measure != after_measure
+    )
+    if use_co_attendance:
+        warnings.append(
+            {
+                "code": "opponent_measure_changed",
+                "before": before_measure,
+                "after": after_measure,
+                "compared_using": MEASURE_CO_ATTENDANCE,
+            }
+        )
+    before_view = (
+        before_section.get("co_attendance") or {}
+        if use_co_attendance
+        else before_section
+    )
+    after_view = (
+        after_section.get("co_attendance") or {}
+        if use_co_attendance
+        else after_section
+    )
+    before_clubs = {
+        str(record.get("club")): record
+        for record in before_view.get("club_counts", []) or []
+    }
+    after_clubs = {
+        str(record.get("club")): record
+        for record in after_view.get("club_counts", []) or []
+    }
+    for club_name, after_record in after_clubs.items():
+        before_record = before_clubs.get(club_name)
+        if before_record is None:
+            old_index = 0.0
+            old_share = 0.0
+            old_encounters = 0
+        else:
+            old_index = float(before_record.get("exposure_index", 0.0) or 0.0)
+            old_share = float(before_record.get("exposure_share", 0.0) or 0.0)
+            old_encounters = int(before_record.get("encounters", 0) or 0)
+        new_index = float(after_record.get("exposure_index", 0.0) or 0.0)
+        new_share = float(after_record.get("exposure_share", 0.0) or 0.0)
+        new_encounters = int(after_record.get("encounters", 0) or 0)
+        if (
+            new_encounters >= MATERIAL_CLUB_EXPOSURE_MIN_ENCOUNTERS
+            and new_encounters > old_encounters
+            and new_share > old_share
+            and new_index - old_index >= MATERIAL_CLUB_EXPOSURE_INDEX_DELTA
+            and new_index >= MATERIAL_CLUB_EXPOSURE_INDEX
+        ):
+            material.append(
+                {
+                    "code": "more_concentrated_club_exposure",
+                    "club": club_name,
+                    "before_index": old_index,
+                    "after_index": new_index,
+                    "before_share": old_share,
+                    "after_share": new_share,
+                    "before_encounters": old_encounters,
+                    "after_encounters": new_encounters,
+                    "threshold_index": MATERIAL_CLUB_EXPOSURE_INDEX,
+                }
+            )
+    old_club_diversity = int(before_view.get("distinct_clubs", 0) or 0)
+    new_club_diversity = int(after_view.get("distinct_clubs", 0) or 0)
+    if new_club_diversity < old_club_diversity:
+        warnings.append(
+            {
+                "code": "fewer_distinct_opponent_clubs",
+                "before": old_club_diversity,
+                "after": new_club_diversity,
+                "delta": new_club_diversity - old_club_diversity,
             }
         )
 
@@ -463,7 +593,7 @@ ACCEPTABLE_REGRESSION_CODES = frozenset(
         "more_gaps_under_7_days",
         "more_gaps_under_14_days",
         "temporal_coverage_materially_worse",
-        "more_repeated_opponent_excess",
+        "more_concentrated_club_exposure",
         "travel_materially_worse",
     }
 )

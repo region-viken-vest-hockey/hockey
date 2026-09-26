@@ -92,6 +92,10 @@ TeamIdentity = Tuple[str, str, str]
 
 DEFAULT_WEIGHTS: Dict[str, float] = {
     "pair_repeat": 3.0,
+    # Aggregate club-pair co-occurrence is a separate, lower-priority diversity
+    # objective: it keeps overall inter-club mixing even where per-subject
+    # expectation cannot flag a forced repetition (e.g. a two-club age group).
+    "club_pair_repeat": 1.0,
     "same_club_pairing": 1.0,
     "same_club_cluster": 2.0,
     # issue #324: a dedicated, steep penalty for the 3rd-or-later team from
@@ -196,6 +200,82 @@ def _pair_counts(slots: List[_Slot]) -> Dict[Tuple[TeamIdentity, TeamIdentity], 
                 pair = tuple(sorted((ids[i], ids[j])))
                 counts[pair] = counts.get(pair, 0) + 1
     return counts
+
+
+ClubKey = Tuple[str, str]  # (club, age_group)
+ExposureKey = Tuple[TeamIdentity, str]  # (subject squad, opposing club)
+
+
+def _club_supply_by_age(
+    slots: List[_Slot],
+) -> Tuple[Dict[ClubKey, Set[TeamIdentity]], Dict[str, int]]:
+    """Return each club's squads and the total squad count per age group."""
+
+    squads_by_club_age: Dict[ClubKey, Set[TeamIdentity]] = {}
+    for slot in slots:
+        for identity in slot.team_ids:
+            squads_by_club_age.setdefault((identity[0], slot.age_group), set()).add(identity)
+    total_by_age: Dict[str, int] = {}
+    for (_club, age_group), squads in squads_by_club_age.items():
+        total_by_age[age_group] = total_by_age.get(age_group, 0) + len(squads)
+    return squads_by_club_age, total_by_age
+
+
+def _subject_club_exposure(slots: List[_Slot]) -> Dict[ExposureKey, int]:
+    """Count squad-pair co-attendance per *(subject squad, opposing club)*.
+
+    The subject is the individual squad and the opponent identity is the
+    opposing club within an age group (see
+    :mod:`tournament_scheduler.opponent_diversity`): a change in which
+    sibling squad an opponent meets is not a new opponent, but concentrating
+    one squad's own schedule on one club is visible. Keying on the subject
+    (rather than an aggregate club pair) is what makes those two schedules
+    distinguishable.
+    """
+
+    exposure: Dict[ExposureKey, int] = {}
+    for slot in slots:
+        for identity in slot.team_ids:
+            own_club = identity[0]
+            for other in slot.team_ids:
+                if other[0] == own_club:
+                    continue
+                key = (identity, other[0])
+                exposure[key] = exposure.get(key, 0) + 1
+    return exposure
+
+
+def _club_pair_counts(slots: List[_Slot]) -> Dict[Tuple[ClubKey, ClubKey], int]:
+    """Count co-attendance per *club* pair within an age group."""
+
+    counts: Dict[Tuple[ClubKey, ClubKey], int] = {}
+    for slot in slots:
+        clubs = sorted({(identity[0], slot.age_group) for identity in slot.team_ids})
+        for i in range(len(clubs)):
+            for j in range(i + 1, len(clubs)):
+                pair = (clubs[i], clubs[j])
+                counts[pair] = counts.get(pair, 0) + 1
+    return counts
+
+
+def _exposure_excess(
+    count: int,
+    subject_tournaments: int,
+    club_squads: int,
+    total_squads: int,
+) -> float:
+    """Exposure beyond the squad-supply expectation, or 0 when not excessive.
+
+    The opportunity baseline is the subject's own tournament count multiplied
+    by the opposing club's share of the age group's squads, so a large
+    multi-squad club is expected to be met more often and a single subject
+    concentrating on one club is penalized.
+    """
+
+    if subject_tournaments <= 0 or total_squads <= 0:
+        return 0.0
+    expected = subject_tournaments * club_squads / total_squads
+    return count - expected if count > expected else 0.0
 
 
 def _resolve_weights(
@@ -318,11 +398,40 @@ def _objective(
         identity: slot.age_group for slot in slots for identity in slot.team_ids
     }
 
+    # Opponent repetition is charged per *subject squad* on the opposing club
+    # within the age group -- not on an aggregate club pair -- so a swap
+    # between sibling squads of one club is not penalized as a new repeated
+    # opponent, while concentrating one squad's own schedule on one club is.
+    # The squad-supply expectation keeps a large multi-squad club from being
+    # penalized merely for supplying more opponents.
+    exposure = _subject_club_exposure(slots)
+    squads_by_club_age, total_by_age = _club_supply_by_age(slots)
+    tournament_counts: Dict[TeamIdentity, int] = {}
+    for slot in slots:
+        for identity in slot.team_ids:
+            tournament_counts[identity] = tournament_counts.get(identity, 0) + 1
+    for (subject, club), count in exposure.items():
+        age_group = subject[2]
+        weights = _resolve_weights(base_weights, per_age_group, age_group)
+        club_squads = len(squads_by_club_age.get((club, age_group), set()))
+        excess = _exposure_excess(
+            count,
+            tournament_counts.get(subject, 0),
+            club_squads,
+            total_by_age.get(age_group, 0),
+        )
+        if excess > 0:
+            total += weights["pair_repeat"] * excess ** 2
+
+    for (a, b), count in _club_pair_counts(slots).items():
+        if count <= 1:
+            continue
+        weights = _resolve_weights(base_weights, per_age_group, a[1])
+        total += weights["club_pair_repeat"] * (count - 1) ** 2
+
     for (a, b), count in pair_counts.items():
         age_group = age_group_by_team.get(a, "")
         weights = _resolve_weights(base_weights, per_age_group, age_group)
-        if count > 1:
-            total += weights["pair_repeat"] * (count - 1) ** 2
         if a[0] == b[0]:
             total += weights["same_club_pairing"] * count
 
@@ -428,9 +537,26 @@ class _SearchState:
             if slot.arena:
                 self.arena_date_index.setdefault((slot.arena, slot.date), set()).add(index)
 
+        self.club_pair_counts: Dict[Tuple[ClubKey, ClubKey], int] = _club_pair_counts(slots)
+        self.squads_by_club_age, self.total_squads_by_age = _club_supply_by_age(slots)
+        exposure = _subject_club_exposure(slots)
+        self.exposure: Dict[ExposureKey, int] = exposure
+        # A subject's tournament count is invariant under team/date/host moves,
+        # so the opportunity baseline only depends on the fixed squad supply.
+        self.tournament_counts_by_subject: Dict[TeamIdentity, int] = {}
+        for slot in slots:
+            for identity in slot.team_ids:
+                self.tournament_counts_by_subject[identity] = (
+                    self.tournament_counts_by_subject.get(identity, 0) + 1
+                )
+
         total = 0.0
         for pair, count in self.pair_counts.items():
-            total += self._pair_contribution(pair, count)
+            total += self._squad_pair_contribution(pair, count)
+        for (subject, club), count in exposure.items():
+            total += self._exposure_term(subject, club, count)
+        for pair, count in self.club_pair_counts.items():
+            total += self._club_pair_contribution(pair, count)
         for slot_index, counts in enumerate(self.club_counts_by_slot):
             age_group = slots[slot_index].age_group
             for count in counts.values():
@@ -469,17 +595,43 @@ class _SearchState:
     def _weights(self, age_group: str) -> Dict[str, float]:
         return self.weights_by_age_group.get(age_group, DEFAULT_WEIGHTS)
 
-    def _pair_contribution(self, pair: Tuple[TeamIdentity, TeamIdentity], count: int) -> float:
+    def _squad_pair_contribution(self, pair: Tuple[TeamIdentity, TeamIdentity], count: int) -> float:
+        """Same-club pairing cost for an exact squad pair.
+
+        Opponent repetition is charged separately on
+        :meth:`_exposure_term` (per subject squad) so a label-only change is
+        not read as a repeated opponent.
+        """
         if count <= 0:
             return 0.0
         a, b = pair
+        if a[0] != b[0]:
+            return 0.0
         weights = self._weights(self.age_group_by_team.get(a, ""))
-        total = 0.0
-        if count > 1:
-            total += weights["pair_repeat"] * (count - 1) ** 2
-        if a[0] == b[0]:
-            total += weights["same_club_pairing"] * count
-        return total
+        return weights["same_club_pairing"] * count
+
+    def _club_pair_contribution(self, pair: Tuple[ClubKey, ClubKey], count: int) -> float:
+        if count <= 1:
+            return 0.0
+        a, _b = pair
+        return self._weights(a[1])["club_pair_repeat"] * (count - 1) ** 2
+
+    def _exposure_term(self, subject: TeamIdentity, club: str, count: int) -> float:
+        """Repetition cost for one (subject squad, opposing club) entry."""
+        if count <= 0:
+            return 0.0
+        age_group = subject[2]
+        weights = self._weights(age_group)
+        club_squads = len(self.squads_by_club_age.get((club, age_group), set()))
+        excess = _exposure_excess(
+            count,
+            self.tournament_counts_by_subject.get(subject, 0),
+            club_squads,
+            self.total_squads_by_age.get(age_group, 0),
+        )
+        if excess <= 0:
+            return 0.0
+        return weights["pair_repeat"] * excess ** 2
 
     def _club_contribution(self, age_group: str, count: int) -> float:
         if count <= 1:
@@ -520,11 +672,74 @@ class _SearchState:
     def _adjust_pair(self, pair: Tuple[TeamIdentity, TeamIdentity], delta_count: int) -> float:
         old_count = self.pair_counts.get(pair, 0)
         new_count = old_count + delta_count
-        change = self._pair_contribution(pair, new_count) - self._pair_contribution(pair, old_count)
+        change = self._squad_pair_contribution(pair, new_count) - self._squad_pair_contribution(
+            pair, old_count
+        )
         if new_count <= 0:
             self.pair_counts.pop(pair, None)
         else:
             self.pair_counts[pair] = new_count
+        a, b = pair
+        if a[0] != b[0]:
+            change += self._adjust_exposure(a, b[0], delta_count)
+            change += self._adjust_exposure(b, a[0], delta_count)
+        return change
+
+    def _slot_club_pairs(self, slot_index: int) -> List[Tuple[ClubKey, ClubKey]]:
+        """Distinct club pairs represented in one slot (at most once each)."""
+
+        slot = self.slots[slot_index]
+        clubs = sorted({(identity[0], slot.age_group) for identity in slot.team_ids})
+        return [
+            (clubs[i], clubs[j])
+            for i in range(len(clubs))
+            for j in range(i + 1, len(clubs))
+        ]
+
+    def _apply_club_pair_changes(
+        self,
+        before_pairs: List[Tuple[ClubKey, ClubKey]],
+        after_pairs: List[Tuple[ClubKey, ClubKey]],
+    ) -> float:
+        """Apply the slot-level club-pair count delta, not the squad-pair count.
+
+        A club pair is counted once per slot no matter how many sibling squads
+        meet, so the counter must change only when the set of clubs in a slot
+        changes -- not once per cross-club squad pair.
+        """
+
+        before = Counter(before_pairs)
+        after = Counter(after_pairs)
+        change = 0.0
+        for pair in set(before) | set(after):
+            delta = after.get(pair, 0) - before.get(pair, 0)
+            if delta:
+                change += self._adjust_club_pair(pair, delta)
+        return change
+
+    def _adjust_club_pair(self, pair: Tuple[ClubKey, ClubKey], delta_count: int) -> float:
+        old_count = self.club_pair_counts.get(pair, 0)
+        new_count = old_count + delta_count
+        change = self._club_pair_contribution(pair, new_count) - self._club_pair_contribution(
+            pair, old_count
+        )
+        if new_count <= 0:
+            self.club_pair_counts.pop(pair, None)
+        else:
+            self.club_pair_counts[pair] = new_count
+        return change
+
+    def _adjust_exposure(self, subject: TeamIdentity, club: str, delta_count: int) -> float:
+        key = (subject, club)
+        old_count = self.exposure.get(key, 0)
+        new_count = old_count + delta_count
+        change = self._exposure_term(subject, club, new_count) - self._exposure_term(
+            subject, club, old_count
+        )
+        if new_count <= 0:
+            self.exposure.pop(key, None)
+        else:
+            self.exposure[key] = new_count
         return change
 
     def _adjust_club(self, slot_index: int, club: str, delta_count: int, age_group: str) -> float:
@@ -576,6 +791,10 @@ class _SearchState:
         team_a = a.team_ids[pos_a]
         team_b = b.team_ids[pos_b]
         delta = 0.0
+        affected_slots = [slot_a] if slot_a == slot_b else [slot_a, slot_b]
+        before_club_pairs: List[Tuple[ClubKey, ClubKey]] = []
+        for index in affected_slots:
+            before_club_pairs.extend(self._slot_club_pairs(index))
 
         for i, other in enumerate(a.team_ids):
             if i == pos_a:
@@ -600,6 +819,10 @@ class _SearchState:
         a.team_ids[pos_a], b.team_ids[pos_b] = team_b, team_a
         a.changed = True
         b.changed = True
+        after_club_pairs: List[Tuple[ClubKey, ClubKey]] = []
+        for index in affected_slots:
+            after_club_pairs.extend(self._slot_club_pairs(index))
+        delta += self._apply_club_pair_changes(before_club_pairs, after_club_pairs)
         delta += self._refresh_slot_change(slot_a)
         delta += self._refresh_slot_change(slot_b)
         self.total += delta
@@ -1805,12 +2028,15 @@ class _GroupMetrics:
 
     pairs_meeting_3_plus: int
     max_pair_repeat: int
+    concentrated_exposure_pairs: int
+    max_subject_club_excess: float
     same_club_pairing_count: int
     max_same_club_teams_per_tournament: int
     gaps_under_7: int
     gaps_under_14: int
     hosting_spread: int
     unique_pairs: int
+    unique_subject_club_pairs: int
     pairwise_novelty: float
     inter_club_diversity: float
     min_turnaround_days: Optional[int]
@@ -1834,6 +2060,30 @@ def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
     max_pair_repeat = max(pair_counts.values()) if pair_counts else 0
     same_club_pairing_count = sum(1 for (a, b) in pair_counts if a[0] == b[0])
     inter_club_pairs = sum(1 for (a, b) in pair_counts if a[0] != b[0])
+
+    # Per-subject club exposure is the primary opponent identity; the
+    # exact-pair fields above remain for diagnostics only.
+    exposure = _subject_club_exposure(slots)
+    squads_by_club_age, total_by_age = _club_supply_by_age(slots)
+    tournament_counts: Dict[TeamIdentity, int] = {}
+    for slot in slots:
+        for identity in slot.team_ids:
+            tournament_counts[identity] = tournament_counts.get(identity, 0) + 1
+    unique_subject_club_pairs = len(exposure)
+    exposure_excesses: List[float] = []
+    for (subject, club), count in exposure.items():
+        age_group = subject[2]
+        club_squads = len(squads_by_club_age.get((club, age_group), set()))
+        excess = _exposure_excess(
+            count,
+            tournament_counts.get(subject, 0),
+            club_squads,
+            total_by_age.get(age_group, 0),
+        )
+        if excess > 0:
+            exposure_excesses.append(excess)
+    concentrated_exposure_pairs = sum(1 for excess in exposure_excesses if excess >= 1.0)
+    max_subject_club_excess = max(exposure_excesses, default=0.0)
 
     # The universe of *possible* inter-club opponents is every cross-club
     # pair among all teams that appear anywhere in this age group's slots —
@@ -1881,12 +2131,15 @@ def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
     return _GroupMetrics(
         pairs_meeting_3_plus=pairs_meeting_3_plus,
         max_pair_repeat=max_pair_repeat,
+        concentrated_exposure_pairs=concentrated_exposure_pairs,
+        max_subject_club_excess=max_subject_club_excess,
         same_club_pairing_count=same_club_pairing_count,
         max_same_club_teams_per_tournament=max_same_club_teams_per_tournament,
         gaps_under_7=gaps_under_7,
         gaps_under_14=gaps_under_14,
         hosting_spread=hosting_spread,
         unique_pairs=unique_pairs,
+        unique_subject_club_pairs=unique_subject_club_pairs,
         pairwise_novelty=pairwise_novelty,
         inter_club_diversity=inter_club_diversity,
         min_turnaround_days=min_turnaround_days,
@@ -1914,10 +2167,9 @@ def _within_bounds(current: _GroupMetrics, baseline: _GroupMetrics) -> bool:
         and current.gaps_under_7 <= baseline.gaps_under_7
         and current.gaps_under_14 <= baseline.gaps_under_14
         and current.hosting_spread <= baseline.hosting_spread
-        and current.pairs_meeting_3_plus <= baseline.pairs_meeting_3_plus
-        and current.max_pair_repeat <= baseline.max_pair_repeat
-        and current.unique_pairs >= baseline.unique_pairs
-        and current.pairwise_novelty >= baseline.pairwise_novelty - 1e-9
+        and current.concentrated_exposure_pairs <= baseline.concentrated_exposure_pairs
+        and current.max_subject_club_excess <= baseline.max_subject_club_excess + 1e-9
+        and current.unique_subject_club_pairs >= baseline.unique_subject_club_pairs
         and current.inter_club_diversity >= baseline.inter_club_diversity - 1e-9
         and turnaround_ok
     )
@@ -1926,39 +2178,39 @@ def _within_bounds(current: _GroupMetrics, baseline: _GroupMetrics) -> bool:
 def _lexicographic_score(m: _GroupMetrics) -> float:
     """A single float approximating the lexicographic order for annealing.
 
-    Primary: fewer pairs meeting 3+ times, then a lower max repeat. Secondary
-    tie-breaker: more unique pairs / higher novelty. The gaps between
-    successive constant magnitudes assume group sizes small enough (a season
-    age group, not the whole league) that a secondary-metric delta can never
-    outweigh a one-unit primary-metric step; :func:`_strictly_better` (exact
-    lexicographic comparison, no constants) is the actual promotion gate —
-    this score only steers the search.
+    Primary: fewer subject x opposing-club exposures beyond the squad-supply
+    expectation, then a lower worst per-subject excess. Secondary tie-breaker:
+    more distinct subject x club pairs. The exact squad-pair metrics stay as
+    diagnostics and never steer this search, so a label-only change is not
+    treated as a new repeated opponent. The gaps between successive constant
+    magnitudes assume group sizes small enough (a season age group, not the
+    whole league) that a secondary-metric delta can never outweigh a one-unit
+    primary-metric step; :func:`_strictly_better` (exact lexicographic
+    comparison, no constants) is the actual promotion gate — this score only
+    steers the search.
     """
     return (
-        m.pairs_meeting_3_plus * 1_000_000.0
-        + m.max_pair_repeat * 1_000.0
-        - m.unique_pairs * 1.0
-        - m.pairwise_novelty * 0.5
+        m.concentrated_exposure_pairs * 1_000_000.0
+        + m.max_subject_club_excess * 1_000.0
+        - m.unique_subject_club_pairs * 1.0
     )
 
 
 def _strictly_better(new: _GroupMetrics, baseline: _GroupMetrics) -> bool:
     """True if *new* weakly dominates *baseline* (see :func:`_within_bounds`)
     AND is a genuine improvement on at least the lexicographic primary
-    metrics (pairs meeting 3+ times, then max pair repeat) — or, failing
-    that, on the unique-pairs/novelty tie-breaker. A candidate that only
-    matches the baseline everywhere is not "improved"; callers should retain
-    the baseline in that case.
+    metrics (concentrated subject-club exposures, then the worst per-subject
+    excess) — or, failing that, on the distinct subject-club-pair tie-breaker.
+    A candidate that only matches the baseline everywhere is not "improved";
+    callers should retain the baseline in that case.
     """
     if not _within_bounds(new, baseline):
         return False
-    if new.pairs_meeting_3_plus != baseline.pairs_meeting_3_plus:
-        return new.pairs_meeting_3_plus < baseline.pairs_meeting_3_plus
-    if new.max_pair_repeat != baseline.max_pair_repeat:
-        return new.max_pair_repeat < baseline.max_pair_repeat
-    if new.unique_pairs != baseline.unique_pairs:
-        return new.unique_pairs > baseline.unique_pairs
-    return new.pairwise_novelty > baseline.pairwise_novelty
+    if new.concentrated_exposure_pairs != baseline.concentrated_exposure_pairs:
+        return new.concentrated_exposure_pairs < baseline.concentrated_exposure_pairs
+    if abs(new.max_subject_club_excess - baseline.max_subject_club_excess) > 1e-9:
+        return new.max_subject_club_excess < baseline.max_subject_club_excess
+    return new.unique_subject_club_pairs > baseline.unique_subject_club_pairs
 
 
 def _search_group_bounded(

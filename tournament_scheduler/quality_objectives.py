@@ -49,6 +49,13 @@ QUALITY_METRIC_PATHS: List[Tuple[str, str]] = [
     ("opponent_diversity.pairwise_novelty", "higher"),
     ("opponent_diversity.pairs_meeting_3_plus", "lower"),
     ("opponent_diversity.max_pair_repeat", "lower"),
+    # Club-level primary opponent identity: the same repetition/diversity
+    # question answered against the opposing club within an age group, not the
+    # exact squad label (see tournament_scheduler.opponent_diversity).
+    ("opponent_diversity.max_club_pair_repeat", "lower"),
+    ("opponent_diversity.club_pairs_meeting_3_plus", "lower"),
+    ("opponent_diversity.min_distinct_opponent_clubs", "higher"),
+    ("opponent_diversity.max_club_exposure_index", "lower"),
     ("opponent_diversity.inter_club_diversity", "higher"),
     ("opponent_diversity.same_club_pairing_count", "lower"),
     ("opponent_diversity.max_same_club_teams_per_tournament", "lower"),
@@ -82,6 +89,8 @@ QUALITY_OBJECTIVE_DIMENSIONS: Tuple[str, ...] = (
     "participation_avoidable",
     "participation_club_pool_unresolved_shortfalls",
     "max_pair_repeat",
+    "max_club_pair_repeat",
+    "max_club_exposure_index",
     "same_club_pairing_count",
     "gaps_under_7",
     "gaps_under_14",
@@ -193,6 +202,8 @@ def quality_objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
             participation.get("club_pool_unresolved_shortfall_count", 0)
         ),
         "max_pair_repeat": float(opponent.get("max_pair_repeat", 0)),
+        "max_club_pair_repeat": float(opponent.get("max_club_pair_repeat", 0)),
+        "max_club_exposure_index": float(opponent.get("max_club_exposure_index", 0)),
         "same_club_pairing_count": float(opponent.get("same_club_pairing_count", 0)),
         "gaps_under_7": float(gaps.get(7, 0)),
         "gaps_under_14": float(gaps.get(14, 0)),

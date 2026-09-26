@@ -763,3 +763,197 @@ class TestFrozenTournamentIds:
 
         frozen = next(t for t in optimized["tournaments"] if t["id"] == "t1")
         assert frozen == candidate["tournaments"][0]
+
+
+class TestClubLevelOpponentIdentity:
+    """Opponent repetition keys on the opposing club, not the squad label."""
+
+    @staticmethod
+    def _multi_squad_candidate() -> dict:
+        """Two multi-squad clubs so same-club and club-pair bookkeeping both run."""
+        return {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament(
+                    "t1",
+                    "2026-01-05",
+                    "Arena1",
+                    "U10",
+                    [
+                        _team("Frisk Asker", "Frisk Asker 1", "U10"),
+                        _team("Frisk Asker", "Frisk Asker 2", "U10"),
+                        _team("Tønsberg", "Tønsberg Grå", "U10"),
+                        _team("Jar", "Jar 1", "U10"),
+                    ],
+                ),
+                _tournament(
+                    "t2",
+                    "2026-02-04",
+                    "Arena2",
+                    "U10",
+                    [
+                        _team("Frisk Asker", "Frisk Asker 1", "U10"),
+                        _team("Tønsberg", "Tønsberg Grå", "U10"),
+                        _team("Tønsberg", "Tønsberg Hvit", "U10"),
+                        _team("Jar", "Jar 1", "U10"),
+                    ],
+                ),
+            ],
+        }
+
+    def test_objective_is_invariant_to_squad_label_swap(self):
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _build_slots,
+            _objective,
+        )
+
+        def candidate(second_label: str) -> dict:
+            teams = [
+                _team("Frisk Asker", "Frisk Asker 1", "U10"),
+                _team("Frisk Asker", second_label, "U10"),
+                _team("Tønsberg", "Tønsberg Grå", "U10"),
+                _team("Jar", "Jar 1", "U10"),
+            ]
+            return {"tournaments": [_tournament("t1", "2026-01-05", "Arena1", "U10", teams)]}
+
+        before_slots, _ = _build_slots(candidate("Frisk Asker 2"), None)
+        after_slots, _ = _build_slots(candidate("Frisk Asker 3"), None)
+        assert _objective(before_slots, DEFAULT_WEIGHTS) == _objective(
+            after_slots, DEFAULT_WEIGHTS
+        )
+
+    def test_incremental_state_matches_full_objective_with_multi_squad_clubs(self):
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _SearchState,
+            _build_slots,
+            _candidate_swaps,
+            _resolve_weights,
+            _swap_is_valid,
+        )
+
+        candidate = self._multi_squad_candidate()
+        slots, _ = _build_slots(candidate, None)
+        weights_by_age_group = {"U10": _resolve_weights(DEFAULT_WEIGHTS, None, "U10")}
+        state = _SearchState(slots, weights_by_age_group)
+        assert state.total == state.full_objective(DEFAULT_WEIGHTS)
+
+        rng = random.Random(5)
+        applied = 0
+        for _ in range(200):
+            move = _candidate_swaps(slots, rng)
+            if move is None:
+                continue
+            if not _swap_is_valid(slots, *move, state):
+                continue
+            state.apply_team_swap(*move)
+            applied += 1
+            assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+        assert applied > 0
+
+    def test_objective_distinguishes_spread_from_concentrated_subject_exposure(self):
+        """Finding #1: many sibling squads each meeting B once must not score
+        the same as one squad meeting B repeatedly."""
+
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _build_slots,
+            _group_metrics,
+            _objective,
+        )
+
+        a_squads = [_team("A", f"A{index}", "U10") for index in range(1, 7)]
+        b = _team("B", "B1", "U10")
+        c = _team("C", "C1", "U10")
+        d = _team("D", "D1", "U10")
+
+        dispersed = {
+            "tournaments": [
+                _tournament(
+                    f"t{index}",
+                    f"2026-{1 + index // 4:02d}-{1 + index:02d}",
+                    "Arena",
+                    "U10",
+                    [a_squads[index - 1], b, c, d],
+                )
+                for index in range(1, 7)
+            ]
+        }
+        # A1 attends all six; A2..A6 appear in filler tournaments so the club's
+        # squad supply (and therefore the opportunity baseline) is identical.
+        concentrated = {
+            "tournaments": [
+                _tournament(
+                    f"t{index}",
+                    f"2026-{1 + index // 4:02d}-{1 + index:02d}",
+                    "Arena",
+                    "U10",
+                    [a_squads[0], b, c, d],
+                )
+                for index in range(1, 7)
+            ]
+            + [
+                _tournament("f1", "2026-08-01", "Arena", "U10", [a_squads[1], a_squads[2], c, d]),
+                _tournament("f2", "2026-08-02", "Arena", "U10", [a_squads[3], a_squads[4], c, d]),
+                _tournament("f3", "2026-08-03", "Arena", "U10", [a_squads[5], c, d]),
+            ]
+        }
+
+        dispersed_slots, _ = _build_slots(dispersed, None)
+        concentrated_slots, _ = _build_slots(concentrated, None)
+
+        assert _objective(concentrated_slots, DEFAULT_WEIGHTS) > _objective(
+            dispersed_slots, DEFAULT_WEIGHTS
+        )
+        assert (
+            _group_metrics(concentrated_slots).max_subject_club_excess
+            > _group_metrics(dispersed_slots).max_subject_club_excess
+        )
+
+    def test_club_pair_incremental_matches_full_for_multi_squad_slots(self):
+        """Finding #3: a club pair is one co-attendance event per slot, not one
+        per cross-club squad pair, so removing one of several sibling squads
+        must not zero the pair."""
+
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _SearchState,
+            _build_slots,
+            _resolve_weights,
+        )
+
+        t1 = _tournament(
+            "t1",
+            "2026-01-05",
+            "Arena",
+            "U10",
+            [_team("A", "A1", "U10"), _team("A", "A2", "U10"), _team("B", "B1", "U10")],
+        )
+        t2 = _tournament(
+            "t2",
+            "2026-02-04",
+            "Arena",
+            "U10",
+            [_team("A", "A3", "U10"), _team("C", "C1", "U10"), _team("D", "D1", "U10")],
+        )
+        slots, _ = _build_slots({"tournaments": [t1, t2]}, None)
+        state = _SearchState(slots, {"U10": _resolve_weights(DEFAULT_WEIGHTS, None, "U10")})
+        assert state.total == state.full_objective(DEFAULT_WEIGHTS)
+        assert state.club_pair_counts[(("A", "U10"), ("B", "U10"))] == 1
+
+        # Swap A2 (one of two A squads in t1) with C1: (A, B) must remain.
+        pos_a = slots[0].team_ids.index(("A", "A2", "U10"))
+        pos_b = slots[1].team_ids.index(("C", "C1", "U10"))
+        state.apply_team_swap(0, pos_a, 1, pos_b)
+
+        assert state.club_pair_counts.get((("A", "U10"), ("B", "U10"))) == 1
+        assert state.club_pair_counts.get((("A", "U10"), ("C", "U10"))) == 1
+        assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-9)
+
+        # Revert and confirm equivalence holds on the way back too.
+        pos_a2 = slots[0].team_ids.index(("C", "C1", "U10"))
+        pos_b2 = slots[1].team_ids.index(("A", "A2", "U10"))
+        state.apply_team_swap(0, pos_a2, 1, pos_b2)
+        assert state.club_pair_counts.get((("A", "U10"), ("B", "U10"))) == 1
+        assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-9)

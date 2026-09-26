@@ -937,6 +937,25 @@ class TestScoreCandidate:
         assert report["opponent_diversity"]["unique_pairs"] == 2
         assert report["opponent_diversity"]["max_pair_repeat"] == 1
 
+    def test_club_level_repetition_aggregates_sibling_squads(self):
+        teams = [
+            _team("Frisk Asker", "Frisk Asker 1", "U10"),
+            _team("Frisk Asker", "Frisk Asker 2", "U10"),
+            _team("Tønsberg", "Tønsberg Grå", "U10"),
+            _team("Jar", "Jar 1", "U10"),
+        ]
+        t1 = _tournament("t1", "2026-01-10", "Frisk Asker Arena", "U10", teams)
+        t2 = _tournament("t2", "2026-01-24", "Frisk Asker Arena", "U10", teams)
+        diversity = score_candidate({"tournaments": [t1, t2]})["opponent_diversity"]
+
+        # Exactly squad pairs each repeat twice (diagnostic)...
+        assert diversity["max_pair_repeat"] == 2
+        # ...but the club pair Frisk Asker x Tønsberg co-occurs in all four
+        # inter-club games, so the club-level repeat is higher.
+        assert diversity["max_club_pair_repeat"] == 4
+        assert diversity["club_pairs_meeting_3_plus"] >= 1
+        assert diversity["min_distinct_opponent_clubs"] == 2
+
     def test_hosting_and_month_distribution(self):
         teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         t1 = _tournament("t1", "2026-01-10", "Jar Isforum", "U10", teams)
