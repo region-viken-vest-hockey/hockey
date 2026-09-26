@@ -24,6 +24,11 @@ from tournament_scheduler.coupled_placement_repair import (
     resolve_swap_fields,
 )
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.repair_adoption_guard import (
+    REGRESSION_TEMPORAL_OFFENDERS,
+    REGRESSION_TRAVEL,
+    REGRESSION_UNIQUE_OPPONENTS,
+)
 from tournament_scheduler.season_maintenance import (
     apply_repair,
     list_findings,
@@ -33,6 +38,20 @@ from tournament_scheduler.season_maintenance import (
 from tournament_scheduler.season_state import load_schedule
 
 YEAR = "2026-2027"
+
+# A coupled cross-age placement exchange necessarily changes which squads meet
+# and can widen the season's travel/coverage shape. Those are real soft
+# trade-offs the operator must name explicitly under the cross-rule adoption
+# guard; they are not silently waived.
+_COUPLED_TRADE_OFFS = [
+    REGRESSION_UNIQUE_OPPONENTS,
+    REGRESSION_TEMPORAL_OFFENDERS,
+    REGRESSION_TRAVEL,
+]
+_COUPLED_TRADE_OFF_REASON = (
+    "Resolving the cross-age clustering is accepted despite the changed opponent mix, "
+    "temporal coverage and travel"
+)
 
 
 def _four_team_games(labels: List[str]) -> List[Dict[str, Any]]:
@@ -320,6 +339,8 @@ def test_clustering_finding_enumerates_coupled_repair_and_applies_canonically(
         report["revision"],
         root=root,
         finding_id=kong["finding_id"],
+        accept_regressions=_COUPLED_TRADE_OFFS,
+        regression_reason=_COUPLED_TRADE_OFF_REASON,
     )
     assert result["ok"] is True, result
 
@@ -443,6 +464,8 @@ def test_coupled_candidate_can_be_opted_into_explicitly(tmp_path: Path) -> None:
         root=root,
         finding_id=finding["finding_id"],
         allow_manual_placement=True,
+        accept_regressions=_COUPLED_TRADE_OFFS,
+        regression_reason=_COUPLED_TRADE_OFF_REASON,
     )
     assert result["ok"] is True, result
     schedule = load_schedule(YEAR, root=root)

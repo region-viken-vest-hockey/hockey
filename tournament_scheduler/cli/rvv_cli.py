@@ -3062,6 +3062,33 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     )
             return 0
 
+        if args.season_command == "audit":
+            from ..season_maintenance import season_audit
+
+            report = season_audit(args.season, root=args.root)
+            if args.json:
+                print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                audit = report.get("audit") or {}
+                status = str(audit.get("status") or "UNKNOWN")
+                colour = "green" if status == "PASS" else "yellow" if status == "INCOMPLETE" else "red"
+                _console.print(
+                    f"[bold]Sesongrevisjon {args.season}[/bold] "
+                    f"(revisjon {str(report.get('revision'))[:12]})"
+                )
+                _console.print(
+                    f"  [{colour}]{status}[/{colour}] {audit.get('check_count', 0)} sjekker, "
+                    f"{audit.get('blocking_finding_count', 0)} blokkerende funn"
+                )
+                for reason in audit.get("reasons") or []:
+                    _console.print(f"  [dim]- {reason}[/dim]")
+                if audit.get("incomplete_checks"):
+                    _console.print(
+                        "  [yellow]ufullstendig dekning:[/yellow] "
+                        + ", ".join(audit["incomplete_checks"])
+                    )
+            return 0
+
         if args.season_command == "baseline":
             from ..season_state import (
                 season_baseline_advance,
@@ -3178,6 +3205,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 ],
                 allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
                 allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
+                accept_regressions=getattr(args, "accept_regressions", None),
+                regression_reason=getattr(args, "accept_regression_reason", None),
             )
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))

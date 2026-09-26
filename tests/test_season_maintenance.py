@@ -29,6 +29,7 @@ from tournament_scheduler.season_maintenance import (
     repair_options,
     revoke_acceptance,
     search,
+    season_audit,
 )
 from tournament_scheduler.quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS
 from tournament_scheduler.season_state import (
@@ -166,6 +167,64 @@ def _two_club_season(tmp_path: Path, *, approved: Optional[Iterable[str]] = None
     root = tmp_path / "season"
     revision = _write_season(root, plan, problem, approved=approved)
     return root, plan, problem, revision
+
+
+def test_season_audit_reports_catalog_coverage_and_reconciliation(tmp_path: Path) -> None:
+    root, plan, problem, revision = _two_club_season(tmp_path)
+
+    report = season_audit(YEAR, root=root)
+    audit = report["audit"]
+
+    assert report["revision"] == revision
+    assert audit["check_count"] > 0
+    assert audit["fingerprint"]
+    # Every applicable check is either resolved or explicitly reported as
+    # incomplete; a skipped check never silently becomes a pass.
+    assert audit["status"] in {"PASS", "INCOMPLETE", "FAIL"}
+    assert isinstance(audit["incomplete_checks"], list)
+
+
+def test_apply_repair_rejects_a_malformed_regression_override_cleanly(tmp_path: Path) -> None:
+    root, _plan, _problem_dict, revision = _two_club_season(tmp_path)
+    dims = ("participants", "host", "date", "slot")
+    report = search(YEAR, "hosting_balance:U10:Sorby", root=root, dimensions=dims)
+    option = next(entry for entry in report["options"] if entry["action"] == "search")
+
+    result = apply_repair(
+        YEAR,
+        option["option_id"],
+        revision,
+        root=root,
+        finding_id="hosting_balance:U10:Sorby",
+        accept_regressions=["not_a_real_regression_code"],
+        regression_reason="because",
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "invalid_regression_override"
+    assert result["canonical_revision_unchanged"] is True
+
+
+def test_applied_repair_records_a_compact_pass_ledger(tmp_path: Path) -> None:
+    from tournament_scheduler.repair_adoption_guard import RepairPassLedger
+
+    root, _plan, _problem_dict, revision = _two_club_season(tmp_path)
+    dims = ("participants", "host", "date", "slot")
+    report = search(YEAR, "hosting_balance:U10:Sorby", root=root, dimensions=dims)
+    option = next(entry for entry in report["options"] if entry["action"] == "search")
+    applied = apply_repair(
+        YEAR,
+        option["option_id"],
+        revision,
+        root=root,
+        finding_id="hosting_balance:U10:Sorby",
+    )
+    assert applied["ok"] is True, applied
+
+    ledger = RepairPassLedger.from_history(load_decisions(YEAR, root=root).get("history") or [])
+    assert ledger.records
+    assert ledger.baseline_fingerprint
+    assert ledger.has_visited(ledger.records[-1]["state_fingerprint"])
 
 
 def test_findings_expose_unresolved_hosting_obligation_bound_to_revision(tmp_path: Path) -> None:
@@ -942,6 +1001,19 @@ def test_repair_options_cli_reports_the_pareto_surface(tmp_path: Path, capsys) -
     assert output["pareto"]["dimensions"] == list(PARETO_DIMENSIONS)
     assert output["pareto"]["front_size"] >= 1
     assert any(option["non_dominated"] for option in output["options"])
+
+
+def test_season_audit_cli_reports_catalog_coverage(tmp_path: Path, capsys) -> None:
+    from tournament_scheduler.cli.rvv_cli import main
+
+    root, _plan_dict, _problem_dict, _revision = _two_club_season(tmp_path)
+
+    rc = main(["season", "audit", "--season", YEAR, "--root", str(root), "--json"])
+
+    assert rc == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["audit"]["check_count"] > 0
+    assert output["audit"]["status"] in {"PASS", "INCOMPLETE", "FAIL"}
 
 
 def test_accept_deviation_cli_round_trip(tmp_path: Path, capsys) -> None:
