@@ -69,6 +69,14 @@ from .team_schedule_quality import (
 
 ADOPTION_GUARD_SCHEMA_VERSION = 1
 
+# Canonical history events that start a new improvement pass. Visited-state
+# cycle detection is scoped to the pass that begins at the most recent boundary,
+# so a legitimate return to an earlier assignment in a new pass is not blocked
+# by an old pass's fingerprints.
+BASELINE_PASS_BOUNDARY_EVENTS = frozenset(
+    {"season_baseline_create", "season_baseline_replace", "season_baseline_advance"}
+)
+
 # Every material regression the guard can raise. The code vocabulary is the
 # contract an operator override names; it must stay stable.
 REGRESSION_HARD_VERIFICATION = "hard_verification_regression"
@@ -112,6 +120,66 @@ ACCEPTABLE_ADOPTION_REGRESSION_CODES = frozenset(
         REGRESSION_TRAVEL,
     }
 )
+
+# Defect priority tiers (lower number = higher priority), matching the catalog
+# precedence. A regression is auto-waived only when a strictly higher tier
+# improved AND the regression itself is a soft objective. Operational-obligation
+# and strong-goal regressions always require an explicit per-code acceptance, so
+# a higher-tier fix can never silently waive an unrelated shortfall or exposure
+# regression.
+TIER_HARD = 0
+TIER_OPERATIONAL_OBLIGATION = 1
+TIER_STRONG_GOAL = 2
+TIER_SOFT = 3
+
+REGRESSION_TIERS: Dict[str, int] = {
+    REGRESSION_HARD_VERIFICATION: TIER_HARD,
+    REGRESSION_CYCLE: TIER_HARD,
+    REGRESSION_HOSTING_OBLIGATION: TIER_OPERATIONAL_OBLIGATION,
+    REGRESSION_PARTICIPATION_DEVIATION: TIER_STRONG_GOAL,
+    REGRESSION_PARTICIPATION_SHORTFALL: TIER_STRONG_GOAL,
+    REGRESSION_PARTICIPATION_AVOIDABLE: TIER_STRONG_GOAL,
+    REGRESSION_HOSTING_BALANCE: TIER_STRONG_GOAL,
+    REGRESSION_HOME_REPRESENTATION: TIER_STRONG_GOAL,
+    REGRESSION_MORE_GAPS_UNDER_7: TIER_SOFT,
+    REGRESSION_MORE_GAPS_UNDER_14: TIER_SOFT,
+    REGRESSION_TEMPORAL_COVERAGE: TIER_SOFT,
+    REGRESSION_TEMPORAL_OFFENDERS: TIER_SOFT,
+    REGRESSION_CLUB_EXPOSURE: TIER_SOFT,
+    REGRESSION_CLUB_REPETITION: TIER_SOFT,
+    REGRESSION_SAME_CLUB_CLUSTERING: TIER_SOFT,
+    REGRESSION_UNIQUE_OPPONENTS: TIER_SOFT,
+    REGRESSION_TRAVEL: TIER_SOFT,
+}
+
+
+def regression_tier(code: str) -> int:
+    """Return the catalog priority tier for a regression code."""
+
+    return REGRESSION_TIERS.get(str(code or ""), TIER_SOFT)
+
+
+def select_blocking_regressions(
+    material_regressions: Sequence[Mapping[str, Any]],
+    improvement_tier: Optional[int],
+) -> List[Dict[str, Any]]:
+    """Return the regressions that still require an explicit acceptance.
+
+    A soft regression may be auto-waived only when a strictly higher-priority
+    tier improved. Hard-verification and cycle regressions, and every
+    operational-obligation or strong-goal regression, always block unless the
+    operator accepts that exact code with a reason.
+    """
+
+    if improvement_tier is None:
+        return [dict(record) for record in material_regressions]
+    blocking: List[Dict[str, Any]] = []
+    for record in material_regressions:
+        tier = regression_tier(str(record.get("code") or ""))
+        waived = tier == TIER_SOFT and improvement_tier < tier
+        if not waived:
+            blocking.append(dict(record))
+    return blocking
 
 # Quality metric path -> (regression code, material-by-default). The shared
 # ``compare_quality_scores`` owns every metric; this table only classifies a
@@ -321,10 +389,17 @@ class RepairPassLedger:
         Each applied repair stores a compact ``adoption`` summary in its history
         event. Reconstructing the visited fingerprints from that history keeps
         cycle detection working across processes without a parallel ledger file
-        and without storing full schedule snapshots.
+        and without storing full schedule snapshots. Only repairs after the most
+        recent accepted season-baseline boundary are part of the current pass; a
+        baseline create/advance/replace resets the visited-state set.
         """
+        events = [entry for entry in (history or []) if isinstance(entry, Mapping)]
+        boundary = 0
+        for index, entry in enumerate(events):
+            if str(entry.get("event") or "") in BASELINE_PASS_BOUNDARY_EVENTS:
+                boundary = index + 1
         ledger = cls()
-        for entry in history or []:
+        for entry in events[boundary:]:
             if not isinstance(entry, Mapping):
                 continue
             details = entry.get("details") if isinstance(entry.get("details"), Mapping) else {}
@@ -407,6 +482,11 @@ def adoption_history_summary(
         "material_regression_codes": [
             str(item.get("code") or "") for item in adoption.get("material_regressions") or []
         ],
+        "blocking_regression_codes": [
+            str(item.get("code") or "") for item in adoption.get("blocking_regressions") or []
+        ],
+        "measurement_incomplete": list(adoption.get("measurement_incomplete") or []),
+        "priority_improvement_tier": adoption.get("priority_improvement_tier"),
         "accepted_regressions": [
             {"code": str(item.get("code") or ""), "reason": str(item.get("reason") or "")}
             for item in adoption.get("accepted_regressions") or []
@@ -687,7 +767,7 @@ def evaluate_adoption(
     trigger_rule: str = "",
     finding_id: str = "",
     option_id: str = "",
-    priority_improved: Optional[bool] = None,
+    priority_improvement_tier: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Evaluate one candidate repair against current state and a pass baseline.
 
@@ -714,6 +794,10 @@ def evaluate_adoption(
     quality_vs_current = compare_quality_scores(before_score, after_score)
     quality_records = classify_quality_regressions(quality_vs_current)
     travel_record = classify_travel_regression(before_travel, after_travel)
+    travel_available = bool(before_travel.get("available", True)) and bool(
+        after_travel.get("available", True)
+    )
+    measurement_incomplete: List[str] = [] if travel_available else ["travel"]
 
     material: List[Dict[str, Any]] = []
     hard_violations_before = len(before_verification.get("violations") or [])
@@ -740,22 +824,19 @@ def evaluate_adoption(
         else None
     )
 
-    # Catalog precedence: a higher-priority defect (a hard violation and every
-    # other blocking maintenance defect) outranks a soft objective. When the
-    # candidate strictly reduces the maintenance defect total, the mandatory fix
-    # is adopted and remaining soft regressions are reported rather than blocked;
-    # without that priority improvement every material soft regression needs an
-    # explicit named override. Hard-verification regressions and cycles are
-    # never exempted. The caller supplies the canonical defect delta when it has
-    # one; otherwise only a strict hard-violation reduction qualifies.
-    resolved_priority_improvement = (
-        priority_improved if priority_improved is not None else hard_violations_decreased
+    # Catalog precedence: only a strictly higher-priority tier improvement can
+    # auto-waive a *soft* regression. Operational-obligation and strong-goal
+    # regressions always need an explicit named override, so a higher-tier fix
+    # can never silently waive an unrelated shortfall, exposure or travel
+    # regression. Hard-verification regressions and cycles are never waived.
+    # The caller supplies the canonical improvement tier when it has one;
+    # otherwise only a strict hard-violation reduction qualifies.
+    resolved_improvement_tier = (
+        priority_improvement_tier
+        if priority_improvement_tier is not None
+        else (TIER_HARD if hard_violations_decreased else None)
     )
-    blocking_material = [
-        record
-        for record in material
-        if not resolved_priority_improvement or record.get("materiality") == "hard_verification"
-    ]
+    blocking_material = select_blocking_regressions(material, resolved_improvement_tier)
 
     candidate_fingerprint = normalized_assignment_fingerprint(candidate_plan)
     cycle_detected = bool(ledger is not None and ledger.has_visited(candidate_fingerprint))
@@ -780,8 +861,17 @@ def evaluate_adoption(
         reasons.append("unaccepted material regression(s)")
     if cycle_detected:
         reasons.append("candidate assignment was already visited in this pass")
+    if measurement_incomplete:
+        reasons.append(
+            "measurement unavailable: " + ", ".join(measurement_incomplete)
+        )
 
-    adoptable = hard_ok and override_result["acceptable"] and not cycle_detected
+    adoptable = (
+        hard_ok
+        and override_result["acceptable"]
+        and not cycle_detected
+        and not measurement_incomplete
+    )
     return {
         "schema_version": ADOPTION_GUARD_SCHEMA_VERSION,
         "adoptable": adoptable,
@@ -789,8 +879,9 @@ def evaluate_adoption(
         "hard_violations_before": hard_violations_before,
         "hard_violations_after": hard_violations_after,
         "hard_violations_decreased": hard_violations_decreased,
-        "priority_improved": bool(resolved_priority_improvement),
-        "soft_regression_priority_exemption": bool(resolved_priority_improvement),
+        "priority_improvement_tier": resolved_improvement_tier,
+        "soft_regression_priority_exemption": resolved_improvement_tier is not None,
+        "measurement_incomplete": measurement_incomplete,
         "cycle_detected": cycle_detected,
         "trigger_rule": trigger_rule,
         "finding_id": finding_id,
@@ -851,7 +942,6 @@ def _check_rule(
     violation_codes: set[str],
     accepted_finding_rule_ids: set[str],
     score_paths: set[str],
-    verification_ok: bool,
     covered_verifier_owners: set[str],
 ) -> Dict[str, Any] | None:
     """Resolve one catalog rule to a check result, or ``None`` if not a check."""
@@ -921,6 +1011,8 @@ def season_wide_audit(
     score: Optional[Mapping[str, Any]] = None,
     reconciliation: Optional[Mapping[str, Any]] = None,
     expected_fingerprint: str = "",
+    expected_revision: str = "",
+    current_revision: str = "",
     catalog: Optional[Iterable[Any]] = None,
     covered_verifier_owners: Iterable[str] = (),
 ) -> Dict[str, Any]:
@@ -930,8 +1022,8 @@ def season_wide_audit(
     against the verification and finding evidence it is handed. Checks whose
     evidence is unavailable are reported ``incomplete`` -- a skipped check is
     never a pass. The gate is green only when there are no hard violations, no
-    incomplete mandatory checks, reconciliation succeeded (when supplied) and
-    the audited fingerprint matches the current plan.
+    incomplete mandatory checks, an explicit successful reconciliation, and the
+    audited plan still matches the canonical revision re-read after the audit.
     """
     entries = list(catalog) if catalog is not None else list(CATALOG_BY_ID.values())
     finding_rule_ids = _finding_rule_ids(findings)
@@ -961,7 +1053,6 @@ def season_wide_audit(
             violation_codes=violation_codes,
             accepted_finding_rule_ids=accepted_rule_ids,
             score_paths=score_paths,
-            verification_ok=verification_ok,
             covered_verifier_owners=covered_owners,
         )
         if result is not None:
@@ -979,16 +1070,29 @@ def season_wide_audit(
         if str(finding.get("severity") or "").lower() == "hard"
         and str(finding.get("finding_id") or "") not in _accepted_finding_ids(findings)
     ]
-    reconciliation_ok = True if reconciliation is None else bool(reconciliation.get("ok"))
-    fingerprint = normalized_assignment_fingerprint(plan)
-    revision_matches = (not expected_fingerprint) or expected_fingerprint == fingerprint
+    reconciliation_ok = (
+        None if not reconciliation else bool(reconciliation.get("ok"))
+    )
+    reconciliation_status = (
+        "missing" if reconciliation_ok is None else "ok" if reconciliation_ok else "failed"
+    )
+    assignment_fingerprint = normalized_assignment_fingerprint(plan)
+    content_fingerprint = stable_payload_sha256(plan.get("tournaments", []))
+    game_count = sum(
+        len(tournament.get("games") or [])
+        for tournament in plan.get("tournaments") or []
+        if isinstance(tournament, Mapping)
+    )
+    revision_matches = (
+        (not expected_fingerprint) or expected_fingerprint == assignment_fingerprint
+    ) and ((not expected_revision) or expected_revision == current_revision)
     coverage_ok = not incomplete
     ok = (
         verification_ok
         and coverage_ok
         and not violations
         and not blocking_findings
-        and reconciliation_ok
+        and reconciliation_ok is True
         and revision_matches
     )
     reasons: List[str] = []
@@ -1005,18 +1109,27 @@ def season_wide_audit(
         )
     if blocking_findings:
         reasons.append(f"{len(blocking_findings)} unresolved hard finding(s)")
-    if not reconciliation_ok:
+    if reconciliation_ok is None:
+        reasons.append("canonical reconciliation evidence is missing")
+    elif reconciliation_ok is False:
         reasons.append("canonical reconciliation failed")
     if not revision_matches:
-        reasons.append("audited fingerprint does not match the current plan")
+        reasons.append("audited assignment fingerprint does not match the audited plan")
     return {
         "schema_version": ADOPTION_GUARD_SCHEMA_VERSION,
-        "fingerprint": fingerprint,
+        "fingerprint": assignment_fingerprint,
+        "assignment_fingerprint": assignment_fingerprint,
+        "content_fingerprint": content_fingerprint,
+        "game_count": game_count,
+        "tournament_count": len(plan.get("tournaments") or []),
         "expected_fingerprint": expected_fingerprint,
+        "expected_revision": expected_revision,
+        "current_revision": current_revision,
         "revision_matches": revision_matches,
         "hard_verification_ok": verification_ok,
         "coverage_ok": coverage_ok,
         "reconciliation_ok": reconciliation_ok,
+        "reconciliation_status": reconciliation_status,
         "check_count": len(checks),
         "checks": checks,
         "incomplete_checks": [check["rule_id"] for check in incomplete],
@@ -1042,6 +1155,7 @@ def _score_paths(score: Optional[Mapping[str, Any]]) -> set[str]:
 __all__ = [
     "ACCEPTABLE_ADOPTION_REGRESSION_CODES",
     "ADOPTION_GUARD_SCHEMA_VERSION",
+    "BASELINE_PASS_BOUNDARY_EVENTS",
     "REGRESSION_CLUB_EXPOSURE",
     "REGRESSION_CLUB_REPETITION",
     "REGRESSION_CYCLE",
@@ -1052,6 +1166,10 @@ __all__ = [
     "REGRESSION_PARTICIPATION_SHORTFALL",
     "REGRESSION_TEMPORAL_COVERAGE",
     "REGRESSION_TRAVEL",
+    "TIER_HARD",
+    "TIER_OPERATIONAL_OBLIGATION",
+    "TIER_SOFT",
+    "TIER_STRONG_GOAL",
     "RepairPassLedger",
     "adoption_history_summary",
     "apply_adoption_overrides",
@@ -1063,5 +1181,7 @@ __all__ = [
     "normalized_assignment",
     "normalized_assignment_fingerprint",
     "parse_adoption_overrides",
+    "regression_tier",
     "season_wide_audit",
+    "select_blocking_regressions",
 ]

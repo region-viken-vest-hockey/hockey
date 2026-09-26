@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.repair_adoption_guard import REGRESSION_HOSTING_BALANCE
 from tournament_scheduler.season_maintenance import (
     apply_repair,
     list_findings,
@@ -596,6 +597,13 @@ def test_capacity_release_crosses_age_groups_when_arena_is_shared(tmp_path: Path
         bounded["revision"],
         root=root,
         finding_id="unplaced_placement:U12:2027-01-10:1",
+        # The coupled capacity release resolves the placement obligation but
+        # perturbs the hosting balance (a strong goal), which the cross-rule
+        # guard requires the operator to name explicitly.
+        accept_regressions=[REGRESSION_HOSTING_BALANCE],
+        regression_reason=(
+            "Materializing the U12 obligation is accepted despite the small hosting-balance change"
+        ),
     )
     assert result["ok"] is True, result
     # Both the blocker move and the materialization are committed atomically.

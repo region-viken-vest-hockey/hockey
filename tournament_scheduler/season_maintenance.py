@@ -382,10 +382,7 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     """
     from .canonical_baseline import verify_canonical_locks
     from .final_verification import verify_final_candidate
-    from .repair_adoption_guard import (
-        normalized_assignment_fingerprint,
-        season_wide_audit,
-    )
+    from .repair_adoption_guard import season_wide_audit
     from .season_state import season_lifecycle_report
 
     schedule, decisions, plan, problem = load_context(season, root=root)
@@ -395,7 +392,14 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     locks = verify_canonical_locks(build_canonical_baseline(schedule, decisions), dict(plan))
     merged_violations: List[Dict[str, Any]] = []
     seen_violations: set = set()
-    for violation in list(final.get("violations") or []) + list(locks or []):
+    # Include the ordinary verifier explicitly: ``verify_final_candidate``
+    # delegates to it, but this must not depend on that implementation detail,
+    # and a rule checked only by ``verify_candidate`` must stay visible.
+    for violation in (
+        list(verification.get("violations") or [])
+        + list(final.get("violations") or [])
+        + list(locks or [])
+    ):
         key = (
             str(violation.get("code") or ""),
             str(violation.get("tournament_id") or ""),
@@ -420,22 +424,41 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     score = with_unresolved_obligations_count(score_candidate(dict(plan), problem=dict(problem)))
     lifecycle = season_lifecycle_report(season, root=root)
     reconciliation = lifecycle.get("reconciliation") or None
+    # Re-read the canonical revision after assembling the audit so a concurrent
+    # canonical change cannot be reported as a fresh completion from a stale
+    # in-memory snapshot. The plan handed to the audit is the first read; the
+    # revision comparison detects drift.
+    schedule_after, decisions_after, plan_after, _problem_after = load_context(
+        season, root=root
+    )
+    revision_after = canonical_state_revision(schedule_after, decisions_after)
     audit = season_wide_audit(
         plan=plan,
         findings=findings,
         verification=merged_verification,
         score=score,
         reconciliation=reconciliation,
-        expected_fingerprint=normalized_assignment_fingerprint(plan),
+        expected_revision=revision,
+        current_revision=revision_after,
         covered_verifier_owners=(
             "tournament_scheduler.final_verification.verify_final_candidate",
             "tournament_scheduler.canonical_baseline.verify_canonical_locks",
         ),
     )
+    audit["revision_stable"] = revision == revision_after
+    audit["content_fingerprint_after"] = _plan_content_fingerprint(plan_after)
+    from .pipeline.fingerprints import stable_payload_sha256
+
+    # Booking/confirmation/protection/acceptance metadata lives in decisions and
+    # is part of the canonical revision; surface its identity explicitly so the
+    # audit evidence names the full state it assessed, not only the placements.
+    audit["decisions_fingerprint"] = stable_payload_sha256(decisions)
+    audit["decisions_fingerprint_after"] = stable_payload_sha256(decisions_after)
     return {
         "schema_version": SEASON_MAINTENANCE_SCHEMA_VERSION,
         "season": season,
         "revision": revision,
+        "revision_after": revision_after,
         "candidate_fingerprint": _plan_fingerprint(plan),
         "lifecycle": {
             "state": lifecycle.get("state"),
@@ -676,7 +699,7 @@ def apply_repair(
             trigger_rule=str(resolved_finding.get("rule_id") or resolved_finding.get("code") or ""),
             finding_id=str(resolved_finding.get("finding_id") or finding_id or ""),
             option_id=option_id,
-            priority_improved=_priority_improved(preview),
+            priority_improvement_tier=_priority_improvement_tier(preview),
         )
     except ValueError as exc:
         return _rejected_delta(
@@ -2457,14 +2480,21 @@ def _unresolved_avoidability_count(verification: Mapping[str, Any], avoidability
     )
 
 
-def _priority_improved(delta: Mapping[str, Any]) -> bool:
-    """True when the candidate improves a strictly higher-priority defect tier.
+def _priority_improvement_tier(delta: Mapping[str, Any]) -> Optional[int]:
+    """Return the highest-priority defect tier the candidate strictly improved.
 
-    Tiers follow the catalog precedence: hard constraints, then operational
-    obligations, then strong-goal/soft defects. A candidate that reduces a
-    higher tier may still carry a lower-tier soft regression as a reported
-    trade-off; a candidate that only reshuffles the same tier does not.
+    Tiers follow the catalog precedence (hard 0, operational obligation 1,
+    strong goal 2, soft 3). Only the *highest* improved tier is returned so a
+    soft regression can be auto-waived solely by a genuinely higher-tier fix;
+    strong-goal and operational-obligation regressions still require an explicit
+    named acceptance. Returns ``None`` when no tier improved.
     """
+
+    from .repair_adoption_guard import (
+        TIER_HARD,
+        TIER_OPERATIONAL_OBLIGATION,
+        TIER_STRONG_GOAL,
+    )
 
     def total(tier: Iterable[tuple[str, str]]) -> tuple[int, int]:
         before = sum(int(delta.get(before_key, 0) or 0) for before_key, _ in tier)
@@ -2472,6 +2502,8 @@ def _priority_improved(delta: Mapping[str, Any]) -> bool:
         return before, after
 
     hard = total((("hard_violations_before", "hard_violations_after"),))
+    if hard[1] < hard[0]:
+        return TIER_HARD
     obligations = total(
         (
             ("unresolved_hosting_obligations_before", "unresolved_hosting_obligations_after"),
@@ -2479,17 +2511,17 @@ def _priority_improved(delta: Mapping[str, Any]) -> bool:
             ("unresolved_placement_obligations_before", "unresolved_placement_obligations_after"),
         )
     )
+    if obligations[1] < obligations[0]:
+        return TIER_OPERATIONAL_OBLIGATION
     goals = total(
         (
             ("hosting_balance_imbalances_before", "hosting_balance_imbalances_after"),
             ("participation_deviations_before", "participation_deviations_after"),
         )
     )
-    if hard[1] != hard[0]:
-        return hard[1] < hard[0]
-    if obligations[1] != obligations[0]:
-        return obligations[1] < obligations[0]
-    return goals[1] < goals[0]
+    if goals[1] < goals[0]:
+        return TIER_STRONG_GOAL
+    return None
 
 
 def _changed_team_ids(before: Mapping[str, Any], after: Mapping[str, Any]) -> List[str]:
@@ -2543,6 +2575,13 @@ def _plan_fingerprint(plan: Mapping[str, Any]) -> str:
     from .host_team_missing_repair import candidate_fingerprint
 
     return candidate_fingerprint(plan)
+
+
+def _plan_content_fingerprint(plan: Mapping[str, Any]) -> str:
+    """Return the tournament-content fingerprint including games and metadata."""
+    from .pipeline.fingerprints import stable_payload_sha256
+
+    return stable_payload_sha256(plan.get("tournaments", []))
 
 
 def _apply_option(

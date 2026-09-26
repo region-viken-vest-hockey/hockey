@@ -12,6 +12,7 @@ from typing import Any, Dict, Iterable, List
 
 import pytest
 
+from tournament_scheduler import repair_adoption_guard
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
 from tournament_scheduler.repair_adoption_guard import (
     REGRESSION_CYCLE,
@@ -20,6 +21,9 @@ from tournament_scheduler.repair_adoption_guard import (
     REGRESSION_MORE_GAPS_UNDER_7,
     REGRESSION_TEMPORAL_COVERAGE,
     REGRESSION_TRAVEL,
+    TIER_HARD,
+    TIER_OPERATIONAL_OBLIGATION,
+    TIER_STRONG_GOAL,
     RepairPassLedger,
     apply_adoption_overrides,
     classify_quality_regressions,
@@ -28,6 +32,7 @@ from tournament_scheduler.repair_adoption_guard import (
     normalized_assignment_fingerprint,
     parse_adoption_overrides,
     season_wide_audit,
+    select_blocking_regressions,
 )
 from tournament_scheduler.rule_catalog import CATALOG_BY_ID
 
@@ -418,3 +423,117 @@ def test_audit_requires_reconciliation_and_current_fingerprint() -> None:
     assert reconciliation_failed["ok"] is False
     assert stale["ok"] is False
     assert stale["revision_matches"] is False
+
+
+def test_audit_requires_explicit_reconciliation_evidence() -> None:
+    plan, problem = _wide_gap_season()
+    verification = verify_candidate(plan, problem)
+
+    missing = season_wide_audit(
+        plan=plan,
+        findings=[],
+        verification=verification,
+        reconciliation=None,
+        catalog=_small_catalog(),
+    )
+    empty = season_wide_audit(
+        plan=plan,
+        findings=[],
+        verification=verification,
+        reconciliation={},
+        catalog=_small_catalog(),
+    )
+
+    assert missing["ok"] is False
+    assert missing["reconciliation_status"] == "missing"
+    assert missing["reconciliation_ok"] is None
+    assert empty["ok"] is False
+    assert empty["reconciliation_status"] == "missing"
+
+
+def test_audit_detects_revision_drift() -> None:
+    plan, problem = _wide_gap_season()
+    verification = verify_candidate(plan, problem)
+
+    report = season_wide_audit(
+        plan=plan,
+        findings=[],
+        verification=verification,
+        reconciliation={"ok": True},
+        expected_revision="revision-before",
+        current_revision="revision-after",
+        catalog=_small_catalog(),
+    )
+
+    assert report["ok"] is False
+    assert report["revision_matches"] is False
+    assert report["current_revision"] == "revision-after"
+
+
+def test_higher_tier_fix_waives_only_soft_regressions() -> None:
+    soft = {"code": REGRESSION_MORE_GAPS_UNDER_7, "material": True}
+    strong = {"code": "hosting_balance_worse", "material": True}
+    operational = {"code": "unresolved_hosting_obligation_worse", "material": True}
+    hard = {"code": REGRESSION_HARD_VERIFICATION, "material": True}
+
+    waived = select_blocking_regressions([soft, strong, operational, hard], TIER_HARD)
+    waived_codes = {record["code"] for record in waived}
+
+    # A hard-constraint improvement only auto-waives the soft regression; the
+    # strong-goal, operational and hard regressions still require an explicit
+    # acceptance.
+    assert waived_codes == {"hosting_balance_worse", "unresolved_hosting_obligation_worse", REGRESSION_HARD_VERIFICATION}
+    # Without any higher-tier improvement, even a soft regression blocks.
+    assert len(select_blocking_regressions([soft], None)) == 1
+    # A strong-goal improvement does not waive another strong-goal regression.
+    assert select_blocking_regressions([strong], TIER_STRONG_GOAL) == [strong]
+    assert select_blocking_regressions([soft], TIER_STRONG_GOAL) == []
+    assert select_blocking_regressions([soft], TIER_OPERATIONAL_OBLIGATION) == []
+
+
+def test_ledger_resets_visited_states_at_baseline_boundary() -> None:
+    history = [
+        {
+            "event": "repair_option_applied",
+            "details": {
+                "adoption": {
+                    "candidate_fingerprint": "first-pass-state",
+                    "baseline_fingerprint": "first-pass-baseline",
+                }
+            },
+        },
+        {"event": "season_baseline_advance", "details": {}},
+        {
+            "event": "repair_option_applied",
+            "details": {
+                "adoption": {
+                    "candidate_fingerprint": "second-pass-state",
+                    "baseline_fingerprint": "second-pass-baseline",
+                }
+            },
+        },
+    ]
+
+    ledger = RepairPassLedger.from_history(history)
+
+    assert ledger.baseline_fingerprint == "second-pass-baseline"
+    assert ledger.has_visited("second-pass-state")
+    # The first pass's state is not part of the current pass, so a legitimate
+    # return to it in a new pass is not a false cycle.
+    assert not ledger.has_visited("first-pass-state")
+    assert not ledger.has_visited("first-pass-baseline")
+
+
+def test_travel_measurement_unavailable_blocks_adoption(monkeypatch) -> None:
+    before, problem = _wide_gap_season()
+    candidate = _tightened_candidate()
+    monkeypatch.setattr(
+        repair_adoption_guard,
+        "compute_travel",
+        lambda plan: {"total_travel_km": 0.0, "max_team_travel_km": 0.0, "available": False},
+    )
+
+    result = evaluate_adoption(before, candidate, problem=problem)
+
+    assert result["adoptable"] is False
+    assert result["measurement_incomplete"] == ["travel"]
