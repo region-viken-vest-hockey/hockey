@@ -763,7 +763,12 @@ _SOFT: tuple[RuleEntry, ...] = (
     RuleEntry(
         id="opponent_repetition",
         classification=SOFT_OBJECTIVE,
-        meaning="Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized.",
+        meaning=(
+            "Teams should meet diverse opponents; repeated pairings beyond the configured "
+            "expectation are minimized. The primary opponent identity is the opposing club "
+            "within an age group, not the exact squad label, so a swap between sibling squads "
+            "is not a new opponent. Exact squad-pair counts remain available as diagnostics."
+        ),
         canonical_owner="tournament_scheduler.quality_objectives",
         input_source="candidate generated games",
         verifier_owner="tournament_scheduler.planning_contract.score_candidate",
@@ -774,6 +779,27 @@ _SOFT: tuple[RuleEntry, ...] = (
             "opponent_diversity.pairwise_novelty",
             "opponent_diversity.max_pair_repeat",
             "opponent_diversity.pairs_meeting_3_plus",
+            "opponent_diversity.max_club_pair_repeat",
+            "opponent_diversity.club_pairs_meeting_3_plus",
+        ),
+    ),
+    RuleEntry(
+        id="opponent_club_diversity",
+        classification=SOFT_OBJECTIVE,
+        meaning=(
+            "Each individual squad should meet a variety of opposing clubs within its age "
+            "group. Exposure to one club is normalized by that club's squad supply, so a "
+            "large multi-squad club is not penalized merely for supplying more opponents, "
+            "while genuinely concentrated exposure remains visible."
+        ),
+        canonical_owner="tournament_scheduler.opponent_diversity",
+        input_source="candidate participants and generated games",
+        verifier_owner="tournament_scheduler.planning_contract.score_candidate",
+        evidence_projection=("score_candidate.opponent_diversity.*",),
+        tests=("tests/test_opponent_diversity.py",),
+        score_paths=(
+            "opponent_diversity.min_distinct_opponent_clubs",
+            "opponent_diversity.max_club_exposure_index",
         ),
     ),
     RuleEntry(

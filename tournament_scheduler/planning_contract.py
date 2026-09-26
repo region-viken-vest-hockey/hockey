@@ -1643,6 +1643,53 @@ def score_candidate(
                 inter_club_universe.add((a, b))
     inter_club_diversity = (len(inter_club_pairs) / len(inter_club_universe)) if inter_club_universe else 0.0
 
+    # Club-level opponent identity (see opponent_diversity): repeat claims and
+    # diversity are aggregated to (club, age_group) pairs, so a change in which
+    # sibling squad an opponent meets does not read as a new opponent. Squad
+    # supply is the opportunity baseline, so a large club that supplies more
+    # squads is not penalized merely for being available.
+    squads_by_club_age: Dict[Tuple[str, Optional[str]], set] = {}
+    for age_group, identities in teams_by_age_group.items():
+        for identity in identities:
+            squads_by_club_age.setdefault((identity[0], age_group), set()).add(identity)
+
+    club_pair_counts: Dict[Tuple[Tuple[str, Optional[str]], Tuple[str, Optional[str]]], int] = {}
+    opposing_club_games: Dict[TeamIdentity, Dict[str, int]] = {}
+    for (a, b), count in pair_counts.items():
+        if a[0] == b[0]:
+            continue
+        club_pair = tuple(sorted(((a[0], a[2]), (b[0], b[2]))))
+        club_pair_counts[club_pair] = club_pair_counts.get(club_pair, 0) + count
+        games_a = opposing_club_games.setdefault(a, {})
+        games_a[b[0]] = games_a.get(b[0], 0) + count
+        games_b = opposing_club_games.setdefault(b, {})
+        games_b[a[0]] = games_b.get(a[0], 0) + count
+    club_pair_repeat_distribution: Dict[int, int] = {}
+    for count in club_pair_counts.values():
+        club_pair_repeat_distribution[count] = club_pair_repeat_distribution.get(count, 0) + 1
+    club_pairs_meeting_3_plus = sum(
+        v for k, v in club_pair_repeat_distribution.items() if k >= 3
+    )
+    max_club_pair_repeat = max(club_pair_counts.values()) if club_pair_counts else 0
+
+    min_distinct_opponent_clubs = 0
+    max_club_exposure_index = 0.0
+    if opposing_club_games:
+        min_distinct_opponent_clubs = min(
+            len(clubs) for clubs in opposing_club_games.values()
+        )
+        for identity, club_games in opposing_club_games.items():
+            total_games_for_team = sum(club_games.values())
+            age_group = identity[2]
+            total_squads = len(teams_by_age_group.get(age_group, set()))
+            if total_games_for_team <= 0 or total_squads <= 0:
+                continue
+            for club, games in club_games.items():
+                expected_share = len(squads_by_club_age.get((club, age_group), set())) / total_squads
+                share = games / total_games_for_team
+                index = (share / expected_share) if expected_share else 0.0
+                max_club_exposure_index = max(max_club_exposure_index, index)
+
     # --- same-club clustering -------------------------------------------
     # issue #324: `max_same_club_per_tournament` alone can't distinguish a
     # single unavoidable 3-team tournament from a candidate that clusters
@@ -1773,6 +1820,11 @@ def score_candidate(
             "pair_repeat_distribution": repeat_distribution,
             "pairs_meeting_3_plus": pairs_meeting_3_plus,
             "max_pair_repeat": max_pair_repeat,
+            "club_pair_repeat_distribution": club_pair_repeat_distribution,
+            "club_pairs_meeting_3_plus": club_pairs_meeting_3_plus,
+            "max_club_pair_repeat": max_club_pair_repeat,
+            "min_distinct_opponent_clubs": min_distinct_opponent_clubs,
+            "max_club_exposure_index": round(max_club_exposure_index, 6),
             "inter_club_diversity": inter_club_diversity,
             "same_club_pairing_count": len(same_club_pairs),
             "max_same_club_teams_per_tournament": max_same_club_per_tournament,

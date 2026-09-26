@@ -90,7 +90,7 @@ MATERIAL_SUBSTITUTION_REGRESSION_CODES = frozenset(
         "more_gaps_under_7_days",
         "more_gaps_under_14_days",
         "temporal_coverage_materially_worse",
-        "more_repeated_opponent_excess",
+        "more_concentrated_club_exposure",
         "travel_materially_worse",
     }
 )

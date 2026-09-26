@@ -198,6 +198,28 @@ def _pair_counts(slots: List[_Slot]) -> Dict[Tuple[TeamIdentity, TeamIdentity], 
     return counts
 
 
+ClubKey = Tuple[str, str]  # (club, age_group)
+
+
+def _club_pair_counts(slots: List[_Slot]) -> Dict[Tuple[ClubKey, ClubKey], int]:
+    """Count co-attendance per *club* pair within an age group.
+
+    The primary opponent identity is the opposing club within an age group
+    (see :mod:`tournament_scheduler.opponent_diversity`), not the exact squad
+    label. Two squads from the same club count once, so a label change never
+    reads as a new opponent.
+    """
+
+    counts: Dict[Tuple[ClubKey, ClubKey], int] = {}
+    for slot in slots:
+        clubs = sorted({(identity[0], slot.age_group) for identity in slot.team_ids})
+        for i in range(len(clubs)):
+            for j in range(i + 1, len(clubs)):
+                pair = (clubs[i], clubs[j])
+                counts[pair] = counts.get(pair, 0) + 1
+    return counts
+
+
 def _resolve_weights(
     base_weights: Dict[str, float],
     per_age_group: Optional[Dict[str, Dict[str, float]]],
@@ -318,11 +340,18 @@ def _objective(
         identity: slot.age_group for slot in slots for identity in slot.team_ids
     }
 
+    # Opponent repetition is charged on the club-level pair (club, age_group),
+    # not the exact squad pair, so a swap between sibling squads of one club is
+    # not penalized as a new repeated opponent.
+    club_pair_counts = _club_pair_counts(slots)
+    for (a, b), count in club_pair_counts.items():
+        weights = _resolve_weights(base_weights, per_age_group, a[1])
+        if count > 1:
+            total += weights["pair_repeat"] * (count - 1) ** 2
+
     for (a, b), count in pair_counts.items():
         age_group = age_group_by_team.get(a, "")
         weights = _resolve_weights(base_weights, per_age_group, age_group)
-        if count > 1:
-            total += weights["pair_repeat"] * (count - 1) ** 2
         if a[0] == b[0]:
             total += weights["same_club_pairing"] * count
 
@@ -413,6 +442,7 @@ class _SearchState:
             identity: slot.age_group for slot in slots for identity in slot.team_ids
         }
         self.pair_counts: Dict[Tuple[TeamIdentity, TeamIdentity], int] = _pair_counts(slots)
+        self.club_pair_counts: Dict[Tuple[ClubKey, ClubKey], int] = _club_pair_counts(slots)
         self.club_counts_by_slot: List[Dict[str, int]] = []
         for slot in slots:
             counts: Dict[str, int] = {}
@@ -430,7 +460,9 @@ class _SearchState:
 
         total = 0.0
         for pair, count in self.pair_counts.items():
-            total += self._pair_contribution(pair, count)
+            total += self._squad_pair_contribution(pair, count)
+        for pair, count in self.club_pair_counts.items():
+            total += self._club_pair_contribution(pair, count)
         for slot_index, counts in enumerate(self.club_counts_by_slot):
             age_group = slots[slot_index].age_group
             for count in counts.values():
@@ -469,17 +501,29 @@ class _SearchState:
     def _weights(self, age_group: str) -> Dict[str, float]:
         return self.weights_by_age_group.get(age_group, DEFAULT_WEIGHTS)
 
-    def _pair_contribution(self, pair: Tuple[TeamIdentity, TeamIdentity], count: int) -> float:
+    def _squad_pair_contribution(self, pair: Tuple[TeamIdentity, TeamIdentity], count: int) -> float:
+        """Same-club pairing cost for an exact squad pair.
+
+        Opponent repetition is charged separately on
+        :meth:`_club_pair_contribution` so a label-only change is not read as
+        a repeated opponent.
+        """
         if count <= 0:
             return 0.0
         a, b = pair
+        if a[0] != b[0]:
+            return 0.0
         weights = self._weights(self.age_group_by_team.get(a, ""))
-        total = 0.0
-        if count > 1:
-            total += weights["pair_repeat"] * (count - 1) ** 2
-        if a[0] == b[0]:
-            total += weights["same_club_pairing"] * count
-        return total
+        return weights["same_club_pairing"] * count
+
+    def _club_pair_contribution(self, pair: Tuple[ClubKey, ClubKey], count: int) -> float:
+        if count <= 0:
+            return 0.0
+        if count <= 1:
+            return 0.0
+        a, _b = pair
+        weights = self._weights(a[1])
+        return weights["pair_repeat"] * (count - 1) ** 2
 
     def _club_contribution(self, age_group: str, count: int) -> float:
         if count <= 1:
@@ -520,11 +564,33 @@ class _SearchState:
     def _adjust_pair(self, pair: Tuple[TeamIdentity, TeamIdentity], delta_count: int) -> float:
         old_count = self.pair_counts.get(pair, 0)
         new_count = old_count + delta_count
-        change = self._pair_contribution(pair, new_count) - self._pair_contribution(pair, old_count)
+        change = self._squad_pair_contribution(pair, new_count) - self._squad_pair_contribution(
+            pair, old_count
+        )
         if new_count <= 0:
             self.pair_counts.pop(pair, None)
         else:
             self.pair_counts[pair] = new_count
+        a, b = pair
+        if a[0] != b[0]:
+            age_group = self.age_group_by_team.get(a, "")
+            club_pair = (
+                (a[0], age_group),
+                (b[0], age_group),
+            )
+            change += self._adjust_club_pair(club_pair, delta_count)
+        return change
+
+    def _adjust_club_pair(self, pair: Tuple[ClubKey, ClubKey], delta_count: int) -> float:
+        old_count = self.club_pair_counts.get(pair, 0)
+        new_count = old_count + delta_count
+        change = self._club_pair_contribution(pair, new_count) - self._club_pair_contribution(
+            pair, old_count
+        )
+        if new_count <= 0:
+            self.club_pair_counts.pop(pair, None)
+        else:
+            self.club_pair_counts[pair] = new_count
         return change
 
     def _adjust_club(self, slot_index: int, club: str, delta_count: int, age_group: str) -> float:
@@ -1805,12 +1871,16 @@ class _GroupMetrics:
 
     pairs_meeting_3_plus: int
     max_pair_repeat: int
+    club_pairs_meeting_3_plus: int
+    max_club_pair_repeat: int
     same_club_pairing_count: int
     max_same_club_teams_per_tournament: int
     gaps_under_7: int
     gaps_under_14: int
     hosting_spread: int
     unique_pairs: int
+    unique_club_pairs: int
+    club_pair_novelty: float
     pairwise_novelty: float
     inter_club_diversity: float
     min_turnaround_days: Optional[int]
@@ -1834,6 +1904,15 @@ def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
     max_pair_repeat = max(pair_counts.values()) if pair_counts else 0
     same_club_pairing_count = sum(1 for (a, b) in pair_counts if a[0] == b[0])
     inter_club_pairs = sum(1 for (a, b) in pair_counts if a[0] != b[0])
+
+    # Club-level repetition is the primary opponent identity; the exact-pair
+    # fields above remain for diagnostics only.
+    club_pair_counts = _club_pair_counts(slots)
+    total_club_pairings = sum(club_pair_counts.values())
+    unique_club_pairs = len(club_pair_counts)
+    club_pair_novelty = (unique_club_pairs / total_club_pairings) if total_club_pairings else 0.0
+    club_pairs_meeting_3_plus = sum(1 for count in club_pair_counts.values() if count >= 3)
+    max_club_pair_repeat = max(club_pair_counts.values()) if club_pair_counts else 0
 
     # The universe of *possible* inter-club opponents is every cross-club
     # pair among all teams that appear anywhere in this age group's slots —
@@ -1881,12 +1960,16 @@ def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
     return _GroupMetrics(
         pairs_meeting_3_plus=pairs_meeting_3_plus,
         max_pair_repeat=max_pair_repeat,
+        club_pairs_meeting_3_plus=club_pairs_meeting_3_plus,
+        max_club_pair_repeat=max_club_pair_repeat,
         same_club_pairing_count=same_club_pairing_count,
         max_same_club_teams_per_tournament=max_same_club_teams_per_tournament,
         gaps_under_7=gaps_under_7,
         gaps_under_14=gaps_under_14,
         hosting_spread=hosting_spread,
         unique_pairs=unique_pairs,
+        unique_club_pairs=unique_club_pairs,
+        club_pair_novelty=club_pair_novelty,
         pairwise_novelty=pairwise_novelty,
         inter_club_diversity=inter_club_diversity,
         min_turnaround_days=min_turnaround_days,
@@ -1914,10 +1997,10 @@ def _within_bounds(current: _GroupMetrics, baseline: _GroupMetrics) -> bool:
         and current.gaps_under_7 <= baseline.gaps_under_7
         and current.gaps_under_14 <= baseline.gaps_under_14
         and current.hosting_spread <= baseline.hosting_spread
-        and current.pairs_meeting_3_plus <= baseline.pairs_meeting_3_plus
-        and current.max_pair_repeat <= baseline.max_pair_repeat
-        and current.unique_pairs >= baseline.unique_pairs
-        and current.pairwise_novelty >= baseline.pairwise_novelty - 1e-9
+        and current.club_pairs_meeting_3_plus <= baseline.club_pairs_meeting_3_plus
+        and current.max_club_pair_repeat <= baseline.max_club_pair_repeat
+        and current.unique_club_pairs >= baseline.unique_club_pairs
+        and current.club_pair_novelty >= baseline.club_pair_novelty - 1e-9
         and current.inter_club_diversity >= baseline.inter_club_diversity - 1e-9
         and turnaround_ok
     )
@@ -1926,39 +2009,41 @@ def _within_bounds(current: _GroupMetrics, baseline: _GroupMetrics) -> bool:
 def _lexicographic_score(m: _GroupMetrics) -> float:
     """A single float approximating the lexicographic order for annealing.
 
-    Primary: fewer pairs meeting 3+ times, then a lower max repeat. Secondary
-    tie-breaker: more unique pairs / higher novelty. The gaps between
-    successive constant magnitudes assume group sizes small enough (a season
-    age group, not the whole league) that a secondary-metric delta can never
-    outweigh a one-unit primary-metric step; :func:`_strictly_better` (exact
-    lexicographic comparison, no constants) is the actual promotion gate —
-    this score only steers the search.
+    Primary: fewer *club-level* pairs meeting 3+ times, then a lower max
+    club-level repeat. Secondary tie-breaker: more unique club pairs / higher
+    club-pair novelty. The exact squad-pair metrics stay as diagnostics and
+    never steer this search, so a label-only change is not treated as a new
+    repeated opponent. The gaps between successive constant magnitudes assume
+    group sizes small enough (a season age group, not the whole league) that a
+    secondary-metric delta can never outweigh a one-unit primary-metric step;
+    :func:`_strictly_better` (exact lexicographic comparison, no constants) is
+    the actual promotion gate — this score only steers the search.
     """
     return (
-        m.pairs_meeting_3_plus * 1_000_000.0
-        + m.max_pair_repeat * 1_000.0
-        - m.unique_pairs * 1.0
-        - m.pairwise_novelty * 0.5
+        m.club_pairs_meeting_3_plus * 1_000_000.0
+        + m.max_club_pair_repeat * 1_000.0
+        - m.unique_club_pairs * 1.0
+        - m.club_pair_novelty * 0.5
     )
 
 
 def _strictly_better(new: _GroupMetrics, baseline: _GroupMetrics) -> bool:
     """True if *new* weakly dominates *baseline* (see :func:`_within_bounds`)
     AND is a genuine improvement on at least the lexicographic primary
-    metrics (pairs meeting 3+ times, then max pair repeat) — or, failing
-    that, on the unique-pairs/novelty tie-breaker. A candidate that only
-    matches the baseline everywhere is not "improved"; callers should retain
-    the baseline in that case.
+    metrics (club-level pairs meeting 3+ times, then max club-level repeat) —
+    or, failing that, on the unique-club-pairs/novelty tie-breaker. A candidate
+    that only matches the baseline everywhere is not "improved"; callers should
+    retain the baseline in that case.
     """
     if not _within_bounds(new, baseline):
         return False
-    if new.pairs_meeting_3_plus != baseline.pairs_meeting_3_plus:
-        return new.pairs_meeting_3_plus < baseline.pairs_meeting_3_plus
-    if new.max_pair_repeat != baseline.max_pair_repeat:
-        return new.max_pair_repeat < baseline.max_pair_repeat
-    if new.unique_pairs != baseline.unique_pairs:
-        return new.unique_pairs > baseline.unique_pairs
-    return new.pairwise_novelty > baseline.pairwise_novelty
+    if new.club_pairs_meeting_3_plus != baseline.club_pairs_meeting_3_plus:
+        return new.club_pairs_meeting_3_plus < baseline.club_pairs_meeting_3_plus
+    if new.max_club_pair_repeat != baseline.max_club_pair_repeat:
+        return new.max_club_pair_repeat < baseline.max_club_pair_repeat
+    if new.unique_club_pairs != baseline.unique_club_pairs:
+        return new.unique_club_pairs > baseline.unique_club_pairs
+    return new.club_pair_novelty > baseline.club_pair_novelty
 
 
 def _search_group_bounded(

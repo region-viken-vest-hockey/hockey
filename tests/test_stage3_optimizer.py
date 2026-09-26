@@ -763,3 +763,91 @@ class TestFrozenTournamentIds:
 
         frozen = next(t for t in optimized["tournaments"] if t["id"] == "t1")
         assert frozen == candidate["tournaments"][0]
+
+
+class TestClubLevelOpponentIdentity:
+    """Opponent repetition keys on the opposing club, not the squad label."""
+
+    @staticmethod
+    def _multi_squad_candidate() -> dict:
+        """Two multi-squad clubs so same-club and club-pair bookkeeping both run."""
+        return {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament(
+                    "t1",
+                    "2026-01-05",
+                    "Arena1",
+                    "U10",
+                    [
+                        _team("Frisk Asker", "Frisk Asker 1", "U10"),
+                        _team("Frisk Asker", "Frisk Asker 2", "U10"),
+                        _team("Tønsberg", "Tønsberg Grå", "U10"),
+                        _team("Jar", "Jar 1", "U10"),
+                    ],
+                ),
+                _tournament(
+                    "t2",
+                    "2026-02-04",
+                    "Arena2",
+                    "U10",
+                    [
+                        _team("Frisk Asker", "Frisk Asker 1", "U10"),
+                        _team("Tønsberg", "Tønsberg Grå", "U10"),
+                        _team("Tønsberg", "Tønsberg Hvit", "U10"),
+                        _team("Jar", "Jar 1", "U10"),
+                    ],
+                ),
+            ],
+        }
+
+    def test_objective_is_invariant_to_squad_label_swap(self):
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _build_slots,
+            _objective,
+        )
+
+        def candidate(second_label: str) -> dict:
+            teams = [
+                _team("Frisk Asker", "Frisk Asker 1", "U10"),
+                _team("Frisk Asker", second_label, "U10"),
+                _team("Tønsberg", "Tønsberg Grå", "U10"),
+                _team("Jar", "Jar 1", "U10"),
+            ]
+            return {"tournaments": [_tournament("t1", "2026-01-05", "Arena1", "U10", teams)]}
+
+        before_slots, _ = _build_slots(candidate("Frisk Asker 2"), None)
+        after_slots, _ = _build_slots(candidate("Frisk Asker 3"), None)
+        assert _objective(before_slots, DEFAULT_WEIGHTS) == _objective(
+            after_slots, DEFAULT_WEIGHTS
+        )
+
+    def test_incremental_state_matches_full_objective_with_multi_squad_clubs(self):
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _SearchState,
+            _build_slots,
+            _candidate_swaps,
+            _resolve_weights,
+            _swap_is_valid,
+        )
+
+        candidate = self._multi_squad_candidate()
+        slots, _ = _build_slots(candidate, None)
+        weights_by_age_group = {"U10": _resolve_weights(DEFAULT_WEIGHTS, None, "U10")}
+        state = _SearchState(slots, weights_by_age_group)
+        assert state.total == state.full_objective(DEFAULT_WEIGHTS)
+
+        rng = random.Random(5)
+        applied = 0
+        for _ in range(200):
+            move = _candidate_swaps(slots, rng)
+            if move is None:
+                continue
+            if not _swap_is_valid(slots, *move, state):
+                continue
+            state.apply_team_swap(*move)
+            applied += 1
+            assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
+        assert applied > 0
