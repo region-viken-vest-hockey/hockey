@@ -114,6 +114,8 @@ def build_planning_problem(
         _build_club_arenas,
         _build_club_busy_intervals,
         _build_club_calendar_status,
+        _build_club_coverage_proven,
+        _build_club_source_integrity,
         _build_events_by_club,
         _build_ice_time,
         _build_parallel_games,
@@ -125,6 +127,8 @@ def build_planning_problem(
     club_arenas = _build_club_arenas(config)
     events_by_club = _build_events_by_club(scraping_result)
     club_calendar_status = _build_club_calendar_status(scraping_result)
+    club_source_integrity = _build_club_source_integrity(scraping_result)
+    club_coverage_proven = _build_club_coverage_proven(scraping_result)
 
     # `participation_targets_by_age_group` (below) is the single authoritative
     # participation-target model for the canonical workbook -- Stage 1
@@ -258,6 +262,14 @@ def build_planning_problem(
         "date_preferences": date_preferences,
         "club_busy_dates": club_busy_dates,
         "club_calendar_status": club_calendar_status,
+        # Deterministic per-club source-integrity verdict and coverage proof:
+        # fail-closed evidence that the calendar source was complete enough to
+        # be usable for a negative occupancy claim. Purely informational for
+        # the planner (the authoritative placement gate stays
+        # ``club_calendar_status``) but consumed by the read-only booking
+        # assessment.
+        "club_source_integrity": club_source_integrity,
+        "club_coverage_proven": club_coverage_proven,
         "club_busy_intervals": club_busy_intervals,
         # Read-only exposure of scraped events nothing configured has
         # classified yet: an ambiguous calendar fact the controller may

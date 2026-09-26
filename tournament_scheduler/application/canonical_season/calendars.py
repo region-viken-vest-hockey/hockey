@@ -64,6 +64,8 @@ _CALENDAR_PROBLEM_KEYS = (
     "club_busy_dates",
     "club_busy_intervals",
     "club_calendar_status",
+    "club_source_integrity",
+    "club_coverage_proven",
     "unclassified_calendar_events",
 )
 

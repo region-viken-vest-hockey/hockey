@@ -155,11 +155,13 @@ def operational_rule_entries(planner) -> List[Dict[str, str]]:
             "regel": "Kalendertillit er skilt fra vellykket skraping (issue #274)",
             "forklaring": (
                 "En klubbs kalenderstatus kan være «known» (nok bevis for automatisk plassering), "
-                "«unknown» (blokkert/hoppet over/feilet skraping), eller «untrusted» (skrapingen "
+                "«unknown» (blokkert/hoppet over/feilet skraping), «untrusted» (skrapingen "
                 "lyktes, men klubbens registeroppføring sier at dataene ikke er den reelle, "
                 "fullstendige kalenderen -- for eksempel Tønsbergs BookUp-kilde, som i dag kun "
-                "returnerer generiske/offentlige plassholderdata). En klubb med «untrusted» eller "
-                "«unknown» status beholder sin fulle andel av vertskapsansvaret, men enhver "
+                "returnerer generiske/offentlige plassholderdata), eller «source_review_required» "
+                "(skrapingen lyktes, men kildens dekning eller hendelsesform er mistenkelig eller "
+                "ufullstendig). En klubb med «untrusted», «unknown» eller «source_review_required» "
+                "status beholder sin fulle andel av vertskapsansvaret, men enhver "
                 "turnering den er vertskap for må planlegges manuelt inntil et fullstendig, "
                 "autentisert kalendersøk er bevist pålitelig."
             ),

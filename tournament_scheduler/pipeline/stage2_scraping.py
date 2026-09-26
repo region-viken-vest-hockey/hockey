@@ -48,6 +48,12 @@ from .scraper_brp_exigo import _run_brp_exigo_scraper
 from .scraper_credentialed import _try_credentialed_scrape
 from .fixed_allocation_source import run_fixed_allocation_source
 from .scraper_event_helpers import _events_to_dicts, _group_events_by_club, _group_club_calendar_status
+from .source_integrity import (
+    club_coverage_proven,
+    club_integrity_status,
+    downgrade_calendar_status_for_integrity,
+    integrity_by_source,
+)
 from .scraper_forumbooking import _run_forumbooking_scraper
 from .scraper_ical import _run_ical_scraper
 from .scraper_outlook import _run_outlook_scraper
@@ -348,6 +354,8 @@ def run(
             "sources": [],
             "events_by_club": {},
             "club_calendar_status": {},
+            "club_source_integrity": {},
+            "club_coverage_proven": {},
             "blocked": [],
             "empty_sources": [],
             "cached": [],
@@ -371,6 +379,9 @@ def run(
             raise Stage2Error([{"name": "(ingen kilder)", "reason": reason}])
         result: dict[str, Any] = {
             "sources": [],
+            "club_calendar_status": {},
+            "club_source_integrity": {},
+            "club_coverage_proven": {},
             "blocked": [],
             "start_date": start_date.strftime("%Y-%m-%d"),
             "end_date": end_date.strftime("%Y-%m-%d"),
@@ -506,7 +517,38 @@ def run(
         end_date=end_date,
     )
 
+    # Deterministic source-integrity verdict (fail closed for negative
+    # occupancy claims). Previous counts come from the unified cache so a
+    # suspicious count regression versus the last successful scrape is visible
+    # even though the coarse minimum-count expectation would not catch it.
+    previous_counts = {
+        str(entry_name): int(entry.get("event_count") or 0)
+        for entry_name, entry in (cache_data.get("previous_sources") or {}).items()
+        if isinstance(entry, dict) and entry.get("event_count") is not None
+    }
+    requested_start = start_date.strftime("%Y-%m-%d")
+    requested_end = end_date.strftime("%Y-%m-%d")
+    source_integrity = integrity_by_source(
+        source_results,
+        requested_start=requested_start,
+        requested_end=requested_end,
+        previous_counts=previous_counts,
+    )
+    for source_result in source_results:
+        integrity = source_integrity.get(str(source_result.get("name") or ""))
+        if integrity is not None:
+            source_result["integrity"] = integrity
+
     club_calendar_status = _group_club_calendar_status(source_results)
+    # A source that completed but looks partial/suspicious must not be read as
+    # a fully-known calendar: downgrade it to the explicit review tier instead
+    # of "known" so no downstream negative occupancy claim can rely on it.
+    club_calendar_status = downgrade_calendar_status_for_integrity(
+        club_calendar_status,
+        source_results,
+        source_integrity,
+    )
+    club_source_integrity = club_integrity_status(source_results, source_integrity)
     # Explicit operator override (issue #262 P0): an operator who has
     # manually confirmed a club's availability out of band can force it to
     # "known" even though this run's scrape was blocked/skipped/missing.
@@ -519,6 +561,8 @@ def run(
         "sources": source_results,
         "events_by_club": _group_events_by_club(source_results),
         "club_calendar_status": club_calendar_status,
+        "club_source_integrity": club_source_integrity,
+        "club_coverage_proven": club_coverage_proven(source_results, source_integrity),
         "blocked": [b["name"] for b in blocked],
         "empty_sources": [e["name"] for e in empty_sources],
         "cached": cached_names,
@@ -684,6 +728,11 @@ def _scrape_source(
     if scraper_error:
         result["scraper_error"] = scraper_error
 
+    # Coverage evidence attached to the deterministic result must survive a
+    # later credentialed fallback (which returns a plain list) so a partial
+    # scrape can never be laundered into a fully-known calendar.
+    deterministic_coverage = getattr(events, "coverage", None)
+
     # --- If deterministic succeeded but returned 0 events, try credentialed fallback ---
     # Do NOT fall through to credentialed scrape when the deterministic scraper raised an
     # exception (e.g. network error, Playwright crash) — an exception means we don't know
@@ -746,6 +795,9 @@ def _scrape_source(
                 "Det ser ut som en tom offentlig kalender, ikke en skrapefeil."
             )
 
+    coverage = getattr(events, "coverage", None) or deterministic_coverage
+    if isinstance(coverage, dict):
+        result["coverage"] = coverage
     result["events"] = _events_to_dicts(events, club_name=club_for_source_name(name))
     result["event_count"] = len(events)
     return result

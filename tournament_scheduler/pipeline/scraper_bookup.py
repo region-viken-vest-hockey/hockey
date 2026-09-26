@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from ..models import CalendarEvent
+from .source_integrity import INTEGRITY_COMPLETE, INTEGRITY_PARTIAL, with_coverage
 
 
 def _playwright_call_with_timeout(callable_obj: Any, *args: Any, timeout: int, **kwargs: Any) -> Any:
@@ -50,6 +51,12 @@ def _run_bookup_scraper(
     events: list[CalendarEvent] = []
     raw_html: str = ""
 
+    # Coverage evidence: a swallowed navigation/timeout must never let Stage 2
+    # read a partial BookUp calendar as fully known.
+    coverage_status = INTEGRITY_COMPLETE
+    navigation_complete = True
+    coverage_exceptions: list[str] = []
+
     start_date_ref = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end_date_ref = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
     total_days = (end_date_ref - start_date_ref).days
@@ -66,7 +73,10 @@ def _run_bookup_scraper(
             frame = page.frame(url=lambda u: "app.html" in u)
             if not frame:
                 browser.close()
-                return [], raw_html
+                return with_coverage(
+                    [], status=INTEGRITY_PARTIAL, navigation_complete=False,
+                    exceptions=["BookUp app.html iframe not found"],
+                ), raw_html
 
             # Click "Se tilgjengelighet" if it's still there to reveal the
             # calendar (best-effort — it can already be visible/hidden).
@@ -79,9 +89,12 @@ def _run_bookup_scraper(
 
             try:
                 frame.locator("text=Tilgjengelighetskalender").first.wait_for(timeout=15_000)
-            except Exception:
+            except Exception as exc:
                 browser.close()
-                return [], raw_html
+                return with_coverage(
+                    [], status=INTEGRITY_PARTIAL, navigation_complete=False,
+                    exceptions=[f"BookUp calendar did not render: {exc}"],
+                ), raw_html
 
             # Navigate to start month if possible
             _bookup_navigate_to_date(frame, start_date_ref)
@@ -104,16 +117,26 @@ def _run_bookup_scraper(
                     try:
                         next_btn.first.click(timeout=5_000)
                         frame.wait_for_timeout(1_500)
-                    except Exception:
+                    except Exception as exc:
+                        coverage_status = INTEGRITY_PARTIAL
+                        navigation_complete = False
+                        coverage_exceptions.append(f"BookUp week navigation stopped early: {exc}")
                         break
                 else:
                     break
 
             browser.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        coverage_status = INTEGRITY_PARTIAL
+        navigation_complete = False
+        coverage_exceptions.append(f"BookUp scrape raised: {exc}")
 
-    return _deduplicate_bookup_events(events), raw_html
+    return with_coverage(
+        _deduplicate_bookup_events(events),
+        status=coverage_status,
+        navigation_complete=navigation_complete,
+        exceptions=coverage_exceptions,
+    ), raw_html
 
 
 def _deduplicate_bookup_events(events: list[CalendarEvent]) -> list[CalendarEvent]:
