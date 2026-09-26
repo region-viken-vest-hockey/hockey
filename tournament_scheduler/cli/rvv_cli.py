@@ -2229,6 +2229,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 request_id=args.request_id,
                 actor=args.actor,
                 note=args.note,
+                restore_participants=bool(getattr(args, "restore_participant", False)),
             )
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))

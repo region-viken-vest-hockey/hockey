@@ -337,6 +337,7 @@ def release_participation_withdrawals(
     request_id: str | None = None,
     actor: str | None = None,
     note: str = "",
+    restore_participants: bool = False,
 ) -> dict[str, Any]:
     """Release withdrawal records after a participant is restored or registration reconciled."""
 
@@ -346,6 +347,7 @@ def release_participation_withdrawals(
         request_id=request_id,
         actor=actor,
         note=note,
+        restore_participants=restore_participants,
     )
 
 

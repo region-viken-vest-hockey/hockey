@@ -378,8 +378,9 @@ class CanonicalSeasonService:
         request_id: str | None = None,
         actor: str | None = None,
         note: str = "",
+        restore_participants: bool = False,
     ) -> dict[str, Any]:
-        return _withdrawal.release_participation_withdrawals(self, season=season, withdrawal_ids=withdrawal_ids, request_id=request_id, actor=actor, note=note)
+        return _withdrawal.release_participation_withdrawals(self, season=season, withdrawal_ids=withdrawal_ids, request_id=request_id, actor=actor, note=note, restore_participants=restore_participants)
 
     def batch_maintenance(
         self,

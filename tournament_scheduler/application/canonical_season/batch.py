@@ -33,6 +33,7 @@ from tournament_scheduler.planning_contract import verify_candidate
 from tournament_scheduler.participation_withdrawals import (
     append_withdrawal_records,
     build_withdrawal_records,
+    effective_from_for_tournaments,
     project_into_problem,
 )
 
@@ -278,6 +279,10 @@ def batch_maintenance(
     applied_swaps: list[dict[str, Any]] = []
     applied_cancellations: list[dict[str, Any]] = []
     applied_removals: list[dict[str, Any]] = []
+    # A durable withdrawal is one decision per team identity; the affected
+    # tournament ids are provenance, not the scope of the eligibility
+    # reduction. Collect every reconciled removal and build one record each.
+    reconciled_withdrawals: dict[tuple[str, str, str], set[str]] = {}
     withdrawal_records: list[dict[str, Any]] = []
     new_protections: list[dict[str, Any]] = []
 
@@ -366,23 +371,31 @@ def batch_maintenance(
                     removed_identity=removed_identity,
                     remove_team_label=operation["remove_team"],
                 )
-                withdrawal_records.extend(
-                    build_withdrawal_records(
-                        team={
-                            "club": removed_identity[0],
-                            "label": removed_identity[1],
-                            "age_group": removed_identity[2],
-                        },
-                        tournament_ids=[operation["tournament_id"]],
-                        request_id=resolved_request_id,
-                        actor=resolved_actor,
-                        note=note,
-                        created_at=now,
-                        source_revision=before_canonical_revision,
-                    )
+                reconciled_withdrawals.setdefault(removed_identity, set()).add(
+                    str(operation["tournament_id"])
                 )
         else:  # pragma: no cover - normalization already rejects unknown operators
             raise SeasonStateError(f"Unsupported batch operation {op!r}")
+
+    for identity, tournament_ids in sorted(reconciled_withdrawals.items()):
+        withdrawal_records.extend(
+            build_withdrawal_records(
+                team={
+                    "club": identity[0],
+                    "label": identity[1],
+                    "age_group": identity[2],
+                },
+                tournament_ids=sorted(tournament_ids),
+                request_id=resolved_request_id,
+                actor=resolved_actor,
+                note=note,
+                created_at=now,
+                source_revision=before_canonical_revision,
+                effective_from=effective_from_for_tournaments(
+                    candidate_plan, sorted(tournament_ids)
+                ),
+            )
+        )
 
     # A removal without a withdrawal reconciliation keeps the full registered
     # pool, so an avoidably underfilled result must fail closed exactly as the
@@ -406,9 +419,15 @@ def batch_maintenance(
 
     # A batch-created withdrawal record must reduce the eligible shape pool for
     # the *candidate* verification while the current state is still verified
-    # against the un-reconciled pool it actually has.
+    # against the un-reconciled pool it actually has. Projecting against the
+    # final candidate plan also prevents a mixed batch that deliberately
+    # restores a participant from carrying a stale eligibility reduction; the
+    # verifier's ``withdrawn_team_participating`` rule independently keeps the
+    # durable withdrawal authoritative.
     candidate_problem = (
-        project_into_problem(resolved_problem, records=withdrawal_records)
+        project_into_problem(
+            resolved_problem, records=withdrawal_records, plan=candidate_plan
+        )
         if resolved_problem
         else resolved_problem
     )

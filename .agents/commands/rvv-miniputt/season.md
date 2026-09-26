@@ -325,17 +325,18 @@ scripts/rvv-miniputt season batch \
 
 ### Superseding a withdrawal
 
-A withdrawal record is additive and revision-bound. It reduces the eligible shape pool only while its team is genuinely absent from the scoped tournament *and* still part of the registered pool: the projection is recomputed against the current plan and registration, so a restored participant or a reconciled registration stops reducing eligibility automatically and `season withdrawals` marks the record `superseded`. Release any obsolete record explicitly so the audit trail stays unambiguous -- release never deletes it:
+A genuine season/age-group withdrawal is **durable**: it reduces the eligible shape pool for the whole age group, so a later maintenance, rebuild or newly materialized tournament cannot silently reintroduce the team. The record is revision-bound and scoped with an `effective_from` date (the earliest affected tournament), so earlier historical/completed tournaments keep the team as provenance. An active withdrawal also makes the team **ineligible** for the age group: a roster that regains the team fails verification with `withdrawn_team_participating` instead of quietly restoring eligibility. Registration reconciliation (removing the team from the authoritative pool) ends the effect automatically; otherwise release the record explicitly:
 
 ```bash
 scripts/rvv-miniputt season withdrawals --season <season> --json
 scripts/rvv-miniputt season release-withdrawal \
   --season <season> \
   --request-id <withdraw-request-id> \
-  --note "restored after registration reconciliation"
+  --restore-participant \
+  --note "team returns to the age group"
 ```
 
-`--withdrawal-id <id>` (repeatable) selects individual records; `--request-id` selects every active record created by one withdrawal request. Release flips the record's status to `released` while keeping its id, team, scope and provenance, and advances the canonical-state revision as a decision-only write.
+`--withdrawal-id <id>` (repeatable) selects individual records; `--request-id` selects every active record created by one withdrawal request. Release is **verified, not a silent decision-only write**: the current schedule (or the explicitly restored one) is re-verified against the post-release eligible pool before anything is written, so a premature release that would leave underfilled fields in a now-larger pool is refused with no canonical write. `--restore-participant` is the authorized reversal: it adds the withdrawn team(s) back to the recorded tournaments, regenerates their games, releases the removal's `must_not_participate` guards and the withdrawal record in one atomic commit. Provenance is never erased -- only the record's `status` changes.
 
 ## Swap tournament participants safely
 

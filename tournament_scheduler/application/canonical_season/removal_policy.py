@@ -113,10 +113,11 @@ def evaluate_removal_consequences(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return ``(removed_consequences, retained_consequences)`` for a removal.
 
-    Both maps are keyed by the full ``club|label|age_group`` identity. The
-    withdrawn team's membership change is reported separately so its own
-    deliberate participation shortfall never blocks the operation; only the
-    remaining affected teams can do that.
+    ``removed_set`` identities that still participate in another affected
+    tournament are evaluated with the membership-aware ``removed`` role: their
+    intentional participation shortfall is exempt, but any schedule regression
+    from a change to their *remaining* games still blocks the operation. A team
+    that only lost tournaments is reported separately and never blocks.
     """
 
     from tournament_scheduler.team_schedule_quality import (
@@ -136,17 +137,19 @@ def evaluate_removal_consequences(
         )
     retained_consequences: dict[str, Any] = {}
     for identity in remaining_team_identities(after_plan, list(tournament_ids)):
-        if identity in removed_set:
-            continue
         key = "|".join(identity)
         if key in retained_consequences:
             continue
+        # A partially removed team can still regress in the tournaments it
+        # keeps. Exempt only its deliberate participation shortfall; every
+        # other material regression stays blocking.
+        membership_role = "removed" if identity in removed_set else "retained"
         retained_consequences[key] = compare_changed_team_schedule_consequence(
             before_plan,
             after_plan,
             identity,
             problem=problem,
-            membership_role="retained",
+            membership_role=membership_role,
         )
     return removed_consequences, retained_consequences
 

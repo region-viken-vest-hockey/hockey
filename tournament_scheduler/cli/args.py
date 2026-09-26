@@ -1348,6 +1348,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Release every active withdrawal recorded by this request id",
     )
+    season_release_withdrawal.add_argument(
+        "--restore-participant",
+        action="store_true",
+        help=(
+            "Atomically add the withdrawn team(s) back to the recorded tournaments, regenerate "
+            "their games and release the record in one verified commit (the authorized reversal)"
+        ),
+    )
     season_release_withdrawal.add_argument("--actor", default=None, help="Operator identity")
     season_release_withdrawal.add_argument("--note", default="", help="Why the withdrawal is being released (audit reason)")
     season_release_withdrawal.add_argument("--json", action="store_true", help="Print release result as JSON")

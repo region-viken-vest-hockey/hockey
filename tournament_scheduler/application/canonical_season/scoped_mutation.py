@@ -225,13 +225,14 @@ def _authoritative_problem(
 
 def _authorization_withdrawal_records(
     authorization: ScopedMutationAuthorization,
+    schedule: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     """Return the withdrawal records a removal authorization implies.
 
     The records are derived deterministically from the typed operation
-    parameters (full team identity + affected tournaments), never from a
-    caller-supplied problem, so they cannot be used to reduce the eligible pool
-    for an unrelated tournament.
+    parameters (full team identity + affected tournaments) plus the current
+    schedule's tournament dates, never from a caller-supplied problem, so they
+    cannot be used to reduce the eligible pool for an unrelated tournament.
     """
 
     if authorization.operation != OPERATION_PARTICIPANT_REMOVAL:
@@ -243,7 +244,10 @@ def _authorization_withdrawal_records(
     if not isinstance(team, Mapping):
         return []
     tournament_ids = [str(item) for item in parameters.get("tournament_ids") or [] if str(item)]
-    from tournament_scheduler.participation_withdrawals import build_withdrawal_records
+    from tournament_scheduler.participation_withdrawals import (
+        build_withdrawal_records,
+        effective_from_for_tournaments,
+    )
 
     return build_withdrawal_records(
         team=team,
@@ -253,6 +257,9 @@ def _authorization_withdrawal_records(
         note=str(parameters.get("note") or ""),
         created_at=str(parameters.get("created_at") or ""),
         source_revision=str(authorization.expected_canonical_revision or ""),
+        effective_from=effective_from_for_tournaments(
+            schedule.get("plan") or {}, tournament_ids
+        ),
     )
 
 
@@ -270,7 +277,7 @@ def _reproduce_operation(
     problem = _authoritative_problem(
         schedule,
         decisions,
-        extra_withdrawals=_authorization_withdrawal_records(authorization),
+        extra_withdrawals=_authorization_withdrawal_records(authorization, schedule),
     )
 
     if operation == OPERATION_PARTICIPANT_SWAP:
@@ -636,7 +643,7 @@ def validate_scoped_mutation_authorization(
         "problem": _authoritative_problem(
             schedule,
             decisions,
-            extra_withdrawals=_authorization_withdrawal_records(authorization),
+            extra_withdrawals=_authorization_withdrawal_records(authorization, schedule),
         ),
         "history_event": permitted_history_event_for_authorization(authorization),
         "history_details": details,

@@ -10,23 +10,26 @@ see the correct active pool at the relevant scope.
 
 The registered ``Lag`` roster (and the historical participation of an already
 completed tournament) is never rewritten: withdrawal records are additive
-canonical decisions that scope the reduced eligible pool to the exact
-tournaments a genuine withdrawal applies to. A one-tournament participant
-absence without such a record keeps the full registered pool and therefore
-fails closed if the smaller shape is not independently legal.
+canonical decisions. A genuine season/age-group withdrawal is **durable and
+age-group scoped**: it reduces the eligible pool for the whole age group so a
+later maintenance, rebuild or newly materialized tournament cannot silently
+reintroduce the team. A one-tournament participant absence without such a
+record keeps the full registered pool and therefore fails closed if the smaller
+shape is not independently legal.
 
 Identity mirrors canonical team identity ``(club, label, age_group)``. The
 verifier consumes the projection through :func:`project_into_problem`; no other
 module re-derives an equivalent scope.
 
-Supersession is explicit *and* projection-safe. A record is released (status
-``released``) by the canonical release operation (CLI
-``season release-withdrawal``) when a participant is restored or the
-registration is reconciled, which keeps the record's provenance while removing
-its eligibility effect. Independently, the projection only honours a record
-while its team is genuinely absent from the scoped tournament and still present
-in the registered pool, so an un-released stale record can never keep masking an
-underfilled shape.
+Reversal is explicit. A record is released (status ``released``) by the
+canonical release operation (CLI ``season release-withdrawal``). Release is
+itself verified: it refuses to write when it would leave the current schedule
+invalid (for example a four-team field in a five-team pool), and it may restore
+the participant atomically in the same commit. An active record can never be
+silently dropped by a roster merely regaining the team; the verifier instead
+reports ``withdrawn_team_participating``. Only registration reconciliation
+(removing the team from the authoritative pool) or an explicit verified release
+ends the ineligibility.
 """
 
 from __future__ import annotations
@@ -39,10 +42,23 @@ from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 ACTIVE = "active"
 RELEASED = "released"
 
-#: Problem field the verifier reads. Kept as a list of
-#: ``{"tournament_id", "club", "label", "age_group"}`` entries so a single
-#: problem stays a plain, serializable structure.
+#: Durable, season/age-group scoped withdrawal. The reduction applies to every
+#: current and future tournament in the age group.
+SCOPE_AGE_GROUP = "age_group"
+#: Legacy/explicit per-tournament scope. Kept readable so older records (or an
+#: intentionally single-tournament decision) still project correctly.
+SCOPE_TOURNAMENT = "tournament"
+
+#: Problem field the verifier reads for the presence-reconciled shape pool.
+#: Kept as a list of ``{"scope", "tournament_ids", "effective_from", "club",
+#: "label", "age_group"}`` entries so a single problem stays a plain,
+#: serializable structure.
 WITHDRAWN_TEAMS_FIELD = "withdrawn_tournament_teams"
+
+#: Problem field carrying the durable ineligibility projection. Unlike the
+#: shape field it is never presence-reconciled, so an active withdrawal keeps
+#: the team ineligible for the age group even if a roster regains it.
+WITHDRAWN_INELIGIBLE_FIELD = "withdrawn_ineligible_teams"
 
 
 def team_identity(team: Mapping[str, Any], fallback_age_group: str = "") -> tuple[str, str, str]:
@@ -105,21 +121,27 @@ def is_registered_participant(
 def _record_id(
     *,
     team: Mapping[str, Any],
-    tournament_id: str,
+    age_group: str,
+    scope: str,
+    tournament_ids: Iterable[str],
+    effective_from: str,
     request_id: str,
     source_revision: str,
 ) -> str:
     digest = stable_payload_sha256(
         {
             "kind": "participation_withdrawal",
+            "scope": scope,
             "team": {
                 "club": str(team.get("club") or ""),
                 "label": str(team.get("label") or ""),
-                "age_group": str(team.get("age_group") or ""),
+                "age_group": str(team.get("age_group") or age_group),
             },
-            "tournament_id": tournament_id,
-            "request_id": request_id,
-            "source_revision": source_revision,
+            "age_group": str(age_group or ""),
+            "tournament_ids": sorted({str(item) for item in tournament_ids if str(item)}),
+            "effective_from": str(effective_from or ""),
+            "request_id": str(request_id or ""),
+            "source_revision": str(source_revision or ""),
         }
     )
     return f"withdrawal:{digest[:16]}"
@@ -134,36 +156,51 @@ def build_withdrawal_records(
     note: str,
     created_at: str,
     source_revision: str,
+    effective_from: str = "",
 ) -> list[dict[str, Any]]:
-    """Build one revision-bound withdrawal record per affected tournament."""
+    """Build one durable, age-group scoped withdrawal record for a withdrawal.
 
-    resolved_team = {
-        "club": str(team.get("club") or ""),
-        "label": str(team.get("label") or ""),
-        "age_group": str(team.get("age_group") or ""),
+    The affected tournament ids are retained as provenance, not as the scope of
+    the eligibility reduction: a genuine season/age-group withdrawal makes the
+    team ineligible for the whole age group until it is explicitly released.
+    ``effective_from`` is the earliest affected tournament date, so completed
+    tournaments that already happened before the withdrawal keep the team as
+    historical provenance.
+    """
+
+    resolved_ids = sorted({str(item) for item in tournament_ids if str(item)})
+    age_group = str(team.get("age_group") or "")
+    if not age_group:
+        raise ValueError("A participation withdrawal requires a team age_group")
+    record = {
+        "kind": "participation_withdrawal",
+        "status": ACTIVE,
+        "scope": SCOPE_AGE_GROUP,
+        "team": {
+            "club": str(team.get("club") or ""),
+            "label": str(team.get("label") or ""),
+            "age_group": age_group,
+        },
+        "age_group": age_group,
+        "tournament_ids": resolved_ids,
+        "effective_from": str(effective_from or ""),
+        "request_id": str(request_id or ""),
+        "created_at": created_at,
+        "created_by": actor,
+        "note": note or "",
+        "source_event": "participant_removal",
+        "source_revision": source_revision,
     }
-    records: list[dict[str, Any]] = []
-    for tournament_id in sorted({str(item) for item in tournament_ids if str(item)}):
-        record = {
-            "kind": "participation_withdrawal",
-            "status": ACTIVE,
-            "team": dict(resolved_team),
-            "tournament_id": tournament_id,
-            "request_id": str(request_id or ""),
-            "created_at": created_at,
-            "created_by": actor,
-            "note": note or "",
-            "source_event": "participant_removal",
-            "source_revision": source_revision,
-        }
-        record["id"] = _record_id(
-            team=resolved_team,
-            tournament_id=tournament_id,
-            request_id=str(request_id or ""),
-            source_revision=source_revision,
-        )
-        records.append(record)
-    return records
+    record["id"] = _record_id(
+        team=record["team"],
+        age_group=age_group,
+        scope=SCOPE_AGE_GROUP,
+        tournament_ids=resolved_ids,
+        effective_from=str(effective_from or ""),
+        request_id=str(request_id or ""),
+        source_revision=source_revision,
+    )
+    return [record]
 
 
 def active_withdrawals(decisions: Mapping[str, Any] | None) -> list[dict[str, Any]]:
@@ -176,84 +213,220 @@ def active_withdrawals(decisions: Mapping[str, Any] | None) -> list[dict[str, An
     ]
 
 
-def _record_entries(records: Iterable[Mapping[str, Any]]) -> list[dict[str, str]]:
-    entries: list[dict[str, str]] = []
-    seen: set[tuple[str, str, str, str]] = set()
+def record_scope(record: Mapping[str, Any]) -> str:
+    """Resolve a record's scope, normalizing legacy ``tournament_id`` records."""
+
+    scope = str(record.get("scope") or "")
+    if scope in (SCOPE_AGE_GROUP, SCOPE_TOURNAMENT):
+        return scope
+    if record.get("tournament_id"):
+        return SCOPE_TOURNAMENT
+    return SCOPE_AGE_GROUP if record.get("age_group") else SCOPE_TOURNAMENT
+
+
+def record_tournament_ids(record: Mapping[str, Any]) -> list[str]:
+    """Return a record's affected tournament ids as durable provenance."""
+
+    raw = record.get("tournament_ids")
+    if isinstance(raw, (list, tuple, set)):
+        ids = [str(item) for item in raw if str(item)]
+    else:
+        ids = []
+    tournament_id = str(record.get("tournament_id") or "")
+    if tournament_id and tournament_id not in ids:
+        ids.append(tournament_id)
+    return sorted(dict.fromkeys(ids))
+
+
+def _record_age_group(record: Mapping[str, Any]) -> str:
+    age_group = str(record.get("age_group") or "")
+    if age_group:
+        return age_group
+    team = record.get("team")
+    if isinstance(team, Mapping):
+        return str(team.get("age_group") or "")
+    return ""
+
+
+def _record_entry(record: Mapping[str, Any]) -> dict[str, Any] | None:
+    team = record.get("team")
+    if not isinstance(team, Mapping):
+        return None
+    age_group = _record_age_group(record)
+    return {
+        "scope": record_scope(record),
+        "tournament_ids": record_tournament_ids(record),
+        "effective_from": str(record.get("effective_from") or ""),
+        "club": str(team.get("club") or ""),
+        "label": str(team.get("label") or ""),
+        "age_group": age_group,
+    }
+
+
+def _record_entries(records: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str, tuple[str, ...]]] = set()
     for record in records:
         if not isinstance(record, Mapping):
             continue
-        team = record.get("team")
-        if not isinstance(team, Mapping):
-            continue
-        tournament_id = str(record.get("tournament_id") or "")
-        if not tournament_id:
+        entry = _record_entry(record)
+        if entry is None:
             continue
         identity = (
-            tournament_id,
-            str(team.get("club") or ""),
-            str(team.get("label") or ""),
-            str(team.get("age_group") or ""),
+            entry["scope"],
+            entry["club"],
+            entry["label"],
+            entry["age_group"],
+            tuple(entry["tournament_ids"]),
         )
         if identity in seen:
             continue
         seen.add(identity)
-        entries.append(
-            {
-                "tournament_id": identity[0],
-                "club": identity[1],
-                "label": identity[2],
-                "age_group": identity[3],
-            }
-        )
+        entries.append(entry)
     return entries
 
 
-def withdrawn_entries(problem: Mapping[str, Any] | None) -> list[dict[str, str]]:
-    """Return the withdrawal projection already carried by a problem."""
+def _normalize_entry(raw: Mapping[str, Any]) -> dict[str, Any] | None:
+    club = str(raw.get("club") or "")
+    label = str(raw.get("label") or "")
+    if not club or not label:
+        return None
+    age_group = str(raw.get("age_group") or "")
+    scope = str(raw.get("scope") or "")
+    tournament_ids: list[str] = []
+    if isinstance(raw.get("tournament_ids"), (list, tuple, set)):
+        tournament_ids = [str(item) for item in raw["tournament_ids"] if str(item)]
+    tournament_id = str(raw.get("tournament_id") or "")
+    if tournament_id and tournament_id not in tournament_ids:
+        tournament_ids.append(tournament_id)
+    if scope not in (SCOPE_AGE_GROUP, SCOPE_TOURNAMENT):
+        scope = SCOPE_TOURNAMENT if tournament_ids else SCOPE_AGE_GROUP
+    return {
+        "scope": scope,
+        "tournament_ids": sorted(dict.fromkeys(tournament_ids)),
+        "effective_from": str(raw.get("effective_from") or ""),
+        "club": club,
+        "label": label,
+        "age_group": age_group,
+    }
 
+
+def _entries_from_field(
+    problem: Mapping[str, Any] | None, field: str
+) -> list[dict[str, Any]]:
     if not isinstance(problem, Mapping):
         return []
-    raw = problem.get(WITHDRAWN_TEAMS_FIELD)
+    raw = problem.get(field)
     if not isinstance(raw, list):
         return []
-    entries: list[dict[str, str]] = []
-    seen: set[tuple[str, str, str, str]] = set()
-    for entry in raw:
-        if not isinstance(entry, Mapping):
+    entries: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str, tuple[str, ...], str]] = set()
+    for item in raw:
+        if not isinstance(item, Mapping):
             continue
-        resolved = {
-            "tournament_id": str(entry.get("tournament_id") or ""),
-            "club": str(entry.get("club") or ""),
-            "label": str(entry.get("label") or ""),
-            "age_group": str(entry.get("age_group") or ""),
-        }
+        entry = _normalize_entry(item)
+        if entry is None:
+            continue
         key = (
-            resolved["tournament_id"],
-            resolved["club"],
-            resolved["label"],
-            resolved["age_group"],
+            entry["scope"],
+            entry["club"],
+            entry["label"],
+            entry["age_group"],
+            tuple(entry["tournament_ids"]),
+            str(entry.get("effective_from") or ""),
         )
-        if not key[0] or key in seen:
+        if key in seen:
             continue
         seen.add(key)
-        entries.append(resolved)
+        entries.append(entry)
     return entries
+
+
+def withdrawn_entries(problem: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    """Return the presence-reconciled shape projection already on a problem."""
+
+    return _entries_from_field(problem, WITHDRAWN_TEAMS_FIELD)
+
+
+def withdrawn_ineligible_entries(
+    problem: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Return the durable ineligibility projection already on a problem.
+
+    This projection is never presence-reconciled: an active withdrawal keeps the
+    team ineligible for the age group even if a roster regains it, so the
+    verifier can refuse a silent reintroduction.
+    """
+
+    return _entries_from_field(problem, WITHDRAWN_INELIGIBLE_FIELD)
+
+
+def _entry_scopes_tournament(entry: Mapping[str, Any], tournament_id: str) -> bool:
+    """Return whether an entry's eligibility reduction covers a tournament."""
+
+    if entry.get("scope") == SCOPE_AGE_GROUP:
+        return True
+    return str(tournament_id) in (entry.get("tournament_ids") or [])
+
+
+def _scoped_identities(
+    entries: Iterable[Mapping[str, Any]],
+    tournament_id: str,
+    age_group: str,
+    tournament_date: str | None,
+) -> set[tuple[str, str, str]]:
+    resolved_id = str(tournament_id or "")
+    resolved_age = str(age_group or "")
+    resolved_date = str(tournament_date or "")
+    identities: set[tuple[str, str, str]] = set()
+    for entry in entries:
+        if resolved_age and entry["age_group"] and entry["age_group"] != resolved_age:
+            continue
+        effective_from = str(entry.get("effective_from") or "")
+        if resolved_date and effective_from and resolved_date < effective_from:
+            continue
+        if not _entry_scopes_tournament(entry, resolved_id):
+            continue
+        identities.add((entry["club"], entry["label"], entry["age_group"]))
+    return identities
+
+
+def withdrawn_team_identities_for_tournament(
+    problem: Mapping[str, Any] | None,
+    tournament_id: str,
+    age_group: str,
+    tournament_date: str | None = None,
+) -> set[tuple[str, str, str]]:
+    """Return the durable ineligible identities that scope one tournament.
+
+    An age-group scoped withdrawal covers every tournament in the age group; a
+    tournament scoped withdrawal covers only the tournaments it names. A
+    tournament dated before the withdrawal's ``effective_from`` is historical
+    and keeps the team as provenance.
+    """
+
+    return _scoped_identities(
+        withdrawn_ineligible_entries(problem), tournament_id, age_group, tournament_date
+    )
 
 
 def _plan_roster_identities(
     plan: Mapping[str, Any] | None,
-) -> set[tuple[str, str, str, str]]:
-    """Return ``(tournament_id, club, label, age_group)`` for current participants."""
+) -> set[tuple[str, str, str, str, str]]:
+    """Return ``(tournament_id, date, club, label, age_group)`` for participants."""
 
-    present: set[tuple[str, str, str, str]] = set()
+    present: set[tuple[str, str, str, str, str]] = set()
     if not isinstance(plan, Mapping):
         return present
     for tournament in plan.get("tournaments", []) or []:
         if not isinstance(tournament, Mapping):
             continue
+        if tournament.get("cancelled"):
+            continue
         tournament_id = str(tournament.get("id") or "")
         if not tournament_id:
             continue
+        tournament_date = str(tournament.get("date") or "")
         age_group = str(tournament.get("age_group") or "")
         for team in tournament.get("teams", []) or []:
             if not isinstance(team, Mapping):
@@ -261,6 +434,7 @@ def _plan_roster_identities(
             present.add(
                 (
                     tournament_id,
+                    tournament_date,
                     str(team.get("club") or ""),
                     str(team.get("label") or ""),
                     str(team.get("age_group") or age_group),
@@ -269,38 +443,85 @@ def _plan_roster_identities(
     return present
 
 
+def _entry_is_restored(
+    entry: Mapping[str, Any],
+    present: set[tuple[str, str, str, str, str]],
+) -> bool:
+    """Return whether a team is back on a scoped roster on/after effective_from."""
+
+    effective_from = str(entry.get("effective_from") or "")
+    identity = (entry["club"], entry["label"], entry["age_group"])
+    for tournament_id, tournament_date, club, label, age_group in present:
+        if (club, label, age_group) != identity:
+            continue
+        if effective_from and tournament_date and tournament_date < effective_from:
+            continue
+        if entry.get("scope") == SCOPE_AGE_GROUP:
+            return True
+        if tournament_id in (entry.get("tournament_ids") or []):
+            return True
+    return False
+
+
+def _dedupe_entries(entries: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str, tuple[str, ...], str]] = set()
+    for entry in entries:
+        key = (
+            str(entry.get("scope") or ""),
+            str(entry.get("club") or ""),
+            str(entry.get("label") or ""),
+            str(entry.get("age_group") or ""),
+            tuple(sorted({str(item) for item in entry.get("tournament_ids") or [] if str(item)})),
+            str(entry.get("effective_from") or ""),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(dict(entry))
+    return deduped
+
+
+def _filter_registered_entries(
+    entries: list[dict[str, Any]],
+    *,
+    problem: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Drop entries whose team is no longer in the registered eligible pool."""
+
+    registered_full, registered_ageless = registered_team_identities(problem)
+    if not (registered_full or registered_ageless):
+        return entries
+    return [
+        entry
+        for entry in entries
+        if is_registered_participant(
+            problem, (entry["club"], entry["label"], entry["age_group"])
+        )
+    ]
+
+
 def _filter_scoped_entries(
-    entries: list[dict[str, str]],
+    entries: list[dict[str, Any]],
     *,
     plan: Mapping[str, Any] | None,
     problem: Mapping[str, Any] | None,
-) -> list[dict[str, str]]:
-    """Drop withdrawal entries that no longer legitimately reduce eligibility.
+) -> list[dict[str, Any]]:
+    """Reconcile the *shape* pool projection against the final roster.
 
-    A withdrawal record is only meaningful while the named team is genuinely
-    absent from the tournament it scopes *and* still belongs to the registered
-    eligible pool. If the team is restored to the tournament, or the registered
-    pool is reconciled so the team is no longer eligible at all, the record must
-    stop reducing the eligible shape count even though its provenance is kept.
-    This is what makes a stale record harmless without erasing history.
+    A record stops reducing the eligible shape pool once its team is restored
+    to a scoped roster on/after the withdrawal's effective date, or once
+    registration reconciliation removes the team from the authoritative pool.
+    Durability is enforced independently by the un-filtered ineligibility
+    projection, so this presence-based reduction never lets a withdrawn team
+    silently rejoin.
     """
 
-    if plan is None:
-        return entries
-    present = _plan_roster_identities(plan)
-    registered_full, registered_ageless = registered_team_identities(problem)
-    has_registered_pool = bool(registered_full or registered_ageless)
-    filtered: list[dict[str, str]] = []
-    for entry in entries:
-        key = (entry["tournament_id"], entry["club"], entry["label"], entry["age_group"])
-        if key in present:
-            continue
-        if has_registered_pool and not is_registered_participant(
-            problem, (entry["club"], entry["label"], entry["age_group"])
-        ):
-            continue
-        filtered.append(entry)
-    return filtered
+    registered = _filter_registered_entries(entries, problem=problem)
+    present = _plan_roster_identities(plan) if plan is not None else set()
+    if not present:
+        return registered
+    return [entry for entry in registered if not _entry_is_restored(entry, present)]
 
 
 def project_into_problem(
@@ -312,36 +533,40 @@ def project_into_problem(
 ) -> dict[str, Any]:
     """Return a copy of *problem* carrying the active withdrawal scopes.
 
-    Withdrawals already present in *decisions* are merged with the explicit
-    *records* supplied by a not-yet-committed operation. The result is a plain
-    problem payload with only the additive :data:`WITHDRAWN_TEAMS_FIELD`.
+    Two additive projections are produced:
 
-    When *plan* is supplied the merged scopes are reconciled against it: an
-    entry stops reducing eligibility once its team is restored to the scoped
-    tournament or is no longer part of the registered pool. Callers that pass
-    explicit *records* for a candidate under construction (the plan already
-    reflects the removal) deliberately omit *plan* so the new scopes apply.
+    * :data:`WITHDRAWN_TEAMS_FIELD` is the *shape* pool reduction. When a
+      *plan* is supplied it is reconciled against that final roster, so a
+      candidate that deliberately restores a participant does not also carry a
+      stale eligibility reduction.
+    * :data:`WITHDRAWN_INELIGIBLE_FIELD` is the durable ineligibility
+      projection. It is never presence-reconciled, so the verifier refuses a
+      silent reintroduction until the record is explicitly released.
     """
 
     resolved: dict[str, Any] = dict(problem) if isinstance(problem, Mapping) else {}
     if not resolved:
         return resolved
-    merged = list(withdrawn_entries(resolved))
     combined = list(active_withdrawals(decisions))
     if records:
         combined.extend(dict(record) for record in records if isinstance(record, Mapping))
-    merged.extend(_record_entries(combined))
-    deduped: list[dict[str, str]] = []
-    seen: set[tuple[str, str, str, str]] = set()
-    for entry in merged:
-        key = (entry["tournament_id"], entry["club"], entry["label"], entry["age_group"])
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(entry)
+    new_entries = _record_entries(combined)
+
+    shape_entries = _dedupe_entries(
+        [*withdrawn_entries(resolved), *new_entries]
+    )
+    ineligible_entries = _dedupe_entries(
+        [*withdrawn_ineligible_entries(resolved), *new_entries]
+    )
     if plan is not None:
-        deduped = _filter_scoped_entries(deduped, plan=plan, problem=resolved)
-    resolved[WITHDRAWN_TEAMS_FIELD] = deduped
+        shape_entries = _filter_scoped_entries(
+            shape_entries, plan=plan, problem=resolved
+        )
+    ineligible_entries = _filter_registered_entries(
+        ineligible_entries, problem=resolved
+    )
+    resolved[WITHDRAWN_TEAMS_FIELD] = shape_entries
+    resolved[WITHDRAWN_INELIGIBLE_FIELD] = ineligible_entries
     return resolved
 
 
@@ -349,18 +574,30 @@ def withdrawn_team_count_for_tournament(
     problem: Mapping[str, Any] | None,
     tournament_id: str,
     age_group: str,
+    tournament_date: str | None = None,
 ) -> int:
-    """Return how many distinct withdrawn teams the problem scopes to one tournament."""
+    """Return how many distinct withdrawn teams reduce one tournament's shape pool."""
 
-    resolved_id = str(tournament_id or "")
-    if not resolved_id:
-        return 0
-    identities = {
-        (entry["club"], entry["label"], entry["age_group"])
-        for entry in withdrawn_entries(problem)
-        if entry["tournament_id"] == resolved_id and entry["age_group"] == age_group
-    }
-    return len(identities)
+    return len(
+        _scoped_identities(
+            withdrawn_entries(problem), tournament_id, age_group, tournament_date
+        )
+    )
+
+
+def effective_from_for_tournaments(
+    plan: Mapping[str, Any] | None,
+    tournament_ids: Iterable[str],
+) -> str:
+    """Return the earliest date of the named tournaments, or ``""``."""
+
+    wanted = {str(item) for item in tournament_ids if str(item)}
+    dates = [
+        str(tournament.get("date") or "")
+        for tournament in (plan or {}).get("tournaments", []) or []
+        if str(tournament.get("id") or "") in wanted and tournament.get("date")
+    ]
+    return min(dates) if dates else ""
 
 
 def append_withdrawal_records(
@@ -380,14 +617,22 @@ __all__ = [
     "ACTIVE",
     "PARTICIPATION_WITHDRAWALS_KEY",
     "RELEASED",
+    "SCOPE_AGE_GROUP",
+    "SCOPE_TOURNAMENT",
+    "WITHDRAWN_INELIGIBLE_FIELD",
     "WITHDRAWN_TEAMS_FIELD",
     "active_withdrawals",
     "append_withdrawal_records",
     "build_withdrawal_records",
+    "effective_from_for_tournaments",
     "is_registered_participant",
     "project_into_problem",
+    "record_scope",
+    "record_tournament_ids",
     "registered_team_identities",
     "team_identity",
     "withdrawn_entries",
+    "withdrawn_ineligible_entries",
     "withdrawn_team_count_for_tournament",
+    "withdrawn_team_identities_for_tournament",
 ]

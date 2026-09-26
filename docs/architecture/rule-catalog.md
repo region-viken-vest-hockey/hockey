@@ -97,7 +97,7 @@ candidate regresses a higher-priority operational obligation.
 | `team_age_group_exact` | Every team participating in a tournament belongs to that tournament's age group. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `team_unique_in_tournament` | A team may appear at most once in a single tournament. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `team_unique_per_date` | A team may not be scheduled in two different tournaments on the same date. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
-| `tournament_roster_shape` | A tournament has an admissible, avoidable-by-free participant shape: even teams and no pause/bye rounds (or the exact age-group team count where configured). An input-constrained scarce shape is surfaced separately, never as a soft preference. | `tournament_scheduler.effective_tournament_shape` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_effective_tournament_shape.py`, `tests/test_planning_contract.py`, `tests/test_participant_removal.py` |
+| `tournament_roster_shape` | A tournament has an admissible, avoidable-by-free participant shape: even teams and no pause/bye rounds (or the exact age-group team count where configured). An input-constrained scarce shape is surfaced separately, never as a soft preference. An active season/age-group participation withdrawal also makes the team ineligible for the whole age group until it is explicitly released. | `tournament_scheduler.effective_tournament_shape` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_effective_tournament_shape.py`, `tests/test_planning_contract.py`, `tests/test_participant_removal.py` |
 | `club_hard_max` | At most three teams from one club may participate in one tournament. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `tournament_ice_booking_duration` | A tournament's configured ice_time_minutes is the complete hall occupancy window. It must be at least the actual rounds times round length plus the per-round changeover buffer, and any governing per-series-round booking floor. | `tournament_scheduler.occupancy` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_occupancy.py`, `tests/test_planning_contract.py`, `tests/test_stage1_config.py` |
 | `arena_interval_non_overlap` | Two tournaments must never require the same arena in overlapping datetime intervals. A failure to evaluate the interval data is itself a blocking verification result, not a silent pass. | `tournament_scheduler.arena_conflicts` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_arena_conflicts.py`, `tests/test_planning_contract.py` |
@@ -184,6 +184,7 @@ candidate regresses a higher-priority operational obligation.
 | `duplicate_team_in_tournament` (verifier) | `team_unique_in_tournament` |
 | `duplicate_participation_same_date` (verifier) | `team_unique_per_date` |
 | `bye_team_not_allowed` (verifier) | `tournament_roster_shape` |
+| `withdrawn_team_participating` (verifier) | `tournament_roster_shape` |
 | `club_hard_max_exceeded` (verifier) | `club_hard_max` |
 | `ice_time_playing_minimum` (verifier) | `tournament_ice_booking_duration` |
 | `ice_time_governing_minimum` (verifier) | `tournament_ice_booking_duration` |
@@ -319,11 +320,11 @@ candidate regresses a higher-priority operational obligation.
 ### `tournament_roster_shape`
 
 `Hard constraint` · status `active` · operator-waivable: yes  
-**Meaning:** A tournament has an admissible, avoidable-by-free participant shape: even teams and no pause/bye rounds (or the exact age-group team count where configured). An input-constrained scarce shape is surfaced separately, never as a soft preference.  
+**Meaning:** A tournament has an admissible, avoidable-by-free participant shape: even teams and no pause/bye rounds (or the exact age-group team count where configured). An input-constrained scarce shape is surfaced separately, never as a soft preference. An active season/age-group participation withdrawal also makes the team ineligible for the whole age group until it is explicitly released.  
 **Canonical owner:** `tournament_scheduler.effective_tournament_shape`  
-**Input / fact source:** planning_problem registered pool + rounds_per_tournament, reduced per tournament by scoped revision-bound participation_withdrawals records (tournament_scheduler.participation_withdrawals); the registered roster is never rewritten  
+**Input / fact source:** planning_problem registered pool + rounds_per_tournament, reduced for the age group by durable, revision-bound participation_withdrawals records (tournament_scheduler.participation_withdrawals) until an explicit verified release; the registered roster is never rewritten  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
-**Codes:** verifier `bye_team_not_allowed` · finding `input_constrained_shape` · score —  
+**Codes:** verifier `bye_team_not_allowed`, `withdrawn_team_participating` · finding `input_constrained_shape` · score —  
 **Providers:** mutation `tournament_scheduler.participant_roster_sizing`, `tournament_scheduler.application.canonical_season.withdrawal` · search `tournament_scheduler.participant_roster_repair`  
 **Evidence / report:** `verify_candidate.violations`, `verify_candidate.input_constrained_shapes`  
 **Tests:** `tests/test_effective_tournament_shape.py`, `tests/test_planning_contract.py`, `tests/test_participant_removal.py`  

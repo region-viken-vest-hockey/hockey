@@ -155,13 +155,16 @@ _HARD: tuple[RuleEntry, ...] = (
         meaning=(
             "A tournament has an admissible, avoidable-by-free participant shape: even teams and "
             "no pause/bye rounds (or the exact age-group team count where configured). An "
-            "input-constrained scarce shape is surfaced separately, never as a soft preference."
+            "input-constrained scarce shape is surfaced separately, never as a soft preference. "
+            "An active season/age-group participation withdrawal also makes the team ineligible "
+            "for the whole age group until it is explicitly released."
         ),
         canonical_owner="tournament_scheduler.effective_tournament_shape",
         input_source=(
-            "planning_problem registered pool + rounds_per_tournament, reduced per tournament by "
-            "scoped revision-bound participation_withdrawals records "
-            "(tournament_scheduler.participation_withdrawals); the registered roster is never rewritten"
+            "planning_problem registered pool + rounds_per_tournament, reduced for the age group "
+            "by durable, revision-bound participation_withdrawals records "
+            "(tournament_scheduler.participation_withdrawals) until an explicit verified release; "
+            "the registered roster is never rewritten"
         ),
         verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
         mutation_providers=(
@@ -175,7 +178,7 @@ _HARD: tuple[RuleEntry, ...] = (
             "tests/test_planning_contract.py",
             "tests/test_participant_removal.py",
         ),
-        verifier_codes=("bye_team_not_allowed",),
+        verifier_codes=("bye_team_not_allowed", "withdrawn_team_participating"),
         finding_codes=("input_constrained_shape",),
     ),
     RuleEntry(

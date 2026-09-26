@@ -8,6 +8,9 @@ from pathlib import Path
 import pytest
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
+from tournament_scheduler.application.canonical_season.removal_policy import (
+    evaluate_removal_consequences,
+)
 from tournament_scheduler.canonical_state import canonical_state_revision, schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
@@ -16,10 +19,12 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonStore,
     SeasonStateError,
 )
-from tournament_scheduler.planning_contract import build_planning_problem
+from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
 from tournament_scheduler.participation_withdrawals import (
+    WITHDRAWN_INELIGIBLE_FIELD,
     build_withdrawal_records,
     project_into_problem,
+    withdrawn_team_identities_for_tournament,
 )
 from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
 from tournament_scheduler.published_mutation_history import reconcile_published_baseline
@@ -179,7 +184,7 @@ def test_withdrawal_reconciles_pool_and_records_provenance(tmp_path: Path) -> No
     assert preview["dry_run"] is True
     assert preview["removal"]["can_apply_unchanged"] is True
     assert preview["removal"]["reconcile_withdrawal"] is True
-    assert len(preview["removal"]["withdrawals_to_add"]) == 2
+    assert len(preview["removal"]["withdrawals_to_add"]) == 1
     assert preview["removal"]["verification_result"]["ok"] is True
     # Remaining teams are analysed for consequences; the withdrawn team's own
     # shortfall is reported separately and never treated as a regression.
@@ -209,11 +214,18 @@ def test_withdrawal_reconciles_pool_and_records_provenance(tmp_path: Path) -> No
 
     decisions = load_decisions("2026-2027", root=root)
     withdrawals = decisions["participation_withdrawals"]
-    assert {record["tournament_id"] for record in withdrawals} == {"u10-a", "u10-b"}
-    assert all(record["team"]["label"] == "Echo 1" for record in withdrawals)
-    assert all(record["status"] == "active" for record in withdrawals)
-    assert all(record["request_id"] == "withdraw-echo" for record in withdrawals)
-    assert all(record["source_revision"] for record in withdrawals)
+    assert len(withdrawals) == 1
+    record = withdrawals[0]
+    assert record["scope"] == "age_group"
+    assert record["age_group"] == "U10"
+    assert set(record["tournament_ids"]) == {"u10-a", "u10-b"}
+    assert record["team"]["label"] == "Echo 1"
+    assert record["status"] == "active"
+    assert record["request_id"] == "withdraw-echo"
+    assert record["source_revision"]
+    # The earliest removed tournament scopes the withdrawal; anything before it
+    # is historical provenance and keeps the team.
+    assert record["effective_from"] == "2026-10-03"
 
     events = [event for event in decisions["history"] if event["event"] == "participant_removal"]
     assert len(events) == 1
@@ -313,8 +325,10 @@ def test_batch_removal_reconciles_withdrawal_and_commits_once(tmp_path: Path) ->
 
     decisions = load_decisions("2026-2027", root=root)
     withdrawals = decisions["participation_withdrawals"]
-    assert {record["tournament_id"] for record in withdrawals} == {"u10-a", "u10-b"}
-    assert all(record["request_id"] == "batch-withdraw-echo" for record in withdrawals)
+    assert len(withdrawals) == 1
+    assert withdrawals[0]["scope"] == "age_group"
+    assert set(withdrawals[0]["tournament_ids"]) == {"u10-a", "u10-b"}
+    assert withdrawals[0]["request_id"] == "batch-withdraw-echo"
     assert decisions["canonical_state_revision"] == result["canonical_state_revision"]
 
 
@@ -418,8 +432,38 @@ def test_batch_withdrawal_requires_registered_target(tmp_path: Path) -> None:
     assert (schedule_file.read_bytes(), decisions_file.read_bytes()) == before
 
 
-def test_release_withdrawal_preserves_provenance_and_restores_eligibility(tmp_path: Path) -> None:
-    """P2: an obsolete withdrawal is released explicitly, never deleted."""
+def test_release_withdrawal_refuses_premature_release_without_write(tmp_path: Path) -> None:
+    """P1: releasing while the team is still absent is verified, not silent."""
+
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    remove_participant(
+        season="2026-2027",
+        tournament_ids=["u10-a", "u10-b"],
+        remove_team_label="Echo 1",
+        reconcile_withdrawal=True,
+        root=root,
+        request_id="withdraw-echo",
+        actor="tester",
+    )
+    schedule_file = root / "2026-2027" / "schedule.json"
+    decisions_file = root / "2026-2027" / "decisions.json"
+    before = (schedule_file.read_bytes(), decisions_file.read_bytes())
+
+    with pytest.raises(SeasonStateError, match="Refusing withdrawal release"):
+        release_participation_withdrawals(
+            season="2026-2027",
+            root=root,
+            request_id="withdraw-echo",
+            actor="tester",
+            note="premature",
+        )
+    assert (schedule_file.read_bytes(), decisions_file.read_bytes()) == before
+    assert withdrawal_report("2026-2027", root=root)["active_count"] == 1
+
+
+def test_release_withdrawal_with_atomic_restore_preserves_provenance(tmp_path: Path) -> None:
+    """The authorized reversal restores the participant and releases atomically."""
 
     root = tmp_path / "season"
     _write_canonical(root, sealed=False)
@@ -438,23 +482,24 @@ def test_release_withdrawal_preserves_provenance_and_restores_eligibility(tmp_pa
         load_schedule("2026-2027", root=root), before_release
     )
 
-    report = withdrawal_report("2026-2027", root=root)
-    assert report["active_count"] == 2
-    assert report["superseded_count"] == 0
-
     result = release_participation_withdrawals(
         season="2026-2027",
         root=root,
         request_id="withdraw-echo",
         actor="tester",
         note="Echo returned to the age group",
+        restore_participants=True,
     )
     assert set(result["released_withdrawal_ids"]) == record_ids
     assert result["active_count"] == 0
 
+    updated = load_schedule("2026-2027", root=root)
+    for tournament in updated["plan"]["tournaments"]:
+        assert "Echo 1" in {team["label"] for team in tournament["teams"]}
+        assert tournament["games"]
+
     decisions = load_decisions("2026-2027", root=root)
-    scheduled = load_schedule("2026-2027", root=root)
-    assert canonical_state_revision(scheduled, decisions) != revision_before_release
+    assert canonical_state_revision(updated, decisions) != revision_before_release
     released = {record["id"]: record for record in decisions["participation_withdrawals"]}
     assert set(released) == record_ids
     for record in released.values():
@@ -463,29 +508,14 @@ def test_release_withdrawal_preserves_provenance_and_restores_eligibility(tmp_pa
         assert record["released_at"]
         assert record["release_reason"] == "Echo returned to the age group"
         assert record["request_id"] == "withdraw-echo"
-    assert any(event["event"] == "release_participation_withdrawal" for event in decisions["history"])
-    assert withdrawal_report("2026-2027", root=root, include_released=True)["active_count"] == 0
-
-    # The released record no longer reduces the eligible pool: a fresh removal
-    # without reconciliation now fails closed instead of inheriting the scope.
-    with pytest.raises(SeasonStateError, match="avoidably underfilled"):
-        remove_participant(
-            season="2026-2027",
-            tournament_ids=["u10-a"],
-            remove_team_label="Charlie 1",
-            root=root,
-            request_id="absent-charlie",
-            actor="tester",
-        )
+    assert any(
+        event["event"] == "release_participation_withdrawal" for event in decisions["history"]
+    )
 
 
-def test_stale_withdrawal_projection_stops_reducing_after_restore_or_reregistration(
-    tmp_path: Path,
-) -> None:
-    """P2: a stale record cannot keep masking an underfilled shape."""
+def test_durable_withdrawal_projection_blocks_reintroduction_and_registration_ends_it() -> None:
+    """P1: the shape reduction is presence-reconciled; ineligibility is durable."""
 
-    root = tmp_path / "season"
-    _write_canonical(root, sealed=False)
     problem = _problem()
     records = build_withdrawal_records(
         team={"club": "Echo", "label": "Echo 1", "age_group": "U10"},
@@ -495,24 +525,25 @@ def test_stale_withdrawal_projection_stops_reducing_after_restore_or_reregistrat
         note="",
         created_at="2026-09-22T00:00:00+00:00",
         source_revision="rev-1",
+        effective_from="2026-10-03",
     )
-
-    # Not committed: the team is genuinely absent from both tournaments, so the
-    # eligibility reduction applies.
     teams = [dict(team) for team in problem["teams"]]
-    plan = {
+
+    # Absent: the age-group scope reduces the shape pool and marks the team
+    # ineligible.
+    absent_plan = {
         "tournaments": [
             _tournament("u10-a", "2026-10-03", "Alfa", [t for t in teams if t["label"] != "Echo 1"]),
             _tournament("u10-b", "2026-10-10", "Bravo", [t for t in teams if t["label"] != "Echo 1"]),
         ]
     }
-    projected = project_into_problem(problem, records=records, plan=plan)
-    assert {entry["tournament_id"] for entry in projected["withdrawn_tournament_teams"]} == {
-        "u10-a",
-        "u10-b",
-    }
+    projected = project_into_problem(problem, records=records, plan=absent_plan)
+    assert len(projected["withdrawn_tournament_teams"]) == 1
+    assert projected["withdrawn_tournament_teams"][0]["scope"] == "age_group"
+    assert len(projected[WITHDRAWN_INELIGIBLE_FIELD]) == 1
 
-    # The team is restored to u10-a: that scope no longer reduces eligibility.
+    # Restored on/after the effective date: the shape reduction is reconciled
+    # away, but the durable ineligibility remains.
     restored_plan = {
         "tournaments": [
             _tournament("u10-a", "2026-10-03", "Alfa", teams),
@@ -520,14 +551,91 @@ def test_stale_withdrawal_projection_stops_reducing_after_restore_or_reregistrat
         ]
     }
     projected = project_into_problem(problem, records=records, plan=restored_plan)
-    assert [entry["tournament_id"] for entry in projected["withdrawn_tournament_teams"]] == ["u10-b"]
+    assert projected["withdrawn_tournament_teams"] == []
+    assert len(projected[WITHDRAWN_INELIGIBLE_FIELD]) == 1
 
-    # The registration pool is reconciled so the team is no longer eligible:
-    # the pool count already excludes it, so no scope may reduce it again.
+    # A tournament before effective_from is historical: the team is neither
+    # ineligible nor does it reduce the shape pool.
+    historical = _tournament("u10-hist", "2026-09-01", "Alfa", teams)
+    assert (
+        withdrawn_team_identities_for_tournament(projected, "u10-hist", "U10", "2026-09-01")
+        == set()
+    )
+    assert historical["id"] == "u10-hist"
+
+    # Registration reconciliation removes the team from the authoritative pool,
+    # so both projections stop reducing/blocking.
     reconciled_problem = dict(problem)
     reconciled_problem["teams"] = [t for t in problem["teams"] if t["label"] != "Echo 1"]
-    projected = project_into_problem(reconciled_problem, records=records, plan=plan)
+    projected = project_into_problem(reconciled_problem, records=records, plan=absent_plan)
     assert projected["withdrawn_tournament_teams"] == []
+    assert projected[WITHDRAWN_INELIGIBLE_FIELD] == []
+
+
+def test_withdrawn_team_cannot_be_reintroduced_by_verification(tmp_path: Path) -> None:
+    """P1: a later rebuild cannot silently regain a withdrawn participant."""
+
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    remove_participant(
+        season="2026-2027",
+        tournament_ids=["u10-a", "u10-b"],
+        remove_team_label="Echo 1",
+        reconcile_withdrawal=True,
+        root=root,
+        request_id="withdraw-echo",
+        actor="tester",
+    )
+    decisions = load_decisions("2026-2027", root=root)
+    problem = project_into_problem(_problem(), decisions=decisions)
+    candidate = load_schedule("2026-2027", root=root)["plan"]
+    candidate = {**candidate, "tournaments": [dict(t) for t in candidate["tournaments"]]}
+    for tournament in candidate["tournaments"]:
+        if tournament["id"] == "u10-a":
+            tournament["teams"] = [
+                *tournament["teams"],
+                {"club": "Echo", "label": "Echo 1", "age_group": "U10"},
+            ]
+
+    result = verify_candidate(candidate, problem)
+    assert result["ok"] is False
+    assert "withdrawn_team_participating" in {
+        violation.get("code") for violation in result["violations"]
+    }
+
+
+def test_evaluate_removal_consequences_keeps_partially_removed_team_blocking() -> None:
+    """P2: a team removed from one tournament still has its remaining games checked."""
+
+    problem = _problem()
+    teams = [dict(team) for team in problem["teams"]]
+    before = {
+        "tournaments": [
+            _tournament("u10-a", "2026-10-03", "Alfa", teams),
+            _tournament("u10-b", "2026-10-10", "Bravo", teams),
+        ]
+    }
+    # Echo is removed from u10-a but still plays u10-b, which also loses another
+    # team, so u10-b's games are regenerated and Echo's remaining schedule can
+    # change.
+    without_echo = [t for t in teams if t["label"] != "Echo 1"]
+    without_delta = [t for t in teams if t["label"] != "Delta 1"]
+    after = {
+        "tournaments": [
+            _tournament("u10-a", "2026-10-03", "Alfa", without_echo),
+            _tournament("u10-b", "2026-10-10", "Bravo", without_delta),
+        ]
+    }
+    removed, retained = evaluate_removal_consequences(
+        before,
+        after,
+        problem=problem,
+        removed_identities=[("Echo", "Echo 1", "U10")],
+        tournament_ids=["u10-a", "u10-b"],
+    )
+    assert "Echo|Echo 1|U10" in removed
+    assert "Echo|Echo 1|U10" in retained
+    assert retained["Echo|Echo 1|U10"]["membership_role"] == "removed"
 
 
 def _ringerike_problem() -> dict:
@@ -641,10 +749,13 @@ def test_ringerike_ju8_withdrawal_regression_case(tmp_path: Path) -> None:
 
     decisions = load_decisions("2026-2027", root=root)
     withdrawals = decisions["participation_withdrawals"]
-    assert {record["tournament_id"] for record in withdrawals} == set(affected)
-    assert all(record["team"]["label"] == "Ringerike 1" for record in withdrawals)
-    assert all(record["status"] == "active" for record in withdrawals)
-    assert all(record["request_id"] == "ringerike-ju8-withdrawal" for record in withdrawals)
+    assert len(withdrawals) == 1
+    assert withdrawals[0]["scope"] == "age_group"
+    assert set(withdrawals[0]["tournament_ids"]) == set(affected)
+    assert withdrawals[0]["team"]["label"] == "Ringerike 1"
+    assert withdrawals[0]["status"] == "active"
+    assert withdrawals[0]["request_id"] == "ringerike-ju8-withdrawal"
+    assert withdrawals[0]["effective_from"] == "2026-10-03"
 
     # The sealed season reconciles against the published baseline through replay.
     report = service.verify_sealed_reconciliation("2026-2027")
