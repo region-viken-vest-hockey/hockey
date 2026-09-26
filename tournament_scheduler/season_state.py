@@ -465,6 +465,7 @@ def refresh_calendars(
     note: str = "",
     dry_run: bool = False,
     allow_missing_sources: bool = False,
+    allow_source_policy_change: bool = False,
 ) -> dict[str, Any]:
     return _service(root).refresh_calendars(
         season=season,
@@ -474,6 +475,7 @@ def refresh_calendars(
         note=note,
         dry_run=dry_run,
         allow_missing_sources=allow_missing_sources,
+        allow_source_policy_change=allow_source_policy_change,
     )
 
 

@@ -40,6 +40,11 @@ from tournament_scheduler.canonical_state import (
     canonical_state_revision,
     schedule_fingerprint,
 )
+from tournament_scheduler.club_registry import CLUB_REGISTRY, club_for_source_name
+from tournament_scheduler.infrastructure.canonical_calendar_snapshot_archive import (
+    archive_calendar_snapshot,
+    calendar_snapshot_ref,
+)
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
@@ -95,6 +100,148 @@ def _calendar_source_summaries(scrape: Mapping[str, Any], *, fetched_at: str) ->
     return sorted(summaries, key=lambda item: (item["name"], item["type"], item["url"]))
 
 
+_SOURCE_POLICY_SCHEMA_VERSION = 1
+
+
+def _source_policy_entry(source: Mapping[str, Any]) -> dict[str, Any]:
+    """Return one source's operator and code-owned policy facts.
+
+    Operator facts (name/type/url) come from ``input.xlsx``; the parser kind,
+    trust and event-classification facts come from the code-owned club
+    registry so a workbook-only edit can never silently change how a source is
+    interpreted.
+    """
+
+    name = str(source.get("name") or "").strip()
+    club = club_for_source_name(name)
+    registry = CLUB_REGISTRY.get(club) if club else None
+    entry: dict[str, Any] = {
+        "name": name,
+        "type": str(source.get("type") or "").strip().lower(),
+        "url": str(source.get("url") or "").strip(),
+        "club": club,
+    }
+    if registry is not None:
+        entry.update(
+            {
+                "parser": registry.kind.value,
+                "trusted_for_auto_placement": bool(registry.trusted_for_auto_placement),
+                "club_controlled_calendar": bool(registry.club_controlled_calendar),
+                "location_filter": registry.location_filter,
+                "location_exclude_substring": registry.location_exclude_substring,
+                "event_classification_rules": [
+                    {
+                        "pattern": str(rule.pattern),
+                        "classification": rule.classification.value,
+                        "reason": str(rule.reason or ""),
+                    }
+                    for rule in registry.event_classification_rules
+                ],
+            }
+        )
+    return entry
+
+
+def _source_policy_snapshot(config: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the normalized source-policy snapshot for an effective config."""
+
+    entries = [
+        _source_policy_entry(source)
+        for source in config.get("sources") or []
+        if isinstance(source, Mapping)
+    ]
+    entries.sort(key=lambda item: (item["name"], item["type"], item["url"]))
+    return {
+        "schema_version": _SOURCE_POLICY_SCHEMA_VERSION,
+        "start_date": str(config.get("start_date") or ""),
+        "end_date": str(config.get("end_date") or ""),
+        "age_groups": sorted(str(group) for group in (config.get("age_groups") or [])),
+        "operator_confirmed_available_clubs": sorted(
+            str(club) for club in (config.get("operator_confirmed_available_clubs") or [])
+        ),
+        "sources": entries,
+    }
+
+
+def _source_policy_from_evidence(evidence: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    """Return the promoted source policy recorded on an evidence record.
+
+    A full policy is used verbatim. A season refreshed before source-policy
+    persistence still exposes its per-source name/type/url summaries, which are
+    enough to detect URL/parser drift on the next refresh.
+    """
+
+    if not isinstance(evidence, Mapping):
+        return None
+    persisted = evidence.get("source_policy")
+    if isinstance(persisted, Mapping) and persisted.get("sources"):
+        return copy.deepcopy(dict(persisted))
+    sources = evidence.get("sources")
+    if not isinstance(sources, list) or not sources:
+        return None
+    entries = [
+        {
+            "name": str(source.get("name") or ""),
+            "type": str(source.get("type") or "").lower(),
+            "url": str(source.get("url") or ""),
+        }
+        for source in sources
+        if isinstance(source, Mapping) and str(source.get("name") or "")
+    ]
+    if not entries:
+        return None
+    entries.sort(key=lambda item: (item["name"], item["type"], item["url"]))
+    return {"schema_version": _SOURCE_POLICY_SCHEMA_VERSION, "sources": entries}
+
+
+def _source_policy_changes(
+    promoted: Mapping[str, Any] | None,
+    current: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    """Return a bounded before/after diff of promoted vs current source policy.
+
+    Only fields actually present on the promoted policy are compared, so a
+    legacy evidence record that recorded only name/type/url does not report a
+    spurious change merely because the current policy now also carries the
+    code-owned parser/trust facts.
+    """
+
+    if not isinstance(promoted, Mapping):
+        return []
+    changes: list[dict[str, Any]] = []
+    for key in ("start_date", "end_date", "age_groups", "operator_confirmed_available_clubs"):
+        if key in promoted and promoted.get(key) != current.get(key):
+            changes.append({"field": key, "before": promoted.get(key), "after": current.get(key)})
+
+    def _by_name(policy: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+        return {
+            str(entry.get("name")): dict(entry)
+            for entry in policy.get("sources") or []
+            if isinstance(entry, Mapping) and entry.get("name")
+        }
+
+    promoted_sources = _by_name(promoted)
+    current_sources = _by_name(current)
+    for name in sorted(set(promoted_sources) | set(current_sources)):
+        before = promoted_sources.get(name)
+        after = current_sources.get(name)
+        if before is None:
+            changes.append({"field": "sources", "source": name, "change": "added", "after": after})
+        elif after is None:
+            changes.append({"field": "sources", "source": name, "change": "removed", "before": before})
+        else:
+            field_changes = {
+                key: {"before": before.get(key), "after": after.get(key)}
+                for key in before
+                if key != "name" and before.get(key) != after.get(key)
+            }
+            if field_changes:
+                changes.append(
+                    {"field": "sources", "source": name, "change": "modified", "fields": field_changes}
+                )
+    return changes
+
+
 def refresh_calendars(
     service,
     *,
@@ -105,6 +252,7 @@ def refresh_calendars(
     note: str = "",
     dry_run: bool = False,
     allow_missing_sources: bool = False,
+    allow_source_policy_change: bool = False,
 ) -> dict[str, Any]:
     """Refresh promoted-season calendar evidence without changing the schedule.
 
@@ -112,6 +260,16 @@ def refresh_calendars(
     the verification-context calendar facts are rebuilt from a fresh Stage 2
     scrape, preserving the previous evidence fingerprint in history and
     advancing the canonical-state revision on commit.
+
+    The source configuration that produced the promoted evidence is persisted as
+    a source-policy snapshot. A refresh whose current ``input.xlsx`` source
+    configuration (URL, parser kind, trust/classification, coverage) differs
+    from the promoted policy is refused unless ``allow_source_policy_change`` is
+    set, so today's workbook configuration can never silently rewrite the
+    meaning of already-promoted evidence. The complete previous calendar payload
+    and source policy are archived before replacement, so an audit can
+    reconstruct what evidence a refresh replaced even on the first refresh of a
+    season promoted before ``calendar_evidence`` existed.
     """
 
     from tournament_scheduler.pipeline import stage1_config, stage2_scraping
@@ -133,7 +291,13 @@ def refresh_calendars(
     before_calendar = _calendar_problem_payload(problem)
     before_fingerprint = stable_payload_sha256(before_calendar)
     before_schedule_fingerprint = schedule_fingerprint(plan)
+    before_revision = canonical_state_revision(schedule, decisions)
     fetched_at = _now_iso()
+    current_evidence = context.get("calendar_evidence")
+    if not isinstance(current_evidence, Mapping):
+        current_evidence = None
+    promoted_policy = _source_policy_from_evidence(current_evidence)
+    promoted_policy_fingerprint = stable_payload_sha256(promoted_policy) if promoted_policy is not None else None
 
     def _scrape_in(workspace: Path) -> dict[str, Any]:
         state = PipelineState(workspace)
@@ -154,6 +318,14 @@ def refresh_calendars(
         ):
             if key in problem:
                 config[key] = copy.deepcopy(problem[key])
+        current_policy = _source_policy_snapshot(config)
+        source_policy_changes = _source_policy_changes(promoted_policy, current_policy)
+        if source_policy_changes and not allow_source_policy_change:
+            return {
+                "refused": True,
+                "source_policy": current_policy,
+                "source_policy_changes": source_policy_changes,
+            }
         scrape = stage2_scraping.run(
             config,
             state,
@@ -171,7 +343,12 @@ def refresh_calendars(
             waivers=problem.get("operator_waivers") or [],
             canonical_baseline=problem.get("canonical_baseline") if isinstance(problem.get("canonical_baseline"), dict) else None,
         )
-        return {"scrape": scrape, "rebuilt_problem": rebuilt}
+        return {
+            "scrape": scrape,
+            "rebuilt_problem": rebuilt,
+            "source_policy": current_policy,
+            "source_policy_changes": source_policy_changes,
+        }
 
     if work_dir is None:
         with tempfile.TemporaryDirectory(prefix="rvv-calendar-refresh-") as tmp:
@@ -181,14 +358,52 @@ def refresh_calendars(
         workspace.mkdir(parents=True, exist_ok=True)
         scrape_result = _scrape_in(workspace)
 
+    if scrape_result.get("refused"):
+        result = {
+            "season": season,
+            "dry_run": bool(dry_run),
+            "refused": True,
+            "schedule_fingerprint": before_schedule_fingerprint,
+            "previous_calendar_fingerprint": before_fingerprint,
+            "previous_canonical_state_revision": before_revision,
+            "source_policy_fingerprint": stable_payload_sha256(scrape_result["source_policy"]),
+            "previous_source_policy_fingerprint": promoted_policy_fingerprint,
+            "source_policy_changes": scrape_result["source_policy_changes"],
+            "refusal_reasons": ["source configuration changed since promotion"],
+        }
+        if not dry_run:
+            raise SeasonStateError(
+                "Refusing calendar evidence refresh: the configured source policy changed since "
+                "promotion; pass --accept-source-policy-change to advance the source policy explicitly"
+            )
+        return result
+
     scrape = scrape_result["scrape"]
     rebuilt_problem = scrape_result["rebuilt_problem"]
+    current_policy = scrape_result["source_policy"]
+    source_policy_changes = scrape_result["source_policy_changes"]
     new_problem = copy.deepcopy(problem)
     for key in _CALENDAR_PROBLEM_KEYS:
         new_problem[key] = copy.deepcopy(rebuilt_problem.get(key))
     after_calendar = _calendar_problem_payload(new_problem)
     after_fingerprint = stable_payload_sha256(after_calendar)
     source_summaries = _calendar_source_summaries(scrape, fetched_at=fetched_at)
+
+    previous_snapshot = {
+        "schema_version": 1,
+        "captured_at": fetched_at,
+        "calendar_fingerprint": before_fingerprint,
+        "calendar_payload": before_calendar,
+        "source_policy": promoted_policy,
+        "source_policy_fingerprint": promoted_policy_fingerprint,
+        "prior_calendar_evidence": copy.deepcopy(current_evidence),
+    }
+    snapshot_ref = calendar_snapshot_ref(previous_snapshot)
+    if not dry_run:
+        snapshot_ref = archive_calendar_snapshot(
+            season, snapshot=previous_snapshot, root=service.store.root
+        )
+
     evidence_record = {
         "schema_version": 1,
         "refreshed_at": fetched_at,
@@ -203,14 +418,26 @@ def refresh_calendars(
         "blocked_sources": list(scrape.get("blocked") or []),
         "empty_sources": list(scrape.get("empty_sources") or []),
         "sources": source_summaries,
+        "source_policy": current_policy,
+        "source_policy_fingerprint": stable_payload_sha256(current_policy),
+        "previous_source_policy_fingerprint": promoted_policy_fingerprint,
+        "source_policy_changes": source_policy_changes,
+        "previous_snapshot": {
+            "sha256": snapshot_ref["sha256"],
+            "path": snapshot_ref["path"],
+            "calendar_fingerprint": before_fingerprint,
+            "source_policy_fingerprint": promoted_policy_fingerprint,
+            "captured_at": fetched_at,
+            "had_prior_calendar_evidence": current_evidence is not None,
+            "had_prior_source_policy": promoted_policy is not None,
+        },
     }
 
     preview_context = copy.deepcopy(context)
     preview_context["problem"] = new_problem
     preview_context["problem_fingerprint"] = stable_payload_sha256(new_problem)
     preview_context.setdefault("calendar_evidence_history", [])
-    current_evidence = preview_context.get("calendar_evidence")
-    if isinstance(current_evidence, Mapping):
+    if current_evidence is not None:
         preview_context["calendar_evidence_history"].append(copy.deepcopy(current_evidence))
     preview_context["calendar_evidence"] = evidence_record
     preview_schedule = copy.deepcopy(schedule)
@@ -232,6 +459,10 @@ def refresh_calendars(
         "blocked_sources": list(scrape.get("blocked") or []),
         "empty_sources": list(scrape.get("empty_sources") or []),
         "sources": source_summaries,
+        "source_policy_fingerprint": evidence_record["source_policy_fingerprint"],
+        "previous_source_policy_fingerprint": promoted_policy_fingerprint,
+        "source_policy_changes": source_policy_changes,
+        "previous_snapshot": evidence_record["previous_snapshot"],
         "verification_ok": bool(verification.get("ok")),
         "verification_violations": list(verification.get("violations") or []),
         "manual_external_conflict_placements": list(
@@ -239,7 +470,7 @@ def refresh_calendars(
         ),
     }
     if dry_run:
-        result["canonical_state_revision"] = canonical_state_revision(schedule, decisions)
+        result["canonical_state_revision"] = before_revision
         return result
 
     schedule = preview_schedule
@@ -270,12 +501,15 @@ def refresh_calendars(
             "stage2_fingerprint": evidence_record["stage2_fingerprint"],
             "source_count": len(source_summaries),
             "blocked_sources": list(scrape.get("blocked") or []),
+            "source_policy_fingerprint": evidence_record["source_policy_fingerprint"],
+            "source_policy_changes": source_policy_changes,
+            "previous_snapshot": evidence_record["previous_snapshot"],
         },
     )
     committed = service._commit(snapshot.with_schedule(schedule).with_decisions(decisions))
     findings_after = list_findings(season, root=service.store.root)
     result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
-    result["previous_canonical_state_revision"] = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+    result["previous_canonical_state_revision"] = before_revision
     result["findings_before"] = {
         "finding_count": findings_before.get("finding_count"),
         "baseline_comparison": findings_before.get("baseline_comparison"),

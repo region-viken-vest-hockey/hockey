@@ -156,8 +156,9 @@ class CanonicalSeasonService:
         note: str = "",
         dry_run: bool = False,
         allow_missing_sources: bool = False,
+        allow_source_policy_change: bool = False,
     ) -> dict[str, Any]:
-        return _calendars.refresh_calendars(self, season=season, input_path=input_path, work_dir=work_dir, actor=actor, note=note, dry_run=dry_run, allow_missing_sources=allow_missing_sources)
+        return _calendars.refresh_calendars(self, season=season, input_path=input_path, work_dir=work_dir, actor=actor, note=note, dry_run=dry_run, allow_missing_sources=allow_missing_sources, allow_source_policy_change=allow_source_policy_change)
 
     def reconcile_config(
         self,
