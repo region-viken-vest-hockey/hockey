@@ -50,6 +50,7 @@ _DECISION_ONLY_EVENTS = {
     "refresh_calendar_evidence",
     "release_calendar_booking",
     "release_change_protection",
+    "release_participation_withdrawal",
     "release_request_constraint",
     "season_baseline_advance",
     "season_baseline_create",

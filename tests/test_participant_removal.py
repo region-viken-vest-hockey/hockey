@@ -399,6 +399,28 @@ def test_replay_participant_removal_history() -> None:
     assert report["applied_mutation_count"] == 1
 
 
+def test_sealed_reconciliation_treats_withdrawal_release_as_decision_only() -> None:
+    """A decision-only release must not break sealed published-baseline replay."""
+
+    problem = _problem()
+    teams = [dict(team) for team in problem["teams"]]
+    plan = {"tournaments": [_tournament("u10-a", "2026-10-03", "Alfa", teams)]}
+    projection = tournament_projection(plan, problem)
+    history = [
+        {
+            "event": "release_participation_withdrawal",
+            "details": {"released_withdrawal_ids": ["withdrawal:abc"]},
+        }
+    ]
+    report = reconcile_published_baseline(
+        published_projection=projection,
+        current_projection=projection,
+        history=history,
+        attested_additions={},
+    )
+    assert report["ok"] is True
+
+
 def test_batch_withdrawal_requires_registered_target(tmp_path: Path) -> None:
     """P1: the batch path validates the canonical registration like the single path."""
 
