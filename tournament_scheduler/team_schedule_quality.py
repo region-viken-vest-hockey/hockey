@@ -32,7 +32,10 @@ from typing import Any, Mapping
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.club_distances import arena_to_club, distance
-from tournament_scheduler.opponent_diversity import compute_opponent_diversity
+from tournament_scheduler.opponent_diversity import (
+    MEASURE_CO_ATTENDANCE,
+    compute_opponent_diversity,
+)
 from tournament_scheduler.participation_targets import (
     HALVES,
     resolve_half_target,
@@ -181,6 +184,17 @@ def team_schedule_profile(
     # club view below.
     diversity = compute_opponent_diversity(plan, identity)
     club_opponents = diversity.to_dict()
+    # Always keep the co-attendance proxy as well: when a before/after pair has
+    # different game coverage, the comparison uses this consistent proxy for
+    # both sides instead of silently skipping the concentration check.
+    co_attendance = compute_opponent_diversity(
+        plan, identity, measure=MEASURE_CO_ATTENDANCE
+    )
+    club_opponents["co_attendance"] = {
+        "measure": co_attendance.measure,
+        "distinct_clubs": co_attendance.distinct_clubs,
+        "club_counts": [record.to_dict() for record in co_attendance.clubs],
+    }
 
     return {
         "team": {"club": club, "label": label, "age_group": age_group},
@@ -294,30 +308,41 @@ def compare_team_schedule_profiles(
     # the squad-supply-normalized exposure index that ends up concentrated is a
     # material regression. `exposure_index` is absent in profiles produced
     # before this contract existed, in which case the check is skipped.
-    before_clubs = {
-        str(record.get("club")): record
-        for record in (before.get("club_opponents") or {}).get("club_counts", []) or []
-    }
-    after_clubs = {
-        str(record.get("club")): record
-        for record in (after.get("club_opponents") or {}).get("club_counts", []) or []
-    }
-    before_measure = (before.get("club_opponents") or {}).get("measure")
-    after_measure = (after.get("club_opponents") or {}).get("measure")
-    measures_comparable = not (
+    before_section = before.get("club_opponents") or {}
+    after_section = after.get("club_opponents") or {}
+    before_measure = before_section.get("measure")
+    after_measure = after_section.get("measure")
+    use_co_attendance = bool(
         before_measure and after_measure and before_measure != after_measure
     )
-    if not measures_comparable:
+    if use_co_attendance:
         warnings.append(
             {
                 "code": "opponent_measure_changed",
                 "before": before_measure,
                 "after": after_measure,
+                "compared_using": MEASURE_CO_ATTENDANCE,
             }
         )
+    before_view = (
+        before_section.get("co_attendance") or {}
+        if use_co_attendance
+        else before_section
+    )
+    after_view = (
+        after_section.get("co_attendance") or {}
+        if use_co_attendance
+        else after_section
+    )
+    before_clubs = {
+        str(record.get("club")): record
+        for record in before_view.get("club_counts", []) or []
+    }
+    after_clubs = {
+        str(record.get("club")): record
+        for record in after_view.get("club_counts", []) or []
+    }
     for club_name, after_record in after_clubs.items():
-        if not measures_comparable:
-            break
         before_record = before_clubs.get(club_name)
         if before_record is None:
             old_index = 0.0
@@ -350,12 +375,8 @@ def compare_team_schedule_profiles(
                     "threshold_index": MATERIAL_CLUB_EXPOSURE_INDEX,
                 }
             )
-    old_club_diversity = int(
-        (before.get("club_opponents") or {}).get("distinct_clubs", 0) or 0
-    )
-    new_club_diversity = int(
-        (after.get("club_opponents") or {}).get("distinct_clubs", 0) or 0
-    )
+    old_club_diversity = int(before_view.get("distinct_clubs", 0) or 0)
+    new_club_diversity = int(after_view.get("distinct_clubs", 0) or 0)
     if new_club_diversity < old_club_diversity:
         warnings.append(
             {

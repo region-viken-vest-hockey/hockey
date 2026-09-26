@@ -364,3 +364,82 @@ def test_repeat_blocker_does_not_reject_a_consecutive_day_repair() -> None:
     assert "more_gaps_under_7_days" not in {
         entry["code"] for entry in comparison["material_regressions"]
     }
+
+
+def test_partial_game_coverage_falls_back_and_keeps_participant_only_opponents() -> None:
+    subject = _team("Tønsberg", "Tønsberg Grå")
+    other = _team("Frisk Asker", "Frisk Asker 1")
+    plan = {
+        "tournaments": [
+            _tournament(
+                "t1",
+                "2026-09-06",
+                [subject, other, _team("Jar", "Jar 1")],
+                games=_games_for("Tønsberg Grå", ["Frisk Asker 1", "Jar 1"]),
+            ),
+            # No game records at all: its opponent must not silently disappear.
+            _tournament("t2", "2026-09-20", [subject, _team("Kongsberg", "Kongsberg 1")]),
+        ]
+    }
+    diversity = compute_opponent_diversity(plan, ("Tønsberg", "Tønsberg Grå", "U10"))
+
+    assert diversity.game_coverage == "partial"
+    assert diversity.measure == MEASURE_CO_ATTENDANCE
+    assert diversity.club_record("Kongsberg").encounters == 1
+    assert diversity.total_opponent_encounters == 3
+
+
+def test_complete_game_coverage_uses_the_games_measure() -> None:
+    subject = _team("Tønsberg", "Tønsberg Grå")
+    plan = {
+        "tournaments": [
+            _tournament(
+                "t1",
+                "2026-09-06",
+                [subject, _team("Frisk Asker", "Frisk Asker 1")],
+                games=_games_for("Tønsberg Grå", ["Frisk Asker 1"]),
+            )
+        ]
+    }
+    diversity = compute_opponent_diversity(plan, ("Tønsberg", "Tønsberg Grå", "U10"))
+
+    assert diversity.game_coverage == "complete"
+    assert diversity.measure == MEASURE_GAMES
+
+
+def test_coverage_change_is_compared_on_a_consistent_proxy() -> None:
+    subject = _team("Tønsberg", "Tønsberg Grå")
+    dates = [
+        "2026-09-06", "2026-09-20", "2026-10-04", "2026-10-18",
+        "2026-11-01", "2026-11-15", "2026-11-29", "2026-12-13", "2026-12-27",
+    ]
+    opponents = [
+        _team("Liten", "Liten 1"),
+        _team("Jar", "Jar 1"),
+        _team("Kongsberg", "Kongsberg 1"),
+        _team("Frisk Asker", "Frisk Asker 1"),
+    ]
+
+    def plan(liten_meetings: int, with_games: bool) -> dict:
+        sequence = [0] * liten_meetings + [1, 2, 3]
+        tournaments = []
+        for index, club_index in enumerate(sequence):
+            opponent = opponents[club_index]
+            games = (
+                _games_for("Tønsberg Grå", [opponent["label"]]) if with_games else None
+            )
+            tournaments.append(
+                _tournament(f"t{index}", dates[index], [subject, opponent], games=games)
+            )
+        return {"tournaments": tournaments}
+
+    before = plan(1, with_games=False)
+    after = plan(6, with_games=True)
+    comparison = compare_team_schedule_consequence(
+        before, after, ("Tønsberg", "Tønsberg Grå", "U10")
+    )
+
+    assert "opponent_measure_changed" in {entry["code"] for entry in comparison["warnings"]}
+    assert "more_concentrated_club_exposure" in {
+        entry["code"] for entry in comparison["material_regressions"]
+    }

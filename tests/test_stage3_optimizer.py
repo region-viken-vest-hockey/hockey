@@ -851,3 +851,62 @@ class TestClubLevelOpponentIdentity:
             applied += 1
             assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
         assert applied > 0
+
+    def test_objective_distinguishes_spread_from_concentrated_subject_exposure(self):
+        """Finding #1: many sibling squads each meeting B once must not score
+        the same as one squad meeting B repeatedly."""
+
+        from tournament_scheduler.stage3_optimizer import (
+            DEFAULT_WEIGHTS,
+            _build_slots,
+            _group_metrics,
+            _objective,
+        )
+
+        a_squads = [_team("A", f"A{index}", "U10") for index in range(1, 7)]
+        b = _team("B", "B1", "U10")
+        c = _team("C", "C1", "U10")
+        d = _team("D", "D1", "U10")
+
+        dispersed = {
+            "tournaments": [
+                _tournament(
+                    f"t{index}",
+                    f"2026-{1 + index // 4:02d}-{1 + index:02d}",
+                    "Arena",
+                    "U10",
+                    [a_squads[index - 1], b, c, d],
+                )
+                for index in range(1, 7)
+            ]
+        }
+        # A1 attends all six; A2..A6 appear in filler tournaments so the club's
+        # squad supply (and therefore the opportunity baseline) is identical.
+        concentrated = {
+            "tournaments": [
+                _tournament(
+                    f"t{index}",
+                    f"2026-{1 + index // 4:02d}-{1 + index:02d}",
+                    "Arena",
+                    "U10",
+                    [a_squads[0], b, c, d],
+                )
+                for index in range(1, 7)
+            ]
+            + [
+                _tournament("f1", "2026-08-01", "Arena", "U10", [a_squads[1], a_squads[2], c, d]),
+                _tournament("f2", "2026-08-02", "Arena", "U10", [a_squads[3], a_squads[4], c, d]),
+                _tournament("f3", "2026-08-03", "Arena", "U10", [a_squads[5], c, d]),
+            ]
+        }
+
+        dispersed_slots, _ = _build_slots(dispersed, None)
+        concentrated_slots, _ = _build_slots(concentrated, None)
+
+        assert _objective(concentrated_slots, DEFAULT_WEIGHTS) > _objective(
+            dispersed_slots, DEFAULT_WEIGHTS
+        )
+        assert (
+            _group_metrics(concentrated_slots).max_subject_club_excess
+            > _group_metrics(dispersed_slots).max_subject_club_excess
+        )

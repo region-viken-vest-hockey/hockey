@@ -58,6 +58,7 @@ _SEARCH_BUDGET_OPTIMIZE_PLAN_SCHEMA: Dict[str, Any] = {
 
 _V2_OPTIMIZER_WEIGHT_NAMES = (
     "pair_repeat",
+    "club_pair_repeat",
     "same_club_pairing",
     "same_club_cluster",
     "same_club_excess_over_2",

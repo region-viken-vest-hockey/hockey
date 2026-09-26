@@ -22,10 +22,14 @@ Two encounter measures are kept explicitly separate and are never mixed:
     is a *planning proxy* only and is reported under this explicit name; it
     must never be presented as a played game.
 
-``measure="auto"`` selects ``games`` when at least one of the subject's
-tournaments carries a resolvable game record, otherwise ``co_attendance``.
-In ``games`` mode only actual games count, even if some tournaments in the
-plan also happen to list participants without games.
+``measure="auto"`` selects ``games`` only when *every* subject tournament
+with more than one participant carries a resolvable game record; a plan with
+partial game coverage falls back to ``co_attendance`` so that opponents in
+participant-only tournaments are never silently dropped. The chosen
+``game_coverage`` (``complete``/``partial``/``none``) is reported so a
+consumer comparing two plans can detect a coverage change. In ``games`` mode
+only actual games count, even if some tournaments in the plan also list
+participants without games.
 
 Diversity is measured per *individual squad*, never aggregated across all
 squads of the subject's club, so "Tønsberg Grønn repeatedly faces Frisk
@@ -129,6 +133,7 @@ class OpponentDiversity:
 
     identity: SquadIdentity
     measure: str
+    game_coverage: str
     tournament_count: int
     distinct_clubs: int
     total_opponent_encounters: int
@@ -150,6 +155,7 @@ class OpponentDiversity:
                 "age_group": self.identity[2],
             },
             "measure": self.measure,
+            "game_coverage": self.game_coverage,
             "tournament_count": self.tournament_count,
             "distinct_clubs": self.distinct_clubs,
             "total_opponent_encounters": self.total_opponent_encounters,
@@ -198,20 +204,48 @@ def _subject_age_group(plan: Mapping[str, Any], identity: SquadIdentity) -> str:
     return ""
 
 
+def _game_coverage(
+    subject_tournaments: Sequence[Mapping[str, Any]], age_group: str
+) -> str:
+    """Classify how completely the subject's tournaments carry game records."""
+
+    eligible = [
+        tournament
+        for tournament in subject_tournaments
+        if len(_participants(tournament, age_group)) > 1
+    ]
+    if not eligible:
+        return "none"
+    with_games = sum(1 for tournament in eligible if _resolvable_games(tournament, age_group))
+    if with_games == len(eligible):
+        return "complete"
+    if with_games == 0:
+        return "none"
+    return "partial"
+
+
 def _selected_measure(
     subject_tournaments: Sequence[Mapping[str, Any]],
     age_group: str,
     measure: str,
-) -> str:
+) -> Tuple[str, str]:
+    """Return the chosen measure and its game coverage.
+
+    ``auto`` uses ``games`` only under *complete* game coverage; partial
+    coverage falls back to the co-attendance proxy so participant-only
+    tournaments are not silently ignored.
+    """
+
     if measure not in {_DEFAULT_MEASURE, MEASURE_GAMES, MEASURE_CO_ATTENDANCE}:
         raise ValueError(f"Unknown opponent-diversity measure: {measure!r}")
-    if measure == MEASURE_GAMES or measure == MEASURE_CO_ATTENDANCE:
-        return measure
+    coverage = _game_coverage(subject_tournaments, age_group)
+    if measure == MEASURE_GAMES:
+        return MEASURE_GAMES, coverage
+    if measure == MEASURE_CO_ATTENDANCE:
+        return MEASURE_CO_ATTENDANCE, coverage
     return (
-        MEASURE_GAMES
-        if any(_resolvable_games(tournament, age_group) for tournament in subject_tournaments)
-        else MEASURE_CO_ATTENDANCE
-    )
+        MEASURE_GAMES if coverage == "complete" else MEASURE_CO_ATTENDANCE
+    ), coverage
 
 
 def compute_opponent_diversity(
@@ -260,7 +294,7 @@ def compute_opponent_diversity(
         for tournament in age_group_tournaments
         if subject in _participants(tournament, age_group)
     ]
-    resolved_measure = _selected_measure(subject_tournaments, age_group, measure)
+    resolved_measure, game_coverage = _selected_measure(subject_tournaments, age_group, measure)
 
     club_encounters: Counter = Counter()
     club_squad_encounters: Counter = Counter()
@@ -332,6 +366,7 @@ def compute_opponent_diversity(
     return OpponentDiversity(
         identity=subject,
         measure=resolved_measure,
+        game_coverage=game_coverage,
         tournament_count=len(subject_tournaments),
         distinct_clubs=distinct_clubs,
         total_opponent_encounters=total_opponent_encounters,
