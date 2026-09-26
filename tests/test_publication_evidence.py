@@ -327,6 +327,82 @@ class TestRetainedEvidence:
         with pytest.raises(PublicationEvidenceError, match="conflicting"):
             write_publication_evidence(**conflicting)
 
+    def test_retry_repairs_missing_markdown_after_json_succeeded(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        import tournament_scheduler.pipeline.publication_evidence as module
+
+        evidence = build_publication_evidence(
+            run_id="run-2",
+            canonical_revision="rev-2",
+            projection_fingerprint="proj-2",
+            bundle_fingerprint="bundle-2",
+        )
+        kwargs = dict(
+            season_root=tmp_path / "season",
+            season="2026-2027",
+            publication_id="2026-09-28T0908",
+            evidence=evidence,
+            previous_publication=None,
+            republish_delta=self._delta(),
+            canonical_revision="rev-2",
+        )
+        real_write = module._atomic_write_text
+
+        def fail_markdown(path, content):
+            if Path(path).name.endswith(".md"):
+                raise OSError("disk full on markdown")
+            return real_write(path, content)
+
+        monkeypatch.setattr(module, "_atomic_write_text", fail_markdown)
+        with pytest.raises(OSError):
+            write_publication_evidence(**kwargs)
+
+        json_path = (
+            tmp_path
+            / "season"
+            / "2026-2027"
+            / "evidence"
+            / "publications"
+            / "2026-09-28T0908"
+            / module.PUBLICATION_EVIDENCE_JSON
+        )
+        markdown_path = json_path.with_name(module.PUBLICATION_EVIDENCE_MARKDOWN)
+        assert json_path.exists()
+        assert not markdown_path.exists()
+
+        # The retry finds the matching JSON, repairs the missing Markdown and
+        # must not report success with incomplete evidence.
+        monkeypatch.setattr(module, "_atomic_write_text", real_write)
+        files = write_publication_evidence(**kwargs)
+        assert Path(files["json"]).exists()
+        assert Path(files["markdown"]).exists()
+        assert markdown_path.read_text(encoding="utf-8") == module._render_markdown(
+            read_publication_evidence(tmp_path / "season", "2026-2027", "2026-09-28T0908")
+        )
+
+    def test_conflicting_existing_markdown_is_rejected(self, tmp_path: Path) -> None:
+        evidence = build_publication_evidence(
+            run_id="run-2",
+            canonical_revision="rev-2",
+            projection_fingerprint="proj-2",
+            bundle_fingerprint="bundle-2",
+        )
+        kwargs = dict(
+            season_root=tmp_path / "season",
+            season="2026-2027",
+            publication_id="2026-09-28T0908",
+            evidence=evidence,
+            previous_publication=None,
+            republish_delta=self._delta(),
+            canonical_revision="rev-2",
+        )
+        files = write_publication_evidence(**kwargs)
+        Path(files["markdown"]).write_text("tampered\n", encoding="utf-8")
+
+        with pytest.raises(PublicationEvidenceError, match="conflicting"):
+            write_publication_evidence(**kwargs)
+
     def test_rejects_unsafe_publication_id(self, tmp_path: Path) -> None:
         with pytest.raises(PublicationEvidenceError):
             evidence_directory(tmp_path, "2026-2027", "../escape")

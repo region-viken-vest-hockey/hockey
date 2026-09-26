@@ -409,6 +409,19 @@ def write_publication_evidence(
                 "refusing to overwrite conflicting publication evidence for "
                 f"{publication_id!r} in {target}"
             )
+        # The JSON and Markdown are written as two atomic files, so a crash after
+        # the JSON write can leave the companion Markdown missing. Repair it from
+        # the retained JSON record (preserving its timestamp) and reject a
+        # conflicting existing Markdown instead of reporting a false success.
+        expected_markdown = _render_markdown(existing)
+        if markdown_path.exists():
+            if markdown_path.read_text(encoding="utf-8") != expected_markdown:
+                raise PublicationEvidenceError(
+                    "refusing to overwrite conflicting publication evidence markdown for "
+                    f"{publication_id!r} in {target}"
+                )
+        else:
+            _atomic_write_text(markdown_path, expected_markdown)
         return {"json": str(json_path), "markdown": str(markdown_path)}
 
     record = {
