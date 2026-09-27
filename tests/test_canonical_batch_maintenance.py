@@ -523,15 +523,57 @@ def test_batch_dry_run_reports_partial_repair_refusal(tmp_path: Path) -> None:
 
 def test_batch_cancellation_is_a_supported_operation(tmp_path: Path) -> None:
     _work_dir, root = _promote(tmp_path)
-    result = batch_maintenance(
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+    operations = [
+        {"op": "cancel", "tournament_id": "u10-c-20261018", "reason": "ice unavailable"}
+    ]
+
+    # A cancellation removes one appearance from every remaining participant,
+    # so the participation and temporal consequences must be accepted
+    # explicitly and per team; a bare cancel is refused and writes nothing.
+    preview = batch_maintenance(
         season="2026-2027",
         root=root,
-        operations=[
-            {"op": "cancel", "tournament_id": "u10-c-20261018", "reason": "ice unavailable"}
-        ],
+        operations=operations,
         scope=["u10-c-20261018"],
         request_id="cancel-c",
         actor="tester",
+        dry_run=True,
+    )
+    assert preview["refused"] is True
+    assert preview["consequence_acceptable"] is False
+    assert {
+        (item["team"], item["code"])
+        for item in preview["regression_acceptance"]["unaccepted_regressions"]
+    } == {
+        (team, code)
+        for team in ("C1", "C2", "D1", "D2")
+        for code in ("participation_count_changed", "temporal_coverage_materially_worse")
+    }
+    with pytest.raises(SeasonStateError, match="materially worsens"):
+        batch_maintenance(
+            season="2026-2027",
+            root=root,
+            operations=operations,
+            scope=["u10-c-20261018"],
+            request_id="cancel-c",
+            actor="tester",
+        )
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+    result = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=operations,
+        scope=["u10-c-20261018"],
+        request_id="cancel-c",
+        actor="tester",
+        accept_regressions=[
+            f"{club}|{team}|U10={code}"
+            for club, team in (("C", "C1"), ("C", "C2"), ("D", "D1"), ("D", "D2"))
+            for code in ("participation_count_changed", "temporal_coverage_materially_worse")
+        ],
+        accept_regression_reason="ice unavailable; all four U10 teams accept one fewer appearance",
     )
     assert result["committed"] is True
     by_id = _tournaments_by_id(root)

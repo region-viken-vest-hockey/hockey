@@ -464,3 +464,97 @@ def test_batch_without_cancel_rejects_participation_code(tmp_path: Path) -> None
             accept_regressions=[f"W1={PARTICIPATION_CODE}"],
             accept_regression_reason="blanket override",
         )
+
+
+def _cancel_only_batch(root: Path, **kwargs) -> dict:
+    return batch_maintenance(
+        season=SEASON,
+        root=root,
+        operations=[{"op": "cancel", "tournament_id": "u10-b", "reason": "host team retired"}],
+        scope=["u10-b"],
+        request_id="cancel-only-acceptance",
+        actor="tester",
+        **kwargs,
+    )
+
+
+def _cancel_only_participants() -> set[tuple[str, str]]:
+    return {(club, f"{club} 1") for club in ("Alfa", "Bravo", "Charlie", "Delta", "Echo")}
+
+
+def test_cancel_only_batch_requires_participation_acceptance(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+
+    preview = _cancel_only_batch(root, dry_run=True)
+    assert preview["refused"] is True
+    assert preview["consequence_acceptable"] is False
+    assert {
+        (item["team"], item["code"])
+        for item in preview["regression_acceptance"]["unaccepted_regressions"]
+    } == {(team, PARTICIPATION_CODE) for _club, team in _cancel_only_participants()}
+
+    with pytest.raises(SeasonStateError, match="materially worsens"):
+        _cancel_only_batch(root)
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+    acceptances = [
+        f"{club}|{team}|U10={PARTICIPATION_CODE}"
+        for club, team in sorted(_cancel_only_participants())
+    ]
+    result = _cancel_only_batch(
+        root,
+        accept_regressions=acceptances,
+        accept_regression_reason="host team retires; the whole U10 field accepts one fewer appearance",
+    )
+    assert result["committed"] is True
+    assert result["consequence_acceptable"] is True
+    assert _tournaments_by_id(root)["u10-b"]["cancelled"] is True
+
+
+def test_cancel_acceptance_cannot_cover_a_withdrawn_team(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    # Echo is withdrawn from u10-a in the same batch, so its own cancellation
+    # loss is the deliberate withdrawal decision and must not be waivable with
+    # a bare participation_count_changed acceptance.
+    acceptances = [
+        f"{club}|{team}|U10={PARTICIPATION_CODE}"
+        for club, team in sorted(_cancelled_participants())
+    ] + [f"Echo|Echo 1|U10={PARTICIPATION_CODE}"]
+
+    with pytest.raises(SeasonStateError, match="match no material regression"):
+        _cancel_and_remove_batch(
+            root,
+            accept_regressions=acceptances,
+            accept_regression_reason="mixed withdrawal and cancellation",
+        )
+
+
+def test_cancel_acceptance_scope_rejects_an_extra_unrelated_loss() -> None:
+    from tournament_scheduler.application.canonical_season.batch import (
+        _participation_acceptance_scope,
+    )
+
+    # Synthetic mixed-operation consequences: K1 loses exactly the one
+    # cancelled appearance, X1 loses two (one cancellation + one unrelated
+    # count change), and Y1 has no participation regression.
+    attributable = _analysis("K1", PARTICIPATION_CODE, club="Kongsberg")
+    attributable["material_regressions"] = [
+        {"code": PARTICIPATION_CODE, "before": 3, "after": 2}
+    ]
+    unattributable = _analysis("X1", PARTICIPATION_CODE, club="X")
+    unattributable["material_regressions"] = [
+        {"code": PARTICIPATION_CODE, "before": 3, "after": 1}
+    ]
+
+    scope = _participation_acceptance_scope(
+        {
+            "a:K1": attributable,
+            "b:X1": unattributable,
+            "c:Y1": _analysis("Y1", club="Y"),
+        },
+        {("Kongsberg", "K1", "U10"): 1, ("X", "X1", "U10"): 1},
+    )
+    assert scope == {("Kongsberg", "K1", "U10")}

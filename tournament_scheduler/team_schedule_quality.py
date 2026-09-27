@@ -682,7 +682,7 @@ def parse_regression_acceptances(
     return acceptances
 
 
-def _consequence_team_identity(analysis: Mapping[str, Any]) -> TeamIdentity:
+def consequence_team_identity(analysis: Mapping[str, Any]) -> TeamIdentity:
     for side in ("after", "before"):
         team = (analysis.get(side) or {}).get("team") or {}
         if team.get("label"):
@@ -723,7 +723,7 @@ def evaluate_regression_acceptances(
     """
 
     affected = {
-        key: _consequence_team_identity(analysis)
+        key: consequence_team_identity(analysis)
         for key, analysis in team_consequences.items()
     }
     identities = set(affected.values())
@@ -844,6 +844,7 @@ __all__ = [
     "compare_changed_team_schedule_consequence",
     "compare_team_schedule_consequence",
     "compare_team_schedule_profiles",
+    "consequence_team_identity",
     "evaluate_regression_acceptances",
     "parse_regression_acceptances",
     "regression_acceptance_refusals",

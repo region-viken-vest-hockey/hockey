@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from collections import Counter
 from typing import Any, Mapping
 
 from tournament_scheduler.canonical_state import (
@@ -178,19 +179,20 @@ def _batch_operation_tournament_ids(operation: Mapping[str, Any]) -> tuple[str, 
     return ()
 
 
-def _cancelled_participant_identities(
+def _cancelled_appearances(
     plan: Mapping[str, Any],
     tournament_ids: list[str],
-) -> set[tuple[str, str, str]]:
-    """Return the non-guest identities that played in the named cancellations.
+) -> Counter[tuple[str, str, str]]:
+    """Count each non-guest team's appearances in the named cancellations.
 
-    These are the only teams for which a ``participation_count_changed``
-    acceptance is a genuine cancellation shortfall rather than an unrelated
-    count change.
+    A team may equally be a deliberate batch removal (withdrawn from the whole
+    age group); that identity is tracked separately so its own shortfall stays
+    exempt. This count is the only participation loss a cancellation acceptance
+    may waive for a retained team.
     """
 
     wanted = {str(tournament_id) for tournament_id in tournament_ids}
-    identities: set[tuple[str, str, str]] = set()
+    appearances: Counter[tuple[str, str, str]] = Counter()
     for tournament in plan.get("tournaments", []) or []:
         if str(tournament.get("id") or "") not in wanted:
             continue
@@ -198,14 +200,51 @@ def _cancelled_participant_identities(
         for team in tournament.get("teams", []) or []:
             if bool(team.get("guest", False)):
                 continue
-            identities.add(
+            appearances[
                 (
                     str(team.get("club") or ""),
                     str(team.get("label") or ""),
                     str(team.get("age_group") or age_group),
                 )
-            )
-    return identities
+            ] += 1
+    return appearances
+
+
+def _participation_acceptance_scope(
+    team_consequences: Mapping[str, Mapping[str, Any]],
+    cancelled_appearances: Mapping[tuple[str, str, str], int],
+) -> set[tuple[str, str, str]]:
+    """Return the identities whose whole count delta a cancellation explains.
+
+    ``participation_count_changed`` is only attributable when the team's
+    before->final tournament-count loss equals the number of appearances it
+    lost to the batch's cancelled tournaments. A team that lost an additional
+    appearance for any other reason is excluded so its combined loss cannot be
+    waived by a single cancellation acceptance.
+    """
+
+    from tournament_scheduler.team_schedule_quality import (
+        PARTICIPATION_COUNT_CHANGED,
+        consequence_team_identity,
+    )
+
+    eligible: set[tuple[str, str, str]] = set()
+    for analysis in team_consequences.values():
+        regression = next(
+            (
+                item
+                for item in analysis.get("material_regressions") or []
+                if item.get("code") == PARTICIPATION_COUNT_CHANGED
+            ),
+            None,
+        )
+        if regression is None:
+            continue
+        identity = consequence_team_identity(analysis)
+        lost = int(regression.get("before") or 0) - int(regression.get("after") or 0)
+        if lost > 0 and cancelled_appearances.get(identity, 0) == lost:
+            eligible.add(identity)
+    return eligible
 
 
 def batch_maintenance(
@@ -611,20 +650,20 @@ def batch_maintenance(
                     tuple(identity),
                     problem=resolved_problem,
                 )
+    removed_identities = [
+        (
+            removal["removed_team"]["club"],
+            removal["removed_team"]["label"],
+            removal["removed_team"]["age_group"],
+        )
+        for removal in applied_removals
+    ]
     removed_team_consequences: dict[str, Any] = {}
     if applied_removals:
         # The withdrawn team's own shortfall is the operator's deliberate
         # decision; only the remaining participants can block the batch. The
         # shared boundary keeps this identical to the single-operation path.
         removal_ids = [str(removal["tournament_id"]) for removal in applied_removals]
-        removed_identities = [
-            (
-                removal["removed_team"]["club"],
-                removal["removed_team"]["label"],
-                removal["removed_team"]["age_group"],
-            )
-            for removal in applied_removals
-        ]
         removed_team_consequences, removal_retained = evaluate_removal_consequences(
             before_plan,
             candidate_plan,
@@ -634,18 +673,37 @@ def batch_maintenance(
         )
         for key, consequence in removal_retained.items():
             team_consequences.setdefault(key, consequence)
-    # Participation-count acceptance is scoped to the teams that actually lost
-    # an appearance to a cancellation in this batch, so it can never waive an
-    # unrelated count change. Every other accepted code keeps its full scope.
+    cancelled_ids = [
+        str(cancellation.get("tournament_id") or "")
+        for cancellation in applied_cancellations
+    ]
+    cancelled_appearances = _cancelled_appearances(before_plan, cancelled_ids)
+    if cancelled_ids:
+        # A cancellation removes one appearance from every participant of the
+        # cancelled tournament, so those retained teams get the same
+        # before->final consequence analysis as a roster change. A team the
+        # batch also withdrew keeps its deliberate removed-role shortfall
+        # exemption instead of being re-flagged as a cancellation loss.
+        _cancelled_removed, cancelled_retained = evaluate_removal_consequences(
+            before_plan,
+            candidate_plan,
+            problem=candidate_problem,
+            removed_identities=removed_identities,
+            tournament_ids=cancelled_ids,
+        )
+        for key, consequence in cancelled_retained.items():
+            if key in removed_team_consequences:
+                continue
+            team_consequences.setdefault(key, consequence)
+    # Participation-count acceptance is scoped to the identities whose whole
+    # before->final count loss is exactly the cancellation loss; an extra
+    # unrelated count change still refuses. Every other accepted code keeps
+    # its full scope.
     code_scope = None
     if cancel_requested:
-        cancelled_ids = [
-            str(cancellation.get("tournament_id") or "")
-            for cancellation in applied_cancellations
-        ]
         code_scope = {
-            PARTICIPATION_COUNT_CHANGED: _cancelled_participant_identities(
-                candidate_plan, cancelled_ids
+            PARTICIPATION_COUNT_CHANGED: _participation_acceptance_scope(
+                team_consequences, cancelled_appearances
             )
         }
     regression_acceptance = evaluate_regression_acceptances(
