@@ -152,19 +152,34 @@ def _run_outlook_scraper(
     except Exception as exc:
         coverage_exceptions.append(f"Outlook scrape raised: {exc}")
 
-    # Deduplicate
-    seen: set[tuple[str, str]] = set()
-    unique: list[CalendarEvent] = []
-    for ev in events:
-        key = (ev.date, ev.name)
-        if key not in seen:
-            seen.add(key)
-            unique.append(ev)
+    unique = _deduplicate_outlook_events(events)
 
     return with_coverage(
         unique,
         **_outlook_coverage_record(inspected_dates, start_date, end_date, coverage_exceptions),
     ), raw_html
+
+
+def _deduplicate_outlook_events(events: list[CalendarEvent]) -> list[CalendarEvent]:
+    """Collapse rendered DOM fragments without dropping distinct bookings.
+
+    Outlook renders one booking through several ``aria-label`` elements, so the
+    same booking can be parsed more than once. Deduplicate on the full
+    occurrence -- date, start, duration and title -- rather than only
+    ``(date, name)``: two genuinely different bookings that happen to share a
+    date and title (for example two same-day rentals of the same hall) must both
+    be retained as separate calendar evidence, while an exact repeated fragment
+    is still collapsed.
+    """
+    seen: set[tuple[str, str, str, float]] = set()
+    unique: list[CalendarEvent] = []
+    for ev in events:
+        start = ev.datetime.isoformat() if ev.datetime is not None else ""
+        key = (ev.date, ev.name, start, float(ev.duration_hours or 0.0))
+        if key not in seen:
+            seen.add(key)
+            unique.append(ev)
+    return unique
 
 
 def _month_start_after(start_month: date, offset: int) -> date:

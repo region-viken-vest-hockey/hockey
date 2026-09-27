@@ -327,6 +327,37 @@ def test_outlook_iframe_records_only_rendered_dates(monkeypatch):
     assert any("did not change" in reason for reason in coverage["exceptions"])
 
 
+def test_outlook_dedup_keeps_distinct_same_name_same_day_bookings():
+    from tournament_scheduler.models import CalendarEvent
+    from tournament_scheduler.pipeline.scraper_outlook import _deduplicate_outlook_events
+
+    events = [
+        CalendarEvent(date="01.11.2026", name="Drammen Ballklubb", datetime=datetime(2026, 11, 1, 9, 0), duration_hours=1.0),
+        # Same day and title, different booked interval: a distinct booking, not a DOM fragment.
+        CalendarEvent(date="01.11.2026", name="Drammen Ballklubb", datetime=datetime(2026, 11, 1, 17, 0), duration_hours=1.0),
+        # Exact repeated DOM fragment for the first booking must still collapse.
+        CalendarEvent(date="01.11.2026", name="Drammen Ballklubb", datetime=datetime(2026, 11, 1, 9, 0), duration_hours=1.0),
+    ]
+
+    unique = _deduplicate_outlook_events(events)
+
+    assert [(ev.datetime.hour, ev.duration_hours) for ev in unique] == [(9, 1.0), (17, 1.0)]
+
+
+def test_outlook_dedup_keeps_same_hour_but_different_length_bookings():
+    from tournament_scheduler.models import CalendarEvent
+    from tournament_scheduler.pipeline.scraper_outlook import _deduplicate_outlook_events
+
+    events = [
+        CalendarEvent(date="21.11.2026", name="Åpen Ishall", datetime=datetime(2026, 11, 21, 12, 30), duration_hours=1.5),
+        CalendarEvent(date="21.11.2026", name="Åpen Ishall", datetime=datetime(2026, 11, 21, 12, 30), duration_hours=2.0),
+    ]
+
+    unique = _deduplicate_outlook_events(events)
+
+    assert sorted(ev.duration_hours for ev in unique) == [1.5, 2.0]
+
+
 def test_downgrade_marks_known_club_as_source_review_required():
     sources = [{"name": "Jar", "type": "forumbooking", "events": _ok_events(2), "event_count": 2,
                 "event_expectation": {"status": "suspicious", "message": "mistanke"}}]

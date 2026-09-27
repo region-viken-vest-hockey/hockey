@@ -11,6 +11,7 @@ else
 fi
 
 PHASE_TIMINGS=()
+UNAVAILABLE_LANES=()
 
 phase() {
   echo ""
@@ -102,6 +103,10 @@ Separated non-blocking lanes (never part of quick or full):
 Environment:
   SKIP_SECRET_SCAN=1 skips secret-scan in the all phase only.
   RVV_LIVE_TESTS=1   allow live tests to run (the live phase sets it itself).
+  RVV_HARNESS_SMOKE_COMMAND="cmd ..."
+                     bounded command executed by scripts/check harness for real
+                     harness runtime verification; when unset, harness reports
+                     an explicit unavailable lane instead of runtime coverage.
 EOF
 }
 
@@ -180,6 +185,10 @@ run_named_phase() {
       RVV_LIVE_TESTS=1 run_marked_pytest_phase "Live external-source tests" live
       ;;
     harness)
+      if [[ -z "${RVV_HARNESS_SMOKE_COMMAND:-}" ]]; then
+        echo "Harness-dependent tests unavailable: set RVV_HARNESS_SMOKE_COMMAND to a bounded smoke command for real harness runtime verification."
+        UNAVAILABLE_LANES+=("harness")
+      fi
       run_marked_pytest_phase "Harness-dependent tests" harness
       ;;
     rules-report)
@@ -247,4 +256,9 @@ fi
 print_timings
 
 echo ""
-echo "✅ Canonical checks passed"
+if [[ ${#UNAVAILABLE_LANES[@]} -gt 0 ]]; then
+  joined=$(IFS=,; echo "${UNAVAILABLE_LANES[*]}")
+  echo "⚠️  Canonical checks completed; unavailable optional lane(s): $joined"
+else
+  echo "✅ Canonical checks passed"
+fi
