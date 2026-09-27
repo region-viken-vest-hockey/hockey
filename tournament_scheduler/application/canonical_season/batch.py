@@ -178,6 +178,36 @@ def _batch_operation_tournament_ids(operation: Mapping[str, Any]) -> tuple[str, 
     return ()
 
 
+def _cancelled_participant_identities(
+    plan: Mapping[str, Any],
+    tournament_ids: list[str],
+) -> set[tuple[str, str, str]]:
+    """Return the non-guest identities that played in the named cancellations.
+
+    These are the only teams for which a ``participation_count_changed``
+    acceptance is a genuine cancellation shortfall rather than an unrelated
+    count change.
+    """
+
+    wanted = {str(tournament_id) for tournament_id in tournament_ids}
+    identities: set[tuple[str, str, str]] = set()
+    for tournament in plan.get("tournaments", []) or []:
+        if str(tournament.get("id") or "") not in wanted:
+            continue
+        age_group = str(tournament.get("age_group") or "")
+        for team in tournament.get("teams", []) or []:
+            if bool(team.get("guest", False)):
+                continue
+            identities.add(
+                (
+                    str(team.get("club") or ""),
+                    str(team.get("label") or ""),
+                    str(team.get("age_group") or age_group),
+                )
+            )
+    return identities
+
+
 def batch_maintenance(
     service,
     *,
@@ -220,7 +250,20 @@ def batch_maintenance(
         raise SeasonStateError(
             "Refusing canonical batch: a stable --request-id is required so the batch is auditable"
         )
+    normalized_operations = [
+        _normalize_batch_operation(operation) for operation in operations
+    ]
+    # A cancellation deliberately removes one appearance from every participant
+    # of that tournament. Only a batch that actually cancels a tournament may
+    # widen the acceptable-regression codes to include that participation
+    # shortfall, and only for teams that played in a cancelled tournament.
+    cancel_requested = any(
+        operation.get("op") == "cancel" for operation in normalized_operations
+    )
     from tournament_scheduler.team_schedule_quality import (
+        ACCEPTABLE_REGRESSION_CODES,
+        CANCEL_ACCEPTABLE_REGRESSION_CODES,
+        PARTICIPATION_COUNT_CHANGED,
         RegressionAcceptanceError,
         evaluate_regression_acceptances,
         parse_regression_acceptances,
@@ -229,7 +272,13 @@ def batch_maintenance(
 
     try:
         regression_acceptances = parse_regression_acceptances(
-            accept_regressions, accept_regression_reason
+            accept_regressions,
+            accept_regression_reason,
+            allowed_codes=(
+                CANCEL_ACCEPTABLE_REGRESSION_CODES
+                if cancel_requested
+                else ACCEPTABLE_REGRESSION_CODES
+            ),
         )
     except RegressionAcceptanceError as exc:
         raise SeasonStateError(f"Refusing canonical batch: {exc}") from exc
@@ -239,9 +288,6 @@ def batch_maintenance(
             "Refusing canonical batch: declare the affected tournament ids with --scope"
         )
 
-    normalized_operations = [
-        _normalize_batch_operation(operation) for operation in operations
-    ]
     referenced_ids = sorted(
         {
             tournament_id
@@ -588,8 +634,22 @@ def batch_maintenance(
         )
         for key, consequence in removal_retained.items():
             team_consequences.setdefault(key, consequence)
+    # Participation-count acceptance is scoped to the teams that actually lost
+    # an appearance to a cancellation in this batch, so it can never waive an
+    # unrelated count change. Every other accepted code keeps its full scope.
+    code_scope = None
+    if cancel_requested:
+        cancelled_ids = [
+            str(cancellation.get("tournament_id") or "")
+            for cancellation in applied_cancellations
+        ]
+        code_scope = {
+            PARTICIPATION_COUNT_CHANGED: _cancelled_participant_identities(
+                candidate_plan, cancelled_ids
+            )
+        }
     regression_acceptance = evaluate_regression_acceptances(
-        team_consequences, regression_acceptances
+        team_consequences, regression_acceptances, code_scope=code_scope
     )
     consequence_acceptable = bool(regression_acceptance["acceptable"])
 

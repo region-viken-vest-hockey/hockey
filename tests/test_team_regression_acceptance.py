@@ -20,6 +20,7 @@ from tests.test_canonical_batch_maintenance import (
     _tournament,
     _tournaments_by_id,
 )
+from tests.test_participant_removal import _write_canonical
 from tournament_scheduler.season_state import (
     SeasonStateError,
     batch_maintenance,
@@ -27,6 +28,8 @@ from tournament_scheduler.season_state import (
     swap_participants,
 )
 from tournament_scheduler.team_schedule_quality import (
+    CANCEL_ACCEPTABLE_REGRESSION_CODES,
+    PARTICIPATION_COUNT_CHANGED,
     RegressionAcceptanceError,
     evaluate_regression_acceptances,
     parse_regression_acceptances,
@@ -34,6 +37,7 @@ from tournament_scheduler.team_schedule_quality import (
 
 SEASON = "2026-2027"
 GAP_CODE = "more_gaps_under_7_days"
+PARTICIPATION_CODE = PARTICIPATION_COUNT_CHANGED
 
 
 def _analysis(label: str, *codes: str, club: str = "C", age_group: str = "U10") -> dict:
@@ -313,3 +317,150 @@ def test_batch_analyses_each_same_label_team_passing_through_one_tournament(
     by_identity = preview["team_consequences"]
     assert "2026-09-20" in by_identity["P|Common|U10"]["after"]["tournament_dates"]
     assert "2026-11-01" in by_identity["Q|Common|U10"]["after"]["tournament_dates"]
+
+
+def test_parse_allows_participation_code_only_when_explicitly_enabled() -> None:
+    with pytest.raises(RegressionAcceptanceError, match="cannot be accepted"):
+        parse_regression_acceptances([f"K1={PARTICIPATION_CODE}"], "operator reason")
+
+    parsed = parse_regression_acceptances(
+        [f"K1={PARTICIPATION_CODE}"],
+        "operator reason",
+        allowed_codes=CANCEL_ACCEPTABLE_REGRESSION_CODES,
+    )
+    assert parsed == [{"team": "K1", "code": PARTICIPATION_CODE, "reason": "operator reason"}]
+
+
+def test_evaluate_scopes_participation_acceptance_to_cancelled_participants() -> None:
+    consequences = {"a:K1": _analysis("K1", PARTICIPATION_CODE, club="Kongsberg")}
+    acceptance = parse_regression_acceptances(
+        [f"K1={PARTICIPATION_CODE}"],
+        "operator reason",
+        allowed_codes=CANCEL_ACCEPTABLE_REGRESSION_CODES,
+    )
+
+    eligible = evaluate_regression_acceptances(
+        consequences,
+        acceptance,
+        code_scope={PARTICIPATION_CODE: {("Kongsberg", "K1", "U10")}},
+    )
+    assert eligible["acceptable"] is True
+    assert [(item["team"], item["code"]) for item in eligible["accepted_regressions"]] == [
+        ("K1", PARTICIPATION_CODE)
+    ]
+
+    ineligible = evaluate_regression_acceptances(
+        consequences, acceptance, code_scope={PARTICIPATION_CODE: set()}
+    )
+    assert ineligible["acceptable"] is False
+    assert ineligible["ineligible_acceptances"] == [
+        {
+            "acceptance": f"K1={PARTICIPATION_CODE}",
+            "code": PARTICIPATION_CODE,
+            "team": "K1",
+            "club": "Kongsberg",
+            "age_group": "U10",
+        }
+    ]
+
+
+def _cancel_and_remove_operations() -> list[dict]:
+    # Cancel u10-b and reconcile Echo's withdrawal from u10-a in one batch.
+    # Every remaining u10-a participant also played u10-b, so each loses exactly
+    # that cancelled appearance while Echo's own shortfall is the withdrawal.
+    return [
+        {"op": "cancel", "tournament_id": "u10-b", "reason": "host team retired"},
+        {
+            "op": "remove_participant",
+            "tournament_id": "u10-a",
+            "remove_team": "Echo 1",
+            "reconcile_withdrawal": True,
+        },
+    ]
+
+
+def _cancel_and_remove_batch(root: Path, **kwargs) -> dict:
+    return batch_maintenance(
+        season=SEASON,
+        root=root,
+        operations=_cancel_and_remove_operations(),
+        scope=["u10-a", "u10-b"],
+        request_id="cancel-participation-acceptance",
+        actor="tester",
+        **kwargs,
+    )
+
+
+def _cancelled_participants() -> set[tuple[str, str]]:
+    return {
+        (club, f"{club} 1")
+        for club in ("Alfa", "Bravo", "Charlie", "Delta")
+    }
+
+
+def test_batch_requires_acceptance_for_a_cancellation_shortfall(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+
+    preview = _cancel_and_remove_batch(root, dry_run=True)
+    assert preview["consequence_acceptable"] is False
+    assert {
+        (item["team"], item["code"])
+        for item in preview["regression_acceptance"]["unaccepted_regressions"]
+    } == {(team, PARTICIPATION_CODE) for _club, team in _cancelled_participants()}
+
+    with pytest.raises(SeasonStateError, match="materially worsens"):
+        _cancel_and_remove_batch(root)
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+
+def test_batch_commits_cancellation_shortfall_with_explicit_acceptance(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+
+    with pytest.raises(SeasonStateError, match="reason"):
+        _cancel_and_remove_batch(
+            root,
+            accept_regressions=["Alfa|Alfa 1|U10=" + PARTICIPATION_CODE],
+        )
+
+    acceptances = [
+        f"{club}|{team}|U10={PARTICIPATION_CODE}"
+        for club, team in sorted(_cancelled_participants())
+    ]
+    result = _cancel_and_remove_batch(
+        root,
+        accept_regressions=acceptances,
+        accept_regression_reason="the host team retires; the remaining U10 field accepts one fewer appearance",
+    )
+    assert result["committed"] is True
+    assert result["consequence_acceptable"] is True
+    accepted = result["regression_acceptance"]["accepted_regressions"]
+    assert {(item["team"], item["code"]) for item in accepted} == {
+        (team, PARTICIPATION_CODE) for _club, team in _cancelled_participants()
+    }
+
+    by_id = _tournaments_by_id(root)
+    assert by_id["u10-b"]["cancelled"] is True
+    assert "Echo 1" not in {team["label"] for team in by_id["u10-a"]["teams"]}
+
+    batches = [
+        event
+        for event in load_decisions(SEASON, root=root).get("history", [])
+        if event.get("event") == "batch_maintenance"
+    ]
+    recorded = batches[-1]["details"]["accepted_regressions"]
+    assert {(item["team"], item["code"]) for item in recorded} == {
+        (team, PARTICIPATION_CODE) for _club, team in _cancelled_participants()
+    }
+
+
+def test_batch_without_cancel_rejects_participation_code(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path, candidate=_regressing_candidate())
+    with pytest.raises(SeasonStateError, match="cannot be accepted"):
+        _batch(
+            root,
+            accept_regressions=[f"W1={PARTICIPATION_CODE}"],
+            accept_regression_reason="blanket override",
+        )

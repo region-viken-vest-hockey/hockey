@@ -586,8 +586,13 @@ def compare_changed_team_schedule_consequence(
 
 
 # Schedule-quality regressions an operator may explicitly accept for one named
-# team. Participation-count/hard-maximum regressions are deliberately absent:
-# they are structural or hard-rule concerns (waivers), not quality trade-offs.
+# team. Participation-count/hard-maximum regressions are deliberately absent
+# here: they are structural or hard-rule concerns (waivers), not quality
+# trade-offs. The one deliberate exception is a batch that explicitly cancels a
+# tournament: the remaining participants lose exactly that one appearance, so
+# CANCEL_ACCEPTABLE_REGRESSION_CODES additionally permits accepting that
+# operator-directed shortfall -- but only for teams that actually played in a
+# cancelled tournament in the same batch (see the batch consequence boundary).
 ACCEPTABLE_REGRESSION_CODES = frozenset(
     {
         "more_gaps_under_7_days",
@@ -598,6 +603,12 @@ ACCEPTABLE_REGRESSION_CODES = frozenset(
     }
 )
 
+PARTICIPATION_COUNT_CHANGED = "participation_count_changed"
+
+CANCEL_ACCEPTABLE_REGRESSION_CODES = ACCEPTABLE_REGRESSION_CODES | frozenset(
+    {PARTICIPATION_COUNT_CHANGED}
+)
+
 
 class RegressionAcceptanceError(ValueError):
     """An operator regression acceptance is malformed or incomplete."""
@@ -606,14 +617,18 @@ class RegressionAcceptanceError(ValueError):
 def parse_regression_acceptances(
     raw: Any,
     reason: str | None,
+    *,
+    allowed_codes: frozenset[str] = ACCEPTABLE_REGRESSION_CODES,
 ) -> list[dict[str, str]]:
     """Normalize explicit operator acceptances of named team regressions.
 
     Each item is ``"<team label>=<code>"``, the fully qualified
     ``"<club>|<team label>|<age group>=<code>"``, or a mapping with ``team``
     (label), ``code`` and optional ``club``/``age_group``. Acceptances are
-    never implied: a non-empty reason is mandatory, and only schedule-quality
-    codes may be accepted.
+    never implied: a non-empty reason is mandatory, and only codes in
+    ``allowed_codes`` may be accepted (schedule-quality codes by default; a
+    cancellation batch widens this to include the one-time participation
+    shortfall it deliberately creates).
     """
 
     items = list(raw or [])
@@ -649,10 +664,10 @@ def parse_regression_acceptances(
                 "Regression acceptance must be '<team label>=<regression code>' or "
                 f"'<club>|<team label>|<age group>=<regression code>': {item!r}"
             )
-        if code not in ACCEPTABLE_REGRESSION_CODES:
+        if code not in allowed_codes:
             raise RegressionAcceptanceError(
                 f"Regression code {code!r} cannot be accepted; acceptable codes: "
-                + ", ".join(sorted(ACCEPTABLE_REGRESSION_CODES))
+                + ", ".join(sorted(allowed_codes))
             )
         key = (club, team, age_group, code)
         if key in seen:
@@ -687,6 +702,8 @@ def _acceptance_label(acceptance: Mapping[str, Any]) -> str:
 def evaluate_regression_acceptances(
     team_consequences: Mapping[str, Mapping[str, Any]],
     acceptances: list[Mapping[str, str]] | None,
+    *,
+    code_scope: Mapping[str, set[TeamIdentity]] | None = None,
 ) -> dict[str, Any]:
     """Apply explicit operator acceptances to per-team consequence analyses.
 
@@ -697,6 +714,12 @@ def evaluate_regression_acceptances(
     regression still refuses, and an acceptance matching no material
     regression in the candidate is itself a refusal, so acceptances cannot be
     supplied pre-emptively or as a blanket override.
+
+    ``code_scope`` optionally narrows a code to the identities it may waive
+    (for example ``participation_count_changed`` is only acceptable for teams
+    that played in a tournament the same batch cancelled). An acceptance that
+    resolves to an identity outside its code's scope is reported separately
+    and refuses, rather than silently waiving an unrelated shortfall.
     """
 
     affected = {
@@ -707,6 +730,7 @@ def evaluate_regression_acceptances(
     resolved: dict[tuple[TeamIdentity, str], Mapping[str, Any]] = {}
     ambiguous: list[dict[str, Any]] = []
     unmatched: list[dict[str, Any]] = []
+    ineligible: list[dict[str, Any]] = []
     for acceptance in acceptances or []:
         candidates = sorted(
             identity
@@ -721,7 +745,19 @@ def evaluate_regression_acceptances(
                 {**entry, "candidates": ["|".join(identity) for identity in candidates]}
             )
         elif candidates:
-            resolved[(candidates[0], entry["code"])] = acceptance
+            identity = candidates[0]
+            allowed = None if code_scope is None else code_scope.get(entry["code"])
+            if allowed is not None and identity not in allowed:
+                ineligible.append(
+                    {
+                        **entry,
+                        "team": identity[1],
+                        "club": identity[0],
+                        "age_group": identity[2],
+                    }
+                )
+                continue
+            resolved[(identity, entry["code"])] = acceptance
         else:
             unmatched.append(entry)
 
@@ -752,11 +788,12 @@ def evaluate_regression_acceptances(
         if (identity, code) not in matched
     )
     return {
-        "acceptable": not unaccepted and not unmatched and not ambiguous,
+        "acceptable": not unaccepted and not unmatched and not ambiguous and not ineligible,
         "accepted_regressions": accepted,
         "unaccepted_regressions": unaccepted,
         "unmatched_acceptances": unmatched,
         "ambiguous_acceptances": ambiguous,
+        "ineligible_acceptances": ineligible,
     }
 
 
@@ -786,11 +823,22 @@ def regression_acceptance_refusals(evaluation: Mapping[str, Any]) -> list[str]:
             "regression acceptance(s) match no material regression: "
             + ", ".join(item["acceptance"] for item in evaluation["unmatched_acceptances"])
         )
+    if evaluation.get("ineligible_acceptances"):
+        reasons.append(
+            "regression acceptance(s) name a team the accepted code does not cover: "
+            + ", ".join(
+                f"{item['acceptance']} ({item.get('club', '')}|{item.get('team', '')}|"
+                f"{item.get('age_group', '')})"
+                for item in evaluation["ineligible_acceptances"]
+            )
+        )
     return reasons
 
 
 __all__ = [
     "ACCEPTABLE_REGRESSION_CODES",
+    "CANCEL_ACCEPTABLE_REGRESSION_CODES",
+    "PARTICIPATION_COUNT_CHANGED",
     "RegressionAcceptanceError",
     "TeamIdentity",
     "compare_changed_team_schedule_consequence",
