@@ -1831,7 +1831,7 @@ def test_missing_calendar_evidence_is_not_booked_and_not_manual_queue(tmp_path):
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     row = _booking_row(report, "t1")
     assert row["status"] in ("ambiguous", "unknown")
-    assert row["operational_state"] == "not_booked"
+    assert row["operational_state"] == "unknown"
     assert row["operational_lock"] is False
 
 

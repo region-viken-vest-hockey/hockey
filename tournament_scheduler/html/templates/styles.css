@@ -383,8 +383,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 /* One operational booking badge per card; the detailed evidence lives in
    .booking-details inside the expanded card. */
 .booking-badge--booked { color:#22c55e; border-color:rgba(34,197,94,.45); }
-.booking-badge--action_required { color:var(--amber); border-color:rgba(245,158,11,.55); }
-.booking-badge--not_booked { color:var(--text-muted); }
+.booking-badge--action_required, .booking-badge--changed_slot_review { color:var(--amber); border-color:rgba(245,158,11,.55); }
+.booking-badge--presumed_unscheduled { color:#f97316; border-color:rgba(249,115,22,.55); }
+.booking-badge--not_booked, .booking-badge--unknown { color:var(--text-muted); }
 .booking-badge--review { box-shadow:0 0 0 1px rgba(245,158,11,.55); }
 .booking-details { border:1px solid var(--border-dim); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:10px; background:var(--bg); }
 .booking-details-head { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); margin:0 0 6px; }
