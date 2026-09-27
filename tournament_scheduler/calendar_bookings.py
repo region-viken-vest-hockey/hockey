@@ -64,6 +64,7 @@ _ASSESSMENT_UNRESOLVED = {
     ASSESSMENT_COMPETING_CANDIDATES,
     ASSESSMENT_AMBIGUOUS,
     ASSESSMENT_UNMATCHED,
+    ASSESSMENT_PRESUMED_UNSCHEDULED,
     ASSESSMENT_NOT_CHECKABLE,
 }
 _ASSESSMENT_RELATION_RANK = {
@@ -776,6 +777,54 @@ def operational_booking_state(
     return OPERATIONAL_NOT_BOOKED
 
 
+def _assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Return the non-binding assessment provenance for one booking-status row.
+
+    The crosswalk is advisory: attaching these fields never changes an accepted
+    booking status or authority. It carries the classification and canonical
+    interval and, only when a plausible observation exists, the latest
+    *actionable* calendar observation. A negative finding deliberately carries
+    no observed interval, because an unrelated or wrong-arena event must never
+    be presented as this tournament's observed booking.
+    """
+
+    if not assessment_row:
+        return {}
+    fields: dict[str, Any] = {}
+    classification = str(assessment_row.get("classification") or "")
+    if classification:
+        fields["booking_assessment_classification"] = classification
+    canonical_interval = assessment_row.get("canonical_interval")
+    if isinstance(canonical_interval, Mapping):
+        fields["canonical_interval"] = dict(canonical_interval)
+    actionable = [
+        candidate
+        for candidate in assessment_row.get("candidates") or []
+        if isinstance(candidate, Mapping) and candidate.get("actionable")
+    ]
+    if actionable:
+        candidate = max(
+            actionable,
+            key=lambda item: (
+                str(item.get("date") or ""),
+                str(item.get("start") or ""),
+                str(item.get("end") or ""),
+            ),
+        )
+        fields["latest_observed_interval"] = {
+            "date": str(candidate.get("date") or ""),
+            "start": str(candidate.get("start") or ""),
+            "end": str(candidate.get("end") or ""),
+            "event_fingerprint": str(candidate.get("event_fingerprint") or ""),
+            "title": str(candidate.get("title") or ""),
+            "source_trusted": bool(candidate.get("source_trusted")),
+            "actionable": True,
+        }
+    if classification == ASSESSMENT_PRESUMED_UNSCHEDULED:
+        fields["negative_evidence"] = assessment_row.get("negative_evidence")
+    return fields
+
+
 def booking_status_report(
     *,
     problem: Mapping[str, Any] | None,
@@ -903,6 +952,11 @@ def booking_status_report(
                 "calendar_stale_reasons": calendar_stale_reasons,
                 "evidence": manual,
             }
+            # Carry advisory crosswalk provenance (classification, canonical and
+            # latest observed interval, negative evidence) next to a manual
+            # authority so a contradicting scrape stays visible without ever
+            # demoting the accepted confirmation/rejection.
+            row.update(_assessment_provenance_fields(assessment_by_tournament.get(tid)))
             if calendar_record:
                 row["calendar_evidence"] = calendar_record
         else:
@@ -942,27 +996,7 @@ def booking_status_report(
                 "calendar_status": status,
                 "calendar_stale_reasons": calendar_stale_reasons,
             }
-            if assessment_row:
-                row["booking_assessment_classification"] = assessment_classification
-                row["canonical_interval"] = assessment_row.get("canonical_interval")
-                candidates = [
-                    candidate
-                    for candidate in assessment_row.get("candidates") or []
-                    if isinstance(candidate, Mapping)
-                ]
-                if candidates:
-                    candidate = next((item for item in candidates if item.get("actionable")), candidates[0])
-                    row["latest_observed_interval"] = {
-                        "date": str(candidate.get("date") or ""),
-                        "start": str(candidate.get("start") or ""),
-                        "end": str(candidate.get("end") or ""),
-                        "event_fingerprint": str(candidate.get("event_fingerprint") or ""),
-                        "title": str(candidate.get("title") or ""),
-                        "source_trusted": bool(candidate.get("source_trusted")),
-                        "actionable": bool(candidate.get("actionable")),
-                    }
-                if assessment_classification == ASSESSMENT_PRESUMED_UNSCHEDULED:
-                    row["negative_evidence"] = assessment_row.get("negative_evidence")
+            row.update(_assessment_provenance_fields(assessment_row))
             if calendar_record:
                 row["evidence"] = calendar_record
         if conflict:
@@ -1143,7 +1177,11 @@ def _date_window_covered(
         return False
     window_start = center - timedelta(days=max(0, int(date_window_days)))
     window_end = center + timedelta(days=max(0, int(date_window_days)))
-    observed = source.get("event_observed_window") or source.get("observed_window") or {}
+    # The navigated/observed window is the scraper's actual coverage claim.
+    # ``event_observed_window`` is merely the first/last event date and would
+    # let two sparse events bracket an unobserved gap, so it must never prove
+    # that the intervening period was actually observed.
+    observed = source.get("observed_window") or {}
     if not isinstance(observed, Mapping):
         return False
     observed_start = _assessment_parse_date(observed.get("start"))

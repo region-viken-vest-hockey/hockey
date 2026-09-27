@@ -203,6 +203,90 @@ class TestBookingStatusRendering:
         assert "heatmap-booking-confirmed_not_booked" in html
         assert "booket bekreftet" in html
 
+    def test_schedule_booking_provenance_and_negative_evidence_states(self, tmp_path):
+        def _tournament(tid, age_group, start_time):
+            return {
+                "id": tid,
+                "date": "2025-10-05",
+                "arena": "Askerhallen",
+                "age_group": age_group,
+                "host_club": "Frisk Asker",
+                "teams": [
+                    {"club": "Frisk Asker", "label": f"{age_group}1", "age_group": age_group},
+                    {"club": "Skien", "label": f"S{age_group}", "age_group": age_group},
+                ],
+                "games": [
+                    {
+                        "home": f"{age_group}1",
+                        "away": f"S{age_group}",
+                        "parallel_slot": 0,
+                        "round_number": 1,
+                    }
+                ],
+                "start_time": start_time,
+            }
+
+        plan_dict = {
+            "start_date": "2025-10-01",
+            "end_date": "2025-12-01",
+            "tournaments": [
+                _tournament("t-changed", "U10", "10:00"),
+                _tournament("t-absent", "U12", "12:00"),
+            ],
+        }
+        exporter = HtmlExporter()
+        out_path = tmp_path / "season_plan.html"
+        exporter.export(
+            season_plan_from_dict(plan_dict),
+            out_path,
+            age_groups=["U10", "U12"],
+            pipeline_meta={
+                "booking_status": {
+                    "counts": {"changed_slot_review": 1, "presumed_unscheduled": 1},
+                    "tournaments": [
+                        {
+                            "tournament_id": "t-changed",
+                            "status": "unknown",
+                            "operational_state": "changed_slot_review",
+                            "booking_assessment_classification": "proposed_changed_slot",
+                            "canonical_interval": {"date": "2025-10-05", "start_time": "10:00", "end_time": "12:00"},
+                            "latest_observed_interval": {
+                                "date": "2025-10-05",
+                                "start": "13:00",
+                                "end": "15:00",
+                                "title": "Miniputt U10",
+                                "actionable": True,
+                            },
+                        },
+                        {
+                            "tournament_id": "t-absent",
+                            "status": "unknown",
+                            "operational_state": "presumed_unscheduled",
+                            "booking_assessment_classification": "presumed_unscheduled",
+                            "canonical_interval": {"date": "2025-10-05", "start_time": "12:00", "end_time": "14:00"},
+                            "negative_evidence": {
+                                "reason": "complete_trusted_calendar_window_without_plausible_match",
+                                "source_event_count": 3,
+                            },
+                        },
+                    ],
+                }
+            },
+        )
+        html = out_path.read_text(encoding="utf-8")
+        embedded = {row["id"]: row for row in _embedded_tournaments(html)}
+
+        assert embedded["t-changed"]["obs"] == "changed_slot_review"
+        assert embedded["t-changed"]["bac"] == "proposed_changed_slot"
+        assert embedded["t-changed"]["boi"]["s"] == "13:00"
+        assert embedded["t-absent"]["obs"] == "presumed_unscheduled"
+        assert embedded["t-absent"]["bne"]["c"] == 3
+        assert "latest_observed_interval" not in embedded["t-absent"]
+        assert '<option value="changed_slot_review">' in html
+        assert '<option value="presumed_unscheduled">' in html
+        assert "ENDRET TID" in html
+        assert "TROLIG IKKE SATT OPP" in html
+
     def test_schedule_embeds_distinct_approval_and_booking_states(self, tmp_path):
         plan_dict = {
             "start_date": "2025-10-01",

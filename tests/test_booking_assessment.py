@@ -63,7 +63,7 @@ def _promote(tmp_path, tournaments):
     return root
 
 
-def _problem(events, *, status="known", complete=False, club="A"):
+def _problem(events, *, status="known", complete=False, club="A", observed_window=None):
     problem = {
         "start_date": "2026-09-01",
         "end_date": "2027-04-30",
@@ -76,6 +76,7 @@ def _problem(events, *, status="known", complete=False, club="A"):
         "club_busy_intervals": {club: events},
     }
     if complete:
+        start, end = observed_window or ("2026-09-01", "2027-04-30")
         problem["club_source_integrity"] = {club: "complete"}
         problem["club_coverage_proven"] = {club: True}
         problem["club_source_integrity_details"] = {
@@ -83,8 +84,8 @@ def _problem(events, *, status="known", complete=False, club="A"):
                 "fingerprint": f"{club}-complete",
                 "requested_start": "2026-09-01",
                 "requested_end": "2027-04-30",
-                "observed_start": "2026-09-01",
-                "observed_end": "2027-04-30",
+                "observed_start": start,
+                "observed_end": end,
                 "event_observed_start": "2026-09-01",
                 "event_observed_end": "2027-04-30",
                 "event_count": len(events) if hasattr(events, "__len__") else 0,
@@ -165,6 +166,26 @@ def test_askerhallen_regression_excludes_varner_and_surfaces_changed_time(tmp_pa
     assert status_row["canonical_interval"] == row["canonical_interval"]
     assert status_row["latest_observed_interval"]["date"] == "2026-09-12"
     assert status_row["latest_observed_interval"]["start"] == "13:00"
+
+
+def test_changed_slot_provenance_uses_latest_actionable_observation(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00", arena="Askerhallen")])
+    problem = _problem(
+        [
+            # Same-day but wrong arena: visible observation, not actionable.
+            _event("2026-09-12", "13:00", "15:00", arena="Varner Arena"),
+            _event("2026-09-14", "09:00", "11:00", arena="Askerhallen"),
+        ],
+        complete=True,
+    )
+
+    status_row = _tournament_row(booking_status_report(season="2026-2027", root=root, problem=problem), "t1")
+
+    assert status_row["operational_state"] == "changed_slot_review"
+    # The wrong-arena observation sorts first in the candidate list, but
+    # provenance must point at the latest *actionable* observation.
+    assert status_row["latest_observed_interval"]["date"] == "2026-09-14"
+    assert status_row["latest_observed_interval"]["start"] == "09:00"
 
 
 def test_wrong_arena_observation_does_not_block_presumed_unscheduled_when_source_complete(tmp_path):
@@ -252,12 +273,19 @@ def test_complete_trusted_calendar_absence_is_presumed_unscheduled(tmp_path):
     assert row["negative_evidence"]["reason"] == "complete_trusted_calendar_window_without_plausible_match"
     assert result["sources"]["A"]["trusted_for_negative_claim"] is True
     assert "confirmed_not_booked" not in json.dumps(result)
+    # Negative evidence is unresolved work: it must be counted, not hidden.
+    assert result["counts"]["presumed_unscheduled"] == 1
+    assert result["counts"]["unresolved_tournaments"] == 1
+    assert result["unresolved"]["tournament_ids"] == ["t1"]
 
     status = booking_status_report(season="2026-2027", root=root, problem=problem)
     status_row = _tournament_row(status, "t1")
     assert status_row["operational_state"] == "presumed_unscheduled"
     assert status_row["booking_assessment_classification"] == "presumed_unscheduled"
     assert status_row["negative_evidence"]["source_event_count"] == 1
+    # An unrelated event must never be rendered as this tournament's observed
+    # booking interval on a negative finding.
+    assert "latest_observed_interval" not in status_row
 
 
 def test_partial_or_uncovered_source_never_presumes_unscheduled(tmp_path):
@@ -266,10 +294,16 @@ def test_partial_or_uncovered_source_never_presumes_unscheduled(tmp_path):
     problem["club_source_integrity"] = {"A": "partial"}
     assert _tournament_row(_assess(root, problem), "t1")["classification"] == "unmatched"
 
-    problem = _problem([_event("2026-10-30", "10:00", "12:00")], complete=True)
-    problem["club_source_integrity_details"]["A"]["event_observed_start"] = "2026-09-10"
-    problem["club_source_integrity_details"]["A"]["event_observed_end"] = "2026-09-13"
-    assert _tournament_row(_assess(root, problem), "t1")["classification"] == "unmatched"
+    # The scraper only actually observed a short sub-window, while the source's
+    # first/last event dates (here the helper's full requested range) bracket the
+    # tournament window. First/last event dates must not be read as continuous
+    # coverage: only the navigated/observed window may prove coverage.
+    sparse = _problem(
+        [_event("2026-10-30", "10:00", "12:00"), _event("2026-11-15", "10:00", "12:00")],
+        complete=True,
+        observed_window=("2026-09-10", "2026-09-13"),
+    )
+    assert _tournament_row(_assess(root, sparse), "t1")["classification"] == "unmatched"
 
 
 def test_untrusted_source_fails_closed_to_not_checkable(tmp_path):
@@ -461,6 +495,30 @@ def test_explicit_association_and_manual_assertion_are_reported_as_authority(tmp
     manual = _tournament_row(_assess(root, problem), "t1")
     assert manual["classification"] == "manually_asserted"
     assert manual["manual_authority"] == "manual_club_confirmation"
+
+
+def test_manual_authority_keeps_advisory_provenance_without_demotion(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    problem = _problem([_event("2026-09-12", "13:00", "15:00")], complete=True)
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="booker",
+        reference="email:1",
+        problem=problem,
+    )
+
+    status_row = _tournament_row(booking_status_report(season="2026-2027", root=root, problem=problem), "t1")
+
+    assert status_row["status"] == "manually_booked"
+    assert status_row["operational_state"] == "booked"
+    # A contradicting scrape stays visible as advisory provenance next to the
+    # manual authority; it must never demote the accepted confirmation.
+    assert status_row["booking_assessment_classification"] == "manually_asserted"
+    assert status_row["canonical_interval"]["start_time"] == "10:00"
+    assert status_row["latest_observed_interval"]["start"] == "13:00"
 
 
 def test_stale_association_is_surfaced_by_assessment(tmp_path):
