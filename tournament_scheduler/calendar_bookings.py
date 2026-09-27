@@ -23,6 +23,15 @@ TOURNAMENT_BOOKING_EVIDENCE_KEY = "tournament_booking_evidence"
 # booking whose authority is a person, not an event fingerprint.  The projection
 # keeps that typed authority distinct from a calendar-derived observation.
 MANUAL_BOOKING_ASSERTIONS_KEY = "manual_booking_assertions"
+# A club-wide booking list (for example a spreadsheet or an email listing every
+# home tournament) is a single source document, not a bag of independent
+# per-tournament confirmations.  The source assertion is persisted separately so
+# the original evidence, its version/fingerprint and the club scope survive even
+# after every per-tournament interpretation is re-confirmed.  Each individual
+# manual assertion may link to it, which keeps club provenance out of the
+# assertion itself while preserving the per-ID authority.
+CLUB_BOOKING_SOURCE_ASSERTIONS_KEY = "club_booking_source_assertions"
+CLUB_BOOKING_SOURCE_SCOPE = "club_wide"
 MANUAL_SOURCE_CLUB_CONFIRMATION = "manual_club_confirmation"
 MANUAL_ASSERTION_ACTIVE = "active"
 MANUAL_ASSERTION_SUPERSEDED = "superseded"
@@ -373,6 +382,145 @@ def manual_assertion_interval_follow_up(assertion: Mapping[str, Any]) -> list[st
     return reasons
 
 
+def club_booking_source_id(club: str, source_fingerprint: str) -> str:
+    """Stable identity for one club-wide booking source document."""
+
+    return f"club_booking_source:{club}:{source_fingerprint}"
+
+
+def _club_booking_source_fingerprint(
+    *,
+    club: str,
+    source_document: str,
+    source_version: str,
+) -> str:
+    """Deterministic identity of a club booking source when none is supplied.
+
+    The fingerprint names the source identity, not its volatile file bytes, so a
+    re-import of the same document/version is idempotent while a new version or
+    a different document is a distinct, superseding assertion.
+    """
+
+    return stable_payload_sha256(
+        {"club": club, "source_document": source_document, "source_version": source_version}
+    )
+
+
+def new_club_booking_source_record(
+    *,
+    club: str,
+    source_document: str,
+    source_version: str,
+    actor: str,
+    asserted_at: str,
+    source_revision: str,
+    reference: str = "",
+    note: str = "",
+    source_fingerprint: str | None = None,
+    supersedes: str | None = None,
+) -> dict[str, Any]:
+    """Build one durable, revision-bound club-wide booking source assertion.
+
+    The record carries the original source identity/version plus its optional
+    explicit fingerprint, so a later operator can tell which club-provided
+    booking list a per-tournament interpretation was derived from.
+    """
+
+    fingerprint = str(source_fingerprint or "").strip() or _club_booking_source_fingerprint(
+        club=club,
+        source_document=source_document,
+        source_version=source_version,
+    )
+    return {
+        "id": club_booking_source_id(club, fingerprint),
+        "schema_version": 1,
+        "status": MANUAL_ASSERTION_ACTIVE,
+        "authority": BOOKING_AUTHORITY_MANUAL_INTERPRETATION,
+        "source_scope": CLUB_BOOKING_SOURCE_SCOPE,
+        "host_club": club,
+        "source_document": source_document,
+        "source_version": source_version,
+        "source_fingerprint": fingerprint,
+        "reference": str(reference or ""),
+        "note": note or "",
+        "asserted_at": asserted_at,
+        "asserted_by": actor,
+        "source_revision": source_revision,
+        "supersedes": supersedes,
+    }
+
+
+def club_booking_source_records(decisions: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    """Return every persisted club-wide booking source assertion."""
+
+    return [
+        dict(record)
+        for record in ((decisions or {}).get(CLUB_BOOKING_SOURCE_ASSERTIONS_KEY) or [])
+        if isinstance(record, Mapping)
+    ]
+
+
+def active_club_booking_source_assertions(decisions: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    return [
+        record
+        for record in club_booking_source_records(decisions)
+        if str(record.get("status") or "") == MANUAL_ASSERTION_ACTIVE
+    ]
+
+
+def club_booking_source_by_id(
+    decisions: Mapping[str, Any] | None,
+    source_id: str,
+) -> dict[str, Any] | None:
+    """Return one active club-wide source assertion by id, if present.
+
+    Used for link validation: a new per-tournament interpretation may only be
+    linked to a currently active source version.
+    """
+
+    if not source_id:
+        return None
+    for record in active_club_booking_source_assertions(decisions):
+        if str(record.get("id") or "") == source_id:
+            return record
+    return None
+
+
+def club_booking_source_record_by_id(
+    decisions: Mapping[str, Any] | None,
+    source_id: str,
+) -> dict[str, Any] | None:
+    """Return one club-wide source assertion by id regardless of status.
+
+    Historical provenance lookup: after a source is superseded, existing
+    per-tournament interpretations still reference the old id and must keep
+    resolving to the document/version they were derived from.
+    """
+
+    if not source_id:
+        return None
+    for record in club_booking_source_records(decisions):
+        if str(record.get("id") or "") == source_id:
+            return record
+    return None
+
+
+def active_club_booking_source_for_club(
+    decisions: Mapping[str, Any] | None,
+    club: str,
+) -> dict[str, Any] | None:
+    """Return the newest active club-wide source assertion for one club."""
+
+    matches = [
+        record
+        for record in active_club_booking_source_assertions(decisions)
+        if str(record.get("host_club") or "") == club
+    ]
+    if not matches:
+        return None
+    return sorted(matches, key=lambda record: str(record.get("asserted_at") or ""))[-1]
+
+
 def new_manual_assertion_record(
     *,
     tournament: Mapping[str, Any],
@@ -386,6 +534,7 @@ def new_manual_assertion_record(
     asserted_at: str,
     source_revision: str,
     supersedes: str | None = None,
+    source_assertion_id: str | None = None,
 ) -> dict[str, Any]:
     """Build one durable, revision-bound manual booking assertion record."""
 
@@ -400,6 +549,7 @@ def new_manual_assertion_record(
         "authority": BOOKING_AUTHORITY_MANUAL,
         "source": MANUAL_SOURCE_CLUB_CONFIRMATION,
         "source_scope": source_scope if source_scope in MANUAL_ASSERTION_SCOPES else "tournament",
+        "source_assertion_id": str(source_assertion_id or "") or None,
         "tournament_id": tournament_id,
         "host_club": str(tournament.get("host_club") or ""),
         "arena": str(tournament.get("arena") or ""),
@@ -829,6 +979,11 @@ def _manual_work_source(row: Mapping[str, Any]) -> dict[str, Any]:
             "asserted_at": str(evidence.get("asserted_at") or ""),
             "assertion_id": str(evidence.get("id") or ""),
             "supersedes": str(evidence.get("supersedes") or ""),
+            # Club-wide source provenance, denormalized from the linked source
+            # assertion so the queue item is traceable without a second lookup.
+            "source_assertion_id": str(row.get("source_assertion_id") or ""),
+            "source_document": str(row.get("source_document") or ""),
+            "source_version": str(row.get("source_version") or ""),
         }
     # A calendar-only row stores its booking-evidence record under
     # ``evidence`` (no authority); a manual row may additionally carry a
@@ -978,6 +1133,156 @@ def _assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> d
     return fields
 
 
+def _club_booking_source_projection(
+    *,
+    decisions: Mapping[str, Any] | None,
+    rows: list[dict[str, Any]],
+    plan: Mapping[str, Any] | None,
+    problem: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Group per-tournament booking authority under its club-wide source.
+
+    The projection is read-only: it reports which club-provided booking list
+    each interpretation came from, the per-ID canonical interval and booking
+    state, and any interval follow-up (for example a duration discrepancy the
+    club stated but the canonical occupancy deliberately did not adopt). It also
+    flags two linked IDs whose club-stated (or canonical) intervals overlap, so an
+    ambiguous club list is review-required instead of silently treated as two
+    bookings.
+    """
+
+    tournaments = _tournaments_by_id(plan)
+    rows_by_id = {str(row.get("tournament_id") or ""): row for row in rows}
+    active = active_manual_assertions(decisions)
+    all_sources = {
+        str(record.get("id") or ""): record
+        for record in club_booking_source_records(decisions)
+    }
+    active_source_ids = {
+        str(record.get("id") or "")
+        for record in active_club_booking_source_assertions(decisions)
+    }
+    referenced_ids = {
+        str(assertion.get("source_assertion_id") or "")
+        for assertion in active
+        if str(assertion.get("source_assertion_id") or "")
+    }
+    # Report every active source plus any superseded source still referenced by
+    # an active assertion, so replacing a source version never silently drops
+    # the provenance (and the review signal) for already-linked IDs.
+    report_ids = sorted(active_source_ids) + sorted(referenced_ids - active_source_ids)
+    sources: list[dict[str, Any]] = []
+    for source_id in report_ids:
+        record = all_sources.get(source_id) or {}
+        is_active = source_id in active_source_ids
+        items: list[dict[str, Any]] = []
+        for assertion in sorted(active, key=lambda item: str(item.get("tournament_id") or "")):
+            if str(assertion.get("source_assertion_id") or "") != source_id:
+                continue
+            tid = str(assertion.get("tournament_id") or "")
+            tournament = tournaments.get(tid)
+            row = rows_by_id.get(tid) or {}
+            interval = (
+                tournament_occupancy_interval_facts(tournament, problem)
+                if tournament is not None
+                else {}
+            )
+            stated = assertion.get("stated_interval") or {}
+            # The club's own window is the review subject when it stated one; a
+            # club-wide list commonly overlaps even though the canonical plan
+            # was shortened to fit. Fall back to the canonical interval when the
+            # source did not state a window.
+            effective_date = str(stated.get("date") or interval.get("date") or "")
+            effective_start = str(stated.get("start") or interval.get("start_time") or "")
+            effective_end = str(stated.get("end") or interval.get("end_time") or "")
+            items.append(
+                {
+                    "tournament_id": tid,
+                    "age_group": str((tournament or {}).get("age_group") or ""),
+                    "date": str((tournament or {}).get("date") or ""),
+                    "canonical_interval": interval,
+                    "stated_interval": dict(stated) if isinstance(stated, Mapping) else {},
+                    "effective_source_interval": {
+                        "date": effective_date,
+                        "start_time": effective_start,
+                        "end_time": effective_end,
+                    },
+                    "booking_status": row.get("status"),
+                    "operational_state": row.get("operational_state"),
+                    "authority": row.get("authority"),
+                    "stale_reasons": list(row.get("stale_reasons") or []),
+                    "interval_follow_up": manual_assertion_interval_follow_up(assertion),
+                }
+            )
+        overlaps: list[list[str]] = []
+        for left_index, left in enumerate(items):
+            for right in items[left_index + 1 :]:
+                same_date = (
+                    left["effective_source_interval"]["date"]
+                    and left["effective_source_interval"]["date"]
+                    == right["effective_source_interval"]["date"]
+                )
+                if not same_date:
+                    continue
+                left_start = _parse_hhmm(left["effective_source_interval"]["start_time"])
+                left_end = _parse_hhmm(left["effective_source_interval"]["end_time"])
+                right_start = _parse_hhmm(right["effective_source_interval"]["start_time"])
+                right_end = _parse_hhmm(right["effective_source_interval"]["end_time"])
+                if None in (left_start, left_end, right_start, right_end):
+                    continue
+                if left_start < right_end and right_start < left_end:
+                    overlaps.append([left["tournament_id"], right["tournament_id"]])
+        stale_link = bool(items) and not is_active
+        sources.append(
+            {
+                "id": source_id,
+                "host_club": str(record.get("host_club") or ""),
+                "source_document": str(record.get("source_document") or ""),
+                "source_version": str(record.get("source_version") or ""),
+                "source_fingerprint": str(record.get("source_fingerprint") or ""),
+                "reference": str(record.get("reference") or ""),
+                "asserted_at": str(record.get("asserted_at") or ""),
+                "asserted_by": str(record.get("asserted_by") or ""),
+                "status": str(record.get("status") or ""),
+                "is_active": is_active,
+                "superseded_by": str(record.get("superseded_by") or ""),
+                "stale_link": stale_link,
+                "tournament_ids": [item["tournament_id"] for item in items],
+                "tournaments": items,
+                "overlapping_source_intervals": overlaps,
+                "requires_operator_review": bool(overlaps) or stale_link,
+            }
+        )
+    # A club-wide interpretation recorded before source documents existed (or
+    # whose source was not linked) stays visible as unprovenanced so it is not
+    # mistaken for a direct per-tournament confirmation with a known source.
+    unlinked = sorted(
+        str(assertion.get("tournament_id") or "")
+        for assertion in active
+        if str(assertion.get("source_scope") or "") == "club_wide_interpretation"
+        and not str(assertion.get("source_assertion_id") or "")
+    )
+    if unlinked:
+        sources.append(
+            {
+                "id": "club_booking_source:unlinked",
+                "host_club": "",
+                "source_document": "",
+                "source_version": "",
+                "source_fingerprint": "",
+                "reference": "",
+                "asserted_at": "",
+                "asserted_by": "",
+                "tournament_ids": unlinked,
+                "tournaments": [],
+                "overlapping_source_intervals": [],
+                "requires_operator_review": True,
+                "unprovenanced": True,
+            }
+        )
+    return sources
+
+
 def booking_status_report(
     *,
     problem: Mapping[str, Any] | None,
@@ -1063,6 +1368,13 @@ def booking_status_report(
                 if source_scope == "club_wide_interpretation"
                 else BOOKING_AUTHORITY_MANUAL
             )
+            source_record = club_booking_source_record_by_id(
+                decisions, str(manual.get("source_assertion_id") or "")
+            )
+            source_is_current = (
+                source_record is None
+                or str(source_record.get("status") or "") == MANUAL_ASSERTION_ACTIVE
+            )
             manual_stale = manual_assertion_stale_reasons(manual, problem=problem, tournament=tournament)
             if manual_stale:
                 # The operator confirmed a specific slot; a changed canonical
@@ -1082,6 +1394,11 @@ def booking_status_report(
             # authority; a failed/unverified scrape never downgrades the club's
             # explicit confirmation.
             follow_up_reasons.extend(calendar_stale_reasons)
+            if not source_is_current:
+                # The assertion is still valid authority, but it points at a
+                # superseded club source version; surface it for relinking
+                # rather than silently losing the provenance.
+                follow_up_reasons.append("club_booking_source_superseded")
             operational_state = operational_booking_state(
                 status=status,
                 manual_booking_reason=str(tournament.get("manual_booking_reason") or ""),
@@ -1094,6 +1411,10 @@ def booking_status_report(
                 "operational_lock": operational_state == OPERATIONAL_BOOKED,
                 "authority": authority,
                 "source_scope": source_scope,
+                "source_assertion_id": str(manual.get("source_assertion_id") or "") or None,
+                "source_document": str((source_record or {}).get("source_document") or ""),
+                "source_version": str((source_record or {}).get("source_version") or ""),
+                "source_is_current": source_is_current,
                 "host_club": str(tournament.get("host_club") or ""),
                 "age_group": str(tournament.get("age_group") or ""),
                 "arena": str(tournament.get("arena") or ""),
@@ -1177,6 +1498,11 @@ def booking_status_report(
         # per-row copy keeps consumers that iterate tournaments able to render
         # the reason/source/alternatives without recomputing the projection.
         "manual_booking_queue": manual_queue,
+        # Club-wide source provenance, grouped per provided booking list. A
+        # source whose own stated windows overlap is review-required.
+        "club_booking_sources": _club_booking_source_projection(
+            decisions=decisions, rows=rows, plan=plan, problem=problem
+        ),
     }
 
 

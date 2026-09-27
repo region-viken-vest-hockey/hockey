@@ -17,15 +17,18 @@ from tournament_scheduler.calendar_bookings import (
     BOOKING_MANUALLY_NOT_BOOKED,
     BOOKING_NOT_CHECKABLE,
     CALENDAR_BOOKING_ASSOCIATIONS_KEY,
+    CLUB_BOOKING_SOURCE_ASSERTIONS_KEY,
     MANUAL_ASSERTION_REVOKED,
     MANUAL_ASSERTION_SCOPES,
     MANUAL_ASSERTION_SUPERSEDED,
     MANUAL_BOOKING_ASSERTIONS_KEY,
     MANUAL_BOOKING_STATUS_CHOICES,
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
+    active_club_booking_source_for_club,
     association_findings,
     booking_assessment,
     booking_status_report as _booking_status_report,
+    club_booking_source_by_id,
     club_calendar_evidence_trusted,
     event_covers_tournament_interval,
     event_fingerprint,
@@ -36,6 +39,7 @@ from tournament_scheduler.calendar_bookings import (
     manual_assertion_stale_reasons,
     new_association_record,
     new_booking_evidence_record,
+    new_club_booking_source_record,
     new_manual_assertion_record,
     valid_active_associations,
     validate_stated_interval,
@@ -1319,6 +1323,7 @@ def _manual_assertion_matches_existing(
         and dict(existing.get("asserted_interval") or {}) == dict(candidate.get("asserted_interval") or {})
         and dict(existing.get("stated_interval") or {}) == dict(candidate.get("stated_interval") or {})
         and str(existing.get("reference") or "") == reference
+        and str(existing.get("source_assertion_id") or "") == str(candidate.get("source_assertion_id") or "")
     )
 
 
@@ -1332,6 +1337,7 @@ def set_manual_booking_assertion(
     note: str = "",
     reference: str = "",
     source_scope: str = "tournament",
+    source_assertion_id: str | None = None,
     stated_start: str | None = None,
     stated_end: str | None = None,
     expected_revision: str | None = None,
@@ -1365,6 +1371,7 @@ def set_manual_booking_assertion(
             f"Unknown manual assertion source scope: {source_scope!r}; "
             f"expected one of {', '.join(MANUAL_ASSERTION_SCOPES)}"
         )
+    linked_source_id = str(source_assertion_id or "").strip() or None
     try:
         stated_interval = validate_stated_interval(stated_start, stated_end) or None
     except ValueError as exc:
@@ -1388,6 +1395,22 @@ def set_manual_booking_assertion(
         raise SeasonStateError(
             f"Tournament {tournament_id} is cancelled and cannot carry a booking assertion"
         )
+    if linked_source_id is not None:
+        source = club_booking_source_by_id(decisions, linked_source_id)
+        if source is None:
+            raise SeasonStateError(
+                f"Unknown active club booking source assertion: {linked_source_id}"
+            )
+        if str(source.get("host_club") or "") != str(tournament.get("host_club") or ""):
+            raise SeasonStateError(
+                "A manual booking assertion may only link to a club booking source for "
+                "the same host club"
+            )
+        if source_scope != "club_wide_interpretation":
+            raise SeasonStateError(
+                "A manual assertion linked to a club-wide booking source must use "
+                "--source-scope club_wide_interpretation"
+            )
     if not (str(reference).strip() or str(note).strip()):
         raise SeasonStateError(
             "A manual booking assertion requires a traceable source reference (--reference) "
@@ -1413,6 +1436,7 @@ def set_manual_booking_assertion(
         stated_interval=stated_interval,
         asserted_at=now,
         source_revision=current_revision,
+        source_assertion_id=linked_source_id,
     )
     if _manual_assertion_matches_existing(existing, candidate, reference=reference):
         return {
@@ -1578,3 +1602,172 @@ def clear_manual_booking_assertion(
     committed = service._commit(snapshot.with_decisions(updated))
     result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
     return result
+
+
+def set_club_booking_source(
+    service,
+    *,
+    season: str,
+    club: str,
+    source_document: str,
+    source_version: str,
+    actor: str | None = None,
+    note: str = "",
+    reference: str = "",
+    source_fingerprint: str | None = None,
+    expected_revision: str | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Record a durable club-wide booking source document as accepted authority.
+
+    The source assertion is decision-only: it never moves, approves or cancels a
+    tournament. It persists the original club-provided booking list (document,
+    version and optional explicit fingerprint) so later per-tournament
+    interpretations remain traceable to the club scope they came from, and a
+    newer version supersedes the previous record while retaining it as audit
+    history. Per-ID authority is still recorded separately with
+    ``set_manual_booking_assertion --source-assertion-id``.
+    """
+
+    if not str(club).strip():
+        raise SeasonStateError("A club booking source assertion requires a club")
+    if not str(source_document).strip():
+        raise SeasonStateError("A club booking source assertion requires --source-document")
+    if not str(source_version).strip():
+        raise SeasonStateError("A club booking source assertion requires --source-version")
+    if not (str(reference).strip() or str(note).strip()):
+        raise SeasonStateError(
+            "A club booking source assertion requires a traceable source reference "
+            "(--reference) or rationale (--note)"
+        )
+    snapshot = service.load(season)
+    schedule, decisions = snapshot.schedule, snapshot.decisions
+    current_revision = canonical_state_revision(schedule, decisions)
+    if expected_revision and expected_revision != current_revision:
+        raise SeasonStateError(
+            f"Stale canonical revision: expected {expected_revision}, current is {current_revision}"
+        )
+    now = _now_iso()
+    resolved_actor = _operator_identity(actor)
+    existing = active_club_booking_source_for_club(decisions, club)
+    candidate = new_club_booking_source_record(
+        club=club,
+        source_document=source_document,
+        source_version=source_version,
+        actor=resolved_actor,
+        asserted_at=now,
+        source_revision=current_revision,
+        reference=reference,
+        note=note,
+        source_fingerprint=source_fingerprint,
+    )
+    if existing is not None and str(existing.get("id") or "") == candidate["id"]:
+        # A stable id alone is not enough: an explicit fingerprint reused for a
+        # different document/version must not silently return the old record.
+        if (
+            str(existing.get("source_document") or "")
+            != str(candidate.get("source_document") or "")
+            or str(existing.get("source_version") or "")
+            != str(candidate.get("source_version") or "")
+        ):
+            raise SeasonStateError(
+                "Source fingerprint already identifies a different document/version "
+                f"({existing.get('source_document')} @ {existing.get('source_version')}); "
+                "use a distinct fingerprint or record the new version under its own identity"
+            )
+        return {
+            "season": season,
+            "dry_run": bool(dry_run),
+            "changed": False,
+            "idempotent": True,
+            "club": club,
+            "source": existing,
+            "canonical_state_revision": current_revision,
+        }
+    if existing is not None:
+        candidate["supersedes"] = str(existing.get("id") or "")
+    updated = dict(decisions)
+    records = [
+        dict(record)
+        for record in updated.get(CLUB_BOOKING_SOURCE_ASSERTIONS_KEY) or []
+        if isinstance(record, Mapping)
+    ]
+    if existing is not None:
+        existing_id = str(existing.get("id") or "")
+        for record in records:
+            if str(record.get("id") or "") == existing_id:
+                record["status"] = MANUAL_ASSERTION_SUPERSEDED
+                record["superseded_at"] = now
+                record["superseded_by"] = candidate["id"]
+                record["supersede_reason"] = note or (
+                    f"superseded by source version {source_version}"
+                )
+    records.append(candidate)
+    updated[CLUB_BOOKING_SOURCE_ASSERTIONS_KEY] = records
+    updated["updated_at"] = now
+    _append_decision_history(
+        updated,
+        event="set_club_booking_source",
+        tournament_id="",
+        actor=resolved_actor,
+        now=now,
+        note=note,
+        details={
+            "club": club,
+            "source_assertion_id": candidate["id"],
+            "source_document": source_document,
+            "source_version": source_version,
+            "source_fingerprint": candidate["source_fingerprint"],
+            "reference": reference or "",
+            "supersedes": candidate.get("supersedes") or "",
+        },
+    )
+    result: dict[str, Any] = {
+        "season": season,
+        "dry_run": bool(dry_run),
+        "changed": True,
+        "idempotent": False,
+        "club": club,
+        "source": candidate,
+        "previous_source": existing,
+        "canonical_state_revision": current_revision,
+    }
+    if dry_run:
+        return result
+    committed = service._commit(snapshot.with_decisions(updated))
+    result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
+    return result
+
+
+def club_booking_sources(
+    service,
+    *,
+    season: str,
+    club: str | None = None,
+    problem: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Read-only per-ID disposition for recorded club-wide booking sources."""
+
+    snapshot = service.load(season)
+    resolved_problem = _resolve_plan_problem(snapshot.schedule, problem, snapshot.decisions)
+    report = _booking_status_report(
+        problem=resolved_problem,
+        plan=snapshot.schedule.get("plan") or {},
+        decisions=snapshot.decisions,
+    )
+    sources = list(report.get("club_booking_sources") or [])
+    if club:
+        sources = [
+            source
+            for source in sources
+            if str(source.get("host_club") or "") == club
+            or source.get("unprovenanced")
+        ]
+    return {
+        "season": season,
+        "canonical_state_revision": canonical_state_revision(
+            snapshot.schedule, snapshot.decisions
+        ),
+        "count": len(sources),
+        "sources": sources,
+    }
