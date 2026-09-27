@@ -123,6 +123,14 @@ def _end_time(start_time: Any, duration_minutes: int) -> str:
 
 
 def _duration_from_problem(tournament: Mapping[str, Any], problem: Mapping[str, Any] | None) -> int | None:
+    # A host-confirmed per-tournament override is the authoritative occupied
+    # duration for this instance and must win over the age-group default so the
+    # published/canonical projection matches the verifier.
+    from tournament_scheduler.canonical_ice_time_overrides import overrides_from_problem
+
+    override = overrides_from_problem(problem).get(str(tournament.get("id") or ""))
+    if isinstance(override, int) and override > 0:
+        return override
     age_group = str(tournament.get("age_group") or "")
     ice_time = (problem or {}).get("ice_time_minutes") or {}
     if isinstance(ice_time, Mapping) and age_group in ice_time:

@@ -284,12 +284,17 @@ def project_canonical_overlays(
     from .calendar_bookings import project_associations_into_problem
     from .canonical_banned_dates import project_banned_dates_into_problem
     from .canonical_holiday_exceptions import project_exceptions_into_problem
+    from .canonical_ice_time_overrides import project_overrides_into_problem
     from .participation_withdrawals import project_into_problem
 
     projected: Dict[str, Any] = dict(problem)
     projected = project_exceptions_into_problem(projected, decisions)
     projected = project_banned_dates_into_problem(projected, decisions)
     projected = project_associations_into_problem(projected, decisions, plan) or projected
+    # A host-confirmed per-tournament ice-time override must reach every
+    # duration consumer (verification, findings, repair/search, export) through
+    # the same projected problem, exactly like the other canonical overlays.
+    projected = project_overrides_into_problem(projected, decisions)
     # A durable participation withdrawal reduces the eligible shape pool. Every
     # shape/round-count verifier must see the same reduced pool the apply-time
     # candidate was verified against, or a committed withdrawal looks

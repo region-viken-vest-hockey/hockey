@@ -252,6 +252,22 @@ scripts/rvv-miniputt season booking-clear --season <season> --tournament-id <id>
 
 This is durable, revision-bound source authority, not a scrape result: it lives in `manual_booking_assertions`, projects as `manually_booked`/`manually_not_booked` with `authority=manual_club_confirmation`, and a later `season reconcile-calendar-bookings`/`season refresh-calendars` never erases or demotes it. A contradicting calendar event surfaces as a review conflict instead of silently overwriting, and independent actionable calendar warnings (for example a stale association) stay visible as follow-up without demoting the club confirmation. A positive confirmation needs a traceable source: pass at least `--reference` or `--note`. Record the real source with `--reference`, and use `--source-scope club_wide_interpretation` when the assertion is one deliberately accepted per-tournament interpretation of a club-wide statement rather than a fabricated itemized confirmation; that scope projects as `authority=manual_club_confirmation_interpretation` (shown as `SKJØNNSVURDERT` in the plan). A source-stated interval that differs from canonical occupancy is captured with `--stated-start`/`--stated-end` as follow-up; canonical occupancy is never silently shrunk, the two values must be a same-day `HH:MM` window with end strictly after start (malformed, zero-length, reversed or overnight windows are rejected), and `--expected-revision` fails closed on stale state. Repeating the same assertion is idempotent. After a move or other material slot change the assertion becomes `stale`: re-confirm the new slot with a fresh `--reference`/`--note` and it is replaced directly, while the old record is kept as `superseded` audit history (no `--supersede` needed); changing the conclusion about a still-current slot requires `--supersede --note`; `season booking-clear` revokes an assertion recorded in error. Rejection never cancels or deletes the tournament (it stays visible as follow-up). Recording a manual booking assertion does not itself approve/lock the placement; use `season approve` when the booking is confirmed and the placement should be protected.
 
+### Host-confirmed per-tournament ice time
+
+A host may confirm that one specific tournament instance really uses less (or more) ice than its age-group default -- for example two U12 tournaments sharing a two-hour window. Do not leave the inflated default in place (it makes the arena-interval conflict check refuse a legal move) and do not hand-edit canonical JSON. Record an explicit, audited override instead:
+
+```bash
+scripts/rvv-miniputt season set-ice-time-minutes --season <season> --tournament-id <id> \
+  --minutes <host-confirmed-minutes> \
+  --request-id <host-request-id> \
+  --reference "<email id/date/sender>" \
+  --note "<concise host-confirmation summary>"
+scripts/rvv-miniputt season ice-time-overrides --season <season>
+scripts/rvv-miniputt season clear-ice-time-minutes --season <season> --tournament-id <id> --note "window reverted"
+```
+
+This is a decision-only write in the canonical `ice_time_minutes_overrides` overlay. It never moves a tournament, changes participants or edits the age-group configuration, but it advances the canonical revision and is projected into the verifier. Arena-interval conflict verification, `confirm-calendar-booking` interval coverage and export/projection end times all resolve the same per-instance duration, so use it before retrying a move that failed with an `arena_interval_conflict` caused only by the default window. The value must satisfy the actual-round format minimum (`actual_round_count * (round_length_minutes + 5)`) and any applicable governing booking floor; a value below that is refused, and a positive confirmation requires `--reference` or `--note`. Repeating the same decision is idempotent; a different value supersedes the previous active record (kept as released audit history). `season clear-ice-time-minutes` restores the age-group default. The override is evidence of a real booked window, not a hard-rule waiver: it changes only this tournament's occupied duration, never its placement, participants or approval state.
+
 ## Change an approved tournament
 
 Do not bypass approval protection. First revoke the approval/locks explicitly:

@@ -71,6 +71,7 @@ __all__ = [
     "calendar_booking_candidates",
     "calendar_booking_findings",
     "change_protection_report",
+    "clear_ice_time_minutes",
     "clear_manual_booking_assertion",
     "compact_history",
     "history_inventory",
@@ -78,6 +79,7 @@ __all__ = [
     "reconcile_calendar_bookings",
     "decisions_path",
     "release_calendar_booking",
+    "set_ice_time_minutes",
     "set_manual_booking_assertion",
     "effective_config_from_verification_problem",
     "export_context_path",
@@ -85,6 +87,7 @@ __all__ = [
     "guest_slot_candidates",
     "guest_slot_report",
     "holiday_date_exception_report",
+    "ice_time_override_report",
     "load_decisions",
     "load_export_context",
     "load_json",
@@ -686,6 +689,66 @@ def clear_manual_booking_assertion(
         actor=actor,
         note=note,
         dry_run=dry_run,
+    )
+
+
+def set_ice_time_minutes(
+    *,
+    season: str,
+    tournament_id: str,
+    minutes: int,
+    request_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    reference: str = "",
+    expected_revision: str | None = None,
+    problem: dict[str, Any] | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).set_ice_time_minutes(
+        season=season,
+        tournament_id=tournament_id,
+        minutes=minutes,
+        request_id=request_id,
+        actor=actor,
+        note=note,
+        reference=reference,
+        expected_revision=expected_revision,
+        problem=problem,
+        dry_run=dry_run,
+    )
+
+
+def clear_ice_time_minutes(
+    *,
+    season: str,
+    tournament_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).clear_ice_time_minutes(
+        season=season,
+        tournament_id=tournament_id,
+        actor=actor,
+        note=note,
+        dry_run=dry_run,
+    )
+
+
+def ice_time_override_report(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    include_released: bool = False,
+) -> dict[str, Any]:
+    return _service(root).ice_time_override_report(
+        season=season,
+        problem=problem,
+        include_released=include_released,
     )
 
 

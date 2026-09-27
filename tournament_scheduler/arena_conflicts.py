@@ -37,15 +37,24 @@ class ArenaInterval:
 def tournament_interval(
     tournament: Tournament,
     ice_time_for_age_group: Mapping[str, int],
+    *,
+    overrides_by_tournament: Mapping[str, int] | None = None,
 ) -> ArenaInterval | None:
     """Return the full occupied interval for *tournament*, or ``None``.
 
     Cancelled tournaments, tournaments without a parseable ``start_time``, and
     tournaments without a positive configured occupancy duration are ignored.
+    ``overrides_by_tournament`` is the projected host-confirmed duration map;
+    when it carries this tournament, that duration replaces the age-group
+    default for the interval.
     """
     if tournament.cancelled or not tournament.start_time:
         return None
-    duration_minutes = tournament_required_ice_minutes(tournament, ice_time_for_age_group)
+    duration_minutes = tournament_required_ice_minutes(
+        tournament,
+        ice_time_for_age_group,
+        overrides_by_tournament=overrides_by_tournament,
+    )
     if duration_minutes <= 0:
         return None
     try:
@@ -68,11 +77,17 @@ def tournament_interval(
 def tournament_intervals(
     tournaments: Iterable[Tournament],
     ice_time_for_age_group: Mapping[str, int],
+    *,
+    overrides_by_tournament: Mapping[str, int] | None = None,
 ) -> list[ArenaInterval]:
     """Return all evaluable arena intervals for *tournaments*."""
     intervals: list[ArenaInterval] = []
     for tournament in tournaments:
-        interval = tournament_interval(tournament, ice_time_for_age_group)
+        interval = tournament_interval(
+            tournament,
+            ice_time_for_age_group,
+            overrides_by_tournament=overrides_by_tournament,
+        )
         if interval is not None:
             intervals.append(interval)
     return intervals
@@ -120,9 +135,17 @@ def arena_interval_collisions(intervals: Sequence[ArenaInterval]) -> list[dict[s
 def find_arena_interval_collisions(
     tournaments: Iterable[Tournament],
     ice_time_for_age_group: Mapping[str, int],
+    *,
+    overrides_by_tournament: Mapping[str, int] | None = None,
 ) -> list[dict[str, str]]:
     """Build intervals for *tournaments* and return arena overlap collisions."""
-    return arena_interval_collisions(tournament_intervals(tournaments, ice_time_for_age_group))
+    return arena_interval_collisions(
+        tournament_intervals(
+            tournaments,
+            ice_time_for_age_group,
+            overrides_by_tournament=overrides_by_tournament,
+        )
+    )
 
 
 def format_arena_collision(first: ArenaInterval, second: ArenaInterval) -> dict[str, str]:

@@ -346,6 +346,12 @@ def run(
     )
 
     plan = season_plan_from_dict(plan_dict)
+    # Render the same host-confirmed per-tournament occupied duration the
+    # verifier used, so XLSX/HTML/iCal end times cannot disagree with the
+    # canonical occupancy contract.
+    from tournament_scheduler.canonical_ice_time_overrides import apply_overrides_to_plan
+
+    apply_overrides_to_plan(plan, export_problem)
     export_path = Path(export_dir)
     export_path.mkdir(parents=True, exist_ok=True)
     canonical_build_timestamp = _resolve_build_timestamp(build_timestamp)

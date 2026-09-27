@@ -396,17 +396,30 @@ def tournament_occupancy_interval_facts(
     tournament: Mapping[str, Any],
     problem: Mapping[str, Any] | None,
 ) -> dict[str, str]:
-    """Return the canonical occupied interval facts for one tournament."""
+    """Return the canonical occupied interval facts for one tournament.
+
+    A host-confirmed per-tournament override projected into the problem replaces
+    the age-group default, so ``confirm-calendar-booking`` coverage and the
+    arena-interval verifier describe the same booked window.
+    """
+
+    # Local import breaks the canonical_state <-> calendar_bookings import
+    # cycle; the projection helper itself is the single key definition.
+    from tournament_scheduler.canonical_ice_time_overrides import overrides_from_problem
 
     age_group = str(tournament.get("age_group") or "")
     start_time = str(tournament.get("start_time") or "")
+    override = overrides_from_problem(problem).get(str(tournament.get("id") or ""))
     duration = 0
-    ice_time = (problem or {}).get("ice_time_minutes") or {}
-    if isinstance(ice_time, Mapping):
-        try:
-            duration = int((ice_time.get(age_group) or 0) or 0)
-        except (TypeError, ValueError):
-            duration = 0
+    if override:
+        duration = int(override)
+    else:
+        ice_time = (problem or {}).get("ice_time_minutes") or {}
+        if isinstance(ice_time, Mapping):
+            try:
+                duration = int((ice_time.get(age_group) or 0) or 0)
+            except (TypeError, ValueError):
+                duration = 0
     start_minutes = _parse_hhmm(start_time)
     end_time = _format_hhmm(start_minutes + duration) if start_minutes is not None and duration > 0 else ""
     return {
