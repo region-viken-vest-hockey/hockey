@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-09-27T11:40:47+00:00",
+  "basename": "season_plan",
+  "status": "PASS",
+  "primary": {
+    "kind": "xlsx",
+    "path": "season_plan.xlsx",
+    "exists": true,
+    "sha256": "8b65d0f6a67cfd52183d17bff185db55370740da4918fc5434770a2c1e7cb85e",
+    "season_revision": "c178dbab8f929fd5994b2c78b443aa97bc034dbfa11f9574846fb5113e44c96b",
+    "tournament_count": 183,
+    "duplicate_ids": [],
+    "unsupported_fields": [],
+    "read_error": null
+  },
+  "secondary": {
+    "kind": "html",
+    "path": "season_plan.html",
+    "exists": true,
+    "sha256": "cb72591a56d48383d218f185032fb1c9f6a7a69310b1da7b4607b467676ad84a",
+    "season_revision": "c178dbab8f929fd5994b2c78b443aa97bc034dbfa11f9574846fb5113e44c96b",
+    "tournament_count": 183,
+    "duplicate_ids": [],
+    "unsupported_fields": [],
+    "read_error": null
+  },
+  "canonical_revision": "c178dbab8f929fd5994b2c78b443aa97bc034dbfa11f9574846fb5113e44c96b",
+  "manifest_canonical_revision": null,
+  "reasons": [],
+  "comparison": {
+    "compared_fields": [
+      "date",
+      "start_time",
+      "end_time",
+      "arena",
+      "host_club",
+      "age_group",
+      "participants",
+      "games",
+      "cancelled",
+      "cancellation_reason",
+      "approval_status",
+      "locked",
+      "booking_status",
+      "booking_needs_attention"
+    ],
+    "uncheckable_fields": [],
+    "missing_ids": [],
+    "extra_ids": [],
+    "duplicate_ids": {
+      "xlsx": [],
+      "html": []
+    },
+    "mismatches": [],
+    "record_count": {
+      "xlsx": 183,
+      "html": 183
+    }
+  },
+  "projection_mismatches": [],
+  "unsupported_fields": [],
+  "projection_uncheckable": []
+}

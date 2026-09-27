@@ -1,8 +1,205 @@
 {
   "applied_from": {
     "actor": "niclasl",
-    "operation": "team_identity_rename",
-    "previous_revision": "2679b1920b45471f0861396a869c8d8e8f2ac5286d1cb7cf6a224e625b997bf9"
+    "operational_acceptability": {
+      "added_by_category": {},
+      "after_counts": {
+        "fixed_busy_placement": 51,
+        "host_confirmation_dependency": 1,
+        "manual_calendar_placement": 17,
+        "unresolved_placement_obligation": 9
+      },
+      "after_profile": {
+        "fixed_busy_placement": [
+          "rvv-0001",
+          "rvv-0012",
+          "rvv-0019",
+          "rvv-0023",
+          "rvv-0025",
+          "rvv-0033",
+          "rvv-0038",
+          "rvv-0042",
+          "rvv-0046",
+          "rvv-0057",
+          "rvv-0063",
+          "rvv-0065",
+          "rvv-0070",
+          "rvv-0073",
+          "rvv-0075",
+          "rvv-0078",
+          "rvv-0087",
+          "rvv-0088",
+          "rvv-0095",
+          "rvv-0097",
+          "rvv-0099",
+          "rvv-0100",
+          "rvv-0104",
+          "rvv-0105",
+          "rvv-0111",
+          "rvv-0117",
+          "rvv-0119",
+          "rvv-0120",
+          "rvv-0121",
+          "rvv-0125",
+          "rvv-0127",
+          "rvv-0128",
+          "rvv-0134",
+          "rvv-0135",
+          "rvv-0136",
+          "rvv-0140",
+          "rvv-0142",
+          "rvv-0143",
+          "rvv-0149",
+          "rvv-0155",
+          "rvv-0157",
+          "rvv-0160",
+          "rvv-0164",
+          "rvv-0174",
+          "rvv-0178",
+          "rvv-0179",
+          "rvv-0181",
+          "rvv-0187",
+          "rvv-0189",
+          "rvv-0190",
+          "rvv-0191"
+        ],
+        "host_confirmation_dependency": [
+          "rvv-0053"
+        ],
+        "manual_calendar_placement": [
+          "rvv-0005",
+          "rvv-0008",
+          "rvv-0018",
+          "rvv-0045",
+          "rvv-0066",
+          "rvv-0076",
+          "rvv-0091",
+          "rvv-0094",
+          "rvv-0108",
+          "rvv-0115",
+          "rvv-0124",
+          "rvv-0132",
+          "rvv-0141",
+          "rvv-0156",
+          "rvv-0159",
+          "rvv-0172",
+          "rvv-0183"
+        ],
+        "unresolved_placement_obligation": [
+          "unplaced_placement:U10:2026-12-26:1",
+          "unplaced_placement:U10:2026-12-27:1",
+          "unplaced_placement:U11:2026-11-07:1",
+          "unplaced_placement:U11:2026-12-06:1",
+          "unplaced_placement:U11:2027-02-20:1",
+          "unplaced_placement:U12:2026-10-17:1",
+          "unplaced_placement:U12:2026-12-27:1",
+          "unplaced_placement:U12:2027-03-14:1",
+          "unplaced_placement:U9:2026-11-28:1"
+        ]
+      },
+      "allowed": {
+        "allow_host_confirmation": false,
+        "allow_manual_placement": false
+      },
+      "before_counts": {
+        "fixed_busy_placement": 51,
+        "host_confirmation_dependency": 1,
+        "manual_calendar_placement": 17,
+        "unresolved_placement_obligation": 9
+      },
+      "before_profile": {
+        "fixed_busy_placement": [
+          "rvv-0001",
+          "rvv-0012",
+          "rvv-0019",
+          "rvv-0023",
+          "rvv-0025",
+          "rvv-0033",
+          "rvv-0038",
+          "rvv-0042",
+          "rvv-0046",
+          "rvv-0057",
+          "rvv-0063",
+          "rvv-0065",
+          "rvv-0070",
+          "rvv-0073",
+          "rvv-0075",
+          "rvv-0078",
+          "rvv-0087",
+          "rvv-0088",
+          "rvv-0095",
+          "rvv-0097",
+          "rvv-0099",
+          "rvv-0100",
+          "rvv-0104",
+          "rvv-0105",
+          "rvv-0111",
+          "rvv-0117",
+          "rvv-0119",
+          "rvv-0120",
+          "rvv-0121",
+          "rvv-0125",
+          "rvv-0127",
+          "rvv-0128",
+          "rvv-0134",
+          "rvv-0135",
+          "rvv-0136",
+          "rvv-0140",
+          "rvv-0142",
+          "rvv-0143",
+          "rvv-0149",
+          "rvv-0155",
+          "rvv-0157",
+          "rvv-0160",
+          "rvv-0164",
+          "rvv-0174",
+          "rvv-0178",
+          "rvv-0179",
+          "rvv-0181",
+          "rvv-0187",
+          "rvv-0189",
+          "rvv-0190",
+          "rvv-0191"
+        ],
+        "host_confirmation_dependency": [
+          "rvv-0053"
+        ],
+        "manual_calendar_placement": [
+          "rvv-0005",
+          "rvv-0008",
+          "rvv-0018",
+          "rvv-0045",
+          "rvv-0066",
+          "rvv-0076",
+          "rvv-0091",
+          "rvv-0094",
+          "rvv-0108",
+          "rvv-0115",
+          "rvv-0124",
+          "rvv-0132",
+          "rvv-0141",
+          "rvv-0156",
+          "rvv-0159",
+          "rvv-0172",
+          "rvv-0183"
+        ],
+        "unresolved_placement_obligation": [
+          "unplaced_placement:U10:2026-12-26:1",
+          "unplaced_placement:U10:2026-12-27:1",
+          "unplaced_placement:U11:2026-11-07:1",
+          "unplaced_placement:U11:2026-12-06:1",
+          "unplaced_placement:U11:2027-02-20:1",
+          "unplaced_placement:U12:2026-10-17:1",
+          "unplaced_placement:U12:2026-12-27:1",
+          "unplaced_placement:U12:2027-03-14:1",
+          "unplaced_placement:U9:2026-11-28:1"
+        ]
+      },
+      "ok": true,
+      "regressions": [],
+      "schema_version": 1
+    },
+    "previous_revision": "ed95070a867eeb39a01373e4c934728009d506f40c8a453373ac57395ad0479b"
   },
   "arena_normalization": {
     "changed": true,
@@ -126,7 +323,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "ed95070a867eeb39a01373e4c934728009d506f40c8a453373ac57395ad0479b",
+  "fingerprint": "c6ac98910937a33a6c9aee0ca96738b8a67590a144c90a55948f273e920b6a23",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -5260,18 +5457,18 @@
         "teams": 3
       },
       {
-        "actual": 5,
-        "actual_physical_hosting": 5,
+        "actual": 4,
+        "actual_physical_hosting": 4,
         "age_group": "JU12",
         "assigned_responsibility": 5,
         "club": "Frisk Asker",
         "coverage_unresolved": false,
-        "deficit": 0,
-        "delta": 0,
+        "deficit": 1,
+        "delta": -1,
         "excess": 0,
-        "manual_placement_required": 0,
-        "manual_unplaced": 0,
-        "placed_automatically": 5,
+        "manual_placement_required": 1,
+        "manual_unplaced": 1,
+        "placed_automatically": 4,
         "responsibility_deficit": 0,
         "responsibility_delta": 0,
         "responsibility_excess": 0,
@@ -5327,15 +5524,15 @@
         "club": "Ringerike",
         "coverage_unresolved": false,
         "deficit": 0,
-        "delta": 0,
-        "excess": 0,
+        "delta": 1,
+        "excess": 1,
         "manual_placement_required": 0,
         "manual_unplaced": 0,
         "placed_automatically": 5,
         "responsibility_deficit": 0,
-        "responsibility_delta": 0,
-        "responsibility_excess": 0,
-        "target": 5,
+        "responsibility_delta": 1,
+        "responsibility_excess": 1,
+        "target": 4,
         "target_unmet_structural": false,
         "teams": 2
       },
@@ -5640,6 +5837,46 @@
         "target": 4,
         "target_unmet_structural": false,
         "teams": 3
+      },
+      {
+        "actual": 4,
+        "actual_physical_hosting": 4,
+        "age_group": "JU12",
+        "assigned_responsibility": 5,
+        "club": "Frisk Asker",
+        "coverage_unresolved": false,
+        "deficit": 1,
+        "delta": -1,
+        "excess": 0,
+        "manual_placement_required": 1,
+        "manual_unplaced": 1,
+        "placed_automatically": 4,
+        "responsibility_deficit": 0,
+        "responsibility_delta": 0,
+        "responsibility_excess": 0,
+        "target": 5,
+        "target_unmet_structural": false,
+        "teams": 2
+      },
+      {
+        "actual": 5,
+        "actual_physical_hosting": 5,
+        "age_group": "JU12",
+        "assigned_responsibility": 5,
+        "club": "Ringerike",
+        "coverage_unresolved": false,
+        "deficit": 0,
+        "delta": 1,
+        "excess": 1,
+        "manual_placement_required": 0,
+        "manual_unplaced": 0,
+        "placed_automatically": 5,
+        "responsibility_deficit": 0,
+        "responsibility_delta": 1,
+        "responsibility_excess": 1,
+        "target": 4,
+        "target_unmet_structural": false,
+        "teams": 2
       },
       {
         "actual": 7,
@@ -6025,8 +6262,8 @@
         "age_group": "JU12",
         "classification": "minor_club_pool_shortfall",
         "club": "Frisk Asker",
-        "club_pool_actual": 18,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 17,
+        "club_pool_deviation": -3,
         "club_pool_target": 20,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 5,
@@ -6041,7 +6278,7 @@
             "team": "Frisk Asker Orange"
           },
           {
-            "actual": 9,
+            "actual": 8,
             "target": 10,
             "team": "Frisk Asker Svart"
           }
@@ -6075,15 +6312,15 @@
       },
       {
         "age_group": "JU12",
-        "classification": "complete",
+        "classification": "minor_club_pool_shortfall",
         "club": "Frisk Asker",
-        "club_pool_actual": 10,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 9,
+        "club_pool_deviation": -1,
         "club_pool_target": 10,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
         "nominal_target_per_team": 5,
-        "planning_significance": "resolved",
+        "planning_significance": "minor",
         "registered_team_count": 2,
         "scope": "after_christmas",
         "team_distribution": [
@@ -6093,7 +6330,7 @@
             "team": "Frisk Asker Orange"
           },
           {
-            "actual": 5,
+            "actual": 4,
             "target": 5,
             "team": "Frisk Asker Svart"
           }
@@ -9265,8 +9502,8 @@
         "age_group": "JU12",
         "classification": "single_team_deviation",
         "club": "Kongsberg/Tønsberg",
-        "club_pool_actual": 9,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 8,
+        "club_pool_deviation": -2,
         "club_pool_target": 10,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
@@ -9276,7 +9513,7 @@
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 9,
+            "actual": 8,
             "target": 10,
             "team": "Kongsberg/Tønsberg"
           }
@@ -9305,20 +9542,20 @@
       },
       {
         "age_group": "JU12",
-        "classification": "complete",
+        "classification": "single_team_deviation",
         "club": "Kongsberg/Tønsberg",
-        "club_pool_actual": 5,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 4,
+        "club_pool_deviation": -1,
         "club_pool_target": 5,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 5,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 1,
         "scope": "after_christmas",
         "team_distribution": [
           {
-            "actual": 5,
+            "actual": 4,
             "target": 5,
             "team": "Kongsberg/Tønsberg"
           }
@@ -9391,8 +9628,8 @@
         "age_group": "JU12",
         "classification": "minor_club_pool_shortfall",
         "club": "Ringerike",
-        "club_pool_actual": 17,
-        "club_pool_deviation": -3,
+        "club_pool_actual": 16,
+        "club_pool_deviation": -4,
         "club_pool_target": 20,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 5,
@@ -9407,7 +9644,7 @@
             "team": "Ringerike 1"
           },
           {
-            "actual": 9,
+            "actual": 8,
             "target": 10,
             "team": "Ringerike 2"
           }
@@ -9441,15 +9678,15 @@
       },
       {
         "age_group": "JU12",
-        "classification": "complete",
+        "classification": "minor_club_pool_shortfall",
         "club": "Ringerike",
-        "club_pool_actual": 10,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 9,
+        "club_pool_deviation": -1,
         "club_pool_target": 10,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
         "nominal_target_per_team": 5,
-        "planning_significance": "resolved",
+        "planning_significance": "minor",
         "registered_team_count": 2,
         "scope": "after_christmas",
         "team_distribution": [
@@ -9459,7 +9696,7 @@
             "team": "Ringerike 1"
           },
           {
-            "actual": 5,
+            "actual": 4,
             "target": 5,
             "team": "Ringerike 2"
           }
@@ -10252,8 +10489,8 @@
         "age_group": "JU12",
         "classification": "single_team_deviation",
         "club": "Skien",
-        "club_pool_actual": 9,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 8,
+        "club_pool_deviation": -2,
         "club_pool_target": 10,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
@@ -10263,7 +10500,7 @@
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 9,
+            "actual": 8,
             "target": 10,
             "team": "Skien"
           }
@@ -10292,20 +10529,20 @@
       },
       {
         "age_group": "JU12",
-        "classification": "complete",
+        "classification": "single_team_deviation",
         "club": "Skien",
-        "club_pool_actual": 5,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 4,
+        "club_pool_deviation": -1,
         "club_pool_target": 5,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 5,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 1,
         "scope": "after_christmas",
         "team_distribution": [
           {
-            "actual": 5,
+            "actual": 4,
             "target": 5,
             "team": "Skien"
           }
@@ -11051,7 +11288,7 @@
       "reasons": [
         {
           "code": "hosting_balance_imbalances",
-          "count": 12
+          "count": 14
         },
         {
           "code": "manual_calendar_placements",
@@ -11059,7 +11296,7 @@
         },
         {
           "code": "external_calendar_conflicts",
-          "count": 51
+          "count": 50
         },
         {
           "code": "movable_host_confirmation_required",
@@ -11067,7 +11304,7 @@
         },
         {
           "code": "participation_shortfalls",
-          "count": 100
+          "count": 104
         },
         {
           "code": "participation_target_deviation",
@@ -12378,7 +12615,7 @@
         "date": "2026-10-11",
         "games": [
           {
-            "away": "Jar Blå",
+            "away": "Holmen Hockey Rød",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 1
@@ -12415,7 +12652,7 @@
           },
           {
             "away": "Skien",
-            "home": "Jar Blå",
+            "home": "Holmen Hockey Rød",
             "parallel_slot": 2,
             "round_number": 2
           },
@@ -12426,51 +12663,51 @@
             "round_number": 2
           },
           {
-            "away": "Ringerike 1",
+            "away": "Skien",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
-            "away": "Skien",
+            "away": "Frisk Asker 4",
             "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 3
           },
           {
             "away": "Kongsberg",
-            "home": "Jar Blå",
+            "home": "Holmen Hockey Rød",
             "parallel_slot": 2,
             "round_number": 3
-          },
-          {
-            "away": "Frisk Asker 4",
-            "home": "Jutul Rød",
-            "parallel_slot": 3,
-            "round_number": 3
-          },
-          {
-            "away": "Skien",
-            "home": "Frisk Asker 1",
-            "parallel_slot": 0,
-            "round_number": 4
-          },
-          {
-            "away": "Kongsberg",
-            "home": "Holmen Hockey Hvit",
-            "parallel_slot": 1,
-            "round_number": 4
-          },
-          {
-            "away": "Frisk Asker 4",
-            "home": "Jar Blå",
-            "parallel_slot": 2,
-            "round_number": 4
           },
           {
             "away": "Ringerike 1",
             "home": "Jutul Rød",
             "parallel_slot": 3,
+            "round_number": 3
+          },
+          {
+            "away": "Ringerike 1",
+            "home": "Frisk Asker 1",
+            "parallel_slot": 0,
+            "round_number": 4
+          },
+          {
+            "away": "Kongsberg",
+            "home": "Holmen Hockey Hvit",
+            "parallel_slot": 1,
+            "round_number": 4
+          },
+          {
+            "away": "Frisk Asker 4",
+            "home": "Holmen Hockey Rød",
+            "parallel_slot": 2,
+            "round_number": 4
+          },
+          {
+            "away": "Skien",
+            "home": "Jutul Rød",
+            "parallel_slot": 3,
             "round_number": 4
           },
           {
@@ -12480,19 +12717,19 @@
             "round_number": 5
           },
           {
-            "away": "Frisk Asker 4",
+            "away": "Skien",
             "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 5
           },
           {
             "away": "Ringerike 1",
-            "home": "Jar Blå",
+            "home": "Holmen Hockey Rød",
             "parallel_slot": 2,
             "round_number": 5
           },
           {
-            "away": "Skien",
+            "away": "Frisk Asker 4",
             "home": "Jutul Rød",
             "parallel_slot": 3,
             "round_number": 5
@@ -12514,8 +12751,8 @@
           },
           {
             "age_group": "U9",
-            "club": "Jar",
-            "label": "Jar Blå"
+            "club": "Holmen",
+            "label": "Holmen Hockey Rød"
           },
           {
             "age_group": "U9",
@@ -12854,37 +13091,37 @@
         "date": "2026-10-18",
         "games": [
           {
-            "away": "Holmen Hockey Rød",
+            "away": "Jutul Rød",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
-            "away": "Jutul Rød",
+            "away": "Jar Blå",
             "home": "Frisk Asker 2",
             "parallel_slot": 1,
             "round_number": 1
           },
           {
-            "away": "Skien",
+            "away": "Sandefjord",
             "home": "Jar Hvit",
             "parallel_slot": 2,
             "round_number": 1
           },
           {
-            "away": "Sandefjord",
+            "away": "Skien",
             "home": "Jutul Hvit",
             "parallel_slot": 3,
             "round_number": 1
           },
           {
-            "away": "Skien",
+            "away": "Sandefjord",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 2
           },
           {
-            "away": "Sandefjord",
+            "away": "Skien",
             "home": "Frisk Asker 2",
             "parallel_slot": 1,
             "round_number": 2
@@ -12896,74 +13133,74 @@
             "round_number": 2
           },
           {
-            "away": "Holmen Hockey Rød",
+            "away": "Jar Blå",
             "home": "Jutul Rød",
             "parallel_slot": 3,
             "round_number": 2
           },
           {
-            "away": "Jar Hvit",
-            "home": "Frisk Asker 1",
-            "parallel_slot": 0,
-            "round_number": 3
-          },
-          {
-            "away": "Jutul Hvit",
-            "home": "Frisk Asker 2",
-            "parallel_slot": 1,
-            "round_number": 3
-          },
-          {
-            "away": "Sandefjord",
-            "home": "Holmen Hockey Rød",
-            "parallel_slot": 2,
-            "round_number": 3
-          },
-          {
-            "away": "Skien",
-            "home": "Jutul Rød",
-            "parallel_slot": 3,
-            "round_number": 3
-          },
-          {
             "away": "Jutul Hvit",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
-            "round_number": 4
+            "round_number": 3
           },
           {
             "away": "Jar Hvit",
             "home": "Frisk Asker 2",
             "parallel_slot": 1,
-            "round_number": 4
+            "round_number": 3
           },
           {
             "away": "Skien",
-            "home": "Holmen Hockey Rød",
+            "home": "Jar Blå",
             "parallel_slot": 2,
-            "round_number": 4
+            "round_number": 3
           },
           {
             "away": "Sandefjord",
             "home": "Jutul Rød",
             "parallel_slot": 3,
+            "round_number": 3
+          },
+          {
+            "away": "Jar Hvit",
+            "home": "Frisk Asker 1",
+            "parallel_slot": 0,
+            "round_number": 4
+          },
+          {
+            "away": "Jutul Hvit",
+            "home": "Frisk Asker 2",
+            "parallel_slot": 1,
             "round_number": 4
           },
           {
             "away": "Sandefjord",
+            "home": "Jar Blå",
+            "parallel_slot": 2,
+            "round_number": 4
+          },
+          {
+            "away": "Skien",
+            "home": "Jutul Rød",
+            "parallel_slot": 3,
+            "round_number": 4
+          },
+          {
+            "away": "Skien",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 5
           },
           {
-            "away": "Skien",
+            "away": "Sandefjord",
             "home": "Frisk Asker 2",
             "parallel_slot": 1,
             "round_number": 5
           },
           {
             "away": "Jutul Hvit",
-            "home": "Holmen Hockey Rød",
+            "home": "Jar Blå",
             "parallel_slot": 2,
             "round_number": 5
           },
@@ -12995,8 +13232,8 @@
           },
           {
             "age_group": "U9",
-            "club": "Holmen",
-            "label": "Holmen Hockey Rød"
+            "club": "Jar",
+            "label": "Jar Blå"
           },
           {
             "age_group": "U9",
@@ -27833,6 +28070,8 @@
       {
         "age_group": "JU12",
         "arena": "Askerhallen",
+        "cancellation_reason": "Ringerike JU12 lag 2 unavailable (Dragons Cup Hamar, region-approved); no clean same-age replacement without material regression (#483 item 4)",
+        "cancelled": true,
         "date": "2027-01-23",
         "games": [
           {
@@ -33500,13 +33739,6 @@
         "tournament_id": "rvv-0088"
       },
       {
-        "age_group": "JU12",
-        "date": "2027-01-23",
-        "host_club": "Frisk Asker",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0143"
-      },
-      {
         "age_group": "U10",
         "date": "2026-11-08",
         "host_club": "Frisk Asker",
@@ -34851,6 +35083,45 @@
         "club_pool_significance": "minor",
         "counts_as_unresolved_shortfall": true,
         "half": "before_christmas",
+        "label": "Frisk Asker Svart (Frisk Asker, JU12)",
+        "reason": "actual participation count does not match target",
+        "target": "5"
+      },
+      {
+        "actual": "4",
+        "age_group": "JU12",
+        "category": "participation_under_target",
+        "club": "Frisk Asker",
+        "club_pool": {
+          "age_group": "JU12",
+          "classification": "minor_club_pool_shortfall",
+          "club": "Frisk Asker",
+          "club_pool_actual": 9,
+          "club_pool_deviation": -1,
+          "club_pool_target": 10,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 5,
+          "planning_significance": "minor",
+          "registered_team_count": 2,
+          "scope": "after_christmas",
+          "team_distribution": [
+            {
+              "actual": 5,
+              "target": 5,
+              "team": "Frisk Asker Orange"
+            },
+            {
+              "actual": 4,
+              "target": 5,
+              "team": "Frisk Asker Svart"
+            }
+          ]
+        },
+        "club_pool_classification": "minor_club_pool_shortfall",
+        "club_pool_significance": "minor",
+        "counts_as_unresolved_shortfall": true,
+        "half": "after_christmas",
         "label": "Frisk Asker Svart (Frisk Asker, JU12)",
         "reason": "actual participation count does not match target",
         "target": "5"
@@ -37620,6 +37891,40 @@
         "target": "5"
       },
       {
+        "actual": "4",
+        "age_group": "JU12",
+        "category": "participation_under_target",
+        "club": "Kongsberg/Tønsberg",
+        "club_pool": {
+          "age_group": "JU12",
+          "classification": "single_team_deviation",
+          "club": "Kongsberg/Tønsberg",
+          "club_pool_actual": 4,
+          "club_pool_deviation": -1,
+          "club_pool_target": 5,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": null,
+          "nominal_target_per_team": 5,
+          "planning_significance": "material",
+          "registered_team_count": 1,
+          "scope": "after_christmas",
+          "team_distribution": [
+            {
+              "actual": 4,
+              "target": 5,
+              "team": "Kongsberg/Tønsberg"
+            }
+          ]
+        },
+        "club_pool_classification": "single_team_deviation",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "after_christmas",
+        "label": "Kongsberg/Tønsberg",
+        "reason": "actual participation count does not match target",
+        "target": "5"
+      },
+      {
         "actual": "3",
         "age_group": "JU10",
         "category": "participation_under_target",
@@ -37890,6 +38195,45 @@
         "half": "before_christmas",
         "label": "Ringerike 2 (Ringerike, JU12)",
         "reason": "Ringerike 1 (Ringerike, JU12) deltar 4 ganger i before_christmas -- ikke nok ledige turneringsplasser ble funnet i denne halvdelen av sesongen.",
+        "target": "5"
+      },
+      {
+        "actual": "4",
+        "age_group": "JU12",
+        "category": "participation_under_target",
+        "club": "Ringerike",
+        "club_pool": {
+          "age_group": "JU12",
+          "classification": "minor_club_pool_shortfall",
+          "club": "Ringerike",
+          "club_pool_actual": 9,
+          "club_pool_deviation": -1,
+          "club_pool_target": 10,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 5,
+          "planning_significance": "minor",
+          "registered_team_count": 2,
+          "scope": "after_christmas",
+          "team_distribution": [
+            {
+              "actual": 5,
+              "target": 5,
+              "team": "Ringerike 1"
+            },
+            {
+              "actual": 4,
+              "target": 5,
+              "team": "Ringerike 2"
+            }
+          ]
+        },
+        "club_pool_classification": "minor_club_pool_shortfall",
+        "club_pool_significance": "minor",
+        "counts_as_unresolved_shortfall": true,
+        "half": "after_christmas",
+        "label": "Ringerike 2 (Ringerike, JU12)",
+        "reason": "actual participation count does not match target",
         "target": "5"
       },
       {
@@ -38254,6 +38598,40 @@
         "club_pool_significance": "material",
         "counts_as_unresolved_shortfall": true,
         "half": "before_christmas",
+        "label": "Skien (Skien, JU12)",
+        "reason": "actual participation count does not match target",
+        "target": "5"
+      },
+      {
+        "actual": "4",
+        "age_group": "JU12",
+        "category": "participation_under_target",
+        "club": "Skien",
+        "club_pool": {
+          "age_group": "JU12",
+          "classification": "single_team_deviation",
+          "club": "Skien",
+          "club_pool_actual": 4,
+          "club_pool_deviation": -1,
+          "club_pool_target": 5,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": null,
+          "nominal_target_per_team": 5,
+          "planning_significance": "material",
+          "registered_team_count": 1,
+          "scope": "after_christmas",
+          "team_distribution": [
+            {
+              "actual": 4,
+              "target": 5,
+              "team": "Skien"
+            }
+          ]
+        },
+        "club_pool_classification": "single_team_deviation",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "after_christmas",
         "label": "Skien (Skien, JU12)",
         "reason": "actual participation count does not match target",
         "target": "5"
@@ -40020,10 +40398,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "ed95070a867eeb39a01373e4c934728009d506f40c8a453373ac57395ad0479b",
+  "revision": "c6ac98910937a33a6c9aee0ca96738b8a67590a144c90a55948f273e920b6a23",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-27T11:24:34.529817+00:00",
+  "updated_at": "2026-09-27T11:39:52.110286+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],
