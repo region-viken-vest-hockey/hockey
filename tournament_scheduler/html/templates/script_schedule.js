@@ -166,6 +166,84 @@ function buildMatchHTML(matches, byes) {
   }).join('');
 }
 
+// One operational booking state per tournament. The detailed status/authority/
+// follow-up evidence lives in the expandable booking details instead of
+// competing top-level badges, so operators get one clear state at a glance.
+function operationalStateOf(t) {
+  if (t.obs) return t.obs;
+  if (t.mb || t.rhc) return 'action_required';
+  if (t.bs === 'confirmed_booked' || t.bs === 'manually_booked') return 'booked';
+  if (t.bs === 'confirmed_not_booked' || t.bs === 'manually_not_booked' || t.bs === 'stale') return 'action_required';
+  if (t.bs) return 'not_booked';
+  return '';
+}
+
+function operationalStateLabel(t, state) {
+  if (state === 'booked') return 'BOOKET · LÅST';
+  if (state === 'action_required') {
+    return (t.rhc && !t.mb) ? 'KREVER VERTSSBEKREFTELSE' : 'MÅ BOOKES MANUELT';
+  }
+  if (state === 'not_booked') return 'IKKE BEKREFTET';
+  return '';
+}
+
+function bookingAuthorityLabel(authority) {
+  var labels = {
+    manual_club_confirmation: 'manuell klubbekreftelse',
+    manual_club_confirmation_interpretation: 'manuell klubbekreftelse (tolket)',
+    calendar_event_association: 'kalendermatch'
+  };
+  return labels[authority] || authority;
+}
+
+function bookingStatusLabel(status) {
+  var labels = {
+    confirmed_booked: 'BOOKET BEKREFTET',
+    manually_booked: 'BOOKET (MANUELT BEKREFTET)',
+    confirmed_not_booked: 'IKKE BOOKET',
+    manually_not_booked: 'IKKE BOOKET (MANUELT AVVIST)',
+    unknown: 'IKKE KONTROLLERT',
+    not_checkable: 'IKKE KONTROLLERBAR',
+    ambiguous: 'UKLAR BOOKING',
+    stale: 'BOOKINGGRUNNLAG UTDATERT'
+  };
+  return labels[status] || status;
+}
+
+function buildBookingDetails(t) {
+  var state = operationalStateOf(t);
+  var rows = [];
+  var stateText = {
+    booked: 'Booket og låst — bekreftelsen er beskyttet mot automatisk flytting.',
+    action_required: 'Krever handling: manuell booking eller re-bekreftelse.',
+    not_booked: 'Ikke bekreftet. Manglende kalenderbevis er ikke en avvisning.'
+  };
+  if (state && stateText[state]) rows.push('<strong>Bookingstatus:</strong> ' + stateText[state]);
+  if (t.bs) rows.push('<strong>Detaljert status:</strong> ' + bookingStatusLabel(t.bs) + (t.bscope === 'club_wide_interpretation' ? ' · SKJØNNSVURDERT' : ''));
+  if (t.bauth) rows.push('<strong>Autoritet:</strong> ' + bookingAuthorityLabel(t.bauth));
+  if (t.bscope === 'club_wide_interpretation') rows.push('<strong>Kildeomfang:</strong> tolkning av klubbdekkende bekreftelse, ikke en egen per-turnering-kilde.');
+  if (t.mb) rows.push('<strong>Manuell booking:</strong> ' + t.mb);
+  if (t.rhc) rows.push('<strong>Vertsbekreftelse:</strong> ' + (t.hcr || 'må bekreftes av vertsklubben'));
+  if (t.bfu && t.bfu.length) {
+    var followUpLabels = {
+      manual_booking_stated_date_differs_from_canonical: 'kilden oppgir avvikende dato',
+      manual_booking_stated_start_differs_from_canonical: 'kilden oppgir avvikende starttid',
+      manual_booking_stated_end_differs_from_canonical: 'kilden oppgir avvikende sluttid',
+      calendar_negative_conflicts_with_manual_booking: 'kalenderen motsier den manuelle bekreftelsen',
+      calendar_association_conflicts_with_manual_rejection: 'kalenderen motsier den manuelle avvisningen',
+      calendar_booking_association_stale: 'kalenderkoblingen er utdatert',
+      confirmed_booking_without_valid_association: 'bekreftet booking mangler gyldig kalenderkobling',
+      absence_only_negative_booking_requires_review: 'manglende kalenderfunn krever gjennomgang'
+    };
+    var text = t.bfu.map(function (reason) { return followUpLabels[reason] || reason; }).join('; ');
+    if (t.bsi) text += ' (kilden oppgir ' + t.bsi.s + '–' + t.bsi.e + ', kanonisk tid er uendret)';
+    rows.push('<strong>Må følges opp:</strong> ' + text);
+  }
+  if (!rows.length) return '';
+  return '<div class="booking-details"><p class="booking-details-head">Bookingdetaljer</p><ul>' +
+    rows.map(function (row) { return '<li>' + row + '</li>'; }).join('') + '</ul></div>';
+}
+
 function render() {
   var ageSel = document.getElementById('filterAge');
   var arenaSel = document.getElementById('filterArena');
@@ -235,12 +313,6 @@ function render() {
     var cancelledBadge = t.cx
       ? '<div class="cancelled-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>AVLYST' + (t.cr ? ': ' + t.cr : '') + '</div>'
       : '';
-    var manualBadge = t.mb
-      ? '<div class="manual-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>MÅ BOOKES MANUELT</div>'
-      : '';
-    var confirmationBadge = (!manual && confirmationRequired)
-      ? '<div class="manual-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>KREVER VERTSSBEKREFTELSE</div>'
-      : '';
     var guestBadge = '';
     if (t.gs && (t.gs.o || t.gs.f)) {
       var guestParts = [];
@@ -248,40 +320,10 @@ function render() {
       if (t.gs.f) guestParts.push(t.gs.f === 1 ? '1 gjesteplass fylt' : t.gs.f + ' gjesteplasser fylt');
       guestBadge = '<div class="guest-badge">' + guestParts.join(' \u00b7 ') + '</div>';
     }
-    var bookingBadge = '';
-    if (t.bs) {
-      var bookingLabels = {
-        confirmed_booked: 'BOOKET BEKREFTET',
-        manually_booked: 'BOOKET (MANUELT BEKREFTET)',
-        confirmed_not_booked: 'IKKE BOOKET',
-        manually_not_booked: 'IKKE BOOKET (MANUELT AVVIST)',
-        unknown: 'IKKE KONTROLLERT',
-        not_checkable: 'IKKE KONTROLLERBAR',
-        ambiguous: 'UKLAR BOOKING',
-        stale: 'BOOKINGGRUNNLAG UTDATERT'
-      };
-      var bookingLabel = bookingLabels[t.bs] || t.bs;
-      if (t.bscope === 'club_wide_interpretation') bookingLabel += ' · SKJØNNSVURDERT';
-      bookingBadge = '<div class="booking-badge booking-badge--' + t.bs + '">' + bookingLabel + '</div>';
-    }
-    var followUpBadge = '';
-    if (t.bfu && t.bfu.length) {
-      var followUpLabels = {
-        manual_booking_stated_date_differs_from_canonical: 'kilden oppgir avvikende dato',
-        manual_booking_stated_start_differs_from_canonical: 'kilden oppgir avvikende starttid',
-        manual_booking_stated_end_differs_from_canonical: 'kilden oppgir avvikende sluttid',
-        calendar_negative_conflicts_with_manual_booking: 'kalenderen motsier den manuelle bekreftelsen',
-        calendar_association_conflicts_with_manual_rejection: 'kalenderen motsier den manuelle avvisningen'
-      };
-      var followUpText = t.bfu.map(function (reason) { return followUpLabels[reason] || reason; }).join('; ');
-      if (t.bsi) {
-        followUpText += ' (kilde oppgir ' + t.bsi.s + '–' + t.bsi.e + ', kanonisk tid er uendret)';
-      }
-      followUpBadge = '<div class="followup-badge" title="' + followUpText + '">' +
-        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
-        'MÅ FØLGES OPP: ' + followUpText +
-        '</div>';
-    }
+    var operational = operationalStateOf(t);
+    var operationalBadge = operational
+      ? '<div class="booking-badge booking-badge--' + operational + (t.ba ? ' booking-badge--review' : '') + '">' + operationalStateLabel(t, operational) + '</div>'
+      : '';
     var approvalBadge = '';
     if (t.ap === 'approved') {
       approvalBadge = '<div class="approval-badge' + (t.apl ? ' approval-badge--locked' : '') + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>GODKJENT' + (t.apl ? ' · LÅST' : '') + '</div>';
@@ -290,11 +332,8 @@ function render() {
     }
     html += '<div class="tournament-card' + cancelledClass + manualClass + '" onclick="this.classList.toggle(\'expanded\')">' +
       approvalBadge +
-      bookingBadge +
-      followUpBadge +
+      operationalBadge +
       guestBadge +
-      manualBadge +
-      confirmationBadge +
       cancelledBadge +
       '<div class="tournament-card-header">' +
         '<div class="tournament-date"><div class="day">' + di.day + '</div><div class="month">' + di.month + '</div><div class="weekday">' + di.weekday + '</div>' + timeRangeHtml + '</div>' +
@@ -308,6 +347,7 @@ function render() {
         '<div class="tournament-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>' +
       '</div>' +
       '<div class="matches"><div class="matches-inner">' +
+        buildBookingDetails(t) +
         '<div class="matches-header"><h4>Kamper per runde</h4><span class="count">' + t.m.length + ' stk</span></div>' +
         buildMatchHTML(t.m, t.b) +
       '</div></div></div>';

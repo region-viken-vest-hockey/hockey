@@ -76,6 +76,16 @@ BOOKING_NOT_CHECKABLE = "not_checkable"
 BOOKING_UNKNOWN = "unknown"
 BOOKING_MANUAL_UNKNOWN = "manual_unknown"
 
+# Unified operational booking state -------------------------------------------
+# One operator-facing projection of the detailed booking evidence below. The
+# detailed status/authority/follow-up fields stay available for audit and
+# export details; this single value is what the season plan renders as the one
+# top-level booking badge, so an operator can tell at a glance whether ice time
+# is confirmed and protected or needs action.
+OPERATIONAL_BOOKED = "booked"
+OPERATIONAL_NOT_BOOKED = "not_booked"
+OPERATIONAL_ACTION_REQUIRED = "action_required"
+
 _STATUS_BOOKED = "booked"
 _STATUS_NOT_BOOKED = "not-booked"
 MANUAL_BOOKING_STATUS_CHOICES = (_STATUS_BOOKED, _STATUS_NOT_BOOKED)
@@ -723,6 +733,38 @@ def _projected_calendar_status(
     return record_status, []
 
 
+def operational_booking_state(
+    *,
+    status: str,
+    manual_booking_reason: str | None = None,
+    requires_host_confirmation: bool = False,
+) -> str:
+    """Collapse detailed booking evidence into one operator-facing state.
+
+    ``booked``
+        An accepted confirmation exists -- a durable manual assertion or a
+        currently valid calendar association. The canonical slot is protected:
+        a missing or contradicting scrape is a detail, never a reason to move
+        it or downgrade the confirmation.
+    ``action_required``
+        The assigned slot is not established ice (the host calendar could not
+        be read, or a host-controlled interval must be moved/confirmed) or an
+        accepted confirmation was explicitly rejected or invalidated. These are
+        the manual booking queue / re-confirmation work items.
+    ``not_booked``
+        No accepted confirmation and no explicit rejection. Missing calendar
+        evidence and unresolved ambiguity land here, muted, and must not be
+        mistaken for a host rejection or silently pushed to the manual queue.
+    """
+    if str(manual_booking_reason or "").strip() or requires_host_confirmation:
+        return OPERATIONAL_ACTION_REQUIRED
+    if status in (BOOKING_CONFIRMED_BOOKED, BOOKING_MANUALLY_BOOKED):
+        return OPERATIONAL_BOOKED
+    if status in (BOOKING_CONFIRMED_NOT_BOOKED, BOOKING_MANUALLY_NOT_BOOKED, STALE):
+        return OPERATIONAL_ACTION_REQUIRED
+    return OPERATIONAL_NOT_BOOKED
+
+
 def booking_status_report(
     *,
     problem: Mapping[str, Any] | None,
@@ -760,6 +802,9 @@ def booking_status_report(
         "manual": 0,
         "conflicts": 0,
         "needs_attention": 0,
+        OPERATIONAL_BOOKED: 0,
+        OPERATIONAL_NOT_BOOKED: 0,
+        OPERATIONAL_ACTION_REQUIRED: 0,
     }
     for tid, tournament in sorted(tournaments.items()):
         calendar_record = latest.get(tid)
@@ -805,9 +850,16 @@ def booking_status_report(
             # authority; a failed/unverified scrape never downgrades the club's
             # explicit confirmation.
             follow_up_reasons.extend(calendar_stale_reasons)
+            operational_state = operational_booking_state(
+                status=status,
+                manual_booking_reason=str(tournament.get("manual_booking_reason") or ""),
+                requires_host_confirmation=bool(tournament.get("requires_host_confirmation")),
+            )
             row = {
                 "tournament_id": tid,
                 "status": status,
+                "operational_state": operational_state,
+                "operational_lock": operational_state == OPERATIONAL_BOOKED,
                 "authority": authority,
                 "source_scope": source_scope,
                 "host_club": str(tournament.get("host_club") or ""),
@@ -828,9 +880,16 @@ def booking_status_report(
             status = calendar_status
             authority = BOOKING_AUTHORITY_CALENDAR if status == BOOKING_CONFIRMED_BOOKED else None
             stale_reasons = calendar_stale_reasons
+            operational_state = operational_booking_state(
+                status=status,
+                manual_booking_reason=str(tournament.get("manual_booking_reason") or ""),
+                requires_host_confirmation=bool(tournament.get("requires_host_confirmation")),
+            )
             row = {
                 "tournament_id": tid,
                 "status": status,
+                "operational_state": operational_state,
+                "operational_lock": operational_state == OPERATIONAL_BOOKED,
                 "authority": authority,
                 "source_scope": "",
                 "host_club": str(tournament.get("host_club") or ""),
@@ -851,6 +910,7 @@ def booking_status_report(
         rows.append(row)
         counts.setdefault(status, 0)
         counts[status] += 1
+        counts[operational_state] = counts.get(operational_state, 0) + 1
         if row["needs_attention"]:
             counts["needs_attention"] += 1
     return {"tournaments": rows, "counts": counts}

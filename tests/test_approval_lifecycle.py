@@ -1753,3 +1753,138 @@ def test_club_reconciliation_fails_closed_on_fabricated_placeholder_intervals(tm
     assert row["status"] == "not_checkable"
     assert row["reason"] == "fabricated_calendar_placeholder_evidence"
     assert row["source_fabricated_placeholder"] is True
+
+
+# ---------------------------------------------------------------------------
+# Unified operational booking state
+#
+# One operator-facing state per tournament: booked/locked, not booked (muted),
+# or action required (manual booking queue). Detailed status, authority and
+# follow-up evidence stay available, but must not become competing top-level
+# badges.
+# ---------------------------------------------------------------------------
+
+
+def test_email_confirmation_is_booked_even_without_calendar_evidence(tmp_path):
+    """A Tønsberg-style email/manual confirmation locks the slot on its own.
+
+    A trustworthy calendar with no matching event is a reconciliation
+    observation, not a reason to show the tournament as unbooked or to move
+    the accepted confirmation into the manual queue.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(
+        root,
+        problem=problem,
+        note="Tønsberg email: miniputt ice is booked",
+        reference="email:tonsberg-2026-09-24",
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_booked"
+    assert row["calendar_status"] in ("ambiguous", "unknown")
+    assert row["operational_state"] == "booked"
+    assert row["operational_lock"] is True
+    assert report["counts"]["booked"] == 1
+
+
+def test_missing_calendar_evidence_is_not_booked_and_not_manual_queue(tmp_path):
+    """Absence of calendar evidence must not masquerade as host rejection."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] in ("ambiguous", "unknown")
+    assert row["operational_state"] == "not_booked"
+    assert row["operational_lock"] is False
+
+
+def test_explicit_rejection_enters_manual_queue_without_removing_tournament(tmp_path):
+    """A rejected proposal becomes manual work, not a silent deletion."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(
+        root,
+        status="not-booked",
+        problem=problem,
+        note="host rejected the assigned weekend",
+        reference="email:reject",
+    )
+
+    schedule = load_schedule("2026-2027", root=root)
+    assert [t["id"] for t in schedule["plan"]["tournaments"]] == ["t1"]
+    assert not schedule["plan"]["tournaments"][0].get("cancelled")
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_not_booked"
+    assert row["operational_state"] == "action_required"
+    assert row["operational_lock"] is False
+
+
+def test_host_controlled_slot_enters_manual_queue(tmp_path):
+    """A movable/unconfirmed host interval is manual work, not booked ice."""
+
+    tournaments = [_tournament("t1")]
+    tournaments[0]["requires_host_confirmation"] = True
+    tournaments[0]["host_confirmation_reason"] = "åpen ishall må flyttes"
+    root = _promote(tmp_path, tournaments)
+    problem = _host_a_problem([])
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["operational_state"] == "action_required"
+    assert row["operational_lock"] is False
+
+
+def test_refresh_does_not_downgrade_manual_confirmation(tmp_path):
+    """A routine reconcile/refresh cannot demote an accepted confirmation."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="confirmed", reference="email-1")
+
+    before = _booking_row(booking_status_report(season="2026-2027", root=root, problem=problem), "t1")
+    assert before["operational_state"] == "booked"
+
+    for _ in range(2):
+        reconcile_calendar_bookings(season="2026-2027", root=root, club="A", problem=problem)
+
+    after = _booking_row(booking_status_report(season="2026-2027", root=root, problem=problem), "t1")
+    assert after["status"] == "manually_booked"
+    assert after["operational_state"] == "booked"
+    assert after["operational_lock"] is True
+
+
+def test_export_renders_one_operational_badge_with_details(tmp_path):
+    """The season plan shows one booking badge; evidence moves to details."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(
+        root,
+        problem=problem,
+        note="email states a shorter window than the canonical block",
+        reference="email-1",
+        stated_start="10:00",
+        stated_end="10:45",
+    )
+
+    html = _export_html_with_booking_report(root, problem, tmp_path)
+    # The canonical operational state drives the single top-level badge.
+    assert '"obs": "booked"' in html
+    assert '"obl": true' in html
+    assert html.count("booking-badge booking-badge--") == 1
+    # The follow-up discrepancy is present, but as expandable booking details
+    # rather than a second competing top-level badge.
+    assert "buildBookingDetails" in html
+    assert "booking-details-head" in html
+    assert "manual_booking_stated_end_differs_from_canonical" in html
+    assert "MÅ FØLGES OPP" not in html
+    assert '<div class="manual-badge"' not in html
