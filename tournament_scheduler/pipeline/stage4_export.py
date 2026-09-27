@@ -820,6 +820,31 @@ def run(
         except Exception as exc:  # noqa: BLE001
             errors.append(f"Kalendervisning feilet: {exc}")
 
+    # --- Spond ---
+    # Generated before the HTML pages so the season-plan/report download
+    # header can link to the workbooks via the actual output_files manifest.
+    try:
+        _progress("Genererer Spond-eksport")
+        spond_path = str(primary_export_path / f"{basename}_spond.xlsx")
+        schedule_path = str(primary_export_path / f"{basename}_spond_games.xlsx")
+        exporter = SpondExporter()
+        exporter.export(
+            plan,
+            spond_path,
+            round_length_for_age_group=round_length_for_age_group,
+            ice_time_for_age_group=ice_time_for_age_group,
+        )
+        exporter.export_schedule_attachment(
+            plan,
+            schedule_path,
+            round_length_for_age_group=round_length_for_age_group,
+            ice_time_for_age_group=ice_time_for_age_group,
+        )
+        output_files["spond"] = spond_path
+        output_files["spond_games"] = schedule_path
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"Spond-eksport feilet: {exc}")
+
     # --- Main HTML pages (season_plan.html + season_plan_report.html) ---
     _manual_schedule_path: str | None = None
     try:
@@ -891,29 +916,6 @@ def run(
             output_files["html_report"] = str(Path(html_path).with_name(f"{Path(html_path).stem}_report{Path(html_path).suffix}"))
         except Exception as exc:  # noqa: BLE001
             errors.append(f"HTML-eksport (manuell-oppfølgingsvisning) feilet: {exc}")
-
-    # --- Spond ---
-    try:
-        _progress("Genererer Spond-eksport")
-        spond_path = str(primary_export_path / f"{basename}_spond.xlsx")
-        schedule_path = str(primary_export_path / f"{basename}_spond_games.xlsx")
-        exporter = SpondExporter()
-        exporter.export(
-            plan,
-            spond_path,
-            round_length_for_age_group=round_length_for_age_group,
-            ice_time_for_age_group=ice_time_for_age_group,
-        )
-        exporter.export_schedule_attachment(
-            plan,
-            schedule_path,
-            round_length_for_age_group=round_length_for_age_group,
-            ice_time_for_age_group=ice_time_for_age_group,
-        )
-        output_files["spond"] = spond_path
-        output_files["spond_games"] = schedule_path
-    except Exception as exc:  # noqa: BLE001
-        errors.append(f"Spond-eksport feilet: {exc}")
 
     # --- Per-club review packets ---
     try:

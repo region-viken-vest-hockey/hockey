@@ -873,6 +873,12 @@ class TestRunStage4:
         assert 'href="season_plan.csv"' in html
         assert 'href="season_plan.ics"' in html
         assert 'href="season_plan.csv" class="export-link-btn"' in html or 'href="season_plan.csv"' in html
+        # Spond workbooks are generated before the HTML pages so the download
+        # header links to the artifacts named by the output_files manifest.
+        assert 'href="season_plan_spond.xlsx"' in html
+        assert 'href="season_plan_spond_games.xlsx"' in html
+        assert Path(files["spond"]).exists()
+        assert Path(files["spond_games"]).exists()
         assert html.index('class="export-links"') < html.index('class="header-main"')
         assert report_html.index('class="export-links"') < report_html.index('class="header-main"')
         assert html.index('class="export-links"') < html.index('class="stat-badge"')
@@ -1303,6 +1309,27 @@ class TestRunStage4:
         hashes_b = _file_hashes(export_b)
         assert hashes_a == hashes_b
         assert any(name.endswith(".xlsx") for name in hashes_a)
+
+    def test_public_bundle_carries_resolvable_spond_downloads(self, tmp_path):
+        export_dir = tmp_path / "export"
+        run(
+            _make_plan_dict(),
+            PipelineState(tmp_path / "pipeline"),
+            export_dir=str(export_dir),
+            timestamped_export=False,
+        )
+
+        public_dir = tmp_path / "public"
+        result = build_public_bundle(str(export_dir), str(public_dir))
+
+        assert result.status == "ok"
+        assert (public_dir / "season_plan_spond.xlsx").exists()
+        assert (public_dir / "season_plan_spond_games.xlsx").exists()
+        assert not (public_dir / "review_packets").exists()
+        html = (public_dir / "season_plan.html").read_text(encoding="utf-8")
+        assert 'href="season_plan_spond.xlsx"' in html
+        assert 'href="season_plan_spond_games.xlsx"' in html
+        assert 'data-excluded-href="season_plan_spond' not in html
 
     def test_public_bundle_fingerprint_is_stable_for_unchanged_export_content(self, tmp_path):
         build_timestamp = "2025-01-02T03:04:05+00:00"

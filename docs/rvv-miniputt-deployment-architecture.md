@@ -64,7 +64,8 @@ The export bundle is review material. It is not automatically public.
 Publication creates a separate public snapshot from the export directory. The public-bundle step:
 
 - copies only explicitly allowed public files/directories;
-- excludes private/review-only artifacts such as per-club review packets and Spond exports by default;
+- excludes private/review-only artifacts such as per-club review packets and their per-club Spond exports by default, while the two season-level Spond workbooks (`season_plan_spond.xlsx` and `season_plan_spond_games.xlsx`) are copied so the season plan offers downloadable Spond import material;
+- inspects every allowlisted XLSX workbook for macros, embedded objects, external links, hidden sheets, formulas and sensitive cell/metadata values, and blocks the bundle rather than copying it on trust because text redaction cannot sanitize a binary workbook;
 - rejects unknown/unapproved file types;
 - checks included text for likely sensitive material;
 - redacts local paths/contact data where supported;
