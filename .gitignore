@@ -172,6 +172,10 @@ __marimo__/
 !tournament_scheduler/html/templates/*.html
 # Manual schedule review view may be committed with exports.
 !export/**/manual_schedule.html
+!export/**/season_plan.html
+!export/**/season_plan_report.html
+!export/**/input.html
+!export/**/calendars.html
 !docs/**/*.html
 
 # Node

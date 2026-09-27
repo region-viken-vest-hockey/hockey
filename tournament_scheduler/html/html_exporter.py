@@ -560,6 +560,34 @@ class HtmlExporter:
                     stated = evidence.get("stated_interval") if isinstance(evidence, dict) else None
                     if isinstance(stated, dict) and stated.get("start") and stated.get("end"):
                         entry["bsi"] = {"s": str(stated["start"]), "e": str(stated["end"])}
+                manual_work = booking.get("manual_work")
+                if isinstance(manual_work, dict):
+                    # Public-safe manual-booking queue projection. The season
+                    # plan is published to clubs, so only the categorical
+                    # reason/owner/action and the observed calendar intervals
+                    # are carried here. The free-form source evidence (email
+                    # references, operator notes/identity/timestamps and
+                    # assertion ids) and the calendar event titles -- which can
+                    # contain private names or details -- stay in the private
+                    # `season booking-status` report and append-only decision
+                    # history. The intervals are observations that need
+                    # confirmation, never proven available/bookable slots.
+                    alternatives = manual_work.get("proposed_alternatives")
+                    entry["bq"] = {
+                        "r": str(manual_work.get("reason_code") or ""),
+                        "o": str(manual_work.get("owner") or ""),
+                        "ac": str(manual_work.get("action") or ""),
+                        "cw": str((manual_work.get("resolution") or {}).get("clears_when") or ""),
+                        "alt": [
+                            {
+                                "d": str(item.get("date") or ""),
+                                "s": str(item.get("start") or ""),
+                                "e": str(item.get("end") or ""),
+                            }
+                            for item in (alternatives or [])
+                            if isinstance(item, dict)
+                        ],
+                    }
             data.append(entry)
         return json.dumps(data, ensure_ascii=False)
 

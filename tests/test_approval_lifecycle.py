@@ -1363,6 +1363,46 @@ def test_manual_rejection_keeps_tournament_visible(tmp_path):
     assert report["counts"]["manually_not_booked"] == 1
 
 
+def test_rejection_export_carries_traceable_manual_queue_item(tmp_path):
+    """An explicit rejection becomes structured manual work, not a bare badge.
+
+    The operational badge stays the single top-level state; the reason, source
+    reference/author, owner and resolution live in the queue projection and the
+    expandable booking details so the work is actionable and traceable.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(
+        root,
+        status="not-booked",
+        problem=problem,
+        actor="booker",
+        note="club cannot host the assigned weekend",
+        reference="email:reject-queue",
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    queue = report["manual_booking_queue"]
+    assert len(queue) == 1
+    item = queue[0]
+    assert item["tournament_id"] == "t1"
+    assert item["reason_code"] == "explicit_rejection"
+    assert item["owner"] == "A"
+    assert item["source"]["reference"] == "email:reject-queue"
+    assert item["source"]["asserted_by"] == "booker"
+    assert item["resolution"]["status"] == "open"
+
+    html = _export_html_with_booking_report(root, problem, tmp_path)
+    assert '"bq"' in html
+    assert '"r": "explicit_rejection"' in html
+    # The private source evidence stays in the operator report; the public plan
+    # only carries the public-safe reason/owner/action projection.
+    assert '"src"' not in html
+    assert "email:reject-queue" not in html
+    assert "club cannot host the assigned weekend" not in html
+
+
 def test_manual_confirmation_precedes_negative_calendar_evidence_in_export(tmp_path):
     """Manual booker authority stays booked even next to contradictory evidence."""
 
@@ -1955,6 +1995,32 @@ def test_refresh_does_not_downgrade_manual_confirmation(tmp_path):
     assert after["status"] == "manually_booked"
     assert after["operational_state"] == "booked"
     assert after["operational_lock"] is True
+
+
+def test_refresh_never_enqueues_confirmed_booking_as_manual_work(tmp_path):
+    """An accepted confirmation must not migrate into the manual queue.
+
+    Reconciliation rewrites calendar evidence; the durable manual assertion and
+    its locked operational state must survive unchanged, and the exported plan
+    must carry no manual-queue work item for the tournament.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="confirmed by email", reference="email:confirm")
+
+    for _ in range(2):
+        reconcile_calendar_bookings(season="2026-2027", root=root, club="A", problem=problem)
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["operational_state"] == "booked"
+    assert "manual_work" not in row
+    assert report["manual_booking_queue"] == []
+
+    html = _export_html_with_booking_report(root, problem, tmp_path)
+    assert '"obs": "booked"' in html
+    assert '"bq"' not in html
 
 
 def test_export_renders_one_operational_badge_with_details(tmp_path):

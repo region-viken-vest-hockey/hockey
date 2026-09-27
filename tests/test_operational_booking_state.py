@@ -18,10 +18,20 @@ from tournament_scheduler.calendar_bookings import (
     BOOKING_MANUAL_UNKNOWN,
     BOOKING_NOT_CHECKABLE,
     BOOKING_UNKNOWN,
+    MANUAL_QUEUE_ACTION_BOOK_OR_RECONFIRM,
+    MANUAL_QUEUE_CLEARS_WHEN,
+    MANUAL_QUEUE_EXPLICIT_REJECTION,
+    MANUAL_QUEUE_HOST_CONFIRMATION_REQUIRED,
+    MANUAL_QUEUE_MANUAL_PLACEMENT,
+    MANUAL_QUEUE_RECONFIRMATION_REQUIRED,
     OPERATIONAL_ACTION_REQUIRED,
     OPERATIONAL_BOOKED,
     OPERATIONAL_NOT_BOOKED,
     STALE,
+    TOURNAMENT_BOOKING_EVIDENCE_KEY,
+    booking_status_report,
+    new_booking_evidence_record,
+    new_manual_assertion_record,
     operational_booking_state,
 )
 
@@ -85,3 +95,191 @@ class TestOperationalBookingState:
             operational_booking_state(status=BOOKING_UNKNOWN, manual_booking_reason=" ")
             == OPERATIONAL_NOT_BOOKED
         )
+
+
+def _tournament(tournament_id, **overrides):
+    tournament = {
+        "id": tournament_id,
+        "date": "2026-09-12",
+        "arena": "Arena A",
+        "age_group": "U10",
+        "host_club": "A",
+        "start_time": "10:00",
+        "games": [],
+    }
+    tournament.update(overrides)
+    return tournament
+
+
+def _problem(events=None):
+    return {
+        "ice_time_minutes": {"U10": 120},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {"A": list(events or [])},
+    }
+
+
+def _manual_assertion(tournament, problem, *, status="booked", **overrides):
+    kwargs = {
+        "tournament": tournament,
+        "booking_status": status,
+        "problem": problem,
+        "actor": "booker",
+        "note": "host emailed the club",
+        "reference": "email:1",
+        "source_scope": "tournament",
+        "stated_interval": None,
+        "asserted_at": "2026-09-01T00:00:00+00:00",
+        "source_revision": "rev-1",
+    }
+    kwargs.update(overrides)
+    return new_manual_assertion_record(**kwargs)
+
+
+def _report(plan, decisions, problem):
+    return booking_status_report(plan=plan, decisions=decisions, problem=problem)
+
+
+class TestManualBookingQueue:
+    """The action-required tournaments become structured manual work items."""
+
+    def test_explicit_rejection_carries_reason_source_owner_and_resolution(self):
+        tournament = _tournament("t1")
+        problem = _problem()
+        assertion = _manual_assertion(
+            tournament,
+            problem,
+            status="not-booked",
+            note="club cannot host the assigned weekend",
+            reference="email:reject-host",
+        )
+        report = _report(
+            {"tournaments": [tournament]},
+            {"manual_booking_assertions": [assertion]},
+            problem,
+        )
+        row = report["tournaments"][0]
+        assert row["operational_state"] == OPERATIONAL_ACTION_REQUIRED
+        work = row["manual_work"]
+        assert work["reason_code"] == MANUAL_QUEUE_EXPLICIT_REJECTION
+        assert work["owner"] == "A"
+        assert work["action"] == MANUAL_QUEUE_ACTION_BOOK_OR_RECONFIRM
+        assert work["source"]["reference"] == "email:reject-host"
+        assert work["source"]["note"] == "club cannot host the assigned weekend"
+        assert work["source"]["asserted_by"] == "booker"
+        assert work["source"]["assertion_id"] == assertion["id"]
+        assert work["resolution"]["status"] == "open"
+        assert work["resolution"]["clears_when"] == MANUAL_QUEUE_CLEARS_WHEN
+        assert report["manual_booking_queue"] == [work]
+
+    def test_missing_calendar_evidence_is_not_manual_work(self):
+        """Absence of a calendar event is an observation, never host rejection."""
+
+        tournament = _tournament("t1")
+        report = _report({"tournaments": [tournament]}, {}, _problem())
+        row = report["tournaments"][0]
+        assert row["status"] == BOOKING_UNKNOWN
+        # Missing/ambiguous evidence is never promoted to the manual queue.
+        assert row["operational_state"] != OPERATIONAL_ACTION_REQUIRED
+        assert "manual_work" not in row
+        assert report["manual_booking_queue"] == []
+
+    def test_manual_placement_and_host_confirmation_have_distinct_reasons(self):
+        placement = _tournament("placement", manual_booking_reason="kalender utilgjengelig")
+        movable = _tournament("movable", requires_host_confirmation=True)
+        report = _report({"tournaments": [placement, movable]}, {}, _problem())
+        by_id = {row["tournament_id"]: row for row in report["tournaments"]}
+        assert by_id["placement"]["manual_work"]["reason_code"] == MANUAL_QUEUE_MANUAL_PLACEMENT
+        assert (
+            by_id["movable"]["manual_work"]["reason_code"]
+            == MANUAL_QUEUE_HOST_CONFIRMATION_REQUIRED
+        )
+
+    def test_slot_change_reconfirmation_keeps_traceable_assertion(self):
+        original = _tournament("t1")
+        problem = _problem()
+        assertion = _manual_assertion(original, problem)
+        moved = _tournament("t1", date="2026-09-19")
+        report = _report(
+            {"tournaments": [moved]},
+            {"manual_booking_assertions": [assertion]},
+            problem,
+        )
+        work = report["tournaments"][0]["manual_work"]
+        assert work["reason_code"] == MANUAL_QUEUE_RECONFIRMATION_REQUIRED
+        assert work["source"]["assertion_id"] == assertion["id"]
+        assert "tournament_date_changed" in work["stale_reasons"]
+
+    def test_calendar_rejection_carries_calendar_source(self):
+        tournament = _tournament("t1")
+        problem = _problem()
+        record = new_booking_evidence_record(
+            tournament=tournament,
+            status=BOOKING_CONFIRMED_NOT_BOOKED,
+            problem=problem,
+            actor="booker",
+            note="host confirmed the slot is unavailable",
+            checked_at="2026-09-02T00:00:00+00:00",
+            source_revision="rev-2",
+            reason="explicit_host_rejection",
+        )
+        report = _report(
+            {"tournaments": [tournament]},
+            {TOURNAMENT_BOOKING_EVIDENCE_KEY: [record]},
+            problem,
+        )
+        work = report["tournaments"][0]["manual_work"]
+        assert work["reason_code"] == MANUAL_QUEUE_EXPLICIT_REJECTION
+        assert work["source"]["reason"] == "explicit_host_rejection"
+        assert work["source"]["checked_by"] == "booker"
+        assert work["source"]["note"] == "host confirmed the slot is unavailable"
+
+    def test_proposed_alternatives_only_include_actionable_candidates(self):
+        tournament = _tournament("t1")
+        problem = _problem(
+            events=[
+                {
+                    "date": "2026-09-12",
+                    "start": "13:00",
+                    "end": "15:00",
+                    "availability": "fixed_busy",
+                    "calendar_event": "Miniputt U10",
+                }
+            ]
+        )
+        assertion = _manual_assertion(
+            tournament, problem, status="not-booked", reference="email:reject"
+        )
+        report = _report(
+            {"tournaments": [tournament]},
+            {"manual_booking_assertions": [assertion]},
+            problem,
+        )
+        alternatives = report["tournaments"][0]["manual_work"]["proposed_alternatives"]
+        assert [item["start"] for item in alternatives] == ["13:00"]
+        assert alternatives[0]["relation"] == "same_date_time_shift"
+
+    def test_untrusted_source_candidate_is_not_a_proposed_alternative(self):
+        tournament = _tournament("t1")
+        problem = _problem()
+        problem["club_calendar_status"] = {"A": "untrusted"}
+        problem["club_busy_intervals"] = {
+            "A": [
+                {
+                    "date": "2026-09-12",
+                    "start": "13:00",
+                    "end": "15:00",
+                    "availability": "fixed_busy",
+                    "calendar_event": "Miniputt U10",
+                }
+            ]
+        }
+        assertion = _manual_assertion(
+            tournament, problem, status="not-booked", reference="email:reject"
+        )
+        report = _report(
+            {"tournaments": [tournament]},
+            {"manual_booking_assertions": [assertion]},
+            problem,
+        )
+        assert report["tournaments"][0]["manual_work"]["proposed_alternatives"] == []

@@ -225,6 +225,35 @@ function bookingStatusLabel(status) {
   return labels[status] || status;
 }
 
+// Escape every dynamic value before it reaches an innerHTML sink. The season
+// plan embeds club/host/manual/calendar text, so this is the one shared HTML
+// encoder for the booking-details block.
+function escapeHtml(value) {
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function manualQueueReasonLabel(code) {
+  var labels = {
+    explicit_rejection: 'avvist av vert — må bookes på nytt',
+    reconfirmation_required: 'bekreftelsen er utdatert etter endret tid — må bekreftes på nytt',
+    manual_placement: 'manuell plassering — istid må bekreftes/bookes',
+    host_confirmation_required: 'vertsstyrt tidsrom — må bekreftes av vertsklubben'
+  };
+  return labels[code] || code;
+}
+
+function manualQueueActionLabel(action) {
+  var labels = {
+    book_or_reconfirm: 'registrer en bekreftet booking (booking-set) eller en gyldig kalenderkobling'
+  };
+  return labels[action] || action;
+}
+
 function buildBookingDetails(t) {
   var state = operationalStateOf(t);
   var rows = [];
@@ -237,15 +266,15 @@ function buildBookingDetails(t) {
     not_booked: 'Ikke bekreftet. Manglende kalenderbevis er ikke en avvisning.'
   };
   if (state && stateText[state]) rows.push('<strong>Bookingstatus:</strong> ' + stateText[state]);
-  if (t.bs) rows.push('<strong>Detaljert status:</strong> ' + bookingStatusLabel(t.bs) + (t.bscope === 'club_wide_interpretation' ? ' · SKJØNNSVURDERT' : ''));
-  if (t.bauth) rows.push('<strong>Autoritet:</strong> ' + bookingAuthorityLabel(t.bauth));
-  if (t.bac) rows.push('<strong>Kalenderavstemming:</strong> ' + bookingStatusLabel(t.bac));
-  if (t.bci) rows.push('<strong>Kanonisk planlagt tid:</strong> ' + t.bci.d + ' ' + t.bci.s + '–' + t.bci.e);
-  if (t.boi) rows.push('<strong>Siste observerte kalendertid:</strong> ' + t.boi.d + ' ' + t.boi.s + '–' + t.boi.e + (t.boi.t ? ' · ' + t.boi.t : '') + (t.boi.a ? '' : ' · ikke handlingsbar'));
-  if (t.bne) rows.push('<strong>Negativt kalenderbevis:</strong> komplett kildevindu uten plausibel match' + (t.bne.c !== undefined && t.bne.c !== null ? ' (' + t.bne.c + ' hendelser i kilden)' : ''));
+  if (t.bs) rows.push('<strong>Detaljert status:</strong> ' + escapeHtml(bookingStatusLabel(t.bs)) + (t.bscope === 'club_wide_interpretation' ? ' · SKJØNNSVURDERT' : ''));
+  if (t.bauth) rows.push('<strong>Autoritet:</strong> ' + escapeHtml(bookingAuthorityLabel(t.bauth)));
+  if (t.bac) rows.push('<strong>Kalenderavstemming:</strong> ' + escapeHtml(bookingStatusLabel(t.bac)));
+  if (t.bci) rows.push('<strong>Kanonisk planlagt tid:</strong> ' + escapeHtml(t.bci.d) + ' ' + escapeHtml(t.bci.s) + '–' + escapeHtml(t.bci.e));
+  if (t.boi) rows.push('<strong>Siste observerte kalendertid:</strong> ' + escapeHtml(t.boi.d) + ' ' + escapeHtml(t.boi.s) + '–' + escapeHtml(t.boi.e) + (t.boi.t ? ' · ' + escapeHtml(t.boi.t) : '') + (t.boi.a ? '' : ' · ikke handlingsbar'));
+  if (t.bne) rows.push('<strong>Negativt kalenderbevis:</strong> komplett kildevindu uten plausibel match' + (t.bne.c !== undefined && t.bne.c !== null ? ' (' + escapeHtml(t.bne.c) + ' hendelser i kilden)' : ''));
   if (t.bscope === 'club_wide_interpretation') rows.push('<strong>Kildeomfang:</strong> tolkning av klubbdekkende bekreftelse, ikke en egen per-turnering-kilde.');
-  if (t.mb) rows.push('<strong>Manuell booking:</strong> ' + t.mb);
-  if (t.rhc) rows.push('<strong>Vertsbekreftelse:</strong> ' + (t.hcr || 'må bekreftes av vertsklubben'));
+  if (t.mb) rows.push('<strong>Manuell booking:</strong> ' + escapeHtml(t.mb));
+  if (t.rhc) rows.push('<strong>Vertsbekreftelse:</strong> ' + escapeHtml(t.hcr || 'må bekreftes av vertsklubben'));
   if (t.bfu && t.bfu.length) {
     var followUpLabels = {
       manual_booking_stated_date_differs_from_canonical: 'kilden oppgir avvikende dato',
@@ -257,9 +286,23 @@ function buildBookingDetails(t) {
       confirmed_booking_without_valid_association: 'bekreftet booking mangler gyldig kalenderkobling',
       absence_only_negative_booking_requires_review: 'manglende kalenderfunn krever gjennomgang'
     };
-    var text = t.bfu.map(function (reason) { return followUpLabels[reason] || reason; }).join('; ');
-    if (t.bsi) text += ' (kilden oppgir ' + t.bsi.s + '–' + t.bsi.e + ', kanonisk tid er uendret)';
+    var text = t.bfu.map(function (reason) { return escapeHtml(followUpLabels[reason] || reason); }).join('; ');
+    if (t.bsi) text += ' (kilden oppgir ' + escapeHtml(t.bsi.s) + '–' + escapeHtml(t.bsi.e) + ', kanonisk tid er uendret)';
     rows.push('<strong>Må følges opp:</strong> ' + text);
+  }
+  if (t.bq) {
+    if (t.bq.r) rows.push('<strong>Manuell kø:</strong> ' + escapeHtml(manualQueueReasonLabel(t.bq.r)));
+    if (t.bq.o) rows.push('<strong>Ansvarlig:</strong> ' + escapeHtml(t.bq.o));
+    if (t.bq.alt && t.bq.alt.length) {
+      // Calendar observations, not confirmed/available slots. The public
+      // payload deliberately omits event titles (they can contain private
+      // details); the full titles remain in the private operator report.
+      var altText = t.bq.alt.map(function (item) {
+        return escapeHtml(item.d + ' ' + item.s + '–' + item.e);
+      }).join('; ');
+      rows.push('<strong>Kalenderobservasjoner (må bekreftes — ikke ledige tider):</strong> ' + altText);
+    }
+    if (t.bq.ac) rows.push('<strong>Neste handling:</strong> ' + escapeHtml(manualQueueActionLabel(t.bq.ac)));
   }
   if (!rows.length) return '';
   return '<div class="booking-details"><p class="booking-details-head">Bookingdetaljer</p><ul>' +

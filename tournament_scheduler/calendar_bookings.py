@@ -93,6 +93,21 @@ OPERATIONAL_CHANGED_SLOT_REVIEW = "changed_slot_review"
 OPERATIONAL_PRESUMED_UNSCHEDULED = "presumed_unscheduled"
 OPERATIONAL_UNKNOWN = "unknown"
 
+# Manual-booking queue vocabulary --------------------------------------------
+# A single operational ``action_required`` state covers different kinds of
+# operator work. The queue distinguishes *why* a slot needs action -- an
+# explicit host rejection, a confirmation invalidated by a slot change, a
+# retained manual placement or a movable host interval -- so the operator sees
+# the reason, the source evidence, the plausible calendar alternatives and the
+# action that closes the item. These are derived projections of the same
+# canonical evidence, never a second booking status or a persisted decision.
+MANUAL_QUEUE_EXPLICIT_REJECTION = "explicit_rejection"
+MANUAL_QUEUE_RECONFIRMATION_REQUIRED = "reconfirmation_required"
+MANUAL_QUEUE_MANUAL_PLACEMENT = "manual_placement"
+MANUAL_QUEUE_HOST_CONFIRMATION_REQUIRED = "host_confirmation_required"
+MANUAL_QUEUE_ACTION_BOOK_OR_RECONFIRM = "book_or_reconfirm"
+MANUAL_QUEUE_CLEARS_WHEN = "accepted_booking_assertion_or_valid_calendar_association"
+
 _STATUS_BOOKED = "booked"
 _STATUS_NOT_BOOKED = "not-booked"
 MANUAL_BOOKING_STATUS_CHOICES = (_STATUS_BOOKED, _STATUS_NOT_BOOKED)
@@ -777,6 +792,144 @@ def operational_booking_state(
     return OPERATIONAL_NOT_BOOKED
 
 
+def _action_required_reason_code(
+    *,
+    status: str,
+    manual_booking_reason: str,
+    requires_host_confirmation: bool,
+) -> str:
+    """Classify why an ``action_required`` tournament is manual work."""
+
+    if status in (BOOKING_CONFIRMED_NOT_BOOKED, BOOKING_MANUALLY_NOT_BOOKED):
+        return MANUAL_QUEUE_EXPLICIT_REJECTION
+    if status == STALE:
+        return MANUAL_QUEUE_RECONFIRMATION_REQUIRED
+    if requires_host_confirmation and not manual_booking_reason.strip():
+        return MANUAL_QUEUE_HOST_CONFIRMATION_REQUIRED
+    return MANUAL_QUEUE_MANUAL_PLACEMENT
+
+
+def _manual_work_source(row: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the traceable source evidence behind one queue item.
+
+    A manual assertion (rejection/confirmation) carries an authority, reference
+    and author; calendar-derived evidence carries the checked fingerprint and
+    reason. Keeping the two shapes explicit lets the queue stay auditable
+    without inventing per-ID source detail that does not exist.
+    """
+
+    evidence = row.get("evidence")
+    if isinstance(evidence, Mapping) and evidence.get("authority"):
+        return {
+            "authority": str(evidence.get("authority") or ""),
+            "source_scope": str(evidence.get("source_scope") or ""),
+            "reference": str(evidence.get("reference") or ""),
+            "note": str(evidence.get("note") or ""),
+            "asserted_by": str(evidence.get("asserted_by") or ""),
+            "asserted_at": str(evidence.get("asserted_at") or ""),
+            "assertion_id": str(evidence.get("id") or ""),
+            "supersedes": str(evidence.get("supersedes") or ""),
+        }
+    # A calendar-only row stores its booking-evidence record under
+    # ``evidence`` (no authority); a manual row may additionally carry a
+    # separate ``calendar_evidence`` observation. Prefer the explicit key.
+    calendar = row.get("calendar_evidence")
+    if not isinstance(calendar, Mapping):
+        calendar = evidence
+    if isinstance(calendar, Mapping):
+        return {
+            "source": str(calendar.get("source_calendar_status") or ""),
+            "reason": str(calendar.get("reason") or ""),
+            "note": str(calendar.get("note") or ""),
+            "checked_by": str(calendar.get("checked_by") or ""),
+            "checked_at": str(calendar.get("checked_at") or ""),
+            "event_fingerprint": str(calendar.get("event_fingerprint") or ""),
+        }
+    return {}
+
+
+def _manual_work_alternatives(assessment_row: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    """Return actionable calendar alternatives for one queue item.
+
+    Only candidates the read-only assessment marked actionable are offered; an
+    untrusted-source observation or a title/arena contradiction stays in the
+    assessment evidence but is never presented as a bookable alternative.
+    """
+
+    alternatives: list[dict[str, Any]] = []
+    for candidate in (assessment_row or {}).get("candidates") or []:
+        if not isinstance(candidate, Mapping) or not candidate.get("actionable"):
+            continue
+        alternatives.append(
+            {
+                "date": str(candidate.get("date") or ""),
+                "start": str(candidate.get("start") or ""),
+                "end": str(candidate.get("end") or ""),
+                "title": str(candidate.get("title") or ""),
+                "relation": str(candidate.get("relation") or ""),
+                "event_fingerprint": str(candidate.get("event_fingerprint") or ""),
+                "covers_current_interval": bool(candidate.get("covers_current_interval")),
+            }
+        )
+    return alternatives
+
+
+def manual_booking_work_item(
+    *,
+    row: Mapping[str, Any],
+    tournament: Mapping[str, Any],
+    problem: Mapping[str, Any] | None,
+    assessment_row: Mapping[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Return the structured manual-booking queue item for one projected row.
+
+    Only an ``action_required`` tournament becomes work. The item carries the
+    *reason* it needs action, the *source* evidence (a manual assertion's
+    reference/author/note or the calendar evidence), the *proposed
+    alternatives* the read-only assessment found, the *owner* (host club), the
+    required *action*, and how the item is *resolved*. It never persists
+    anything or changes a booking decision; the queue is a projection over the
+    same canonical evidence as :func:`booking_status_report`.
+    """
+
+    if str(row.get("operational_state") or "") != OPERATIONAL_ACTION_REQUIRED:
+        return None
+    status = str(row.get("status") or "")
+    manual_booking_reason = str(tournament.get("manual_booking_reason") or "")
+    requires_host_confirmation = bool(tournament.get("requires_host_confirmation"))
+    reason_code = _action_required_reason_code(
+        status=status,
+        manual_booking_reason=manual_booking_reason,
+        requires_host_confirmation=requires_host_confirmation,
+    )
+    source = _manual_work_source(row)
+    interval = tournament_occupancy_interval_facts(tournament, problem)
+    return {
+        "tournament_id": str(row.get("tournament_id") or ""),
+        "host_club": str(row.get("host_club") or ""),
+        "age_group": str(row.get("age_group") or ""),
+        "arena": str(row.get("arena") or ""),
+        "canonical_interval": {
+            "date": interval["date"],
+            "start_time": interval["start_time"],
+            "end_time": interval["end_time"],
+        },
+        "reason_code": reason_code,
+        "reason_detail": manual_booking_reason,
+        "owner": str(row.get("host_club") or ""),
+        "action": MANUAL_QUEUE_ACTION_BOOK_OR_RECONFIRM,
+        "source": source,
+        "proposed_alternatives": _manual_work_alternatives(assessment_row),
+        "stale_reasons": list(row.get("stale_reasons") or []),
+        # How the item clears. The trace itself is the append-only canonical
+        # decision history plus the source assertion chain recorded above.
+        "resolution": {
+            "status": "open",
+            "clears_when": MANUAL_QUEUE_CLEARS_WHEN,
+        },
+    }
+
+
 def _assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> dict[str, Any]:
     """Return the non-binding assessment provenance for one booking-status row.
 
@@ -850,6 +1003,7 @@ def booking_status_report(
             latest[tid] = dict(record)
 
     rows: list[dict[str, Any]] = []
+    manual_queue: list[dict[str, Any]] = []
     counts: dict[str, int] = {
         BOOKING_UNKNOWN: 0,
         BOOKING_CONFIRMED_BOOKED: 0,
@@ -999,6 +1153,15 @@ def booking_status_report(
             row.update(_assessment_provenance_fields(assessment_row))
             if calendar_record:
                 row["evidence"] = calendar_record
+        work_item = manual_booking_work_item(
+            row=row,
+            tournament=tournament,
+            problem=problem,
+            assessment_row=assessment_by_tournament.get(tid),
+        )
+        if work_item is not None:
+            row["manual_work"] = work_item
+            manual_queue.append(work_item)
         if conflict:
             counts["conflicts"] += 1
         rows.append(row)
@@ -1007,7 +1170,14 @@ def booking_status_report(
         counts[operational_state] = counts.get(operational_state, 0) + 1
         if row["needs_attention"]:
             counts["needs_attention"] += 1
-    return {"tournaments": rows, "counts": counts}
+    return {
+        "tournaments": rows,
+        "counts": counts,
+        # One structured work item per ``action_required`` tournament; the
+        # per-row copy keeps consumers that iterate tournaments able to render
+        # the reason/source/alternatives without recomputing the projection.
+        "manual_booking_queue": manual_queue,
+    }
 
 
 def association_findings(
