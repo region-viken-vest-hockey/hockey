@@ -944,7 +944,7 @@
       }
     }
   ],
-  "canonical_state_revision": "ee847930bb07ee4925324ca2dc1928f6bcd970d74913ead70808f0a4387f7e82",
+  "canonical_state_revision": "58f7c213fd120f5f5ff96da5d92e9e8fa6346855f331e99ae8c82edf65ad75b0",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -4080,7 +4080,7 @@
     "rvv-0039": {
       "approved_at": "2026-09-22T14:40:29.335504+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "07574651e465217824482b0ea5055b54372431c6880b1153b9fe2d323002ae0f",
+      "approved_fingerprint": "2941d6034ebff702d5b7be1cdad7479420b3fe097e13e1e50cb0d0fff30f03a2",
       "note": "Holmen confirmed this booking via their change sheet",
       "participants_locked": false,
       "placement_locked": true,
@@ -4161,7 +4161,7 @@
     "rvv-0049": {
       "approved_at": "2026-09-22T14:40:19.577207+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "d0180977cd6a6dda9cffa0c55abd9a6757df5b7b5bb532cf98616a8cd5188bd0",
+      "approved_fingerprint": "6ec76db5451596520446cf0f127b4767070bb3bce75724ae2702439df5253bad",
       "note": "Holmen confirmed this booking via their change sheet",
       "participants_locked": false,
       "placement_locked": false,
@@ -4271,7 +4271,7 @@
     "rvv-0061": {
       "approved_at": "2026-09-22T14:40:21.359392+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "7bd00ed929812a65891e3399c5aa1cf13c9bd03c5fd947be1c56544b0df85865",
+      "approved_fingerprint": "390c9304d181c029ae91513997ab66818da098cb7cf5bdbafb98dcb637fb6830",
       "note": "Holmen confirmed this booking via their change sheet",
       "participants_locked": false,
       "placement_locked": false,
@@ -4489,7 +4489,7 @@
     "rvv-0090": {
       "approved_at": "2026-09-22T14:08:27.959466+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "04ff24ca70c95800a81aca9b74751acecb8c3e4883650d4c1bf3dfc9049b4ed0",
+      "approved_fingerprint": "3b6af03a0c7610c3489225d6d2a20c4b655dc1a6157f77eb49b2837f1a627ba5",
       "note": "Jar confirmed this booking in their own calendar",
       "participants_locked": true,
       "placement_locked": true,
@@ -4525,7 +4525,7 @@
     "rvv-0094": {
       "approved_at": "2026-09-25T11:05:49.002417+00:00",
       "approved_by": "nicli",
-      "approved_fingerprint": "1760059993294295bf9a37a036340a272dc836f6dac06ad78f25c6f533db8246",
+      "approved_fingerprint": "11a859b5ce9d912428ccee46252c532dd878a250f95e7e08bc9b48ff143e224e",
       "note": "Tønsberg confirmed: 'Rest is booked as per season_plan' (changes_and_confirmations/2026-27/Tønsberg.txt).",
       "participants_locked": false,
       "placement_locked": true,
@@ -4669,7 +4669,7 @@
     "rvv-0110": {
       "approved_at": "2026-09-22T14:40:24.879225+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "345c018be1c852ed12f65f8eb9532623d791ceff3e4031a6a26928a68f2dbd52",
+      "approved_fingerprint": "b580a754b18e24e8fec5dbfd18b9db05ae425959ab260c5f27d3d488c0f9cb18",
       "note": "Holmen confirmed this booking via their change sheet",
       "participants_locked": false,
       "placement_locked": false,
@@ -4788,7 +4788,7 @@
     "rvv-0123": {
       "approved_at": "2026-09-22T14:08:37.875695+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "6a54b2752b933dc17c234d1a3a364c51cd74ced6f61622934caf4e19e4980146",
+      "approved_fingerprint": "62bf9549144f64f866e97958c94b0abc688ebec606587da11168a9fc3dd605e4",
       "note": "Jar confirmed this booking in their own calendar",
       "participants_locked": true,
       "placement_locked": true,
@@ -4930,11 +4930,11 @@
       "status": "approved"
     },
     "rvv-0139": {
-      "approved_at": "2026-09-22T14:08:41.785528+00:00",
+      "approved_at": "2026-09-27T11:26:46.915595+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "0b2600ad25020564969720a8bb75f1f982e2cff2ccec87809c8b5ffedd2d7508",
-      "note": "Jar confirmed this booking in their own calendar",
-      "participants_locked": true,
+      "note": "Restoring approval; Jar-confirmed booking unaffected — JU8 withdrawal on hold pending Ringerike host-reassignment decision for rvv-0054 (#483 item 2)",
+      "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
     },
@@ -4986,7 +4986,7 @@
     "rvv-0145": {
       "approved_at": "2026-09-22T14:40:26.645334+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "6362d47afd940fbfb423d5f800775553d69bf9adfaba517e601411c9109e5a32",
+      "approved_fingerprint": "b89188740be09feb7a9f8b76767b60743beebcffc25456f6f622baebdf58e6dd",
       "note": "Holmen confirmed this booking via their change sheet",
       "participants_locked": false,
       "placement_locked": true,
@@ -5058,7 +5058,7 @@
     "rvv-0154": {
       "approved_at": "2026-09-22T14:08:44.943687+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "d3656f71a770c80c63cfe1cbfee9ef7d40ceda83e3c88efafed1894c44ad931c",
+      "approved_fingerprint": "b0b390ec3069c26215dba594ba812c771062647d93079a84c5cb50ac507d39bb",
       "note": "Jar confirmed this booking in their own calendar",
       "participants_locked": true,
       "placement_locked": true,
@@ -5247,7 +5247,7 @@
     "rvv-0175": {
       "approved_at": "2026-09-22T14:08:43.727855+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "4af48edc88ec9a821cafc481af053d816416f8df9b41f67e16657b809cf9f90b",
+      "approved_fingerprint": "cbe4cc2c725ed680ffc484cb83794ced0bcbafa9a02a3e9dc4f0da1e4358517e",
       "note": "Jar confirmed this booking in their own calendar",
       "participants_locked": true,
       "placement_locked": true,
@@ -5265,7 +5265,7 @@
     "rvv-0177": {
       "approved_at": "2026-09-22T14:40:28.446835+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "aa27c781c4d3c1a318ab567c648be7ed7da42b8ca7034d496a9ee59b616e025d",
+      "approved_fingerprint": "33c5742d0fe7ac88207aea6d09bc91a7ca900bbf410ee51890654e49a020f42a",
       "note": "Holmen confirmed this booking via their change sheet",
       "participants_locked": false,
       "placement_locked": false,
@@ -23595,6 +23595,79 @@
       "schedule_fingerprint": "2679b1920b45471f0861396a869c8d8e8f2ac5286d1cb7cf6a224e625b997bf9",
       "tournament_fingerprint": "7d679a738ba16b45fa94839a77918f01f0fafd1ea476ed3a125349a2b7a9031c",
       "tournament_id": "rvv-0137"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-27T11:24:34.529817+00:00",
+      "details": {
+        "approval_fingerprint_updates": 70,
+        "before_canonical_revision": "ee847930bb07ee4925324ca2dc1928f6bcd970d74913ead70808f0a4387f7e82",
+        "decision_reference_changes": 0,
+        "game_label_changes": 100,
+        "mappings": [
+          {
+            "from": {
+              "age_group": "U11",
+              "club": "Ringerike",
+              "label": "Ringerike 1"
+            },
+            "to": {
+              "age_group": "U11",
+              "club": "Ringerike",
+              "label": "Ringerike Svart"
+            }
+          },
+          {
+            "from": {
+              "age_group": "U11",
+              "club": "Ringerike",
+              "label": "Ringerike 2"
+            },
+            "to": {
+              "age_group": "U11",
+              "club": "Ringerike",
+              "label": "Ringerike Gul"
+            }
+          }
+        ],
+        "placement_neutrality": {
+          "participant_assignments_changed_except_rename": false,
+          "placement_changed_ids": [],
+          "tournament_order_changed": false,
+          "tournaments_added": [],
+          "tournaments_removed": []
+        },
+        "renamed_team_identities": 2,
+        "request_id": "issue-483:ringerike-u11-rename",
+        "team_reference_changes": 24,
+        "verification_context_reference_changes": 2
+      },
+      "event": "team_identity_rename",
+      "note": "Ringerike U11 squad identity correction (#483 item 3)",
+      "previous_fingerprint": "2679b1920b45471f0861396a869c8d8e8f2ac5286d1cb7cf6a224e625b997bf9",
+      "schedule_fingerprint": "ed95070a867eeb39a01373e4c934728009d506f40c8a453373ac57395ad0479b",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-27T11:25:36.104285+00:00",
+      "event": "unapprove",
+      "note": "Temporarily unapproved to remove withdrawing Ringerike JU8 participant (#483 item 2)",
+      "previous_fingerprint": "0b2600ad25020564969720a8bb75f1f982e2cff2ccec87809c8b5ffedd2d7508",
+      "schedule_fingerprint": "ed95070a867eeb39a01373e4c934728009d506f40c8a453373ac57395ad0479b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0139"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-27T11:26:46.915595+00:00",
+      "event": "approve",
+      "note": "Restoring approval; Jar-confirmed booking unaffected — JU8 withdrawal on hold pending Ringerike host-reassignment decision for rvv-0054 (#483 item 2)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "ed95070a867eeb39a01373e4c934728009d506f40c8a453373ac57395ad0479b",
+      "tournament_fingerprint": "0b2600ad25020564969720a8bb75f1f982e2cff2ccec87809c8b5ffedd2d7508",
+      "tournament_id": "rvv-0139"
     }
   ],
   "holiday_date_exceptions": [
@@ -24262,7 +24335,7 @@
       "type": "team_unavailable"
     }
   ],
-  "schedule_fingerprint": "2679b1920b45471f0861396a869c8d8e8f2ac5286d1cb7cf6a224e625b997bf9",
+  "schedule_fingerprint": "ed95070a867eeb39a01373e4c934728009d506f40c8a453373ac57395ad0479b",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -31878,5 +31951,5 @@
       "tournament_id": "rvv-0168"
     }
   ],
-  "updated_at": "2026-09-26T20:50:04.711153+00:00"
+  "updated_at": "2026-09-27T11:26:46.915595+00:00"
 }
