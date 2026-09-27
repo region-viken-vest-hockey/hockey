@@ -7,6 +7,10 @@ verdict and the calendar-status downgrade it drives.
 
 from __future__ import annotations
 
+import sys
+import types
+from datetime import datetime
+
 from tournament_scheduler.pipeline.source_integrity import (
     INTEGRITY_COMPLETE,
     INTEGRITY_FAILED,
@@ -151,6 +155,30 @@ def test_coverage_annotated_events_carry_the_proof():
     assert integrity["coverage_proven"] is True
 
 
+def test_mismatched_coverage_requested_window_fails_closed():
+    events = with_coverage(
+        _ok_events(3),
+        status=INTEGRITY_COMPLETE,
+        navigation_complete=True,
+        requested_start="2027-03-01",
+        requested_end="2027-03-06",
+        observed_start="2027-03-01",
+        observed_end="2027-03-06",
+        exceptions=[],
+    )
+    source = {"name": "Kongsberg", "type": "outlook", "events": events, "event_count": 3}
+
+    integrity = evaluate_source_integrity(
+        source,
+        requested_start="2027-03-01",
+        requested_end="2027-03-28",
+    )
+
+    assert integrity["status"] == INTEGRITY_PARTIAL
+    assert integrity["coverage_proven"] is False
+    assert any("annen sluttdato" in reason for reason in integrity["reasons"])
+
+
 def test_reported_observed_window_shortfall_fails_closed():
     events = with_coverage(
         _ok_events(3),
@@ -178,8 +206,6 @@ def test_reported_observed_window_shortfall_fails_closed():
 
 
 def test_outlook_coverage_record_reports_missing_requested_months():
-    from datetime import datetime
-
     from tournament_scheduler.pipeline.scraper_outlook import _outlook_coverage_record
 
     coverage = _outlook_coverage_record(
@@ -194,6 +220,78 @@ def test_outlook_coverage_record_reports_missing_requested_months():
     assert coverage["requested_end"] == "2027-03-28"
     assert coverage["observed_end"] == "2027-02-28"
     assert any("2027-03-01" in reason for reason in coverage["exceptions"])
+
+
+def test_outlook_iframe_records_only_rendered_months(monkeypatch):
+    from tournament_scheduler.pipeline.scraper_outlook import _run_outlook_scraper
+
+    class _FakeNextButton:
+        def click(self, *args, **kwargs):
+            return None
+
+    class _FakeFrame:
+        def wait_for_timeout(self, *args, **kwargs):
+            return None
+
+        def content(self):
+            return '<div aria-label="januar 2027">januar 2027</div>'
+
+        def query_selector(self, selector):
+            return _FakeNextButton()
+
+    class _FakeIframe:
+        def __init__(self):
+            self.frame = _FakeFrame()
+
+        def content_frame(self):
+            return self.frame
+
+    class _FakePage:
+        def goto(self, *args, **kwargs):
+            return None
+
+        def wait_for_timeout(self, *args, **kwargs):
+            return None
+
+        def query_selector(self, selector):
+            return _FakeIframe()
+
+    class _FakeBrowser:
+        def new_page(self):
+            return _FakePage()
+
+        def close(self):
+            return None
+
+    class _FakeChromium:
+        def launch(self, *args, **kwargs):
+            return _FakeBrowser()
+
+    class _FakePlaywright:
+        chromium = _FakeChromium()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    sync_api = types.ModuleType("playwright.sync_api")
+    sync_api.sync_playwright = lambda: _FakePlaywright()
+    monkeypatch.setitem(sys.modules, "playwright", types.ModuleType("playwright"))
+    monkeypatch.setitem(sys.modules, "playwright.sync_api", sync_api)
+
+    events, _raw = _run_outlook_scraper(
+        "https://example.com/outlook",
+        "Kongsberg",
+        datetime(2027, 1, 1),
+        datetime(2027, 3, 28),
+    )
+
+    coverage = events.coverage
+    assert coverage["status"] == INTEGRITY_PARTIAL
+    assert coverage["observed_end"] == "2027-01-31"
+    assert any("did not change" in reason for reason in coverage["exceptions"])
 
 
 def test_downgrade_marks_known_club_as_source_review_required():

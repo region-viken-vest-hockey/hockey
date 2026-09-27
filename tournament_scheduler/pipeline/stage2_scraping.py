@@ -466,6 +466,10 @@ def run(
                 llm_fallback=False,
                 from_cache=True,
             )
+            if isinstance(entry.get("coverage"), dict):
+                _cached_result["coverage"] = dict(entry["coverage"])
+            if isinstance(entry.get("integrity"), dict):
+                _cached_result["integrity"] = dict(entry["integrity"])
             if _cache_age_hours is not None:
                 _cached_result["cache_age_hours"] = _cache_age_hours
             source_results.append(_cached_result)

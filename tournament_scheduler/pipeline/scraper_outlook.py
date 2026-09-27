@@ -74,7 +74,16 @@ def _run_outlook_scraper(
                     iframe.wait_for_timeout(1000)
                     page_content = iframe.content()
                     raw_html += page_content
-                    visited_months.append(_month_start_after(start_month.date(), month_idx))
+                    observed_months = _observed_months_from_outlook_html(page_content, norwegian_months)
+                    expected_month = _month_start_after(start_month.date(), month_idx)
+                    if expected_month in observed_months:
+                        visited_months.append(expected_month)
+                    elif observed_months:
+                        visited_months.extend(sorted(observed_months))
+                    else:
+                        coverage_exceptions.append(
+                            f"Outlook rendered no recognizable month for requested month {expected_month.isoformat()}."
+                        )
 
                     month_events = _parse_outlook_calendar(page_content, norwegian_months)
                     events.extend(month_events)
@@ -84,9 +93,19 @@ def _run_outlook_scraper(
                             next_btn = iframe.query_selector(
                                 'button[aria-label*="next month"]'
                             )
+                            before_content = page_content
                             if next_btn:
                                 next_btn.click()
                                 iframe.wait_for_timeout(1500)
+                                try:
+                                    after_content = iframe.content()
+                                except Exception:
+                                    after_content = ""
+                                if after_content and after_content == before_content:
+                                    coverage_exceptions.append(
+                                        "Outlook next-month navigation did not change the rendered calendar."
+                                    )
+                                    break
                             else:
                                 coverage_exceptions.append(
                                     f"Outlook next-month button missing before requested month {month_idx + 2} of {months_to_scrape}."
@@ -159,6 +178,34 @@ def _month_end(month_start: date) -> date:
         month_start.month,
         calendar.monthrange(month_start.year, month_start.month)[1],
     )
+
+
+def _observed_months_from_outlook_html(
+    html: str,
+    norwegian_months: dict[str, int],
+) -> set[date]:
+    """Return month starts that the rendered Outlook HTML actually names.
+
+    Coverage proof must come from the page content, not from the loop counter:
+    Outlook can open on the wrong month or a next click can leave the same view
+    rendered. Event labels and month headings both contain localized month names,
+    so this deliberately scans the rendered text for month+year pairs.
+    """
+    months: set[date] = set()
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = re.sub(r"\s+", " ", text).lower()
+    for month_name, month_num in norwegian_months.items():
+        name = str(month_name).lower()
+        if not name:
+            continue
+        pattern = rf"\b{name}\b[^0-9]{{0,40}}\b(20\d{{2}})\b|\b(20\d{{2}})\b[^a-zæøå]{{0,40}}\b{name}\b"
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            year_text = match.group(1) or match.group(2)
+            try:
+                months.add(date(int(year_text), month_num, 1))
+            except ValueError:
+                continue
+    return months
 
 
 def _outlook_requested_months(start_date: datetime, end_date: datetime) -> list[date]:

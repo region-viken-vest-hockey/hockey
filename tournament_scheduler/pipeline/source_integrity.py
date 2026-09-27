@@ -272,10 +272,34 @@ def evaluate_source_integrity(
                 status = INTEGRITY_PARTIAL
                 reasons.append("Skraperen nådde ikke slutten av den forespurte kalenderperioden.")
 
-            requested_start_bound = _parse_event_date(coverage.get("requested_start") or requested_start)
-            requested_end_bound = _parse_event_date(coverage.get("requested_end") or requested_end)
+            caller_requested_start = _parse_event_date(requested_start)
+            caller_requested_end = _parse_event_date(requested_end)
+            coverage_requested_start = _parse_event_date(coverage.get("requested_start"))
+            coverage_requested_end = _parse_event_date(coverage.get("requested_end"))
+            requested_start_bound = caller_requested_start or coverage_requested_start
+            requested_end_bound = caller_requested_end or coverage_requested_end
             observed_start_bound = _parse_event_date(coverage.get("observed_start"))
             observed_end_bound = _parse_event_date(coverage.get("observed_end"))
+            if (
+                status not in {INTEGRITY_FAILED, INTEGRITY_PARTIAL}
+                and caller_requested_start is not None
+                and coverage_requested_start is not None
+                and caller_requested_start != coverage_requested_start
+            ):
+                status = INTEGRITY_PARTIAL
+                reasons.append(
+                    "Skraperens dekningsbevis har en annen startdato enn Stage 2 ba om."
+                )
+            if (
+                status not in {INTEGRITY_FAILED, INTEGRITY_PARTIAL}
+                and caller_requested_end is not None
+                and coverage_requested_end is not None
+                and caller_requested_end != coverage_requested_end
+            ):
+                status = INTEGRITY_PARTIAL
+                reasons.append(
+                    "Skraperens dekningsbevis har en annen sluttdato enn Stage 2 ba om."
+                )
             if (
                 status not in {INTEGRITY_FAILED, INTEGRITY_PARTIAL}
                 and requested_start_bound is not None
