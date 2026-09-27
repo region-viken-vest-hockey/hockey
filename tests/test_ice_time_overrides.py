@@ -267,6 +267,69 @@ def test_set_is_idempotent_and_a_new_decision_supersedes(tmp_path):
     assert active_overrides(decisions) == {"t1": 70}
 
 
+def test_reprojection_rebuilds_from_active_decisions(tmp_path):
+    """Re-projecting the same problem must not retain a cleared/superseded override.
+
+    A caller can legitimately hand a previously projected problem back through
+    the projection again (for example a long-lived in-process problem or a
+    second maintenance pass). The canonical projection must be rebuilt from the
+    active decisions, never merged into its own stale output.
+    """
+
+    teams = [
+        *[{"club": club, "label": f"{club}1", "age_group": "U12"} for club in ("A", "B", "C", "D")],
+        *[{"club": club, "label": f"{club}1", "age_group": "U12"} for club in ("E", "F", "G", "H")],
+    ]
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("t1"),
+            _tournament(
+                "t2",
+                start="14:00",
+                host="E",
+                teams=[
+                    {"club": club, "label": f"{club}1", "age_group": "U12"}
+                    for club in ("E", "F", "G", "H")
+                ],
+            ),
+        ],
+    )
+    problem = _problem(ice=100, teams=teams)
+    for tournament_id, minutes in (("t1", 60), ("t2", 70)):
+        set_ice_time_minutes(
+            season="2026-2027",
+            root=root,
+            tournament_id=tournament_id,
+            minutes=minutes,
+            request_id=f"host:{tournament_id}",
+            note="host confirmed",
+            problem=problem,
+        )
+    projected = project_overrides_into_problem(problem, load_decisions("2026-2027", root=root))
+    assert overrides_from_problem(projected) == {"t1": 60, "t2": 70}
+
+    # Clearing t1 must remove it while the still-active t2 survives.
+    clear_ice_time_minutes(season="2026-2027", root=root, tournament_id="t1", note="reverted")
+    reprojected = project_overrides_into_problem(
+        projected, load_decisions("2026-2027", root=root)
+    )
+    assert overrides_from_problem(reprojected) == {"t2": 70}
+
+    # With zero active records the key is emptied, not left stale.
+    clear_ice_time_minutes(season="2026-2027", root=root, tournament_id="t2", note="reverted")
+    emptied = project_overrides_into_problem(
+        reprojected, load_decisions("2026-2027", root=root)
+    )
+    assert overrides_from_problem(emptied) == {}
+    t1 = tournament_from_dict(load_schedule("2026-2027", root=root)["plan"]["tournaments"][0])
+    facts = tournament_occupancy_interval_facts(
+        load_schedule("2026-2027", root=root)["plan"]["tournaments"][0], emptied
+    )
+    assert facts["duration_minutes"] == "100"
+    assert tournament_end_time(t1, {"U12": 100}) == "11:40"
+
+
 def test_clear_restores_age_default_and_is_idempotent(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _problem()

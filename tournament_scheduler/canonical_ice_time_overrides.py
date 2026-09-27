@@ -207,20 +207,16 @@ def project_overrides_into_problem(
 ) -> dict[str, Any]:
     """Return *problem* with the active canonical overrides projected into it.
 
-    The projection is a pure function of the durable decision records: a
-    released override disappears and the age-group default applies again. Any
-    override already carried by the problem is preserved unless a decision
-    explicitly supersedes it, so a problem passed down from an outer caller is
-    never silently stripped.
+    The projection is authoritative and a pure function of the durable decision
+    records: the key is always rebuilt from the current active overrides, so a
+    released or superseded override disappears and the age-group default applies
+    again even when the caller re-projects a problem that already carried the
+    previous projection. Canonical decisions are the only source of truth for
+    this key; an externally injected stale value is deliberately not preserved.
     """
 
     projected = dict(problem or {})
-    active = active_overrides(decisions)
-    if not active:
-        return projected
-    existing = overrides_from_problem(projected)
-    existing.update(active)
-    projected[ICE_TIME_OVERRIDES_PROBLEM_KEY] = existing
+    projected[ICE_TIME_OVERRIDES_PROBLEM_KEY] = active_overrides(decisions)
     return projected
 
 
