@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import sys
 import types
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from tournament_scheduler.pipeline.source_integrity import (
     INTEGRITY_COMPLETE,
@@ -208,8 +208,13 @@ def test_reported_observed_window_shortfall_fails_closed():
 def test_outlook_coverage_record_reports_missing_requested_months():
     from tournament_scheduler.pipeline.scraper_outlook import _outlook_coverage_record
 
+    observed = []
+    current = date(2027, 1, 15)
+    while current <= date(2027, 2, 28):
+        observed.append(current)
+        current += timedelta(days=1)
     coverage = _outlook_coverage_record(
-        [datetime(2027, 1, 1).date(), datetime(2027, 2, 1).date()],
+        observed,
         datetime(2027, 1, 15),
         datetime(2027, 3, 28),
         [],
@@ -222,7 +227,28 @@ def test_outlook_coverage_record_reports_missing_requested_months():
     assert any("2027-03-01" in reason for reason in coverage["exceptions"])
 
 
-def test_outlook_iframe_records_only_rendered_months(monkeypatch):
+def test_outlook_coverage_record_requires_requested_days_not_just_month_heading():
+    from tournament_scheduler.pipeline.scraper_outlook import _outlook_coverage_record
+
+    observed = []
+    current = date(2027, 3, 1)
+    while current <= date(2027, 3, 6):
+        observed.append(current)
+        current += timedelta(days=1)
+
+    coverage = _outlook_coverage_record(
+        observed,
+        datetime(2027, 3, 1),
+        datetime(2027, 3, 28),
+        [],
+    )
+
+    assert coverage["status"] == INTEGRITY_PARTIAL
+    assert coverage["observed_end"] == "2027-03-06"
+    assert any("2027-03-07..2027-03-28" in reason for reason in coverage["exceptions"])
+
+
+def test_outlook_iframe_records_only_rendered_dates(monkeypatch):
     from tournament_scheduler.pipeline.scraper_outlook import _run_outlook_scraper
 
     class _FakeNextButton:
@@ -234,7 +260,11 @@ def test_outlook_iframe_records_only_rendered_months(monkeypatch):
             return None
 
         def content(self):
-            return '<div aria-label="januar 2027">januar 2027</div>'
+            days = "".join(
+                f'<div data-date="2027-01-{day:02d}">January {day}, 2027</div>'
+                for day in range(1, 32)
+            )
+            return f'<h2>January 2027</h2>{days}'
 
         def query_selector(self, selector):
             return _FakeNextButton()
