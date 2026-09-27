@@ -1719,3 +1719,37 @@ def test_manual_authority_preserves_actionable_calendar_warning(tmp_path):
     assert row["calendar_status"] == "stale"
     assert "calendar_booking_association_stale" in row["follow_up_reasons"]
     assert row["needs_attention"] is True
+
+
+def test_club_reconciliation_fails_closed_on_fabricated_placeholder_intervals(tmp_path):
+    """A stored ``known`` status must not launder a scraper's fabricated
+    00:00/1h fallback into a negative booking claim during reconcile."""
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": _teams(),
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {
+            "A": [
+                {
+                    "date": f"2026-09-{day:02d}",
+                    "start": "00:00",
+                    "end": "01:00",
+                    "availability": "fixed_busy",
+                    "calendar_event": f"Jutul U{day % 8}",
+                }
+                for day in range(1, 26)
+            ]
+        },
+    }
+    result = reconcile_calendar_bookings(season="2026-2027", root=root, club="A", problem=problem)
+
+    row = result["classified"][0]
+    assert row["status"] == "not_checkable"
+    assert row["reason"] == "fabricated_calendar_placeholder_evidence"
+    assert row["source_fabricated_placeholder"] is True

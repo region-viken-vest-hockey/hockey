@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
 
 CALENDAR_BOOKING_ASSOCIATIONS_KEY = "calendar_booking_associations"
 TOURNAMENT_BOOKING_EVIDENCE_KEY = "tournament_booking_evidence"
@@ -151,10 +152,36 @@ def iter_events(problem: Mapping[str, Any] | None) -> Iterable[dict[str, Any]]:
         return ()
     rows: list[dict[str, Any]] = []
     for club, entries in intervals.items():
-        for entry in entries or []:
+        if isinstance(entries, (str, bytes, Mapping)) or not hasattr(entries, "__iter__"):
+            # Structurally malformed interval evidence is not silently skipped:
+            # `club_calendar_evidence_trusted` detects it separately and fails
+            # the club closed, but this reader must not crash the whole report on
+            # one bad club.
+            continue
+        for entry in entries:
             if isinstance(entry, Mapping):
                 rows.append(with_event_fingerprint(str(club), entry))
     return rows
+
+
+def club_calendar_status(problem: Mapping[str, Any] | None, club: str) -> str:
+    """Return the stored calendar-evidence status for one host club."""
+    return str(((problem or {}).get("club_calendar_status") or {}).get(club) or "")
+
+
+def club_calendar_evidence_trusted(problem: Mapping[str, Any] | None, club: str) -> bool:
+    """Whether one club's stored calendar evidence may support a booking claim.
+
+    The pipeline's own ``club_calendar_status`` is necessary but not
+    sufficient: a verifier must stay independent of the generator that wrote
+    it. Evidence whose normalized intervals still carry the fabricated
+    fallback fingerprint is never trustworthy, even when the stored status
+    says ``known`` from a scrape that predates the fingerprint detector.
+    """
+    if club_calendar_status(problem, club) != "known":
+        return False
+    intervals = ((problem or {}).get("club_busy_intervals") or {}).get(club)
+    return fabricated_interval_signal(intervals) is None
 
 
 def find_event(problem: Mapping[str, Any] | None, fingerprint: str) -> dict[str, Any] | None:
@@ -1132,16 +1159,20 @@ def booking_assessment(
 
     sources: dict[str, dict[str, Any]] = {}
     trusted_clubs: set[str] = set()
+    busy_intervals = (problem or {}).get("club_busy_intervals") or {}
+    if not isinstance(busy_intervals, Mapping):
+        busy_intervals = {}
     for club in all_clubs:
         status = str(calendar_status.get(club) or "missing")
-        trusted = status == "known"
+        fabricated_signal = fabricated_interval_signal(busy_intervals.get(club))
+        trusted = status == "known" and fabricated_signal is None
         if trusted:
             trusted_clubs.add(club)
         if trusted:
             source_trust = "trusted"
         elif status == "untrusted":
             source_trust = "untrusted"
-        elif status == "source_review_required":
+        elif status == "source_review_required" or fabricated_signal:
             source_trust = "source_review_required"
         else:
             source_trust = "unknown"
@@ -1158,6 +1189,10 @@ def booking_assessment(
             # whole requested window. A source that is not coverage-proven can
             # never support a negative occupancy claim.
             "source_integrity": str(source_integrity.get(club) or "unknown"),
+            # Independent verifier signal: the stored intervals still look like a
+            # scraper's fabricated fallback (identical duration + literal
+            # midnight) even though the status above may predate the detector.
+            "fabricated_placeholder_signal": fabricated_signal,
             "source_integrity_fingerprint": integrity_detail.get("fingerprint"),
             "requested_window": {
                 "start": integrity_detail.get("requested_start"),

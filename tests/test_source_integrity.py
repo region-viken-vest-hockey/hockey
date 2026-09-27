@@ -565,3 +565,112 @@ def test_coverage_proven_ical_source_stays_known():
     status = downgrade_calendar_status_for_integrity({"Frisk Asker": "known"}, sources, integrity)
 
     assert status["Frisk Asker"] == "known"
+
+
+# ---------------------------------------------------------------------------
+# fabricated_interval_signal -- the normalized-interval form of the
+# fabricated-fallback fingerprint owned by the source-integrity layer.
+# ---------------------------------------------------------------------------
+
+
+def _interval(day: int, start: str, end: str, *, title: str = "Jutul U10") -> dict:
+    return {
+        "date": f"2026-09-{day:02d}",
+        "start": start,
+        "end": end,
+        "availability": "fixed_busy",
+        "calendar_event": title,
+    }
+
+
+def test_fabricated_interval_signal_flags_midnight_one_hour_monoculture():
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = [_interval(day, "00:00", "01:00") for day in range(1, 31)]
+
+    signal = fabricated_interval_signal(intervals)
+
+    assert signal is not None
+    assert "identisk varighet" in signal
+
+
+def test_fabricated_interval_signal_ignores_real_varied_times():
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = [
+        _interval(day, f"{10 + (day % 8):02d}:00", f"{12 + (day % 8):02d}:00")
+        for day in range(1, 31)
+    ]
+
+    assert fabricated_interval_signal(intervals) is None
+
+
+def test_fabricated_interval_signal_ignores_all_day_blocks():
+    """A uniform all-day block is genuine occupancy, not a fallback value."""
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = [_interval(day, "00:00", "24:00") for day in range(1, 31)]
+
+    assert fabricated_interval_signal(intervals) is None
+
+
+def test_fabricated_interval_signal_ignores_too_few_entries():
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = [_interval(day, "00:00", "01:00") for day in range(1, 6)]
+
+    assert fabricated_interval_signal(intervals) is None
+
+
+def test_fabricated_interval_signal_flags_when_fabricated_short_is_modal_among_all_day():
+    """A real all-day minority must not hide a fabricated short monoculture."""
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    all_day = [_interval(day, "00:00", "24:00") for day in range(1, 3)]
+    fabricated = [_interval(day, "00:00", "01:00") for day in range(3, 31)]
+
+    signal = fabricated_interval_signal(all_day + fabricated)
+
+    assert signal is not None
+
+
+def test_fabricated_interval_signal_all_day_modal_with_minority_placeholder_is_not_flagged():
+    """Established behavior: all-day blocks are genuine occupancy, so a calendar
+    they dominate is not treated as a fabricated midnight monoculture. The
+    fingerprint (like ``hardcoded_value_signal``) requires the suspect short
+    duration to be near-universal across the whole set, not merely present."""
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    all_day = [_interval(day, "00:00", "24:00") for day in range(1, 21)]
+    fabricated_minority = [_interval(day, "00:00", "01:00") for day in range(21, 31)]
+
+    assert fabricated_interval_signal(all_day + fabricated_minority) is None
+
+
+def test_fabricated_interval_signal_malformed_collection_fails_closed():
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    # A non-iterable, a bare string and a mapping are all structurally unusable
+    # evidence, not "no fabrication found".
+    assert fabricated_interval_signal(42) is not None
+    assert fabricated_interval_signal("00:00-01:00") is not None
+    assert fabricated_interval_signal({"start": "00:00"}) is not None
+
+
+def test_fabricated_interval_signal_unparseable_entries_fail_closed():
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = [
+        {"date": f"2026-09-{day:02d}", "start": None, "end": None}
+        for day in range(1, 31)
+    ]
+
+    assert fabricated_interval_signal(intervals) is not None
+
+
+def test_fabricated_interval_signal_ignores_non_mapping_rows():
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = ["nonsense", None] + [_interval(day, "10:00", "12:00") for day in range(1, 31)]
+
+    assert fabricated_interval_signal(intervals) is None
