@@ -40,6 +40,7 @@ from tournament_scheduler.calendar_bookings import (
     validate_stated_interval,
 )
 from tournament_scheduler.canonical_baseline import approval_fingerprint
+from tournament_scheduler.canonical_ice_time_overrides import overrides_from_problem
 from tournament_scheduler.canonical_state import (
     canonical_state_revision,
     schedule_fingerprint,
@@ -699,6 +700,7 @@ def calendar_booking_candidates(
     plan = schedule["plan"]
     resolved_problem = _resolve_plan_problem(schedule, problem, decisions) or {}
     ice = resolved_problem.get("ice_time_minutes") or {}
+    overrides = overrides_from_problem(resolved_problem)
     rows: list[dict[str, Any]] = []
     for event in iter_events(resolved_problem):
         if club and str(event.get("club") or "") != club:
@@ -712,7 +714,7 @@ def calendar_booking_candidates(
             start = str(tournament.get("start_time") or "")
             if not start:
                 continue
-            duration = int((ice.get(str(tournament.get("age_group") or "")) or 0) or 0)
+            duration = _tournament_duration_minutes(tournament, ice, overrides)
             if duration <= 0:
                 continue
             try:
@@ -815,9 +817,27 @@ def booking_status_report(service, *, season: str, problem: dict[str, Any] | Non
     return report
 
 
-def _tournament_interval(tournament: Mapping[str, Any], ice: Mapping[str, Any]) -> tuple[int, int] | None:
+def _tournament_duration_minutes(
+    tournament: Mapping[str, Any],
+    ice: Mapping[str, Any],
+    overrides: Mapping[str, int] | None = None,
+) -> int:
+    override = (overrides or {}).get(str(tournament.get("id") or ""))
+    if isinstance(override, int) and override > 0:
+        return override
+    try:
+        return int((ice.get(str(tournament.get("age_group") or "")) or 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _tournament_interval(
+    tournament: Mapping[str, Any],
+    ice: Mapping[str, Any],
+    overrides: Mapping[str, int] | None = None,
+) -> tuple[int, int] | None:
     start = str(tournament.get("start_time") or "")
-    duration = int((ice.get(str(tournament.get("age_group") or "")) or 0) or 0)
+    duration = _tournament_duration_minutes(tournament, ice, overrides)
     if duration <= 0 or ":" not in start:
         return None
     try:
@@ -837,10 +857,15 @@ def _event_interval(event: Mapping[str, Any]) -> tuple[int, int] | None:
     return s_h * 60 + s_m, e_h * 60 + e_m
 
 
-def _overlaps(tournament: Mapping[str, Any], event: Mapping[str, Any], ice: Mapping[str, Any]) -> bool:
+def _overlaps(
+    tournament: Mapping[str, Any],
+    event: Mapping[str, Any],
+    ice: Mapping[str, Any],
+    overrides: Mapping[str, int] | None = None,
+) -> bool:
     if str(tournament.get("date") or "") != str(event.get("date") or ""):
         return False
-    t_interval = _tournament_interval(tournament, ice)
+    t_interval = _tournament_interval(tournament, ice, overrides)
     e_interval = _event_interval(event)
     if not t_interval or not e_interval:
         return False
@@ -926,6 +951,7 @@ def _classify_club_calendar_bookings(
     """
 
     ice = resolved_problem.get("ice_time_minutes") or {}
+    overrides = overrides_from_problem(resolved_problem)
     status = str((resolved_problem.get("club_calendar_status") or {}).get(club) or "")
     trustworthy = status == "known"
     events = [event for event in iter_events(resolved_problem) if str(event.get("club") or "") == club]
@@ -954,7 +980,7 @@ def _classify_club_calendar_bookings(
             matched_event = None
             reason = f"calendar_status:{status or 'missing'}"
         else:
-            overlaps = [event for event in events if _overlaps(tournament, event, ice)]
+            overlaps = [event for event in events if _overlaps(tournament, event, ice, overrides)]
             if len(overlaps) == 1:
                 # Exactly one busy event overlaps, but occupancy is not proof that
                 # the event is this RVV tournament. Keep the candidate visible and

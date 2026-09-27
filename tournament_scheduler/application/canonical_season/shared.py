@@ -10,6 +10,7 @@ from tournament_scheduler.calendar_bookings import project_associations_into_pro
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_banned_dates import project_banned_dates_into_problem
 from tournament_scheduler.canonical_holiday_exceptions import project_exceptions_into_problem
+from tournament_scheduler.canonical_ice_time_overrides import project_overrides_into_problem
 from tournament_scheduler.guest_slots import GUEST_SLOT_OPEN, active_guest_slots
 from tournament_scheduler.participation_withdrawals import project_into_problem
 from tournament_scheduler.infrastructure.canonical_revision_history import (
@@ -300,6 +301,7 @@ def _resolve_plan_problem(
         resolved = project_exceptions_into_problem(resolved, decisions)
         resolved = project_banned_dates_into_problem(resolved, decisions)
         resolved = project_associations_into_problem(resolved, decisions, schedule.get("plan") or {})
+        resolved = project_overrides_into_problem(resolved, decisions)
         resolved = project_into_problem(
             resolved, decisions=decisions, plan=schedule.get("plan") or {}
         )

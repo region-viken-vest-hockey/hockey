@@ -42,6 +42,7 @@ HOLIDAY_DATE_EXCEPTIONS_KEY = "holiday_date_exceptions"
 SEASON_BASELINE_KEY = "season_baseline"
 SEASON_BASELINE_HISTORY_KEY = "season_baseline_history"
 CALENDAR_BOOKING_ASSOCIATIONS_KEY = "calendar_booking_associations"
+ICE_TIME_OVERRIDES_KEY = "ice_time_minutes_overrides"
 
 
 def schedule_fingerprint(plan_dict: Mapping[str, Any]) -> str:
@@ -75,6 +76,7 @@ def compute_canonical_state_revision(
         "season_lifecycle": decisions.get(SEASON_LIFECYCLE_KEY) or {},
         "calendar_booking_associations": decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or [],
         "manual_booking_assertions": decisions.get(MANUAL_BOOKING_ASSERTIONS_KEY) or [],
+        "ice_time_minutes_overrides": decisions.get(ICE_TIME_OVERRIDES_KEY) or [],
         "verification_context": schedule.get("verification_context"),
     }
     return stable_payload_sha256(payload)
@@ -145,6 +147,7 @@ __all__ = [
     "CALENDAR_BOOKING_ASSOCIATIONS_KEY",
     "CANONICAL_STATE_REVISION_KEY",
     "CHANGE_PROTECTIONS_KEY",
+    "ICE_TIME_OVERRIDES_KEY",
     "PARTICIPATION_ACCEPTANCES_KEY",
     "PARTICIPATION_ACCEPTANCE_PREFIX",
     "PARTICIPATION_WITHDRAWALS_KEY",

@@ -986,6 +986,21 @@ _DECISIONS: tuple[RuleEntry, ...] = (
         evidence_projection=("season holiday-date-exceptions --json",),
         tests=("tests/test_holiday_date_policy.py",),
     ),
+    RuleEntry(
+        id="operator_ice_time_override",
+        classification=OPERATOR_DECISION,
+        meaning=(
+            "The operator may bind a host-confirmed per-tournament occupied duration that differs "
+            "from the age-group default. The override is explicit, revision-bound and may not go "
+            "below the actual-round format minimum or the governing booking floor, so canonical "
+            "occupancy is never narrowed silently."
+        ),
+        canonical_owner="tournament_scheduler.canonical_ice_time_overrides",
+        input_source="canonical decisions.json ice_time_minutes_overrides",
+        mutation_providers=("season set-ice-time-minutes", "season clear-ice-time-minutes"),
+        evidence_projection=("season ice-time-overrides --json",),
+        tests=("tests/test_ice_time_overrides.py",),
+    ),
 )
 
 

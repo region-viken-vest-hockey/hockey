@@ -1314,17 +1314,20 @@ def _cmd_season(args: argparse.Namespace) -> int:
         calendar_booking_candidates,
         calendar_booking_findings,
         change_protection_report,
+        clear_ice_time_minutes,
         clear_manual_booking_assertion,
         compact_history,
         confirm_calendar_booking,
         decisions_path,
         reconcile_calendar_bookings,
         release_calendar_booking,
+        set_ice_time_minutes,
         set_manual_booking_assertion,
         fill_guest_slot,
         guest_slot_candidates,
         guest_slot_report,
         holiday_date_exception_report,
+        ice_time_override_report,
         history_inventory,
         move_tournament,
         load_decisions,
@@ -2183,6 +2186,79 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(
                     f"[yellow]•[/yellow] No active manual booking assertion for {args.tournament_id}"
                 )
+            return 0
+
+        if args.season_command == "set-ice-time-minutes":
+            result = set_ice_time_minutes(
+                season=args.season,
+                root=args.root,
+                tournament_id=args.tournament_id,
+                minutes=args.minutes,
+                request_id=args.request_id,
+                actor=args.actor,
+                note=args.note,
+                reference=args.reference,
+                expected_revision=args.expected_revision,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            elif result.get("idempotent"):
+                _console.print(
+                    f"[green]✓[/green] Ice-time override for {args.tournament_id} already recorded (unchanged)"
+                )
+            else:
+                prefix = "Validated" if args.dry_run else "Recorded"
+                override = result.get("override", {})
+                _console.print(
+                    f"[green]✓[/green] {prefix} ice-time override for {args.tournament_id}: "
+                    f"{override.get('minutes')} minutes "
+                    f"(default={override.get('default_minutes')}, min={override.get('minimum_minutes')})"
+                )
+            return 0
+
+        if args.season_command == "clear-ice-time-minutes":
+            result = clear_ice_time_minutes(
+                season=args.season,
+                root=args.root,
+                tournament_id=args.tournament_id,
+                actor=args.actor,
+                note=args.note,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            elif result.get("changed"):
+                prefix = "Validated release of" if args.dry_run else "Released"
+                _console.print(
+                    f"[green]✓[/green] {prefix} ice-time override for {args.tournament_id}"
+                )
+            else:
+                _console.print(
+                    f"[yellow]•[/yellow] No active ice-time override for {args.tournament_id}"
+                )
+            return 0
+
+        if args.season_command == "ice-time-overrides":
+            result = ice_time_override_report(
+                season=args.season,
+                root=args.root,
+                include_released=bool(args.all),
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                rows = result.get("overrides") or []
+                _console.print(
+                    f"[green]✓[/green] {result.get('active_count')} active ice-time override(s); "
+                    f"{len(rows)} record(s)"
+                )
+                for row in rows:
+                    _console.print(
+                        f"  {row.get('status'):>9} {row.get('tournament_id')} "
+                        f"({row.get('age_group')}): {row.get('minutes')} min "
+                        f"(default={row.get('default_minutes')})"
+                    )
             return 0
 
         if args.season_command == "reconcile-calendar-bookings":

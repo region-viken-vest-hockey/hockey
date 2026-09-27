@@ -190,6 +190,13 @@ class Tournament:
     # reservation counts toward the tournament's capacity/ice-time shape but
     # never toward RVV participation, hosting or fairness.
     guest_slots: List[Dict[str, object]] = field(default_factory=list)
+    # Resolved host-confirmed per-tournament occupied-duration override for this
+    # rendering/verification pass (see canonical_ice_time_overrides). It is a
+    # derived in-memory value, never serialized into the canonical plan: the
+    # durable decision lives in decisions.json and is projected into the
+    # verification problem / export rendering. ``None`` means use the
+    # age-group default.
+    ice_time_minutes_override: Optional[int] = None
 
     @property
     def reserved_guest_slots(self) -> int:

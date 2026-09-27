@@ -1031,6 +1031,13 @@ def verify_candidate(
 
     configured_ice_time_minutes = problem.get("ice_time_minutes") or {}
     ice_time_minutes = configured_ice_time_minutes or problem.get("round_length_minutes") or {}
+    # A host-confirmed per-tournament override narrows (or widens) the booked
+    # interval for one instance without touching the age-group default. It must
+    # be applied here so arena-interval verification agrees with the canonical
+    # calendar-booking coverage check.
+    from tournament_scheduler.canonical_ice_time_overrides import overrides_from_problem
+
+    ice_time_overrides = overrides_from_problem(problem)
     club_calendar_status_for_conflicts = problem.get("club_calendar_status") or {}
     club_busy_intervals = apply_calendar_interpretations(
         problem.get("club_busy_intervals") or {},
@@ -1038,7 +1045,11 @@ def verify_candidate(
     )
     try:
         tournament_objs = [tournament_from_dict(t) for t in candidate.get("tournaments", []) if not t.get("cancelled")]
-        for collision in find_arena_interval_collisions(tournament_objs, ice_time_minutes):
+        for collision in find_arena_interval_collisions(
+            tournament_objs,
+            ice_time_minutes,
+            overrides_by_tournament=ice_time_overrides,
+        ):
             _violate(
                 "arena_interval_conflict",
                 collision["message"],
@@ -1053,7 +1064,11 @@ def verify_candidate(
         # move) is still caught here rather than only by re-running the
         # planner that produced it.
         for tournament_obj in tournament_objs:
-            interval = tournament_interval(tournament_obj, ice_time_minutes)
+            interval = tournament_interval(
+                tournament_obj,
+                ice_time_minutes,
+                overrides_by_tournament=ice_time_overrides,
+            )
             if interval is None or not interval.host_club:
                 continue
             if (
@@ -1248,6 +1263,12 @@ def verify_candidate(
 
         actual_round_count = max((int(game.get("round_number") or 0) for game in t.get("games") or []), default=0)
         configured_ice_time = configured_ice_time_minutes.get(shape_age_group)
+        # A host-confirmed per-tournament override is the effective booked
+        # window, so the format/governing floors must be checked against it --
+        # an override can never make a tournament physically impossible.
+        override_ice_time = ice_time_overrides.get(t_id)
+        if isinstance(override_ice_time, int) and override_ice_time > 0:
+            configured_ice_time = override_ice_time
         configured_round_length = round_length_minutes_by_age.get(shape_age_group)
         if isinstance(configured_ice_time, int) and configured_ice_time > 0:
             governing_floor = governing_minimum_ice_time_minutes(shape_age_group)

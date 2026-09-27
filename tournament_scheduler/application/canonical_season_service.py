@@ -55,6 +55,7 @@ from .canonical_season import (
     constraints as _constraints,
     guest_slots as _guest_slots,
     history as _history,
+    ice_time as _ice_time,
     lifecycle as _lifecycle,
     lifecycle_status as _lifecycle_status,
     normalization as _normalization,
@@ -698,6 +699,66 @@ class CanonicalSeasonService:
             actor=actor,
             note=note,
             dry_run=dry_run,
+        )
+
+    def set_ice_time_minutes(
+        self,
+        *,
+        season: str,
+        tournament_id: str,
+        minutes: int,
+        request_id: str,
+        actor: str | None = None,
+        note: str = "",
+        reference: str = "",
+        expected_revision: str | None = None,
+        problem: dict[str, Any] | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _ice_time.set_ice_time_minutes(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            minutes=minutes,
+            request_id=request_id,
+            actor=actor,
+            note=note,
+            reference=reference,
+            expected_revision=expected_revision,
+            problem=problem,
+            dry_run=dry_run,
+        )
+
+    def clear_ice_time_minutes(
+        self,
+        *,
+        season: str,
+        tournament_id: str,
+        actor: str | None = None,
+        note: str = "",
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _ice_time.clear_ice_time_minutes(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+        )
+
+    def ice_time_override_report(
+        self,
+        *,
+        season: str,
+        problem: dict[str, Any] | None = None,
+        include_released: bool = False,
+    ) -> dict[str, Any]:
+        return _ice_time.ice_time_override_report(
+            self,
+            season=season,
+            problem=problem,
+            include_released=include_released,
         )
 
     def approve_tournament(

@@ -12,6 +12,7 @@ NIHF_SERIES_ROUND_MINIMUM_AGE_GROUPS = frozenset({"U7", "JU7", "U8", "JU8", "U9"
 
 
 class TournamentLike(Protocol):
+    id: str
     age_group: str
     games: list
     start_time: str | None
@@ -78,17 +79,55 @@ def occupancy_components(age_group: str, ice_time_by_age_group: Mapping[str, int
     return OccupancyComponents(age_group, ice_time, round_count, buffer_minutes, duration)
 
 
-def tournament_required_ice_minutes(tournament: TournamentLike, ice_time_by_age_group: Mapping[str, int]) -> int:
+def effective_ice_time_minutes(
+    tournament: TournamentLike,
+    ice_time_by_age_group: Mapping[str, int],
+    overrides_by_tournament: Mapping[str, int] | None = None,
+) -> int | None:
+    """Return the effective configured occupancy for one tournament.
+
+    A host-confirmed per-tournament override always wins over the flat
+    age-group default; ``None`` means no positive duration is configured.
+    Keeping this resolution in one place is what makes arena-conflict
+    verification, calendar-booking coverage, exports and slot search describe
+    the same interval.
+    """
+
+    tournament_id = str(getattr(tournament, "id", "") or "")
+    explicit = getattr(tournament, "ice_time_minutes_override", None)
+    if isinstance(explicit, int) and explicit > 0:
+        return explicit
+    override = (overrides_by_tournament or {}).get(tournament_id)
+    if isinstance(override, int) and override > 0:
+        return override
+    return ice_time_by_age_group.get(tournament.age_group)
+
+
+def tournament_required_ice_minutes(
+    tournament: TournamentLike,
+    ice_time_by_age_group: Mapping[str, int],
+    *,
+    overrides_by_tournament: Mapping[str, int] | None = None,
+) -> int:
     return required_ice_minutes(
-        ice_time_by_age_group.get(tournament.age_group),
+        effective_ice_time_minutes(tournament, ice_time_by_age_group, overrides_by_tournament),
         round_count_for_games(tournament.games),
     )
 
 
-def tournament_end_time(tournament: TournamentLike, ice_time_by_age_group: Mapping[str, int]) -> str | None:
+def tournament_end_time(
+    tournament: TournamentLike,
+    ice_time_by_age_group: Mapping[str, int],
+    *,
+    overrides_by_tournament: Mapping[str, int] | None = None,
+) -> str | None:
     if not tournament.start_time:
         return None
-    duration = tournament_required_ice_minutes(tournament, ice_time_by_age_group)
+    duration = tournament_required_ice_minutes(
+        tournament,
+        ice_time_by_age_group,
+        overrides_by_tournament=overrides_by_tournament,
+    )
     if duration <= 0:
         return None
     try:

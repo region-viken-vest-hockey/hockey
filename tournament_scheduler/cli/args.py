@@ -1304,6 +1304,59 @@ def build_parser() -> argparse.ArgumentParser:
     season_booking_clear.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
     season_booking_clear.add_argument("--json", action="store_true", help="Print structured JSON")
 
+    season_set_ice_time = season_sub.add_parser(
+        "set-ice-time-minutes",
+        help=(
+            "Record a host-confirmed per-tournament ice-time/duration override used by "
+            "arena-conflict and calendar-booking interval verification"
+        ),
+    )
+    season_set_ice_time.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_set_ice_time.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_set_ice_time.add_argument("--tournament-id", required=True, help="Canonical tournament id")
+    season_set_ice_time.add_argument(
+        "--minutes",
+        required=True,
+        type=int,
+        help="Host-confirmed occupied duration in minutes for this tournament instance",
+    )
+    season_set_ice_time.add_argument(
+        "--request-id",
+        required=True,
+        help="Stable host/request id recorded as provenance",
+    )
+    season_set_ice_time.add_argument("--actor", default=None, help="Operator identity")
+    season_set_ice_time.add_argument("--note", default="", help="Audited rationale for this override")
+    season_set_ice_time.add_argument("--reference", default="", help="Source reference, e.g. email id/date/sender")
+    season_set_ice_time.add_argument(
+        "--expected-revision",
+        default=None,
+        help="Fail closed unless the canonical-state revision matches",
+    )
+    season_set_ice_time.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
+    season_set_ice_time.add_argument("--json", action="store_true", help="Print structured JSON")
+
+    season_clear_ice_time = season_sub.add_parser(
+        "clear-ice-time-minutes",
+        help="Release an active per-tournament ice-time override, restoring the age-group default",
+    )
+    season_clear_ice_time.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_clear_ice_time.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_clear_ice_time.add_argument("--tournament-id", required=True, help="Canonical tournament id")
+    season_clear_ice_time.add_argument("--actor", default=None, help="Operator identity")
+    season_clear_ice_time.add_argument("--note", default="", help="Audited reason for releasing the override")
+    season_clear_ice_time.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
+    season_clear_ice_time.add_argument("--json", action="store_true", help="Print structured JSON")
+
+    season_ice_time_overrides = season_sub.add_parser(
+        "ice-time-overrides",
+        help="List active per-tournament ice-time overrides and the age-group default they replace",
+    )
+    season_ice_time_overrides.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_ice_time_overrides.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_ice_time_overrides.add_argument("--all", action="store_true", help="Include released overrides")
+    season_ice_time_overrides.add_argument("--json", action="store_true", help="Print the override report as JSON")
+
     season_reconcile_bookings = season_sub.add_parser(
         "reconcile-calendar-bookings",
         help="Record host-calendar booking evidence for one club (overlap is candidate evidence, never a confirmed booking)",
