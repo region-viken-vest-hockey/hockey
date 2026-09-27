@@ -1363,6 +1363,37 @@ def test_manual_rejection_keeps_tournament_visible(tmp_path):
     assert report["counts"]["manually_not_booked"] == 1
 
 
+def test_manual_confirmation_precedes_negative_calendar_evidence_in_export(tmp_path):
+    """Manual booker authority stays booked even next to contradictory evidence."""
+
+    from tournament_scheduler.calendar_bookings import TOURNAMENT_BOOKING_EVIDENCE_KEY
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    reconcile_calendar_bookings(season="2026-2027", root=root, club="A", problem=problem)
+    _manual_set(root, problem=problem, note="booker confirmed the slot", reference="email:booker")
+
+    decisions_path = root / "2026-2027" / "decisions.json"
+    decisions = json.loads(decisions_path.read_text(encoding="utf-8"))
+    evidence = decisions[TOURNAMENT_BOOKING_EVIDENCE_KEY][0]
+    evidence["status"] = "confirmed_not_booked"
+    evidence["reason"] = "explicit_host_rejection_superseded_by_booker_confirmation"
+    decisions_path.write_text(json.dumps(decisions), encoding="utf-8")
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = _booking_row(report, "t1")
+    assert row["status"] == "manually_booked"
+    assert row["calendar_status"] == "confirmed_not_booked"
+    assert row["operational_state"] == "booked"
+    assert row["operational_lock"] is True
+    assert "calendar_negative_conflicts_with_manual_booking" in row["follow_up_reasons"]
+
+    html = _export_html_with_booking_report(root, problem, tmp_path)
+    assert '"obs": "booked"' in html
+    assert '"bs": "manually_booked"' in html
+    assert "calendar_negative_conflicts_with_manual_booking" in html
+
+
 def test_manual_assertion_conflict_with_calendar_association_flags_review(tmp_path):
     """A calendar match conflicting with a manual rejection needs review, not overwrite."""
 

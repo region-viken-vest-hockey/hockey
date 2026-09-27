@@ -291,6 +291,180 @@ class TestRunStage4:
         html = Path(files["html"]).read_text(encoding="utf-8")
         assert 'href="manual_schedule.html"' in html
 
+    def test_export_writes_booking_reconciliation_without_rendering_unmatched_candidates(self, tmp_path, monkeypatch):
+        """Calendar candidates are diagnostics, not extra season-plan cards."""
+
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
+
+        import tournament_scheduler.canonical_baseline as canonical_baseline
+        import tournament_scheduler.season_state as season_state
+
+        monkeypatch.setattr(
+            canonical_baseline,
+            "resolve_canonical_state",
+            lambda _config, _start, _end: {"season": "2026-2027", "root": str(tmp_path / "season")},
+        )
+        monkeypatch.setattr(season_state, "approval_report", lambda *_args, **_kwargs: {"tournaments": []})
+        monkeypatch.setattr(
+            season_state,
+            "booking_status_report",
+            lambda *_args, **_kwargs: {
+                "counts": {"confirmed_booked": 1, "unknown": 0},
+                "tournaments": [
+                    {"tournament_id": "rvv-0001", "status": "confirmed_booked", "operational_state": "booked"},
+                    {"tournament_id": "calendar-only-candidate", "status": "ambiguous", "needs_attention": True},
+                ],
+            },
+        )
+        monkeypatch.setattr(
+            season_state,
+            "calendar_booking_assessment",
+            lambda *_args, **_kwargs: {
+                "schema_version": 1,
+                "summary": {"unmatched_events": 1},
+                "events": [
+                    {
+                        "fingerprint": "calendar-only-candidate",
+                        "classification": "unmatched",
+                        "reason": "not_a_canonical_tournament",
+                    }
+                ],
+                "tournaments": [],
+            },
+        )
+
+        result = run(_make_plan_dict(), state, export_dir=str(tmp_path / "export"), timestamped_export=False)
+
+        reconciliation_path = Path(result["output_files"]["booking_reconciliation"])
+        reconciliation_text = reconciliation_path.read_text(encoding="utf-8")
+        reconciliation = json.loads(reconciliation_text)
+        assert reconciliation["events"][0]["classification"] == "unmatched"
+
+        repeated = run(_make_plan_dict(), state, export_dir=str(tmp_path / "export"), timestamped_export=False)
+        assert Path(repeated["output_files"]["booking_reconciliation"]).read_text(encoding="utf-8") == reconciliation_text
+
+        html = Path(result["output_files"]["html"]).read_text(encoding="utf-8")
+        match = re.search(r"const TOURNAMENTS = (.*?);\nconst TEAM_GAME_COUNTS", html, re.S)
+        assert match, "TOURNAMENTS JSON should be embedded in schedule HTML"
+        embedded = json.loads(match.group(1))
+        assert [row["id"] for row in embedded] == ["rvv-0001"]
+        assert "calendar-only-candidate" not in {row["id"] for row in embedded}
+
+    def test_booking_reconciliation_failure_preserves_booking_overlay(self, tmp_path, monkeypatch):
+        """Diagnostics failures must not silently drop confirmed booking badges."""
+
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
+
+        import tournament_scheduler.canonical_baseline as canonical_baseline
+        import tournament_scheduler.season_state as season_state
+
+        monkeypatch.setattr(
+            canonical_baseline,
+            "resolve_canonical_state",
+            lambda _config, _start, _end: {"season": "2026-2027", "root": str(tmp_path / "season")},
+        )
+        monkeypatch.setattr(season_state, "approval_report", lambda *_args, **_kwargs: {"tournaments": []})
+        monkeypatch.setattr(
+            season_state,
+            "booking_status_report",
+            lambda *_args, **_kwargs: {
+                "counts": {"manually_booked": 1, "booked": 1},
+                "tournaments": [
+                    {
+                        "tournament_id": "rvv-0001",
+                        "status": "manually_booked",
+                        "operational_state": "booked",
+                        "operational_lock": True,
+                        "authority": "manual_club_confirmation",
+                    }
+                ],
+            },
+        )
+
+        def _assessment_fails(*_args, **_kwargs):
+            raise RuntimeError("assessment source changed")
+
+        monkeypatch.setattr(season_state, "calendar_booking_assessment", _assessment_fails)
+
+        result = run(_make_plan_dict(), state, export_dir=str(tmp_path / "export"), timestamped_export=False)
+
+        assert result["booking_status"]["tournaments"][0]["status"] == "manually_booked"
+        assert result["booking_reconciliation"] is None
+        assert result["booking_reconciliation_error"] == "assessment source changed"
+        html = Path(result["output_files"]["html"]).read_text(encoding="utf-8")
+        embedded = json.loads(re.search(r"const TOURNAMENTS = (.*?);\nconst TEAM_GAME_COUNTS", html, re.S).group(1))
+        assert embedded[0]["obs"] == "booked"
+        assert embedded[0]["bs"] == "manually_booked"
+
+    def test_booking_revision_mismatch_fails_without_clearing_approval_overlay(self, tmp_path, monkeypatch):
+        """A stale booking projection must not fail open as unknown badges."""
+
+        state = PipelineState(tmp_path / "pipeline")
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path, {})
+        state.write_stage(
+            StageName.CONFIG,
+            {"round_length_minutes": {"U10": 15}, "input_path": str(input_path)},
+            status=StageStatus.DONE,
+        )
+
+        import tournament_scheduler.canonical_baseline as canonical_baseline
+        import tournament_scheduler.season_state as season_state
+
+        monkeypatch.setattr(
+            canonical_baseline,
+            "resolve_canonical_state",
+            lambda _config, _start, _end: {"season": "2026-2027", "root": str(tmp_path / "season")},
+        )
+        monkeypatch.setattr(
+            season_state,
+            "approval_report",
+            lambda *_args, **_kwargs: {
+                "tournaments": [{"tournament_id": "rvv-0001", "status": "approved", "placement_locked": True}]
+            },
+        )
+        monkeypatch.setattr(
+            season_state,
+            "booking_status_report",
+            lambda *_args, **_kwargs: {
+                "canonical_state_revision": "other-revision",
+                "tournaments": [
+                    {"tournament_id": "rvv-0001", "status": "manually_booked", "operational_state": "booked"}
+                ],
+            },
+        )
+        monkeypatch.setattr(
+            season_state,
+            "calendar_booking_assessment",
+            lambda *_args, **_kwargs: {"canonical_state_revision": "other-revision"},
+        )
+
+        checkpoint = _make_plan_dict()
+        checkpoint["canonical_state"] = {"season": "2026-2027", "revision": "export-revision"}
+        with pytest.raises(Stage4Error):
+            run(checkpoint, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
+
+        result = state.read_stage(StageName.EXPORT)
+        assert result["approval_status"]["tournaments"][0]["status"] == "approved"
+        assert result["booking_status"]["tournaments"][0]["status"] == "manually_booked"
+        assert result["errors"]
+        assert any("matcher ikke eksportrevisjon" in error for error in result["errors"])
+        assert result["booking_reconciliation"] is None
+
     def test_stale_stored_collisions_are_cleared_when_fresh_recompute_finds_none(self, tmp_path):
         """issue #314: a stale ``arena_day_collisions`` list carried over
         from an earlier candidate must not survive a fresh Stage 4 run
