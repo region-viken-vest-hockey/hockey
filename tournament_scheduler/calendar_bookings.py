@@ -1324,7 +1324,9 @@ def _assessment_tournament_row(
             "absence_window_days": int(date_window_days),
             "source_fingerprint": (source or {}).get("calendar_fingerprint"),
             "source_event_count": (source or {}).get("event_count"),
-            "observed_window": (source or {}).get("event_observed_window") or (source or {}).get("observed_window"),
+            # The verified navigated window that passed `_date_window_covered`,
+            # never the first/last-event extent it deliberately ignores.
+            "observed_window": (source or {}).get("observed_window"),
         }
     elif absence_blockers:
         row["absence_evidence_blockers"] = absence_blockers

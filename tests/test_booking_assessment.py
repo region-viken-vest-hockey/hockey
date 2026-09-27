@@ -264,7 +264,13 @@ def test_unmatched_tournament_without_complete_coverage_is_not_a_negative_claim(
 
 def test_complete_trusted_calendar_absence_is_presumed_unscheduled(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
-    problem = _problem([_event("2026-10-30", "10:00", "12:00")], complete=True)
+    # The verified navigated window deliberately differs from the source's
+    # first/last-event extent so the provenance must report the former.
+    problem = _problem(
+        [_event("2026-10-30", "10:00", "12:00")],
+        complete=True,
+        observed_window=("2026-08-01", "2027-06-01"),
+    )
     result = _assess(root, problem)
 
     row = _tournament_row(result, "t1")
@@ -283,6 +289,12 @@ def test_complete_trusted_calendar_absence_is_presumed_unscheduled(tmp_path):
     assert status_row["operational_state"] == "presumed_unscheduled"
     assert status_row["booking_assessment_classification"] == "presumed_unscheduled"
     assert status_row["negative_evidence"]["source_event_count"] == 1
+    # Negative evidence must report the verified navigated window it used, not
+    # the first/last-event extent.
+    assert status_row["negative_evidence"]["observed_window"] == {
+        "start": "2026-08-01",
+        "end": "2027-06-01",
+    }
     # An unrelated event must never be rendered as this tournament's observed
     # booking interval on a negative finding.
     assert "latest_observed_interval" not in status_row

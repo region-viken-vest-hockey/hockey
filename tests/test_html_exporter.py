@@ -281,7 +281,9 @@ class TestBookingStatusRendering:
         assert embedded["t-changed"]["boi"]["s"] == "13:00"
         assert embedded["t-absent"]["obs"] == "presumed_unscheduled"
         assert embedded["t-absent"]["bne"]["c"] == 3
-        assert "latest_observed_interval" not in embedded["t-absent"]
+        # The compact export key for the observed interval is `boi`; a negative
+        # row must not carry it.
+        assert "boi" not in embedded["t-absent"]
         assert '<option value="changed_slot_review">' in html
         assert '<option value="presumed_unscheduled">' in html
         assert "ENDRET TID" in html
