@@ -11,6 +11,7 @@ else
 fi
 
 PHASE_TIMINGS=()
+UNAVAILABLE_LANES=()
 
 phase() {
   echo ""
@@ -26,22 +27,31 @@ run_phase() {
   PHASE_TIMINGS+=("$name=$((SECONDS - start))s")
 }
 
-# Like ``run_phase`` but tolerates pytest's "no tests collected" exit code (5),
-# so an empty optional lane (e.g. ``harness``) is a visible no-op rather than a
-# failure. It never hides a real test failure.
-run_phase_tolerant() {
+# Run an explicitly marked pytest lane. A marker selection that collects zero
+# tests is a contract failure: optional lanes must either contain real tests or
+# collect sentinel tests that skip with an explicit unavailable-prerequisite
+# reason, never report a green no-op.
+run_marked_pytest_phase() {
   local name=$1
-  shift
+  local marker=$2
+  shift 2
   phase "$name"
   local start=$SECONDS
   local rc=0
-  "$@" || rc=$?
-  PHASE_TIMINGS+=("$name=$((SECONDS - start))s")
+  "$PYTHON_CMD" -m pytest --no-cov --collect-only -q -m "$marker" "$@" >/tmp/rvv-check-${marker}-collect.out 2>&1 || rc=$?
   if [[ $rc -eq 5 ]]; then
-    echo "(no tests selected for this phase)"
-    return 0
+    cat /tmp/rvv-check-${marker}-collect.out
+    echo "ERROR: check phase '$marker' collected zero tests. Add marked tests or a prerequisite-skip sentinel." >&2
+    PHASE_TIMINGS+=("$name=$((SECONDS - start))s")
+    return 2
   fi
-  return $rc
+  if [[ $rc -ne 0 ]]; then
+    cat /tmp/rvv-check-${marker}-collect.out
+    PHASE_TIMINGS+=("$name=$((SECONDS - start))s")
+    return $rc
+  fi
+  "$PYTHON_CMD" -m pytest --no-cov -q -m "$marker" "$@"
+  PHASE_TIMINGS+=("$name=$((SECONDS - start))s")
 }
 
 print_timings() {
@@ -93,6 +103,10 @@ Separated non-blocking lanes (never part of quick or full):
 Environment:
   SKIP_SECRET_SCAN=1 skips secret-scan in the all phase only.
   RVV_LIVE_TESTS=1   allow live tests to run (the live phase sets it itself).
+  RVV_HARNESS_SMOKE_COMMAND="cmd ..."
+                     bounded command executed by scripts/check harness for real
+                     harness runtime verification; when unset, harness reports
+                     an explicit unavailable lane instead of runtime coverage.
 EOF
 }
 
@@ -168,11 +182,14 @@ run_named_phase() {
       run_full
       ;;
     live)
-      run_phase_tolerant "Live external-source tests" \
-        env RVV_LIVE_TESTS=1 "$PYTHON_CMD" -m pytest --no-cov -q -m live
+      RVV_LIVE_TESTS=1 run_marked_pytest_phase "Live external-source tests" live
       ;;
     harness)
-      run_phase_tolerant "Harness-dependent tests" "$PYTHON_CMD" -m pytest --no-cov -q -m harness
+      if [[ -z "${RVV_HARNESS_SMOKE_COMMAND:-}" ]]; then
+        echo "Harness-dependent tests unavailable: set RVV_HARNESS_SMOKE_COMMAND to a bounded smoke command for real harness runtime verification."
+        UNAVAILABLE_LANES+=("harness")
+      fi
+      run_marked_pytest_phase "Harness-dependent tests" harness
       ;;
     rules-report)
       run_phase "Rules report sync" env PYTHON="$PYTHON_CMD" sh scripts/rules-report.sh
@@ -239,4 +256,9 @@ fi
 print_timings
 
 echo ""
-echo "✅ Canonical checks passed"
+if [[ ${#UNAVAILABLE_LANES[@]} -gt 0 ]]; then
+  joined=$(IFS=,; echo "${UNAVAILABLE_LANES[*]}")
+  echo "⚠️  Canonical checks completed; unavailable optional lane(s): $joined"
+else
+  echo "✅ Canonical checks passed"
+fi

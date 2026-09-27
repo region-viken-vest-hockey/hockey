@@ -327,6 +327,157 @@ def test_outlook_iframe_records_only_rendered_dates(monkeypatch):
     assert any("did not change" in reason for reason in coverage["exceptions"])
 
 
+def test_outlook_displayed_month_reads_stable_next_control():
+    from tournament_scheduler.pipeline.scraper_outlook import (
+        _iframe_displayed_month,
+        _month_start_from_label,
+    )
+
+    class _Button:
+        def get_attribute(self, name):
+            assert name == "aria-label"
+            return "Go to next month \nOctober 2026"
+
+    class _Frame:
+        def query_selector(self, selector):
+            assert "next month" in selector
+            return _Button()
+
+    assert _month_start_from_label("Go to next month \nOctober 2026", {"october": 10}) == date(2026, 10, 1)
+    assert _month_start_from_label("no month here", {"october": 10}) is None
+    assert _month_start_from_label(None, {"october": 10}) is None
+    # The next-month control names the following month, so the displayed month is September.
+    assert _iframe_displayed_month(_Frame(), {"october": 10}) == date(2026, 9, 1)
+
+
+def test_outlook_iframe_aligns_to_requested_start_month(monkeypatch):
+    from tournament_scheduler.pipeline.scraper_outlook import _run_outlook_scraper
+
+    months = [
+        date(2026, 12, 1),
+        date(2027, 1, 1),
+        date(2027, 2, 1),
+        date(2027, 3, 1),
+        date(2027, 4, 1),
+        date(2027, 5, 1),
+    ]
+    state = {"index": 0}
+
+    class _NavButton:
+        def __init__(self, delta):
+            self.delta = delta
+
+        def get_attribute(self, name):
+            assert name == "aria-label"
+            target = months[min(max(state["index"] + self.delta, 0), len(months) - 1)]
+            return f"Go to next month \n{target.strftime('%B %Y')}"
+
+        def click(self):
+            state["index"] = min(max(state["index"] + self.delta, 0), len(months) - 1)
+
+    class _Frame:
+        def wait_for_timeout(self, *args, **kwargs):
+            return None
+
+        def content(self):
+            current = months[state["index"]]
+            cells = "".join(
+                f'<div aria-label="Practice, 10:00 AM to 11:00 AM, Monday, {current.strftime("%B")} {day}, {current.year}"></div>'
+                for day in (1, 2, 3)
+            )
+            return f'<h2>{current.strftime("%B %Y")}</h2>{cells}'
+
+        def query_selector(self, selector):
+            if "next month" in selector:
+                return _NavButton(1)
+            if "previous month" in selector:
+                return _NavButton(-1)
+            return None
+
+    class _Iframe:
+        def content_frame(self):
+            return _Frame()
+
+    class _Page:
+        def goto(self, *args, **kwargs):
+            return None
+
+        def wait_for_timeout(self, *args, **kwargs):
+            return None
+
+        def query_selector(self, selector):
+            return _Iframe()
+
+    class _Browser:
+        def new_page(self):
+            return _Page()
+
+        def close(self):
+            return None
+
+    class _Chromium:
+        def launch(self, *args, **kwargs):
+            return _Browser()
+
+    class _Playwright:
+        chromium = _Chromium()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    sync_api = types.ModuleType("playwright.sync_api")
+    sync_api.sync_playwright = lambda: _Playwright()
+    monkeypatch.setitem(sys.modules, "playwright", types.ModuleType("playwright"))
+    monkeypatch.setitem(sys.modules, "playwright.sync_api", sync_api)
+
+    events, _raw = _run_outlook_scraper(
+        "https://example.com/outlook",
+        "Kongsberg",
+        datetime(2027, 1, 1),
+        datetime(2027, 3, 28),
+    )
+
+    scraped_months = {event.datetime.strftime("%Y-%m") for event in events}
+    # The calendar opened on December 2026; scraping must align to January and
+    # stop at March rather than silently covering December..February.
+    assert scraped_months == {"2027-01", "2027-02", "2027-03"}
+    assert events.coverage["event_observed_end"] == "2027-03-03"
+
+
+def test_outlook_dedup_keeps_distinct_same_name_same_day_bookings():
+    from tournament_scheduler.models import CalendarEvent
+    from tournament_scheduler.pipeline.scraper_outlook import _deduplicate_outlook_events
+
+    events = [
+        CalendarEvent(date="01.11.2026", name="Drammen Ballklubb", datetime=datetime(2026, 11, 1, 9, 0), duration_hours=1.0),
+        # Same day and title, different booked interval: a distinct booking, not a DOM fragment.
+        CalendarEvent(date="01.11.2026", name="Drammen Ballklubb", datetime=datetime(2026, 11, 1, 17, 0), duration_hours=1.0),
+        # Exact repeated DOM fragment for the first booking must still collapse.
+        CalendarEvent(date="01.11.2026", name="Drammen Ballklubb", datetime=datetime(2026, 11, 1, 9, 0), duration_hours=1.0),
+    ]
+
+    unique = _deduplicate_outlook_events(events)
+
+    assert [(ev.datetime.hour, ev.duration_hours) for ev in unique] == [(9, 1.0), (17, 1.0)]
+
+
+def test_outlook_dedup_keeps_same_hour_but_different_length_bookings():
+    from tournament_scheduler.models import CalendarEvent
+    from tournament_scheduler.pipeline.scraper_outlook import _deduplicate_outlook_events
+
+    events = [
+        CalendarEvent(date="21.11.2026", name="Åpen Ishall", datetime=datetime(2026, 11, 21, 12, 30), duration_hours=1.5),
+        CalendarEvent(date="21.11.2026", name="Åpen Ishall", datetime=datetime(2026, 11, 21, 12, 30), duration_hours=2.0),
+    ]
+
+    unique = _deduplicate_outlook_events(events)
+
+    assert sorted(ev.duration_hours for ev in unique) == [1.5, 2.0]
+
+
 def test_downgrade_marks_known_club_as_source_review_required():
     sources = [{"name": "Jar", "type": "forumbooking", "events": _ok_events(2), "event_count": 2,
                 "event_expectation": {"status": "suspicious", "message": "mistanke"}}]
