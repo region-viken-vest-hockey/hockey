@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from datetime import date
 from pathlib import Path
 
@@ -1118,6 +1119,29 @@ def test_ringerike_ju8_withdrawal_regression_case(tmp_path: Path) -> None:
     assert "hosting_age_group_coverage" not in audit_report["mandatory_finding_checks"]
     assert "hosting_proportional_balance" not in audit_report["soft_finding_checks"]
 
+    # A sealed season refuses whole-season regeneration even after a durable
+    # withdrawal: the retirement is not a licence to rebuild the season.
+    from tournament_scheduler.canonical_replan import replan_around_baseline
+    from tournament_scheduler.published_baseline import SeasonSealedError
+
+    with pytest.raises(SeasonSealedError):
+        replan_around_baseline(
+            season="2026-2027",
+            config={
+                "teams": [dict(team) for team in problem["teams"]],
+                "parallel_games": {"JU8": 4},
+                "rounds_per_tournament": {"JU8": 5},
+                "ice_time_minutes": {"JU8": 180},
+                "round_length_minutes": {"JU8": 20},
+            },
+            scraping_result=None,
+            start_date=date(2026, 10, 1),
+            end_date=date(2026, 12, 31),
+            root=root,
+            engine="local_search",
+            request={"iterations": 5, "seed": 1},
+        )
+
     # Refusal is atomic: a removal that would leave an avoidable underfill
     # writes nothing.
     schedule_file = root / "2026-2027" / "schedule.json"
@@ -1138,3 +1162,72 @@ def test_ringerike_ju8_withdrawal_regression_case(tmp_path: Path) -> None:
             actor="tester",
         )
     assert (schedule_file.read_bytes(), decisions_file.read_bytes()) == snapshot_before
+
+
+def test_replan_problem_carries_durable_withdrawal(tmp_path: Path) -> None:
+    """A non-sealed replan must not rebuild on the full registered pool.
+
+    The canonical replan boundary projects the durable eligible-pool reduction
+    into its problem, so a withdrawn team cannot be silently reintroduced by a
+    whole-season search; the verifier refuses the reintroduction against that
+    same problem. A tournament-scoped absence is deliberately *not* a durable
+    ineligibility, so it never removes the team from the age-group pool.
+    """
+
+    from tournament_scheduler.canonical_replan import replan_around_baseline
+
+    root = tmp_path / "season"
+    problem = _ringerike_problem()
+    plan = _ringerike_plan()
+    _write_plan(root, plan, problem, sealed=False)
+    service = CanonicalSeasonService(root=root)
+    affected = [f"j8-{index}" for index in range(1, 6)]
+    result = service.batch_maintenance(
+        season="2026-2027",
+        operations=[
+            {
+                "op": "remove_participant",
+                "tournament_id": tournament_id,
+                "remove_team": "Ringerike 1",
+                "reconcile_withdrawal": True,
+            }
+            for tournament_id in affected
+        ],
+        scope=affected,
+        request_id="ringerike-ju8-replan",
+        actor="tester",
+        note="Ringerike JU8 withdrew with no same-age replacement",
+    )
+    assert result["committed"] is True
+
+    replan = replan_around_baseline(
+        season="2026-2027",
+        config={
+            "teams": [dict(team) for team in problem["teams"]],
+            "parallel_games": {"JU8": 4},
+            "rounds_per_tournament": {"JU8": 5},
+            "ice_time_minutes": {"JU8": 180},
+            "round_length_minutes": {"JU8": 20},
+        },
+        scraping_result=None,
+        start_date=date(2026, 10, 1),
+        end_date=date(2026, 12, 31),
+        root=root,
+        engine="local_search",
+        request={"iterations": 30, "seed": 1},
+    )
+    assert replan["problem"]["withdrawn_ineligible_teams"], (
+        "the replan problem must carry the durable eligible-pool reduction"
+    )
+
+    reintroduced = copy.deepcopy(replan["candidate"])
+    for tournament in reintroduced["tournaments"]:
+        if tournament["id"] == "j8-1":
+            tournament["teams"].append(
+                {"club": "Ringerike", "label": "Ringerike 1", "age_group": "JU8"}
+            )
+    rejected = verify_candidate(reintroduced, dict(replan["problem"]))
+    assert rejected["ok"] is False
+    assert "withdrawn_team_participating" in {
+        violation.get("code") for violation in rejected["violations"]
+    }

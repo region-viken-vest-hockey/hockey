@@ -83,9 +83,16 @@ def replan_around_baseline(
     from tournament_scheduler.canonical_holiday_exceptions import (
         project_exceptions_into_problem,
     )
+    from tournament_scheduler.participation_withdrawals import project_into_problem
 
     problem = project_exceptions_into_problem(problem, decisions)
     problem = project_banned_dates_into_problem(problem, decisions)
+    # A durable participation withdrawal is a canonical decision, not a
+    # transient config fact: the replan problem must carry the same reduced
+    # eligible pool every other consumer sees, so the search/verifier cannot
+    # silently reintroduce a withdrawn team or rebuild a phantom hosting
+    # obligation for it.
+    problem = project_into_problem(problem, decisions=decisions, plan=baseline_candidate)
     # A persisted operator acceptance is a durable canonical decision, not a
     # property of the transient config: the replan verifier must honour it too,
     # so escalation cannot silently "fix" an accepted deviation.
