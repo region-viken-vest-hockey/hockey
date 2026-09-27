@@ -176,12 +176,18 @@ function operationalStateOf(t) {
   if (t.bs === 'confirmed_booked' || t.bs === 'manually_booked') return 'booked';
   if (t.mb || t.rhc) return 'action_required';
   if (t.bs === 'confirmed_not_booked' || t.bs === 'manually_not_booked' || t.bs === 'stale') return 'action_required';
+  if (t.bac === 'proposed_changed_slot') return 'changed_slot_review';
+  if (t.bac === 'presumed_unscheduled') return 'presumed_unscheduled';
+  if (t.bac === 'not_checkable' || t.bac === 'unmatched') return 'unknown';
   if (t.bs) return 'not_booked';
   return '';
 }
 
 function operationalStateLabel(t, state) {
   if (state === 'booked') return 'BOOKET · LÅST';
+  if (state === 'changed_slot_review') return 'ENDRET TID · MÅ VURDERES';
+  if (state === 'presumed_unscheduled') return 'TROLIG IKKE SATT OPP';
+  if (state === 'unknown') return 'UKJENT BOOKING';
   if (state === 'action_required') {
     // An explicit rejection or an invalidated confirmation needs a rebooking,
     // not the generic manual-placement wording.
@@ -211,6 +217,9 @@ function bookingStatusLabel(status) {
     unknown: 'IKKE KONTROLLERT',
     not_checkable: 'IKKE KONTROLLERBAR',
     ambiguous: 'UKLAR BOOKING',
+    proposed_changed_slot: 'FORESLÅTT ENDRET TID',
+    presumed_unscheduled: 'TROLIG IKKE SATT OPP',
+    unmatched: 'INGEN PLAUSIBEL KALENDERMATCH',
     stale: 'BOOKINGGRUNNLAG UTDATERT'
   };
   return labels[status] || status;
@@ -222,11 +231,18 @@ function buildBookingDetails(t) {
   var stateText = {
     booked: 'Booket og låst — bekreftelsen er beskyttet mot automatisk flytting.',
     action_required: 'Krever handling: manuell booking eller re-bekreftelse.',
+    changed_slot_review: 'Kalenderen viser en plausibel booking på annen tid enn kanonisk plan; dette er et forslag, ikke en flytting.',
+    presumed_unscheduled: 'Komplett, tillitsklarert kalenderdekning for vinduet viser ingen plausibel match. Turneringen er ikke kansellert automatisk.',
+    unknown: 'Booking kan ikke avklares fra tilgjengelig kalenderbevis.',
     not_booked: 'Ikke bekreftet. Manglende kalenderbevis er ikke en avvisning.'
   };
   if (state && stateText[state]) rows.push('<strong>Bookingstatus:</strong> ' + stateText[state]);
   if (t.bs) rows.push('<strong>Detaljert status:</strong> ' + bookingStatusLabel(t.bs) + (t.bscope === 'club_wide_interpretation' ? ' · SKJØNNSVURDERT' : ''));
   if (t.bauth) rows.push('<strong>Autoritet:</strong> ' + bookingAuthorityLabel(t.bauth));
+  if (t.bac) rows.push('<strong>Kalenderavstemming:</strong> ' + bookingStatusLabel(t.bac));
+  if (t.bci) rows.push('<strong>Kanonisk planlagt tid:</strong> ' + t.bci.d + ' ' + t.bci.s + '–' + t.bci.e);
+  if (t.boi) rows.push('<strong>Siste observerte kalendertid:</strong> ' + t.boi.d + ' ' + t.boi.s + '–' + t.boi.e + (t.boi.t ? ' · ' + t.boi.t : '') + (t.boi.a ? '' : ' · ikke handlingsbar'));
+  if (t.bne) rows.push('<strong>Negativt kalenderbevis:</strong> komplett kildevindu uten plausibel match' + (t.bne.c !== undefined && t.bne.c !== null ? ' (' + t.bne.c + ' hendelser i kilden)' : ''));
   if (t.bscope === 'club_wide_interpretation') rows.push('<strong>Kildeomfang:</strong> tolkning av klubbdekkende bekreftelse, ikke en egen per-turnering-kilde.');
   if (t.mb) rows.push('<strong>Manuell booking:</strong> ' + t.mb);
   if (t.rhc) rows.push('<strong>Vertsbekreftelse:</strong> ' + (t.hcr || 'må bekreftes av vertsklubben'));
@@ -288,9 +304,11 @@ function render() {
     if (approval === 'approved' && t.ap !== 'approved') continue;
     if (approval === 'stale' && t.ap !== 'stale_approval') continue;
     if (approval === 'not_approved' && t.ap === 'approved') continue;
+    var bookingOperational = operationalStateOf(t);
     if (booking === 'needs_attention' && !t.ba) continue;
     if (booking === 'stale' && t.bs !== 'stale' && t.bs !== 'ambiguous') continue;
-    if (booking && booking !== 'needs_attention' && booking !== 'stale' && (t.bs || 'unknown') !== booking) continue;
+    if ((booking === 'changed_slot_review' || booking === 'presumed_unscheduled') && bookingOperational !== booking) continue;
+    if (booking && booking !== 'needs_attention' && booking !== 'stale' && booking !== 'changed_slot_review' && booking !== 'presumed_unscheduled' && (t.bs || 'unknown') !== booking) continue;
 
     visible++;
     if (!timeline) continue;

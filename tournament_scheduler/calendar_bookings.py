@@ -39,8 +39,10 @@ STALE = "stale"
 # Read-only booking assessment vocabulary -------------------------------------
 # The assessment is an evidence/report projection: it proposes plausible
 # tournament<->calendar-event relations and keeps competing or unresolved cases
-# visible.  It never persists an association or claims that calendar absence
-# proves a tournament is unbooked.
+# visible.  It never persists an association or cancels a tournament.  Only a
+# complete, coverage-proven, fresh trusted host-calendar window may contribute
+# explicit absence evidence, and even then the result is a non-binding
+# presumed-unscheduled review state rather than a canonical booking decision.
 ASSESSMENT_SCHEMA_VERSION = 1
 DEFAULT_ASSESSMENT_DATE_WINDOW_DAYS = 7
 
@@ -51,6 +53,7 @@ ASSESSMENT_PROPOSED_CHANGED_SLOT = "proposed_changed_slot"
 ASSESSMENT_COMPETING_CANDIDATES = "competing_candidates"
 ASSESSMENT_AMBIGUOUS = "ambiguous"
 ASSESSMENT_UNMATCHED = "unmatched"
+ASSESSMENT_PRESUMED_UNSCHEDULED = "presumed_unscheduled"
 ASSESSMENT_NOT_CHECKABLE = "not_checkable"
 
 RELATION_SAME_DATE_OVERLAP = "same_date_overlap"
@@ -85,6 +88,9 @@ BOOKING_MANUAL_UNKNOWN = "manual_unknown"
 OPERATIONAL_BOOKED = "booked"
 OPERATIONAL_NOT_BOOKED = "not_booked"
 OPERATIONAL_ACTION_REQUIRED = "action_required"
+OPERATIONAL_CHANGED_SLOT_REVIEW = "changed_slot_review"
+OPERATIONAL_PRESUMED_UNSCHEDULED = "presumed_unscheduled"
+OPERATIONAL_UNKNOWN = "unknown"
 
 _STATUS_BOOKED = "booked"
 _STATUS_NOT_BOOKED = "not-booked"
@@ -810,7 +816,25 @@ def booking_status_report(
         OPERATIONAL_BOOKED: 0,
         OPERATIONAL_NOT_BOOKED: 0,
         OPERATIONAL_ACTION_REQUIRED: 0,
+        OPERATIONAL_CHANGED_SLOT_REVIEW: 0,
+        OPERATIONAL_PRESUMED_UNSCHEDULED: 0,
+        OPERATIONAL_UNKNOWN: 0,
     }
+    assessment_by_tournament: dict[str, dict[str, Any]] = {}
+    try:
+        assessment = booking_assessment(
+            problem=problem,
+            plan=plan,
+            decisions=decisions,
+            canonical_state_revision="booking-status-projection",
+        )
+        assessment_by_tournament = {
+            str(row.get("tournament_id") or ""): dict(row)
+            for row in assessment.get("tournaments") or []
+            if isinstance(row, Mapping)
+        }
+    except Exception:  # noqa: BLE001 - advisory crosswalk failure must not hide persisted booking status.
+        assessment_by_tournament = {}
     for tid, tournament in sorted(tournaments.items()):
         calendar_record = latest.get(tid)
         calendar_status, calendar_stale_reasons = _projected_calendar_status(
@@ -890,6 +914,15 @@ def booking_status_report(
                 manual_booking_reason=str(tournament.get("manual_booking_reason") or ""),
                 requires_host_confirmation=bool(tournament.get("requires_host_confirmation")),
             )
+            assessment_row = assessment_by_tournament.get(tid) or {}
+            assessment_classification = str(assessment_row.get("classification") or "")
+            if status == BOOKING_UNKNOWN and operational_state == OPERATIONAL_NOT_BOOKED:
+                if assessment_classification == ASSESSMENT_PROPOSED_CHANGED_SLOT:
+                    operational_state = OPERATIONAL_CHANGED_SLOT_REVIEW
+                elif assessment_classification == ASSESSMENT_PRESUMED_UNSCHEDULED:
+                    operational_state = OPERATIONAL_PRESUMED_UNSCHEDULED
+                elif assessment_classification in (ASSESSMENT_NOT_CHECKABLE, ASSESSMENT_UNMATCHED):
+                    operational_state = OPERATIONAL_UNKNOWN
             row = {
                 "tournament_id": tid,
                 "status": status,
@@ -902,12 +935,34 @@ def booking_status_report(
                 "arena": str(tournament.get("arena") or ""),
                 "date": str(tournament.get("date") or ""),
                 "start_time": str(tournament.get("start_time") or ""),
-                "needs_attention": status in _ATTENTION_BOOKING_STATUSES,
+                "needs_attention": status in _ATTENTION_BOOKING_STATUSES
+                or operational_state in (OPERATIONAL_CHANGED_SLOT_REVIEW, OPERATIONAL_PRESUMED_UNSCHEDULED),
                 "stale_reasons": stale_reasons,
                 "follow_up_reasons": [],
                 "calendar_status": status,
                 "calendar_stale_reasons": calendar_stale_reasons,
             }
+            if assessment_row:
+                row["booking_assessment_classification"] = assessment_classification
+                row["canonical_interval"] = assessment_row.get("canonical_interval")
+                candidates = [
+                    candidate
+                    for candidate in assessment_row.get("candidates") or []
+                    if isinstance(candidate, Mapping)
+                ]
+                if candidates:
+                    candidate = next((item for item in candidates if item.get("actionable")), candidates[0])
+                    row["latest_observed_interval"] = {
+                        "date": str(candidate.get("date") or ""),
+                        "start": str(candidate.get("start") or ""),
+                        "end": str(candidate.get("end") or ""),
+                        "event_fingerprint": str(candidate.get("event_fingerprint") or ""),
+                        "title": str(candidate.get("title") or ""),
+                        "source_trusted": bool(candidate.get("source_trusted")),
+                        "actionable": bool(candidate.get("actionable")),
+                    }
+                if assessment_classification == ASSESSMENT_PRESUMED_UNSCHEDULED:
+                    row["negative_evidence"] = assessment_row.get("negative_evidence")
             if calendar_record:
                 row["evidence"] = calendar_record
         if conflict:
@@ -1077,6 +1132,57 @@ def _assessment_candidate(
     }
 
 
+def _date_window_covered(
+    *,
+    tournament_date: Any,
+    source: Mapping[str, Any],
+    date_window_days: int,
+) -> bool:
+    center = _assessment_parse_date(tournament_date)
+    if center is None:
+        return False
+    window_start = center - timedelta(days=max(0, int(date_window_days)))
+    window_end = center + timedelta(days=max(0, int(date_window_days)))
+    observed = source.get("event_observed_window") or source.get("observed_window") or {}
+    if not isinstance(observed, Mapping):
+        return False
+    observed_start = _assessment_parse_date(observed.get("start"))
+    observed_end = _assessment_parse_date(observed.get("end"))
+    if observed_start is None or observed_end is None:
+        return False
+    return observed_start <= window_start and observed_end >= window_end
+
+
+def _source_supports_negative_absence(
+    *,
+    tournament: Mapping[str, Any],
+    source: Mapping[str, Any] | None,
+    date_window_days: int,
+) -> tuple[bool, list[str]]:
+    if not source:
+        return False, ["source_missing"]
+    reasons: list[str] = []
+    if source.get("source_trust") != "trusted":
+        reasons.append("source_not_trusted")
+    if source.get("source_integrity") != "complete":
+        reasons.append("source_integrity_not_complete")
+    if not source.get("coverage_proven"):
+        reasons.append("source_coverage_not_proven")
+    try:
+        event_count = int(source.get("event_count") or 0)
+    except (TypeError, ValueError):
+        event_count = 0
+    if event_count <= 0:
+        reasons.append("no_other_events_in_source")
+    if not _date_window_covered(
+        tournament_date=tournament.get("date"),
+        source=source,
+        date_window_days=date_window_days,
+    ):
+        reasons.append("tournament_window_not_covered")
+    return not reasons, reasons
+
+
 def _assessment_tournament_row(
     tournament: Mapping[str, Any],
     *,
@@ -1085,6 +1191,8 @@ def _assessment_tournament_row(
     decisions: Mapping[str, Any] | None,
     associated_event: Mapping[str, Any] | None,
     source_trusted: bool,
+    source: Mapping[str, Any] | None = None,
+    date_window_days: int = DEFAULT_ASSESSMENT_DATE_WINDOW_DAYS,
     shared_event_fingerprints: set[str] | None = None,
 ) -> dict[str, Any]:
     tournament_id = str(tournament.get("id") or "")
@@ -1096,6 +1204,11 @@ def _assessment_tournament_row(
         else []
     )
     has_manual_authority = manual is not None and not manual_stale_reasons
+    source_supports_absence, absence_blockers = _source_supports_negative_absence(
+        tournament=tournament,
+        source=source,
+        date_window_days=date_window_days,
+    )
     # Observations with contradicting title/arena evidence stay in the report
     # but are not credible competing matches; only actionable candidates may
     # contest or resolve a proposal.
@@ -1107,7 +1220,7 @@ def _assessment_tournament_row(
     elif not source_trusted:
         classification = ASSESSMENT_NOT_CHECKABLE
     elif not candidates:
-        classification = ASSESSMENT_UNMATCHED
+        classification = ASSESSMENT_PRESUMED_UNSCHEDULED if source_supports_absence else ASSESSMENT_UNMATCHED
     elif len(actionable) > 1:
         # Several credible events map to the same tournament; the assessment
         # refuses to pick one and leaves the competition visible.
@@ -1123,9 +1236,15 @@ def _assessment_tournament_row(
         else:
             classification = ASSESSMENT_PROPOSED_CHANGED_SLOT
     else:
-        # Only conflicting/observation candidates remain; keep the row
-        # reviewable rather than resolving it or calling it contested.
-        classification = ASSESSMENT_AMBIGUOUS
+        # Only conflicting/observation candidates remain.  If the source is
+        # complete for this tournament's window, non-actionable observations at
+        # the wrong arena/age group do not block a negative finding for the
+        # canonical booking; otherwise keep the row ambiguous.
+        classification = (
+            ASSESSMENT_PRESUMED_UNSCHEDULED
+            if source_supports_absence
+            else ASSESSMENT_AMBIGUOUS
+        )
 
     if has_manual_authority:
         authority: str | None = (
@@ -1161,6 +1280,16 @@ def _assessment_tournament_row(
         "candidate_count": len(candidates),
         "candidates": candidates,
     }
+    if classification == ASSESSMENT_PRESUMED_UNSCHEDULED:
+        row["negative_evidence"] = {
+            "reason": "complete_trusted_calendar_window_without_plausible_match",
+            "absence_window_days": int(date_window_days),
+            "source_fingerprint": (source or {}).get("calendar_fingerprint"),
+            "source_event_count": (source or {}).get("event_count"),
+            "observed_window": (source or {}).get("event_observed_window") or (source or {}).get("observed_window"),
+        }
+    elif absence_blockers:
+        row["absence_evidence_blockers"] = absence_blockers
     if associated_event is not None:
         row["associated_event_fingerprint"] = str(
             associated_event.get("fingerprint") or event_fingerprint(associated_event)
@@ -1244,6 +1373,11 @@ def booking_assessment(
         integrity_detail = source_integrity_details.get(club) or {}
         if not isinstance(integrity_detail, Mapping):
             integrity_detail = {}
+        source_supports_negative_claim = bool(
+            trusted
+            and str(source_integrity.get(club) or "unknown") == "complete"
+            and bool(coverage_proven.get(club, False))
+        )
         sources[club] = {
             "club": club,
             "status": status,
@@ -1273,11 +1407,11 @@ def booking_assessment(
             },
             "source_event_count": integrity_detail.get("event_count"),
             "coverage_proven": bool(coverage_proven.get(club, False)),
-            # Absence in an otherwise trustworthy source is still only an
-            # observation about the current slot; a negative booking claim needs
-            # independent proof that the source covered the whole booking window
-            # *and* explicit club authority for the attribution.
-            "trusted_for_negative_claim": False,
+            # Absence may contribute only a derived, non-binding
+            # presumed-unscheduled state when integrity and coverage prove the
+            # requested tournament window was complete. It still never mutates
+            # canonical cancellation or creates accepted booking authority.
+            "trusted_for_negative_claim": source_supports_negative_claim,
             "event_count": sum(1 for e in events if str(e.get("club") or "") == club),
             "calendar_fingerprint": club_calendar_fingerprint(problem, club),
         }
@@ -1364,6 +1498,8 @@ def booking_assessment(
                 decisions=decisions,
                 associated_event=associated_event,
                 source_trusted=club in trusted_clubs,
+                source=sources.get(club),
+                date_window_days=date_window_days,
                 shared_event_fingerprints=shared_event_fingerprints,
             )
         )
@@ -1423,6 +1559,7 @@ def booking_assessment(
         ASSESSMENT_COMPETING_CANDIDATES: 0,
         ASSESSMENT_AMBIGUOUS: 0,
         ASSESSMENT_UNMATCHED: 0,
+        ASSESSMENT_PRESUMED_UNSCHEDULED: 0,
         ASSESSMENT_NOT_CHECKABLE: 0,
     }
     for row in tournament_rows:
@@ -1460,7 +1597,8 @@ def booking_assessment(
         "unresolved": unresolved,
         "findings": findings,
         "limitations": [
-            "calendar_absence_is_not_proof_the_tournament_is_unbooked",
+            "calendar_absence_is_non_binding_negative_evidence_only_when_source_window_is_complete",
+            "presumed_unscheduled_never_cancels_or_deletes_a_tournament",
             "proposals_are_advisory_until_an_explicit_operator_confirmation",
             "source_coverage_proof_is_not_established_by_this_assessment",
         ],

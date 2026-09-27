@@ -134,6 +134,8 @@ class HtmlExporter:
                 '<option value="needs_attention">Må følges opp</option>'
                 '<option value="confirmed_booked">Booket bekreftet</option>'
                 '<option value="manually_booked">Manuelt booket</option>'
+                '<option value="changed_slot_review">Endret tid må vurderes</option>'
+                '<option value="presumed_unscheduled">Trolig ikke satt opp</option>'
                 '<option value="confirmed_not_booked">Ikke booket</option>'
                 '<option value="manually_not_booked">Manuelt ikke booket</option>'
                 '<option value="unknown">Ikke kontrollert</option>'
@@ -521,6 +523,31 @@ class HtmlExporter:
                     entry["bauth"] = str(booking.get("authority"))
                 if booking.get("source_scope"):
                     entry["bscope"] = str(booking.get("source_scope"))
+                if booking.get("booking_assessment_classification"):
+                    entry["bac"] = str(booking.get("booking_assessment_classification"))
+                canonical_interval = booking.get("canonical_interval")
+                if isinstance(canonical_interval, dict):
+                    entry["bci"] = {
+                        "d": str(canonical_interval.get("date") or ""),
+                        "s": str(canonical_interval.get("start_time") or ""),
+                        "e": str(canonical_interval.get("end_time") or ""),
+                    }
+                observed_interval = booking.get("latest_observed_interval")
+                if isinstance(observed_interval, dict):
+                    entry["boi"] = {
+                        "d": str(observed_interval.get("date") or ""),
+                        "s": str(observed_interval.get("start") or ""),
+                        "e": str(observed_interval.get("end") or ""),
+                        "t": str(observed_interval.get("title") or ""),
+                        "a": bool(observed_interval.get("actionable")),
+                    }
+                negative_evidence = booking.get("negative_evidence")
+                if isinstance(negative_evidence, dict):
+                    entry["bne"] = {
+                        "r": str(negative_evidence.get("reason") or ""),
+                        "fp": str(negative_evidence.get("source_fingerprint") or ""),
+                        "c": negative_evidence.get("source_event_count"),
+                    }
                 follow_up_reasons = list(booking.get("follow_up_reasons") or [])
                 if follow_up_reasons:
                     entry["bfu"] = follow_up_reasons
