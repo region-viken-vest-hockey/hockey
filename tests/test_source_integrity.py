@@ -151,6 +151,51 @@ def test_coverage_annotated_events_carry_the_proof():
     assert integrity["coverage_proven"] is True
 
 
+def test_reported_observed_window_shortfall_fails_closed():
+    events = with_coverage(
+        _ok_events(3),
+        status=INTEGRITY_COMPLETE,
+        navigation_complete=True,
+        requested_start="2027-03-01",
+        requested_end="2027-03-28",
+        observed_start="2027-03-01",
+        observed_end="2027-03-06",
+        exceptions=[],
+    )
+    source = {"name": "Kongsberg", "type": "outlook", "events": events, "event_count": 3}
+
+    integrity = evaluate_source_integrity(
+        source,
+        requested_start="2027-03-01",
+        requested_end="2027-03-28",
+    )
+
+    assert integrity["status"] == INTEGRITY_PARTIAL
+    assert integrity["coverage_proven"] is False
+    assert integrity["trusted_for_negative_claim"] is False
+    assert integrity["observed_end"] == "2027-03-06"
+    assert any("22 dag" in reason for reason in integrity["reasons"])
+
+
+def test_outlook_coverage_record_reports_missing_requested_months():
+    from datetime import datetime
+
+    from tournament_scheduler.pipeline.scraper_outlook import _outlook_coverage_record
+
+    coverage = _outlook_coverage_record(
+        [datetime(2027, 1, 1).date(), datetime(2027, 2, 1).date()],
+        datetime(2027, 1, 15),
+        datetime(2027, 3, 28),
+        [],
+    )
+
+    assert coverage["status"] == INTEGRITY_PARTIAL
+    assert coverage["navigation_complete"] is False
+    assert coverage["requested_end"] == "2027-03-28"
+    assert coverage["observed_end"] == "2027-02-28"
+    assert any("2027-03-01" in reason for reason in coverage["exceptions"])
+
+
 def test_downgrade_marks_known_club_as_source_review_required():
     sources = [{"name": "Jar", "type": "forumbooking", "events": _ok_events(2), "event_count": 2,
                 "event_expectation": {"status": "suspicious", "message": "mistanke"}}]

@@ -80,6 +80,37 @@ class TestComputeSourceHealth:
         assert result.status == "warning"
         assert "For få hendelser" in result.problems
 
+    def test_partial_integrity_evidence_surfaces_bounds_and_fingerprint(self, tmp_path):
+        _write_scraping_checkpoint(
+            tmp_path,
+            [{
+                "name": "Kongsberg",
+                "type": "outlook",
+                "event_count": 171,
+                "blocked": False,
+                "events": [],
+                "event_expectation": {"status": "ok"},
+                "integrity": {
+                    "status": "partial",
+                    "coverage_proven": False,
+                    "requested_start": "2026-09-01",
+                    "requested_end": "2027-03-28",
+                    "observed_start": "2026-09-01",
+                    "observed_end": "2027-03-06",
+                    "fingerprint": "abc123",
+                    "reasons": ["22 dag(er) mangler"],
+                },
+            }],
+        )
+
+        result = compute_source_health(str(tmp_path))[0]
+
+        assert result.status == "warning"
+        assert "requested_window=2026-09-01..2027-03-28" in result.evidence
+        assert "observed_window=2026-09-01..2027-03-06" in result.evidence
+        assert "integrity_fingerprint=abc123" in result.evidence
+        assert "22 dag(er) mangler" in result.problems
+
     def test_sparse_vs_previous_snapshot_is_warning(self, tmp_path):
         cache = ScrapedDataCache(work_dir=str(tmp_path))
         cache.write({"sources": {"Sandefjord": {"name": "Sandefjord", "event_count": 10, "events": []}}})

@@ -161,6 +161,34 @@ def _build_club_source_integrity(scraping_result: dict[str, Any] | None) -> dict
     return {str(club): str(value) for club, value in raw.items()}
 
 
+def _build_club_source_integrity_details(scraping_result: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    """Return the worst per-club source-integrity record for evidence consumers."""
+    if not scraping_result:
+        return {}
+    sources = scraping_result.get("sources") or []
+    if not isinstance(sources, list):
+        return {}
+    try:
+        from ..club_registry import club_for_source_name
+        from .source_integrity import _INTEGRITY_SEVERITY  # type: ignore[attr-defined]
+    except ImportError:
+        return {}
+    details: dict[str, dict[str, Any]] = {}
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        club = club_for_source_name(str(source.get("name") or ""))
+        integrity = source.get("integrity")
+        if club is None or not isinstance(integrity, dict):
+            continue
+        current = details.get(club)
+        status = str(integrity.get("status") or "")
+        current_status = str((current or {}).get("status") or "")
+        if current is None or _INTEGRITY_SEVERITY.get(status, 99) > _INTEGRITY_SEVERITY.get(current_status, 99):
+            details[club] = dict(integrity)
+    return details
+
+
 def _build_club_coverage_proven(scraping_result: dict[str, Any] | None) -> dict[str, bool]:
     """Reconstruct the per-club coverage-proof map from the checkpoint.
 

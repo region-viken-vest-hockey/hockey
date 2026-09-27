@@ -78,6 +78,7 @@ _CALENDAR_PROBLEM_KEYS = (
     "club_busy_intervals",
     "club_calendar_status",
     "club_source_integrity",
+    "club_source_integrity_details",
     "club_coverage_proven",
     "unclassified_calendar_events",
 )
@@ -99,6 +100,7 @@ def _calendar_source_summaries(scrape: Mapping[str, Any], *, fetched_at: str) ->
             "events": source.get("events") or [],
             "blocked": bool(source.get("blocked")),
             "event_count": int(source.get("event_count") or len(source.get("events") or [])),
+            "integrity": source.get("integrity"),
         }
         summaries.append(
             {

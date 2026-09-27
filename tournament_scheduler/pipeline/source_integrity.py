@@ -272,6 +272,33 @@ def evaluate_source_integrity(
                 status = INTEGRITY_PARTIAL
                 reasons.append("Skraperen nådde ikke slutten av den forespurte kalenderperioden.")
 
+            requested_start_bound = _parse_event_date(coverage.get("requested_start") or requested_start)
+            requested_end_bound = _parse_event_date(coverage.get("requested_end") or requested_end)
+            observed_start_bound = _parse_event_date(coverage.get("observed_start"))
+            observed_end_bound = _parse_event_date(coverage.get("observed_end"))
+            if (
+                status not in {INTEGRITY_FAILED, INTEGRITY_PARTIAL}
+                and requested_start_bound is not None
+                and observed_start_bound is not None
+                and observed_start_bound > requested_start_bound
+            ):
+                status = INTEGRITY_PARTIAL
+                reasons.append(
+                    "Skraperen observerte ikke starten av den forespurte kalenderperioden."
+                )
+            if (
+                status not in {INTEGRITY_FAILED, INTEGRITY_PARTIAL}
+                and requested_end_bound is not None
+                and observed_end_bound is not None
+                and observed_end_bound < requested_end_bound
+            ):
+                shortfall_days = (requested_end_bound - observed_end_bound).days
+                status = INTEGRITY_PARTIAL
+                reasons.append(
+                    f"Skraperen observerte bare kalenderen til {observed_end_bound.isoformat()}, "
+                    f"{shortfall_days} dag(er) før forespurt slutt {requested_end_bound.isoformat()}."
+                )
+
         expectation = source.get("event_expectation") or {}
         expectation_status = str(expectation.get("status") or "not_applicable")
         if status not in {INTEGRITY_FAILED, INTEGRITY_PARTIAL} and expectation_status in {"low", "suspicious"}:
@@ -314,7 +341,12 @@ def evaluate_source_integrity(
         status == INTEGRITY_COMPLETE
         and (navigation_complete is True or source_type in _STRUCTURALLY_COVERED_TYPES)
     )
-    observed_start, observed_end = observed_event_range(events)
+    event_observed_start, event_observed_end = observed_event_range(events)
+    if coverage is not None:
+        observed_start = str(coverage.get("observed_start") or event_observed_start or "") or None
+        observed_end = str(coverage.get("observed_end") or event_observed_end or "") or None
+    else:
+        observed_start, observed_end = event_observed_start, event_observed_end
 
     integrity: dict[str, Any] = {
         "schema_version": SOURCE_INTEGRITY_SCHEMA_VERSION,
@@ -327,6 +359,8 @@ def evaluate_source_integrity(
         "requested_end": requested_end,
         "observed_start": observed_start,
         "observed_end": observed_end,
+        "event_observed_start": event_observed_start,
+        "event_observed_end": event_observed_end,
         "navigation_complete": navigation_complete,
         "event_count": event_count,
         "previous_event_count": int(previous_event_count) if previous_event_count is not None else None,

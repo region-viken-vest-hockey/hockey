@@ -1688,6 +1688,42 @@ class TestSourceIntegrityWindowAndAuthority:
         assert result["club_calendar_status"]["Jar"] == "source_review_required"
         assert result["club_coverage_proven"]["Jar"] is False
 
+    def test_truncated_outlook_coverage_downgrades_and_preserves_bounds(self, tmp_path):
+        from tournament_scheduler.pipeline.source_integrity import (
+            INTEGRITY_COMPLETE,
+            INTEGRITY_PARTIAL,
+            with_coverage,
+        )
+
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources(
+            [{"name": "Kongsberg", "type": SOURCE_OUTLOOK, "url": "https://example.com/kongsberg"}]
+        )
+        annotated = with_coverage(
+            [_make_event(name="Kongsberg live booking")],
+            status=INTEGRITY_COMPLETE,
+            navigation_complete=True,
+            requested_start="2027-03-01",
+            requested_end="2027-03-28",
+            observed_start="2027-03-01",
+            observed_end="2027-03-06",
+            exceptions=[],
+        )
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_outlook_scraper",
+            return_value=(annotated, ""),
+        ):
+            result = run(cfg, state, datetime(2027, 3, 1), datetime(2027, 3, 28))
+
+        integrity = result["sources"][0]["integrity"]
+        assert integrity["status"] == INTEGRITY_PARTIAL
+        assert integrity["requested_end"] == "2027-03-28"
+        assert integrity["observed_end"] == "2027-03-06"
+        assert integrity["fingerprint"]
+        assert result["club_calendar_status"]["Kongsberg"] == "source_review_required"
+        assert result["club_coverage_proven"]["Kongsberg"] is False
+
     def test_operator_confirmed_authority_does_not_imply_coverage(self, tmp_path):
         from tournament_scheduler.pipeline.source_integrity import (
             INTEGRITY_PARTIAL,

@@ -1104,6 +1104,9 @@ def booking_assessment(
     coverage_proven = (problem or {}).get("club_coverage_proven") or {}
     if not isinstance(coverage_proven, Mapping):
         coverage_proven = {}
+    source_integrity_details = (problem or {}).get("club_source_integrity_details") or {}
+    if not isinstance(source_integrity_details, Mapping):
+        source_integrity_details = {}
 
     all_clubs = sorted(
         {
@@ -1129,6 +1132,9 @@ def booking_assessment(
             source_trust = "source_review_required"
         else:
             source_trust = "unknown"
+        integrity_detail = source_integrity_details.get(club) or {}
+        if not isinstance(integrity_detail, Mapping):
+            integrity_detail = {}
         sources[club] = {
             "club": club,
             "status": status,
@@ -1139,6 +1145,16 @@ def booking_assessment(
             # whole requested window. A source that is not coverage-proven can
             # never support a negative occupancy claim.
             "source_integrity": str(source_integrity.get(club) or "unknown"),
+            "source_integrity_fingerprint": integrity_detail.get("fingerprint"),
+            "requested_window": {
+                "start": integrity_detail.get("requested_start"),
+                "end": integrity_detail.get("requested_end"),
+            },
+            "observed_window": {
+                "start": integrity_detail.get("observed_start"),
+                "end": integrity_detail.get("observed_end"),
+            },
+            "source_event_count": integrity_detail.get("event_count"),
             "coverage_proven": bool(coverage_proven.get(club, False)),
             # Absence in an otherwise trustworthy source is still only an
             # observation about the current slot; a negative booking claim needs
