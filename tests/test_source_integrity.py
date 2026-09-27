@@ -565,3 +565,58 @@ def test_coverage_proven_ical_source_stays_known():
     status = downgrade_calendar_status_for_integrity({"Frisk Asker": "known"}, sources, integrity)
 
     assert status["Frisk Asker"] == "known"
+
+
+# ---------------------------------------------------------------------------
+# fabricated_interval_signal -- the normalized-interval form of the
+# fabricated-fallback fingerprint owned by the source-integrity layer.
+# ---------------------------------------------------------------------------
+
+
+def _interval(day: int, start: str, end: str, *, title: str = "Jutul U10") -> dict:
+    return {
+        "date": f"2026-09-{day:02d}",
+        "start": start,
+        "end": end,
+        "availability": "fixed_busy",
+        "calendar_event": title,
+    }
+
+
+def test_fabricated_interval_signal_flags_midnight_one_hour_monoculture():
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = [_interval(day, "00:00", "01:00") for day in range(1, 31)]
+
+    signal = fabricated_interval_signal(intervals)
+
+    assert signal is not None
+    assert "identisk varighet" in signal
+
+
+def test_fabricated_interval_signal_ignores_real_varied_times():
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = [
+        _interval(day, f"{10 + (day % 8):02d}:00", f"{12 + (day % 8):02d}:00")
+        for day in range(1, 31)
+    ]
+
+    assert fabricated_interval_signal(intervals) is None
+
+
+def test_fabricated_interval_signal_ignores_all_day_blocks():
+    """A uniform all-day block is genuine occupancy, not a fallback value."""
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = [_interval(day, "00:00", "24:00") for day in range(1, 31)]
+
+    assert fabricated_interval_signal(intervals) is None
+
+
+def test_fabricated_interval_signal_ignores_too_few_entries():
+    from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
+
+    intervals = [_interval(day, "00:00", "01:00") for day in range(1, 6)]
+
+    assert fabricated_interval_signal(intervals) is None

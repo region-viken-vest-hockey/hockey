@@ -495,3 +495,55 @@ def test_source_integrity_and_coverage_are_reported_per_club(tmp_path):
     assert source["event_observed_window"] == {"start": "2026-10-01", "end": "2027-03-06"}
     assert source["source_event_count"] == 171
     assert source["coverage_proven"] is False
+
+
+def _fabricated_placeholder_intervals(count=25):
+    """A club whose whole calendar was defaulted to 00:00/1h by a scraper.
+
+    Mirrors the raw Stage 2 fingerprint (identical duration + literal midnight)
+    in the normalized interval form that the assessment actually consumes.
+    """
+    return [
+        _event(f"2026-09-{day:02d}", "00:00", "01:00", title=f"Jutul U{day % 8}")
+        for day in range(1, count + 1)
+    ]
+
+
+def test_fabricated_placeholder_intervals_fail_closed_despite_known_status(tmp_path):
+    """Regression guard for the Jutul StyledCalendar placeholder bug.
+
+    The stored per-club status can say ``known`` (evidence baked before the
+    raw-event fingerprint detector existed), but the assessment must
+    independently refuse to render the fabricated 00:00/1h intervals as a
+    credible booking proposal.
+    """
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    problem = _problem(_fabricated_placeholder_intervals(), status="known")
+
+    result = _assess(root, problem)
+
+    row = _tournament_row(result, "t1")
+    assert row["classification"] == "not_checkable"
+    assert row["calendar_source_checkable"] is False
+    source = result["sources"]["A"]
+    assert source["source_trust"] == "source_review_required"
+    assert source["source_review_required"] is True
+    assert source["fabricated_placeholder_signal"] is not None
+    # Every observation stays visible for debugging but is never actionable.
+    assert row["candidates"]
+    assert all(candidate["source_trusted"] is False for candidate in row["candidates"])
+    assert all(candidate["actionable"] is False for candidate in row["candidates"])
+
+
+def test_varied_intervals_keep_known_source_trusted(tmp_path):
+    """The new guard must not over-flag a genuinely varied calendar."""
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    intervals = [
+        _event(f"2026-09-{day:02d}", f"{10 + (day % 8):02d}:00", f"{12 + (day % 8):02d}:00")
+        for day in range(1, 26)
+    ]
+    result = _assess(root, _problem(intervals, status="known"))
+
+    source = result["sources"]["A"]
+    assert source["source_trust"] == "trusted"
+    assert source["fabricated_placeholder_signal"] is None

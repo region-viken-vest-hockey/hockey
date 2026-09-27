@@ -150,6 +150,24 @@ def duplicate_ratio(events: list[dict[str, Any]]) -> float:
     return 1.0 - (unique / len(keys))
 
 
+def _fabricated_fallback_message(duration_ratio: float, midnight_ratio: float) -> str | None:
+    """Return the shared fabricated-fallback warning when both signals are high.
+
+    One owner for the wording and thresholds of "a scraper defaulted every
+    event" keeps the raw-event detector (:func:`hardcoded_value_signal`) and
+    the normalized-interval detector (:func:`fabricated_interval_signal`)
+    from drifting apart.
+    """
+    if duration_ratio >= _MONOCULTURE_RATIO_THRESHOLD and midnight_ratio >= _MONOCULTURE_RATIO_THRESHOLD:
+        return (
+            f"{round(duration_ratio * 100)}% av hendelsene har identisk varighet og "
+            f"{round(midnight_ratio * 100)}% starter kl. 00:00 uten å være heldagshendelser "
+            "-- dette matcher mønsteret til en skraper som fyller inn en fallback-verdi i "
+            "stedet for å lese faktisk start/varighet fra kilden, ikke ekte bookinger."
+        )
+    return None
+
+
 def hardcoded_value_signal(events: list[dict[str, Any]], source_type: str) -> str | None:
     """Detect a scraper that fabricates start-time/duration instead of parsing it."""
     if source_type in _MONOCULTURE_EXEMPT_SOURCE_TYPES:
@@ -167,14 +185,53 @@ def hardcoded_value_signal(events: list[dict[str, Any]], source_type: str) -> st
     )
     midnight_ratio = midnight_count / len(events)
 
-    if duration_ratio >= _MONOCULTURE_RATIO_THRESHOLD and midnight_ratio >= _MONOCULTURE_RATIO_THRESHOLD:
-        return (
-            f"{round(duration_ratio * 100)}% av hendelsene har identisk varighet og "
-            f"{round(midnight_ratio * 100)}% starter kl. 00:00 uten å være heldagshendelser "
-            "-- dette matcher mønsteret til en skraper som fyller inn en fallback-verdi i "
-            "stedet for å lese faktisk start/varighet fra kilden, ikke ekte bookinger."
-        )
-    return None
+    return _fabricated_fallback_message(duration_ratio, midnight_ratio)
+
+
+def _interval_duration_hours(interval: Mapping[str, Any]) -> float | None:
+    """Return one normalized ``HH:MM`` busy interval's length in hours."""
+    try:
+        start_hour, start_minute = (int(part) for part in str(interval.get("start") or "").split(":", 1))
+        end_hour, end_minute = (int(part) for part in str(interval.get("end") or "").split(":", 1))
+    except ValueError:
+        return None
+    start_minutes = start_hour * 60 + start_minute
+    end_minutes = end_hour * 60 + end_minute
+    if end_minutes < start_minutes:
+        end_minutes += 24 * 60
+    duration = (end_minutes - start_minutes) / 60.0
+    return duration if duration > 0 else None
+
+
+def fabricated_interval_signal(intervals: Iterable[Mapping[str, Any]] | None) -> str | None:
+    """Detect fabricated fallback times in normalized ``club_busy_intervals``.
+
+    Booking-assessment/classification consume calendar evidence that has
+    already been normalized from raw Stage 2 events into ``start``/``end``
+    ``HH:MM`` intervals, so :func:`hardcoded_value_signal` cannot read it.
+    This applies the same fingerprint -- near-universal identical duration
+    AND a literal-midnight start -- to that normalized form.
+
+    It is deliberately an independent verifier check over the evidence a
+    consumer actually reads, not a re-read of the stored per-club status:
+    evidence baked before the raw-event detector existed (or otherwise
+    marked ``known``) still fails closed instead of being rendered as a real
+    booking. All-day blocks (>= 24h) are genuine occupancy, never the
+    fabricated short fallback, and never trigger the signal.
+    """
+    rows = [row for row in (intervals or []) if isinstance(row, Mapping)]
+    if len(rows) < _MONOCULTURE_MIN_EVENTS:
+        return None
+    durations = [duration for row in rows if (duration := _interval_duration_hours(row)) is not None]
+    if not durations:
+        return None
+    top_duration, top_count = collections.Counter(
+        round(duration, 3) for duration in durations
+    ).most_common(1)[0]
+    if top_duration >= 24.0:
+        return None
+    midnight_count = sum(1 for row in rows if str(row.get("start") or "") == "00:00")
+    return _fabricated_fallback_message(top_count / len(rows), midnight_count / len(rows))
 
 
 def non_schedulable_arena_signal(club_name: str | None, events: list[dict[str, Any]]) -> str | None:

@@ -26,6 +26,7 @@ from tournament_scheduler.calendar_bookings import (
     association_findings,
     booking_assessment,
     booking_status_report as _booking_status_report,
+    club_calendar_evidence_trusted,
     event_covers_tournament_interval,
     event_fingerprint,
     find_event,
@@ -953,7 +954,11 @@ def _classify_club_calendar_bookings(
     ice = resolved_problem.get("ice_time_minutes") or {}
     overrides = overrides_from_problem(resolved_problem)
     status = str((resolved_problem.get("club_calendar_status") or {}).get(club) or "")
-    trustworthy = status == "known"
+    # `club_calendar_status` alone is the generator's own verdict; a verifier
+    # must stay independent of it, so evidence whose normalized intervals still
+    # carry the fabricated fallback fingerprint is not trustworthy either.
+    trustworthy = club_calendar_evidence_trusted(resolved_problem, club)
+    fabricated_placeholder = not trustworthy and status == "known"
     events = [event for event in iter_events(resolved_problem) if str(event.get("club") or "") == club]
     confirmed_by_tournament: dict[str, Mapping[str, Any] | None] = {}
     for record in valid_active_associations(decisions, problem=resolved_problem, plan=plan):
@@ -978,7 +983,10 @@ def _classify_club_calendar_bookings(
         elif not trustworthy:
             booking_status = BOOKING_NOT_CHECKABLE
             matched_event = None
-            reason = f"calendar_status:{status or 'missing'}"
+            if fabricated_placeholder:
+                reason = "fabricated_calendar_placeholder_evidence"
+            else:
+                reason = f"calendar_status:{status or 'missing'}"
         else:
             overlaps = [event for event in events if _overlaps(tournament, event, ice, overrides)]
             if len(overlaps) == 1:
@@ -1039,6 +1047,7 @@ def _classify_club_calendar_bookings(
                 # making the row look fully green.
                 "source_status": status,
                 "source_integrity_concern": not trustworthy,
+                "source_fabricated_placeholder": fabricated_placeholder,
             }
         )
     return rows, records
