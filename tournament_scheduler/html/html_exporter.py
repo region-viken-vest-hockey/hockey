@@ -511,6 +511,12 @@ class HtmlExporter:
             if booking:
                 entry["bs"] = str(booking.get("status") or "unknown")
                 entry["ba"] = bool(booking.get("needs_attention"))
+                if booking.get("operational_state"):
+                    # One top-level operational booking state drives the single
+                    # season-plan badge; the detailed status below stays in the
+                    # expandable booking details for audit.
+                    entry["obs"] = str(booking.get("operational_state"))
+                    entry["obl"] = bool(booking.get("operational_lock"))
                 if booking.get("authority"):
                     entry["bauth"] = str(booking.get("authority"))
                 if booking.get("source_scope"):
