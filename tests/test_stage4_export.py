@@ -79,7 +79,7 @@ def _rendered_booking_badge_label(tournament_payload: dict) -> tuple[str, str]:
 
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is unavailable; cannot execute the shipped schedule template")
+        pytest.fail("node is required to execute the shipped schedule template")
     source = (
         Path(__file__).resolve().parents[1]
         / "tournament_scheduler"

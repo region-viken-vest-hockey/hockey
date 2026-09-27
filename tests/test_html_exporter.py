@@ -290,7 +290,7 @@ class TestBookingStatusRendering:
 
         node = shutil.which("node")
         if node is None:
-            pytest.skip("node is unavailable; cannot execute the shipped template fallback")
+            pytest.fail("node is required to execute the shipped template fallback")
 
         source = (
             Path(__file__).resolve().parents[1]
