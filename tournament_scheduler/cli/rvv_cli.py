@@ -1201,9 +1201,7 @@ def _canonical_verification_problem(
 
     if season:
         try:
-            from ..calendar_bookings import project_associations_into_problem
-            from ..canonical_banned_dates import project_banned_dates_into_problem
-            from ..canonical_holiday_exceptions import project_exceptions_into_problem
+            from ..season_maintenance import project_canonical_overlays
             from ..season_state import load_decisions, load_schedule
 
             schedule = load_schedule(season, root=root or "season")
@@ -1211,18 +1209,20 @@ def _canonical_verification_problem(
             problem = context.get("problem") if isinstance(context, dict) else None
             if isinstance(problem, dict) and problem:
                 # The stored problem is frozen at the season's original
-                # promotion; project the *current* canonical decisions
-                # (holiday exceptions, banned dates, calendar-booking
-                # associations) into it, mirroring
-                # ``canonical_season.shared._resolve_plan_problem`` and the
-                # ``season export`` gate, so approve/move/etc. never refuse a
-                # mutation over a since-superseded fact.
+                # promotion; project the *current* canonical decisions into it
+                # through the one shared overlay facade -- holiday exceptions,
+                # banned dates, calendar-booking associations, ice-time
+                # overrides and durable participation withdrawals -- mirroring
+                # ``season findings``/``season export``, so approve/move/etc.
+                # never refuse a mutation over a since-superseded fact or an
+                # already-committed withdrawal, and never re-derive an
+                # incomplete subset of the canonical overlays.
                 decisions = load_decisions(season, root=root or "season")
-                resolved = dict(problem)
-                resolved = project_exceptions_into_problem(resolved, decisions)
-                resolved = project_banned_dates_into_problem(resolved, decisions)
-                resolved = project_associations_into_problem(resolved, decisions, schedule.get("plan") or {}) or resolved
-                return resolved
+                return project_canonical_overlays(
+                    problem,
+                    decisions=decisions,
+                    plan=schedule.get("plan") or {},
+                )
         except Exception:
             pass
 
