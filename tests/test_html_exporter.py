@@ -431,14 +431,17 @@ class TestBookingStatusRendering:
         assert queue_item["o"] == "Holmen"
         assert queue_item["ac"] == "book_or_reconfirm"
         assert "src" not in queue_item
+        # Event titles are free-form and stay in the private report; the public
+        # queue carries only the observed interval.
         assert queue_item["alt"] == [
-            {"d": "2025-11-01", "s": "14:00", "e": "16:00", "t": "Miniputt U11"}
+            {"d": "2025-11-01", "s": "14:00", "e": "16:00"}
         ]
         assert queue_item["cw"] == "accepted_booking_assertion_or_valid_calendar_association"
-        # The public plan must never carry the private source evidence that
-        # sits next to the work item in the operator report.
+        # The public plan must never carry the private source evidence or the
+        # calendar event title that sit next to the work item in the report.
         assert "email:1" not in html
         assert "host rejected the slot" not in html
+        assert "Miniputt U11" not in html
 
     def test_legacy_payload_fallback_prefers_accepted_confirmation(self):
         """A legacy payload without ``obs`` must not let retained provisional
@@ -510,7 +513,7 @@ var item = {
     o: 'Holmen',
     ac: 'book_or_reconfirm',
     cw: 'accepted_booking_assertion_or_valid_calendar_association',
-    alt: [{d: '2025-11-01', s: '14:00', e: '16:00', t: 'Miniputt U11'}]
+    alt: [{d: '2025-11-01', s: '14:00', e: '16:00', t: 'Private club name'}]
   }
 };
 console.log(buildBookingDetails(item));
@@ -522,7 +525,9 @@ console.log(buildBookingDetails(item));
         assert "Ansvarlig:" in rendered
         assert "Holmen" in rendered
         assert "2025-11-01 14:00" in rendered
-        assert "Miniputt U11" in rendered
+        # A hand-built/legacy payload title must never be rendered publicly.
+        assert "Private club name" not in rendered
+        assert "Kalenderobservasjoner" in rendered
         assert "Neste handling:" in rendered
         assert "booking-set" in rendered
 
@@ -555,7 +560,7 @@ var item = {
     o: '<img src=x onerror=alert(3)>',
     ac: 'book_or_reconfirm',
     cw: 'accepted_booking_assertion_or_valid_calendar_association',
-    alt: [{d: '2025-11-01', s: '14:00', e: '16:00', t: '<b>evil</b>'}]
+    alt: [{d: '<b>2025-11-01</b>', s: '14:00', e: '16:00', t: '<b>evil</b>'}]
   }
 };
 console.log(buildBookingDetails(item));
@@ -567,7 +572,9 @@ console.log(buildBookingDetails(item));
         assert "<b>" not in rendered
         assert "&lt;img" in rendered
         assert "&lt;script" in rendered
-        assert "&lt;b&gt;evil&lt;/b&gt;" in rendered
+        # Interval values are escaped too; the omitted title never renders.
+        assert "&lt;b&gt;2025-11-01&lt;/b&gt;" in rendered
+        assert "evil" not in rendered
 
 
 class TestTeamFilter:

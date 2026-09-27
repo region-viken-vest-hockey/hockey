@@ -564,11 +564,14 @@ class HtmlExporter:
                 if isinstance(manual_work, dict):
                     # Public-safe manual-booking queue projection. The season
                     # plan is published to clubs, so only the categorical
-                    # reason/owner/action and the calendar alternatives are
-                    # carried here. The free-form source evidence (email
+                    # reason/owner/action and the observed calendar intervals
+                    # are carried here. The free-form source evidence (email
                     # references, operator notes/identity/timestamps and
-                    # assertion ids) stays in the private `season
-                    # booking-status` report and append-only decision history.
+                    # assertion ids) and the calendar event titles -- which can
+                    # contain private names or details -- stay in the private
+                    # `season booking-status` report and append-only decision
+                    # history. The intervals are observations that need
+                    # confirmation, never proven available/bookable slots.
                     alternatives = manual_work.get("proposed_alternatives")
                     entry["bq"] = {
                         "r": str(manual_work.get("reason_code") or ""),
@@ -580,7 +583,6 @@ class HtmlExporter:
                                 "d": str(item.get("date") or ""),
                                 "s": str(item.get("start") or ""),
                                 "e": str(item.get("end") or ""),
-                                "t": str(item.get("title") or ""),
                             }
                             for item in (alternatives or [])
                             if isinstance(item, dict)

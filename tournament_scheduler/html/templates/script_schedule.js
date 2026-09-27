@@ -294,12 +294,13 @@ function buildBookingDetails(t) {
     if (t.bq.r) rows.push('<strong>Manuell kø:</strong> ' + escapeHtml(manualQueueReasonLabel(t.bq.r)));
     if (t.bq.o) rows.push('<strong>Ansvarlig:</strong> ' + escapeHtml(t.bq.o));
     if (t.bq.alt && t.bq.alt.length) {
+      // Calendar observations, not confirmed/available slots. The public
+      // payload deliberately omits event titles (they can contain private
+      // details); the full titles remain in the private operator report.
       var altText = t.bq.alt.map(function (item) {
-        var label = item.d + ' ' + item.s + '–' + item.e;
-        if (item.t) label += ' · ' + item.t;
-        return escapeHtml(label);
+        return escapeHtml(item.d + ' ' + item.s + '–' + item.e);
       }).join('; ');
-      rows.push('<strong>Mulige alternative tider:</strong> ' + altText);
+      rows.push('<strong>Kalenderobservasjoner (må bekreftes — ikke ledige tider):</strong> ' + altText);
     }
     if (t.bq.ac) rows.push('<strong>Neste handling:</strong> ' + escapeHtml(manualQueueActionLabel(t.bq.ac)));
   }
