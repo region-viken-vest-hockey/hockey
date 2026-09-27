@@ -944,7 +944,7 @@
       }
     }
   ],
-  "canonical_state_revision": "c178dbab8f929fd5994b2c78b443aa97bc034dbfa11f9574846fb5113e44c96b",
+  "canonical_state_revision": "52ea8cda6ec53f888243ec1732ffaa6cbba8fdf42520baee2cdc1cd60ff133bc",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -3795,6 +3795,86 @@
         "label": "Jar Blå"
       },
       "tournament_id": "rvv-0011"
+    },
+    {
+      "created_at": "2026-09-27T12:49:25.655365+00:00",
+      "created_by": "niclasl",
+      "id": "change:92991534bce72bf7",
+      "kind": "must_not_participate",
+      "note": "Retire Ringerike JU8 team entirely: cancel the tournament they solely host, withdraw the team from all other JU8 fixtures (#483 item 2)",
+      "request_id": "issue-483:ringerike-ju8-retirement",
+      "source_event": "participant_removal",
+      "status": "active",
+      "team": {
+        "age_group": "JU8",
+        "club": "Ringerike",
+        "label": "Ringerike 1"
+      },
+      "tournament_id": "rvv-0020"
+    },
+    {
+      "created_at": "2026-09-27T12:49:25.655365+00:00",
+      "created_by": "niclasl",
+      "id": "change:c17a40c029c88a53",
+      "kind": "must_not_participate",
+      "note": "Retire Ringerike JU8 team entirely: cancel the tournament they solely host, withdraw the team from all other JU8 fixtures (#483 item 2)",
+      "request_id": "issue-483:ringerike-ju8-retirement",
+      "source_event": "participant_removal",
+      "status": "active",
+      "team": {
+        "age_group": "JU8",
+        "club": "Ringerike",
+        "label": "Ringerike 1"
+      },
+      "tournament_id": "rvv-0089"
+    },
+    {
+      "created_at": "2026-09-27T12:49:25.655365+00:00",
+      "created_by": "niclasl",
+      "id": "change:d7f999eae687d786",
+      "kind": "must_not_participate",
+      "note": "Retire Ringerike JU8 team entirely: cancel the tournament they solely host, withdraw the team from all other JU8 fixtures (#483 item 2)",
+      "request_id": "issue-483:ringerike-ju8-retirement",
+      "source_event": "participant_removal",
+      "status": "active",
+      "team": {
+        "age_group": "JU8",
+        "club": "Ringerike",
+        "label": "Ringerike 1"
+      },
+      "tournament_id": "rvv-0104"
+    },
+    {
+      "created_at": "2026-09-27T12:49:25.655365+00:00",
+      "created_by": "niclasl",
+      "id": "change:5fb29844010d24c6",
+      "kind": "must_not_participate",
+      "note": "Retire Ringerike JU8 team entirely: cancel the tournament they solely host, withdraw the team from all other JU8 fixtures (#483 item 2)",
+      "request_id": "issue-483:ringerike-ju8-retirement",
+      "source_event": "participant_removal",
+      "status": "active",
+      "team": {
+        "age_group": "JU8",
+        "club": "Ringerike",
+        "label": "Ringerike 1"
+      },
+      "tournament_id": "rvv-0139"
+    },
+    {
+      "created_at": "2026-09-27T12:49:25.655365+00:00",
+      "created_by": "niclasl",
+      "id": "change:eb30750ce99a5b59",
+      "kind": "must_not_participate",
+      "note": "Retire Ringerike JU8 team entirely: cancel the tournament they solely host, withdraw the team from all other JU8 fixtures (#483 item 2)",
+      "request_id": "issue-483:ringerike-ju8-retirement",
+      "source_event": "participant_removal",
+      "status": "active",
+      "team": {
+        "age_group": "JU8",
+        "club": "Ringerike",
+        "label": "Ringerike 1"
+      },
+      "tournament_id": "rvv-0179"
     }
   ],
   "created_at": "2026-09-18T19:44:06.643372+00:00",
@@ -5001,8 +5081,10 @@
       "approved_fingerprint": "0b2600ad25020564969720a8bb75f1f982e2cff2ccec87809c8b5ffedd2d7508",
       "note": "Restoring approval; Jar-confirmed booking unaffected — JU8 withdrawal on hold pending Ringerike host-reassignment decision for rvv-0054 (#483 item 2)",
       "participants_locked": false,
-      "placement_locked": true,
-      "status": "approved"
+      "placement_locked": false,
+      "stale_at": "2026-09-27T12:49:25.655365+00:00",
+      "stale_reason": "approval invalidated by schedule change",
+      "status": "stale_approval"
     },
     "rvv-0140": {
       "approved_at": null,
@@ -25729,6 +25811,200 @@
       "schedule_fingerprint": "c6ac98910937a33a6c9aee0ca96738b8a67590a144c90a55948f273e920b6a23",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-27T12:49:25.655365+00:00",
+      "details": {
+        "accepted_regressions": [
+          {
+            "age_group": "JU8",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker|JU8",
+            "reason": "Operator-directed retirement of Ringerike JU8 (#483 item 2); cancelling rvv-0054 (Ringerike-only JU8 host) unavoidably reduces JU8 participation count by one tournament for these four clubs",
+            "regression": {
+              "after": 5,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker"
+          },
+          {
+            "age_group": "JU8",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar|JU8",
+            "reason": "Operator-directed retirement of Ringerike JU8 (#483 item 2); cancelling rvv-0054 (Ringerike-only JU8 host) unavoidably reduces JU8 participation count by one tournament for these four clubs",
+            "regression": {
+              "after": 5,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar"
+          },
+          {
+            "age_group": "JU8",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Kittens|JU8",
+            "reason": "Operator-directed retirement of Ringerike JU8 (#483 item 2); cancelling rvv-0054 (Ringerike-only JU8 host) unavoidably reduces JU8 participation count by one tournament for these four clubs",
+            "regression": {
+              "after": 5,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Kittens"
+          },
+          {
+            "age_group": "JU8",
+            "club": "Skien",
+            "code": "participation_count_changed",
+            "consequence": "Skien|Skien|JU8",
+            "reason": "Operator-directed retirement of Ringerike JU8 (#483 item 2); cancelling rvv-0054 (Ringerike-only JU8 host) unavoidably reduces JU8 participation count by one tournament for these four clubs",
+            "regression": {
+              "after": 5,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Skien"
+          }
+        ],
+        "after_schedule_revision": "47517f8a44338005c88d1c5ea143f900d03f1500a7c5ab55da54aef5d0c39034",
+        "before_canonical_revision": "c178dbab8f929fd5994b2c78b443aa97bc034dbfa11f9574846fb5113e44c96b",
+        "before_schedule_revision": "c6ac98910937a33a6c9aee0ca96738b8a67590a144c90a55948f273e920b6a23",
+        "cancellations": [
+          {
+            "age_group": "JU8",
+            "original_date": "2026-11-21",
+            "reason": "Ringerike JU8 team retiring from the season; Ringerike was the sole JU8 host with no other JU8 squad available (#483 item 2)",
+            "tournament_id": "rvv-0054"
+          }
+        ],
+        "changed_tournament_ids": [
+          "rvv-0020",
+          "rvv-0054",
+          "rvv-0089",
+          "rvv-0104",
+          "rvv-0139",
+          "rvv-0179"
+        ],
+        "declared_scope": [
+          "rvv-0020",
+          "rvv-0054",
+          "rvv-0089",
+          "rvv-0104",
+          "rvv-0139",
+          "rvv-0179"
+        ],
+        "moves": [],
+        "operational_acceptable": true,
+        "operations": [
+          {
+            "op": "cancel",
+            "reason": "Ringerike JU8 team retiring from the season; Ringerike was the sole JU8 host with no other JU8 squad available (#483 item 2)",
+            "tournament_id": "rvv-0054"
+          },
+          {
+            "op": "remove_participant",
+            "reconcile_withdrawal": true,
+            "remove_team": "Ringerike 1",
+            "tournament_id": "rvv-0020"
+          },
+          {
+            "op": "remove_participant",
+            "reconcile_withdrawal": true,
+            "remove_team": "Ringerike 1",
+            "tournament_id": "rvv-0089"
+          },
+          {
+            "op": "remove_participant",
+            "reconcile_withdrawal": true,
+            "remove_team": "Ringerike 1",
+            "tournament_id": "rvv-0104"
+          },
+          {
+            "op": "remove_participant",
+            "reconcile_withdrawal": true,
+            "remove_team": "Ringerike 1",
+            "tournament_id": "rvv-0139"
+          },
+          {
+            "op": "remove_participant",
+            "reconcile_withdrawal": true,
+            "remove_team": "Ringerike 1",
+            "tournament_id": "rvv-0179"
+          }
+        ],
+        "protections_added": [
+          "change:92991534bce72bf7",
+          "change:c17a40c029c88a53",
+          "change:d7f999eae687d786",
+          "change:5fb29844010d24c6",
+          "change:eb30750ce99a5b59"
+        ],
+        "removals": [
+          {
+            "age_group": "JU8",
+            "reconcile_withdrawal": true,
+            "removed_team": {
+              "age_group": "JU8",
+              "club": "Ringerike",
+              "label": "Ringerike 1"
+            },
+            "tournament_id": "rvv-0020"
+          },
+          {
+            "age_group": "JU8",
+            "reconcile_withdrawal": true,
+            "removed_team": {
+              "age_group": "JU8",
+              "club": "Ringerike",
+              "label": "Ringerike 1"
+            },
+            "tournament_id": "rvv-0089"
+          },
+          {
+            "age_group": "JU8",
+            "reconcile_withdrawal": true,
+            "removed_team": {
+              "age_group": "JU8",
+              "club": "Ringerike",
+              "label": "Ringerike 1"
+            },
+            "tournament_id": "rvv-0104"
+          },
+          {
+            "age_group": "JU8",
+            "reconcile_withdrawal": true,
+            "removed_team": {
+              "age_group": "JU8",
+              "club": "Ringerike",
+              "label": "Ringerike 1"
+            },
+            "tournament_id": "rvv-0139"
+          },
+          {
+            "age_group": "JU8",
+            "reconcile_withdrawal": true,
+            "removed_team": {
+              "age_group": "JU8",
+              "club": "Ringerike",
+              "label": "Ringerike 1"
+            },
+            "tournament_id": "rvv-0179"
+          }
+        ],
+        "request_id": "issue-483:ringerike-ju8-retirement",
+        "swaps": [],
+        "verification_ok": true
+      },
+      "event": "batch_maintenance",
+      "note": "Retire Ringerike JU8 team entirely: cancel the tournament they solely host, withdraw the team from all other JU8 fixtures (#483 item 2)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "47517f8a44338005c88d1c5ea143f900d03f1500a7c5ab55da54aef5d0c39034",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -26374,6 +26650,34 @@
       "tournament_id": "rvv-0183"
     }
   ],
+  "participation_withdrawals": [
+    {
+      "age_group": "JU8",
+      "created_at": "2026-09-27T12:49:25.655365+00:00",
+      "created_by": "niclasl",
+      "effective_from": "2026-11-07",
+      "id": "withdrawal:b23fce0d2cda5cd7",
+      "kind": "participation_withdrawal",
+      "note": "Retire Ringerike JU8 team entirely: cancel the tournament they solely host, withdraw the team from all other JU8 fixtures (#483 item 2)",
+      "request_id": "issue-483:ringerike-ju8-retirement",
+      "scope": "age_group",
+      "source_event": "participant_removal",
+      "source_revision": "c178dbab8f929fd5994b2c78b443aa97bc034dbfa11f9574846fb5113e44c96b",
+      "status": "active",
+      "team": {
+        "age_group": "JU8",
+        "club": "Ringerike",
+        "label": "Ringerike 1"
+      },
+      "tournament_ids": [
+        "rvv-0020",
+        "rvv-0089",
+        "rvv-0104",
+        "rvv-0139",
+        "rvv-0179"
+      ]
+    }
+  ],
   "request_constraints": [
     {
       "created_at": "2026-09-21T06:53:22.608646+00:00",
@@ -26396,7 +26700,7 @@
       "type": "team_unavailable"
     }
   ],
-  "schedule_fingerprint": "c6ac98910937a33a6c9aee0ca96738b8a67590a144c90a55948f273e920b6a23",
+  "schedule_fingerprint": "47517f8a44338005c88d1c5ea143f900d03f1500a7c5ab55da54aef5d0c39034",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -34012,5 +34316,5 @@
       "tournament_id": "rvv-0168"
     }
   ],
-  "updated_at": "2026-09-27T11:39:52.110286+00:00"
+  "updated_at": "2026-09-27T12:49:25.655365+00:00"
 }
