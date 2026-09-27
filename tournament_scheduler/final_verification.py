@@ -18,6 +18,9 @@ from tournament_scheduler.guest_slots import capacity_places, has_open_guest_slo
 from tournament_scheduler.limited_rounds import minimum_same_club_games_for_limited_rounds
 from tournament_scheduler.models import Team
 from tournament_scheduler.participation_targets import INTRA_CLUB_DISTRIBUTION
+from tournament_scheduler.participation_withdrawals import (
+    withdrawn_team_count_for_tournament,
+)
 from tournament_scheduler.planning_contract import verify_candidate as _verify_candidate
 from tournament_scheduler.rule_catalog import annotate_violations
 
@@ -73,6 +76,19 @@ def _check_games(
             1
             for team in problem.get("teams", []) or []
             if isinstance(team, dict) and str(team.get("age_group") or "") == age_group
+        )
+        # A recorded season/age-group withdrawal durably reduces the *eligible*
+        # shape pool without rewriting the registered roster. The generator and
+        # `planning_contract.verify_candidate` already derive the effective round
+        # count from that reduced pool; the final round-count check must use the
+        # same eligible-pool projection or a legitimate withdrawal is reported
+        # as a `configured_round_count_mismatch` at export/audit time.
+        registered_count = max(
+            0,
+            registered_count
+            - withdrawn_team_count_for_tournament(
+                problem, tid, age_group, tournament.get("date")
+            ),
         )
         shape = compute_effective_tournament_shape(
             age_group,

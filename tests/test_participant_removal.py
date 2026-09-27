@@ -19,11 +19,18 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonStore,
     SeasonStateError,
 )
+from tournament_scheduler.final_verification import verify_final_candidate
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.season_maintenance import (
+    load_context,
+    project_canonical_overlays,
+    season_audit,
+)
 from tournament_scheduler.participation_withdrawals import (
     WITHDRAWN_INELIGIBLE_FIELD,
     build_withdrawal_records,
     project_into_problem,
+    withdrawn_team_count_for_tournament,
     withdrawn_team_identities_for_tournament,
 )
 from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
@@ -755,6 +762,30 @@ def test_durable_withdrawal_projection_blocks_reintroduction_and_registration_en
     assert projected[WITHDRAWN_INELIGIBLE_FIELD] == []
 
 
+def test_withdrawal_projection_is_scoped_to_its_age_group() -> None:
+    """A withdrawal never reduces the shape pool of another age group."""
+
+    problem = _problem()
+    records = build_withdrawal_records(
+        team={"club": "Echo", "label": "Echo 1", "age_group": "U10"},
+        tournament_ids=["u10-a"],
+        request_id="withdraw-echo",
+        actor="tester",
+        note="",
+        created_at="2026-09-22T00:00:00+00:00",
+        source_revision="rev-1",
+        effective_from="2026-10-03",
+    )
+    projected = project_into_problem(problem, records=records)
+
+    assert withdrawn_team_count_for_tournament(projected, "u10-a", "U10", "2026-10-03") == 1
+    assert withdrawn_team_count_for_tournament(projected, "u10-b", "U10", "2026-10-10") == 1
+    assert withdrawn_team_count_for_tournament(projected, "ju8-a", "JU8", "2026-10-03") == 0
+    # A tournament before the withdrawal's effective date is historical and
+    # keeps the full eligible pool.
+    assert withdrawn_team_count_for_tournament(projected, "u10-early", "U10", "2026-09-01") == 0
+
+
 def test_registration_reconciliation_of_final_team_clears_obsolete_withdrawals() -> None:
     """P2: a present-but-empty authoritative pool is not the same as no pool."""
 
@@ -989,6 +1020,41 @@ def test_ringerike_ju8_withdrawal_regression_case(tmp_path: Path) -> None:
     )
     assert replay["ok"] is True
     assert replay["applied_mutation_count"] >= 1
+
+    # The committed withdrawal must remain valid when export/audit re-load the
+    # promoted problem: the durable eligible-pool reduction has to reach the
+    # shape and round-count verifiers instead of only the apply-time candidate.
+    # The export gate loads the frozen promoted problem and projects the live
+    # canonical overlays onto it through the same shared facade.
+    frozen_problem = dict(
+        load_schedule("2026-2027", root=root)["verification_context"]["problem"]
+    )
+    export_problem = project_canonical_overlays(
+        frozen_problem, decisions=decisions, plan=after_plan
+    )
+    export_result = verify_candidate(dict(after_plan), dict(export_problem))
+    assert export_result["ok"] is True, export_result["violations"]
+
+    # Projecting the same live decisions again is idempotent: no duplicated
+    # withdrawal entries and no change to the already-projected problem.
+    reprojected = project_canonical_overlays(
+        export_problem, decisions=decisions, plan=after_plan
+    )
+    assert reprojected == export_problem
+    assert len(reprojected["withdrawn_tournament_teams"]) == 1
+
+    _, _, audit_plan, audit_problem = load_context("2026-2027", root=root)
+    audit_verification = verify_final_candidate(dict(audit_plan), dict(audit_problem))
+    audit_codes = [violation["code"] for violation in audit_verification["violations"]]
+    assert "bye_team_not_allowed" not in audit_codes
+    assert "configured_round_count_mismatch" not in audit_codes
+    assert audit_verification["ok"] is True
+
+    audit_report = season_audit("2026-2027", root=root)["audit"]
+    assert "tournament_roster_shape" not in audit_report["violation_checks"]
+    assert "tournament_round_count" not in audit_report["violation_checks"]
+    assert audit_report["hard_verification_ok"] is True
+    assert audit_report["blocking_finding_count"] == 0
 
     # Refusal is atomic: a removal that would leave an avoidable underfill
     # writes nothing.
