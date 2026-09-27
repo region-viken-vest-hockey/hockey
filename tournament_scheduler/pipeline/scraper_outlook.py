@@ -8,10 +8,12 @@ parsing, :func:`_parse_date_param_calendar` for date-parameter pages).
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import date, datetime
+from typing import Any
 
 from ..models import CalendarEvent
 from ..utils.calendar_cache import CalendarCache
+from .source_integrity import INTEGRITY_PARTIAL, with_coverage
 
 
 def _run_outlook_scraper(
@@ -41,6 +43,8 @@ def _run_outlook_scraper(
     events: list[CalendarEvent] = []
     raw_html: str = ""
     norwegian_months = OutlookCalendarScraper(cache).norwegian_months
+    inspected_dates: list[date] = []
+    coverage_exceptions: list[str] = []
 
     start_month = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     end_month = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -69,8 +73,15 @@ def _run_outlook_scraper(
                     iframe.wait_for_timeout(1000)
                     page_content = iframe.content()
                     raw_html += page_content
-
+                    expected_month = _month_start_after(start_month.date(), month_idx)
                     month_events = _parse_outlook_calendar(page_content, norwegian_months)
+                    inspected_dates.extend(
+                        day
+                        for event in month_events
+                        if (day := _calendar_event_date(event)) is not None
+                        and day.year == expected_month.year
+                        and day.month == expected_month.month
+                    )
                     events.extend(month_events)
 
                     if month_idx < months_to_scrape - 1:
@@ -78,11 +89,27 @@ def _run_outlook_scraper(
                             next_btn = iframe.query_selector(
                                 'button[aria-label*="next month"]'
                             )
+                            before_content = page_content
                             if next_btn:
                                 next_btn.click()
                                 iframe.wait_for_timeout(1500)
-                        except Exception:
-                            pass
+                                try:
+                                    after_content = iframe.content()
+                                except Exception:
+                                    after_content = ""
+                                if after_content and after_content == before_content:
+                                    coverage_exceptions.append(
+                                        "Outlook next-month navigation did not change the rendered calendar."
+                                    )
+                                    break
+                            else:
+                                coverage_exceptions.append(
+                                    f"Outlook next-month button missing before requested month {month_idx + 2} of {months_to_scrape}."
+                                )
+                                break
+                        except Exception as exc:
+                            coverage_exceptions.append(f"Outlook month navigation stopped early: {exc}")
+                            break
             else:
                 # ---- Date-parameter approach (e.g. ?date=YYYY-MM-DD) ----
                 parsed = urlparse(url)
@@ -102,13 +129,18 @@ def _run_outlook_scraper(
                         page.wait_for_timeout(3000)
                         page_content = page.content()
                         raw_html += page_content
-
                         month_events = _parse_date_param_calendar(
                             page_content, current_month, norwegian_months
                         )
+                        inspected_dates.extend(
+                            day
+                            for event in month_events
+                            if (day := _calendar_event_date(event)) is not None
+                        )
+
                         events.extend(month_events)
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        coverage_exceptions.append(f"Outlook date-parameter month fetch failed for {date_str}: {exc}")
 
                     # Next month
                     if current_month.month == 12:
@@ -117,8 +149,8 @@ def _run_outlook_scraper(
                         current_month = current_month.replace(month=current_month.month + 1)
 
             browser.close()
-    except Exception:
-        pass
+    except Exception as exc:
+        coverage_exceptions.append(f"Outlook scrape raised: {exc}")
 
     # Deduplicate
     seen: set[tuple[str, str]] = set()
@@ -129,7 +161,111 @@ def _run_outlook_scraper(
             seen.add(key)
             unique.append(ev)
 
-    return unique, raw_html
+    return with_coverage(
+        unique,
+        **_outlook_coverage_record(inspected_dates, start_date, end_date, coverage_exceptions),
+    ), raw_html
+
+
+def _month_start_after(start_month: date, offset: int) -> date:
+    month_index = (start_month.month - 1) + offset
+    return date(start_month.year + month_index // 12, (month_index % 12) + 1, 1)
+
+
+def _calendar_event_date(event: CalendarEvent) -> date | None:
+    if event.datetime is not None:
+        return event.datetime.date()
+    text = str(event.date or "").strip()
+    for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _missing_date_ranges(
+    inspected: set[date],
+    start: date,
+    end: date,
+) -> list[tuple[date, date]]:
+    missing: list[tuple[date, date]] = []
+    run_start: date | None = None
+    current = start
+    from datetime import timedelta
+
+    while current <= end:
+        if current not in inspected:
+            if run_start is None:
+                run_start = current
+        elif run_start is not None:
+            missing.append((run_start, current - timedelta(days=1)))
+            run_start = None
+        current += timedelta(days=1)
+    if run_start is not None:
+        missing.append((run_start, end))
+    return missing
+
+
+def _outlook_coverage_record(
+    inspected_dates: list[date],
+    start_date: datetime,
+    end_date: datetime,
+    exceptions: list[str],
+) -> dict[str, Any]:
+    requested_start = start_date.date()
+    requested_end = end_date.date()
+    inspected = sorted(set(inspected_dates))
+    event_observed_start = min(inspected).isoformat() if inspected else None
+    event_observed_end = max(inspected).isoformat() if inspected else None
+    base: dict[str, Any] = {
+        "requested_start": requested_start.isoformat(),
+        "requested_end": requested_end.isoformat(),
+        "observed_start": None,
+        "observed_end": None,
+        "event_observed_start": event_observed_start,
+        "event_observed_end": event_observed_end,
+        "event_observed_day_count": len(inspected),
+        "requested_day_count": (requested_end - requested_start).days + 1,
+    }
+    if exceptions:
+        return {
+            **base,
+            "status": INTEGRITY_PARTIAL,
+            "navigation_complete": False,
+            "exceptions": list(exceptions),
+        }
+    if not inspected:
+        return {
+            **base,
+            "status": INTEGRITY_PARTIAL,
+            "navigation_complete": False,
+            "exceptions": ["Outlook-kalenderen viste ingen datoer som kunne bekrefte dekning."],
+        }
+    missing = _missing_date_ranges(set(inspected), requested_start, requested_end)
+    if missing:
+        summary = ", ".join(
+            start.isoformat() if start == end else f"{start.isoformat()}..{end.isoformat()}"
+            for start, end in missing[:5]
+        )
+        more = "" if len(missing) <= 5 else f" (+{len(missing) - 5} flere)"
+        missing_days = sum((end - start).days + 1 for start, end in missing)
+        return {
+            **base,
+            "status": INTEGRITY_PARTIAL,
+            "navigation_complete": False,
+            "exceptions": [
+                f"Outlook event-data hadde ingen hentede hendelser for {missing_days} dato(er): {summary}{more}; kalenderdekningen er ikke uavhengig bekreftet."
+            ],
+        }
+    return {
+        **base,
+        "status": INTEGRITY_PARTIAL,
+        "navigation_complete": False,
+        "exceptions": [
+            "Outlook browser-skrapingen har ikke uavhengig bevis for at event-data var ferdig lastet for hele perioden."
+        ],
+    }
 
 
 def _parse_date_param_calendar(

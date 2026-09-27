@@ -143,6 +143,10 @@ class ScrapedDataCache:
                 "events": events,
                 "config_fingerprint": _compute_config_fingerprint(url, source_kind, location_filter),
             }
+            if isinstance(source_result.get("coverage"), dict):
+                entry["coverage"] = source_result["coverage"]
+            if isinstance(source_result.get("integrity"), dict):
+                entry["integrity"] = source_result["integrity"]
 
             sources_data[name] = entry
 

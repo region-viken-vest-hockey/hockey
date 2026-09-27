@@ -472,9 +472,26 @@ def test_source_integrity_and_coverage_are_reported_per_club(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
     problem = _problem([_event("2026-09-12", "10:00", "12:00")])
     problem["club_source_integrity"] = {"A": "suspicious"}
+    problem["club_source_integrity_details"] = {
+        "A": {
+            "fingerprint": "fp1",
+            "requested_start": "2026-09-01",
+            "requested_end": "2027-03-28",
+            "observed_start": "2026-09-01",
+            "observed_end": "2027-03-06",
+            "event_observed_start": "2026-10-01",
+            "event_observed_end": "2027-03-06",
+            "event_count": 171,
+        }
+    }
     problem["club_coverage_proven"] = {"A": False}
 
     source = _assess(root, problem)["sources"]["A"]
 
     assert source["source_integrity"] == "suspicious"
+    assert source["source_integrity_fingerprint"] == "fp1"
+    assert source["requested_window"] == {"start": "2026-09-01", "end": "2027-03-28"}
+    assert source["observed_window"] == {"start": "2026-09-01", "end": "2027-03-06"}
+    assert source["event_observed_window"] == {"start": "2026-10-01", "end": "2027-03-06"}
+    assert source["source_event_count"] == 171
     assert source["coverage_proven"] is False

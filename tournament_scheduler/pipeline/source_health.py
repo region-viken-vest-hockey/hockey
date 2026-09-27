@@ -225,6 +225,17 @@ def _source_health_result(
             requires_human = True
             evidence.append(f"integrity_status={integrity.get('status')}")
             evidence.append(f"coverage_proven={bool(integrity.get('coverage_proven'))}")
+            evidence.append(
+                f"requested_window={integrity.get('requested_start')}..{integrity.get('requested_end')}"
+            )
+            evidence.append(
+                f"observed_window={integrity.get('observed_start')}..{integrity.get('observed_end')}"
+            )
+            evidence.append(
+                f"event_observed_window={integrity.get('event_observed_start')}..{integrity.get('event_observed_end')}"
+            )
+            if integrity.get("fingerprint"):
+                evidence.append(f"integrity_fingerprint={integrity.get('fingerprint')}")
             for reason in integrity.get("reasons") or []:
                 if reason not in problems:
                     problems.append(str(reason))

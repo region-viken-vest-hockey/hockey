@@ -250,6 +250,7 @@ def _calendar_payload(problem: dict) -> dict:
             "club_busy_intervals",
             "club_calendar_status",
             "club_source_integrity",
+            "club_source_integrity_details",
             "club_coverage_proven",
             "unclassified_calendar_events",
         )

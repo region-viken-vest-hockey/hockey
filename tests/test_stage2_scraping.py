@@ -1688,6 +1688,94 @@ class TestSourceIntegrityWindowAndAuthority:
         assert result["club_calendar_status"]["Jar"] == "source_review_required"
         assert result["club_coverage_proven"]["Jar"] is False
 
+    def test_truncated_outlook_coverage_downgrades_and_preserves_bounds(self, tmp_path):
+        from tournament_scheduler.pipeline.source_integrity import (
+            INTEGRITY_COMPLETE,
+            INTEGRITY_PARTIAL,
+            with_coverage,
+        )
+
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources(
+            [{"name": "Kongsberg", "type": SOURCE_OUTLOOK, "url": "https://example.com/kongsberg"}]
+        )
+        annotated = with_coverage(
+            [_make_event(name="Kongsberg live booking")],
+            status=INTEGRITY_COMPLETE,
+            navigation_complete=True,
+            requested_start="2027-03-01",
+            requested_end="2027-03-28",
+            observed_start="2027-03-01",
+            observed_end="2027-03-06",
+            exceptions=[],
+        )
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_outlook_scraper",
+            return_value=(annotated, ""),
+        ):
+            result = run(cfg, state, datetime(2027, 3, 1), datetime(2027, 3, 28))
+
+        integrity = result["sources"][0]["integrity"]
+        assert integrity["status"] == INTEGRITY_PARTIAL
+        assert integrity["requested_end"] == "2027-03-28"
+        assert integrity["observed_end"] == "2027-03-06"
+        assert integrity["fingerprint"]
+        assert result["club_calendar_status"]["Kongsberg"] == "source_review_required"
+        assert result["club_coverage_proven"]["Kongsberg"] is False
+
+    def test_cached_browser_source_preserves_coverage_evidence(self, tmp_path):
+        from tournament_scheduler.pipeline.source_integrity import (
+            INTEGRITY_COMPLETE,
+            with_coverage,
+        )
+
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources(
+            [{"name": "Kongsberg", "type": SOURCE_OUTLOOK, "url": "https://example.com/kongsberg"}]
+        )
+        events = [
+            _make_event(name="Kongsberg booking 1"),
+            _make_event(name="Kongsberg booking 2"),
+            _make_event(name="Kongsberg booking 3"),
+        ]
+        annotated = with_coverage(
+            events,
+            status=INTEGRITY_COMPLETE,
+            navigation_complete=True,
+            requested_start="2025-09-01",
+            requested_end="2025-12-01",
+            observed_start="2025-09-01",
+            observed_end="2025-12-31",
+            exceptions=[],
+        )
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_outlook_scraper",
+            return_value=(annotated, ""),
+        ) as scraper:
+            first = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1))
+        scraper.assert_called_once()
+        first_integrity = first["sources"][0]["integrity"]
+        assert first_integrity["status"] == INTEGRITY_COMPLETE
+        assert first_integrity["coverage_proven"] is True
+        assert first["club_calendar_status"]["Kongsberg"] == "known"
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_outlook_scraper",
+            side_effect=AssertionError("cache hit should not scrape"),
+        ):
+            second = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1))
+
+        second_source = second["sources"][0]
+        assert second_source["from_cache"] is True
+        assert second_source["coverage"] == first["sources"][0]["coverage"]
+        assert second_source["integrity"]["status"] == INTEGRITY_COMPLETE
+        assert second_source["integrity"]["coverage_proven"] is True
+        assert second_source["integrity"]["observed_end"] == "2025-12-31"
+        assert second["club_calendar_status"]["Kongsberg"] == "known"
+        assert second["club_coverage_proven"]["Kongsberg"] is True
+
     def test_operator_confirmed_authority_does_not_imply_coverage(self, tmp_path):
         from tournament_scheduler.pipeline.source_integrity import (
             INTEGRITY_PARTIAL,
