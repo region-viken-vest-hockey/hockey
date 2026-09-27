@@ -366,6 +366,75 @@ class TestBookingStatusRendering:
         assert embedded["sandefjord-pending"]["bs"] == "ambiguous"
         assert embedded["sandefjord-pending"]["obl"] is False
 
+    def test_schedule_embeds_manual_queue_work_item(self, tmp_path):
+        plan_dict = {
+            "start_date": "2025-10-01",
+            "end_date": "2025-12-01",
+            "tournaments": [
+                {
+                    "id": "t-reject",
+                    "date": "2025-11-01",
+                    "arena": "Holmen ishall",
+                    "age_group": "U11",
+                    "host_club": "Holmen",
+                    "teams": [
+                        {"club": "Holmen", "label": "H1", "age_group": "U11"},
+                        {"club": "Jar", "label": "J1", "age_group": "U11"},
+                    ],
+                    "games": [{"home": "H1", "away": "J1", "parallel_slot": 0, "round_number": 1}],
+                    "start_time": "13:30",
+                }
+            ],
+        }
+        out_path = tmp_path / "season_plan.html"
+        HtmlExporter().export(
+            season_plan_from_dict(plan_dict),
+            out_path,
+            age_groups=["U11"],
+            pipeline_meta={
+                "booking_status": {
+                    "tournaments": [
+                        {
+                            "tournament_id": "t-reject",
+                            "status": "manually_not_booked",
+                            "operational_state": "action_required",
+                            "needs_attention": True,
+                            "manual_work": {
+                                "reason_code": "explicit_rejection",
+                                "owner": "Holmen",
+                                "action": "book_or_reconfirm",
+                                "source": {"reference": "email:1", "note": "host rejected the slot"},
+                                "proposed_alternatives": [
+                                    {
+                                        "date": "2025-11-01",
+                                        "start": "14:00",
+                                        "end": "16:00",
+                                        "title": "Miniputt U11",
+                                        "relation": "same_date_time_shift",
+                                        "event_fingerprint": "fp-1",
+                                        "covers_current_interval": False,
+                                    }
+                                ],
+                                "resolution": {
+                                    "clears_when": "accepted_booking_assertion_or_valid_calendar_association",
+                                },
+                            },
+                        }
+                    ],
+                }
+            },
+        )
+        embedded = {row["id"]: row for row in _embedded_tournaments(out_path.read_text(encoding="utf-8"))}
+        queue_item = embedded["t-reject"]["bq"]
+        assert queue_item["r"] == "explicit_rejection"
+        assert queue_item["o"] == "Holmen"
+        assert queue_item["ac"] == "book_or_reconfirm"
+        assert queue_item["src"]["reference"] == "email:1"
+        assert queue_item["alt"] == [
+            {"d": "2025-11-01", "s": "14:00", "e": "16:00", "t": "Miniputt U11"}
+        ]
+        assert queue_item["cw"] == "accepted_booking_assertion_or_valid_calendar_association"
+
     def test_legacy_payload_fallback_prefers_accepted_confirmation(self):
         """A legacy payload without ``obs`` must not let retained provisional
         metadata demote an accepted confirmation.
@@ -409,6 +478,51 @@ class TestBookingStatusRendering:
         completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
         for name, got, expected in json.loads(completed.stdout):
             assert got == expected, f"{name}: expected {expected!r}, got {got!r}"
+
+    def test_booking_details_render_manual_queue_work_item(self):
+        """The shipped template renders the manual-queue reason, source and action."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.fail("node is required to execute the shipped template fallback")
+
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "tournament_scheduler"
+            / "html"
+            / "templates"
+            / "script_schedule.js"
+        ).read_text(encoding="utf-8")
+        start = source.index("function operationalStateOf")
+        end = source.index("\nfunction render()", start)
+        script = source[start:end] + """
+var item = {
+  obs: 'action_required',
+  bs: 'manually_not_booked',
+  ba: true,
+  bq: {
+    r: 'explicit_rejection',
+    o: 'Holmen',
+    ac: 'book_or_reconfirm',
+    cw: 'accepted_booking_assertion_or_valid_calendar_association',
+    src: {reference: 'email:1', note: 'host rejected the slot', asserted_by: 'booker'},
+    alt: [{d: '2025-11-01', s: '14:00', e: '16:00', t: 'Miniputt U11'}]
+  }
+};
+console.log(buildBookingDetails(item));
+"""
+        completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+        rendered = completed.stdout
+        assert "Manuell kø:" in rendered
+        assert "avvist av vert" in rendered
+        assert "email:1" in rendered
+        assert "host rejected the slot" in rendered
+        assert "Ansvarlig:" in rendered
+        assert "Holmen" in rendered
+        assert "2025-11-01 14:00" in rendered
+        assert "Miniputt U11" in rendered
+        assert "Neste handling:" in rendered
+        assert "booking-set" in rendered
 
 
 class TestTeamFilter:

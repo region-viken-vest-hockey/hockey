@@ -560,6 +560,32 @@ class HtmlExporter:
                     stated = evidence.get("stated_interval") if isinstance(evidence, dict) else None
                     if isinstance(stated, dict) and stated.get("start") and stated.get("end"):
                         entry["bsi"] = {"s": str(stated["start"]), "e": str(stated["end"])}
+                manual_work = booking.get("manual_work")
+                if isinstance(manual_work, dict):
+                    # The structured manual-booking queue item: why the slot
+                    # needs action, who owns it, the traceable source evidence
+                    # and the actionable calendar alternatives. Kept compact
+                    # because the full audit shape stays in the canonical
+                    # report; the season plan renders it in Bookingdetaljer.
+                    source = manual_work.get("source")
+                    alternatives = manual_work.get("proposed_alternatives")
+                    entry["bq"] = {
+                        "r": str(manual_work.get("reason_code") or ""),
+                        "o": str(manual_work.get("owner") or ""),
+                        "ac": str(manual_work.get("action") or ""),
+                        "cw": str((manual_work.get("resolution") or {}).get("clears_when") or ""),
+                        "src": source if isinstance(source, dict) else {},
+                        "alt": [
+                            {
+                                "d": str(item.get("date") or ""),
+                                "s": str(item.get("start") or ""),
+                                "e": str(item.get("end") or ""),
+                                "t": str(item.get("title") or ""),
+                            }
+                            for item in (alternatives or [])
+                            if isinstance(item, dict)
+                        ],
+                    }
             data.append(entry)
         return json.dumps(data, ensure_ascii=False)
 

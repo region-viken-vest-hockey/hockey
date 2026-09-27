@@ -225,6 +225,23 @@ function bookingStatusLabel(status) {
   return labels[status] || status;
 }
 
+function manualQueueReasonLabel(code) {
+  var labels = {
+    explicit_rejection: 'avvist av vert — må bookes på nytt',
+    reconfirmation_required: 'bekreftelsen er utdatert etter endret tid — må bekreftes på nytt',
+    manual_placement: 'manuell plassering — istid må bekreftes/bookes',
+    host_confirmation_required: 'vertsstyrt tidsrom — må bekreftes av vertsklubben'
+  };
+  return labels[code] || code;
+}
+
+function manualQueueActionLabel(action) {
+  var labels = {
+    book_or_reconfirm: 'registrer en bekreftet booking (booking-set) eller en gyldig kalenderkobling'
+  };
+  return labels[action] || action;
+}
+
 function buildBookingDetails(t) {
   var state = operationalStateOf(t);
   var rows = [];
@@ -260,6 +277,29 @@ function buildBookingDetails(t) {
     var text = t.bfu.map(function (reason) { return followUpLabels[reason] || reason; }).join('; ');
     if (t.bsi) text += ' (kilden oppgir ' + t.bsi.s + '–' + t.bsi.e + ', kanonisk tid er uendret)';
     rows.push('<strong>Må følges opp:</strong> ' + text);
+  }
+  if (t.bq) {
+    if (t.bq.r) rows.push('<strong>Manuell kø:</strong> ' + manualQueueReasonLabel(t.bq.r));
+    if (t.bq.o) rows.push('<strong>Ansvarlig:</strong> ' + t.bq.o);
+    var queueSource = t.bq.src || {};
+    var sourceParts = [];
+    if (queueSource.reference) sourceParts.push('kilde: ' + queueSource.reference);
+    if (queueSource.note) sourceParts.push('begrunnelse: ' + queueSource.note);
+    if (queueSource.asserted_by) sourceParts.push('registrert av: ' + queueSource.asserted_by);
+    if (queueSource.asserted_at) sourceParts.push('tid: ' + queueSource.asserted_at);
+    if (queueSource.reason && !queueSource.note) sourceParts.push('årsak: ' + queueSource.reason);
+    if (queueSource.checked_by) sourceParts.push('kontrollert av: ' + queueSource.checked_by);
+    if (queueSource.checked_at) sourceParts.push('kontrollert: ' + queueSource.checked_at);
+    if (sourceParts.length) rows.push('<strong>Kilde:</strong> ' + sourceParts.join('; '));
+    if (t.bq.alt && t.bq.alt.length) {
+      var altText = t.bq.alt.map(function (item) {
+        var label = item.d + ' ' + item.s + '–' + item.e;
+        if (item.t) label += ' · ' + item.t;
+        return label;
+      }).join('; ');
+      rows.push('<strong>Mulige alternative tider:</strong> ' + altText);
+    }
+    if (t.bq.ac) rows.push('<strong>Neste handling:</strong> ' + manualQueueActionLabel(t.bq.ac));
   }
   if (!rows.length) return '';
   return '<div class="booking-details"><p class="booking-details-head">Bookingdetaljer</p><ul>' +

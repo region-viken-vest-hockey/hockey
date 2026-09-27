@@ -2137,12 +2137,25 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"{counts.get('unknown', 0)} ukjent, "
                     f"{counts.get('needs_attention', 0)} trenger oppfølging"
                 )
+                queue_labels = {
+                    "explicit_rejection": "avvist — må bookes på nytt",
+                    "reconfirmation_required": "utdatert bekreftelse — må bekreftes på nytt",
+                    "manual_placement": "manuell plassering",
+                    "host_confirmation_required": "må bekreftes av vert",
+                }
                 for row in result.get("tournaments", []):
                     if row.get("needs_attention"):
                         authority = f" ({row.get('authority')})" if row.get("authority") else ""
+                        work = row.get("manual_work") or {}
+                        reason_code = str(work.get("reason_code") or "")
+                        queue = (
+                            f" [manuell kø: {queue_labels.get(reason_code, reason_code)}]"
+                            if reason_code
+                            else ""
+                        )
                         _console.print(
                             f"  [yellow]⚠[/yellow] {row.get('tournament_id')} "
-                            f"{row.get('status')}{authority}"
+                            f"{row.get('status')}{authority}{queue}"
                         )
             return 0
 
