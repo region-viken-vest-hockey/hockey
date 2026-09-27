@@ -245,7 +245,7 @@ def test_outlook_coverage_record_requires_requested_days_not_just_month_heading(
 
     assert coverage["status"] == INTEGRITY_PARTIAL
     assert coverage["observed_end"] == "2027-03-06"
-    assert any("2027-03-07..2027-03-28" in reason for reason in coverage["exceptions"])
+    assert any("22 dato" in reason and "2027-03-07..2027-03-28" in reason for reason in coverage["exceptions"])
 
 
 def test_outlook_iframe_records_only_rendered_dates(monkeypatch):
@@ -261,7 +261,7 @@ def test_outlook_iframe_records_only_rendered_dates(monkeypatch):
 
         def content(self):
             days = "".join(
-                f'<div data-date="2027-01-{day:02d}">January {day}, 2027</div>'
+                f'<div aria-label="Practice, 10:00 AM to 11:00 AM, Monday, January {day}, 2027"></div>'
                 for day in range(1, 32)
             )
             return f'<h2>January 2027</h2>{days}'

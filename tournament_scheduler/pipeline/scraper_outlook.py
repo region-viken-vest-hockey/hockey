@@ -13,7 +13,7 @@ from typing import Any
 
 from ..models import CalendarEvent
 from ..utils.calendar_cache import CalendarCache
-from .source_integrity import INTEGRITY_COMPLETE, INTEGRITY_PARTIAL, with_coverage
+from .source_integrity import INTEGRITY_PARTIAL, with_coverage
 
 
 def _run_outlook_scraper(
@@ -73,17 +73,15 @@ def _run_outlook_scraper(
                     iframe.wait_for_timeout(1000)
                     page_content = iframe.content()
                     raw_html += page_content
-                    observed_dates = _observed_dates_from_outlook_html(page_content, norwegian_months)
                     expected_month = _month_start_after(start_month.date(), month_idx)
-                    month_dates = [day for day in observed_dates if day.year == expected_month.year and day.month == expected_month.month]
-                    if month_dates:
-                        inspected_dates.extend(month_dates)
-                    else:
-                        coverage_exceptions.append(
-                            f"Outlook rendered no recognizable dates for requested month {expected_month.isoformat()}."
-                        )
-
                     month_events = _parse_outlook_calendar(page_content, norwegian_months)
+                    inspected_dates.extend(
+                        day
+                        for event in month_events
+                        if (day := _calendar_event_date(event)) is not None
+                        and day.year == expected_month.year
+                        and day.month == expected_month.month
+                    )
                     events.extend(month_events)
 
                     if month_idx < months_to_scrape - 1:
@@ -131,13 +129,15 @@ def _run_outlook_scraper(
                         page.wait_for_timeout(3000)
                         page_content = page.content()
                         raw_html += page_content
-                        inspected_dates.extend(
-                            _observed_dates_from_outlook_html(page_content, norwegian_months)
-                        )
-
                         month_events = _parse_date_param_calendar(
                             page_content, current_month, norwegian_months
                         )
+                        inspected_dates.extend(
+                            day
+                            for event in month_events
+                            if (day := _calendar_event_date(event)) is not None
+                        )
+
                         events.extend(month_events)
                     except Exception as exc:
                         coverage_exceptions.append(f"Outlook date-parameter month fetch failed for {date_str}: {exc}")
@@ -172,40 +172,16 @@ def _month_start_after(start_month: date, offset: int) -> date:
     return date(start_month.year + month_index // 12, (month_index % 12) + 1, 1)
 
 
-def _observed_dates_from_outlook_html(
-    html: str,
-    norwegian_months: dict[str, int],
-) -> set[date]:
-    """Return exact calendar dates rendered in Outlook HTML.
-
-    A month heading alone is not proof that every day in that month was loaded.
-    Negative booking evidence requires date-cell coverage, so this function only
-    returns concrete day values found in DOM attributes/text or event labels.
-    """
-    dates: set[date] = set()
-    text = re.sub(r"<[^>]+>", " ", html)
-    text = re.sub(r"\s+", " ", text).lower()
-    for match in re.finditer(r"\b(20\d{2})-(\d{2})-(\d{2})\b", html):
+def _calendar_event_date(event: CalendarEvent) -> date | None:
+    if event.datetime is not None:
+        return event.datetime.date()
+    text = str(event.date or "").strip()
+    for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
         try:
-            dates.add(date(int(match.group(1)), int(match.group(2)), int(match.group(3))))
+            return datetime.strptime(text, fmt).date()
         except ValueError:
             continue
-    for month_name, month_num in norwegian_months.items():
-        name = str(month_name).lower()
-        if not name:
-            continue
-        escaped = re.escape(name)
-        patterns = (
-            rf"\b{escaped}\b\s+(\d{{1,2}})(?:st|nd|rd|th)?[,]?\s+(20\d{{2}})\b",
-            rf"\b(\d{{1,2}})\.?,?\s+\b{escaped}\b[,]?\s+(20\d{{2}})\b",
-        )
-        for pattern in patterns:
-            for match in re.finditer(pattern, text, flags=re.IGNORECASE):
-                try:
-                    dates.add(date(int(match.group(2)), month_num, int(match.group(1))))
-                except ValueError:
-                    continue
-    return dates
+    return None
 
 
 def _missing_date_ranges(
@@ -271,13 +247,23 @@ def _outlook_coverage_record(
             for start, end in missing[:5]
         )
         more = "" if len(missing) <= 5 else f" (+{len(missing) - 5} flere)"
+        missing_days = sum((end - start).days + 1 for start, end in missing)
         return {
             **base,
             "status": INTEGRITY_PARTIAL,
             "navigation_complete": False,
-            "exceptions": [f"Outlook-dekningen manglet datoer: {summary}{more}."],
+            "exceptions": [
+                f"Outlook-dekningen manglet {missing_days} dato(er): {summary}{more}."
+            ],
         }
-    return {**base, "status": INTEGRITY_COMPLETE, "navigation_complete": True, "exceptions": []}
+    return {
+        **base,
+        "status": INTEGRITY_PARTIAL,
+        "navigation_complete": False,
+        "exceptions": [
+            "Outlook browser-skrapingen har ikke uavhengig bevis for at event-data var ferdig lastet for hele perioden."
+        ],
+    }
 
 
 def _parse_date_param_calendar(

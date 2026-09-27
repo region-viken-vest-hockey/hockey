@@ -268,6 +268,7 @@ def evaluate_source_integrity(
             elif coverage_status == INTEGRITY_PARTIAL or exceptions:
                 status = INTEGRITY_PARTIAL
                 reasons.append("Skraperen rapporterte ufullstendig dekning eller en delvis feil.")
+                reasons.extend(item for item in exceptions if item not in reasons)
             elif navigation_complete is False:
                 status = INTEGRITY_PARTIAL
                 reasons.append("Skraperen nådde ikke slutten av den forespurte kalenderperioden.")

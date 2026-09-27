@@ -80,6 +80,40 @@ class TestComputeSourceHealth:
         assert result.status == "warning"
         assert "For få hendelser" in result.problems
 
+    def test_outlook_coverage_shortfall_exception_is_prominent(self, tmp_path):
+        from datetime import date, datetime, timedelta
+
+        from tournament_scheduler.pipeline.scraper_outlook import _outlook_coverage_record
+
+        observed = []
+        current = date(2027, 3, 1)
+        while current <= date(2027, 3, 6):
+            observed.append(current)
+            current += timedelta(days=1)
+        coverage = _outlook_coverage_record(
+            observed,
+            datetime(2027, 3, 1),
+            datetime(2027, 3, 28),
+            [],
+        )
+        _write_scraping_checkpoint(
+            tmp_path,
+            [{
+                "name": "Kongsberg",
+                "type": "outlook",
+                "event_count": 0,
+                "blocked": False,
+                "events": [],
+                "event_expectation": {"status": "not_applicable"},
+                "coverage": coverage,
+            }],
+        )
+
+        result = compute_source_health(str(tmp_path))[0]
+
+        assert result.status == "warning"
+        assert any("22 dato" in problem and "2027-03-07..2027-03-28" in problem for problem in result.problems)
+
     def test_partial_integrity_evidence_surfaces_bounds_and_fingerprint(self, tmp_path):
         _write_scraping_checkpoint(
             tmp_path,
