@@ -745,21 +745,26 @@ def operational_booking_state(
         An accepted confirmation exists -- a durable manual assertion or a
         currently valid calendar association. The canonical slot is protected:
         a missing or contradicting scrape is a detail, never a reason to move
-        it or downgrade the confirmation.
+        it or downgrade the confirmation. An accepted confirmation is checked
+        first because a provisional ``manual_booking_reason`` or a
+        ``requires_host_confirmation`` flag set when the plan was built can
+        stay on the tournament after the operator confirms the slot; that
+        retained metadata is historical, not active work.
     ``action_required``
-        The assigned slot is not established ice (the host calendar could not
-        be read, or a host-controlled interval must be moved/confirmed) or an
-        accepted confirmation was explicitly rejected or invalidated. These are
-        the manual booking queue / re-confirmation work items.
+        No accepted confirmation exists and the assigned slot is not
+        established ice (the host calendar could not be read, or a
+        host-controlled interval must be moved/confirmed), or a prior
+        confirmation was explicitly rejected or invalidated. These are the
+        manual booking queue / re-confirmation work items.
     ``not_booked``
         No accepted confirmation and no explicit rejection. Missing calendar
         evidence and unresolved ambiguity land here, muted, and must not be
         mistaken for a host rejection or silently pushed to the manual queue.
     """
-    if str(manual_booking_reason or "").strip() or requires_host_confirmation:
-        return OPERATIONAL_ACTION_REQUIRED
     if status in (BOOKING_CONFIRMED_BOOKED, BOOKING_MANUALLY_BOOKED):
         return OPERATIONAL_BOOKED
+    if str(manual_booking_reason or "").strip() or requires_host_confirmation:
+        return OPERATIONAL_ACTION_REQUIRED
     if status in (BOOKING_CONFIRMED_NOT_BOOKED, BOOKING_MANUALLY_NOT_BOOKED, STALE):
         return OPERATIONAL_ACTION_REQUIRED
     return OPERATIONAL_NOT_BOOKED

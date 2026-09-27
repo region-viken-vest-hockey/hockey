@@ -1843,6 +1843,70 @@ def test_host_controlled_slot_enters_manual_queue(tmp_path):
     assert row["operational_lock"] is False
 
 
+def test_confirmation_overrides_retained_manual_booking_reason(tmp_path):
+    """An accepted confirmation wins over a plan-time provisional reason.
+
+    ``manual_booking_reason`` is set when the plan is built, before the host
+    calendar is known. A later email/manual confirmation makes the slot real;
+    the retained reason is historical metadata and must not drop the lock or
+    push the tournament back into the manual queue.
+    """
+
+    tournaments = [_tournament("t1")]
+    tournaments[0]["manual_booking_reason"] = "Kalender utilgjengelig — istid må bookes manuelt."
+    root = _promote(tmp_path, tournaments)
+    problem = _host_a_problem([])
+    _manual_set(
+        root,
+        problem=problem,
+        note="club emailed confirmation for the provisional slot",
+        reference="email:confirm-provisional",
+    )
+
+    row = _booking_row(booking_status_report(season="2026-2027", root=root, problem=problem), "t1")
+    assert row["status"] == "manually_booked"
+    assert row["operational_state"] == "booked"
+    assert row["operational_lock"] is True
+
+
+def test_confirmation_overrides_retained_host_confirmation_flag(tmp_path):
+    """An accepted confirmation wins over a retained movable-interval flag."""
+
+    tournaments = [_tournament("t1")]
+    tournaments[0]["requires_host_confirmation"] = True
+    tournaments[0]["host_confirmation_reason"] = "åpen ishall må flyttes"
+    root = _promote(tmp_path, tournaments)
+    problem = _host_a_problem([])
+    _manual_set(
+        root,
+        problem=problem,
+        note="club confirmed the movable slot by email",
+        reference="email:confirm-movable",
+    )
+
+    row = _booking_row(booking_status_report(season="2026-2027", root=root, problem=problem), "t1")
+    assert row["operational_state"] == "booked"
+    assert row["operational_lock"] is True
+
+
+def test_invalidated_confirmation_returns_to_action_required(tmp_path):
+    """Explicit invalidation (slot moved) drops the lock and needs rework."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="confirmed at current slot", reference="email-1")
+    assert _booking_row(
+        booking_status_report(season="2026-2027", root=root, problem=problem), "t1"
+    )["operational_state"] == "booked"
+
+    move_tournament(season="2026-2027", tournament_id="t1", root=root, date="2026-09-19")
+
+    row = _booking_row(booking_status_report(season="2026-2027", root=root, problem=problem), "t1")
+    assert row["status"] == "stale"
+    assert row["operational_state"] == "action_required"
+    assert row["operational_lock"] is False
+
+
 def test_refresh_does_not_downgrade_manual_confirmation(tmp_path):
     """A routine reconcile/refresh cannot demote an accepted confirmation."""
 

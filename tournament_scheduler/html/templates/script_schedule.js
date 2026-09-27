@@ -181,6 +181,10 @@ function operationalStateOf(t) {
 function operationalStateLabel(t, state) {
   if (state === 'booked') return 'BOOKET · LÅST';
   if (state === 'action_required') {
+    // An explicit rejection or an invalidated confirmation needs a rebooking,
+    // not the generic manual-placement wording.
+    if (t.bs === 'manually_not_booked' || t.bs === 'confirmed_not_booked') return 'AVVIST · MÅ BOOKES PÅ NYTT';
+    if (t.bs === 'stale') return 'MÅ RE-BEKREFTES';
     return (t.rhc && !t.mb) ? 'KREVER VERTSSBEKREFTELSE' : 'MÅ BOOKES MANUELT';
   }
   if (state === 'not_booked') return 'IKKE BEKREFTET';

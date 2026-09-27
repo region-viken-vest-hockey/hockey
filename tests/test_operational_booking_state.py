@@ -44,19 +44,39 @@ class TestOperationalBookingState:
         assert operational_booking_state(status=BOOKING_NOT_CHECKABLE) == OPERATIONAL_NOT_BOOKED
         assert operational_booking_state(status=BOOKING_MANUAL_UNKNOWN) == OPERATIONAL_NOT_BOOKED
 
-    def test_unestablished_slot_is_action_regardless_of_detailed_status(self):
-        # A provisional/manual placement or a movable host interval is not
-        # established ice even if a stale detailed status once said "booked".
+    def test_accepted_confirmation_wins_over_retained_provisional_metadata(self):
+        # A provisional/manual reason or a movable-interval flag set at plan
+        # build time can stay on a tournament after the operator confirms the
+        # slot. That retained metadata is historical and must never demote an
+        # accepted confirmation or drop its operational lock.
+        assert (
+            operational_booking_state(
+                status=BOOKING_MANUALLY_BOOKED,
+                manual_booking_reason="kalender utilgjengelig",
+            )
+            == OPERATIONAL_BOOKED
+        )
         assert (
             operational_booking_state(
                 status=BOOKING_CONFIRMED_BOOKED,
+                requires_host_confirmation=True,
+            )
+            == OPERATIONAL_BOOKED
+        )
+
+    def test_unestablished_slot_without_confirmation_is_action(self):
+        # Without an accepted confirmation the provisional placeholder and the
+        # movable host interval are manual work, not booked ice.
+        assert (
+            operational_booking_state(
+                status=BOOKING_UNKNOWN,
                 manual_booking_reason="kalender utilgjengelig",
             )
             == OPERATIONAL_ACTION_REQUIRED
         )
         assert (
             operational_booking_state(
-                status=BOOKING_CONFIRMED_BOOKED,
+                status=BOOKING_AMBIGUOUS,
                 requires_host_confirmation=True,
             )
             == OPERATIONAL_ACTION_REQUIRED
