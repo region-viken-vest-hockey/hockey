@@ -547,3 +547,30 @@ def test_varied_intervals_keep_known_source_trusted(tmp_path):
     source = result["sources"]["A"]
     assert source["source_trust"] == "trusted"
     assert source["fabricated_placeholder_signal"] is None
+
+
+def test_malformed_interval_evidence_fails_closed_without_crashing(tmp_path):
+    """Structurally unusable interval evidence must not crash the report nor be
+    silently treated as a trustworthy ``known`` calendar."""
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    problem = _problem(42, status="known")  # non-iterable club_busy_intervals["A"]
+
+    result = _assess(root, problem)
+
+    row = _tournament_row(result, "t1")
+    assert row["classification"] == "not_checkable"
+    source = result["sources"]["A"]
+    assert source["source_trust"] == "source_review_required"
+    assert source["fabricated_placeholder_signal"] is not None
+
+
+def test_unparseable_interval_evidence_fails_closed(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    malformed = [
+        {"date": f"2026-09-{day:02d}", "start": None, "end": None}
+        for day in range(1, 26)
+    ]
+    result = _assess(root, _problem(malformed, status="known"))
+
+    assert _tournament_row(result, "t1")["classification"] == "not_checkable"
+    assert result["sources"]["A"]["fabricated_placeholder_signal"] is not None

@@ -189,11 +189,22 @@ def hardcoded_value_signal(events: list[dict[str, Any]], source_type: str) -> st
 
 
 def _interval_duration_hours(interval: Mapping[str, Any]) -> float | None:
-    """Return one normalized ``HH:MM`` busy interval's length in hours."""
+    """Return one normalized ``HH:MM`` busy interval's length in hours.
+
+    Returns ``None`` for any entry whose ``start``/``end`` are missing, not
+    strings, or not valid ``HH:MM``: an unparseable entry is unusable and must
+    never be guessed at or silently treated as zero-length.
+    """
+    if not isinstance(interval, Mapping):
+        return None
+    raw_start = interval.get("start")
+    raw_end = interval.get("end")
+    if not isinstance(raw_start, str) or not isinstance(raw_end, str):
+        return None
     try:
-        start_hour, start_minute = (int(part) for part in str(interval.get("start") or "").split(":", 1))
-        end_hour, end_minute = (int(part) for part in str(interval.get("end") or "").split(":", 1))
-    except ValueError:
+        start_hour, start_minute = (int(part) for part in raw_start.split(":", 1))
+        end_hour, end_minute = (int(part) for part in raw_end.split(":", 1))
+    except (TypeError, ValueError):
         return None
     start_minutes = start_hour * 60 + start_minute
     end_minutes = end_hour * 60 + end_minute
@@ -201,6 +212,16 @@ def _interval_duration_hours(interval: Mapping[str, Any]) -> float | None:
         end_minutes += 24 * 60
     duration = (end_minutes - start_minutes) / 60.0
     return duration if duration > 0 else None
+
+
+# Returned when normalized interval evidence is structurally unusable. Unlike
+# the fabrication signal it is not a heuristic: no consumer can make a booking
+# claim from evidence it cannot even parse, so this must fail closed rather
+# than be read as "no fabrication found".
+_MALFORMED_INTERVAL_EVIDENCE = (
+    "Kalenderevidence for denne klubben er ikke en lesbar liste med start/slutt-intervaller, "
+    "så den kan ikke brukes som belegg for en bookingpåstand."
+)
 
 
 def fabricated_interval_signal(intervals: Iterable[Mapping[str, Any]] | None) -> str | None:
@@ -216,21 +237,48 @@ def fabricated_interval_signal(intervals: Iterable[Mapping[str, Any]] | None) ->
     consumer actually reads, not a re-read of the stored per-club status:
     evidence baked before the raw-event detector existed (or otherwise
     marked ``known``) still fails closed instead of being rendered as a real
-    booking. All-day blocks (>= 24h) are genuine occupancy, never the
-    fabricated short fallback, and never trigger the signal.
+    booking.
+
+    The fingerprint is scoped exactly like :func:`hardcoded_value_signal`: the
+    fabricated short duration must be the near-universal pattern across the
+    whole evidence set. Genuine all-day blocks (>= 24h) are excluded from the
+    midnight count, so a calendar dominated by all-day occupancy is never
+    mistaken for a midnight monoculture -- and a small fabricated minority
+    hidden among them does not trip the signal, mirroring the raw detector's
+    90% requirement. Structurally malformed evidence (a non-iterable or
+    mapping-shaped collection, or entries whose ``start``/``end`` never parse)
+    returns an explicit malformed signal so it cannot be read as trustworthy.
     """
-    rows = [row for row in (intervals or []) if isinstance(row, Mapping)]
+    if intervals is None:
+        return None
+    if (
+        isinstance(intervals, (str, bytes, Mapping))
+        or not hasattr(intervals, "__iter__")
+    ):
+        return _MALFORMED_INTERVAL_EVIDENCE
+    try:
+        rows = [row for row in intervals if isinstance(row, Mapping)]
+    except TypeError:
+        return _MALFORMED_INTERVAL_EVIDENCE
     if len(rows) < _MONOCULTURE_MIN_EVENTS:
         return None
-    durations = [duration for row in rows if (duration := _interval_duration_hours(row)) is not None]
-    if not durations:
+    parsed = [
+        (row, duration)
+        for row in rows
+        if (duration := _interval_duration_hours(row)) is not None
+    ]
+    if not parsed:
+        return _MALFORMED_INTERVAL_EVIDENCE
+    # An all-day block is genuine occupancy, not a midnight fallback start, so
+    # only the short intervals contribute to the midnight signal -- this mirrors
+    # ``hardcoded_value_signal`` excluding ``all_day`` events.
+    short = [(row, duration) for row, duration in parsed if duration < 24.0]
+    if not short:
         return None
-    top_duration, top_count = collections.Counter(
-        round(duration, 3) for duration in durations
+    _, top_count = collections.Counter(
+        round(duration, 3) for _, duration in short
     ).most_common(1)[0]
-    if top_duration >= 24.0:
-        return None
-    midnight_count = sum(1 for row in rows if str(row.get("start") or "") == "00:00")
+    midnight_count = sum(1 for row, _ in short if str(row.get("start") or "") == "00:00")
     return _fabricated_fallback_message(top_count / len(rows), midnight_count / len(rows))
 
 

@@ -152,7 +152,13 @@ def iter_events(problem: Mapping[str, Any] | None) -> Iterable[dict[str, Any]]:
         return ()
     rows: list[dict[str, Any]] = []
     for club, entries in intervals.items():
-        for entry in entries or []:
+        if isinstance(entries, (str, bytes, Mapping)) or not hasattr(entries, "__iter__"):
+            # Structurally malformed interval evidence is not silently skipped:
+            # `club_calendar_evidence_trusted` detects it separately and fails
+            # the club closed, but this reader must not crash the whole report on
+            # one bad club.
+            continue
+        for entry in entries:
             if isinstance(entry, Mapping):
                 rows.append(with_event_fingerprint(str(club), entry))
     return rows
