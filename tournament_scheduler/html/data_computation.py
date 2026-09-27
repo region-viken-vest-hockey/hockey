@@ -328,6 +328,8 @@ def build_export_links_html(output_files: dict[str, str] | None) -> str:
         ("csv_overview", ICON_BAR_CHART + " Last ned CSV", "#34d399"),
         ("csv_games", ICON_FILE_SPREADSHEET + " Last ned CSV (kamper)", "#fbbf24"),
         ("ical", ICON_CALENDAR + " Last ned iCal (.ics)", "#f87171"),
+        ("spond", ICON_FILE_SPREADSHEET + " Last ned Spond sesongplan (.xlsx)", "#a78bfa"),
+        ("spond_games", ICON_FILE_SPREADSHEET + " Last ned Spond kampoppsett (.xlsx)", "#c084fc"),
     ]
     for key, label, color in link_defs:
         if key in output_files:

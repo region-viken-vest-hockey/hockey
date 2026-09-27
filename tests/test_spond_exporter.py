@@ -119,3 +119,37 @@ class TestSpondExporter:
         assert rows[header_row - 1][0:4] == ("Runde", "Hjemmelag", "Bortelag", "Parallellbane")
         assert rows[header_row][1] == "Kongsberg U10A"
         assert rows[header_row][3] == 1
+
+    def test_schedule_attachment_keeps_cancellation_reason_by_default(self, tmp_path):
+        plan = _sample_plan()
+        plan.tournaments[0].cancelled = True
+        plan.tournaments[0].cancellation_reason = "Internal: coach wanted 12.12 instead"
+        output_path = tmp_path / "spond_games.xlsx"
+
+        SpondExporter().export_schedule_attachment(plan, str(output_path))
+
+        workbook = openpyxl.load_workbook(str(output_path))
+        text = _sheet_text(workbook[workbook.sheetnames[0]])
+        assert "AVLYST: Internal: coach wanted 12.12 instead" in text
+
+    def test_public_schedule_attachment_omits_cancellation_reason(self, tmp_path):
+        plan = _sample_plan()
+        plan.tournaments[0].cancelled = True
+        plan.tournaments[0].cancellation_reason = "Internal note, no email needed"
+        output_path = tmp_path / "spond_games.xlsx"
+
+        SpondExporter().export_public_schedule_attachment(plan, str(output_path))
+
+        workbook = openpyxl.load_workbook(str(output_path))
+        sheet = workbook[workbook.sheetnames[0]]
+        text = _sheet_text(sheet)
+        assert "Internal note" not in text
+        assert "AVLYST: " not in text
+        # The public projection still marks the tournament as cancelled.
+        assert text.startswith("(AVLYST) 10.10.2026")
+
+
+def _sheet_text(sheet) -> str:
+    return "\n".join(
+        str(cell) for row in sheet.iter_rows(values_only=True) for cell in row if cell is not None
+    )
