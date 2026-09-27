@@ -1164,6 +1164,138 @@ def test_ringerike_ju8_withdrawal_regression_case(tmp_path: Path) -> None:
     assert (schedule_file.read_bytes(), decisions_file.read_bytes()) == snapshot_before
 
 
+def test_canonical_verification_problem_projects_durable_withdrawal(tmp_path: Path) -> None:
+    """``season approve``/``season move`` verify against the withdrawal-adjusted pool.
+
+    The promoted problem is frozen at promotion; a durable participation
+    withdrawal recorded afterwards lives only in ``decisions.json``. The
+    canonical verification helper behind ``season approve``/``season move``
+    must project it through the shared overlay facade
+    (:func:`project_canonical_overlays`), otherwise a legal input-constrained
+    tournament is refused as a hard ``bye_team_not_allowed`` violation even
+    though ``season findings``/``season export`` still see the reduced pool and
+    accept it.
+    """
+    root = tmp_path / "season"
+    problem = _ringerike_problem()
+    plan = _ringerike_plan()
+    _write_plan(root, plan, problem, sealed=False)
+    service = CanonicalSeasonService(root=root)
+
+    affected = [f"j8-{index}" for index in range(1, 6)]
+    service.batch_maintenance(
+        season="2026-2027",
+        operations=[
+            {
+                "op": "remove_participant",
+                "tournament_id": tournament_id,
+                "remove_team": "Ringerike 1",
+                "reconcile_withdrawal": True,
+            }
+            for tournament_id in affected
+        ],
+        scope=affected,
+        request_id="ringerike-ju8-withdrawal",
+        actor="tester",
+        note="Ringerike JU8 withdrew with no same-age replacement",
+    )
+
+    from tournament_scheduler.cli.rvv_cli import _canonical_verification_problem
+
+    resolved = _canonical_verification_problem(str(tmp_path / ".pipeline"), "2026-2027", str(root))
+    assert resolved is not None
+    assert resolved.get("withdrawn_tournament_teams"), "withdrawal projection missing"
+    current_plan = load_schedule("2026-2027", root=root)["plan"]
+    verification = verify_candidate(dict(current_plan), resolved)
+    assert verification["ok"] is True, verification["violations"]
+
+    # The CLI approve gate is the real failing path: the same legal tournament
+    # must not be refused as a hard shape violation.
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    exit_code = cli_main(
+        [
+            "season",
+            "approve",
+            "--season",
+            "2026-2027",
+            "--tournament-id",
+            "j8-1",
+            "--root",
+            str(root),
+            "--actor",
+            "tester",
+        ]
+    )
+    assert exit_code == 0
+    assert load_decisions("2026-2027", root=root)["decisions"]["j8-1"]["status"] == "approved"
+
+
+def test_canonical_verification_problem_fails_closed_on_overlay_projection_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A canonical overlay projection failure must refuse the mutation.
+
+    An existing promoted season owns the authoritative problem; if its live
+    overlays cannot be projected, approve/move must fail closed with a
+    ``SeasonStateError`` instead of silently falling back to self-consistency
+    verification against an incomplete contract and persisting an approval.
+    """
+    root = tmp_path / "season"
+    problem = _problem()
+    # An even 4-team roster passes bare self-consistency, so the pre-fix broad
+    # fallback would silently approve it against no real contract. An empty
+    # pipeline work dir keeps the fallback from reading a real pipeline config.
+    plan = {
+        "schema_version": 1,
+        "start_date": "2026-10-01",
+        "end_date": "2026-10-31",
+        "tournaments": [
+            _tournament(
+                "u10-a",
+                "2026-10-03",
+                "Alfa",
+                [dict(team) for team in problem["teams"][:4]],
+            )
+        ],
+    }
+    _write_plan(root, plan, problem, sealed=False)
+    before = load_decisions("2026-2027", root=root)
+    empty_work_dir = tmp_path / ".pipeline"
+    empty_work_dir.mkdir()
+
+    import tournament_scheduler.season_maintenance as season_maintenance
+
+    def _explode(*args: object, **kwargs: object) -> dict:
+        raise RuntimeError("overlay projection exploded")
+
+    monkeypatch.setattr(season_maintenance, "project_canonical_overlays", _explode)
+
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    exit_code = cli_main(
+        [
+            "season",
+            "approve",
+            "--season",
+            "2026-2027",
+            "--tournament-id",
+            "u10-a",
+            "--root",
+            str(root),
+            "--work-dir",
+            str(empty_work_dir),
+            "--actor",
+            "tester",
+        ]
+    )
+
+    assert exit_code == 1
+    assert "overlay projection" in capsys.readouterr().out
+    # Refusal is atomic: no approval (or any other decision change) persisted.
+    assert load_decisions("2026-2027", root=root) == before
+
+
 def test_replan_problem_carries_durable_withdrawal(tmp_path: Path) -> None:
     """A non-sealed replan must not rebuild on the full registered pool.
 
