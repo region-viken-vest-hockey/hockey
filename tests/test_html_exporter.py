@@ -424,16 +424,21 @@ class TestBookingStatusRendering:
                 }
             },
         )
-        embedded = {row["id"]: row for row in _embedded_tournaments(out_path.read_text(encoding="utf-8"))}
+        html = out_path.read_text(encoding="utf-8")
+        embedded = {row["id"]: row for row in _embedded_tournaments(html)}
         queue_item = embedded["t-reject"]["bq"]
         assert queue_item["r"] == "explicit_rejection"
         assert queue_item["o"] == "Holmen"
         assert queue_item["ac"] == "book_or_reconfirm"
-        assert queue_item["src"]["reference"] == "email:1"
+        assert "src" not in queue_item
         assert queue_item["alt"] == [
             {"d": "2025-11-01", "s": "14:00", "e": "16:00", "t": "Miniputt U11"}
         ]
         assert queue_item["cw"] == "accepted_booking_assertion_or_valid_calendar_association"
+        # The public plan must never carry the private source evidence that
+        # sits next to the work item in the operator report.
+        assert "email:1" not in html
+        assert "host rejected the slot" not in html
 
     def test_legacy_payload_fallback_prefers_accepted_confirmation(self):
         """A legacy payload without ``obs`` must not let retained provisional
@@ -505,7 +510,6 @@ var item = {
     o: 'Holmen',
     ac: 'book_or_reconfirm',
     cw: 'accepted_booking_assertion_or_valid_calendar_association',
-    src: {reference: 'email:1', note: 'host rejected the slot', asserted_by: 'booker'},
     alt: [{d: '2025-11-01', s: '14:00', e: '16:00', t: 'Miniputt U11'}]
   }
 };
@@ -515,14 +519,55 @@ console.log(buildBookingDetails(item));
         rendered = completed.stdout
         assert "Manuell kø:" in rendered
         assert "avvist av vert" in rendered
-        assert "email:1" in rendered
-        assert "host rejected the slot" in rendered
         assert "Ansvarlig:" in rendered
         assert "Holmen" in rendered
         assert "2025-11-01 14:00" in rendered
         assert "Miniputt U11" in rendered
         assert "Neste handling:" in rendered
         assert "booking-set" in rendered
+
+    def test_booking_details_escapes_markup_like_values(self):
+        """Markup-like host/calendar text must render as inert text, not HTML."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.fail("node is required to execute the shipped template fallback")
+
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "tournament_scheduler"
+            / "html"
+            / "templates"
+            / "script_schedule.js"
+        ).read_text(encoding="utf-8")
+        start = source.index("function operationalStateOf")
+        end = source.index("\nfunction render()", start)
+        script = source[start:end] + """
+var item = {
+  obs: 'action_required',
+  bs: 'manually_not_booked',
+  ba: true,
+  mb: '<img src=x onerror=alert(1)>',
+  hcr: '</li><script>alert(2)</script>',
+  rhc: true,
+  bq: {
+    r: 'explicit_rejection',
+    o: '<img src=x onerror=alert(3)>',
+    ac: 'book_or_reconfirm',
+    cw: 'accepted_booking_assertion_or_valid_calendar_association',
+    alt: [{d: '2025-11-01', s: '14:00', e: '16:00', t: '<b>evil</b>'}]
+  }
+};
+console.log(buildBookingDetails(item));
+"""
+        completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+        rendered = completed.stdout
+        assert "<img" not in rendered
+        assert "<script" not in rendered
+        assert "<b>" not in rendered
+        assert "&lt;img" in rendered
+        assert "&lt;script" in rendered
+        assert "&lt;b&gt;evil&lt;/b&gt;" in rendered
 
 
 class TestTeamFilter:

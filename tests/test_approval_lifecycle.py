@@ -1396,7 +1396,11 @@ def test_rejection_export_carries_traceable_manual_queue_item(tmp_path):
     html = _export_html_with_booking_report(root, problem, tmp_path)
     assert '"bq"' in html
     assert '"r": "explicit_rejection"' in html
-    assert "email:reject-queue" in html
+    # The private source evidence stays in the operator report; the public plan
+    # only carries the public-safe reason/owner/action projection.
+    assert '"src"' not in html
+    assert "email:reject-queue" not in html
+    assert "club cannot host the assigned weekend" not in html
 
 
 def test_manual_confirmation_precedes_negative_calendar_evidence_in_export(tmp_path):
