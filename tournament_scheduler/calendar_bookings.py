@@ -472,11 +472,34 @@ def club_booking_source_by_id(
     decisions: Mapping[str, Any] | None,
     source_id: str,
 ) -> dict[str, Any] | None:
-    """Return one active club-wide source assertion by id, if present."""
+    """Return one active club-wide source assertion by id, if present.
+
+    Used for link validation: a new per-tournament interpretation may only be
+    linked to a currently active source version.
+    """
 
     if not source_id:
         return None
     for record in active_club_booking_source_assertions(decisions):
+        if str(record.get("id") or "") == source_id:
+            return record
+    return None
+
+
+def club_booking_source_record_by_id(
+    decisions: Mapping[str, Any] | None,
+    source_id: str,
+) -> dict[str, Any] | None:
+    """Return one club-wide source assertion by id regardless of status.
+
+    Historical provenance lookup: after a source is superseded, existing
+    per-tournament interpretations still reference the old id and must keep
+    resolving to the document/version they were derived from.
+    """
+
+    if not source_id:
+        return None
+    for record in club_booking_source_records(decisions):
         if str(record.get("id") or "") == source_id:
             return record
     return None
@@ -1131,9 +1154,27 @@ def _club_booking_source_projection(
     tournaments = _tournaments_by_id(plan)
     rows_by_id = {str(row.get("tournament_id") or ""): row for row in rows}
     active = active_manual_assertions(decisions)
+    all_sources = {
+        str(record.get("id") or ""): record
+        for record in club_booking_source_records(decisions)
+    }
+    active_source_ids = {
+        str(record.get("id") or "")
+        for record in active_club_booking_source_assertions(decisions)
+    }
+    referenced_ids = {
+        str(assertion.get("source_assertion_id") or "")
+        for assertion in active
+        if str(assertion.get("source_assertion_id") or "")
+    }
+    # Report every active source plus any superseded source still referenced by
+    # an active assertion, so replacing a source version never silently drops
+    # the provenance (and the review signal) for already-linked IDs.
+    report_ids = sorted(active_source_ids) + sorted(referenced_ids - active_source_ids)
     sources: list[dict[str, Any]] = []
-    for record in active_club_booking_source_assertions(decisions):
-        source_id = str(record.get("id") or "")
+    for source_id in report_ids:
+        record = all_sources.get(source_id) or {}
+        is_active = source_id in active_source_ids
         items: list[dict[str, Any]] = []
         for assertion in sorted(active, key=lambda item: str(item.get("tournament_id") or "")):
             if str(assertion.get("source_assertion_id") or "") != source_id:
@@ -1191,6 +1232,7 @@ def _club_booking_source_projection(
                     continue
                 if left_start < right_end and right_start < left_end:
                     overlaps.append([left["tournament_id"], right["tournament_id"]])
+        stale_link = bool(items) and not is_active
         sources.append(
             {
                 "id": source_id,
@@ -1201,10 +1243,14 @@ def _club_booking_source_projection(
                 "reference": str(record.get("reference") or ""),
                 "asserted_at": str(record.get("asserted_at") or ""),
                 "asserted_by": str(record.get("asserted_by") or ""),
+                "status": str(record.get("status") or ""),
+                "is_active": is_active,
+                "superseded_by": str(record.get("superseded_by") or ""),
+                "stale_link": stale_link,
                 "tournament_ids": [item["tournament_id"] for item in items],
                 "tournaments": items,
                 "overlapping_source_intervals": overlaps,
-                "requires_operator_review": bool(overlaps),
+                "requires_operator_review": bool(overlaps) or stale_link,
             }
         )
     # A club-wide interpretation recorded before source documents existed (or
@@ -1322,8 +1368,12 @@ def booking_status_report(
                 if source_scope == "club_wide_interpretation"
                 else BOOKING_AUTHORITY_MANUAL
             )
-            source_record = club_booking_source_by_id(
+            source_record = club_booking_source_record_by_id(
                 decisions, str(manual.get("source_assertion_id") or "")
+            )
+            source_is_current = (
+                source_record is None
+                or str(source_record.get("status") or "") == MANUAL_ASSERTION_ACTIVE
             )
             manual_stale = manual_assertion_stale_reasons(manual, problem=problem, tournament=tournament)
             if manual_stale:
@@ -1344,6 +1394,11 @@ def booking_status_report(
             # authority; a failed/unverified scrape never downgrades the club's
             # explicit confirmation.
             follow_up_reasons.extend(calendar_stale_reasons)
+            if not source_is_current:
+                # The assertion is still valid authority, but it points at a
+                # superseded club source version; surface it for relinking
+                # rather than silently losing the provenance.
+                follow_up_reasons.append("club_booking_source_superseded")
             operational_state = operational_booking_state(
                 status=status,
                 manual_booking_reason=str(tournament.get("manual_booking_reason") or ""),
@@ -1359,6 +1414,7 @@ def booking_status_report(
                 "source_assertion_id": str(manual.get("source_assertion_id") or "") or None,
                 "source_document": str((source_record or {}).get("source_document") or ""),
                 "source_version": str((source_record or {}).get("source_version") or ""),
+                "source_is_current": source_is_current,
                 "host_club": str(tournament.get("host_club") or ""),
                 "age_group": str(tournament.get("age_group") or ""),
                 "arena": str(tournament.get("arena") or ""),

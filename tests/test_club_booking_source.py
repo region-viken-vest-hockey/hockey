@@ -324,6 +324,69 @@ def test_source_assertion_is_decision_only_in_sealed_replay():
     assert applied == []
 
 
+def test_superseding_source_keeps_linked_provenance_and_flags_relink(tmp_path):
+    """Replacing a source version must not drop existing per-ID provenance."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    v1 = _source_set(root, source_version="2026-09-27")["source"]
+    _interpretation(root, tournament_id="t1", source_id=v1["id"], problem=problem)
+
+    v2 = _source_set(root, source_version="2026-09-28")["source"]
+
+    # The per-ID row keeps resolving the old document/version, and is flagged for
+    # relinking rather than silently losing its provenance.
+    row = next(
+        r
+        for r in booking_status_report(season="2026-2027", root=root, problem=problem)["tournaments"]
+        if r["tournament_id"] == "t1"
+    )
+    assert row["status"] == "manually_booked"
+    assert row["source_document"] == v1["source_document"]
+    assert row["source_version"] == "2026-09-27"
+    assert row["source_is_current"] is False
+    assert "club_booking_source_superseded" in row["follow_up_reasons"]
+    assert row["needs_attention"] is True
+
+    sources = club_booking_sources(season="2026-2027", root=root, problem=problem)
+    by_id = {source["id"]: source for source in sources["sources"]}
+    assert by_id[v2["id"]]["is_active"] is True
+    assert by_id[v2["id"]]["tournament_ids"] == []
+    assert by_id[v1["id"]]["is_active"] is False
+    assert by_id[v1["id"]]["stale_link"] is True
+    assert by_id[v1["id"]]["requires_operator_review"] is True
+    assert by_id[v1["id"]]["tournament_ids"] == ["t1"]
+
+    # Relinking to the new active version clears the stale flag.
+    _interpretation(
+        root,
+        tournament_id="t1",
+        source_id=v2["id"],
+        problem=problem,
+        reference="email:club-2026-09-28",
+        supersede=True,
+        note="relinked to the reviewed source version",
+    )
+    row = next(
+        r
+        for r in booking_status_report(season="2026-2027", root=root, problem=problem)["tournaments"]
+        if r["tournament_id"] == "t1"
+    )
+    assert row["source_version"] == "2026-09-28"
+    assert row["source_is_current"] is True
+    assert "club_booking_source_superseded" not in row["follow_up_reasons"]
+
+
+def test_explicit_fingerprint_cannot_be_reused_for_a_different_version(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    _source_set(root, source_fingerprint="fixed", source_version="2026-09-27")
+    # Same fingerprint and same version stays idempotent.
+    repeated = _source_set(root, source_fingerprint="fixed", source_version="2026-09-27")
+    assert repeated["idempotent"] is True
+    with pytest.raises(SeasonStateError, match="different document/version"):
+        _source_set(root, source_fingerprint="fixed", source_version="2026-09-28")
+
+
 def test_source_fingerprint_is_deterministic_and_explicit_override_is_honored(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     expected = stable_payload_sha256(

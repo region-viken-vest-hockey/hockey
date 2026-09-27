@@ -1662,6 +1662,19 @@ def set_club_booking_source(
         source_fingerprint=source_fingerprint,
     )
     if existing is not None and str(existing.get("id") or "") == candidate["id"]:
+        # A stable id alone is not enough: an explicit fingerprint reused for a
+        # different document/version must not silently return the old record.
+        if (
+            str(existing.get("source_document") or "")
+            != str(candidate.get("source_document") or "")
+            or str(existing.get("source_version") or "")
+            != str(candidate.get("source_version") or "")
+        ):
+            raise SeasonStateError(
+                "Source fingerprint already identifies a different document/version "
+                f"({existing.get('source_document')} @ {existing.get('source_version')}); "
+                "use a distinct fingerprint or record the new version under its own identity"
+            )
         return {
             "season": season,
             "dry_run": bool(dry_run),

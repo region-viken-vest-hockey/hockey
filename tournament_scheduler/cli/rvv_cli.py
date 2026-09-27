@@ -2270,6 +2270,13 @@ def _cmd_season(args: argparse.Namespace) -> int:
                         if source.get("source_document")
                         else "unprovenanced"
                     )
+                    superseded = (
+                        " [yellow]superseded"
+                        + (f" by {source.get('superseded_by')}" if source.get("superseded_by") else "")
+                        + "[/yellow]"
+                        if not source.get("is_active", True)
+                        else ""
+                    )
                     review = (
                         " [yellow]review[/yellow]"
                         if source.get("requires_operator_review")
@@ -2277,7 +2284,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     )
                     _console.print(
                         f"  {source.get('host_club') or '—'}: {provenance} "
-                        f"({len(source.get('tournament_ids') or [])} id(s)){review}"
+                        f"({len(source.get('tournament_ids') or [])} id(s)){superseded}{review}"
                     )
                     for item in source.get("tournaments") or []:
                         follow = item.get("interval_follow_up") or []
@@ -2288,7 +2295,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                         )
                     for pair in source.get("overlapping_source_intervals") or []:
                         _console.print(
-                            f"    [yellow]⚠ overlapping canonical intervals: "
+                            f"    [yellow]⚠ overlapping club-stated intervals: "
                             f"{', '.join(pair)}[/yellow]"
                         )
             return 0
