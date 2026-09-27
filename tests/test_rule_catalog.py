@@ -408,3 +408,10 @@ def test_ownership_table_lists_every_active_rule() -> None:
     for entry in catalog.RULE_CATALOG:
         if entry.status == catalog.STATUS_ACTIVE:
             assert f"`{entry.id}`" in rendered
+
+
+def test_guest_integrity_verifier_code_matches_owner() -> None:
+    from tournament_scheduler.guest_slots import GUEST_RESERVATION_INTEGRITY
+
+    entry = catalog.CATALOG_BY_ID["guest_reservation_integrity"]
+    assert GUEST_RESERVATION_INTEGRITY in entry.verifier_codes

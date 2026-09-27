@@ -399,6 +399,131 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     }
 
 
+REQUEST_CONSTRAINT_OWNER = (
+    "tournament_scheduler.request_constraints.request_constraint_violations"
+)
+HOSTING_COVERAGE_OWNER = "tournament_scheduler.hosting_coverage.hosting_coverage_matrix"
+HOSTING_RESPONSIBILITY_OWNER = (
+    "tournament_scheduler.hosting_responsibility.hosting_responsibility_facts"
+)
+
+_REQUEST_CONSTRAINT_RULES = (
+    "request_team_unavailable",
+    "request_minimum_gap",
+    "request_opponent_avoidance",
+)
+
+
+def _audit_owner_evidence(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Tuple[str, ...], Dict[str, str]]:
+    """Run the catalog rule owners the ordinary verifier does not cover.
+
+    The season audit resolves every catalogued check against verifier codes and
+    actionable findings. Request constraints, club x age-group hosting coverage
+    and hosting responsibility are owned outside the ordinary verifier, so they
+    are run here and their factual output is translated into that vocabulary.
+    An owner is reported covered only after it ran on complete inputs; a
+    missing input or a failed owner leaves its catalog rule ``incomplete`` with
+    an actionable reason instead of a false green.
+    """
+    from .hosting_coverage import hosting_coverage_matrix
+    from .hosting_responsibility import (
+        RESPONSIBILITY_TRANSFER_CODE,
+        hosting_responsibility_facts,
+    )
+    from .participation_withdrawals import eligible_hosting_teams
+    from .request_constraints import request_constraint_violations
+
+    covered: List[str] = []
+    incomplete_reasons: Dict[str, str] = {}
+    violations: List[Dict[str, Any]] = []
+    findings: List[Dict[str, Any]] = []
+
+    try:
+        violations.extend(
+            dict(violation) for violation in request_constraint_violations(plan, decisions)
+        )
+        covered.append(REQUEST_CONSTRAINT_OWNER)
+    except Exception as exc:  # defensive fail-closed boundary
+        for rule_id in _REQUEST_CONSTRAINT_RULES:
+            incomplete_reasons[rule_id] = f"request-constraint owner failed: {exc}"
+
+    teams = eligible_hosting_teams(problem)
+    if not teams:
+        # Coverage/responsibility are derived from the registered roster; with
+        # no roster evidence an empty result is not a clean season.
+        incomplete_reasons["hosting_age_group_coverage"] = (
+            "problem carries no registered-team evidence; hosting coverage cannot be evaluated"
+        )
+        incomplete_reasons["hosting_responsibility"] = (
+            "problem carries no registered-team evidence; hosting responsibility cannot be evaluated"
+        )
+    else:
+        try:
+            for row in hosting_coverage_matrix(teams, plan.get("tournaments") or []):
+                if not row.get("unresolved"):
+                    continue
+                age_group = str(row.get("age_group") or "")
+                club = str(row.get("club") or "")
+                findings.append(
+                    {
+                        "finding_id": hosting_finding_id(age_group, club),
+                        "code": "unresolved_hosting_obligation",
+                        "category": HOSTING,
+                        "severity": "strong_goal",
+                        "age_group": age_group,
+                        "club": club,
+                        "teams": int(row.get("teams", 0)),
+                        "hosted": int(row.get("hosted", 0)),
+                        "coverage_unresolved": True,
+                        "message": (
+                            f"{club} hosts no {age_group} tournament although it fields "
+                            f"{int(row.get('teams', 0))} team(s)"
+                        ),
+                    }
+                )
+            covered.append(HOSTING_COVERAGE_OWNER)
+        except Exception as exc:  # defensive fail-closed boundary
+            incomplete_reasons["hosting_age_group_coverage"] = (
+                f"hosting coverage owner failed: {exc}"
+            )
+        try:
+            for row in hosting_responsibility_facts(problem, plan):
+                excess = int(row.get("excess", 0))
+                if excess <= 0:
+                    continue
+                age_group = str(row.get("age_group") or "")
+                club = str(row.get("club") or "")
+                findings.append(
+                    {
+                        "finding_id": f"hosting_responsibility:{age_group}:{club}",
+                        "code": RESPONSIBILITY_TRANSFER_CODE,
+                        "category": HOSTING,
+                        "severity": "strong_goal",
+                        "age_group": age_group,
+                        "club": club,
+                        "target": int(row.get("target", 0)),
+                        "actual": int(row.get("actual", 0)),
+                        "excess": excess,
+                        "message": (
+                            f"{club} hosts {int(row.get('actual', 0))} {age_group} "
+                            f"tournament(s) against a target of {int(row.get('target', 0))}; "
+                            "hosting responsibility was transferred to a club that does not owe it"
+                        ),
+                    }
+                )
+            covered.append(HOSTING_RESPONSIBILITY_OWNER)
+        except Exception as exc:  # defensive fail-closed boundary
+            incomplete_reasons["hosting_responsibility"] = (
+                f"hosting responsibility owner failed: {exc}"
+            )
+
+    return violations, findings, tuple(covered), incomplete_reasons
+
+
 def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, Any]:
     """Run the catalog-driven season-wide completion gate over canonical state.
 
@@ -420,20 +545,32 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     verification = verify_candidate(plan, problem)
     final = verify_final_candidate(dict(plan), dict(problem))
     locks = verify_canonical_locks(build_canonical_baseline(schedule, decisions), dict(plan))
+    (
+        owner_violations,
+        owner_findings,
+        owner_covered,
+        owner_incomplete_reasons,
+    ) = _audit_owner_evidence(plan, problem, decisions)
     merged_violations: List[Dict[str, Any]] = []
     seen_violations: set = set()
     # Include the ordinary verifier explicitly: ``verify_final_candidate``
     # delegates to it, but this must not depend on that implementation detail,
-    # and a rule checked only by ``verify_candidate`` must stay visible.
+    # and a rule checked only by ``verify_candidate`` must stay visible. The
+    # request-constraint owner's violations are appended here so they count as
+    # the hard constraints they are, not as advisory reporting data.
     for violation in (
         list(verification.get("violations") or [])
         + list(final.get("violations") or [])
         + list(locks or [])
+        + owner_violations
     ):
         key = (
             str(violation.get("code") or ""),
             str(violation.get("tournament_id") or ""),
             str(violation.get("team") or ""),
+            str(violation.get("constraint_id") or ""),
+            "|".join(str(item) for item in violation.get("tournament_ids") or []),
+            "|".join(str(item) for item in violation.get("dates") or []),
         )
         if key in seen_violations:
             continue
@@ -441,10 +578,25 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
         merged_violations.append(dict(violation))
     merged_verification = {
         **verification,
-        "ok": bool(verification.get("ok")) and bool(final.get("ok")) and not locks,
+        "ok": (
+            bool(verification.get("ok"))
+            and bool(final.get("ok"))
+            and not locks
+            and not owner_violations
+        ),
         "violations": merged_violations,
     }
     findings = _findings(plan, problem, verification)
+    # The findings projection already translates coverage rows; append only the
+    # owner findings it does not carry (structural coverage shortfalls and
+    # responsibility transfers) so a rule's evidence is never counted twice.
+    existing_finding_ids = {str(finding.get("finding_id") or "") for finding in findings}
+    for finding in owner_findings:
+        finding_id = str(finding.get("finding_id") or "")
+        if finding_id and finding_id in existing_finding_ids:
+            continue
+        existing_finding_ids.add(finding_id)
+        findings.append(finding)
     from .calendar_bookings import association_findings
 
     findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))
@@ -473,7 +625,9 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
         covered_verifier_owners=(
             "tournament_scheduler.final_verification.verify_final_candidate",
             "tournament_scheduler.canonical_baseline.verify_canonical_locks",
+            *owner_covered,
         ),
+        incomplete_reasons=owner_incomplete_reasons,
     )
     audit["revision_stable"] = revision == revision_after
     audit["content_fingerprint_after"] = _plan_content_fingerprint(plan_after)

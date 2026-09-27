@@ -39,6 +39,10 @@ GUEST_SLOT_FILLED = "filled"
 GUEST_SLOT_RELEASED = "released"
 ACTIVE_GUEST_SLOT_STATUSES = (GUEST_SLOT_OPEN, GUEST_SLOT_FILLED)
 
+# Stable verifier code for a plan whose reservation lifecycle was corrupted or
+# consumed outside the reserve/fill/release boundary.
+GUEST_RESERVATION_INTEGRITY = "guest_reservation_integrity"
+
 # The immediate production requirement is JU10/JU12 guest opportunities, but
 # the model is deliberately age-group-agnostic: nothing below special-cases an
 # age group, so the capability can be enabled elsewhere without a migration.
@@ -269,9 +273,75 @@ def total_reserved_across(tournaments: Iterable[Any]) -> int:
     return sum(active_guest_slot_count(tournament) for tournament in tournaments)
 
 
+def guest_reservation_integrity_violations(
+    tournaments: Iterable[Any],
+) -> List[dict]:
+    """Return reserved-guest lifecycle violations for a candidate's tournaments.
+
+    The record list is authoritative: every active place occupies capacity, and
+    a ``filled`` reservation is represented by exactly one ``guest``
+    participant. A plan that drops a reservation, invents a guest participant
+    without a matching filled reservation, or carries an unknown/duplicated
+    record changed the reservation outside ``reserve``/``fill``/``release`` --
+    evidence the ordinary capacity/shape checks cannot distinguish from an
+    intentional place that was consumed by participant optimization.
+    """
+
+    violations: List[dict] = []
+    valid_statuses = {GUEST_SLOT_OPEN, GUEST_SLOT_FILLED, GUEST_SLOT_RELEASED}
+    for tournament in tournaments:
+        if not _is_mapping(tournament) or tournament.get("cancelled"):
+            continue
+        tournament_id = str(tournament.get("id") or "")
+        seen_ids: set[str] = set()
+        for record in guest_slot_records(tournament):
+            slot_id = str(record.get("id") or "")
+            status = str(record.get("status") or GUEST_SLOT_OPEN)
+            if status not in valid_statuses:
+                violations.append(
+                    {
+                        "code": GUEST_RESERVATION_INTEGRITY,
+                        "tournament_id": tournament_id,
+                        "slot_id": slot_id,
+                        "message": (
+                            f"Guest reservation {slot_id!r} in {tournament_id} has unknown "
+                            f"status {status!r}"
+                        ),
+                    }
+                )
+            if slot_id and slot_id in seen_ids:
+                violations.append(
+                    {
+                        "code": GUEST_RESERVATION_INTEGRITY,
+                        "tournament_id": tournament_id,
+                        "slot_id": slot_id,
+                        "message": f"Guest reservation id {slot_id!r} is duplicated in {tournament_id}",
+                    }
+                )
+            seen_ids.add(slot_id)
+        filled = len(filled_guest_slots(tournament))
+        guests = len(guest_teams(tournament))
+        if filled != guests:
+            violations.append(
+                {
+                    "code": GUEST_RESERVATION_INTEGRITY,
+                    "tournament_id": tournament_id,
+                    "filled_reservations": filled,
+                    "guest_participants": guests,
+                    "message": (
+                        f"Tournament {tournament_id} has {filled} filled guest reservation(s) "
+                        f"but {guests} guest participant(s); a reserved place was consumed or "
+                        "added outside the guest reserve/fill/release lifecycle"
+                    ),
+                }
+            )
+    return violations
+
+
 __all__ = [
     "ACTIVE_GUEST_SLOT_STATUSES",
     "DEFAULT_GUEST_AGE_GROUPS",
+    "GUEST_RESERVATION_INTEGRITY",
     "GUEST_SLOT_FILLED",
     "GUEST_SLOT_OPEN",
     "GUEST_SLOT_RELEASED",
@@ -279,6 +349,7 @@ __all__ = [
     "active_guest_slots",
     "capacity_places",
     "filled_guest_slots",
+    "guest_reservation_integrity_violations",
     "guest_slot_records",
     "guest_slot_summary",
     "guest_teams",

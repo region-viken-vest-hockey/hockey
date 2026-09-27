@@ -14,6 +14,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+import pytest
+
 from tournament_scheduler.participation_deviation_repair import _classification
 from tournament_scheduler.pareto import non_dominated_indices
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
@@ -1407,3 +1409,286 @@ def test_normalize_arena_identities_is_a_noop_without_legacy_labels(tmp_path: Pa
 
     assert schedule["plan"]["tournaments"][0]["arena"] == "Nordby Arena"
     assert (root / YEAR / "schedule.json").read_bytes() == before
+
+
+# ---------------------------------------------------------------------------
+# Catalog-driven season audit: complete owner evidence
+# ---------------------------------------------------------------------------
+
+
+def _clean_season_plan(
+    *,
+    hosts: Optional[Iterable[str]] = None,
+) -> tuple[Dict[str, Any], Dict[str, Any]]:
+    """A four-club, four-tournament season that is clean by construction.
+
+    Every club hosts exactly one U10 tournament (so coverage is complete and
+    no hosting responsibility is transferred) and no request constraint is
+    active. This is the positive control for the audit: all six catalog rules
+    that used to report ``incomplete`` have live evidence.
+    """
+    from tournament_scheduler.game_generation import generate_tournament_games
+    from tournament_scheduler.models import Team
+
+    resolved_clubs = ["Alfa", "Bravo", "Charlie", "Delta"]
+    teams = [
+        {"club": club, "label": f"{club} 1", "age_group": "U10"} for club in resolved_clubs
+    ]
+    problem = _problem(teams)
+    problem["clubs"] = {club: f"{club} Arena" for club in resolved_clubs}
+    # One proper 2-parallel-game / 3-round shape for four single-team clubs.
+    rounds = [
+        {
+            "home": game.home.label,
+            "away": game.away.label,
+            "parallel_slot": game.parallel_slot,
+            "round_number": game.round_number,
+        }
+        for game in generate_tournament_games(
+            [
+                Team(club=team["club"], label=team["label"], age_group=team["age_group"])
+                for team in teams
+            ],
+            parallel_games=2,
+        )
+    ]
+    tournament_hosts = list(hosts) if hosts is not None else resolved_clubs
+    dates = ["2026-10-10", "2026-11-14", "2026-12-12", "2027-01-16"]
+    plan = _plan(
+        [
+            {
+                "id": f"T{index}",
+                "date": dates[index],
+                "arena": f"{tournament_hosts[index]} Arena",
+                "age_group": "U10",
+                "host_club": tournament_hosts[index],
+                "teams": teams,
+                "games": rounds,
+                "start_time": "10:00",
+            }
+            for index in range(4)
+        ]
+    )
+    return plan, problem
+
+
+def _seal_season(root: Path, plan: Dict[str, Any], problem: Dict[str, Any], revision: str) -> None:
+    from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
+    from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
+
+    projection = tournament_projection(plan, problem)
+    CanonicalSeasonService(root=root).seal_published_season(
+        season=YEAR,
+        publication_id="2026-09-22T0900",
+        canonical_revision=revision,
+        published_at="2026-09-22T09:00:00+00:00",
+        published_projection=projection,
+        publication_canonical_projection=projection,
+        actor="tester",
+    )
+
+
+def _clean_sealed_season(tmp_path: Path, *, hosts: Optional[Iterable[str]] = None):
+    plan, problem = _clean_season_plan(hosts=hosts)
+    root = tmp_path / "season"
+    revision = _write_season(
+        root, plan, problem, approved=[tournament["id"] for tournament in plan["tournaments"]]
+    )
+    _seal_season(root, plan, problem, revision)
+    return root, plan, problem, revision
+
+
+def _checks_by_rule(report: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    return {check["rule_id"]: check for check in report["audit"]["checks"]}
+
+
+def test_season_audit_cli_reaches_pass_with_complete_owner_evidence(
+    tmp_path: Path, capsys
+) -> None:
+    from tournament_scheduler.cli.rvv_cli import main
+
+    root, _plan_dict, _problem_dict, _revision = _clean_sealed_season(tmp_path)
+
+    rc = main(["season", "audit", "--season", YEAR, "--root", str(root), "--json"])
+
+    assert rc == 0
+    output = json.loads(capsys.readouterr().out)
+    audit = output["audit"]
+    assert audit["status"] == "PASS", audit["reasons"]
+    assert audit["ok"] is True
+    assert audit["coverage_ok"] is True
+    assert audit["incomplete_checks"] == []
+    assert audit["violation_checks"] == []
+    assert audit["mandatory_finding_checks"] == []
+    # The six formerly-stuck rules are all resolved from owner evidence.
+    checks = _checks_by_rule(output)
+    for rule_id in (
+        "request_team_unavailable",
+        "request_minimum_gap",
+        "request_opponent_avoidance",
+        "hosting_age_group_coverage",
+        "hosting_responsibility",
+        "guest_reservation_integrity",
+    ):
+        assert checks[rule_id]["status"] == "clear", rule_id
+
+
+@pytest.mark.parametrize(
+    "definition, expected_rule",
+    [
+        (
+            {
+                "type": "team_unavailable",
+                "request_id": "req-unavailable-1",
+                "teams": [{"club": "Alfa", "label": "Alfa 1", "age_group": "U10"}],
+                "date_from": "2026-10-10",
+                "date_to": "2026-10-10",
+            },
+            "request_team_unavailable",
+        ),
+        (
+            {
+                "type": "minimum_gap",
+                "request_id": "req-gap-1",
+                "teams": [{"club": "Alfa", "label": "Alfa 1", "age_group": "U10"}],
+                "min_days": 40,
+            },
+            "request_minimum_gap",
+        ),
+        (
+            {
+                "type": "opponent_avoidance",
+                "request_id": "req-avoid-1",
+                "teams": [
+                    {"club": "Alfa", "label": "Alfa 1", "age_group": "U10"},
+                    {"club": "Bravo", "label": "Bravo 1", "age_group": "U10"},
+                ],
+                "date_from": "2026-11-14",
+                "date_to": "2026-11-14",
+            },
+            "request_opponent_avoidance",
+        ),
+    ],
+)
+def test_season_audit_each_request_constraint_rule_fails_independently(
+    tmp_path: Path, definition: Dict[str, Any], expected_rule: str
+) -> None:
+    from tournament_scheduler.canonical_state import REQUEST_CONSTRAINTS_KEY
+    from tournament_scheduler.request_constraints import (
+        append_request_constraints,
+        validate_and_normalize,
+    )
+
+    root, plan, _problem_dict, _revision = _clean_sealed_season(tmp_path)
+    decisions_path = root / YEAR / "decisions.json"
+    decisions = json.loads(decisions_path.read_text(encoding="utf-8"))
+    constraint = validate_and_normalize(definition, plan)
+    append_request_constraints(decisions, [constraint])
+    assert decisions[REQUEST_CONSTRAINTS_KEY]
+    decisions_path.write_text(
+        json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    report = season_audit(YEAR, root=root)
+
+    checks = _checks_by_rule(report)
+    assert checks[expected_rule]["status"] == "violation"
+    for rule_id in (
+        "request_team_unavailable",
+        "request_minimum_gap",
+        "request_opponent_avoidance",
+    ):
+        if rule_id != expected_rule:
+            assert checks[rule_id]["status"] == "clear"
+    assert report["audit"]["hard_verification_ok"] is False
+    assert report["audit"]["ok"] is False
+
+
+def test_season_audit_hosting_coverage_and_responsibility_fail_independently(
+    tmp_path: Path,
+) -> None:
+    # Alfa hosts twice, Bravo never hosts: coverage is unresolved for Bravo and
+    # hosting responsibility was transferred onto Alfa.
+    root, _plan_dict, _problem_dict, _revision = _clean_sealed_season(
+        tmp_path, hosts=["Alfa", "Alfa", "Charlie", "Delta"]
+    )
+
+    report = season_audit(YEAR, root=root)
+
+    checks = _checks_by_rule(report)
+    assert checks["hosting_age_group_coverage"]["status"] == "finding"
+    assert checks["hosting_responsibility"]["status"] == "finding"
+    assert set(report["audit"]["mandatory_finding_checks"]) == {
+        "hosting_age_group_coverage",
+        "hosting_responsibility",
+    }
+    assert report["audit"]["ok"] is False
+
+
+def test_season_audit_guest_reservation_integrity_violation_blocks(tmp_path: Path) -> None:
+    plan, problem = _clean_season_plan()
+    # A filled reservation with no matching guest participant: the place was
+    # consumed outside the reserve/fill/release lifecycle.
+    plan["tournaments"][0]["guest_slots"] = [
+        {"id": "guest:1", "status": "filled", "external_team": {"club": "X", "label": "X 1"}}
+    ]
+    root = tmp_path / "season"
+    revision = _write_season(
+        root, plan, problem, approved=[tournament["id"] for tournament in plan["tournaments"]]
+    )
+    _seal_season(root, plan, problem, revision)
+
+    report = season_audit(YEAR, root=root)
+
+    checks = _checks_by_rule(report)
+    assert checks["guest_reservation_integrity"]["status"] == "violation"
+    assert "guest_reservation_integrity" in report["audit"]["violation_checks"]
+    assert report["audit"]["hard_verification_ok"] is False
+    assert report["audit"]["ok"] is False
+
+
+def test_season_audit_stays_incomplete_when_hosting_owner_evidence_is_missing(
+    tmp_path: Path,
+) -> None:
+    plan, problem = _clean_season_plan()
+    problem.pop("teams", None)
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    report = season_audit(YEAR, root=root)
+
+    checks = _checks_by_rule(report)
+    assert checks["hosting_age_group_coverage"]["status"] == "incomplete"
+    assert "registered-team evidence" in checks["hosting_age_group_coverage"]["incomplete_reason"]
+    assert checks["hosting_responsibility"]["status"] == "incomplete"
+    assert "registered-team evidence" in checks["hosting_responsibility"]["incomplete_reason"]
+    assert report["audit"]["coverage_ok"] is False
+    assert report["audit"]["ok"] is False
+
+
+def test_season_audit_revision_drift_is_never_a_pass(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from tournament_scheduler import season_maintenance
+    from tournament_scheduler.canonical_state import CANONICAL_STATE_REVISION_KEY
+
+    root, _plan_dict, _problem_dict, _revision = _clean_sealed_season(tmp_path)
+    real_load_context = season_maintenance.load_context
+    calls = {"count": 0}
+
+    def drifting_load_context(season, *, root):
+        schedule, decisions, plan, problem = real_load_context(season, root=root)
+        calls["count"] += 1
+        if calls["count"] >= 2:
+            decisions = dict(decisions)
+            decisions[CANONICAL_STATE_REVISION_KEY] = "drifted-revision"
+        return schedule, decisions, plan, problem
+
+    monkeypatch.setattr(season_maintenance, "load_context", drifting_load_context)
+
+    report = season_maintenance.season_audit(YEAR, root=root)
+
+    assert report["audit"]["revision_matches"] is False
+    assert report["audit"]["revision_stable"] is False
+    assert report["audit"]["ok"] is False

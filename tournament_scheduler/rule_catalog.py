@@ -657,6 +657,7 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
         mutation_providers=("guest-fill", "guest-release"),
         evidence_projection=("season_plan.html guest places", "semantic audit guest_reservations"),
         tests=("tests/test_guest_slots.py",),
+        verifier_codes=("guest_reservation_integrity",),
     ),
 )
 

@@ -566,3 +566,45 @@ def test_review_packet_workbook_shows_guest_places(tmp_path: Path) -> None:
     assert "1 fylt gjesteplass" in labels
     participating = " ".join(str(row[header.index("Deltakende lag")]) for row in rows.values())
     assert "External IF 1 (gjest)" in participating
+
+
+def test_guest_reservation_integrity_requires_filled_records_to_match_guests() -> None:
+    """A filled reservation is represented by exactly one guest participant.
+
+    Dropping the participant while keeping the ``filled`` record (or adding a
+    guest participant with no reservation) consumed/introduced a place outside
+    the reserve/fill/release lifecycle and must fail the canonical verifier.
+    """
+    from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
+
+    filled_slot = {
+        "id": "guest:1",
+        "status": "filled",
+        "external_team": {"club": "X", "label": "X1"},
+    }
+    guest_team = {"club": "X", "label": "X1", "age_group": "JU12", "guest": True}
+
+    # Generate a full four-team round robin and then declare X1 the filled
+    # guest, so the games already include the reserved place.
+    consistent = _candidate(["A1", "B1", "C1", "X1"])
+    for team in consistent["tournaments"][0]["teams"]:
+        if team["label"] == "X1":
+            team["guest"] = True
+    consistent["tournaments"][0]["guest_slots"] = [filled_slot]
+    assert guest_reservation_integrity_violations(consistent["tournaments"]) == []
+    assert verify_candidate(consistent)["ok"], verify_candidate(consistent)["violations"]
+
+    dropped_participant = _candidate(["A1", "B1", "C1"])
+    dropped_participant["tournaments"][0]["guest_slots"] = [filled_slot]
+    codes = {v["code"] for v in guest_reservation_integrity_violations(dropped_participant["tournaments"])}
+    assert codes == {"guest_reservation_integrity"}
+    # The verifier enforces the same invariant by its stable catalog code.
+    assert "guest_reservation_integrity" in {
+        violation["code"] for violation in verify_candidate(dropped_participant)["violations"]
+    }
+
+    orphan_guest = _candidate(["A1", "B1", "C1"])
+    orphan_guest["tournaments"][0]["teams"].append(guest_team)
+    assert "guest_reservation_integrity" in {
+        violation["code"] for violation in verify_candidate(orphan_guest)["violations"]
+    }
