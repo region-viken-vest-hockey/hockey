@@ -34,6 +34,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
 from tournament_scheduler.hosting_coverage import hosting_balance_matrix
+from tournament_scheduler.participation_withdrawals import eligible_hosting_teams
 
 # Stable finding code shared by every consumer (provider rejection evidence,
 # Stage 3 transition guard, review evidence).
@@ -51,7 +52,7 @@ def hosting_responsibility_facts(
     stable, JSON-serializable shape so callers never depend on the internal
     reporting row layout.
     """
-    teams = (problem or {}).get("teams") or []
+    teams = eligible_hosting_teams(problem)
     tournaments = (candidate or {}).get("tournaments") or []
     return [
         {

@@ -568,15 +568,17 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
         id="hosting_age_group_coverage",
         classification=OPERATIONAL_OBLIGATION,
         meaning=(
-            "For every (club, age_group) with at least one registered team, the club receives "
+            "For every (club, age_group) with at least one eligible team, the club receives "
             "at least one hosting responsibility in that age group during the season whenever "
-            "the number of tournaments makes it mathematically possible. This is club x "
+            "the number of tournaments makes it mathematically possible. A durable, age-group "
+            "withdrawal removes the retiring team from that eligible pool, so it no longer "
+            "creates a hosting obligation no operation could satisfy. This is club x "
             "age-group coverage, not aggregate club hosting. A structural shortfall (fewer "
             "tournaments than clubs needing coverage) is surfaced explicitly, never hidden as "
             "a soft imbalance."
         ),
         canonical_owner="tournament_scheduler.hosting_coverage.hosting_targets_with_coverage_floor",
-        input_source="planning_problem.teams + candidate tournaments (hosting_coverage_matrix)",
+        input_source="planning_problem eligible teams (registered roster minus durable age-group withdrawals) + candidate tournaments (hosting_coverage_matrix)",
         verifier_owner="tournament_scheduler.hosting_coverage.hosting_coverage_matrix",
         mutation_providers=(
             "hosting_balance_repair",
@@ -670,12 +672,12 @@ _SOFT: tuple[RuleEntry, ...] = (
         meaning=(
             "After the age-group coverage floor is satisfied (or a structural shortfall is "
             "explicitly surfaced), remaining hosting responsibility is distributed roughly in "
-            "proportion to registered team counts. This objective is secondary to coverage: a "
+            "proportion to eligible team counts. This objective is secondary to coverage: a "
             "larger club may legitimately under-host relative to its proportional target so a "
             "smaller club gets its first responsibility."
         ),
         canonical_owner="tournament_scheduler.hosting_coverage.hosting_balance_matrix",
-        input_source="planning_problem.teams + candidate tournaments",
+        input_source="planning_problem eligible teams + candidate tournaments",
         verifier_owner="tournament_scheduler.hosting_coverage.material_hosting_balance_imbalances",
         mutation_providers=("hosting_balance_repair",),
         evidence_projection=(

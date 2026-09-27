@@ -581,6 +581,51 @@ def project_into_problem(
     return resolved
 
 
+def eligible_hosting_teams(
+    problem: Mapping[str, Any] | None,
+) -> list[Mapping[str, Any]]:
+    """Return the registered teams that still require hosting coverage/balance.
+
+    A durable, age-group-scoped withdrawal removes the team from its club's
+    *eligible* pool for the whole age group, so it must no longer contribute to
+    that club x age-group hosting target or coverage obligation. A
+    tournament-scoped withdrawal is a single-tournament absence and leaves the
+    team in its age-group pool.
+
+    The registered ``Lag`` roster in ``problem["teams"]`` is never rewritten;
+    this is a derived, read-only view. It mirrors the eligible-pool projection
+    the shape and round-count verifiers already consume, so a durably withdrawn
+    team cannot keep generating a phantom hosting obligation that no operation
+    can legally satisfy. A problem without the withdrawal projection simply
+    returns the registered teams unchanged.
+    """
+
+    if not isinstance(problem, Mapping):
+        return []
+    teams = [team for team in (problem.get("teams") or []) if isinstance(team, Mapping)]
+    excluded = {
+        (
+            str(entry.get("club") or ""),
+            str(entry.get("label") or ""),
+            str(entry.get("age_group") or ""),
+        )
+        for entry in withdrawn_ineligible_entries(problem)
+        if entry.get("scope") == SCOPE_AGE_GROUP
+    }
+    if not excluded:
+        return teams
+    return [
+        team
+        for team in teams
+        if (
+            str(team.get("club") or ""),
+            str(team.get("label") or ""),
+            str(team.get("age_group") or ""),
+        )
+        not in excluded
+    ]
+
+
 def withdrawn_team_count_for_tournament(
     problem: Mapping[str, Any] | None,
     tournament_id: str,
@@ -636,6 +681,7 @@ __all__ = [
     "append_withdrawal_records",
     "build_withdrawal_records",
     "effective_from_for_tournaments",
+    "eligible_hosting_teams",
     "is_registered_participant",
     "project_into_problem",
     "record_scope",
