@@ -26,7 +26,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from tournament_scheduler.calendar_bookings import MANUAL_BOOKING_ASSERTIONS_KEY
+from tournament_scheduler.calendar_bookings import (
+    CLUB_BOOKING_SOURCE_ASSERTIONS_KEY,
+    MANUAL_BOOKING_ASSERTIONS_KEY,
+)
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.published_baseline import SEASON_LIFECYCLE_KEY
 
@@ -79,6 +82,13 @@ def compute_canonical_state_revision(
         "ice_time_minutes_overrides": decisions.get(ICE_TIME_OVERRIDES_KEY) or [],
         "verification_context": schedule.get("verification_context"),
     }
+    # Included only when present so adding the club-wide source overlay does not
+    # silently rewrite the revision of an existing season that has no source
+    # record; recording/clearing one does advance the revision as any other
+    # semantic decision would.
+    club_booking_sources = decisions.get(CLUB_BOOKING_SOURCE_ASSERTIONS_KEY)
+    if club_booking_sources:
+        payload["club_booking_source_assertions"] = club_booking_sources
     return stable_payload_sha256(payload)
 
 
@@ -147,6 +157,7 @@ __all__ = [
     "CALENDAR_BOOKING_ASSOCIATIONS_KEY",
     "CANONICAL_STATE_REVISION_KEY",
     "CHANGE_PROTECTIONS_KEY",
+    "CLUB_BOOKING_SOURCE_ASSERTIONS_KEY",
     "ICE_TIME_OVERRIDES_KEY",
     "PARTICIPATION_ACCEPTANCES_KEY",
     "PARTICIPATION_ACCEPTANCE_PREFIX",

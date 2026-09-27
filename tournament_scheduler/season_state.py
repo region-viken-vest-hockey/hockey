@@ -73,6 +73,7 @@ __all__ = [
     "change_protection_report",
     "clear_ice_time_minutes",
     "clear_manual_booking_assertion",
+    "club_booking_sources",
     "compact_history",
     "history_inventory",
     "confirm_calendar_booking",
@@ -81,6 +82,7 @@ __all__ = [
     "release_calendar_booking",
     "set_ice_time_minutes",
     "set_manual_booking_assertion",
+    "set_club_booking_source",
     "effective_config_from_verification_problem",
     "export_context_path",
     "fill_guest_slot",
@@ -650,6 +652,7 @@ def set_manual_booking_assertion(
     note: str = "",
     reference: str = "",
     source_scope: str = "tournament",
+    source_assertion_id: str | None = None,
     stated_start: str | None = None,
     stated_end: str | None = None,
     expected_revision: str | None = None,
@@ -665,6 +668,7 @@ def set_manual_booking_assertion(
         note=note,
         reference=reference,
         source_scope=source_scope,
+        source_assertion_id=source_assertion_id,
         stated_start=stated_start,
         stated_end=stated_end,
         expected_revision=expected_revision,
@@ -690,6 +694,44 @@ def clear_manual_booking_assertion(
         note=note,
         dry_run=dry_run,
     )
+
+
+def set_club_booking_source(
+    *,
+    season: str,
+    club: str,
+    source_document: str,
+    source_version: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    reference: str = "",
+    source_fingerprint: str | None = None,
+    expected_revision: str | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).set_club_booking_source(
+        season=season,
+        club=club,
+        source_document=source_document,
+        source_version=source_version,
+        actor=actor,
+        note=note,
+        reference=reference,
+        source_fingerprint=source_fingerprint,
+        expected_revision=expected_revision,
+        dry_run=dry_run,
+    )
+
+
+def club_booking_sources(
+    *,
+    season: str,
+    club: str | None = None,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return _service(root).club_booking_sources(season=season, club=club, problem=problem)
 
 
 def set_ice_time_minutes(

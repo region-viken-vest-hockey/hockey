@@ -1333,11 +1333,13 @@ def _cmd_season(args: argparse.Namespace) -> int:
         change_protection_report,
         clear_ice_time_minutes,
         clear_manual_booking_assertion,
+        club_booking_sources,
         compact_history,
         confirm_calendar_booking,
         decisions_path,
         reconcile_calendar_bookings,
         release_calendar_booking,
+        set_club_booking_source,
         set_ice_time_minutes,
         set_manual_booking_assertion,
         fill_guest_slot,
@@ -2169,6 +2171,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 note=args.note,
                 reference=args.reference,
                 source_scope=args.source_scope,
+                source_assertion_id=args.source_assertion_id,
                 stated_start=args.stated_start,
                 stated_end=args.stated_end,
                 expected_revision=args.expected_revision,
@@ -2216,6 +2219,78 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 _console.print(
                     f"[yellow]•[/yellow] No active manual booking assertion for {args.tournament_id}"
                 )
+            return 0
+
+        if args.season_command == "booking-source-set":
+            result = set_club_booking_source(
+                season=args.season,
+                root=args.root,
+                club=args.club,
+                source_document=args.source_document,
+                source_version=args.source_version,
+                source_fingerprint=args.source_fingerprint,
+                actor=args.actor,
+                note=args.note,
+                reference=args.reference,
+                expected_revision=args.expected_revision,
+                dry_run=args.dry_run,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            elif result.get("idempotent"):
+                _console.print(
+                    f"[green]✓[/green] Club booking source for {args.club} already recorded "
+                    "(unchanged)"
+                )
+            else:
+                prefix = "Validated" if args.dry_run else "Recorded"
+                source = result.get("source", {})
+                _console.print(
+                    f"[green]✓[/green] {prefix} club booking source for {args.club}: "
+                    f"{source.get('source_document')} @ {source.get('source_version')} "
+                    f"({source.get('id')})"
+                )
+            return 0
+
+        if args.season_command == "booking-sources":
+            result = club_booking_sources(
+                season=args.season,
+                root=args.root,
+                club=args.club,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Club booking sources {args.season}[/bold]: {result.get('count', 0)} source(s)"
+                )
+                for source in result.get("sources") or []:
+                    provenance = (
+                        f"{source.get('source_document')} @ {source.get('source_version')}"
+                        if source.get("source_document")
+                        else "unprovenanced"
+                    )
+                    review = (
+                        " [yellow]review[/yellow]"
+                        if source.get("requires_operator_review")
+                        else ""
+                    )
+                    _console.print(
+                        f"  {source.get('host_club') or '—'}: {provenance} "
+                        f"({len(source.get('tournament_ids') or [])} id(s)){review}"
+                    )
+                    for item in source.get("tournaments") or []:
+                        follow = item.get("interval_follow_up") or []
+                        suffix = f" [yellow]{', '.join(follow)}[/yellow]" if follow else ""
+                        _console.print(
+                            f"    {item.get('tournament_id')} {item.get('booking_status')} "
+                            f"({item.get('operational_state')}){suffix}"
+                        )
+                    for pair in source.get("overlapping_source_intervals") or []:
+                        _console.print(
+                            f"    [yellow]⚠ overlapping canonical intervals: "
+                            f"{', '.join(pair)}[/yellow]"
+                        )
             return 0
 
         if args.season_command == "set-ice-time-minutes":

@@ -659,6 +659,7 @@ class CanonicalSeasonService:
         note: str = "",
         reference: str = "",
         source_scope: str = "tournament",
+        source_assertion_id: str | None = None,
         stated_start: str | None = None,
         stated_end: str | None = None,
         expected_revision: str | None = None,
@@ -675,6 +676,7 @@ class CanonicalSeasonService:
             note=note,
             reference=reference,
             source_scope=source_scope,
+            source_assertion_id=source_assertion_id,
             stated_start=stated_start,
             stated_end=stated_end,
             expected_revision=expected_revision,
@@ -699,6 +701,48 @@ class CanonicalSeasonService:
             actor=actor,
             note=note,
             dry_run=dry_run,
+        )
+
+    def set_club_booking_source(
+        self,
+        *,
+        season: str,
+        club: str,
+        source_document: str,
+        source_version: str,
+        actor: str | None = None,
+        note: str = "",
+        reference: str = "",
+        source_fingerprint: str | None = None,
+        expected_revision: str | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _calendars.set_club_booking_source(
+            self,
+            season=season,
+            club=club,
+            source_document=source_document,
+            source_version=source_version,
+            actor=actor,
+            note=note,
+            reference=reference,
+            source_fingerprint=source_fingerprint,
+            expected_revision=expected_revision,
+            dry_run=dry_run,
+        )
+
+    def club_booking_sources(
+        self,
+        *,
+        season: str,
+        club: str | None = None,
+        problem: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return _calendars.club_booking_sources(
+            self,
+            season=season,
+            club=club,
+            problem=problem,
         )
 
     def set_ice_time_minutes(

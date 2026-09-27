@@ -1267,6 +1267,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     season_booking_set.add_argument(
+        "--source-assertion-id",
+        default=None,
+        help=(
+            "Link this per-tournament interpretation to a recorded club-wide booking "
+            "source (requires --source-scope club_wide_interpretation)"
+        ),
+    )
+    season_booking_set.add_argument(
         "--stated-start",
         default=None,
         help="Optional source-stated start time HH:MM (recorded separately from canonical occupancy)",
@@ -1303,6 +1311,51 @@ def build_parser() -> argparse.ArgumentParser:
     season_booking_clear.add_argument("--note", default="", help="Audited reason for revoking the assertion")
     season_booking_clear.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
     season_booking_clear.add_argument("--json", action="store_true", help="Print structured JSON")
+
+    season_booking_source_set = season_sub.add_parser(
+        "booking-source-set",
+        help=(
+            "Record a club-wide booking source document (list/email/spreadsheet) as durable "
+            "accepted authority, preserving its version and provenance"
+        ),
+    )
+    season_booking_source_set.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_booking_source_set.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_booking_source_set.add_argument("--club", required=True, help="Host club the booking list belongs to")
+    season_booking_source_set.add_argument(
+        "--source-document",
+        required=True,
+        help="Source document identity/path, e.g. changes_and_confirmations/2026-27/Holmen.xlsx",
+    )
+    season_booking_source_set.add_argument(
+        "--source-version",
+        required=True,
+        help="Source version the operator reviewed, e.g. a date, email id or received timestamp",
+    )
+    season_booking_source_set.add_argument(
+        "--source-fingerprint",
+        default=None,
+        help="Optional explicit content fingerprint; defaults to a deterministic identity of club/document/version",
+    )
+    season_booking_source_set.add_argument("--actor", default=None, help="Operator identity")
+    season_booking_source_set.add_argument("--note", default="", help="Audited rationale for accepting this source")
+    season_booking_source_set.add_argument("--reference", default="", help="Source reference, e.g. email id/date/sender")
+    season_booking_source_set.add_argument(
+        "--expected-revision",
+        default=None,
+        help="Fail closed unless the canonical-state revision matches",
+    )
+    season_booking_source_set.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
+    season_booking_source_set.add_argument("--json", action="store_true", help="Print structured JSON")
+
+    season_booking_sources = season_sub.add_parser(
+        "booking-sources",
+        help="Read-only per-ID disposition for recorded club-wide booking sources",
+    )
+    season_booking_sources.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_booking_sources.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_booking_sources.add_argument("--club", default=None, help="Optional host-club filter")
+    season_booking_sources.add_argument("--json", action="store_true", help="Print the source disposition as JSON")
 
     season_set_ice_time = season_sub.add_parser(
         "set-ice-time-minutes",
