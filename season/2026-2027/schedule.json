@@ -309,7 +309,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "142ac62ec2aa72169abdc724535620471a49394ad7615037c62cf569233060d4",
+  "fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -4590,15 +4590,15 @@
         "club": "Frisk Asker",
         "coverage_unresolved": false,
         "deficit": 0,
-        "delta": 1,
-        "excess": 1,
+        "delta": 0,
+        "excess": 0,
         "manual_placement_required": 0,
         "manual_unplaced": 0,
         "placed_automatically": 2,
         "responsibility_deficit": 0,
-        "responsibility_delta": 1,
-        "responsibility_excess": 1,
-        "target": 1,
+        "responsibility_delta": 0,
+        "responsibility_excess": 0,
+        "target": 2,
         "target_unmet_structural": false,
         "teams": 1
       },
@@ -4635,26 +4635,6 @@
         "manual_placement_required": 0,
         "manual_unplaced": 0,
         "placed_automatically": 1,
-        "responsibility_deficit": 0,
-        "responsibility_delta": 0,
-        "responsibility_excess": 0,
-        "target": 1,
-        "target_unmet_structural": false,
-        "teams": 1
-      },
-      {
-        "actual": 0,
-        "actual_physical_hosting": 0,
-        "age_group": "JU8",
-        "assigned_responsibility": 1,
-        "club": "Ringerike",
-        "coverage_unresolved": true,
-        "deficit": 1,
-        "delta": -1,
-        "excess": 0,
-        "manual_placement_required": 1,
-        "manual_unplaced": 1,
-        "placed_automatically": 0,
         "responsibility_deficit": 0,
         "responsibility_delta": 0,
         "responsibility_excess": 0,
@@ -5684,46 +5664,6 @@
       }
     ],
     "hosting_balance_imbalances": [
-      {
-        "actual": 2,
-        "actual_physical_hosting": 2,
-        "age_group": "JU8",
-        "assigned_responsibility": 2,
-        "club": "Frisk Asker",
-        "coverage_unresolved": false,
-        "deficit": 0,
-        "delta": 1,
-        "excess": 1,
-        "manual_placement_required": 0,
-        "manual_unplaced": 0,
-        "placed_automatically": 2,
-        "responsibility_deficit": 0,
-        "responsibility_delta": 1,
-        "responsibility_excess": 1,
-        "target": 1,
-        "target_unmet_structural": false,
-        "teams": 1
-      },
-      {
-        "actual": 0,
-        "actual_physical_hosting": 0,
-        "age_group": "JU8",
-        "assigned_responsibility": 1,
-        "club": "Ringerike",
-        "coverage_unresolved": true,
-        "deficit": 1,
-        "delta": -1,
-        "excess": 0,
-        "manual_placement_required": 1,
-        "manual_unplaced": 1,
-        "placed_automatically": 0,
-        "responsibility_deficit": 0,
-        "responsibility_delta": 0,
-        "responsibility_excess": 0,
-        "target": 1,
-        "target_unmet_structural": false,
-        "teams": 1
-      },
       {
         "actual": 4,
         "actual_physical_hosting": 4,
@@ -11313,12 +11253,8 @@
       "publishable": false,
       "reasons": [
         {
-          "code": "unresolved_hosting",
-          "count": 1
-        },
-        {
           "code": "hosting_balance_imbalances",
-          "count": 16
+          "count": 14
         },
         {
           "code": "manual_calendar_placements",
@@ -27757,7 +27693,7 @@
       {
         "age_group": "U11",
         "arena": "Kongsberghallen",
-        "date": "2026-10-18",
+        "date": "2026-11-08",
         "games": [
           {
             "away": "Frisk Asker 4",
@@ -27852,7 +27788,7 @@
         ],
         "host_club": "Kongsberg",
         "id": "mp_unplaced_placement_U11_2026_10_18_1",
-        "start_time": "15:30",
+        "start_time": "16:30",
         "teams": [
           {
             "age_group": "U11",
@@ -33689,13 +33625,7 @@
         "tournament_id": "rvv-0191"
       }
     ],
-    "unresolved_hosting_obligations": [
-      {
-        "age_group": "JU8",
-        "club": "Ringerike",
-        "reason": "required hosting obligation has no verified feasible automatic slot"
-      }
-    ],
+    "unresolved_hosting_obligations": [],
     "unresolved_participation_shortfalls": [
       {
         "actual": "2",
@@ -40532,10 +40462,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "142ac62ec2aa72169abdc724535620471a49394ad7615037c62cf569233060d4",
+  "revision": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-27T16:46:38.714011+00:00",
+  "updated_at": "2026-09-27T19:25:42.833262+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],
