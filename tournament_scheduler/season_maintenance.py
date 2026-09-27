@@ -263,6 +263,41 @@ def _problem_from_schedule(schedule: Mapping[str, Any]) -> Dict[str, Any]:
     return dict(problem)
 
 
+def project_canonical_overlays(
+    problem: Mapping[str, Any],
+    *,
+    decisions: Mapping[str, Any],
+    plan: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Project live canonical decisions onto a promoted planning problem.
+
+    This is the single facade for the canonical overlays that every verification
+    consumer of the promoted problem must share: holiday-date exceptions,
+    operator-banned dates, calendar-booking associations and durable
+    participation withdrawals. Keeping it in one place is what lets
+    ``season findings``/``season audit``/repair and ``season export`` agree with
+    the apply-time verification boundary instead of each re-deriving a subset.
+
+    The overlay projections may return the same mapping or a copy; every call
+    is written back explicitly so ordering and equality are preserved.
+    """
+    from .calendar_bookings import project_associations_into_problem
+    from .canonical_banned_dates import project_banned_dates_into_problem
+    from .canonical_holiday_exceptions import project_exceptions_into_problem
+    from .participation_withdrawals import project_into_problem
+
+    projected: Dict[str, Any] = dict(problem)
+    projected = project_exceptions_into_problem(projected, decisions)
+    projected = project_banned_dates_into_problem(projected, decisions)
+    projected = project_associations_into_problem(projected, decisions, plan) or projected
+    # A durable participation withdrawal reduces the eligible shape pool. Every
+    # shape/round-count verifier must see the same reduced pool the apply-time
+    # candidate was verified against, or a committed withdrawal looks
+    # hard-invalid after the fact.
+    projected = project_into_problem(projected, decisions=decisions, plan=plan)
+    return projected
+
+
 def load_context(
     season: str,
     *,
@@ -279,18 +314,8 @@ def load_context(
     decisions = load_decisions(season, root=root)
     problem = _problem_from_schedule(schedule)
     problem["canonical_baseline"] = build_canonical_baseline(schedule, decisions)
-    # Active canonical operator banned dates are projected into the existing
-    # ``manual_adjustments.banned_dates`` read path so findings, repair options,
-    # bounded search and candidate-weekend enumeration all respect them from one
-    # authoritative source instead of a second date-policy implementation.
-    from .calendar_bookings import project_associations_into_problem
-    from .canonical_banned_dates import project_banned_dates_into_problem
-    from .canonical_holiday_exceptions import project_exceptions_into_problem
-
     plan = dict(schedule.get("plan") or {})
-    problem = project_exceptions_into_problem(problem, decisions)
-    problem = project_banned_dates_into_problem(problem, decisions)
-    problem = project_associations_into_problem(problem, decisions, plan) or problem
+    problem = project_canonical_overlays(problem, decisions=decisions, plan=plan)
     # A persisted operator acceptance is injected as verifier search evidence so
     # the same independent verifier that classifies every other deviation also
     # honours an explicit operator_accepted decision -- and stops honouring it

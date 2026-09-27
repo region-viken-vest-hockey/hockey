@@ -1396,20 +1396,18 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
             # The provenance-bound problem is frozen at the season's original
             # promotion time; a later canonical decision (banned date, holiday
-            # exception, calendar-booking association) never mutates it. Project
-            # the *current* canonical overlays into it here -- mirroring
-            # season_maintenance.load_context -- so this export gate verifies
-            # against the same live decisions that season findings/repair-options
-            # already accepted, instead of re-litigating against stale policy.
-            from ..calendar_bookings import project_associations_into_problem
-            from ..canonical_banned_dates import project_banned_dates_into_problem
-            from ..canonical_holiday_exceptions import project_exceptions_into_problem
+            # exception, calendar-booking association, participation
+            # withdrawal) never mutates it. Project the *current* canonical
+            # overlays into it here -- through the one shared facade -- so this
+            # export gate verifies against the same live decisions that season
+            # findings/repair-options already accepted, instead of re-litigating
+            # against stale policy or the raw registered pool.
+            from ..season_maintenance import project_canonical_overlays
 
-            verification_problem = project_exceptions_into_problem(verification_problem, decisions)
-            verification_problem = project_banned_dates_into_problem(verification_problem, decisions)
-            verification_problem = (
-                project_associations_into_problem(verification_problem, decisions, schedule.get("plan") or {})
-                or verification_problem
+            verification_problem = project_canonical_overlays(
+                verification_problem,
+                decisions=decisions,
+                plan=schedule.get("plan") or {},
             )
             # The public/source presentation snapshot is carried with the
             # promoted handoff, so export never reads mutable `.pipeline`

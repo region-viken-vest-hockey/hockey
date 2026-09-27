@@ -19,7 +19,13 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonStore,
     SeasonStateError,
 )
+from tournament_scheduler.final_verification import verify_final_candidate
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.season_maintenance import (
+    load_context,
+    project_canonical_overlays,
+    season_audit,
+)
 from tournament_scheduler.participation_withdrawals import (
     WITHDRAWN_INELIGIBLE_FIELD,
     build_withdrawal_records,
@@ -989,6 +995,33 @@ def test_ringerike_ju8_withdrawal_regression_case(tmp_path: Path) -> None:
     )
     assert replay["ok"] is True
     assert replay["applied_mutation_count"] >= 1
+
+    # The committed withdrawal must remain valid when export/audit re-load the
+    # promoted problem: the durable eligible-pool reduction has to reach the
+    # shape and round-count verifiers instead of only the apply-time candidate.
+    # The export gate loads the frozen promoted problem and projects the live
+    # canonical overlays onto it through the same shared facade.
+    frozen_problem = dict(
+        load_schedule("2026-2027", root=root)["verification_context"]["problem"]
+    )
+    export_problem = project_canonical_overlays(
+        frozen_problem, decisions=decisions, plan=after_plan
+    )
+    export_result = verify_candidate(dict(after_plan), dict(export_problem))
+    assert export_result["ok"] is True, export_result["violations"]
+
+    _, _, audit_plan, audit_problem = load_context("2026-2027", root=root)
+    audit_verification = verify_final_candidate(dict(audit_plan), dict(audit_problem))
+    audit_codes = [violation["code"] for violation in audit_verification["violations"]]
+    assert "bye_team_not_allowed" not in audit_codes
+    assert "configured_round_count_mismatch" not in audit_codes
+    assert audit_verification["ok"] is True
+
+    audit_report = season_audit("2026-2027", root=root)["audit"]
+    assert "tournament_roster_shape" not in audit_report["violation_checks"]
+    assert "tournament_round_count" not in audit_report["violation_checks"]
+    assert audit_report["hard_verification_ok"] is True
+    assert audit_report["blocking_finding_count"] == 0
 
     # Refusal is atomic: a removal that would leave an avoidable underfill
     # writes nothing.
