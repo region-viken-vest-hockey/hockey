@@ -464,3 +464,87 @@ class TestSpondPublicBundle:
 
         assert result.status == "blocked"
         assert not (tmp_path / "public").exists()
+
+
+def _workbook_with_comment(path: Path) -> None:
+    from openpyxl.comments import Comment
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Sesongplan"
+    sheet["A1"] = "approved"
+    sheet["A1"].comment = Comment("private roster note: coach@example.com", "author")
+    workbook.save(path)
+
+
+def _workbook_with_hyperlink(path: Path) -> None:
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Sesongplan"
+    sheet["A1"] = "approved"
+    sheet["A1"].hyperlink = "https://internal.example/booking-evidence"
+    workbook.save(path)
+
+
+def _inject_zip_part(path: Path, name: str, data: bytes) -> None:
+    import zipfile
+
+    tmp = path.with_suffix(".tmp.xlsx")
+    with zipfile.ZipFile(path) as source, zipfile.ZipFile(tmp, "w") as destination:
+        for item in source.infolist():
+            destination.writestr(item, source.read(item.filename))
+        destination.writestr(name, data)
+    tmp.replace(path)
+
+
+class TestXlsxPackageValidation:
+    """Issue #509 follow-up: a binary workbook must not be copied on trust.
+
+    Text can hide in comments, hyperlink targets and non-cell package parts, so
+    the whole package is validated and any unexpected part blocks the bundle.
+    """
+
+    def test_sensitive_comment_in_season_workbook_blocks_the_bundle(self, tmp_path):
+        export_dir = _export_dir(tmp_path)
+        _workbook_with_comment(export_dir / "season_plan.xlsx")
+
+        result = build_public_bundle(str(export_dir), str(tmp_path / "public"))
+
+        assert result.status == "blocked"
+        assert result.requires_human is True
+        assert not (tmp_path / "public").exists()
+        assert any("comment" in problem for problem in result.problems)
+
+    def test_hyperlink_in_season_workbook_blocks_the_bundle(self, tmp_path):
+        export_dir = _export_dir(tmp_path)
+        _workbook_with_hyperlink(export_dir / "season_plan.xlsx")
+
+        result = build_public_bundle(str(export_dir), str(tmp_path / "public"))
+
+        assert result.status == "blocked"
+        assert not (tmp_path / "public").exists()
+
+    def test_unexpected_package_part_blocks_the_bundle(self, tmp_path):
+        export_dir = _export_dir(tmp_path)
+        workbook_path = export_dir / "season_plan.xlsx"
+        _write_xlsx(workbook_path)
+        _inject_zip_part(workbook_path, "customXml/item1.xml", b"<private>note</private>")
+
+        result = build_public_bundle(str(export_dir), str(tmp_path / "public"))
+
+        assert result.status == "blocked"
+        assert not (tmp_path / "public").exists()
+        assert any("custom_xml" in problem or "unexpected" in problem for problem in result.problems)
+
+    def test_clean_workbooks_still_pass(self, tmp_path):
+        export_dir = _export_dir(tmp_path)
+        _write_xlsx(export_dir / "season_plan.xlsx")
+        _write_xlsx(export_dir / "season_plan_spond.xlsx")
+        _write_xlsx(export_dir / "season_plan_spond_games.xlsx")
+
+        result = build_public_bundle(str(export_dir), str(tmp_path / "public"))
+
+        assert result.status == "ok"
+        assert (tmp_path / "public" / "season_plan.xlsx").exists()
+        assert (tmp_path / "public" / "season_plan_spond.xlsx").exists()
+        assert (tmp_path / "public" / "season_plan_spond_games.xlsx").exists()

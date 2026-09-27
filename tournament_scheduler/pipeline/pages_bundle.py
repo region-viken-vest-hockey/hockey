@@ -17,10 +17,12 @@ Fail-closed defaults:
   included file blocks the whole bundle (``CapabilityResult.blocked``) —
   the operator must review and either fix the source or explicitly
   acknowledge the finding via ``allow_findings`` before it can be published.
-- An allowlisted XLSX workbook is not copied on trust: it is inspected first
-  and blocks the bundle if it carries macros, embedded objects, external
-  links, hidden sheets, formulas, or secret/contact/path cell values. Text
-  redaction cannot sanitize a binary workbook, so the workbook fails closed
+- An allowlisted XLSX workbook is not copied on trust: the whole package is
+  validated first and blocks the bundle if it carries any non-structural part
+  (comments, hyperlinks, drawings, custom XML, external links, embeddings,
+  macros, ...), hidden sheets, formulas, or secret/contact/path cell or
+  metadata values. Text redaction cannot sanitize a binary workbook, and
+  private text can hide in non-cell parts, so the workbook fails closed
   instead.
 - Local filesystem paths and contact info (emails, phone numbers in a
   labeled context like ``tel:``/``Tlf``) are redacted rather than blocking,
@@ -260,35 +262,101 @@ def _redact_contact_and_paths(text: str) -> tuple[str, list[tuple[str, int]]]:
     return text, counts
 
 
-def _inspect_xlsx_safety(path: Path, rel: str, allow_findings: frozenset[str]) -> list[dict[str, str]]:
-    """Fail-closed content inspection for an allowlisted XLSX workbook.
+# Structural XLSX package parts that a public workbook may contain. Anything
+# else -- comments, hyperlinks, drawings/charts/media, custom XML, external
+# links, embeddings, macros, pivot/connection caches -- is rejected, because a
+# binary workbook cannot be sanitized by text redaction and private text can
+# hide in non-cell parts.
+_ALLOWED_XLSX_PACKAGE_PARTS: frozenset[str] = frozenset(
+    {
+        "[Content_Types].xml",
+        "_rels/.rels",
+        "docProps/app.xml",
+        "docProps/core.xml",
+        "xl/_rels/workbook.xml.rels",
+        "xl/styles.xml",
+        "xl/workbook.xml",
+        "xl/sharedStrings.xml",
+    }
+)
+_ALLOWED_XLSX_PART_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"^xl/worksheets/sheet\d+\.xml$"),
+    re.compile(r"^xl/theme/theme\d+\.xml$"),
+)
+_XLSX_RELATIONSHIP_PARTS: tuple[str, ...] = ("_rels/.rels", "xl/_rels/workbook.xml.rels")
 
-    Text redaction cannot sanitize a binary workbook, so an allowlisted
-    workbook that carries macros, embedded objects or external links, hidden
-    sheets, formulas, or secret/contact/path cell values is not copied on
-    trust: every finding is reported as a blocking finding for the whole
-    bundle. Sensitive docProps metadata is inspected the same way.
+
+def _xlsx_part_is_allowed(name: str) -> bool:
+    if name in _ALLOWED_XLSX_PACKAGE_PARTS:
+        return True
+    return any(pattern.match(name) for pattern in _ALLOWED_XLSX_PART_PATTERNS)
+
+
+def _classify_xlsx_part(name: str) -> str:
+    lowered = name.lower()
+    if lowered.endswith("vbaproject.bin") or "macrosheet" in lowered:
+        return "workbook_macro"
+    if "externallink" in lowered:
+        return "workbook_external_link"
+    if lowered.startswith("xl/embeddings/") or "oleobject" in lowered:
+        return "workbook_embedded_object"
+    if "comment" in lowered or lowered.endswith(".vml") or "vml" in lowered or "person" in lowered:
+        return "workbook_comment"
+    if (
+        lowered.startswith("xl/drawings/")
+        or lowered.startswith("xl/charts/")
+        or lowered.startswith("xl/media/")
+        or lowered.startswith("xl/pivot")
+        or lowered.startswith("xl/connections")
+    ):
+        return "workbook_drawing"
+    if lowered.startswith("customxml/") or lowered.startswith("docprops/custom"):
+        return "workbook_custom_xml"
+    if lowered.endswith(".rels"):
+        return "workbook_relationship"
+    return "workbook_unexpected_part"
+
+
+def _inspect_xlsx_safety(path: Path, rel: str, allow_findings: frozenset[str]) -> list[dict[str, str]]:
+    """Strict, fail-closed inspection of an allowlisted XLSX package.
+
+    Text redaction cannot sanitize a binary workbook, so the whole package is
+    validated rather than trusted: every ZIP part must be an allowed structural
+    part (sheets, workbook, styles, theme, core/app properties), every
+    relationship must be internal, and every visible sheet must contain only
+    plain values. Comments, hyperlinks, drawings, custom XML, external links,
+    embeddings, macros, formulas, hidden sheets and secret/contact/path cell or
+    metadata values each block the whole bundle.
     """
     findings: list[dict[str, str]] = []
 
     try:
         with zipfile.ZipFile(path) as archive:
             entries = archive.namelist()
-    except (zipfile.BadZipFile, OSError) as exc:
+            contents = {name: archive.read(name) for name in entries}
+    except (zipfile.BadZipFile, OSError, KeyError) as exc:
         return [{"file": rel, "category": "workbook_unreadable", "detail": str(exc)}]
 
     for name in entries:
-        lowered = name.lower()
-        if lowered.endswith("vbaproject.bin") or "macrosheet" in lowered:
-            findings.append({"file": rel, "category": "workbook_macro", "detail": name})
-        if "externallink" in lowered:
+        if not _xlsx_part_is_allowed(name):
+            findings.append({"file": rel, "category": _classify_xlsx_part(name), "detail": name})
+
+    for name in _XLSX_RELATIONSHIP_PARTS:
+        raw = contents.get(name)
+        if raw and b'targetmode="external"' in raw.lower():
             findings.append({"file": rel, "category": "workbook_external_link", "detail": name})
-        if lowered.startswith("xl/embeddings/") or "oleobject" in lowered:
-            findings.append({"file": rel, "category": "workbook_embedded_object", "detail": name})
+
+    content_types = contents.get("[Content_Types].xml")
+    if content_types and (b"macroenabled" in content_types.lower() or b"vbaproject" in content_types.lower()):
+        findings.append({"file": rel, "category": "workbook_macro", "detail": "[Content_Types].xml"})
+
+    for name in entries:
+        if name.startswith("xl/worksheets/") and name.endswith(".xml") and b"<hyperlink" in contents[name].lower():
+            findings.append({"file": rel, "category": "workbook_hyperlink", "detail": name})
 
     def _scan_text(value: str, location: str) -> None:
-        for name, _matched in _find_secrets(value, allow_findings):
-            findings.append({"file": rel, "category": f"workbook_secret:{name}", "detail": location})
+        for secret_name, _matched in _find_secrets(value, allow_findings):
+            findings.append({"file": rel, "category": f"workbook_secret:{secret_name}", "detail": location})
         if _EMAIL_PATTERN.search(value):
             findings.append({"file": rel, "category": "workbook_contact_email", "detail": location})
         if _PHONE_PATTERN.search(value):

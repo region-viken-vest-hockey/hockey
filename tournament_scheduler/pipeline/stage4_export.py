@@ -834,14 +834,19 @@ def run(
             round_length_for_age_group=round_length_for_age_group,
             ice_time_for_age_group=ice_time_for_age_group,
         )
-        exporter.export_schedule_attachment(
+        # Register each published artifact independently so a failure of the
+        # second export never silently drops the link to a workbook that was
+        # actually written (and vice versa).
+        if Path(spond_path).exists():
+            output_files["spond"] = spond_path
+        exporter.export_public_schedule_attachment(
             plan,
             schedule_path,
             round_length_for_age_group=round_length_for_age_group,
             ice_time_for_age_group=ice_time_for_age_group,
         )
-        output_files["spond"] = spond_path
-        output_files["spond_games"] = schedule_path
+        if Path(schedule_path).exists():
+            output_files["spond_games"] = schedule_path
     except Exception as exc:  # noqa: BLE001
         errors.append(f"Spond-eksport feilet: {exc}")
 

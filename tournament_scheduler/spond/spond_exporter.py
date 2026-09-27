@@ -128,6 +128,7 @@ class SpondExporter:
         club: str | None = None,
         round_length_for_age_group: Optional[dict[str, int]] = None,
         ice_time_for_age_group: Optional[dict[str, int]] = None,
+        include_cancellation_reason: bool = True,
     ) -> str:
         """Build a printable workbook with one game-schedule sheet per tournament."""
         wb = openpyxl.Workbook()
@@ -153,6 +154,7 @@ class SpondExporter:
                     sheet,
                     tournament,
                     ice_time_for_age_group,
+                    include_cancellation_reason=include_cancellation_reason,
                 )
 
         out = Path(output_path)
@@ -160,6 +162,31 @@ class SpondExporter:
         wb.save(str(out))
         console.print(f"[green]Spond-kampoppsett lagret til[/green] [bold]{out}[/bold]")
         return str(out)
+
+    def export_public_schedule_attachment(
+        self,
+        plan: SeasonPlan,
+        output_path: str,
+        *,
+        round_length_for_age_group: Optional[dict[str, int]] = None,
+        ice_time_for_age_group: Optional[dict[str, int]] = None,
+    ) -> str:
+        """Export the public-safe game attachment (approved schedule fields only).
+
+        Identical to :meth:`export_schedule_attachment` except that the free-text
+        ``cancellation_reason`` is never written. A cancelled tournament still
+        shows the ``(AVLYST)`` marker in its title, but internal booking notes or
+        other free-text reasons stay out of the published workbook. Per-club
+        review packets keep the default :meth:`export_schedule_attachment` and
+        may still carry the reason privately.
+        """
+        return self.export_schedule_attachment(
+            plan,
+            output_path,
+            round_length_for_age_group=round_length_for_age_group,
+            ice_time_for_age_group=ice_time_for_age_group,
+            include_cancellation_reason=False,
+        )
 
     # ------------------------------------------------------------------
     # Internal
@@ -197,6 +224,8 @@ class SpondExporter:
         sheet: Worksheet,
         tournament: Tournament,
         ice_time_for_age_group: dict[str, int],
+        *,
+        include_cancellation_reason: bool = True,
     ) -> None:
         date_str = tournament.date.strftime("%d.%m.%Y")
         title = f"{date_str} ({self._weekday_name(tournament.date)}) — {tournament.age_group} — {tournament.arena}"
@@ -206,7 +235,7 @@ class SpondExporter:
         sheet.append([title])
         self._style_title_row(sheet, 1)
 
-        if tournament.cancelled:
+        if tournament.cancelled and include_cancellation_reason:
             reason = tournament.cancellation_reason or "ingen grunn oppgitt"
             sheet.append([f"AVLYST: {reason}"])
             self._style_title_row(sheet, 2)

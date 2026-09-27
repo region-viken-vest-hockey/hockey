@@ -1728,12 +1728,26 @@ class TestRunStage4:
             "teams": [],
             "games": [],
             "cancelled": True,
+            "cancellation_reason": "Intern booking: bruk hallen senere",
         })
         state = PipelineState(tmp_path / "pipeline")
         result = run(data, state, export_dir=str(tmp_path / "export"), timestamped_export=False)
         report_html = Path(result["output_files"]["html_report"]).read_text(encoding="utf-8")
         assert "turnering(er) avlyst." not in report_html
         assert "id=\"rulesTable\"" in report_html
+
+        # The published game attachment is the approved public projection: it
+        # marks the cancellation but never carries the internal reason text.
+        games = openpyxl.load_workbook(result["output_files"]["spond_games"])
+        games_text = "\n".join(
+            str(cell)
+            for sheet in games.worksheets
+            for row in sheet.iter_rows(values_only=True)
+            for cell in row
+            if cell is not None
+        )
+        assert "Intern booking: bruk hallen senere" not in games_text
+        assert "(AVLYST)" in games_text
 
     def test_scraping_envelope_updated_at_still_read_without_error(self, tmp_path):
         """Regression guard for the read_stage()-vs-read_envelope() bug this
