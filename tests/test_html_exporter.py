@@ -203,6 +203,83 @@ class TestBookingStatusRendering:
         assert "heatmap-booking-confirmed_not_booked" in html
         assert "booket bekreftet" in html
 
+    def test_schedule_embeds_distinct_approval_and_booking_states(self, tmp_path):
+        plan_dict = {
+            "start_date": "2025-10-01",
+            "end_date": "2025-12-01",
+            "tournaments": [
+                {
+                    "id": "holmen-booked",
+                    "date": "2025-11-01",
+                    "arena": "Holmen ishall",
+                    "age_group": "U11",
+                    "host_club": "Holmen",
+                    "teams": [
+                        {"club": "Holmen", "label": "H1", "age_group": "U11"},
+                        {"club": "Jar", "label": "J1", "age_group": "U11"},
+                    ],
+                    "games": [{"home": "H1", "away": "J1", "parallel_slot": 0, "round_number": 1}],
+                    "start_time": "13:30",
+                },
+                {
+                    "id": "sandefjord-pending",
+                    "date": "2025-11-02",
+                    "arena": "Sandefjord ishall",
+                    "age_group": "U8",
+                    "host_club": "Sandefjord Penguins",
+                    "teams": [
+                        {"club": "Sandefjord Penguins", "label": "SP1", "age_group": "U8"},
+                        {"club": "Skien", "label": "S1", "age_group": "U8"},
+                    ],
+                    "games": [{"home": "SP1", "away": "S1", "parallel_slot": 0, "round_number": 1}],
+                    "start_time": "09:00",
+                },
+            ],
+        }
+        exporter = HtmlExporter()
+        out_path = tmp_path / "season_plan.html"
+        exporter.export(
+            season_plan_from_dict(plan_dict),
+            out_path,
+            age_groups=["U8", "U11"],
+            pipeline_meta={
+                "approval_status": {
+                    "tournaments": [
+                        {"tournament_id": "holmen-booked", "status": "approved", "placement_locked": True},
+                        {"tournament_id": "sandefjord-pending", "status": "approved", "placement_locked": True},
+                    ]
+                },
+                "booking_status": {
+                    "tournaments": [
+                        {
+                            "tournament_id": "holmen-booked",
+                            "status": "manually_booked",
+                            "operational_state": "booked",
+                            "operational_lock": True,
+                            "authority": "manual_club_confirmation",
+                        },
+                        {
+                            "tournament_id": "sandefjord-pending",
+                            "status": "ambiguous",
+                            "operational_state": "not_booked",
+                            "operational_lock": False,
+                            "needs_attention": False,
+                        },
+                    ]
+                },
+            },
+        )
+        embedded = {row["id"]: row for row in _embedded_tournaments(out_path.read_text(encoding="utf-8"))}
+        assert embedded["holmen-booked"]["ap"] == "approved"
+        assert embedded["holmen-booked"]["apl"] is True
+        assert embedded["holmen-booked"]["obs"] == "booked"
+        assert embedded["holmen-booked"]["bs"] == "manually_booked"
+        assert embedded["holmen-booked"]["obl"] is True
+        assert embedded["sandefjord-pending"]["ap"] == "approved"
+        assert embedded["sandefjord-pending"]["obs"] == "not_booked"
+        assert embedded["sandefjord-pending"]["bs"] == "ambiguous"
+        assert embedded["sandefjord-pending"]["obl"] is False
+
     def test_legacy_payload_fallback_prefers_accepted_confirmation(self):
         """A legacy payload without ``obs`` must not let retained provisional
         metadata demote an accepted confirmation.
@@ -213,7 +290,7 @@ class TestBookingStatusRendering:
 
         node = shutil.which("node")
         if node is None:
-            pytest.skip("node is unavailable; cannot execute the shipped template fallback")
+            pytest.fail("node is required to execute the shipped template fallback")
 
         source = (
             Path(__file__).resolve().parents[1]

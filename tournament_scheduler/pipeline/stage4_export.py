@@ -27,6 +27,7 @@ This file owns the ``run()`` orchestration itself and the CLI entry point.
 from __future__ import annotations
 
 import copy
+import json
 import logging
 import os
 import sys
@@ -377,24 +378,75 @@ def run(
     # Exported plans are projections of canonical schedule + decision state,
     # so the export surfaces which placements the operator already approved
     # (and which approvals have gone stale) instead of making clubs re-review
-    # them.  Best-effort: a missing/unreadable canonical season just means no
-    # approval overlay, never an export failure.
+    # them. Diagnostic booking reconciliation is isolated below so a failed
+    # assessment cannot erase already-resolved approval/booking overlays.
     approval_status: dict[str, Any] | None = None
     booking_status: dict[str, Any] | None = None
+    booking_reconciliation: dict[str, Any] | None = None
+    booking_reconciliation_error: str | None = None
     try:
         from ..canonical_baseline import resolve_canonical_state
-        from ..season_state import approval_report, booking_status_report
+        from ..season_state import (
+            approval_report,
+            booking_status_report,
+            calendar_booking_assessment,
+        )
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"Kunne ikke laste kanoniske beslutningsprojeksjoner: {exc}")
+        resolve_canonical_state = None
+        approval_report = None
+        booking_status_report = None
+        calendar_booking_assessment = None
 
-        plan_start = getattr(plan, "start_date", None)
-        plan_end = getattr(plan, "end_date", None)
-        if plan_start is not None and plan_end is not None:
+    plan_start = getattr(plan, "start_date", None)
+    plan_end = getattr(plan, "end_date", None)
+    resolved = None
+    if resolve_canonical_state is not None and plan_start is not None and plan_end is not None:
+        try:
             resolved = resolve_canonical_state(effective_config, plan_start, plan_end)
-            if resolved:
-                approval_status = approval_report(resolved["season"], root=resolved["root"])
-                booking_status = booking_status_report(season=resolved["season"], root=resolved["root"])
-    except Exception:
-        approval_status = None
-        booking_status = None
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Kunne ikke finne kanonisk sesong for beslutningsprojeksjoner: {exc}")
+    if resolved:
+        try:
+            approval_status = approval_report(resolved["season"], root=resolved["root"])
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Godkjenningsprojeksjon feilet: {exc}")
+        try:
+            booking_status = booking_status_report(season=resolved["season"], root=resolved["root"])
+            status_revision = str((booking_status or {}).get("canonical_state_revision") or "")
+            if canonical_revision and not status_revision:
+                errors.append(
+                    "Bookingsstatus mangler kanonisk revisjon for eksportrevisjon "
+                    f"{canonical_revision}"
+                )
+            elif canonical_revision and status_revision != str(canonical_revision):
+                errors.append(
+                    "Bookingsstatus-revisjon "
+                    f"{status_revision} matcher ikke eksportrevisjon {canonical_revision}"
+                )
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Bookingsstatusprojeksjon feilet: {exc}")
+        try:
+            booking_reconciliation = calendar_booking_assessment(
+                season=resolved["season"],
+                root=resolved["root"],
+            )
+            assessment_revision = str((booking_reconciliation or {}).get("canonical_state_revision") or "")
+            if canonical_revision and not assessment_revision:
+                raise RuntimeError(
+                    "booking reconciliation missing canonical revision for export revision "
+                    f"{canonical_revision}"
+                )
+            if canonical_revision and assessment_revision != str(canonical_revision):
+                raise RuntimeError(
+                    "booking reconciliation revision "
+                    f"{assessment_revision} does not match export canonical revision {canonical_revision}"
+                )
+        except Exception as exc:  # noqa: BLE001
+            booking_reconciliation = None
+            booking_reconciliation_error = str(exc)
+            if canonical_revision:
+                errors.append(f"Bookingavstemming feilet for eksportrevisjon {canonical_revision}: {exc}")
 
     if plan_dict.get("placeholder") == "not_started" or (plan_checkpoint.get("not_started") and not plan.tournaments):
         message = str(plan_dict.get("message") or NOT_STARTED_MESSAGE)
@@ -736,6 +788,25 @@ def run(
     # the context promoted with the season so this never re-reads mutable
     # `.pipeline` scrape state. It is provenance-bound to the reviewed handoff
     # by `fingerprint_public_export_context`.
+    if booking_reconciliation_error:
+        pipeline_meta["booking_reconciliation_error"] = booking_reconciliation_error
+        logger.warning("Kunne ikke bygge bookingavstemming: %s", booking_reconciliation_error)
+    if booking_reconciliation is not None:
+        try:
+            _progress("Skriver bookingavstemming")
+            booking_reconciliation_path = primary_export_path / "booking_reconciliation.json"
+            booking_reconciliation_path.write_text(
+                json.dumps(booking_reconciliation, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            output_files["booking_reconciliation"] = str(booking_reconciliation_path)
+            pipeline_meta["booking_reconciliation"] = {
+                "path": booking_reconciliation_path.name,
+                "summary": booking_reconciliation.get("summary", {}),
+            }
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Bookingavstemming feilet: {exc}")
+
     if public_export_context is None and use_pipeline_metadata:
         _progress("Samler pipeline-metadata for rapporten")
         try:
@@ -1050,6 +1121,8 @@ def run(
         "canonical_revision": canonical_revision,
         "approval_status": approval_status,
         "booking_status": booking_status,
+        "booking_reconciliation": booking_reconciliation,
+        "booking_reconciliation_error": booking_reconciliation_error,
         "export_lifecycle": lifecycle_manifest,
         "supersedes": supersedes,
         "export_projection_guard": export_projection_guard,
