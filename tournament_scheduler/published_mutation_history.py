@@ -7,10 +7,15 @@ The invariant owned here is:
     + recorded schedule-mutating canonical history
     = current canonical projection
 
-Only operations that can change the exported stable-id projection are replayed.
-Approval, booking evidence, request constraints, banned/holiday dates, calendar
-refresh, season baseline and audit metadata are decision-only and never move a
-tournament. Pre-publication mutations are safe to replay because a publication
+Only operations that can change the stable-id schedule projection used for
+baseline reconciliation are replayed. Approval, booking evidence, request
+constraints, banned/holiday dates, per-tournament ice-time overrides, calendar
+refresh, season baseline and audit metadata are decision-only: they advance the
+canonical revision but are never replayed as schedule mutations. A
+per-tournament ice-time override does change the rendered occupied interval, but
+the reconciliation projection is built from the canonical schedule without
+decision-only overlays, so the replay must recognize and skip the event rather
+than fail on it. Pre-publication mutations are safe to replay because a publication
 baseline already reflects them, so re-applying the same placement is a no-op.
 
 The comparison fails closed: any unexplained added/removed/moved/roster change
@@ -44,6 +49,7 @@ _DECISION_ONLY_EVENTS = {
     "allow_holiday_date",
     "approve",
     "ban_date",
+    "clear_ice_time_minutes",
     "clear_manual_booking_assertion",
     "confirm_calendar_booking",
     "disallow_holiday_date",
@@ -56,6 +62,7 @@ _DECISION_ONLY_EVENTS = {
     "season_baseline_advance",
     "season_baseline_create",
     "season_baseline_replace",
+    "set_ice_time_minutes",
     "set_manual_booking_assertion",
     "unapprove",
     "unban_date",
