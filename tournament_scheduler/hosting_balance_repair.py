@@ -34,6 +34,7 @@ from .host_representation import clubs_represent_same_club, constituent_clubs, h
 from .host_team_missing_repair import RepairOption, candidate_fingerprint, search_dimension_tag
 from .hosting_coverage import hosting_balance_matrix
 from .hosting_responsibility import unexplained_responsibility_transfers
+from .participation_withdrawals import eligible_hosting_teams
 from .planning_contract import verify_candidate
 from .stage3_optimizer import optimize_candidate
 
@@ -53,7 +54,7 @@ def hosting_deficit_rows(
     candidate: Mapping[str, Any],
 ) -> List[Dict[str, Any]]:
     """Deficit/coverage rows that constitute an actionable hosting finding."""
-    rows = hosting_balance_matrix((problem or {}).get("teams") or [], (candidate or {}).get("tournaments") or [])
+    rows = hosting_balance_matrix(eligible_hosting_teams(problem), (candidate or {}).get("tournaments") or [])
     return [row for row in rows if int(row.get("deficit", 0)) > 0]
 
 
@@ -483,7 +484,7 @@ def _hosting_improves(
 def _ledger_facts(
     problem: Mapping[str, Any], candidate: Mapping[str, Any]
 ) -> Dict[Tuple[str, str], Dict[str, Any]]:
-    rows = hosting_balance_matrix((problem or {}).get("teams") or [], (candidate or {}).get("tournaments") or [])
+    rows = hosting_balance_matrix(eligible_hosting_teams(problem), (candidate or {}).get("tournaments") or [])
     return {(str(row["age_group"]), str(row["club"])): row for row in rows}
 
 

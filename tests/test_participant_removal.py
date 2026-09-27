@@ -22,6 +22,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 from tournament_scheduler.final_verification import verify_final_candidate
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_maintenance import (
+    list_findings,
     load_context,
     project_canonical_overlays,
     season_audit,
@@ -29,6 +30,7 @@ from tournament_scheduler.season_maintenance import (
 from tournament_scheduler.participation_withdrawals import (
     WITHDRAWN_INELIGIBLE_FIELD,
     build_withdrawal_records,
+    eligible_hosting_teams,
     project_into_problem,
     withdrawn_team_count_for_tournament,
     withdrawn_team_identities_for_tournament,
@@ -890,6 +892,49 @@ def test_evaluate_removal_consequences_keeps_partially_removed_team_blocking() -
     assert retained["Echo|Echo 1|U10"]["membership_role"] == "removed"
 
 
+def test_eligible_hosting_teams_only_drops_durable_age_group_withdrawals() -> None:
+    """A retired team leaves the hosting pool; a single absence does not."""
+
+    problem = _problem()
+    teams = [dict(team) for team in problem["teams"]]
+    absent_plan = {
+        "tournaments": [
+            _tournament(
+                "u10-a",
+                "2026-10-03",
+                "Alfa",
+                [team for team in teams if team["label"] != "Echo 1"],
+            )
+        ]
+    }
+    record = build_withdrawal_records(
+        team={"club": "Echo", "label": "Echo 1", "age_group": "U10"},
+        tournament_ids=["u10-a"],
+        request_id="echo-retirement",
+        actor="tester",
+        note="retired",
+        created_at="2026-09-22T00:00:00+00:00",
+        source_revision="rev-1",
+        effective_from="2026-10-03",
+    )[0]
+
+    projected = project_into_problem(problem, records=[record], plan=absent_plan)
+    eligible = eligible_hosting_teams(projected)
+    assert {team["label"] for team in eligible} == {
+        team["label"] for team in teams if team["label"] != "Echo 1"
+    }
+
+    # A tournament-scoped absence keeps the team in its age-group hosting pool.
+    single_absence = dict(record)
+    single_absence["scope"] = "tournament"
+    single_absence["id"] = "withdrawal:test-single-absence"
+    projected_single = project_into_problem(problem, records=[single_absence], plan=absent_plan)
+    assert "Echo 1" in {team["label"] for team in eligible_hosting_teams(projected_single)}
+
+    # A problem without a withdrawal projection is returned unchanged.
+    assert eligible_hosting_teams(problem) == teams
+
+
 def _ringerike_problem() -> dict:
     teams = [
         {"club": club, "label": f"{club} 1", "age_group": "JU8"}
@@ -1055,6 +1100,23 @@ def test_ringerike_ju8_withdrawal_regression_case(tmp_path: Path) -> None:
     assert "tournament_round_count" not in audit_report["violation_checks"]
     assert audit_report["hard_verification_ok"] is True
     assert audit_report["blocking_finding_count"] == 0
+
+    # The same durable withdrawal must clear the phantom *hosting* obligation:
+    # the retired team no longer needs a home tournament in its age group, so
+    # the verifier, `season findings` and the exhaustive audit may not keep an
+    # obligation that no canonical repair (rehost/search) could ever satisfy.
+    assert export_result["unresolved_hosting_obligations"] == []
+    assert export_result["hosting_balance_imbalances"] == []
+    findings = list_findings("2026-2027", root=root)
+    finding_ids = {finding["finding_id"] for finding in findings["findings"]}
+    assert "hosting_balance:JU8:Ringerike" not in finding_ids
+    assert not any(
+        finding["code"] in {"unresolved_hosting_obligation", "hosting_balance_imbalance"}
+        and finding.get("club") == "Ringerike"
+        for finding in findings["findings"]
+    )
+    assert "hosting_age_group_coverage" not in audit_report["mandatory_finding_checks"]
+    assert "hosting_proportional_balance" not in audit_report["soft_finding_checks"]
 
     # Refusal is atomic: a removal that would leave an avoidable underfill
     # writes nothing.

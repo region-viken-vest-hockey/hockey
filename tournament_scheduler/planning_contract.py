@@ -67,6 +67,7 @@ from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes, m
 from tournament_scheduler.operator_waivers import find_participation_waiver
 from tournament_scheduler.participation_targets import SEASON_SCOPE, evaluate_participation
 from tournament_scheduler.participation_withdrawals import (
+    eligible_hosting_teams as _eligible_hosting_teams,
     withdrawn_team_count_for_tournament as _withdrawn_team_count_for_tournament,
     withdrawn_team_identities_for_tournament as _withdrawn_team_identities_for_tournament,
 )
@@ -1503,8 +1504,13 @@ def verify_candidate(
     from tournament_scheduler.hosting_cross_age_repair import club_hosting_evidence, unresolved_with_evidence
     from tournament_scheduler.hosting_same_age_repair import same_age_reallocation_candidates
 
-    coverage_rows = hosting_coverage_matrix(problem.get("teams", []), tournaments)
-    hosting_balance_rows = hosting_balance_matrix(problem.get("teams", []), tournaments)
+    # A durable age-group withdrawal removes the team from its club's eligible
+    # pool, so hosting coverage/balance/targets are derived from that eligible
+    # view rather than the raw registered roster; otherwise a retired team keeps
+    # a phantom hosting obligation that no canonical operation can clear.
+    eligible_hosting_teams = _eligible_hosting_teams(problem)
+    coverage_rows = hosting_coverage_matrix(eligible_hosting_teams, tournaments)
+    hosting_balance_rows = hosting_balance_matrix(eligible_hosting_teams, tournaments)
     hosting_balance_imbalances = material_hosting_balance_imbalances(hosting_balance_rows)
     # issue #328: also expose, per unresolved row, whichever of this club's
     # own surplus/duplicate hosting assignments in a *different* age group
@@ -1512,7 +1518,7 @@ def verify_candidate(
     # here (this is a pure verifier with no live planner to rebuild a
     # tournament through; see `hosting_cross_age_repair_apply.py` for where
     # SeasonPlanner actually attempts the repair).
-    coverage_evidence = club_hosting_evidence(problem.get("teams", []), tournaments)
+    coverage_evidence = club_hosting_evidence(eligible_hosting_teams, tournaments)
     unresolved_hosting_obligations = unresolved_with_evidence(coverage_rows, coverage_evidence, tournaments)
     # issue #329: also expose, per unresolved row, tournaments in that same
     # age group the club already participates in but does not host -- a
