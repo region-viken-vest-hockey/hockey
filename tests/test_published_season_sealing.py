@@ -326,6 +326,53 @@ def test_reconciliation_replays_typed_cancellation_guest_and_duration_mutations(
     assert report["ok"] is False
 
 
+def test_reconciliation_recognizes_ice_time_override_events_as_decision_only() -> None:
+    """Host-confirmed ice-time overrides advance the revision but are not replayed as schedule drift.
+
+    The override narrows the rendered occupied interval through the projected
+    verification problem, but the published-baseline reconciliation projection is
+    built from the canonical schedule without decision-only overlays. The replay
+    must therefore recognize the events and skip them instead of failing closed
+    on an unknown event, while a genuine schedule drift is still detected.
+    """
+
+    plan = {
+        "tournaments": [
+            _tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha"),
+            _tournament("rvv-2", "2026-11-15", "10:00", "B", "Beta"),
+        ]
+    }
+    configured = _problem(plan)
+    projection = tournament_projection(plan, configured)
+    report = reconcile_published_baseline(
+        published_projection=projection,
+        current_projection=projection,
+        history=[
+            {
+                "event": "set_ice_time_minutes",
+                "tournament_id": "rvv-1",
+                "details": {"minutes": 60, "default_minutes": 120},
+            },
+            {
+                "event": "clear_ice_time_minutes",
+                "tournament_id": "rvv-1",
+                "details": {"override_id": "ice-time-override:deadbeef"},
+            },
+        ],
+        attested_additions={},
+    )
+    assert report["ok"] is True
+    assert report["applied_mutation_count"] == 0
+
+    # The override is still a real occupancy change for the projected export
+    # problem; it just is not part of the reconciliation schedule projection.
+    overridden = tournament_projection(
+        plan, {**configured, "ice_time_minutes_overrides": {"rvv-1": 60}}
+    )
+    assert overridden["rvv-1"]["duration_minutes"] == 60
+    assert projection["rvv-1"]["duration_minutes"] == 120
+
+
 def test_full_operational_projection_detects_age_duration_cancellation_and_guest_drift() -> None:
     plan = {"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]}
     baseline = tournament_projection(plan, {"ice_time_minutes": {"U10": 120, "U11": 120}})
@@ -1091,6 +1138,62 @@ def test_sealed_move_reconciles_immediately(tmp_path: Path) -> None:
         tournament_id="rvv-1",
         start_time="11:00",
         actor="tester",
+    )
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+
+
+def test_sealed_ice_time_override_reconciles_and_keeps_maintenance_open(tmp_path: Path) -> None:
+    """A recorded per-tournament override must not block later sealed-season maintenance.
+
+    Regression for the published-baseline replay engine: the override advances the
+    canonical revision (and changes the rendered interval), but it is a
+    decision-only overlay in the reconciliation projection. An unrecognized
+    history event made every later real ``move``/``batch`` on the sealed season
+    refuse under the whole-season reconciliation precondition.
+    """
+
+    root = tmp_path / "season"
+    tournaments = [
+        _tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12"),
+        _tournament("rvv-2", "2026-11-15", "10:00", "B", "Beta", "U12"),
+    ]
+    _write_canonical(root, tournaments)
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load("2026-2027")
+    projection = tournament_projection(snapshot.schedule["plan"], _problem(snapshot.schedule["plan"]))
+    service.seal_published_season(
+        season="2026-2027",
+        publication_id="2026-09-21T0908",
+        canonical_revision="rev-published",
+        published_at="2026-09-21T09:14:53+00:00",
+        published_projection=projection,
+        publication_canonical_projection=projection,
+        materializations=[],
+        actor="tester",
+    )
+
+    service.set_ice_time_minutes(
+        season="2026-2027",
+        tournament_id="rvv-1",
+        minutes=60,
+        request_id="host-confirmation:demo",
+        note="host confirmed a shorter real window",
+        actor="tester",
+    )
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+
+    # The sealed-season reconciliation precondition on a real move must pass.
+    service.move_tournament(
+        season="2026-2027",
+        tournament_id="rvv-1",
+        start_time="13:00",
+        actor="tester",
+    )
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+
+    # Releasing the override restores the age default and still reconciles.
+    service.clear_ice_time_minutes(
+        season="2026-2027", tournament_id="rvv-1", actor="tester", note="window reverted"
     )
     assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
 
