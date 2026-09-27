@@ -5,7 +5,11 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 
 from tournament_scheduler.html.html_exporter import HtmlExporter
@@ -198,6 +202,50 @@ class TestBookingStatusRendering:
         assert "IKKE BOOKET" in html
         assert "heatmap-booking-confirmed_not_booked" in html
         assert "booket bekreftet" in html
+
+    def test_legacy_payload_fallback_prefers_accepted_confirmation(self):
+        """A legacy payload without ``obs`` must not let retained provisional
+        metadata demote an accepted confirmation.
+
+        The fallback lives in the shipped template, so evaluate the real
+        function with Node instead of re-implementing its precedence here.
+        """
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node is unavailable; cannot execute the shipped template fallback")
+
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "tournament_scheduler"
+            / "html"
+            / "templates"
+            / "script_schedule.js"
+        ).read_text(encoding="utf-8")
+        match = re.search(r"function operationalStateOf\(t\) \{.*?\n\}", source, re.S)
+        assert match, "operationalStateOf must exist in the shipped schedule template"
+
+        cases = [
+            # Accepted confirmation wins over retained provisional metadata.
+            ("accepted_plus_manual_reason", {"bs": "manually_booked", "mb": "provisional"}, "booked"),
+            ("accepted_plus_host_flag", {"bs": "confirmed_booked", "rhc": True}, "booked"),
+            # An explicit canonical state still wins when present.
+            ("obs_wins", {"obs": "not_booked", "bs": "manually_booked", "mb": "provisional"}, "not_booked"),
+            # Without a confirmation the provisional flags are manual work.
+            ("manual_without_confirmation", {"mb": "provisional"}, "action_required"),
+            ("host_flag_without_confirmation", {"rhc": True, "bs": "ambiguous"}, "action_required"),
+            ("rejected", {"bs": "manually_not_booked"}, "action_required"),
+            ("missing", {}, ""),
+        ]
+        script = (
+            match.group(0)
+            + "\nconst cases = "
+            + json.dumps(cases)
+            + ";\nconsole.log(JSON.stringify(cases.map(function(c){return [c[0], operationalStateOf(c[1]), c[2]];})));\n"
+        )
+        completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+        for name, got, expected in json.loads(completed.stdout):
+            assert got == expected, f"{name}: expected {expected!r}, got {got!r}"
 
 
 class TestTeamFilter:

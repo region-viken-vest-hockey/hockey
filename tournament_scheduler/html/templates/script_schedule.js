@@ -171,8 +171,10 @@ function buildMatchHTML(matches, byes) {
 // competing top-level badges, so operators get one clear state at a glance.
 function operationalStateOf(t) {
   if (t.obs) return t.obs;
-  if (t.mb || t.rhc) return 'action_required';
+  // Accepted confirmation wins over retained provisional metadata, matching
+  // the canonical owner. Legacy/hand-built payloads may omit obs entirely.
   if (t.bs === 'confirmed_booked' || t.bs === 'manually_booked') return 'booked';
+  if (t.mb || t.rhc) return 'action_required';
   if (t.bs === 'confirmed_not_booked' || t.bs === 'manually_not_booked' || t.bs === 'stale') return 'action_required';
   if (t.bs) return 'not_booked';
   return '';
