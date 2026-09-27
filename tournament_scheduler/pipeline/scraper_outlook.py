@@ -216,14 +216,16 @@ def _outlook_coverage_record(
     requested_start = start_date.date()
     requested_end = end_date.date()
     inspected = sorted(set(inspected_dates))
-    observed_start = min(inspected).isoformat() if inspected else None
-    observed_end = max(inspected).isoformat() if inspected else None
+    event_observed_start = min(inspected).isoformat() if inspected else None
+    event_observed_end = max(inspected).isoformat() if inspected else None
     base: dict[str, Any] = {
         "requested_start": requested_start.isoformat(),
         "requested_end": requested_end.isoformat(),
-        "observed_start": observed_start,
-        "observed_end": observed_end,
-        "observed_day_count": len(inspected),
+        "observed_start": None,
+        "observed_end": None,
+        "event_observed_start": event_observed_start,
+        "event_observed_end": event_observed_end,
+        "event_observed_day_count": len(inspected),
         "requested_day_count": (requested_end - requested_start).days + 1,
     }
     if exceptions:
@@ -253,7 +255,7 @@ def _outlook_coverage_record(
             "status": INTEGRITY_PARTIAL,
             "navigation_complete": False,
             "exceptions": [
-                f"Outlook-dekningen manglet {missing_days} dato(er): {summary}{more}."
+                f"Outlook event-data hadde ingen hentede hendelser for {missing_days} dato(er): {summary}{more}; kalenderdekningen er ikke uavhengig bekreftet."
             ],
         }
     return {

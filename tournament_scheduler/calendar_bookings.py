@@ -1154,6 +1154,10 @@ def booking_assessment(
                 "start": integrity_detail.get("observed_start"),
                 "end": integrity_detail.get("observed_end"),
             },
+            "event_observed_window": {
+                "start": integrity_detail.get("event_observed_start"),
+                "end": integrity_detail.get("event_observed_end"),
+            },
             "source_event_count": integrity_detail.get("event_count"),
             "coverage_proven": bool(coverage_proven.get(club, False)),
             # Absence in an otherwise trustworthy source is still only an

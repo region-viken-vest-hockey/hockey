@@ -231,6 +231,9 @@ def _source_health_result(
             evidence.append(
                 f"observed_window={integrity.get('observed_start')}..{integrity.get('observed_end')}"
             )
+            evidence.append(
+                f"event_observed_window={integrity.get('event_observed_start')}..{integrity.get('event_observed_end')}"
+            )
             if integrity.get("fingerprint"):
                 evidence.append(f"integrity_fingerprint={integrity.get('fingerprint')}")
             for reason in integrity.get("reasons") or []:

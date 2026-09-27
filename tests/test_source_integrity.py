@@ -223,7 +223,8 @@ def test_outlook_coverage_record_reports_missing_requested_months():
     assert coverage["status"] == INTEGRITY_PARTIAL
     assert coverage["navigation_complete"] is False
     assert coverage["requested_end"] == "2027-03-28"
-    assert coverage["observed_end"] == "2027-02-28"
+    assert coverage["observed_end"] is None
+    assert coverage["event_observed_end"] == "2027-02-28"
     assert any("2027-03-01" in reason for reason in coverage["exceptions"])
 
 
@@ -244,7 +245,8 @@ def test_outlook_coverage_record_requires_requested_days_not_just_month_heading(
     )
 
     assert coverage["status"] == INTEGRITY_PARTIAL
-    assert coverage["observed_end"] == "2027-03-06"
+    assert coverage["observed_end"] is None
+    assert coverage["event_observed_end"] == "2027-03-06"
     assert any("22 dato" in reason and "2027-03-07..2027-03-28" in reason for reason in coverage["exceptions"])
 
 
@@ -320,7 +322,8 @@ def test_outlook_iframe_records_only_rendered_dates(monkeypatch):
 
     coverage = events.coverage
     assert coverage["status"] == INTEGRITY_PARTIAL
-    assert coverage["observed_end"] == "2027-01-31"
+    assert coverage["observed_end"] is None
+    assert coverage["event_observed_end"] == "2027-01-31"
     assert any("did not change" in reason for reason in coverage["exceptions"])
 
 

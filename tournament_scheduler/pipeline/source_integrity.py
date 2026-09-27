@@ -368,8 +368,10 @@ def evaluate_source_integrity(
     )
     event_observed_start, event_observed_end = observed_event_range(events)
     if coverage is not None:
-        observed_start = str(coverage.get("observed_start") or event_observed_start or "") or None
-        observed_end = str(coverage.get("observed_end") or event_observed_end or "") or None
+        observed_start = str(coverage.get("observed_start") or "") or None
+        observed_end = str(coverage.get("observed_end") or "") or None
+        event_observed_start = str(coverage.get("event_observed_start") or event_observed_start or "") or None
+        event_observed_end = str(coverage.get("event_observed_end") or event_observed_end or "") or None
     else:
         observed_start, observed_end = event_observed_start, event_observed_end
 

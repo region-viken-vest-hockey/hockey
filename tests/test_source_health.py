@@ -112,6 +112,8 @@ class TestComputeSourceHealth:
         result = compute_source_health(str(tmp_path))[0]
 
         assert result.status == "warning"
+        assert "observed_window=None..None" in result.evidence
+        assert "event_observed_window=2027-03-01..2027-03-06" in result.evidence
         assert any("22 dato" in problem and "2027-03-07..2027-03-28" in problem for problem in result.problems)
 
     def test_partial_integrity_evidence_surfaces_bounds_and_fingerprint(self, tmp_path):
