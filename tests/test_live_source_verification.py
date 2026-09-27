@@ -110,11 +110,6 @@ def _month_count(start: datetime, end: datetime) -> int:
     return (end.year - start.year) * 12 + (end.month - start.month) + 1
 
 
-def _month_start_after(start: datetime, offset: int) -> datetime:
-    month_index = (start.month - 1) + offset
-    return datetime(start.year + month_index // 12, (month_index % 12) + 1, 1)
-
-
 _MONTH_NAMES = {
     "january": 1,
     "february": 2,
@@ -137,6 +132,49 @@ _MONTH_NAMES = {
     "oktober": 10,
     "desember": 12,
 }
+
+
+def _shift_month(month_start: date, offset: int) -> date:
+    month_index = (month_start.month - 1) + offset
+    return date(month_start.year + month_index // 12, (month_index % 12) + 1, 1)
+
+
+def _month_in_label(label: str | None) -> date | None:
+    """Parse a month/year a browser control label refers to, if present."""
+    if not label:
+        return None
+    lowered = label.lower()
+    for month_name, month in _MONTH_NAMES.items():
+        if month_name in lowered:
+            year_match = re.search(r"\b(20\d{2})\b", label)
+            if year_match:
+                return date(int(year_match.group(1)), month, 1)
+    return None
+
+
+def _iframe_actual_month(iframe: Any) -> date | None:
+    """Read the calendar's actually displayed month from a stable control.
+
+    The ``Go to next month <Month> <Year>`` control names the following month,
+    so the displayed month is the one before it. Reading the control instead of
+    the requested/expected month means a calendar that opens on the wrong month
+    or fails to advance cannot silently satisfy the expected-month sequence.
+    """
+    next_btn = iframe.query_selector('button[aria-label*="next month"]')
+    if next_btn is None:
+        return None
+    next_month = _month_in_label(next_btn.get_attribute("aria-label"))
+    if next_month is None:
+        return None
+    return _shift_month(next_month, -1)
+
+
+def _month_in_rendered_text(text: str, expected: date) -> bool:
+    lowered = text.lower()
+    for month_name, month in _MONTH_NAMES.items():
+        if month == expected.month and month_name in lowered and str(expected.year) in text:
+            return True
+    return False
 
 
 def _parse_visible_outlook_labels(labels: list[str], *, arena: str) -> list[tuple[str, str, str, str, str]]:
@@ -233,16 +271,55 @@ def _browser_observed_outlook_identities(
         page.wait_for_timeout(2000)
         iframe_element = page.query_selector("iframe")
         iframe = iframe_element.content_frame() if iframe_element else None
+        start_month = start.replace(day=1)
         if iframe is not None:
             iframe.wait_for_timeout(3000)
+            displayed = _iframe_actual_month(iframe)
+            assert displayed is not None, (
+                "browser-observed Outlook calendar did not expose a readable displayed month"
+            )
+            guard = 0
+            while displayed != start_month.date() and guard < 36:
+                guard += 1
+                selector = (
+                    'button[aria-label*="next month"]'
+                    if displayed < start_month.date()
+                    else 'button[aria-label*="previous month"]'
+                )
+                nav_btn = iframe.query_selector(selector)
+                assert nav_btn is not None, (
+                    f"browser-observed Outlook could not reach requested start month {start_month:%Y-%m} "
+                    f"from {displayed:%Y-%m}"
+                )
+                before = iframe.content()
+                nav_btn.click()
+                iframe.wait_for_timeout(1500)
+                assert iframe.content() != before, (
+                    f"browser-observed Outlook month did not change while aligning from {displayed:%Y-%m}"
+                )
+                displayed = _iframe_actual_month(iframe)
+                assert displayed is not None, (
+                    "browser-observed Outlook displayed month became unreadable while aligning"
+                )
+            assert displayed == start_month.date(), (
+                f"browser-observed Outlook aligned to {displayed:%Y-%m}, not requested {start_month:%Y-%m}"
+            )
             for month_idx in range(months):
-                expected = _month_start_after(start, month_idx)
+                expected = _shift_month(start_month.date(), month_idx)
+                actual = _iframe_actual_month(iframe)
+                assert actual is not None, (
+                    f"browser-observed Outlook displayed month unreadable at {expected:%Y-%m}"
+                )
+                assert actual == expected, (
+                    "browser-observed Outlook displayed month does not match the requested month: "
+                    f"displayed={actual:%Y-%m} expected={expected:%Y-%m}"
+                )
                 labels = iframe.locator("[aria-label]").evaluate_all(
                     "els => els.map(e => e.getAttribute('aria-label') || '')"
                 )
                 content = iframe.content()
                 raw_evidence += content
-                observed_months.append(expected.strftime("%Y-%m"))
+                observed_months.append(actual.strftime("%Y-%m"))
                 identities.extend(_parse_visible_outlook_labels(labels, arena=arena))
                 if month_idx < months - 1:
                     next_btn = iframe.query_selector('button[aria-label*="next month"]')
@@ -255,13 +332,17 @@ def _browser_observed_outlook_identities(
             parsed = urlparse(url)
             query = parse_qs(parsed.query)
             for month_idx in range(months):
-                month_start = _month_start_after(start, month_idx)
+                month_start = _shift_month(start_month.date(), month_idx)
                 q = dict(query)
                 q["date"] = [month_start.strftime("%Y-%m-%d")]
                 month_url = urlunparse(parsed._replace(query=urlencode(q, doseq=True)))
                 page.goto(month_url, timeout=30000)
                 page.wait_for_timeout(3000)
                 text = page.locator("body").inner_text(timeout=10000)
+                assert _month_in_rendered_text(text, month_start), (
+                    f"date-parameter page for {month_start:%Y-%m} did not render that month; "
+                    "requested-URL month is not independent evidence"
+                )
                 raw_evidence += text
                 observed_months.append(month_start.strftime("%Y-%m"))
                 identities.extend(_parse_visible_date_param_text(text, month_start=month_start, arena=arena))

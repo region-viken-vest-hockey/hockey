@@ -69,11 +69,32 @@ def _run_outlook_scraper(
                 iframe = iframe_element.content_frame()
                 iframe.wait_for_timeout(3000)
 
+                # The calendar opens on whatever month the browser currently
+                # considers "today", which can be before or after the requested
+                # season window. Align to the requested start month before
+                # scraping so the iteration cannot fall short of the end month.
+                displayed_month = _iframe_displayed_month(iframe, norwegian_months)
+                if displayed_month is None:
+                    coverage_exceptions.append(
+                        "Outlook calendar did not expose a readable displayed month before scraping."
+                    )
+                else:
+                    displayed_month, alignment_exceptions = _align_iframe_to_month(
+                        iframe, displayed_month, start_month.date(), norwegian_months
+                    )
+                    coverage_exceptions.extend(alignment_exceptions)
+
                 for month_idx in range(months_to_scrape):
                     iframe.wait_for_timeout(1000)
+                    expected_month = _month_start_after(start_month.date(), month_idx)
+                    current_month = _iframe_displayed_month(iframe, norwegian_months)
+                    if current_month is not None and current_month != expected_month:
+                        coverage_exceptions.append(
+                            f"Outlook displayed month {current_month:%Y-%m} did not match expected {expected_month:%Y-%m} before scraping it."
+                        )
+                        break
                     page_content = iframe.content()
                     raw_html += page_content
-                    expected_month = _month_start_after(start_month.date(), month_idx)
                     month_events = _parse_outlook_calendar(page_content, norwegian_months)
                     inspected_dates.extend(
                         day
@@ -180,6 +201,80 @@ def _deduplicate_outlook_events(events: list[CalendarEvent]) -> list[CalendarEve
             seen.add(key)
             unique.append(ev)
     return unique
+
+
+def _month_start_from_label(label: str | None, month_names: dict[str, int]) -> date | None:
+    """Parse the month/year a calendar control label refers to, if present."""
+    if not label:
+        return None
+    lowered = label.lower()
+    for month_name, month in month_names.items():
+        if month_name in lowered:
+            year_match = re.search(r"\b(20\d{2})\b", label)
+            if year_match:
+                return date(int(year_match.group(1)), month, 1)
+    return None
+
+
+def _iframe_displayed_month(iframe: Any, month_names: dict[str, int]) -> date | None:
+    """Return the month the iframe currently displays.
+
+    Outlook's month grid exposes a stable ``Go to next month <Month> <Year>``
+    control, so the displayed month is the month before that target. Using the
+    control rather than the rendered heading avoids trusting the requested
+    month (or a stale heading) as evidence that navigation actually happened.
+    """
+    next_btn = iframe.query_selector('button[aria-label*="next month"]')
+    get_attribute = getattr(next_btn, "get_attribute", None)
+    if next_btn is None or get_attribute is None:
+        return None
+    next_month = _month_start_from_label(get_attribute("aria-label"), month_names)
+    if next_month is None:
+        return None
+    return _month_start_after(next_month, -1)
+
+
+def _align_iframe_to_month(
+    iframe: Any,
+    displayed: date,
+    target: date,
+    month_names: dict[str, int],
+) -> tuple[date | None, list[str]]:
+    """Step the iframe to the requested month, reporting why alignment failed."""
+    exceptions: list[str] = []
+    guard = 0
+    while displayed != target and guard < 36:
+        guard += 1
+        selector = (
+            'button[aria-label*="next month"]'
+            if displayed < target
+            else 'button[aria-label*="previous month"]'
+        )
+        nav_btn = iframe.query_selector(selector)
+        if nav_btn is None:
+            exceptions.append(
+                f"Outlook calendar could not reach requested start month {target:%Y-%m} from {displayed:%Y-%m}."
+            )
+            break
+        before_content = iframe.content()
+        nav_btn.click()
+        iframe.wait_for_timeout(1500)
+        if iframe.content() == before_content:
+            exceptions.append(
+                f"Outlook calendar did not change while aligning to requested start month {target:%Y-%m}."
+            )
+            break
+        displayed = _iframe_displayed_month(iframe, month_names)
+        if displayed is None:
+            exceptions.append(
+                "Outlook displayed month became unreadable while aligning to the requested start month."
+            )
+            return None, exceptions
+    if displayed is not None and displayed != target:
+        exceptions.append(
+            f"Outlook calendar aligned to {displayed:%Y-%m}, not requested start month {target:%Y-%m}."
+        )
+    return displayed, exceptions
 
 
 def _month_start_after(start_month: date, offset: int) -> date:
