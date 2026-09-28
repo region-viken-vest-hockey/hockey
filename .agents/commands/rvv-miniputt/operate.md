@@ -44,7 +44,7 @@ Read `AGENTS.md`, `.agents/skills/rvv/SKILL.md`, and this repository's internal 
 
 ## Lazy-loaded operation families
 
-Route through `guide.md` and load only the needed family: `tournament-maintenance.md`, `booking-management.md`, `team-management.md`, `schedule-quality.md`, `governance.md`, or `season-delivery.md`. Compose families when a request crosses boundaries (for example, club booking rejection -> tournament repair -> distribution comparison -> export/audit). The specialized guides own detailed execution; this entry point retains the global authority and completion contract.
+Route through `guide.md` and load only the needed family: `tournament-maintenance.md`, `booking-management.md`, `team-management.md`, `schedule-quality.md`, `governance.md`, or `season-delivery.md`. For an audit or publication request, additionally load `audit-publication.md`. Compose families when a request crosses boundaries (for example, club booking rejection -> tournament repair -> distribution comparison -> export/audit). The specialized guides own detailed execution; this entry point retains the global authority and completion contract.
 
 ## Intent routing
 
