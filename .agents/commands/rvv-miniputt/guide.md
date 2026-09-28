@@ -14,6 +14,21 @@ At the start of a new session or after context loss, first follow `.agents/comma
 4. Load the matching shared procedure from `.agents/commands/rvv-miniputt/` and execute the repository-local command it specifies.
 5. Summarize the result and, when useful, suggest the next canonical RVV action.
 
+## Lazy-loaded operation routing
+
+Load only the relevant family, then the required sections of the canonical procedures. A family guide is orchestration guidance, not a new service command or a substitute for `season.md` and repository verification.
+
+| Operator intent | Load first | Compose when needed |
+| --- | --- | --- |
+| Move, postpone, cancel, add/materialize, repair or swap tournament roster | `tournament-maintenance.md` | `schedule-quality.md`, `booking-management.md`, `governance.md` |
+| Club booking confirmation/rejection, source/calendar correction | `booking-management.md` | `tournament-maintenance.md`, `season-delivery.md` |
+| Team joins, withdraws, renames, guest capacity or roster eligibility | `team-management.md` | `tournament-maintenance.md`, `schedule-quality.md` |
+| Verify distribution, compare candidates, preview consequences | `schedule-quality.md` | Relevant mutation family only if execution requested |
+| Approve/unapprove, constraints, protections, exception or undo | `governance.md` | Relevant mutation family |
+| Season health, reconciliation, export, audit, publish/republish/rollback | `season-delivery.md` | `booking-management.md` for evidence gaps |
+
+For any schedule mutation with material downstream consequences, load `schedule-quality.md` before selecting/applying the candidate. A proposed change must be previewed without mutation when the operator asks to investigate or compare. A safe reversal is a new verified canonical action, not deletion of history. Do not infer permission for publication, unapproval, regression acceptance or planning reopen.
+
 Typical promoted-season routing:
 
 - reviewed Stage 4 candidate has a localized audit finding and is not promoted yet -> `stage3 refine`, then re-run the semantic audit over the new export;
