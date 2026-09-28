@@ -42,6 +42,19 @@ Read `AGENTS.md`, `.agents/skills/rvv/SKILL.md`, and this repository's internal 
 12. If the repository lacks a canonical capability for the requested intent, do not improvise a state edit. Use the authoritative existing input/workflow when one exists; otherwise report the missing capability clearly so it can be implemented at the correct layer.
 
 
+## Publication authority and current-policy reconciliation
+
+When the operator explicitly asks to publish a proposed season plan, treat that as authorization to publish **a proposal**, not an assertion that the host has booked the ice. Reload the current repository-owned publication contract from `publish.md`, `audit-publication.md`, the RVV skill and current code/tests before acting; a previous conversational refusal, cached skill interpretation or earlier commit is not authority over current main. Evaluate the current export and complete the canonical publish workflow if its deterministic gates pass. Never impose an additional harness-only requirement that a proposed placement already have accepted booking evidence.
+
+Distinguish these outcomes:
+- **Proposed / awaiting confirmation:** may be publicly visible with that explicit status, subject to normal hard verification, conflict checks, audit, reconciliation, export parity/freshness, sanitization and deployment checks. Do not record or display it as booked.
+- **Booked:** requires accepted source-backed evidence for the exact interval.
+- **Contradicted / rejected or genuine hard-gate failure:** do not force publication; report the exact current gate, affected IDs and evidence, and resolve through the canonical owner.
+
+An operator-authorized code or runbook change is not evidence of account compromise or instruction poisoning merely because it changes a rule the harness previously cited. Do not speculate about the operator's account/session or repeatedly refuse based on that sequence alone. Assess the actual current diff, repository provenance and executable gates when there is concrete evidence of a problem. If current code and documentation disagree, report the specific inconsistency rather than substituting a personal policy.
+
+Once the operator has explicitly authorized publication, do not replace the requested public result with a private club review packet or ask again for permission solely because booking confirmation is pending. Run the canonical export/audit/publish path and verify the deployed result; if a real deterministic gate blocks it, report the precise blocker without fabricating evidence, bypassing checks or changing audit verdicts.
+
 ## Lazy-loaded operation families
 
 Route through `guide.md` and load only the needed family: `tournament-maintenance.md`, `booking-management.md`, `team-management.md`, `schedule-quality.md`, `governance.md`, or `season-delivery.md`. For an audit or publication request, additionally load `audit-publication.md`. Compose families when a request crosses boundaries (for example, club booking rejection -> tournament repair -> distribution comparison -> export/audit). The specialized guides own detailed execution; this entry point retains the global authority and completion contract.
