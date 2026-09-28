@@ -1,0 +1,39 @@
+Dato	Ukedag	Aldersgruppe	Arena	Lag	Starttid	Sluttid	Ny starttid	Ny sluttid	Ny dato	Settes av:
+10.10.2026	lørdag	U10	Askerhallen	Frisk Asker 1, Frisk Asker 3, Jar Hvit, Holmen Hockey Blå, Ringerike 1, Jutul Grønn	11:50	14:10	13:00	14:50		1:50:00
+11.10.2026	søndag	U12	Askerhallen	Holmen Hockey Rød, Tønsberg Rød, Jutul Rød, Frisk Asker 3	13:50	15:30	16:00	17:20		1:20:00
+18.10.2026	søndag	U9	Askerhallen	Frisk Asker 2, Frisk Asker 1, Jutul Rød, Holmen Hockey Rød, Jar Hvit, Jutul Hvit, Skien, Sandefjord	14:50	17:25	16:00	17:50		1:50:00
+01.11.2026	søndag	U12	Askerhallen	Ringerike 1, Jar Blå, Tønsberg Hvit, Frisk Asker 2	15:00	16:40		16:20		1:20:00
+07.11.2026	lørdag	U10	Askerhallen	Frisk Asker 6, Jar Grønn, Holmen Hockey Rød, Ringerike 4, Jutul Grønn, Frisk Asker 3	11:50	14:10	13:00	14:50		1:50:00
+08.11.2026	søndag	JU10	Askerhallen	Frisk Asker Orange, Frisk Asker Svart, Jar Rød, Ringerike 1, Skien, Jar Blå	12:20	14:40	12:00	13:50		1:50:00
+08.11.2026	søndag	U10	Askerhallen	Frisk Asker 2, Jar Rød, Holmen Hockey Rød, Holmen Hockey Blå, Ringerike 3, Tønsberg	15:00	17:20	16:00	17:50		1:50:00
+14.11.2026	lørdag	U10	Askerhallen	Frisk Asker 4, Jar Grønn, Holmen Hockey Hvit, Ringerike 3, Jar Gul, Frisk Asker 5	12:50	15:10	13:00	14:50		1:50:00
+14.11.2026	lørdag	U12	Askerhallen	Frisk Asker 1, Jutul Grønn, Jar Hvit, Tønsberg Rød	15:30	17:10	17:30	18:50		1:20:00
+21.11.2026	lørdag	JU12	Askerhallen	Frisk Asker Orange, Ringerike 2, Jutul/Jar Kittens, Skien	15:00	16:40	13:00	14:20		1:20:00
+21.11.2026	lørdag	U8	Askerhallen	Frisk Asker 1, Frisk Asker 4, Holmen Hockey Hvit, Jutul Grønn, Jutul Hvit, Kongsberg, Jar Blå, Holmen Hockey Blå	12:00	14:35	15:30	17:20		1:50:00
+22.11.2026	søndag	U11	Askerhallen	Jar Blå, Frisk Asker 1, Frisk Asker 2, Holmen Hockey Hvit, Jutul Grønn, Jar Oransje	15:00	17:20	12:00	13:50		1:50:00
+28.11.2026	lørdag	JU12	Askerhallen	Frisk Asker Orange, Ringerike 1, Jutul/Jar Kittens, Skien	11:50	13:30	13:00	14:20		1:20:00
+28.11.2026	lørdag	U11	Askerhallen	Frisk Asker 4, Jar Grønn, Ringerike 1, Tønsberg Rød, Holmen Hockey Hvit, Jar Rød	13:35	15:55	15:00	16:50		1:50:00
+29.11.2026	søndag	U11	Askerhallen	Jar Gul, Jar Oransje, Frisk Asker 3, Sandefjord, Ringerike 1, Skien	14:00	16:20	15:00	16:50		1:50:00
+09.01.2027	lørdag	U12	Askerhallen	Frisk Asker 1, Kongsberg, Jar Rød, Tønsberg Rød	14:20	16:00	15:30	16:50		1:20:00
+10.01.2027	søndag	U9	Askerhallen	Frisk Asker 1, Frisk Asker 4, Jar Hvit, Jutul Grønn, Holmen Hockey Hvit, Tønsberg, Ringerike 1, Sandefjord	12:20	14:55	12:00	13:50		1:50:00
+10.01.2027	søndag	U12	Askerhallen	Frisk Asker 2, Holmen Hockey Hvit, Jar Rød, Tønsberg Hvit	15:00	16:40	15:30	16:50		1:20:00
+17.01.2027	søndag	JU8	Askerhallen	Frisk Asker, Jar, Jutul Kittens, Ringerike 1, Skien	12:20	14:55	12:00	13:20		1:20:00
+17.01.2027	søndag	U9	Askerhallen	Jutul Hvit, Jar Blå, Frisk Asker 4, Sandefjord, Skien, Holmen Hockey Rød, Ringerike 1, Frisk Asker 3	15:00	17:35	14:30	16:20		1:50:00
+23.01.2027	lørdag	U8	Askerhallen	Frisk Asker 1, Tønsberg, Jar Rød, Jar Hvit, Holmen Hockey Blå, Ringerike 2, Holmen Hockey Sort, Frisk Asker 5	14:25	17:00	13:00	14:50		1:50:00
+23.01.2027	lørdag	JU12	Askerhallen	Frisk Asker Svart, Ringerike 2, Kongsberg/Tønsberg, Skien	17:00	18:40	15:30	16:50	1/24/27	1:20:00
+23.01.2027	lørdag	U10	Askerhallen	Frisk Asker 1, Frisk Asker 4, Holmen Hockey Rød, Ringerike 1, Jutul Rød, Jar Rød	12:00	14:20	17:00	18:50		1:50:00
+24.01.2027	søndag	U10	Askerhallen	Frisk Asker 1, Frisk Asker 2, Jar Hvit, Jutul Hvit, Holmen Hockey Rød, Jar Svart	13:30	15:50	12:00	13:50		1:50:00
+30.01.2027	lørdag	JU12	Askerhallen	Frisk Asker Svart, Frisk Asker Orange, Kongsberg/Tønsberg, Ringerike 1	11:50	13:30	13:00	14:20		1:20:00
+30.01.2027	lørdag	U12	Askerhallen	Frisk Asker 3, Jar Svart, Holmen Hockey Rød, Tønsberg Hvit	13:30	15:10	14:30	15:50		1:20:00
+30.01.2027	lørdag	U8	Askerhallen	Holmen Hockey Sort, Ringerike 2, Jar Blå, Sandefjord, Frisk Asker 3, Jar Svart, Frisk Asker 2, Skien	16:00	18:35	17:00	18:50		1:50:00
+31.01.2027	søndag	JU10	Askerhallen	Frisk Asker Orange, Frisk Asker Svart, Jar Blå, Ringerike 1, Skien, Jar Hvit	14:20	16:40	14:30	16:20		1:50:00
+06.02.2027	lørdag	U7	Askerhallen	Frisk Asker 1, Jar Grønn, Jar Blå, Holmen Hockey Hvit, Jar Hvit, Jutul Grønn, Sandefjord, Holmen Hockey Rød	11:50	14:25	13:30	15:20		1:50:00
+06.02.2027	lørdag	U11	Askerhallen	Frisk Asker 1, Jar Grønn, Holmen Hockey Rød, Sandefjord, Jutul Rød, Tønsberg Grå	15:00	17:20	15:30	17:20		1:50:00
+20.02.2027	lørdag	U10	Askerhallen	Frisk Asker 5, Jar Hvit, Ringerike 1, Kongsberg, Jutul Rød, Tønsberg	14:20	16:40	1430	16:20		1:50:00
+21.02.2027	søndag	U12	Askerhallen	Frisk Asker 3, Jar Rød, Tønsberg Hvit, Holmen Hockey Rød	14:20	16:00	15:30	16:50		1:20:00
+06.03.2027	lørdag	U9	Askerhallen	Frisk Asker 1, Frisk Asker 4, Jar Blå, Jutul Hvit, Jar Rød, Kongsberg, Ringerike 1, Tønsberg	12:00	14:35	13:00	14:50		1:50:00
+07.03.2027	søndag	U10	Askerhallen	Frisk Asker 2, Frisk Asker 6, Jar Svart, Ringerike 3, Holmen Hockey Hvit, Jutul Grønn	12:20	14:40	12:00	13:50		1:50:00
+07.03.2027	søndag	U11	Askerhallen	Frisk Asker 4, Jar Svart, Ringerike 2, Sandefjord, Jar Lilla, Jutul Rød	15:00	17:20	15:00	16:50		1:50:00
+13.03.2027	lørdag	JU8	Askerhallen	Frisk Asker, Jar, Jutul Kittens, Ringerike 1, Skien	11:50	14:25	13:30	14:50		1:50:00
+13.03.2027	lørdag	U11	Askerhallen	Frisk Asker 2, Kongsberg, Jar Grønn, Holmen Hockey Rød, Holmen Hockey Hvit, Jar Hvit	14:30	16:50	15:00	16:50		1:50:00
+14.03.2027	søndag	JU12	Askerhallen	Frisk Asker Orange, Ringerike 1, Ringerike 2, Jutul/Jar Kittens	17:00	18:40	17:30	18:50		1:20:00
