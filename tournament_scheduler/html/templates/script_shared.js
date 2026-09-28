@@ -137,6 +137,92 @@ function getClubFromTeam(team) {
   });
 })();
 
+// --- Shared operational booking vocabulary -------------------------------
+// One operational booking state per tournament. The detailed status/authority/
+// follow-up evidence lives in the expandable booking details instead of
+// competing top-level badges. The season-plan cards and the heatmap both call
+// this resolver and its label map, so one projection drives both surfaces.
+function operationalStateOf(t) {
+  if (!t) return '';
+  if (t.obs) return t.obs;
+  // Accepted confirmation wins over retained provisional metadata, matching
+  // the canonical owner. Legacy/hand-built payloads may omit obs entirely.
+  if (t.bs === 'confirmed_booked' || t.bs === 'manually_booked') return 'booked';
+  if (t.mb || t.rhc) return 'action_required';
+  if (t.bs === 'confirmed_not_booked' || t.bs === 'manually_not_booked' || t.bs === 'stale') return 'action_required';
+  if (t.bac === 'proposed_changed_slot') return 'changed_slot_review';
+  if (t.bac === 'presumed_unscheduled') return 'presumed_unscheduled';
+  if (t.bac === 'not_checkable' || t.bac === 'unmatched') return 'unknown';
+  if (t.bs) return 'not_booked';
+  return '';
+}
+
+function operationalStateLabel(t, state) {
+  t = t || {};
+  if (state === 'booked') return 'BOOKET · LÅST';
+  if (state === 'changed_slot_review') return 'ENDRET TID · MÅ VURDERES';
+  if (state === 'presumed_unscheduled') return 'TROLIG IKKE SATT OPP';
+  if (state === 'unknown') return 'UKJENT BOOKING';
+  if (state === 'action_required') {
+    // An explicit rejection or an invalidated confirmation needs a rebooking,
+    // not the generic manual-placement wording.
+    if (t.bs === 'manually_not_booked' || t.bs === 'confirmed_not_booked') return 'AVVIST · MÅ BOOKES PÅ NYTT';
+    if (t.bs === 'stale') return 'MÅ RE-BEKREFTES';
+    return (t.rhc && !t.mb) ? 'KREVER VERTSSBEKREFTELSE' : 'MÅ BOOKES MANUELT';
+  }
+  if (state === 'not_booked') return 'IKKE BEKREFTET';
+  return '';
+}
+
+// Raw detailed evidence label. Drill-down provenance only -- never a competing
+// top-level heatmap legend state.
+function bookingStatusLabel(status) {
+  var labels = {
+    confirmed_booked: 'BOOKET BEKREFTET',
+    manually_booked: 'BOOKET (MANUELT BEKREFTET)',
+    confirmed_not_booked: 'IKKE BOOKET',
+    manually_not_booked: 'IKKE BOOKET (MANUELT AVVIST)',
+    unknown: 'IKKE KONTROLLERT',
+    not_checkable: 'IKKE KONTROLLERBAR',
+    ambiguous: 'UKLAR BOOKING',
+    proposed_changed_slot: 'FORESLÅTT ENDRET TID',
+    presumed_unscheduled: 'TROLIG IKKE SATT OPP',
+    unmatched: 'INGEN PLAUSIBEL KALENDERMATCH',
+    stale: 'BOOKINGGRUNNLAG UTDATERT'
+  };
+  return labels[status] || status;
+}
+
+// Escape every dynamic value before it reaches an innerHTML sink. The season
+// plan and heatmap embed club/host/manual/calendar text, so this is the one
+// shared HTML encoder.
+function escapeHtml(value) {
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// The heatmap legend is the operational state set, so a weaker detailed
+// status can never appear next to an operationally booked slot.
+var OPERATIONAL_HEATMAP_LEGEND = [
+  ['booked', 'booket · låst'],
+  ['action_required', 'må følges opp'],
+  ['changed_slot_review', 'endret tid · må vurderes'],
+  ['presumed_unscheduled', 'trolig ikke satt opp'],
+  ['not_booked', 'ikke bekreftet'],
+  ['unknown', 'ukjent']
+];
+
+function heatmapOperationalClass(state) {
+  for (var i = 0; i < OPERATIONAL_HEATMAP_LEGEND.length; i++) {
+    if (OPERATIONAL_HEATMAP_LEGEND[i][0] === state) return state;
+  }
+  return 'unknown';
+}
+
 // Render calendar heatmap
 (function() {
   const head = document.getElementById('heatmapHead');
@@ -146,6 +232,28 @@ function getClubFromTeam(team) {
   if (!HEATMAP_WEEKS.length || !HEATMAP_CLUBS.length) {
     body.innerHTML = '<tr><td colspan="' + (HEATMAP_WEEKS.length + 1) + '" style="padding:16px;text-align:center;color:var(--text-muted)">Ingen turneringsdata for varmekart</td></tr>';
     return;
+  }
+
+  // Resolve each cell's primary state from the embedded card record by stable
+  // tournament id; the item's own operational_state is only a fallback when a
+  // matching card is absent. This keeps the heatmap and the cards identical.
+  const cardById = {};
+  TOURNAMENTS.forEach(function(t) {
+    if (t && t.id) cardById[t.id] = t;
+  });
+  function heatmapState(item) {
+    var card = cardById[item.tournament_id];
+    return (card ? operationalStateOf(card) : item.operational_state) || 'unknown';
+  }
+  function heatmapTitle(item) {
+    var card = cardById[item.tournament_id];
+    var state = heatmapState(item);
+    var title = (item.age_group || '') + ' – ' + (operationalStateLabel(card, state) || state);
+    var details = [];
+    if (item.booking_status && item.booking_status !== 'unknown') details.push(bookingStatusLabel(item.booking_status));
+    if (item.needs_attention) details.push('må følges opp');
+    if (details.length) title += ' · ' + details.join(' · ');
+    return title;
   }
 
   const currentTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
@@ -159,19 +267,12 @@ function getClubFromTeam(team) {
     const c = HEATMAP_CLUB_COLORS[club] || DEFAULT_CLUB_COLOR;
     const span = document.createElement('span');
     span.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:11px;color:' + c.text;
-    span.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + c.bg + ';border:1px solid ' + c.text + '"></span>' + club;
+    span.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + escapeHtml(c.bg) + ';border:1px solid ' + escapeHtml(c.text) + '"></span>' + escapeHtml(club);
     legend.appendChild(span);
   });
-  [
-    ['confirmed_booked', 'booket bekreftet'],
-    ['manually_booked', 'manuelt booket'],
-    ['confirmed_not_booked', 'ikke booket'],
-    ['manually_not_booked', 'manuelt ikke booket'],
-    ['unknown', 'ikke kontrollert'],
-    ['ambiguous', 'uklar/utdatert']
-  ].forEach(function(item) {
+  OPERATIONAL_HEATMAP_LEGEND.forEach(function(item) {
     const span = document.createElement('span');
-    span.className = 'heatmap-booking-legend heatmap-booking-' + item[0];
+    span.className = 'heatmap-booking-legend heatmap-booking-' + heatmapOperationalClass(item[0]);
     span.textContent = item[1];
     legend.appendChild(span);
   });
@@ -202,30 +303,20 @@ function getClubFromTeam(team) {
   HEATMAP_CLUBS.forEach(club => {
     const c = HEATMAP_CLUB_COLORS[club] || DEFAULT_CLUB_COLOR;
     bodyHtml += '<tr style="border-bottom:1px solid var(--border-dim)">';
-    bodyHtml += '<td style="position:sticky;left:0;z-index:0;background:var(--bg);padding:6px 10px;font-size:12px;color:' + c.text + ';font-weight:600">' + club + '</td>';
+    bodyHtml += '<td style="position:sticky;left:0;z-index:0;background:var(--bg);padding:6px 10px;font-size:12px;color:' + escapeHtml(c.text) + ';font-weight:600">' + escapeHtml(club) + '</td>';
     HEATMAP_WEEKS.forEach(wk => {
       const weekData = HEATMAP[wk] || {};
       const clubData = weekData[club];
       if (clubData && clubData.length) {
         const items = clubData.map(function(item) {
-          if (typeof item === 'string') return {age_group: item, booking_status: 'unknown'};
-          return item || {age_group: '', booking_status: 'unknown'};
+          if (typeof item === 'string') return {age_group: item, operational_state: '', booking_status: 'unknown'};
+          return item || {age_group: '', operational_state: '', booking_status: 'unknown'};
         });
         const label = items.map(function(item) {
-          const status = item.booking_status || 'unknown';
-          const titleMap = {
-            confirmed_booked: 'booket bekreftet',
-            manually_booked: 'manuelt booket',
-            confirmed_not_booked: 'ikke booket',
-            manually_not_booked: 'manuelt ikke booket',
-            unknown: 'ikke kontrollert',
-            not_checkable: 'ikke kontrollerbar',
-            ambiguous: 'uklar booking',
-            stale: 'bookinggrunnlag utdatert'
-          };
-          return '<span class="heatmap-booking-item heatmap-booking-' + status + '" title="' + (item.age_group || '') + ' – ' + (titleMap[status] || status) + '">' + (item.age_group || '') + '</span>';
+          const state = heatmapState(item);
+          return '<span class="heatmap-booking-item heatmap-booking-' + heatmapOperationalClass(state) + '" title="' + escapeHtml(heatmapTitle(item)) + '">' + escapeHtml(item.age_group || '') + '</span>';
         }).join('');
-        bodyHtml += '<td style="background:' + c.bg + ';border:1px solid ' + c.text + ';padding:3px 4px;text-align:center;font-size:10px;color:' + c.text + ';font-weight:600;white-space:nowrap">' + label + '</td>';
+        bodyHtml += '<td style="background:' + escapeHtml(c.bg) + ';border:1px solid ' + escapeHtml(c.text) + ';padding:3px 4px;text-align:center;font-size:10px;color:' + escapeHtml(c.text) + ';font-weight:600;white-space:nowrap">' + label + '</td>';
       } else {
         bodyHtml += '<td style="background:var(--heatmap-empty-bg);border:1px solid var(--border-dim);padding:3px 4px;text-align:center"></td>';
       }

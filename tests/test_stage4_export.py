@@ -85,11 +85,11 @@ def _rendered_booking_badge_label(tournament_payload: dict) -> tuple[str, str]:
         / "tournament_scheduler"
         / "html"
         / "templates"
-        / "script_schedule.js"
+        / "script_shared.js"
     ).read_text(encoding="utf-8")
     state_match = re.search(r"function operationalStateOf\(t\) \{.*?\n\}", source, re.S)
     label_match = re.search(r"function operationalStateLabel\(t, state\) \{.*?\n\}", source, re.S)
-    assert state_match and label_match, "schedule template must expose booking badge helpers"
+    assert state_match and label_match, "shared template must expose booking badge helpers"
     script = (
         state_match.group(0)
         + "\n"
