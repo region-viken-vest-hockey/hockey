@@ -7,6 +7,7 @@ from datetime import date
 
 import pytest
 
+from tournament_scheduler.calendar_bookings import event_fingerprint
 from tournament_scheduler.canonical_baseline import (
     build_canonical_baseline,
     resolve_canonical_baseline,
@@ -620,6 +621,55 @@ def test_projection_distinguishes_explicit_negative_from_absence(tmp_path):
     assert heatmap_items["t2"]["booking_status"] == "confirmed_not_booked"
 
 
+def test_partial_source_overlap_remains_candidate_and_reconciliation_ambiguous(tmp_path):
+    """Coverage-incomplete calendars can supply positive candidates without proving absence."""
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem(
+        [
+            {
+                "date": "2026-09-12",
+                "start": "10:00",
+                "end": "12:00",
+                "availability": "fixed_busy",
+                "calendar_event": "Miniputt U10",
+            }
+        ]
+    )
+    problem["club_calendar_status"] = {"A": "source_review_required"}
+    problem["club_source_integrity"] = {"A": "partial"}
+    problem["club_coverage_proven"] = {"A": False}
+
+    candidates = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)
+    assert len(candidates["booking_candidates"]) == 1
+    assert candidates["booking_candidates"][0]["candidate_tournaments"][0]["id"] == "t1"
+    assert candidates["booking_candidates"][0]["calendar_event"]["source_positive_evidence_usable"] is True
+
+    result = reconcile_calendar_bookings(season="2026-2027", root=root, club="A", problem=problem)
+    row = result["classified"][0]
+    assert row["status"] == "ambiguous"
+    assert row["reason"] == "single_overlapping_event_requires_confirmation"
+    assert row["source_integrity_concern"] is True
+    assert row["source_positive_evidence_usable"] is True
+    assert "event_evidence_usable" in row["evidence_reasons"]
+
+
+def test_partial_source_without_overlap_does_not_record_negative_evidence(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    problem["club_calendar_status"] = {"A": "source_review_required"}
+    problem["club_source_integrity"] = {"A": "partial"}
+    problem["club_coverage_proven"] = {"A": False}
+
+    result = reconcile_calendar_bookings(season="2026-2027", root=root, club="A", problem=problem)
+    row = result["classified"][0]
+    assert row["status"] == "ambiguous"
+    assert row["reason"] == "source_coverage_unproven"
+    assert row["source_positive_evidence_usable"] is True
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert report["tournaments"][0]["status"] == "ambiguous"
+    assert report["counts"]["confirmed_not_booked"] == 0
+
+
 def test_club_reconciliation_does_not_record_negative_evidence_for_blocked_source(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = {
@@ -638,6 +688,52 @@ def test_club_reconciliation_does_not_record_negative_evidence_for_blocked_sourc
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     assert report["tournaments"][0]["status"] == "not_checkable"
     assert report["counts"]["confirmed_not_booked"] == 0
+
+
+def test_confirm_calendar_booking_aligns_canonical_interval_to_authoritative_event(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    event = {
+        "date": "2026-09-12",
+        "start": "11:00",
+        "end": "12:30",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10 bekreftet",
+        "club": "A",
+    }
+    problem = _host_a_problem([event])
+    event_fp = event_fingerprint(event)
+
+    result = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        problem=problem,
+        note="Accepted authoritative calendar interval",
+    )
+
+    alignment = result["interval_alignment"]
+    assert alignment["previous_interval"] == {"date": "2026-09-12", "start_time": "10:00"}
+    assert alignment["accepted_calendar_interval"] == {
+        "date": "2026-09-12",
+        "start_time": "11:00",
+        "duration_minutes": 90,
+        "end_time": "12:30",
+    }
+    assert result["ice_time_override"]["minutes"] == 90
+    assert [warning["code"] for warning in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+
+    schedule = load_schedule("2026-2027", root=root)["plan"]
+    tournament = next(t for t in schedule["tournaments"] if t["id"] == "t1")
+    assert tournament["start_time"] == "11:00"
+    decisions = load_decisions("2026-2027", root=root)
+    assert decisions["ice_time_minutes_overrides"][-1]["minutes"] == 90
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = report["tournaments"][0]
+    assert row["status"] == "confirmed_booked"
+    assert row["operational_state"] == "booked"
 
 
 def test_stale_calendar_booking_association_fails_closed_when_tournament_moves(tmp_path):
@@ -703,7 +799,7 @@ def test_stale_calendar_booking_association_fails_closed_when_start_time_changes
     assert verify_candidate(plan, projected)["manual_external_conflict_placements"][0]["tournament_id"] == "t1"
 
 
-def test_calendar_booking_association_fails_closed_when_canonical_duration_grows(tmp_path):
+def test_calendar_booking_association_uses_accepted_override_when_default_duration_grows(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = {
         "start_date": "2026-09-01",
@@ -724,21 +820,21 @@ def test_calendar_booking_association_fails_closed_when_canonical_duration_grows
     migrated_problem = dict(problem)
     migrated_problem["ice_time_minutes"] = {"U10": 180}
     findings = calendar_booking_findings(season="2026-2027", root=root, problem=migrated_problem)
-    assert findings["findings"][0]["code"] == "stale_calendar_booking_association"
-    assert "tournament_duration_minutes_changed" in findings["findings"][0]["reasons"]
-    assert "tournament_end_time_changed" in findings["findings"][0]["reasons"]
-    assert "event_does_not_cover_tournament_interval" in findings["findings"][0]["reasons"]
+    assert findings["findings"] == []
 
     from tournament_scheduler.calendar_bookings import project_associations_into_problem
+    from tournament_scheduler.canonical_ice_time_overrides import project_overrides_into_problem
     from tournament_scheduler.planning_contract import verify_candidate
 
     plan = load_schedule("2026-2027", root=root)["plan"]
-    projected = project_associations_into_problem(migrated_problem, load_decisions("2026-2027", root=root), plan)
+    decisions = load_decisions("2026-2027", root=root)
+    projected = project_overrides_into_problem(migrated_problem, decisions)
+    projected = project_associations_into_problem(projected, decisions, plan)
     verification = verify_candidate(plan, projected)
-    assert verification["manual_external_conflict_placements"][0]["tournament_id"] == "t1"
+    assert verification["manual_external_conflict_placements"] == []
 
 
-def test_calendar_booking_confirmation_rejects_partial_overlap(tmp_path):
+def test_calendar_booking_confirmation_aligns_partial_overlap_to_authoritative_interval(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = {
         "start_date": "2026-09-01",
@@ -752,8 +848,15 @@ def test_calendar_booking_confirmation_rejects_partial_overlap(tmp_path):
         "club_busy_intervals": {"A": [{"date": "2026-09-12", "start": "11:00", "end": "13:00", "availability": "fixed_busy", "calendar_event": "Miniputt"}]},
     }
     event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)["booking_candidates"][0]["calendar_event"]["fingerprint"]
-    with pytest.raises(SeasonStateError, match="interval_mismatch"):
-        confirm_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t1", problem=problem)
+    result = confirm_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t1", problem=problem)
+    assert result["interval_alignment"]["accepted_calendar_interval"] == {
+        "date": "2026-09-12",
+        "start_time": "11:00",
+        "duration_minutes": 120,
+        "end_time": "13:00",
+    }
+    tournament = load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]
+    assert tournament["start_time"] == "11:00"
 
 
 def test_calendar_booking_release_is_required_before_rebind(tmp_path):
@@ -820,7 +923,7 @@ def test_calendar_booking_confirmation_rejects_wrong_tournament_and_reports_stal
         },
     }
     event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)["booking_candidates"][0]["calendar_event"]["fingerprint"]
-    with pytest.raises(SeasonStateError, match="date_mismatch"):
+    with pytest.raises(SeasonStateError, match="scheduled in 2 tournaments"):
         confirm_calendar_booking(
             season="2026-2027",
             root=root,

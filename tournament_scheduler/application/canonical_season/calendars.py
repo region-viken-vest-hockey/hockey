@@ -30,7 +30,7 @@ from tournament_scheduler.calendar_bookings import (
     booking_status_report as _booking_status_report,
     club_booking_source_by_id,
     club_calendar_evidence_trusted,
-    event_covers_tournament_interval,
+    club_calendar_positive_evidence_usable,
     event_fingerprint,
     find_event,
     iter_events,
@@ -45,7 +45,13 @@ from tournament_scheduler.calendar_bookings import (
     validate_stated_interval,
 )
 from tournament_scheduler.canonical_baseline import approval_fingerprint
-from tournament_scheduler.canonical_ice_time_overrides import overrides_from_problem
+from tournament_scheduler.canonical_ice_time_overrides import (
+    ACTIVE as ICE_TIME_OVERRIDE_ACTIVE,
+    RELEASED as ICE_TIME_OVERRIDE_RELEASED,
+    override_for_tournament,
+    overrides_from_problem,
+    validate_and_normalize as validate_ice_time_override,
+)
 from tournament_scheduler.canonical_state import (
     canonical_state_revision,
     schedule_fingerprint,
@@ -708,7 +714,10 @@ def calendar_booking_candidates(
     overrides = overrides_from_problem(resolved_problem)
     rows: list[dict[str, Any]] = []
     for event in iter_events(resolved_problem):
-        if club and str(event.get("club") or "") != club:
+        event_club = str(event.get("club") or "")
+        if club and event_club != club:
+            continue
+        if not club_calendar_positive_evidence_usable(resolved_problem, event_club):
             continue
         candidates: list[dict[str, Any]] = []
         for tournament in plan.get("tournaments", []) or []:
@@ -755,6 +764,7 @@ def calendar_booking_candidates(
                         "club": event.get("club"),
                         "availability": event.get("availability"),
                         "fingerprint": event.get("fingerprint") or event_fingerprint(event),
+                        "source_positive_evidence_usable": True,
                     },
                     "candidate_tournaments": candidates,
                 }
@@ -962,7 +972,8 @@ def _classify_club_calendar_bookings(
     # must stay independent of it, so evidence whose normalized intervals still
     # carry the fabricated fallback fingerprint is not trustworthy either.
     trustworthy = club_calendar_evidence_trusted(resolved_problem, club)
-    fabricated_placeholder = not trustworthy and status == "known"
+    positive_evidence_usable = club_calendar_positive_evidence_usable(resolved_problem, club)
+    fabricated_placeholder = not positive_evidence_usable and status == "known"
     events = [event for event in iter_events(resolved_problem) if str(event.get("club") or "") == club]
     confirmed_by_tournament: dict[str, Mapping[str, Any] | None] = {}
     for record in valid_active_associations(decisions, problem=resolved_problem, plan=plan):
@@ -984,7 +995,7 @@ def _classify_club_calendar_bookings(
             booking_status = BOOKING_CONFIRMED_BOOKED
             matched_event = confirmed_by_tournament[tournament_id]
             reason = "explicit_calendar_booking_association"
-        elif not trustworthy:
+        elif not positive_evidence_usable:
             booking_status = BOOKING_NOT_CHECKABLE
             matched_event = None
             if fabricated_placeholder:
@@ -1008,7 +1019,9 @@ def _classify_club_calendar_bookings(
                 # instead of a final negative; a changed slot, incomplete source
                 # or incomplete attribution must remain visible.
                 booking_status = BOOKING_AMBIGUOUS
-                if _approved_placement_locked(decisions, tournament_id):
+                if not trustworthy:
+                    reason = "source_coverage_unproven"
+                elif _approved_placement_locked(decisions, tournament_id):
                     reason = "approved_placement_without_calendar_evidence"
                 else:
                     reason = "no_covering_event_for_current_slot"
@@ -1051,6 +1064,9 @@ def _classify_club_calendar_bookings(
                 # making the row look fully green.
                 "source_status": status,
                 "source_integrity_concern": not trustworthy,
+                "source_positive_evidence_usable": positive_evidence_usable,
+                "evidence_reasons": (["event_evidence_usable"] if positive_evidence_usable and not trustworthy else [])
+                + (["association_ambiguous"] if booking_status == BOOKING_AMBIGUOUS else []),
                 "source_fabricated_placeholder": fabricated_placeholder,
             }
         )
@@ -1112,6 +1128,105 @@ def reconcile_calendar_bookings(
     return result
 
 
+def _event_duration_minutes(event: Mapping[str, Any]) -> int | None:
+    interval = _event_interval(event)
+    if not interval:
+        return None
+    duration = interval[1] - interval[0]
+    return duration if duration > 0 else None
+
+
+def _align_tournament_to_calendar_event(
+    *,
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+    tournament_id: str,
+    event: Mapping[str, Any],
+    actor: str,
+    note: str,
+    now: str,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any] | None]:
+    """Return schedule/decisions aligned to an accepted authoritative event.
+
+    Matching a booking is an identity decision.  Once accepted, the source
+    calendar's date/start/end becomes the booked canonical interval before the
+    association is validated; the old planned interval is retained in the
+    returned audit payload rather than used as a coverage threshold.
+    """
+
+    updated_schedule = copy.deepcopy(dict(schedule))
+    updated_plan = updated_schedule.setdefault("plan", {})
+    tournaments = updated_plan.setdefault("tournaments", [])
+    target = next((t for t in tournaments if str(t.get("id") or "") == tournament_id), None)
+    if target is None:
+        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+    before = dict(target)
+    event_date = str(event.get("date") or "")
+    event_start = str(event.get("start") or "")
+    event_minutes = _event_duration_minutes(event)
+    if not event_date or not event_start or event_minutes is None:
+        raise SeasonStateError("Calendar booking event has an invalid date/start/end interval")
+
+    target["date"] = event_date
+    target["start_time"] = event_start
+
+    updated_decisions = dict(decisions)
+    override_record: dict[str, Any] | None = None
+    existing_override = override_for_tournament(decisions, tournament_id)
+    existing_minutes = int(existing_override.get("minutes") or 0) if existing_override else None
+    if existing_minutes != event_minutes:
+        normalized = validate_ice_time_override(
+            {
+                "tournament_id": tournament_id,
+                "minutes": event_minutes,
+                "request_id": f"calendar-booking:{str(event.get('fingerprint') or event_fingerprint(event))}",
+                "note": note,
+                "reference": str(event.get("calendar_event") or event.get("title") or "calendar event"),
+            }
+        )
+        age_group = str(target.get("age_group") or "")
+        overrides = [dict(row) for row in updated_decisions.get("ice_time_minutes_overrides") or [] if isinstance(row, Mapping)]
+        if existing_override is not None:
+            existing_id = str(existing_override.get("id") or "")
+            for row in overrides:
+                if str(row.get("id") or "") == existing_id:
+                    row["status"] = ICE_TIME_OVERRIDE_RELEASED
+                    row["released_at"] = now
+                    row["released_by"] = actor
+                    row["release_reason"] = f"superseded by accepted calendar booking {normalized['id']}"
+            normalized["supersedes"] = existing_id
+        override_record = {
+            **normalized,
+            "status": ICE_TIME_OVERRIDE_ACTIVE,
+            "age_group": age_group,
+            "default_minutes": None,
+            "minimum_minutes": None,
+            "created_at": now,
+            "created_by": actor,
+            "authority": "calendar_event_association",
+        }
+        overrides.append(override_record)
+        updated_decisions["ice_time_minutes_overrides"] = overrides
+
+    alignment = {
+        "previous_interval": {
+            "date": str(before.get("date") or ""),
+            "start_time": str(before.get("start_time") or ""),
+        },
+        "accepted_calendar_interval": {
+            "date": event_date,
+            "start_time": event_start,
+            "duration_minutes": event_minutes,
+            "end_time": str(event.get("end") or ""),
+        },
+        "changed": before.get("date") != target.get("date")
+        or before.get("start_time") != target.get("start_time")
+        or override_record is not None,
+    }
+    updated_decisions["schedule_fingerprint"] = schedule_fingerprint(updated_plan)
+    return updated_schedule, updated_decisions, target, alignment, override_record
+
+
 def confirm_calendar_booking(
     service,
     *,
@@ -1132,20 +1247,13 @@ def confirm_calendar_booking(
     event = find_event(base_problem, event_fingerprint)
     if event is None:
         raise SeasonStateError(f"Unknown calendar event fingerprint: {event_fingerprint}")
-    tournament = next(
+    original_tournament = next(
         (t for t in plan.get("tournaments", []) if str(t.get("id")) == tournament_id), None
     )
-    if tournament is None:
+    if original_tournament is None:
         raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
-    diagnostics: list[str] = []
-    if str(event.get("club") or "") != str(tournament.get("host_club") or ""):
-        diagnostics.append("host_mismatch")
-    if str(event.get("date") or "") != str(tournament.get("date") or ""):
-        diagnostics.append("date_mismatch")
-    elif not event_covers_tournament_interval(event, tournament, base_problem):
-        diagnostics.append("interval_mismatch")
-    if diagnostics:
-        raise SeasonStateError("Calendar booking is not compatible with tournament: " + ", ".join(diagnostics))
+    if str(event.get("club") or "") != str(original_tournament.get("host_club") or ""):
+        raise SeasonStateError("Calendar booking is not compatible with tournament: host_mismatch")
 
     for record in decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []:
         if not isinstance(record, Mapping) or record.get("status", "active") != "active":
@@ -1160,15 +1268,25 @@ def confirm_calendar_booking(
             )
 
     resolved_actor = _operator_identity(actor)
+    checked_at = _now_iso()
+    updated_schedule, updated, tournament, interval_alignment, override_record = _align_tournament_to_calendar_event(
+        schedule=schedule,
+        decisions=decisions,
+        tournament_id=tournament_id,
+        event=event,
+        actor=resolved_actor,
+        note=note,
+        now=checked_at,
+    )
+    updated_problem = _resolve_plan_problem(updated_schedule, base_problem, updated)
     assoc = new_association_record(
         event=event,
         tournament=tournament,
         actor=resolved_actor,
         note=note,
         source_revision=canonical_state_revision(schedule, decisions),
-        problem=base_problem,
+        problem=updated_problem,
     )
-    updated = dict(decisions)
     records = [
         dict(record)
         for record in (updated.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or [])
@@ -1179,11 +1297,10 @@ def confirm_calendar_booking(
     ]
     records.append(assoc)
     updated[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = records
-    checked_at = _now_iso()
     evidence = new_booking_evidence_record(
         tournament=tournament,
         status=BOOKING_CONFIRMED_BOOKED,
-        problem=base_problem,
+        problem=updated_problem,
         actor=resolved_actor,
         note=note,
         checked_at=checked_at,
@@ -1198,10 +1315,15 @@ def confirm_calendar_booking(
     ]
     updated[TOURNAMENT_BOOKING_EVIDENCE_KEY] = prior_evidence + [evidence]
 
-    temp_problem = _resolve_plan_problem(schedule, base_problem, updated)
-    verification = verify_candidate(plan, temp_problem) if temp_problem else verify_candidate(plan)
+    verification_problem = _resolve_plan_problem(updated_schedule, base_problem, updated)
+    verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
     hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
-    blockers = hard_blockers + unresolved_blockers
+    booking_feasibility_warnings = [
+        blocker
+        for blocker in hard_blockers
+        if str(blocker.get("code") or "") in {"ice_time_playing_minimum", "ice_time_governing_minimum"}
+    ]
+    blockers = [blocker for blocker in hard_blockers if blocker not in booking_feasibility_warnings] + unresolved_blockers
     if blockers:
         messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
         raise SeasonStateError(f"Refusing to confirm booking for {tournament_id}: {messages}")
@@ -1237,16 +1359,36 @@ def confirm_calendar_booking(
         tournament_fingerprint=tournament_fingerprint,
         previous_fingerprint=previous.get("approved_fingerprint"),
         note=note,
-        details={"event_fingerprint": event_fingerprint, "calendar_event": event.get("calendar_event")},
+        details={
+            "event_fingerprint": event_fingerprint,
+            "calendar_event": event.get("calendar_event"),
+            "interval_alignment": interval_alignment,
+            "ice_time_override_id": (override_record or {}).get("id") or "",
+            "booking_feasibility_warnings": booking_feasibility_warnings,
+        },
     )
+    result_preview = {
+        "season": season,
+        "dry_run": bool(dry_run),
+        "association": assoc,
+        "approved": record,
+        "interval_alignment": interval_alignment,
+        "ice_time_override": override_record,
+        "booking_feasibility_warnings": booking_feasibility_warnings,
+    }
     if dry_run:
-        return {"season": season, "dry_run": True, "association": assoc, "approved": record}
-    committed = service._commit(snapshot.with_decisions(updated))
+        return result_preview
+    updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated)
+    service._assert_published_sealed_reconciliation(updated_snapshot, action="confirm_calendar_booking")
+    committed = service._commit(updated_snapshot)
     return {
         "season": season,
         "dry_run": False,
         "association": assoc,
         "approved": committed.decisions.get("decisions", {}).get(tournament_id),
+        "interval_alignment": interval_alignment,
+        "ice_time_override": override_record,
+        "booking_feasibility_warnings": booking_feasibility_warnings,
         "canonical_state_revision": canonical_state_revision(committed.schedule, committed.decisions),
     }
 

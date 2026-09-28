@@ -210,8 +210,13 @@ def club_calendar_status(problem: Mapping[str, Any] | None, club: str) -> str:
     return str(((problem or {}).get("club_calendar_status") or {}).get(club) or "")
 
 
+def _club_fabricated_interval_signal(problem: Mapping[str, Any] | None, club: str) -> str | None:
+    intervals = ((problem or {}).get("club_busy_intervals") or {}).get(club)
+    return fabricated_interval_signal(intervals)
+
+
 def club_calendar_evidence_trusted(problem: Mapping[str, Any] | None, club: str) -> bool:
-    """Whether one club's stored calendar evidence may support a booking claim.
+    """Whether one club's stored calendar evidence may support any booking claim.
 
     The pipeline's own ``club_calendar_status`` is necessary but not
     sufficient: a verifier must stay independent of the generator that wrote
@@ -221,8 +226,32 @@ def club_calendar_evidence_trusted(problem: Mapping[str, Any] | None, club: str)
     """
     if club_calendar_status(problem, club) != "known":
         return False
-    intervals = ((problem or {}).get("club_busy_intervals") or {}).get(club)
-    return fabricated_interval_signal(intervals) is None
+    return _club_fabricated_interval_signal(problem, club) is None
+
+
+def club_calendar_positive_evidence_usable(problem: Mapping[str, Any] | None, club: str) -> bool:
+    """Whether observed events may be offered as positive booking candidates.
+
+    Full-window trust is required for negative/free-ice claims, but a partially
+    navigated source can still contain authentic observed events.  Those events
+    may enter bounded positive reconciliation when source integrity says the
+    scrape is structurally complete or partial and the normalized intervals do
+    not carry the fabricated-placeholder fingerprint.  Suspicious, failed,
+    untrusted, malformed or unknown sources remain unusable for positive
+    evidence.
+    """
+
+    if _club_fabricated_interval_signal(problem, club) is not None:
+        return False
+    status = club_calendar_status(problem, club)
+    if status == "known":
+        return True
+    if status != "source_review_required":
+        return False
+    source_integrity = (problem or {}).get("club_source_integrity") or {}
+    if not isinstance(source_integrity, Mapping):
+        return False
+    return str(source_integrity.get(club) or "") in {"complete", "partial"}
 
 
 def find_event(problem: Mapping[str, Any] | None, fingerprint: str) -> dict[str, Any] | None:
@@ -1725,6 +1754,7 @@ def _assessment_tournament_row(
     decisions: Mapping[str, Any] | None,
     associated_event: Mapping[str, Any] | None,
     source_trusted: bool,
+    source_positive_evidence_usable: bool,
     source: Mapping[str, Any] | None = None,
     date_window_days: int = DEFAULT_ASSESSMENT_DATE_WINDOW_DAYS,
     shared_event_fingerprints: set[str] | None = None,
@@ -1751,7 +1781,7 @@ def _assessment_tournament_row(
         classification = ASSESSMENT_MANUALLY_ASSERTED
     elif associated_event is not None:
         classification = ASSESSMENT_ASSOCIATED
-    elif not source_trusted:
+    elif not source_positive_evidence_usable:
         classification = ASSESSMENT_NOT_CHECKABLE
     elif not candidates:
         classification = ASSESSMENT_PRESUMED_UNSCHEDULED if source_supports_absence else ASSESSMENT_UNMATCHED
@@ -1810,6 +1840,7 @@ def _assessment_tournament_row(
         "authority": authority,
         "source_trusted": source_trusted,
         "calendar_source_checkable": source_trusted,
+        "source_positive_evidence_usable": source_positive_evidence_usable,
         "proposal_is_binding": False,
         "candidate_count": len(candidates),
         "candidates": candidates,
@@ -1826,6 +1857,14 @@ def _assessment_tournament_row(
         }
     elif absence_blockers:
         row["absence_evidence_blockers"] = absence_blockers
+    if has_manual_authority:
+        row["evidence_reason"] = "accepted_manual_authority"
+    elif candidates and source_positive_evidence_usable and not source_trusted:
+        row["evidence_reason"] = "event_evidence_usable"
+    elif not source_trusted:
+        row["evidence_reason"] = "source_coverage_unproven"
+    if classification in {ASSESSMENT_AMBIGUOUS, ASSESSMENT_COMPETING_CANDIDATES}:
+        row.setdefault("evidence_reasons", []).append("association_ambiguous")
     if associated_event is not None:
         row["associated_event_fingerprint"] = str(
             associated_event.get("fingerprint") or event_fingerprint(associated_event)
@@ -1889,6 +1928,7 @@ def booking_assessment(
 
     sources: dict[str, dict[str, Any]] = {}
     trusted_clubs: set[str] = set()
+    positive_evidence_usable_clubs: set[str] = set()
     busy_intervals = (problem or {}).get("club_busy_intervals") or {}
     if not isinstance(busy_intervals, Mapping):
         busy_intervals = {}
@@ -1896,8 +1936,11 @@ def booking_assessment(
         status = str(calendar_status.get(club) or "missing")
         fabricated_signal = fabricated_interval_signal(busy_intervals.get(club))
         trusted = status == "known" and fabricated_signal is None
+        positive_evidence_usable = club_calendar_positive_evidence_usable({**(problem or {}), "club_busy_intervals": busy_intervals}, club)
         if trusted:
             trusted_clubs.add(club)
+        if positive_evidence_usable:
+            positive_evidence_usable_clubs.add(club)
         if trusted:
             source_trust = "trusted"
         elif status == "untrusted":
@@ -1948,6 +1991,8 @@ def booking_assessment(
             # requested tournament window was complete. It still never mutates
             # canonical cancellation or creates accepted booking authority.
             "trusted_for_negative_claim": source_supports_negative_claim,
+            "event_evidence_usable": positive_evidence_usable,
+            "trusted_for_positive_claim": positive_evidence_usable,
             "event_count": sum(1 for e in events if str(e.get("club") or "") == club),
             "calendar_fingerprint": club_calendar_fingerprint(problem, club),
         }
@@ -1983,12 +2028,14 @@ def booking_assessment(
                 date_window_days=date_window_days,
             )
             if candidate is not None:
-                # An observation from an untrusted source stays visible but is
-                # never an actionable proposal; contradicting title/arena
-                # evidence has the same effect.
+                # Full-window trust is required for negative claims, but a
+                # partially covered source may still contribute authentic
+                # observed events to positive reconciliation. Contradicting
+                # title/arena evidence still blocks actionability.
                 candidate["source_trusted"] = club in trusted_clubs
+                candidate["source_positive_evidence_usable"] = club in positive_evidence_usable_clubs
                 candidate["actionable"] = bool(
-                    candidate["source_trusted"]
+                    candidate["source_positive_evidence_usable"]
                     and not candidate["age_group_conflict"]
                     and not candidate["arena_mismatch"]
                 )
@@ -2034,6 +2081,7 @@ def booking_assessment(
                 decisions=decisions,
                 associated_event=associated_event,
                 source_trusted=club in trusted_clubs,
+                source_positive_evidence_usable=club in positive_evidence_usable_clubs,
                 source=sources.get(club),
                 date_window_days=date_window_days,
                 shared_event_fingerprints=shared_event_fingerprints,

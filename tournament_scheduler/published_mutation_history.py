@@ -51,7 +51,6 @@ _DECISION_ONLY_EVENTS = {
     "ban_date",
     "clear_ice_time_minutes",
     "clear_manual_booking_assertion",
-    "confirm_calendar_booking",
     "disallow_holiday_date",
     "reconcile_calendar_bookings",
     "refresh_calendar_evidence",
@@ -277,6 +276,30 @@ def replay_recorded_mutations(
                         entry, _participant_key(removed_team, age_group)
                     )
                     applied.append({"event": "batch_removal", "tournament_id": tournament_id})
+        elif kind == "confirm_calendar_booking":
+            alignment = details.get("interval_alignment")
+            if not isinstance(alignment, Mapping):
+                # Legacy confirmations were decision-only and did not mutate the
+                # published projection.
+                continue
+            if not alignment.get("changed"):
+                applied.append({"event": "confirm_calendar_booking", "tournament_id": event.get("tournament_id")})
+                continue
+            tournament_id = str(event.get("tournament_id") or "")
+            accepted = alignment.get("accepted_calendar_interval")
+            if not tournament_id or not isinstance(accepted, Mapping):
+                raise PublishedMutationHistoryError("calendar-booking history is missing accepted interval")
+            entry = projection.get(tournament_id)
+            if entry is not None:
+                if accepted.get("date") is not None:
+                    entry["date"] = str(accepted.get("date"))
+                if accepted.get("start_time") is not None:
+                    entry["start_time"] = str(accepted.get("start_time"))
+                if accepted.get("duration_minutes") is not None:
+                    _set_duration(entry, accepted.get("duration_minutes"))
+                else:
+                    _refresh_end_time(entry)
+            applied.append({"event": "confirm_calendar_booking", "tournament_id": tournament_id})
         elif kind == "reconcile_config":
             migrations = details.get("semantic_migrations")
             if not isinstance(migrations, list):
