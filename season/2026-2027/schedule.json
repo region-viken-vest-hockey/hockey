@@ -309,7 +309,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
+  "fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -11262,7 +11262,7 @@
         },
         {
           "code": "external_calendar_conflicts",
-          "count": 75
+          "count": 78
         },
         {
           "code": "participation_shortfalls",
@@ -13747,7 +13747,7 @@
         ],
         "host_club": "Sandefjord Penguins",
         "id": "rvv-0024",
-        "start_time": "15:00",
+        "start_time": "15:30",
         "teams": [
           {
             "age_group": "U9",
@@ -14629,7 +14629,7 @@
         ],
         "host_club": "Sandefjord Penguins",
         "id": "rvv-0037",
-        "start_time": "15:00",
+        "start_time": "15:30",
         "teams": [
           {
             "age_group": "U8",
@@ -19422,7 +19422,7 @@
         ],
         "host_club": "Sandefjord Penguins",
         "id": "rvv-0102",
-        "start_time": "15:00",
+        "start_time": "15:30",
         "teams": [
           {
             "age_group": "U7",
@@ -33355,6 +33355,13 @@
         "tournament_id": "rvv-0022"
       },
       {
+        "age_group": "U9",
+        "date": "2026-12-06",
+        "host_club": "Sandefjord Penguins",
+        "reason": "external calendar conflict requires manual resolution",
+        "tournament_id": "rvv-0024"
+      },
+      {
         "age_group": "JU12",
         "date": "2026-11-08",
         "host_club": "Ringerike",
@@ -33367,6 +33374,13 @@
         "host_club": "Jutul",
         "reason": "external calendar conflict requires manual resolution",
         "tournament_id": "rvv-0036"
+      },
+      {
+        "age_group": "U8",
+        "date": "2026-11-01",
+        "host_club": "Sandefjord Penguins",
+        "reason": "external calendar conflict requires manual resolution",
+        "tournament_id": "rvv-0037"
       },
       {
         "age_group": "U10",
@@ -33507,6 +33521,13 @@
         "host_club": "Ringerike",
         "reason": "external calendar conflict requires manual resolution",
         "tournament_id": "rvv-0099"
+      },
+      {
+        "age_group": "U7",
+        "date": "2027-01-10",
+        "host_club": "Sandefjord Penguins",
+        "reason": "external calendar conflict requires manual resolution",
+        "tournament_id": "rvv-0102"
       },
       {
         "age_group": "JU8",
@@ -40677,10 +40698,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
+  "revision": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-28T19:39:31.836499+00:00",
+  "updated_at": "2026-09-28T19:49:29.177324+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],

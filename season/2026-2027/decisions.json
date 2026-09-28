@@ -1130,7 +1130,7 @@
       }
     }
   ],
-  "canonical_state_revision": "e49f7ee173f412d967bd1593f5095bb85bc0d3f7c02c80176b24c8b15bd427e3",
+  "canonical_state_revision": "7f11f9bb8fd4d0a6e428b92b7fc461afabe9faaf0a7e11b4606a2284fbda7cef",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -5653,6 +5653,60 @@
       },
       "tournament_id": "rvv-0118",
       "value": "15:30"
+    },
+    {
+      "created_at": "2026-09-28T19:48:17.767470+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:55bbbe04cc4568cf",
+      "kind": "placement_field",
+      "note": "Sandefjord confirms ice is free at 15:30 on 2026-11-01 despite flagged external calendar interval",
+      "request_id": "club-feedback:sandefjord:rvv-0037:1530-start-time",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0037:start_time"
+      },
+      "tournament_id": "rvv-0037",
+      "value": "15:30"
+    },
+    {
+      "created_at": "2026-09-28T19:48:35.140666+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:ce8bc8a53b8cbb0d",
+      "kind": "placement_field",
+      "note": "Sandefjord confirms ice is free at 15:30 on 2027-01-10 despite flagged external calendar interval",
+      "request_id": "club-feedback:sandefjord:rvv-0102:1530-start-time",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0102:start_time"
+      },
+      "tournament_id": "rvv-0102",
+      "value": "15:30"
+    },
+    {
+      "created_at": "2026-09-28T19:49:29.177324+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:2081479c9cb72192",
+      "kind": "placement_field",
+      "note": "Sandefjord confirms ice is free at 15:30 on 2026-12-06 despite flagged external calendar interval",
+      "request_id": "club-feedback:sandefjord:rvv-0024:1530-start-time",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0024:start_time"
+      },
+      "tournament_id": "rvv-0024",
+      "value": "15:30"
     }
   ],
   "club_booking_source_assertions": [
@@ -6037,13 +6091,15 @@
       "status": "pending_review"
     },
     "rvv-0037": {
-      "approved_at": "2026-09-28T19:45:41.892463+00:00",
-      "approved_by": "niclasl",
-      "approved_fingerprint": "5670587d996c99bde928ebda8ccfe51be05aa972f2285a2fb73bfbf566f3a200",
-      "note": "Restored after failed move attempt (15:30 conflicts with fixed_busy external calendar interval)",
+      "approved_at": null,
+      "approved_by": null,
+      "approved_fingerprint": null,
+      "note": "Inspecting 15:30 conflict per operator request",
       "participants_locked": false,
-      "placement_locked": true,
-      "status": "approved"
+      "placement_locked": false,
+      "status": "pending_review",
+      "unapproved_at": "2026-09-28T19:47:13.431457+00:00",
+      "unapproved_by": "niclasl"
     },
     "rvv-0038": {
       "approved_at": null,
@@ -6568,13 +6624,15 @@
       "status": "approved"
     },
     "rvv-0102": {
-      "approved_at": "2026-09-28T19:45:42.482645+00:00",
-      "approved_by": "niclasl",
-      "approved_fingerprint": "f8df5010da0a6fdb4b3513346cf1846bcbfffe9a26b9c1d7d3034559593eeb5d",
-      "note": "Restored after failed move attempt (15:30 conflicts with fixed_busy external calendar interval)",
+      "approved_at": null,
+      "approved_by": null,
+      "approved_fingerprint": null,
+      "note": "Move requested by operator; old placement no longer confirmed",
       "participants_locked": false,
-      "placement_locked": true,
-      "status": "approved"
+      "placement_locked": false,
+      "status": "pending_review",
+      "unapproved_at": "2026-09-28T19:48:34.487473+00:00",
+      "unapproved_by": "niclasl"
     },
     "rvv-0103": {
       "approved_at": null,
@@ -39807,6 +39865,239 @@
       "schedule_fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
       "tournament_fingerprint": "f8df5010da0a6fdb4b3513346cf1846bcbfffe9a26b9c1d7d3034559593eeb5d",
       "tournament_id": "rvv-0102"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:47:13.431457+00:00",
+      "event": "unapprove",
+      "note": "Inspecting 15:30 conflict per operator request",
+      "previous_fingerprint": "5670587d996c99bde928ebda8ccfe51be05aa972f2285a2fb73bfbf566f3a200",
+      "schedule_fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0037"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:48:17.767470+00:00",
+      "details": {
+        "after_fingerprint": "1a95742030858411beddba68877c038a49959f041f7022395f607b62e1dd5d24",
+        "before_canonical_revision": "1554bd98e574d9316ccec93dbe29c0bac73b53f5f2c3c1813c23e51c7e56ccc9",
+        "before_fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
+        "new_placement": {
+          "arena": "Bugården ishall",
+          "date": "2026-11-01",
+          "host_club": "Sandefjord Penguins",
+          "start_time": "15:30"
+        },
+        "old_placement": {
+          "arena": "Bugården ishall",
+          "date": "2026-11-01",
+          "host_club": "Sandefjord Penguins",
+          "start_time": "15:00"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 76,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 75,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 76,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0037"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "11da465f4984ee28898d6cee232a6033fc8cd8c997157da47b618a7d4d7982ad"
+        }
+      },
+      "event": "move",
+      "note": "Sandefjord confirms ice is free at 15:30 on 2026-11-01 despite flagged external calendar interval",
+      "previous_fingerprint": "5670587d996c99bde928ebda8ccfe51be05aa972f2285a2fb73bfbf566f3a200",
+      "schedule_fingerprint": "1a95742030858411beddba68877c038a49959f041f7022395f607b62e1dd5d24",
+      "tournament_fingerprint": "3787fbbdbd344aeaa8df24bda8481c682248d0c1984a737daee3b94529bbc60f",
+      "tournament_id": "rvv-0037"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:48:34.487473+00:00",
+      "event": "unapprove",
+      "note": "Move requested by operator; old placement no longer confirmed",
+      "previous_fingerprint": "f8df5010da0a6fdb4b3513346cf1846bcbfffe9a26b9c1d7d3034559593eeb5d",
+      "schedule_fingerprint": "1a95742030858411beddba68877c038a49959f041f7022395f607b62e1dd5d24",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0102"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:48:35.140666+00:00",
+      "details": {
+        "after_fingerprint": "4649e5a17f49bbfbd5fe7e02f73ef1ac833e610b24f8adcae043afc5cc7b3123",
+        "before_canonical_revision": "eeb46bf8261a166a560261ccc9acb8f1435c78718aba0008638e627b0f50ce44",
+        "before_fingerprint": "1a95742030858411beddba68877c038a49959f041f7022395f607b62e1dd5d24",
+        "new_placement": {
+          "arena": "Bugården ishall",
+          "date": "2027-01-10",
+          "host_club": "Sandefjord Penguins",
+          "start_time": "15:30"
+        },
+        "old_placement": {
+          "arena": "Bugården ishall",
+          "date": "2027-01-10",
+          "host_club": "Sandefjord Penguins",
+          "start_time": "15:00"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 77,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 76,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 77,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0102"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "a571c4e30e0eccabdcb8978be9ff050ac9a79003fcaa369fc7d98019295df02b"
+        }
+      },
+      "event": "move",
+      "note": "Sandefjord confirms ice is free at 15:30 on 2027-01-10 despite flagged external calendar interval",
+      "previous_fingerprint": "f8df5010da0a6fdb4b3513346cf1846bcbfffe9a26b9c1d7d3034559593eeb5d",
+      "schedule_fingerprint": "4649e5a17f49bbfbd5fe7e02f73ef1ac833e610b24f8adcae043afc5cc7b3123",
+      "tournament_fingerprint": "eb6c44626e07d2e147f862316b06bcba11e29c6bc0a2772657793752160784f2",
+      "tournament_id": "rvv-0102"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:49:29.177324+00:00",
+      "details": {
+        "after_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+        "before_canonical_revision": "333186939d60abc4daaa5580e6b8c1533a104a5482bcc9c247c1f150af97131f",
+        "before_fingerprint": "4649e5a17f49bbfbd5fe7e02f73ef1ac833e610b24f8adcae043afc5cc7b3123",
+        "new_placement": {
+          "arena": "Bugården ishall",
+          "date": "2026-12-06",
+          "host_club": "Sandefjord Penguins",
+          "start_time": "15:30"
+        },
+        "old_placement": {
+          "arena": "Bugården ishall",
+          "date": "2026-12-06",
+          "host_club": "Sandefjord Penguins",
+          "start_time": "15:00"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 77,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0024"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Sandefjord confirms ice is free at 15:30 on 2026-12-06 despite flagged external calendar interval",
+      "previous_fingerprint": "85ac78e2b48e6558edddd74b09ae63c879e1b4ca922fefc742b8ae96c7911737",
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": "19596d845f6de802e78ad3b3604f93961895806a21cd3a9769fecb7d39d8856e",
+      "tournament_id": "rvv-0024"
     }
   ],
   "holiday_date_exceptions": [
@@ -43054,7 +43345,7 @@
       "type": "team_unavailable"
     }
   ],
-  "schedule_fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
+  "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -84189,5 +84480,5 @@
       "tournament_id": "rvv-0187"
     }
   ],
-  "updated_at": "2026-09-28T19:45:42.482645+00:00"
+  "updated_at": "2026-09-28T19:49:29.177324+00:00"
 }
