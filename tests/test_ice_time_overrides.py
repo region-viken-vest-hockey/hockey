@@ -21,6 +21,7 @@ from tournament_scheduler.canonical_state import canonical_state_revision
 from tournament_scheduler.calendar_bookings import tournament_occupancy_interval_facts
 from tournament_scheduler.occupancy import effective_ice_time_minutes, tournament_end_time
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+from tournament_scheduler.published_mutation_history import replayed_occupancy_overrides
 from tournament_scheduler.serialization.season_plan import tournament_from_dict
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 from tournament_scheduler.season_state import (
@@ -265,6 +266,74 @@ def test_set_is_idempotent_and_a_new_decision_supersedes(tmp_path):
     statuses = {record["id"]: record["status"] for record in records}
     assert statuses[first["override"]["id"]] == "released"
     assert active_overrides(decisions) == {"t1": 70}
+
+
+def test_set_clear_supersede_reset_chain_replays_to_active_map(tmp_path):
+    """Every override decision-chain shape replays to the same active map.
+
+    The sealed-season reconciliation guard derives the recorded override set
+    from the ``set_ice_time_minutes`` / ``clear_ice_time_minutes`` chain and
+    compares it to the active decision records. A new set, a superseding set, a
+    clear, and a re-set after the clear (the shape seen across the Frisk Asker
+    batch) must all converge, otherwise a correct booking confirmation is
+    refused as phantom override drift.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _problem()
+
+    def replay_map() -> dict[str, int]:
+        decisions = load_decisions("2026-2027", root=root)
+        active = active_overrides(decisions)
+        assert active == replayed_occupancy_overrides(decisions.get("history") or []), (
+            "active override map must equal the recorded set/clear chain"
+        )
+        return active
+
+    # No override: an empty active map must replay to an empty chain.
+    assert replay_map() == {}
+
+    first = set_ice_time_minutes(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        minutes=60,
+        request_id="host:first",
+        note="host confirmed 60",
+        problem=problem,
+    )
+    assert replay_map() == {"t1": 60}
+
+    superseded = set_ice_time_minutes(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        minutes=70,
+        request_id="host:second",
+        note="host revised to 70",
+        problem=problem,
+    )
+    assert replay_map() == {"t1": 70}
+
+    cleared = clear_ice_time_minutes(
+        season="2026-2027", root=root, tournament_id="t1", note="window reverted"
+    )
+    assert replay_map() == {}
+
+    reset = set_ice_time_minutes(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        minutes=80,
+        request_id="host:third",
+        note="host confirmed 80",
+        problem=problem,
+    )
+    assert replay_map() == {"t1": 80}
+
+    assert superseded["previous_override"]["id"] == first["override"]["id"]
+    assert cleared["changed"] is True
+    assert reset["override"]["minutes"] == 80
 
 
 def test_reprojection_rebuilds_from_active_decisions(tmp_path):
