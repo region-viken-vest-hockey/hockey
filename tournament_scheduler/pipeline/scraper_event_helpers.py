@@ -13,34 +13,35 @@ from typing import Any
 from ..club_registry import club_for_source_name
 from ..models import CalendarEvent
 
-# Frisk Asker's Teamup feed exposes both Askerhallen and Varner Arena. RVV can
-# book Askerhallen only, and the registry location_filter now removes Varner
-# before these helpers run. The classifier remains useful audit metadata and a
-# regression guard for recovered/injected events.
-_FRISK_ASKER_ASKERHALLEN_MARKERS = {"idrettshallen"}
-_FRISK_ASKER_VARNER_MARKERS = {"1", "2", "4", "5"}  # standalone ice-surface numbers
+# Frisk Asker's configured Teamup source is the Askerhallen calendar. Its
+# LOCATION/resource labels are audit metadata only; they must not reassign
+# source evidence to Varner Arena or make Askerhallen events non-actionable.
+_FRISK_ASKER_ASKERHALLEN_MARKERS = {"idrettshallen", "askerhallen"}
+_FRISK_ASKER_RESOURCE_MARKERS = {"1", "2", "4", "5"}  # standalone resource numbers
 
 
-def _classify_frisk_asker_arena(location: str) -> str | None:
-    """Return 'Askerhallen', 'Varner Arena', or None if unclassifiable."""
+def _classify_frisk_asker_resource_label(location: str) -> str | None:
+    """Return a descriptive Frisk Asker resource label classification, if any."""
     loc = location.strip().lower()
     if not loc:
         return None
     if any(m in loc for m in _FRISK_ASKER_ASKERHALLEN_MARKERS):
-        return "Askerhallen"
-    # Standalone surface numbers like "1", "2", "4 og 5", "1 og 2"
-    surfaces = {p.strip() for p in loc.replace(" og ", " ").split()}
-    if surfaces and surfaces <= _FRISK_ASKER_VARNER_MARKERS:
-        return "Varner Arena"
-    # "fa 1", "fa 1 - opponent 5", "fa jentegarderoben ..." → home rooms at Varner Arena
+        return "askerhallen_label"
+    # Standalone resource numbers like "1", "2", "4 og 5", "1 og 2".
+    surfaces = {p.strip() for p in loc.replace(" og ", " ").replace("+", " ").split()}
+    if surfaces and surfaces <= _FRISK_ASKER_RESOURCE_MARKERS:
+        return "numbered_resource_label"
     if loc.startswith("fa "):
-        return "Varner Arena"
+        return "fa_resource_label"
+    if "varner" in loc:
+        return "varner_like_label"
     return None
 
 
 def _events_to_dicts(
     events: list[CalendarEvent],
     club_name: str | None = None,
+    source_arena: str | None = None,
 ) -> list[dict[str, Any]]:
     """Serialise :class:`CalendarEvent` objects to plain dicts for JSON output."""
     result = []
@@ -59,10 +60,12 @@ def _events_to_dicts(
             d["all_day"] = True
         if e.location:
             d["location"] = e.location
-            if club_name == "Frisk Asker":
-                arena = _classify_frisk_asker_arena(e.location)
-                if arena:
-                    d["arena"] = arena
+        if source_arena:
+            d["arena"] = source_arena
+        if club_name == "Frisk Asker" and source_arena == "Askerhallen" and e.location:
+            resource_label = _classify_frisk_asker_resource_label(e.location)
+            if resource_label:
+                d["resource_label_classification"] = resource_label
         result.append(d)
     return result
 
@@ -110,9 +113,9 @@ def _group_events_by_club(
     of event dicts (as produced by :func:`_events_to_dicts`). This maps each
     source's events to the matching :data:`CLUB_REGISTRY` club name (via
     :func:`club_for_source_name`) so downstream code can look up all trusted
-    events for a club without re-filtering the flat per-source list. For Frisk
-    Asker, the registry's `Idrettshallen` location filter means these grouped
-    events represent Askerhallen only.
+    events for a club without re-filtering the flat per-source list. Event
+    arena identity is assigned before grouping from the configured source
+    identity, not inferred here from LOCATION/resource labels.
 
     Sources that don't match any known club (or carry no events) are simply
     omitted -- existing flat-list (``"sources"``) consumers are unaffected.

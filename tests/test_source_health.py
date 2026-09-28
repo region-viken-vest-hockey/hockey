@@ -276,11 +276,11 @@ class TestComputeSourceHealth:
         assert result.status == "ok"
 
     def test_non_schedulable_arena_alias_is_flagged_for_review(self, tmp_path):
-        """Frisk Asker's Teamup feed also carries Varner Arena, which RVV can
+        """Explicit non-schedulable arena tags remain a source-health warning.
 
-        never book (see ``non_schedulable_arena_aliases`` in club_registry.py).
-        Events an existing per-club classifier tags with that alias should
-        surface as a review flag, not be silently trusted or silently dropped.
+        Frisk Asker's Askerhallen source no longer derives these tags from
+        LOCATION/resource labels, but recovered or injected evidence may still
+        carry an explicit arena value that should be reviewed.
         """
         events = [
             {"date": "05.09.2026", "datetime": "2026-09-05T17:00:00", "name": "U15", "location": "1+2", "arena": "Varner Arena"},
@@ -301,6 +301,39 @@ class TestComputeSourceHealth:
         assert result.status == "warning"
         assert result.requires_human is True
         assert any("Varner Arena" in p for p in result.problems)
+
+    def test_askerhallen_source_identity_is_not_flagged_for_varner_like_location_labels(self, tmp_path):
+        events = [
+            {
+                "date": "05.09.2026",
+                "datetime": "2026-09-05T17:00:00",
+                "name": "U15",
+                "location": "Varner Arena",
+                "arena": "Askerhallen",
+                "resource_label_classification": "varner_like_label",
+            },
+            {
+                "date": "06.09.2026",
+                "datetime": "2026-09-06T17:00:00",
+                "name": "U16",
+                "location": "1 og 2",
+                "arena": "Askerhallen",
+                "resource_label_classification": "numbered_resource_label",
+            },
+        ]
+        _write_scraping_checkpoint(
+            tmp_path,
+            [{
+                "name": "Frisk Asker",
+                "event_count": 2,
+                "blocked": False,
+                "type": "ical",
+                "events": events,
+                "event_expectation": {"status": "ok"},
+            }],
+        )
+        result = compute_source_health(str(tmp_path))[0]
+        assert result.status == "ok"
 
     def test_no_arena_tags_present_is_not_flagged(self, tmp_path):
         events = [

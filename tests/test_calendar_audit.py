@@ -11,7 +11,7 @@ from tournament_scheduler.pipeline.calendar_viewer import _source_urls, generate
 from tournament_scheduler.utils.calendar_cache import CalendarCache
 
 
-FRISK_MULTI_ARENA_FEED = b"""BEGIN:VCALENDAR
+FRISK_LOCATION_LABEL_FEED = b"""BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Test//Frisk Asker Teamup//EN
 CALSCALE:GREGORIAN
@@ -28,7 +28,7 @@ UID:varner@example.com
 DTSTAMP:20260101T120000Z
 DTSTART:20260912T130000Z
 DTEND:20260912T150000Z
-SUMMARY:Varner aktivitet
+SUMMARY:Numbered resource aktivitet
 LOCATION:1
 END:VEVENT
 BEGIN:VEVENT
@@ -81,7 +81,7 @@ def test_calendar_cache_roundtrip_keeps_location_and_all_day(tmp_path):
 
     with patch(
         "tournament_scheduler.data_sources.ical_scraper.requests.get",
-        return_value=_response(FRISK_MULTI_ARENA_FEED),
+        return_value=_response(FRISK_LOCATION_LABEL_FEED),
     ):
         first = scraper.scrape_calendar(
             frisk.source or "",
