@@ -40682,8 +40682,8 @@
   },
   "plan_schema_version": 1,
   "promoted_from": {
-    "export_fresh_at": "2026-09-28T19:58:42.648827+00:00",
-    "export_fresh_revision": "88c070ba1a9fc70271e3c07564d05b7ec0529c233159a83521d3c0118fa4f4de",
+    "export_fresh_at": "2026-09-28T20:02:50.559417+00:00",
+    "export_fresh_revision": "a7e22968ac7890d0a812fb8a09afe76a6b039cff0ea0afd620302f3f91b5195d",
     "public_export_context_fingerprint": "f5ac564e3b0f7eac33196110185cb082556676d5fe9f8bbd33ea0be77bbfc415",
     "run_id": "20260918T135604Z-8d38f146",
     "stage3_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
