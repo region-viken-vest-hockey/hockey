@@ -66,6 +66,23 @@ from .scraper_sportello import _run_sportello_scraper
 # ---------------------------------------------------------------------------
 
 
+def _source_identity_arena(source_cfg: dict[str, Any]) -> str | None:
+    """Return the configured physical arena for this exact source, if known."""
+    explicit = source_cfg.get("arena")
+    if explicit:
+        return str(explicit)
+    name = str(source_cfg.get("name") or "")
+    url = str(source_cfg.get("url") or "").strip()
+    club_name = club_for_source_name(name)
+    entry = CLUB_REGISTRY.get(club_name) if club_name else None
+    if entry is None or not url:
+        return None
+    configured_urls = {candidate for candidate in (entry.source, entry.human_url) if candidate}
+    if url in configured_urls:
+        return entry.arena
+    return None
+
+
 def _make_source_result(
     name: str,
     url: str,
@@ -665,7 +682,11 @@ def _scrape_source(
     # empty-calendar/LLM-fallback logic, none of which apply here.
     if source_type == SOURCE_FIXED_ALLOCATION:
         events = run_fixed_allocation_source(name, start_date, end_date)
-        result["events"] = _events_to_dicts(events, club_name=club_for_source_name(name))
+        result["events"] = _events_to_dicts(
+            events,
+            club_name=club_for_source_name(name),
+            source_arena=_source_identity_arena(source_cfg),
+        )
         result["event_count"] = len(events)
         return result
 
@@ -809,7 +830,11 @@ def _scrape_source(
     coverage = getattr(events, "coverage", None) or deterministic_coverage
     if isinstance(coverage, dict):
         result["coverage"] = coverage
-    result["events"] = _events_to_dicts(events, club_name=club_for_source_name(name))
+    result["events"] = _events_to_dicts(
+        events,
+        club_name=club_for_source_name(name),
+        source_arena=_source_identity_arena(source_cfg),
+    )
     result["event_count"] = len(events)
     return result
 

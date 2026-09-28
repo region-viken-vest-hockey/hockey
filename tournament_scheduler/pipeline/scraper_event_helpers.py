@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from ..club_registry import CLUB_REGISTRY, club_for_source_name
+from ..club_registry import club_for_source_name
 from ..models import CalendarEvent
 
 # Frisk Asker's configured Teamup source is the Askerhallen calendar. Its
@@ -41,6 +41,7 @@ def _classify_frisk_asker_resource_label(location: str) -> str | None:
 def _events_to_dicts(
     events: list[CalendarEvent],
     club_name: str | None = None,
+    source_arena: str | None = None,
 ) -> list[dict[str, Any]]:
     """Serialise :class:`CalendarEvent` objects to plain dicts for JSON output."""
     result = []
@@ -59,14 +60,12 @@ def _events_to_dicts(
             d["all_day"] = True
         if e.location:
             d["location"] = e.location
-        if club_name == "Frisk Asker":
-            registry_entry = CLUB_REGISTRY.get(club_name)
-            if registry_entry is not None:
-                d["arena"] = registry_entry.arena
-            if e.location:
-                resource_label = _classify_frisk_asker_resource_label(e.location)
-                if resource_label:
-                    d["resource_label_classification"] = resource_label
+        if source_arena:
+            d["arena"] = source_arena
+        if club_name == "Frisk Asker" and source_arena == "Askerhallen" and e.location:
+            resource_label = _classify_frisk_asker_resource_label(e.location)
+            if resource_label:
+                d["resource_label_classification"] = resource_label
         result.append(d)
     return result
 
@@ -114,9 +113,9 @@ def _group_events_by_club(
     of event dicts (as produced by :func:`_events_to_dicts`). This maps each
     source's events to the matching :data:`CLUB_REGISTRY` club name (via
     :func:`club_for_source_name`) so downstream code can look up all trusted
-    events for a club without re-filtering the flat per-source list. For Frisk
-    Asker, the registry's `Idrettshallen` location filter means these grouped
-    events represent Askerhallen only.
+    events for a club without re-filtering the flat per-source list. Event
+    arena identity is assigned before grouping from the configured source
+    identity, not inferred here from LOCATION/resource labels.
 
     Sources that don't match any known club (or carry no events) are simply
     omitted -- existing flat-list (``"sources"``) consumers are unaffected.

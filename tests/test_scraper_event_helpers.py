@@ -28,6 +28,7 @@ def test_frisk_asker_source_identity_sets_askerhallen_for_ambiguous_locations():
             _event("Varner Arena"),
         ],
         club_name="Frisk Asker",
+        source_arena="Askerhallen",
     )
 
     assert [row["arena"] for row in rows] == ["Askerhallen"] * 4
@@ -44,3 +45,27 @@ def test_varner_named_source_does_not_become_frisk_asker_evidence():
 
     grouped = _group_events_by_club([{"name": "Varner Arena", "events": rows}])
     assert "Frisk Asker" not in grouped
+
+
+def test_two_frisk_sources_keep_their_configured_source_arena_identity():
+    asker_rows = _events_to_dicts(
+        [_event("1 og 2")],
+        club_name="Frisk Asker",
+        source_arena="Askerhallen",
+    )
+    varner_rows = _events_to_dicts(
+        [_event("1 og 2")],
+        club_name="Frisk Asker",
+        source_arena="Varner Arena",
+    )
+
+    grouped = _group_events_by_club(
+        [
+            {"name": "Frisk Asker", "events": asker_rows},
+            {"name": "Frisk Asker Varner", "events": varner_rows},
+        ]
+    )
+
+    assert [row["arena"] for row in grouped["Frisk Asker"]] == ["Askerhallen", "Varner Arena"]
+    assert asker_rows[0]["resource_label_classification"] == "numbered_resource_label"
+    assert "resource_label_classification" not in varner_rows[0]
