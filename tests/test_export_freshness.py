@@ -224,3 +224,158 @@ def test_season_export_fails_closed_when_latch_not_cleared(
     # Artifacts are retained for diagnosis even though the stage failed.
     assert (export_dir / "season_plan.xlsx").exists()
     assert (export_dir / "season_plan.html").exists()
+
+
+def _mark_export_fresh_events(decisions: dict) -> list[dict]:
+    return [event for event in decisions.get("history") or [] if event.get("event") == "mark_export_fresh"]
+
+
+def test_repeated_mark_export_fresh_of_unchanged_state_is_idempotent(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A second clearing at the same revision must not write or append history."""
+
+    revision = _stale_after_refresh(tmp_path, monkeypatch)
+    root = tmp_path / "season"
+
+    first = mark_export_fresh(
+        season=SEASON,
+        root=root,
+        expected_revision=revision,
+        export_dir=tmp_path / "canonical-export",
+        note="first export",
+    )
+    assert first["cleared"] is True
+    after_first = load_decisions(SEASON, root=root)
+    assert len(_mark_export_fresh_events(after_first)) == 1
+
+    second = mark_export_fresh(
+        season=SEASON,
+        root=root,
+        expected_revision=revision,
+        export_dir=tmp_path / "canonical-export-2",
+        note="second export",
+    )
+    assert second["cleared"] is True
+    assert second.get("reason") == "already_fresh"
+
+    after_second = load_decisions(SEASON, root=root)
+    # Byte-for-byte stable: no duplicate event, no timestamp/revision churn.
+    assert after_second == after_first
+    assert len(_mark_export_fresh_events(after_second)) == 1
+
+
+def test_mark_export_fresh_noop_still_binds_the_current_revision(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A write landing after an already-fresh read must not be reported fresh."""
+
+    revision = _stale_after_refresh(tmp_path, monkeypatch)
+    root = tmp_path / "season"
+    service = CanonicalSeasonService(root=root)
+
+    first = service.mark_export_fresh(season=SEASON, expected_revision=revision)
+    assert first["cleared"] is True
+    already_fresh_snapshot = service.load(SEASON)
+
+    # A decision-only mutation advances canonical state but does not arm the
+    # export-freshness latch, so the stale snapshot still looks already fresh.
+    add_banned_date(
+        season=SEASON,
+        date="2027-01-15",
+        request_id="noop-interleave",
+        root=root,
+        note="state advanced after export",
+    )
+    current_revision = canonical_state_revision(
+        load_schedule(SEASON, root=root), load_decisions(SEASON, root=root)
+    )
+    assert current_revision != revision
+
+    # Hold the already-fresh read past the concurrent write, so only the CAS can
+    # stop the idempotent no-op from blessing an obsolete export.
+    monkeypatch.setattr(service, "load", lambda season: already_fresh_snapshot)
+    result = service.mark_export_fresh(season=SEASON, expected_revision=revision)
+
+    assert result["cleared"] is False
+    assert result["reason"] == "canonical_state_changed_during_commit"
+    # The newer canonical revision is still on disk; the stale no-op did not win.
+    decisions = load_decisions(SEASON, root=root)
+    assert decisions["canonical_state_revision"] == current_revision
+    assert decisions["export_state"]["fresh_canonical_revision"] == revision
+
+
+def test_season_export_is_stale_when_freshness_does_not_cover_artifacts(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The caller must trust the returned revision, not a bare cleared flag."""
+
+    root = _promote(tmp_path)
+    export_dir = tmp_path / "canonical-export"
+
+    import tournament_scheduler.season_state as season_state
+
+    def mismatched_freshness(*_args, **_kwargs):
+        return {
+            "season": SEASON,
+            "cleared": True,
+            "reason": "already_fresh",
+            "canonical_state_revision": "some-other-revision",
+        }
+
+    monkeypatch.setattr(season_state, "mark_export_fresh", mismatched_freshness)
+    rc = main(
+        [
+            "season",
+            "export",
+            "--season",
+            SEASON,
+            "--work-dir",
+            str(tmp_path / ".pipeline"),
+            "--root",
+            str(root),
+            "--export-dir",
+            str(export_dir),
+            "--flat",
+        ]
+    )
+    assert rc == 1
+
+    state = PipelineState(tmp_path / ".pipeline")
+    envelope = state.read_envelope(StageName.EXPORT)
+    assert envelope["status"] == "failed"
+    assert envelope["data"]["stale_export"] is True
+
+
+def test_repeated_season_export_does_not_churn_canonical_history(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Re-exporting unchanged canonical content must leave canonical state stable."""
+
+    _stale_after_refresh(tmp_path, monkeypatch)
+    root = tmp_path / "season"
+    args = [
+        "season",
+        "export",
+        "--season",
+        SEASON,
+        "--work-dir",
+        str(tmp_path / ".pipeline"),
+        "--root",
+        str(root),
+        "--export-dir",
+        str(tmp_path / "canonical-export"),
+        "--flat",
+    ]
+
+    assert main(args) == 0
+    after_first = load_decisions(SEASON, root=root)
+    assert len(_mark_export_fresh_events(after_first)) == 1
+    first_revision = after_first["canonical_state_revision"]
+    assert after_first["export_state"]["fresh_canonical_revision"] == first_revision
+
+    assert main(args) == 0
+    after_second = load_decisions(SEASON, root=root)
+    assert len(_mark_export_fresh_events(after_second)) == 1
+    assert after_second["canonical_state_revision"] == first_revision
+    assert after_second["updated_at"] == after_first["updated_at"]

@@ -243,6 +243,30 @@ def test_reconciliation_fails_closed_on_unknown_history_event() -> None:
     assert "unknown canonical history event" in report["unexplained_delta"]["replay_error"]
 
 
+def test_reconciliation_ignores_export_freshness_history() -> None:
+    """Recording a fresh export is decision-only and never a schedule mutation."""
+
+    baseline = _tp({"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]})
+    report = reconcile_published_baseline(
+        published_projection=baseline,
+        current_projection=baseline,
+        history=[
+            {
+                "event": "mark_export_fresh",
+                "tournament_id": "",
+                "actor": "tester",
+                "details": {
+                    "canonical_state_revision": "rev-1",
+                    "export_dir": "export/2026-09-28T0851",
+                },
+            }
+        ],
+        attested_additions={},
+    )
+    assert report["ok"] is True
+    assert report["applied_mutation_count"] == 0
+
+
 def test_reconciliation_replays_typed_cancellation_guest_and_duration_mutations() -> None:
     plan = {
         "tournaments": [
@@ -620,6 +644,30 @@ def test_seal_records_baseline_and_state(tmp_path: Path) -> None:
     status = CanonicalSeasonService(root=root).season_lifecycle_report("2026-2027")
     assert status["state"] == "published_sealed"
     assert status["reconciliation"]["ok"] is True
+
+
+def test_sealed_reconciliation_accepts_a_recorded_export_freshness_event(
+    tmp_path: Path,
+) -> None:
+    """A successful export on a sealed season must not break reconciliation."""
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_abc(root)
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load("2026-2027")
+    revision = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+
+    result = service.mark_export_fresh(
+        season="2026-2027",
+        expected_revision=revision,
+        export_dir="export/2026-09-28T0851",
+        actor="tester",
+    )
+    assert result["cleared"] is True
+
+    report = service.verify_sealed_reconciliation("2026-2027")
+    assert report["ok"] is True, report
 
 
 def test_legacy_published_baseline_is_backfilled_from_publication_revision(tmp_path: Path) -> None:

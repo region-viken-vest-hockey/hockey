@@ -10,12 +10,15 @@ The invariant owned here is:
 Only operations that can change the stable-id schedule projection used for
 baseline reconciliation are replayed. Approval, booking evidence, request
 constraints, banned/holiday dates, per-tournament ice-time overrides, calendar
-refresh, season baseline and audit metadata are decision-only: they advance the
-canonical revision but are never replayed as schedule mutations. A
-per-tournament ice-time override does change the rendered occupied interval, but
-the reconciliation projection is built from the canonical schedule without
-decision-only overlays, so the replay must recognize and skip the event rather
-than fail on it. Pre-publication mutations are safe to replay because a publication
+refresh, export-freshness metadata, season baseline and audit metadata are
+decision-only: they advance the canonical revision but are never replayed as
+schedule mutations. A per-tournament ice-time override does change the rendered
+occupied interval, but the reconciliation projection is built from the
+canonical schedule without decision-only overlays, so the replay must recognize
+and skip the event rather than fail on it. The ``mark_export_fresh`` event
+records that an export artifact covered a canonical revision; it describes
+export provenance, not a schedule change, so replay treats it as decision-only.
+Pre-publication mutations are safe to replay because a publication
 baseline already reflects them, so re-applying the same placement is a no-op.
 
 The comparison fails closed: any unexplained added/removed/moved/roster change
@@ -52,6 +55,7 @@ _DECISION_ONLY_EVENTS = {
     "clear_ice_time_minutes",
     "clear_manual_booking_assertion",
     "disallow_holiday_date",
+    "mark_export_fresh",
     "reconcile_calendar_bookings",
     "refresh_calendar_evidence",
     "release_calendar_booking",

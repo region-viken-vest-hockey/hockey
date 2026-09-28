@@ -1524,13 +1524,15 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 export_dir=result.get("export_dir") or args.export_dir,
                 note="canonical export",
             )
-            # A stale result means canonical state advanced after the exported
-            # snapshot (or the freshness marker could not be cleared). The
-            # artifacts are still written and retained for diagnosis, but the
-            # export is not publishable, so the stage is FAILED and the command
-            # exits nonzero instead of advancing as a clean success.
-            result["stale_export"] = not bool(
-                result["export_freshness"].get("cleared")
+            # The freshness operation returns the revision it actually bound to.
+            # Treat that value as authoritative: a cleared latch only makes this
+            # export publishable when it covers the very revision the artifacts
+            # were produced from.
+            export_freshness = result["export_freshness"]
+            bound_revision = str(export_freshness.get("canonical_state_revision") or "")
+            result["stale_export"] = not (
+                bool(export_freshness.get("cleared"))
+                and bound_revision == str(result.get("canonical_revision") or "")
             )
             stale_export = bool(result["stale_export"])
             if stale_export:
