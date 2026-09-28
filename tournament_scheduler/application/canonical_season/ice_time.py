@@ -79,6 +79,81 @@ def _find_tournament(plan: Mapping[str, Any], tournament_id: str) -> dict[str, A
     )
 
 
+def _record_override_decision(
+    decisions: dict[str, Any],
+    *,
+    normalized: Mapping[str, Any],
+    tournament_id: str,
+    age_group: str,
+    default_minutes: Any,
+    minimum_minutes: int | None,
+    existing: Mapping[str, Any] | None,
+    actor: str | None,
+    now: str,
+    note: str,
+    authority: str = "",
+) -> dict[str, Any]:
+    """Persist one active occupancy override decision and its provenance event.
+
+    This is the single canonical writer for ``ice_time_minutes_overrides``: it
+    builds the durable record, releases a superseded active record, and appends
+    the ``set_ice_time_minutes`` audit event that sealed-season replay reads to
+    reconstruct the active override map. Every code path that changes a
+    tournament's occupied duration (the operator command and the
+    evidence-backed calendar reconciliation) must go through it so the active
+    map and its recorded decision chain can never diverge.
+    """
+
+    resolved_actor = _operator_identity(actor)
+    record: dict[str, Any] = {
+        **normalized,
+        "status": ACTIVE,
+        "age_group": age_group,
+        "default_minutes": int(default_minutes) if isinstance(default_minutes, int) else None,
+        "minimum_minutes": minimum_minutes or None,
+        "created_at": now,
+        "created_by": resolved_actor,
+    }
+    if authority:
+        record["authority"] = authority
+    prior = [
+        dict(row)
+        for row in decisions.get("ice_time_minutes_overrides") or []
+        if isinstance(row, Mapping)
+    ]
+    if existing is not None:
+        existing_id = str(existing.get("id") or "")
+        for row in prior:
+            if str(row.get("id") or "") == existing_id:
+                row["status"] = RELEASED
+                row["released_at"] = now
+                row["released_by"] = resolved_actor
+                row["release_reason"] = f"superseded by {record['id']}"
+        record["supersedes"] = existing_id
+    prior.append(record)
+    decisions["ice_time_minutes_overrides"] = prior
+    decisions["updated_at"] = now
+    _append_decision_history(
+        decisions,
+        event="set_ice_time_minutes",
+        tournament_id=tournament_id,
+        actor=actor,
+        now=now,
+        note=note,
+        details={
+            "override_id": record["id"],
+            "minutes": record["minutes"],
+            "default_minutes": record.get("default_minutes"),
+            "minimum_minutes": record.get("minimum_minutes"),
+            "request_id": record["request_id"],
+            "reference": record.get("reference") or "",
+            "supersedes": record.get("supersedes") or "",
+            "authority": record.get("authority") or "operator",
+        },
+    )
+    return record
+
+
 def set_ice_time_minutes(
     service,
     *,
@@ -148,7 +223,6 @@ def set_ice_time_minutes(
     default_minutes = ((resolved_problem or {}).get("ice_time_minutes") or {}).get(age_group)
     existing = override_for_tournament(decisions, tournament_id)
     now = _now_iso()
-    resolved_actor = _operator_identity(actor)
     if existing is not None and int(existing.get("minutes") or 0) == int(normalized["minutes"]):
         return {
             "season": season,
@@ -160,49 +234,18 @@ def set_ice_time_minutes(
             "canonical_state_revision": current_revision,
         }
 
-    record = {
-        **normalized,
-        "status": ACTIVE,
-        "age_group": age_group,
-        "default_minutes": int(default_minutes) if isinstance(default_minutes, int) else None,
-        "minimum_minutes": floor or None,
-        "created_at": now,
-        "created_by": resolved_actor,
-    }
     updated = dict(decisions)
-    prior = [
-        dict(row)
-        for row in updated.get("ice_time_minutes_overrides") or []
-        if isinstance(row, Mapping)
-    ]
-    if existing is not None:
-        existing_id = str(existing.get("id") or "")
-        for row in prior:
-            if str(row.get("id") or "") == existing_id:
-                row["status"] = RELEASED
-                row["released_at"] = now
-                row["released_by"] = resolved_actor
-                row["release_reason"] = f"superseded by {record['id']}"
-        record["supersedes"] = existing_id
-    prior.append(record)
-    updated["ice_time_minutes_overrides"] = prior
-    updated["updated_at"] = now
-    _append_decision_history(
+    record = _record_override_decision(
         updated,
-        event="set_ice_time_minutes",
+        normalized=normalized,
         tournament_id=tournament_id,
-        actor=resolved_actor,
+        age_group=age_group,
+        default_minutes=default_minutes,
+        minimum_minutes=floor,
+        existing=existing,
+        actor=actor,
         now=now,
         note=note,
-        details={
-            "override_id": record["id"],
-            "minutes": record["minutes"],
-            "default_minutes": record.get("default_minutes"),
-            "minimum_minutes": record.get("minimum_minutes"),
-            "request_id": record["request_id"],
-            "reference": record.get("reference") or "",
-            "supersedes": record.get("supersedes") or "",
-        },
     )
     result: dict[str, Any] = {
         "season": season,

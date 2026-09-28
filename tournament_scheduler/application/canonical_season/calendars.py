@@ -47,8 +47,6 @@ from tournament_scheduler.calendar_bookings import (
 )
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_ice_time_overrides import (
-    ACTIVE as ICE_TIME_OVERRIDE_ACTIVE,
-    RELEASED as ICE_TIME_OVERRIDE_RELEASED,
     override_for_tournament,
     overrides_from_problem,
     validate_and_normalize as validate_ice_time_override,
@@ -67,6 +65,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 )
 from tournament_scheduler.planning_contract import verify_candidate
 
+from .ice_time import _minimum_override_minutes, _record_override_decision
 from .shared import (
     APPROVED_STATUS,
     _operator_identity,
@@ -1187,28 +1186,25 @@ def _align_tournament_to_calendar_event(
             }
         )
         age_group = str(target.get("age_group") or "")
-        overrides = [dict(row) for row in updated_decisions.get("ice_time_minutes_overrides") or [] if isinstance(row, Mapping)]
-        if existing_override is not None:
-            existing_id = str(existing_override.get("id") or "")
-            for row in overrides:
-                if str(row.get("id") or "") == existing_id:
-                    row["status"] = ICE_TIME_OVERRIDE_RELEASED
-                    row["released_at"] = now
-                    row["released_by"] = actor
-                    row["release_reason"] = f"superseded by accepted calendar booking {normalized['id']}"
-            normalized["supersedes"] = existing_id
-        override_record = {
-            **normalized,
-            "status": ICE_TIME_OVERRIDE_ACTIVE,
-            "age_group": age_group,
-            "default_minutes": None,
-            "minimum_minutes": None,
-            "created_at": now,
-            "created_by": actor,
-            "authority": "calendar_event_association",
-        }
-        overrides.append(override_record)
-        updated_decisions["ice_time_minutes_overrides"] = overrides
+        # The event-authoritative interval is the booked occupancy even when it
+        # is shorter than an age-group planning minimum. The override is written
+        # through the same canonical decision owner as the operator command so
+        # the active map keeps a replayable provenance chain; the floor is
+        # recorded for independent follow-up visibility instead of enforced.
+        default_minutes = ((problem or {}).get("ice_time_minutes") or {}).get(age_group)
+        override_record = _record_override_decision(
+            updated_decisions,
+            normalized=normalized,
+            tournament_id=tournament_id,
+            age_group=age_group,
+            default_minutes=default_minutes,
+            minimum_minutes=_minimum_override_minutes(target, problem),
+            existing=existing_override,
+            actor=actor,
+            now=now,
+            note=note,
+            authority="calendar_event_association",
+        )
 
     alignment = {
         # The prior effective occupied interval (date/start/duration/end),
@@ -1332,6 +1328,14 @@ def confirm_calendar_booking(
         for blocker in hard_blockers
         if str(blocker.get("code") or "") in {"ice_time_playing_minimum", "ice_time_governing_minimum"}
     ]
+    # An event-authoritative interval is accepted even when it is shorter than a
+    # planning minimum, but the deviation must stay durably attached to the
+    # booking evidence as independent follow-up rather than being silently
+    # absorbed. The persisted override already records its `minimum_minutes`.
+    if booking_feasibility_warnings:
+        warning_codes = [str(blocker.get("code") or "") for blocker in booking_feasibility_warnings]
+        assoc["booking_feasibility_warnings"] = warning_codes
+        evidence["booking_feasibility_warnings"] = warning_codes
     blockers = [blocker for blocker in hard_blockers if blocker not in booking_feasibility_warnings] + unresolved_blockers
     if blockers:
         messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)

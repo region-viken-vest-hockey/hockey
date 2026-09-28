@@ -455,6 +455,168 @@ def test_confirm_calendar_booking_accepts_host_confirmed_shorter_window(tmp_path
     assert confirmed["ice_time_override"]["minutes"] == 90
 
 
+def _two_host_problem(events_by_club):
+    problem = _problem(
+        ice=100,
+        teams=[
+            *[
+                {"club": club, "label": f"{club}1", "age_group": "U12"}
+                for club in ("A", "B", "C", "D")
+            ],
+            *[
+                {"club": club, "label": f"{club}1", "age_group": "U12"}
+                for club in ("E", "F", "G", "H")
+            ],
+        ],
+    )
+    problem["club_calendar_status"] = {club: "known" for club in events_by_club}
+    problem["club_busy_intervals"] = events_by_club
+    return problem
+
+
+def test_confirm_calendar_booking_reconciles_adjacent_authoritative_intervals(tmp_path):
+    """Two real bookings with a 10-minute turnaround reconcile to their actual windows.
+
+    The canonical empty-slot default (100 minutes) would make the first
+    tournament reach past the second one's real start. Applying each accepted
+    event's actual start/end before validation must resolve that stale-duration
+    conflict instead of rejecting a correct calendar placement.
+    """
+
+    from tournament_scheduler.calendar_bookings import iter_events
+
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("rvv-0003", start="11:50"),
+            _tournament(
+                "rvv-0004",
+                start="14:30",
+                host="E",
+                teams=[
+                    {"club": club, "label": f"{club}1", "age_group": "U12"}
+                    for club in ("E", "F", "G", "H")
+                ],
+            ),
+        ],
+    )
+    problem = _two_host_problem(
+        {
+            "A": [
+                {
+                    "date": "2026-09-12",
+                    "start": "13:00",
+                    "end": "14:20",
+                    "kind": "external",
+                    "availability": "fixed_busy",
+                    "calendar_event": "JU12 Serierunde",
+                }
+            ],
+            "E": [
+                {
+                    "date": "2026-09-12",
+                    "start": "14:30",
+                    "end": "15:50",
+                    "kind": "external",
+                    "availability": "fixed_busy",
+                    "calendar_event": "U12 Serierunde",
+                }
+            ],
+        }
+    )
+    events = {str(event["calendar_event"]): event for event in iter_events(problem)}
+
+    first = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=events["JU12 Serierunde"]["fingerprint"],
+        tournament_id="rvv-0003",
+        actor="booker",
+        note="host calendar event",
+        problem=problem,
+    )
+    second = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=events["U12 Serierunde"]["fingerprint"],
+        tournament_id="rvv-0004",
+        actor="booker",
+        note="host calendar event",
+        problem=problem,
+    )
+
+    assert first["interval_alignment"]["accepted_calendar_interval"]["end_time"] == "14:20"
+    assert second["interval_alignment"]["accepted_calendar_interval"]["start_time"] == "14:30"
+    assert first["ice_time_override"]["minutes"] == 80
+    assert second["ice_time_override"]["minutes"] == 80
+    schedule = load_schedule("2026-2027", root=root)["plan"]
+    projected = project_overrides_into_problem(problem, load_decisions("2026-2027", root=root))
+    placements = {
+        t["id"]: (t["start_time"], tournament_occupancy_interval_facts(t, projected)["end_time"])
+        for t in schedule["tournaments"]
+    }
+    assert placements["rvv-0003"] == ("13:00", "14:20")
+    assert placements["rvv-0004"] == ("14:30", "15:50")
+
+
+def test_confirm_calendar_booking_rejects_real_overlapping_actual_intervals(tmp_path):
+    """A genuine overlap between two real booked intervals still fails closed."""
+
+    from tournament_scheduler.calendar_bookings import iter_events
+
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("rvv-0003", start="11:50"),
+            _tournament(
+                "rvv-0004",
+                start="14:30",
+                host="E",
+                teams=[
+                    {"club": club, "label": f"{club}1", "age_group": "U12"}
+                    for club in ("E", "F", "G", "H")
+                ],
+            ),
+        ],
+    )
+    problem = _two_host_problem(
+        {
+            "A": [
+                {
+                    "date": "2026-09-12",
+                    "start": "13:00",
+                    "end": "14:40",
+                    "kind": "external",
+                    "availability": "fixed_busy",
+                    "calendar_event": "JU12 Serierunde",
+                }
+            ],
+            "E": [
+                {
+                    "date": "2026-09-12",
+                    "start": "14:30",
+                    "end": "15:50",
+                    "kind": "external",
+                    "availability": "fixed_busy",
+                    "calendar_event": "U12 Serierunde",
+                }
+            ],
+        }
+    )
+    event = {str(e["calendar_event"]): e for e in iter_events(problem)}["JU12 Serierunde"]
+
+    with pytest.raises(SeasonStateError, match="conflict|Arena"):
+        confirm_calendar_booking(
+            season="2026-2027",
+            root=root,
+            event_fingerprint=event["fingerprint"],
+            tournament_id="rvv-0003",
+            actor="booker",
+            note="host calendar event",
+            problem=problem,
+        )
+
+
 def test_override_report_lists_active_and_released(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _problem()
