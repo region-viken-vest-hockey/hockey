@@ -102,6 +102,16 @@ def test_pi_exposes_only_one_rvv_operational_prompt() -> None:
     assert (PI_PROMPTS_DIR / "implement-issue.md").exists()
 
 
+def test_pi_operate_adapter_loads_the_shared_instruction_chain() -> None:
+    text = PI_OPERATE_PROMPT.read_text(encoding="utf-8")
+    for reference in (
+        "AGENTS.md",
+        ".agents/skills/rvv/SKILL.md",
+        ".agents/commands/rvv-miniputt/handover.md",
+    ):
+        assert reference in text
+
+
 def test_pi_prompts_are_transport_only_and_own_no_rvv_behavior() -> None:
     offenders: list[str] = []
     for path in sorted(PI_PROMPTS_DIR.glob("*.md")):
@@ -113,21 +123,60 @@ def test_pi_prompts_are_transport_only_and_own_no_rvv_behavior() -> None:
         ):
             if marker in text:
                 offenders.append(f"{path}: embeds RVV implementation/policy via {marker!r}")
+        for item in AUDIT_CHECKLIST:
+            if item["question"] in text:
+                offenders.append(f"{path}: duplicates audit checklist item {item['item_id']!r}")
+        if "PASS" in text and "REVIEW_REQUIRED" in text and "FAIL" in text:
+            offenders.append(f"{path}: redefines the audit status vocabulary")
     assert offenders == []
 
 
-def test_no_pi_specific_rvv_implementation_files_exist() -> None:
-    """Pi retained code may only be a thin command/instruction transport."""
+def test_pi_has_no_rvv_implementation_or_configuration_beyond_prompts() -> None:
+    """Only command-transport prompts may exist under ``.pi``.
+
+    A code/config file with a generic name (``.pi/extensions/operator.ts``), a
+    Python/shell helper, a project ``settings.json`` wiring in a package, or any
+    other top-level Pi resource would be reachable Pi-owned behavior. Runtime
+    directories (``.pi/logs``, ``.pi/lib``) are ignored, but committed code
+    inside them is not.
+    """
+
+    pi_root = REPO_ROOT / ".pi"
+    runtime_only = {"logs", "lib"}
+    allowed_top_level = {"prompts"}
+    implementation_suffixes = {
+        ".ts",
+        ".tsx",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".py",
+        ".sh",
+        ".bash",
+        ".json",
+    }
 
     offenders: list[str] = []
-    for base in (REPO_ROOT / ".pi" / "extensions", REPO_ROOT / ".pi" / "lib"):
+    for entry in sorted(pi_root.iterdir()):
+        if entry.name in runtime_only:
+            continue
+        if entry.name not in allowed_top_level:
+            offenders.append(str(entry.relative_to(REPO_ROOT)))
+
+    for base_name in runtime_only:
+        base = pi_root / base_name
         if not base.exists():
             continue
         for path in sorted(base.rglob("*")):
-            if not path.is_file() or path.suffix not in {".ts", ".js", ".mjs", ".cjs"}:
+            if not path.is_file() or "node_modules" in path.parts:
                 continue
-            if "rvv" in path.name.lower() or "rvv" in str(path.parent).lower():
+            if path.suffix in implementation_suffixes:
                 offenders.append(str(path.relative_to(REPO_ROOT)))
+
+    prompt_files = sorted(path.name for path in PI_PROMPTS_DIR.iterdir() if path.is_file())
+    if prompt_files != ["implement-issue.md", PI_OPERATE_PROMPT.name]:
+        offenders.append(f".pi/prompts contains unexpected files: {prompt_files}")
+
     assert offenders == []
 
 
