@@ -7039,12 +7039,16 @@
   },
   "export_state": {
     "calendar_fingerprint": "334dc047462488e5dab4c07fea5b840ecd1076a46169b924fe6feba29b189f12",
+    "export_dir": "export/2026-09-28T0851",
+    "fresh_at": "2026-09-28T08:51:33.410658+00:00",
+    "fresh_by": "niclasl",
+    "fresh_canonical_revision": "e668f473f9e03e8098dc6b22aaedd1bb21416d2e10fa4eaf9282be6e4f36c869",
+    "manual_correction_note": "Manually cleared 2026-09-28 per operator authorization: requires_fresh_export/requires_fresh_audit are a one-way latch never cleared by season export/audit (filed as #537). Verified fresh before clearing: 4 consecutive season export runs (07:31/08:06/08:15/08:16) all matched current canonical_revision e668f473f9e03e8098dc6b22aaedd1bb21416d2e10fa4eaf9282be6e4f36c869 with zero XLSX/HTML comparison mismatches.",
     "requires_fresh_audit": false,
     "requires_fresh_export": false,
     "stale_at": null,
     "stale_reason": null,
-    "status": "fresh",
-    "manual_correction_note": "Manually cleared 2026-09-28 per operator authorization: requires_fresh_export/requires_fresh_audit are a one-way latch never cleared by season export/audit (filed as #537). Verified fresh before clearing: 4 consecutive season export runs (07:31/08:06/08:15/08:16) all matched current canonical_revision e668f473f9e03e8098dc6b22aaedd1bb21416d2e10fa4eaf9282be6e4f36c869 with zero XLSX/HTML comparison mismatches."
+    "status": "fresh"
   },
   "history": [
     {
@@ -38008,6 +38012,22 @@
       "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
       "tournament_fingerprint": null,
       "tournament_id": "rvv-0143"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T08:51:33.410658+00:00",
+      "details": {
+        "canonical_state_revision": "e668f473f9e03e8098dc6b22aaedd1bb21416d2e10fa4eaf9282be6e4f36c869",
+        "export_dir": "export/2026-09-28T0851",
+        "previous_export_status": "fresh",
+        "previous_requires_fresh_export": false
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -51303,5 +51323,5 @@
       "tournament_id": "rvv-0063"
     }
   ],
-  "updated_at": "2026-09-28T08:01:20.634906+00:00"
+  "updated_at": "2026-09-28T08:51:33.410658+00:00"
 }
