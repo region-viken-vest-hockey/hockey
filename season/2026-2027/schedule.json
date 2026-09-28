@@ -309,7 +309,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "e1b10617af97b3be663adb56515fa62297d80c36914768be9a74a038c662b8bc",
+  "fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -11262,7 +11262,7 @@
         },
         {
           "code": "external_calendar_conflicts",
-          "count": 76
+          "count": 75
         },
         {
           "code": "participation_shortfalls",
@@ -21025,7 +21025,7 @@
       {
         "age_group": "U11",
         "arena": "Bugården ishall",
-        "date": "2027-01-24",
+        "date": "2027-03-13",
         "games": [
           {
             "away": "Frisk Asker 4",
@@ -21120,7 +21120,7 @@
         ],
         "host_club": "Sandefjord Penguins",
         "id": "rvv-0118",
-        "start_time": "15:00",
+        "start_time": "15:30",
         "teams": [
           {
             "age_group": "U11",
@@ -31936,7 +31936,7 @@
         ],
         "host_club": "Sandefjord Penguins",
         "id": "rvv-0060",
-        "start_time": "15:00",
+        "start_time": "15:30",
         "teams": [
           {
             "age_group": "U11",
@@ -33801,13 +33801,6 @@
         "host_club": "Frisk Asker",
         "reason": "external calendar conflict requires manual resolution",
         "tournament_id": "rvv-0128"
-      },
-      {
-        "age_group": "U12",
-        "date": "2027-01-30",
-        "host_club": "Frisk Asker",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0187"
       },
       {
         "age_group": "U8",
@@ -40684,10 +40677,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "e1b10617af97b3be663adb56515fa62297d80c36914768be9a74a038c662b8bc",
+  "revision": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-28T18:52:46.546167+00:00",
+  "updated_at": "2026-09-28T19:39:31.836499+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],
