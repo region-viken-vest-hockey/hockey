@@ -1130,7 +1130,7 @@
       }
     }
   ],
-  "canonical_state_revision": "ee6e1a1d67a8af756d8db320009485541a8ab64752d4380ccfb740f5d32d4147",
+  "canonical_state_revision": "e49f7ee173f412d967bd1593f5095bb85bc0d3f7c02c80176b24c8b15bd427e3",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -6037,10 +6037,10 @@
       "status": "pending_review"
     },
     "rvv-0037": {
-      "approved_at": "2026-09-25T11:06:53.210794+00:00",
-      "approved_by": "nicli",
+      "approved_at": "2026-09-28T19:45:41.892463+00:00",
+      "approved_by": "niclasl",
       "approved_fingerprint": "5670587d996c99bde928ebda8ccfe51be05aa972f2285a2fb73bfbf566f3a200",
-      "note": "Sandefjord confirmed: only U11 flagged as changed/not confirmed (changes_and_confirmations/2026-27/Sandefjord.txt); this tournament is implicitly accepted.",
+      "note": "Restored after failed move attempt (15:30 conflicts with fixed_busy external calendar interval)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -6568,10 +6568,10 @@
       "status": "approved"
     },
     "rvv-0102": {
-      "approved_at": "2026-09-25T11:07:04.963785+00:00",
-      "approved_by": "nicli",
+      "approved_at": "2026-09-28T19:45:42.482645+00:00",
+      "approved_by": "niclasl",
       "approved_fingerprint": "f8df5010da0a6fdb4b3513346cf1846bcbfffe9a26b9c1d7d3034559593eeb5d",
-      "note": "Sandefjord confirmed: only U11 flagged as changed/not confirmed (changes_and_confirmations/2026-27/Sandefjord.txt); this tournament is implicitly accepted.",
+      "note": "Restored after failed move attempt (15:30 conflicts with fixed_busy external calendar interval)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -39767,6 +39767,46 @@
       "schedule_fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
       "tournament_fingerprint": "a9df97db67ff9daf38f33ad9c4e2ac6db32af630b49d79ef5ae158cd8fb9abe3",
       "tournament_id": "rvv-0118"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:44:58.021048+00:00",
+      "event": "unapprove",
+      "note": "Move requested by operator; old placement no longer confirmed",
+      "previous_fingerprint": "5670587d996c99bde928ebda8ccfe51be05aa972f2285a2fb73bfbf566f3a200",
+      "schedule_fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0037"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:44:58.503056+00:00",
+      "event": "unapprove",
+      "note": "Move requested by operator; old placement no longer confirmed",
+      "previous_fingerprint": "f8df5010da0a6fdb4b3513346cf1846bcbfffe9a26b9c1d7d3034559593eeb5d",
+      "schedule_fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0102"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:45:41.892463+00:00",
+      "event": "approve",
+      "note": "Restored after failed move attempt (15:30 conflicts with fixed_busy external calendar interval)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
+      "tournament_fingerprint": "5670587d996c99bde928ebda8ccfe51be05aa972f2285a2fb73bfbf566f3a200",
+      "tournament_id": "rvv-0037"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:45:42.482645+00:00",
+      "event": "approve",
+      "note": "Restored after failed move attempt (15:30 conflicts with fixed_busy external calendar interval)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "50d67b718b60cbe9c4ebed2b77f4e19b580dcc6baff31ebd92b9daa733d8ae99",
+      "tournament_fingerprint": "f8df5010da0a6fdb4b3513346cf1846bcbfffe9a26b9c1d7d3034559593eeb5d",
+      "tournament_id": "rvv-0102"
     }
   ],
   "holiday_date_exceptions": [
@@ -84149,5 +84189,5 @@
       "tournament_id": "rvv-0187"
     }
   ],
-  "updated_at": "2026-09-28T19:39:31.836499+00:00"
+  "updated_at": "2026-09-28T19:45:42.482645+00:00"
 }
