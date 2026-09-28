@@ -256,6 +256,9 @@ def _attributable_blockers(
         if owner is not None:
             if str(owner) == tournament_id:
                 hard.append(violation)
+                continue
+            if tournament_id and tournament_id in str(violation.get("message") or ""):
+                hard.append(violation)
             continue
         if tournament_id and tournament_id in str(violation.get("message") or ""):
             hard.append(violation)

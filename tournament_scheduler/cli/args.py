@@ -1275,16 +1275,21 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     season_booking_set.add_argument(
+        "--stated-date",
+        default=None,
+        help="Optional source-stated date YYYY-MM-DD (defaults to the current canonical date when omitted)",
+    )
+    season_booking_set.add_argument(
         "--stated-start",
         default=None,
-        help="Optional source-stated start time HH:MM (recorded separately from canonical occupancy)",
+        help="Optional source-stated start time HH:MM; booked assertions apply the stated interval canonically",
     )
     season_booking_set.add_argument(
         "--stated-end",
         default=None,
         help=(
             "Optional source-stated end time HH:MM, strictly after --stated-start on the same day "
-            "(overnight not supported); a difference becomes a follow-up, never a silent duration change"
+            "(overnight not supported); booked assertions apply this actual interval canonically"
         ),
     )
     season_booking_set.add_argument(

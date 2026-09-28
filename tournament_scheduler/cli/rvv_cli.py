@@ -2220,6 +2220,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 reference=args.reference,
                 source_scope=args.source_scope,
                 source_assertion_id=args.source_assertion_id,
+                stated_date=args.stated_date,
                 stated_start=args.stated_start,
                 stated_end=args.stated_end,
                 expected_revision=args.expected_revision,

@@ -340,21 +340,32 @@ def manual_assertion_stale_reasons(
     return sorted(set(reasons))
 
 
-def validate_stated_interval(start: str | None, end: str | None) -> dict[str, str]:
+def validate_stated_interval(
+    start: str | None,
+    end: str | None,
+    date: str | None = None,
+) -> dict[str, str]:
     """Validate and normalize an optional source-stated booking window.
 
     Rejects malformed, zero-length and reversed windows. Overnight windows are
     deliberately not supported: ``end`` must be strictly after ``start`` on the
-    same local date. A stated window that is longer or shorter than the
-    canonical occupancy is allowed (it becomes an explicit follow-up), but it
-    must be a real, positive interval so no silent zero-duration evidence is
-    persisted.
+    same local date. A stated window that is longer or shorter than the age-group
+    planning default is accepted as the authoritative booked interval by the
+    canonical mutation path; independent feasibility warnings report any floor
+    deviation.
     """
 
-    if not start and not end:
+    if not start and not end and not date:
         return {}
     if not (start and end):
         raise ValueError("A stated source interval requires both --stated-start and --stated-end")
+    if date:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(date)):
+            raise ValueError(f"Invalid stated date: {date!r}; expected YYYY-MM-DD")
+        try:
+            datetime.strptime(str(date), "%Y-%m-%d")
+        except ValueError as exc:
+            raise ValueError(f"Invalid stated date: {date!r}; expected YYYY-MM-DD") from exc
     start_minutes = _parse_hhmm(start)
     end_minutes = _parse_hhmm(end)
     if start_minutes is None:
@@ -366,7 +377,10 @@ def validate_stated_interval(start: str | None, end: str | None) -> dict[str, st
             f"Invalid stated interval {start}-{end}: end must be after start on the same day; "
             "overnight intervals are not supported"
         )
-    return {"start": str(start), "end": str(end)}
+    row = {"start": str(start), "end": str(end)}
+    if date:
+        row["date"] = str(date)
+    return row
 
 
 def _normalized_stated_interval(stated_interval: Mapping[str, Any] | None) -> dict[str, str]:
@@ -587,6 +601,7 @@ def new_manual_assertion_record(
         "tournament_facts": tournament_booking_facts(tournament),
         "asserted_interval": tournament_occupancy_interval_facts(tournament, problem),
         "stated_interval": _normalized_stated_interval(stated_interval),
+        "booking_feasibility_warnings": [],
         "reference": str(reference or ""),
         "note": note or "",
         "asserted_at": asserted_at,
@@ -1240,7 +1255,8 @@ def _club_booking_source_projection(
                     "operational_state": row.get("operational_state"),
                     "authority": row.get("authority"),
                     "stale_reasons": list(row.get("stale_reasons") or []),
-                    "interval_follow_up": manual_assertion_interval_follow_up(assertion),
+                    "interval_follow_up": manual_assertion_interval_follow_up(assertion)
+                    + list(assertion.get("booking_feasibility_warnings") or []),
                 }
             )
         overlaps: list[list[str]] = []
@@ -1413,6 +1429,7 @@ def booking_status_report(
             else:
                 status = manual_assertion_projection_status(manual)
                 follow_up_reasons = manual_assertion_interval_follow_up(manual)
+                follow_up_reasons.extend(str(code) for code in (manual.get("booking_feasibility_warnings") or []))
                 if status == BOOKING_MANUALLY_BOOKED and calendar_status == BOOKING_CONFIRMED_NOT_BOOKED:
                     conflict = True
                     follow_up_reasons.append("calendar_negative_conflicts_with_manual_booking")

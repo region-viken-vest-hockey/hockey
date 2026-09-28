@@ -68,7 +68,6 @@ _DECISION_ONLY_EVENTS = {
     "season_baseline_replace",
     "set_ice_time_minutes",
     "set_club_booking_source",
-    "set_manual_booking_assertion",
     "unapprove",
     "unban_date",
 }
@@ -295,19 +294,19 @@ def replay_recorded_mutations(
                         entry, _participant_key(removed_team, age_group)
                     )
                     applied.append({"event": "batch_removal", "tournament_id": tournament_id})
-        elif kind == "confirm_calendar_booking":
+        elif kind in {"confirm_calendar_booking", "set_manual_booking_assertion"}:
             alignment = details.get("interval_alignment")
             if not isinstance(alignment, Mapping):
-                # Legacy confirmations were decision-only and did not mutate the
-                # published projection.
+                # Legacy assertions/confirmations were decision-only and did not
+                # mutate the published projection.
                 continue
             if not alignment.get("changed"):
-                applied.append({"event": "confirm_calendar_booking", "tournament_id": event.get("tournament_id")})
+                applied.append({"event": kind, "tournament_id": event.get("tournament_id")})
                 continue
             tournament_id = str(event.get("tournament_id") or "")
-            accepted = alignment.get("accepted_calendar_interval")
+            accepted = alignment.get("accepted_calendar_interval") or alignment.get("accepted_source_interval")
             if not tournament_id or not isinstance(accepted, Mapping):
-                raise PublishedMutationHistoryError("calendar-booking history is missing accepted interval")
+                raise PublishedMutationHistoryError("booking history is missing accepted interval")
             entry = projection.get(tournament_id)
             if entry is not None:
                 if accepted.get("date") is not None:
@@ -318,7 +317,7 @@ def replay_recorded_mutations(
                     _set_duration(entry, accepted.get("duration_minutes"))
                 else:
                     _refresh_end_time(entry)
-            applied.append({"event": "confirm_calendar_booking", "tournament_id": tournament_id})
+            applied.append({"event": kind, "tournament_id": tournament_id})
         elif kind == "reconcile_config":
             migrations = details.get("semantic_migrations")
             if not isinstance(migrations, list):
