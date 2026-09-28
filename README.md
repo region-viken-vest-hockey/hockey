@@ -105,7 +105,7 @@ AGENTS.md
 scripts/rvv-miniputt ...
 ```
 
-Claude, Codex, ChatGPT, Pi and future harnesses should follow that same path. Harness-specific command files may exist as thin aliases where useful, but must not implement their own scheduler loop, decision prompt, semantic-audit judge, source-validity policy or browser scraper.
+Claude, Codex, ChatGPT, Pi and future harnesses should follow that same path. Each interactive harness exposes the same single `operate` entry point as a thin transport adapter that forwards the complete operator request into the shared procedure — for example `.pi/prompts/rvv-miniputt:operate.md` for Pi (Pi turns the filename into the `/rvv-miniputt:operate` command) and `.claude/commands/rvv-miniputt/operate.md` for Claude. Harness-specific command files may exist as thin aliases where useful, but must not implement their own scheduler loop, decision prompt, semantic-audit judge, source-validity policy or browser scraper.
 
 For a normal season run, use the shared `run` procedure and reason directly over each repository `DecisionContext`. For promoted-season work, use the shared `season` procedure. For publication, use the shared `publish` procedure.
 

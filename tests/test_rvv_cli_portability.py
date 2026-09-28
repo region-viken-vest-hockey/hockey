@@ -295,6 +295,6 @@ def test_scrape_llm_cli_prints_browser_tool_guidance_for_browser_only_source() -
     assert "browser-verktøy" in result.stdout
     assert "Playwright" in result.stdout
     assert "browser_worker" in result.stdout
-    assert "/rvv-miniputt scrape-llm" in result.stdout
+    assert "/rvv-miniputt:operate" in result.stdout
     assert "recovery-targets" in result.stdout
     assert "recovery-inject" in result.stdout

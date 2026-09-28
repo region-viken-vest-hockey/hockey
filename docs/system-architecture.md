@@ -380,6 +380,8 @@ active harness chooses one declared action
 
 There is no RVV-specific Pi scheduler/audit/scraper implementation. Harness-local code may exist only when a transport/UI capability truly cannot be expressed through the shared repository command surface, and it must remain thin.
 
+Each interactive harness registers the same single operator entry point (`operate`) as a thin adapter: Claude Code, Codex and ChatGPT use command files under their harness directory, and Pi uses the prompt template `.pi/prompts/rvv-miniputt:operate.md` (Pi derives the `/rvv-miniputt:operate` command name from the filename). The adapters carry the complete operator request into the shared procedure and own no scheduling, source-validity, audit or publication policy; `tests/test_skill_ownership.py` guards that parity.
+
 Browser-assisted source recovery is not tied to a particular harness. A browser-capable session may perform navigation/extraction and then hand recovered data back through repository `recovery-inject` / `scrape-merge`; repository validation determines whether it becomes trusted evidence.
 
 Generic personal agent frameworks/tooling stay outside this repository.

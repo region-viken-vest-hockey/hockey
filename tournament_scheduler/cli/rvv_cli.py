@@ -831,14 +831,13 @@ def _cmd_scrape_llm(args: argparse.Namespace) -> int:
         return 1
 
     _console.print(
-        "\n[yellow]![/yellow] Denne kommandoen krever browser-verktøy: Pi ScraperAgent + Playwright browser_worker, "
-        "eller et annet allerede browser-aktivert harness."
+        "\n[yellow]![/yellow] Denne kilden krever browser-verktøy (Playwright/browser_worker) "
+        "i et allerede browser-aktivert harness."
     )
     _console.print(
-        "  Pi: bruk [bold]/rvv-miniputt scrape-llm[/bold] i en Pi-session med [bold]rvv_miniputt_scrape_llm[/bold]."
-    )
-    _console.print(
-        "  Browser-aktivert Claude/OpenCode/Codex: fungerer bare hvis sesjonen allerede har browser-kontroll."
+        "  Agent-harness (Claude Code, Codex, ChatGPT, Pi): bruk den felles "
+        "[bold]/rvv-miniputt:operate[/bold]-inngangen og følg den delte "
+        "[bold]scrape-llm[/bold]-prosedyren for browser/navigasjon."
     )
     _console.print(
         "  Rent terminal/CI: kan ikke drive siden direkte; bruk [bold]rvv-miniputt recovery-targets[/bold] for å liste blokkede kilder, og [bold]rvv-miniputt recovery-inject --source \"<navn>\"[/bold] når du har event-JSON fra et eget script eller WebFetch."

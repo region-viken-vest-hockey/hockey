@@ -33,8 +33,7 @@ The season planner is therefore deployed as **versioned repository code plus sta
 The same repository capabilities can be invoked from:
 
 - a normal local shell;
-- Pi, which adds RVV-specific slash commands/browser integration;
-- Claude/ChatGPT/Codex adapters;
+- an interactive agent harness (Claude Code, Codex, ChatGPT, Pi or a future adapter) that registers the shared `operate` entry point as a thin command/instruction transport;
 - GitHub Actions where the workflow is suitable for headless execution.
 
 Environment-specific adapters must call the same repository capabilities and must not become independent policy engines.
