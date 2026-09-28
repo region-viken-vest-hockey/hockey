@@ -5,6 +5,8 @@ published (sealed) season** after approved canonical maintenance. This is not a
 separate operator command: the operator asks to publish/republish through
 `operate.md`, which loads this procedure.
 
+Load `audit-publication.md` for publication-scoped evidence review and recovery when the semantic audit reports historical season-wide obligations. Do not treat an incomplete full-season planning audit as a substitute for the public projection's actual safety checks, or bypass a blocking repository gate.
+
 This procedure never replans. It exports the current canonical revision, proves
 what changed against the exact previously published revision, and only then
 publishes with explicit authorization.
