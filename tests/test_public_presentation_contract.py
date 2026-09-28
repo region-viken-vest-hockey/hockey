@@ -100,7 +100,19 @@ class TestProposedPresentationContract:
         report = _verify(tmp_path)
 
         assert report["status"] == STATUS_FAIL, report
-        assert any("no booking presentation" in problem["message"] for problem in report["problems"])
+        assert any(
+            "no recognized booking presentation" in problem["message"]
+            for problem in report["problems"]
+        )
+
+    def test_html_unknown_raw_status_without_obs_fails(self, tmp_path):
+        # No frozen operational state and an unrecognized raw status: the
+        # fallback resolver would not render a trustworthy awaiting badge.
+        _write_html(tmp_path / "season_plan.html", [{"id": _ID, "bs": "typo_state"}])
+
+        report = _verify(tmp_path)
+
+        assert report["status"] == STATUS_FAIL, report
 
     def test_unknown_operational_state_fails_closed(self, tmp_path):
         _write_html(tmp_path / "season_plan.html", [{"id": _ID, "obs": "typo_state", "bs": "unknown"}])
@@ -129,6 +141,26 @@ class TestProposedPresentationContract:
 
         assert report["status"] == STATUS_FAIL, report
         assert any(problem["artifact"] == "xlsx" for problem in report["problems"])
+
+    def test_booked_word_status_in_workbook_fails(self, tmp_path):
+        # ``booked`` is not one of the canonical raw statuses; it must not pass
+        # as an awaiting-confirmation presentation just because it is nonempty.
+        _write_html(tmp_path / "season_plan.html", [{"id": _ID, "obs": "action_required", "bs": "stale"}])
+        _write_xlsx(tmp_path / "season_plan.xlsx", booking_status="booked")
+
+        report = _verify(tmp_path)
+
+        assert report["status"] == STATUS_FAIL, report
+        assert any(problem["artifact"] == "xlsx" for problem in report["problems"])
+
+    def test_unknown_workbook_status_fails(self, tmp_path):
+        _write_html(tmp_path / "season_plan.html", [{"id": _ID, "obs": "action_required", "bs": "stale"}])
+        _write_xlsx(tmp_path / "season_plan.xlsx", booking_status="typo_state")
+
+        report = _verify(tmp_path)
+
+        assert report["status"] == STATUS_FAIL, report
+        assert any("no recognized non-booked status" in problem["message"] for problem in report["problems"])
 
     def test_awaiting_workbook_cell_passes(self, tmp_path):
         _write_html(tmp_path / "season_plan.html", [{"id": _ID, "obs": "action_required", "bs": "stale"}])

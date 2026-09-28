@@ -27,19 +27,42 @@ from .xlsx_reader import read_xlsx
 # :mod:`tournament_scheduler.calendar_bookings`; imported (not re-declared) so a
 # renamed or added state cannot silently desynchronize this contract.
 from tournament_scheduler.calendar_bookings import (
+    BOOKING_AMBIGUOUS,
     BOOKING_CONFIRMED_BOOKED,
+    BOOKING_CONFIRMED_NOT_BOOKED,
     BOOKING_MANUALLY_BOOKED,
+    BOOKING_MANUALLY_NOT_BOOKED,
+    BOOKING_MANUAL_UNKNOWN,
+    BOOKING_NOT_CHECKABLE,
+    BOOKING_UNKNOWN,
     OPERATIONAL_ACTION_REQUIRED,
     OPERATIONAL_BOOKED,
     OPERATIONAL_CHANGED_SLOT_REVIEW,
     OPERATIONAL_NOT_BOOKED,
     OPERATIONAL_PRESUMED_UNSCHEDULED,
     OPERATIONAL_UNKNOWN,
+    STALE,
 )
 
 #: States that read as accepted/reserved ice in any public projection.
 BOOKED_OPERATIONAL_STATES = frozenset({OPERATIONAL_BOOKED})
 BOOKED_BOOKING_STATUSES = frozenset({BOOKING_CONFIRMED_BOOKED, BOOKING_MANUALLY_BOOKED})
+
+#: The non-booked raw statuses the canonical booking projection can emit. The
+#: workbook has no frozen operational state, so its raw status must be matched
+#: against this allowlist: a future booked synonym or a typo must fail closed
+#: rather than pass as an awaiting-confirmation presentation.
+AWAITING_BOOKING_STATUSES = frozenset(
+    {
+        BOOKING_CONFIRMED_NOT_BOOKED,
+        BOOKING_MANUALLY_NOT_BOOKED,
+        BOOKING_AMBIGUOUS,
+        BOOKING_NOT_CHECKABLE,
+        BOOKING_UNKNOWN,
+        BOOKING_MANUAL_UNKNOWN,
+        STALE,
+    }
+)
 
 #: The non-booked states the shipped renderers know how to label. An unknown or
 #: empty operational state renders *no* top-level badge, so it fails closed.
@@ -87,12 +110,16 @@ def _check_html_records(records_by_id: dict[str, Any], proposed_ids: list[str]) 
                         "the page would render no awaiting-confirmation badge",
                     )
                 )
-        elif not booking_status:
+        elif booking_status not in AWAITING_BOOKING_STATUSES:
+            # A legacy/hand-built payload with no frozen operational state falls
+            # back to the raw status; an unrecognized/typo/booked-synonym value
+            # must fail closed instead of silently passing.
             problems.append(
                 _problem(
                     "html",
                     tournament_id,
-                    "proposed placement carries no booking presentation at all",
+                    "proposed placement carries no recognized booking presentation "
+                    f"(raw status {booking_status!r})",
                 )
             )
     return problems
@@ -108,16 +135,21 @@ def _check_xlsx_records(records_by_id: dict[str, Any], proposed_ids: list[str]) 
             )
             continue
         booking_status = str(record.booking_status or "")
-        if not booking_status:
-            problems.append(
-                _problem("xlsx", tournament_id, "proposed placement carries no booking status")
-            )
-        elif booking_status in BOOKED_BOOKING_STATUSES:
+        if booking_status in BOOKED_BOOKING_STATUSES:
             problems.append(
                 _problem(
                     "xlsx",
                     tournament_id,
                     "proposed placement is presented as booked in the workbook",
+                )
+            )
+        elif booking_status not in AWAITING_BOOKING_STATUSES:
+            problems.append(
+                _problem(
+                    "xlsx",
+                    tournament_id,
+                    "proposed placement has no recognized non-booked status "
+                    f"(got {booking_status!r})",
                 )
             )
     return problems
@@ -189,6 +221,7 @@ def verify_proposed_presentation(
 
 
 __all__ = [
+    "AWAITING_BOOKING_STATUSES",
     "AWAITING_OPERATIONAL_STATES",
     "BOOKED_BOOKING_STATUSES",
     "BOOKED_OPERATIONAL_STATES",
