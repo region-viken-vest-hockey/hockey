@@ -1130,7 +1130,7 @@
       }
     }
   ],
-  "canonical_state_revision": "88c070ba1a9fc70271e3c07564d05b7ec0529c233159a83521d3c0118fa4f4de",
+  "canonical_state_revision": "a7e22968ac7890d0a812fb8a09afe76a6b039cff0ea0afd620302f3f91b5195d",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -7422,11 +7422,15 @@
   },
   "export_state": {
     "calendar_fingerprint": "7b3066fbf575e0dea7fcb7f7cd90e723f069bb2728367a4fbb039f6c184d610c",
+    "export_dir": "export/2026-09-28T1958",
+    "fresh_at": "2026-09-28T19:58:42.648827+00:00",
+    "fresh_by": "niclasl",
+    "fresh_canonical_revision": "88c070ba1a9fc70271e3c07564d05b7ec0529c233159a83521d3c0118fa4f4de",
     "requires_fresh_audit": true,
-    "requires_fresh_export": true,
+    "requires_fresh_export": false,
     "stale_at": "2026-09-28T18:46:20.990280+00:00",
     "stale_reason": "calendar_evidence_refreshed",
-    "status": "stale"
+    "status": "fresh"
   },
   "history": [
     {
@@ -40209,6 +40213,76 @@
       "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
       "tournament_fingerprint": null,
       "tournament_id": "rvv-0102"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:58:42.648827+00:00",
+      "details": {
+        "canonical_state_revision": "88c070ba1a9fc70271e3c07564d05b7ec0529c233159a83521d3c0118fa4f4de",
+        "export_dir": "export/2026-09-28T1958",
+        "previous_export_status": "stale",
+        "previous_requires_fresh_export": true
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:01:40.531238+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2026-12-13",
+          "duration_minutes": "140",
+          "end_time": "17:50",
+          "round_count": "5",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+        "source_scope": "tournament",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Sandefjord confirmed 15:30 start for this tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0060"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:01:48.496221+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-03-13",
+          "duration_minutes": "140",
+          "end_time": "17:50",
+          "round_count": "5",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+        "source_scope": "tournament",
+        "stated_interval": {},
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Sandefjord confirmed 15:30 start for this tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0118"
     }
   ],
   "holiday_date_exceptions": [
@@ -43510,6 +43584,80 @@
         "start_time": "15:30"
       },
       "tournament_id": "rvv-0102"
+    },
+    {
+      "arena": "Bugården ishall",
+      "asserted_at": "2026-09-28T20:01:40.531238+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2026-12-13",
+        "duration_minutes": "140",
+        "end_time": "17:50",
+        "round_count": "5",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-12-13",
+      "host_club": "Sandefjord Penguins",
+      "id": "manual_booking:rvv-0060:2026-09-28T20:01:40.531238+00:00",
+      "note": "Sandefjord confirmed 15:30 start for this tournament",
+      "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "88c070ba1a9fc70271e3c07564d05b7ec0529c233159a83521d3c0118fa4f4de",
+      "source_scope": "tournament",
+      "start_time": "15:30",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Bugården ishall",
+        "date": "2026-12-13",
+        "host_club": "Sandefjord Penguins",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0060"
+    },
+    {
+      "arena": "Bugården ishall",
+      "asserted_at": "2026-09-28T20:01:48.496221+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2027-03-13",
+        "duration_minutes": "140",
+        "end_time": "17:50",
+        "round_count": "5",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-13",
+      "host_club": "Sandefjord Penguins",
+      "id": "manual_booking:rvv-0118:2026-09-28T20:01:48.496221+00:00",
+      "note": "Sandefjord confirmed 15:30 start for this tournament",
+      "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "45028c138e3dbbdc25385ef8d40a5692c6e811749f54d0d9bc0cb5082461ce50",
+      "source_scope": "tournament",
+      "start_time": "15:30",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Bugården ishall",
+        "date": "2027-03-13",
+        "host_club": "Sandefjord Penguins",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0118"
     }
   ],
   "participation_withdrawals": [
@@ -84737,5 +84885,5 @@
       "tournament_id": "rvv-0187"
     }
   ],
-  "updated_at": "2026-09-28T19:52:39.848556+00:00"
+  "updated_at": "2026-09-28T20:01:48.496221+00:00"
 }
