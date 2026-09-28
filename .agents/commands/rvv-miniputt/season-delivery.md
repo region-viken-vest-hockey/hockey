@@ -1,6 +1,6 @@
 # Season delivery and health (lazy-loaded)
 
-Load for season reconciliation, health checks, export, audit, publication, republish or rollback. Follow `season.md`, `republish.md`, `publish.md` and the RVV semantic audit contract as applicable; this guide adds no publication authority.
+Load for season reconciliation, health checks, export, audit, publication, republish or rollback. For any publication audit or blocked publish, load `audit-publication.md` and resolve the exact public delta rather than treating season-wide debt as an automatic publication blocker. Follow `season.md`, `republish.md`, `publish.md` and the RVV semantic audit contract as applicable; this guide adds no publication authority.
 
 A health report compares canonical revision, fresh findings, approvals/locks, accepted bookings, calendar coverage, constraints, distribution, export fingerprint, audit and public publication revision. Distinguish absent evidence from negative evidence, planning candidates from accepted bookings, and an incomplete season from a publication blocker. Reconcile mismatches through supported canonical operations, never edits to generated output.
 
