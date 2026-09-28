@@ -95,6 +95,7 @@ __all__ = [
     "load_json",
     "load_participation_acceptances",
     "load_schedule",
+    "mark_export_fresh",
     "move_tournament",
     "normalize_arena_identities",
     "normalize_placements",
@@ -499,6 +500,24 @@ def reconcile_config(
         actor=actor,
         note=note,
         dry_run=dry_run,
+    )
+
+
+def mark_export_fresh(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    expected_revision: str,
+    export_dir: str | os.PathLike[str] | None = None,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    return _service(root).mark_export_fresh(
+        season=season,
+        expected_revision=expected_revision,
+        export_dir=export_dir,
+        actor=actor,
+        note=note,
     )
 
 

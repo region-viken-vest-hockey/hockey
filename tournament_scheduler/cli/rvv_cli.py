@@ -1512,6 +1512,21 @@ def _cmd_season(args: argparse.Namespace) -> int:
             from ..pipeline.state import StageName, StageStatus
             state.write_stage(StageName.EXPORT, result, status=StageStatus.DONE)
             _write_canonical_export_evidence(schedule, result)
+            # A successful export covers the revision it was generated from, so
+            # clear the one-way "fresh export required" latch that a calendar
+            # refresh or config reconciliation set. The clearing is revision-
+            # bound: if canonical state advanced while this export ran, the
+            # newer state's freshness requirement survives and publication
+            # keeps refusing the now-stale artifact.
+            from ..season_state import mark_export_fresh
+
+            result["export_freshness"] = mark_export_fresh(
+                season=args.season,
+                root=args.root,
+                expected_revision=str(result.get("canonical_revision") or ""),
+                export_dir=result.get("export_dir") or args.export_dir,
+                note="canonical export",
+            )
             # Mark audit-required explicitly rather than relying only on lazy
             # export-fingerprint reconciliation: a re-export of unchanged
             # canonical state produces the same content fingerprint, which
