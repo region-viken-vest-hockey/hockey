@@ -2226,6 +2226,65 @@ def test_reconciliation_identifies_active_override_with_provenance(tmp_path: Pat
     assert report["unexplained_delta"]["changed"] is False
 
 
+def test_reconciliation_fails_closed_on_unrecorded_override_provenance() -> None:
+    """An active override with no recorded set/clear event is not trusted."""
+
+    plan = {"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]}
+    configured = _problem(plan)
+    schedule_only = tournament_projection(plan, configured)
+    effective = tournament_projection(
+        plan, {**configured, "ice_time_minutes_overrides": {"rvv-1": 60}}
+    )
+
+    report = reconcile_published_baseline(
+        published_projection=schedule_only,
+        current_projection=effective,
+        history=[],
+        attested_additions={},
+        occupancy_overrides={"rvv-1": 60},
+    )
+    assert report["ok"] is False
+    assert "do not match the recorded" in report["unexplained_delta"]["replay_error"]
+
+
+def test_reconciliation_fails_closed_on_unknown_or_nonpositive_override() -> None:
+    plan = {"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]}
+    configured = _problem(plan)
+    schedule_only = tournament_projection(plan, configured)
+
+    unknown = reconcile_published_baseline(
+        published_projection=schedule_only,
+        current_projection=schedule_only,
+        history=[
+            {
+                "event": "set_ice_time_minutes",
+                "tournament_id": "rvv-999",
+                "details": {"minutes": 60},
+            }
+        ],
+        attested_additions={},
+        occupancy_overrides={"rvv-999": 60},
+    )
+    assert unknown["ok"] is False
+    assert "unknown tournament" in unknown["unexplained_delta"]["replay_error"]
+
+    nonpositive = reconcile_published_baseline(
+        published_projection=schedule_only,
+        current_projection=schedule_only,
+        history=[
+            {
+                "event": "set_ice_time_minutes",
+                "tournament_id": "rvv-1",
+                "details": {"minutes": 0},
+            }
+        ],
+        attested_additions={},
+        occupancy_overrides={"rvv-1": 0},
+    )
+    assert nonpositive["ok"] is False
+    assert "positive" in nonpositive["unexplained_delta"]["replay_error"]
+
+
 def test_clearing_override_restores_default_and_reconciles(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write_canonical(root, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")])
