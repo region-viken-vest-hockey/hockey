@@ -664,8 +664,20 @@ def test_guest_reservation_integrity_rejects_malformed_explicit_records() -> Non
     ]
     violations = guest_reservation_integrity_violations(malformed["tournaments"])
     assert violations and {v["code"] for v in violations} == {"guest_reservation_integrity"}
+    assert "guest_reservation_integrity" in {
+        violation["code"] for violation in verify_candidate(malformed)["violations"]
+    }
 
-    # The legacy integer-only payload stays compatible: it is not malformed.
+    # A present-but-non-list value must not be reinterpreted as the legacy
+    # integer-only payload; absent guest_slots stays compatible.
+    for bad_value in ({"id": "g1", "status": "filled"}, "corrupt", None):
+        wrong_type = _candidate(["A1", "B1", "C1"])
+        wrong_type["tournaments"][0]["guest_slots"] = bad_value
+        assert _codes(wrong_type["tournaments"]) == {"guest_reservation_integrity"}
+        assert "guest_reservation_integrity" in {
+            violation["code"] for violation in verify_candidate(wrong_type)["violations"]
+        }
+
     legacy_integer = _candidate(["A1", "B1", "C1"])
     legacy_integer["tournaments"][0].pop("guest_slots", None)
     legacy_integer["tournaments"][0]["reserved_guest_slots"] = 1

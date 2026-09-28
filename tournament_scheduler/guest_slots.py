@@ -64,6 +64,16 @@ def _field(container: Any, name: str, default: Any = None) -> Any:
     return default if value is None else value
 
 
+def _has_raw_field(container: Any, name: str) -> bool:
+    """True when *name* is explicitly present, even if its value is ``None``."""
+
+    if container is None:
+        return False
+    if _is_mapping(container):
+        return name in container
+    return name in getattr(container, "__dict__", {})
+
+
 def _raw_field(container: Any, name: str, default: Any = None) -> Any:
     """Read a field without triggering a derived property of the same name.
 
@@ -335,47 +345,62 @@ def guest_reservation_integrity_violations(
             continue
         tournament_id = str(tournament.get("id") or "")
         age_group = str(tournament.get("age_group") or "")
-        raw_records = _raw_field(tournament, "guest_slots", None)
-        if isinstance(raw_records, list):
-            for index, entry in enumerate(raw_records):
-                if not _is_mapping(entry):
-                    violations.append(
-                        {
-                            "code": GUEST_RESERVATION_INTEGRITY,
-                            "tournament_id": tournament_id,
-                            "slot_index": index,
-                            "message": (
-                                f"Tournament {tournament_id} guest_slots[{index}] is not a "
-                                "reservation object"
-                            ),
-                        }
-                    )
-                    continue
-                if not str(entry.get("id") or "").strip():
-                    violations.append(
-                        {
-                            "code": GUEST_RESERVATION_INTEGRITY,
-                            "tournament_id": tournament_id,
-                            "slot_index": index,
-                            "message": (
-                                f"Tournament {tournament_id} guest_slots[{index}] has no persisted id"
-                            ),
-                        }
-                    )
-                status = entry.get("status")
-                if str(status or "") not in valid_statuses:
-                    violations.append(
-                        {
-                            "code": GUEST_RESERVATION_INTEGRITY,
-                            "tournament_id": tournament_id,
-                            "slot_index": index,
-                            "status": status,
-                            "message": (
-                                f"Tournament {tournament_id} guest_slots[{index}] has no valid "
-                                f"lifecycle status (got {status!r})"
-                            ),
-                        }
-                    )
+        if _has_raw_field(tournament, "guest_slots"):
+            raw_records = _raw_field(tournament, "guest_slots", None)
+            if not isinstance(raw_records, list):
+                # A present-but-non-list value is malformed: it must not be
+                # silently reinterpreted as the legacy integer-only payload.
+                violations.append(
+                    {
+                        "code": GUEST_RESERVATION_INTEGRITY,
+                        "tournament_id": tournament_id,
+                        "message": (
+                            f"Tournament {tournament_id} has a non-list guest_slots value "
+                            f"({type(raw_records).__name__}); it must be omitted or a list"
+                        ),
+                    }
+                )
+            else:
+                for index, entry in enumerate(raw_records):
+                    if not _is_mapping(entry):
+                        violations.append(
+                            {
+                                "code": GUEST_RESERVATION_INTEGRITY,
+                                "tournament_id": tournament_id,
+                                "slot_index": index,
+                                "message": (
+                                    f"Tournament {tournament_id} guest_slots[{index}] is not a "
+                                    "reservation object"
+                                ),
+                            }
+                        )
+                        continue
+                    if not str(entry.get("id") or "").strip():
+                        violations.append(
+                            {
+                                "code": GUEST_RESERVATION_INTEGRITY,
+                                "tournament_id": tournament_id,
+                                "slot_index": index,
+                                "message": (
+                                    f"Tournament {tournament_id} guest_slots[{index}] has no "
+                                    "persisted id"
+                                ),
+                            }
+                        )
+                    status = entry.get("status")
+                    if str(status or "") not in valid_statuses:
+                        violations.append(
+                            {
+                                "code": GUEST_RESERVATION_INTEGRITY,
+                                "tournament_id": tournament_id,
+                                "slot_index": index,
+                                "status": status,
+                                "message": (
+                                    f"Tournament {tournament_id} guest_slots[{index}] has no "
+                                    f"valid lifecycle status (got {status!r})"
+                                ),
+                            }
+                        )
         seen_ids: set[str] = set()
         filled_identities: List[tuple[str, str, str]] = []
         for record in guest_slot_records(tournament):
