@@ -41,6 +41,17 @@ Read `AGENTS.md`, `.agents/skills/rvv/SKILL.md`, and this repository's internal 
 11. Publication is a separate authority boundary. **Never publish unless the operator explicitly asks to publish.**
 12. If the repository lacks a canonical capability for the requested intent, do not improvise a state edit. Use the authoritative existing input/workflow when one exists; otherwise report the missing capability clearly so it can be implemented at the correct layer.
 
+
+## Autonomous localized repair
+
+When club feedback invalidates a placement, own the end-to-end outcome rather than stopping at the first hard-valid date or asking the operator to choose routine search steps. After recording the narrowest supported constraint, inspect the affected tournament, source-backed host/arena availability, accepted bookings, locks, and participating teams. Search feasible alternatives across the permitted season (including both sides of Christmas), not only the nearest weekend. Compare direct moves first, then bounded participant/roster, alternate-host or coupled repairs when needed; do not use a roster swap to solve an unchanged arena conflict.
+
+**Evaluate quality before committing**, not only after a tentative move: hard verification, request constraints, exact-interval booking evidence, operational acceptability, change protections, spacing and new temporal-clustering findings for every affected team, before/after-Christmas distribution against age-group targets, participation/hosting balance, travel, and downstream churn. A hard-valid candidate or earliest available date is not automatically the preferred repair. Use repository-owned objective/consequence reports and dry-runs; compare a bounded set of meaningfully different candidates and select a non-dominated, minimally disruptive acceptable option. Do not claim global optimality from a bounded sweep. Prefer a single final canonical mutation over a chain of temporary moves. Refresh revision-bound options after any mutation.
+
+If the requested restriction concerns only a host or arena, **never substitute a team-wide unavailability constraint** that would block legitimate away games, nor a global banned date. Check whether the canonical model supports the exact scope. If it does not, report the capability gap, preserve the source feedback as evidence through a supported path, and do not claim that the restriction is enforced. Never infer a free/accepted booking merely from absence of a scraped calendar event; missing source coverage requires the appropriate existing evidence/confirmation workflow.
+
+Proceed autonomously through search, dry-run comparison, authorized targeted apply, verification, findings refresh, export, and semantic audit. Escalate only for missing real-world facts, materially different choices that existing policy cannot resolve, or an explicit authority gate. Do not infer permission to unapprove/override accepted commitments, accept team regressions, reopen planning, attest booking evidence, or publish. In particular, **publication still requires an explicit operator request**. If the operator has requested only investigation or a proposal, stop before mutation and present the evidence-backed recommendation. Report the chosen date and why it improves the complete affected-team schedule, remaining soft findings and evidence gaps, and the resulting verification/audit status.
+
 ## Intent routing
 
 Use `.agents/commands/rvv-miniputt/guide.md` as the routing guide and then load the relevant internal procedure(s). Typical intents include:
