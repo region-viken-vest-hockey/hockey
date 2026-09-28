@@ -12,6 +12,12 @@ concurrent refresh/reconciliation that commits between the read and the write
 keeps its newer freshness requirement instead of being silently overwritten.
 The call is then a no-op and the publish preflight keeps refusing the now-stale
 artifact.
+
+The transition is idempotent: when the current revision is already recorded as
+fresh and no stale marker remains, the operation returns ``cleared=True``
+without writing canonical state, appending another history event or churning a
+timestamp. Re-running an export over unchanged canonical content therefore
+leaves the canonical files byte-for-byte stable.
 """
 
 from __future__ import annotations
@@ -55,6 +61,33 @@ def mark_export_fresh(
             "reason": "canonical_state_advanced_after_export",
             "exported_canonical_revision": exported_revision,
             "canonical_state_revision": current_revision,
+        }
+
+    previous_export_state = dict(decisions.get("export_state") or {})
+    promoted_from = dict(schedule.get("promoted_from") or {})
+    has_stale_marker = any(
+        key in promoted_from
+        for key in ("export_stale", "export_stale_reason", "export_stale_at")
+    )
+    # Repeated exports of unchanged canonical content must be idempotent: once
+    # the current revision is already recorded as fresh and no stale marker is
+    # left behind, re-running the export adds no history event, no timestamp
+    # churn and no canonical write. This keeps ``season export`` from growing
+    # the history on every run and from re-invalidating the audit it just
+    # satisfied.
+    if (
+        str(previous_export_state.get("status") or "") == "fresh"
+        and not bool(previous_export_state.get("requires_fresh_export"))
+        and str(previous_export_state.get("fresh_canonical_revision") or "")
+        == current_revision
+        and not has_stale_marker
+    ):
+        return {
+            "season": season,
+            "cleared": True,
+            "reason": "already_fresh",
+            "canonical_state_revision": current_revision,
+            "export_state": previous_export_state,
         }
 
     now = _now_iso()

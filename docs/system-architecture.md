@@ -509,7 +509,7 @@ Once a verified schedule is promoted, normal planning becomes baseline-aware:
   remains authoritative above them;
 - `season approve` / `season unapprove` owns the approval lifecycle;
 - changed approval fingerprints become `stale_approval` and require explicit reapproval;
-- `season export` projects the exact current canonical revision before audit/publication and, on success, clears the revision-bound "fresh export required" marker that a calendar refresh or config reconciliation set (a later canonical mutation re-arms it). An export whose snapshot is overtaken by a newer canonical revision is recorded as a failed stage with its artifacts retained for diagnosis, never as a publishable success.
+- `season export` projects the exact current canonical revision before audit/publication and, on success, clears the revision-bound "fresh export required" marker that a calendar refresh or config reconciliation set (a later canonical mutation re-arms it). The clearing is decision-only export provenance, never a schedule mutation, so published-baseline replay treats a `mark_export_fresh` history event as a no-op, and it is idempotent: re-exporting the same revision appends no duplicate history and does not churn canonical state. An export whose snapshot is overtaken by a newer canonical revision is recorded as a failed stage with its artifacts retained for diagnosis, never as a publishable success.
 
 ## Microsoft 365 boundary
 

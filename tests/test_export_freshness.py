@@ -224,3 +224,76 @@ def test_season_export_fails_closed_when_latch_not_cleared(
     # Artifacts are retained for diagnosis even though the stage failed.
     assert (export_dir / "season_plan.xlsx").exists()
     assert (export_dir / "season_plan.html").exists()
+
+
+def _mark_export_fresh_events(decisions: dict) -> list[dict]:
+    return [event for event in decisions.get("history") or [] if event.get("event") == "mark_export_fresh"]
+
+
+def test_repeated_mark_export_fresh_of_unchanged_state_is_idempotent(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A second clearing at the same revision must not write or append history."""
+
+    revision = _stale_after_refresh(tmp_path, monkeypatch)
+    root = tmp_path / "season"
+
+    first = mark_export_fresh(
+        season=SEASON,
+        root=root,
+        expected_revision=revision,
+        export_dir=tmp_path / "canonical-export",
+        note="first export",
+    )
+    assert first["cleared"] is True
+    after_first = load_decisions(SEASON, root=root)
+    assert len(_mark_export_fresh_events(after_first)) == 1
+
+    second = mark_export_fresh(
+        season=SEASON,
+        root=root,
+        expected_revision=revision,
+        export_dir=tmp_path / "canonical-export-2",
+        note="second export",
+    )
+    assert second["cleared"] is True
+    assert second.get("reason") == "already_fresh"
+
+    after_second = load_decisions(SEASON, root=root)
+    # Byte-for-byte stable: no duplicate event, no timestamp/revision churn.
+    assert after_second == after_first
+    assert len(_mark_export_fresh_events(after_second)) == 1
+
+
+def test_repeated_season_export_does_not_churn_canonical_history(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Re-exporting unchanged canonical content must leave canonical state stable."""
+
+    _stale_after_refresh(tmp_path, monkeypatch)
+    root = tmp_path / "season"
+    args = [
+        "season",
+        "export",
+        "--season",
+        SEASON,
+        "--work-dir",
+        str(tmp_path / ".pipeline"),
+        "--root",
+        str(root),
+        "--export-dir",
+        str(tmp_path / "canonical-export"),
+        "--flat",
+    ]
+
+    assert main(args) == 0
+    after_first = load_decisions(SEASON, root=root)
+    assert len(_mark_export_fresh_events(after_first)) == 1
+    first_revision = after_first["canonical_state_revision"]
+    assert after_first["export_state"]["fresh_canonical_revision"] == first_revision
+
+    assert main(args) == 0
+    after_second = load_decisions(SEASON, root=root)
+    assert len(_mark_export_fresh_events(after_second)) == 1
+    assert after_second["canonical_state_revision"] == first_revision
+    assert after_second["updated_at"] == after_first["updated_at"]
