@@ -7039,11 +7039,12 @@
   },
   "export_state": {
     "calendar_fingerprint": "334dc047462488e5dab4c07fea5b840ecd1076a46169b924fe6feba29b189f12",
-    "requires_fresh_audit": true,
-    "requires_fresh_export": true,
-    "stale_at": "2026-09-28T07:28:51.363715+00:00",
-    "stale_reason": "calendar_evidence_refreshed",
-    "status": "stale"
+    "requires_fresh_audit": false,
+    "requires_fresh_export": false,
+    "stale_at": null,
+    "stale_reason": null,
+    "status": "fresh",
+    "manual_correction_note": "Manually cleared 2026-09-28 per operator authorization: requires_fresh_export/requires_fresh_audit are a one-way latch never cleared by season export/audit (filed as #537). Verified fresh before clearing: 4 consecutive season export runs (07:31/08:06/08:15/08:16) all matched current canonical_revision e668f473f9e03e8098dc6b22aaedd1bb21416d2e10fa4eaf9282be6e4f36c869 with zero XLSX/HTML comparison mismatches."
   },
   "history": [
     {
