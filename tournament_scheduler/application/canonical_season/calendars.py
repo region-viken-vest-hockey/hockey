@@ -41,6 +41,7 @@ from tournament_scheduler.calendar_bookings import (
     new_booking_evidence_record,
     new_club_booking_source_record,
     new_manual_assertion_record,
+    tournament_occupancy_interval_facts,
     valid_active_associations,
     validate_stated_interval,
 )
@@ -1145,6 +1146,7 @@ def _align_tournament_to_calendar_event(
     actor: str,
     note: str,
     now: str,
+    problem: Mapping[str, Any] | None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any] | None]:
     """Return schedule/decisions aligned to an accepted authoritative event.
 
@@ -1209,10 +1211,11 @@ def _align_tournament_to_calendar_event(
         updated_decisions["ice_time_minutes_overrides"] = overrides
 
     alignment = {
-        "previous_interval": {
-            "date": str(before.get("date") or ""),
-            "start_time": str(before.get("start_time") or ""),
-        },
+        # The prior effective occupied interval (date/start/duration/end),
+        # resolved through the same override-aware owner as every duration
+        # consumer, so a shortened authoritative booking keeps the original
+        # complete interval in audit/replay evidence.
+        "previous_interval": tournament_occupancy_interval_facts(before, problem),
         "accepted_calendar_interval": {
             "date": event_date,
             "start_time": event_start,
@@ -1252,7 +1255,12 @@ def confirm_calendar_booking(
     )
     if original_tournament is None:
         raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
-    if str(event.get("club") or "") != str(original_tournament.get("host_club") or ""):
+    event_club = str(event.get("club") or "")
+    if not club_calendar_positive_evidence_usable(base_problem, event_club):
+        raise SeasonStateError(
+            "Calendar booking source cannot support positive evidence"
+        )
+    if event_club != str(original_tournament.get("host_club") or ""):
         raise SeasonStateError("Calendar booking is not compatible with tournament: host_mismatch")
 
     for record in decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []:
@@ -1277,6 +1285,7 @@ def confirm_calendar_booking(
         actor=resolved_actor,
         note=note,
         now=checked_at,
+        problem=base_problem,
     )
     updated_problem = _resolve_plan_problem(updated_schedule, base_problem, updated)
     assoc = new_association_record(

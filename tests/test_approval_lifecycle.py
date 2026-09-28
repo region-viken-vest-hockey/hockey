@@ -713,7 +713,14 @@ def test_confirm_calendar_booking_aligns_canonical_interval_to_authoritative_eve
     )
 
     alignment = result["interval_alignment"]
-    assert alignment["previous_interval"] == {"date": "2026-09-12", "start_time": "10:00"}
+    assert alignment["previous_interval"] == {
+        "date": "2026-09-12",
+        "start_time": "10:00",
+        "duration_minutes": "120",
+        "end_time": "12:00",
+        "age_group": "U10",
+        "round_count": "1",
+    }
     assert alignment["accepted_calendar_interval"] == {
         "date": "2026-09-12",
         "start_time": "11:00",
@@ -734,6 +741,134 @@ def test_confirm_calendar_booking_aligns_canonical_interval_to_authoritative_eve
     row = report["tournaments"][0]
     assert row["status"] == "confirmed_booked"
     assert row["operational_state"] == "booked"
+
+    # The original complete interval stays in the canonical history and replays
+    # even when the accepted event shortened the booking.
+    history = load_decisions("2026-2027", root=root)["history"]
+    confirm_entry = next(
+        entry for entry in history if entry.get("event") == "confirm_calendar_booking"
+    )
+    assert confirm_entry["details"]["interval_alignment"]["previous_interval"] == {
+        "date": "2026-09-12",
+        "start_time": "10:00",
+        "duration_minutes": "120",
+        "end_time": "12:00",
+        "age_group": "U10",
+        "round_count": "1",
+    }
+    from tournament_scheduler.published_mutation_history import replay_recorded_mutations
+
+    seed = {
+        "t1": {
+            "id": "t1",
+            "date": "2026-09-12",
+            "start_time": "10:00",
+            "duration_minutes": 120,
+            "end_time": "12:00",
+            "arena": "Arena A",
+            "host_club": "A",
+            "age_group": "U10",
+            "participants": [],
+        }
+    }
+    projection, applied = replay_recorded_mutations(seed, history)
+    assert projection["t1"]["start_time"] == "11:00"
+    assert projection["t1"]["duration_minutes"] == 90
+    assert projection["t1"]["end_time"] == "12:30"
+    assert any(item["event"] == "confirm_calendar_booking" for item in applied)
+
+
+def test_confirm_calendar_booking_uses_previous_override_in_interval_evidence(tmp_path):
+    """A prior override is the previous effective interval, not the age default."""
+    root = _promote(tmp_path, [_tournament("t1")])
+    base_problem = _host_a_problem([])
+    from tournament_scheduler.season_state import set_ice_time_minutes
+
+    set_ice_time_minutes(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        minutes=150,
+        request_id="host:prior-window",
+        note="host confirmed a 150-minute window",
+        problem=base_problem,
+    )
+    event = {
+        "date": "2026-09-12",
+        "start": "11:00",
+        "end": "12:00",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10",
+        "club": "A",
+    }
+    problem = _host_a_problem([event])
+    event_fp = event_fingerprint(event)
+
+    result = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        problem=problem,
+        note="Accepted authoritative calendar interval",
+    )
+
+    assert result["interval_alignment"]["previous_interval"]["duration_minutes"] == "150"
+    assert result["interval_alignment"]["previous_interval"]["end_time"] == "12:30"
+
+
+def test_confirm_calendar_booking_refuses_unusable_source_evidence(tmp_path):
+    """Direct confirmation must re-apply the positive-evidence gate at the boundary."""
+    root = _promote(tmp_path, [_tournament("t1")])
+    event = {
+        "date": "2026-09-12",
+        "start": "10:00",
+        "end": "12:00",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10",
+        "club": "A",
+    }
+    for status in ("unknown", "untrusted"):
+        problem = _host_a_problem([event])
+        problem["club_calendar_status"] = {"A": status}
+        event_fp = event_fingerprint(event)
+        with pytest.raises(SeasonStateError, match="cannot support positive evidence"):
+            confirm_calendar_booking(
+                season="2026-2027",
+                root=root,
+                event_fingerprint=event_fp,
+                tournament_id="t1",
+                problem=problem,
+            )
+    # No canonical approval happened for a refused source.
+    schedule = load_schedule("2026-2027", root=root)["plan"]
+    assert next(t for t in schedule["tournaments"] if t["id"] == "t1")["start_time"] == "10:00"
+
+
+def test_confirm_calendar_booking_refuses_fabricated_source_evidence(tmp_path):
+    """A fabricated placeholder calendar cannot be promoted by direct confirmation."""
+    root = _promote(tmp_path, [_tournament("t1")])
+    fabricated = [
+        {
+            "date": f"2026-09-{day:02d}",
+            "start": "00:00",
+            "end": "01:00",
+            "availability": "fixed_busy",
+            "calendar_event": f"Jutul U{day % 8}",
+            "club": "A",
+        }
+        for day in range(1, 26)
+    ]
+    problem = _host_a_problem(fabricated)
+    target = next(event for event in fabricated if event["date"] == "2026-09-12")
+    with pytest.raises(SeasonStateError, match="cannot support positive evidence"):
+        confirm_calendar_booking(
+            season="2026-2027",
+            root=root,
+            event_fingerprint=event_fingerprint(target),
+            tournament_id="t1",
+            problem=problem,
+        )
 
 
 def test_stale_calendar_booking_association_fails_closed_when_tournament_moves(tmp_path):
