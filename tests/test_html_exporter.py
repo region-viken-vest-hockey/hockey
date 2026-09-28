@@ -139,6 +139,124 @@ def _embedded_tournaments(html: str) -> list[dict]:
     return json.loads(match.group(1))
 
 
+def _embedded_heatmap(html: str) -> dict:
+    match = re.search(r"const HEATMAP = (.*?);\nconst HEATMAP_WEEKS", html, re.S)
+    assert match, "HEATMAP JSON should be embedded in schedule HTML"
+    return json.loads(match.group(1))
+
+
+def _heatmap_items_by_id(html: str) -> dict[str, dict]:
+    heatmap = _embedded_heatmap(html)
+    return {
+        item["tournament_id"]: item
+        for week in heatmap.values()
+        for club in week.values()
+        for item in club
+    }
+
+
+_SHARED_TEMPLATE = (
+    Path(__file__).resolve().parents[1]
+    / "tournament_scheduler"
+    / "html"
+    / "templates"
+    / "script_shared.js"
+)
+_SCHEDULE_TEMPLATE = (
+    Path(__file__).resolve().parents[1]
+    / "tournament_scheduler"
+    / "html"
+    / "templates"
+    / "script_schedule.js"
+)
+
+
+def _shared_operational_helpers_js() -> str:
+    """Extract the shared operational-state helpers from the shipped bundle."""
+
+    source = _SHARED_TEMPLATE.read_text(encoding="utf-8")
+    names = ("operationalStateOf", "operationalStateLabel", "bookingStatusLabel", "escapeHtml")
+    parts = []
+    for name in names:
+        match = re.search(rf"function {name}\([^)]*\) \{{.*?\n\}}", source, re.S)
+        assert match, f"{name} must exist in the shared template"
+        parts.append(match.group(0))
+    return "\n".join(parts) + "\n"
+
+
+def _heatmap_render_js() -> str:
+    """Extract the shared heatmap renderer (helpers + IIFE) for a Node run."""
+
+    source = _SHARED_TEMPLATE.read_text(encoding="utf-8")
+    start = source.index("// --- Shared operational booking vocabulary")
+    end = source.index("(function() {\n  var THEME_KEY", start)
+    return source[start:end]
+
+
+def _render_heatmap(
+    tournaments: list[dict],
+    heatmap: dict,
+    *,
+    clubs: list[str],
+    weeks: list[str],
+    colors: dict,
+    theme: str = "dark",
+) -> str:
+    """Run the shipped heatmap renderer against a minimal DOM stub.
+
+    Returns the rendered body HTML joined with every element the renderer
+    created (legend spans), so tests can assert on both sinks.
+    """
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.fail("node is required to execute the shipped heatmap template")
+
+    script = (
+        "const TOURNAMENTS = "
+        + json.dumps(tournaments)
+        + ";\nconst HEATMAP_WEEKS = "
+        + json.dumps(weeks)
+        + ";\nconst HEATMAP_CLUBS = "
+        + json.dumps(clubs)
+        + ";\nconst HEATMAP = "
+        + json.dumps(heatmap)
+        + ";\nconst HEATMAP_CLUB_COLORS_BY_THEME = "
+        + json.dumps(colors)
+        + ";\n"
+        "var __bodyHtml = '';\n"
+        "var __created = [];\n"
+        "function __stubEl() { return {style: {}, appendChild: function() {}, innerHTML: '', className: '', textContent: ''}; }\n"
+        "var document = {documentElement: {dataset: {theme: '"
+        + theme
+        + "'}},\n"
+        "  getElementById: function(id) {\n"
+        "    if (id === 'heatmapHead') return {innerHTML: ''};\n"
+        "    if (id === 'heatmapBody') return {set innerHTML(v) {__bodyHtml = v;}, get innerHTML() {return __bodyHtml;}};\n"
+        "    if (id === 'heatmapLegend') return {appendChild: function() {}};\n"
+        "    return null;\n"
+        "  },\n"
+        "  createElement: function() { var el = __stubEl(); __created.push(el); return el; }\n"
+        "};\n"
+        + _heatmap_render_js()
+        + "\nconsole.log(JSON.stringify({body: __bodyHtml, created: __created.map(function(e) {"
+        "return {className: e.className, textContent: e.textContent, innerHTML: e.innerHTML, cssText: e.style.cssText}; })}));\n"
+    )
+    completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+    data = json.loads(completed.stdout)
+    parts = [data["body"]]
+    for element in data["created"]:
+        parts.extend(
+            [
+                str(element.get("className") or ""),
+                str(element.get("textContent") or ""),
+                str(element.get("innerHTML") or ""),
+                str(element.get("cssText") or ""),
+            ]
+        )
+    return "\n".join(parts)
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -200,8 +318,168 @@ class TestBookingStatusRendering:
         assert embedded["t-missing"]["ba"] is True
         assert 'id="filterBooking"' in html
         assert "IKKE BOOKET" in html
-        assert "heatmap-booking-confirmed_not_booked" in html
-        assert "booket bekreftet" in html
+        # The heatmap exposes only operational states, never the weaker raw
+        # detailed status, and shares the cards' legend vocabulary.
+        assert "heatmap-booking-action_required" in html
+        assert "må følges opp" in html
+        assert "booket · låst" in html
+        assert "heatmap-booking-confirmed_not_booked" not in html
+
+    def test_heatmap_primary_state_matches_card_operational_state(self, tmp_path):
+        """The heatmap's top-level cell state must equal the card's ``obs``.
+
+        The heatmap must never fall back to the raw detailed ``status`` (e.g.
+        ``manually_booked`` or ``ambiguous``) as a competing primary state.
+        """
+
+        cases = [
+            # (id, detailed status, operational state, needs_attention, assessment)
+            ("t-manual", "manually_booked", "booked", False, None),
+            ("t-ambiguous", "ambiguous", "not_booked", True, None),
+            ("t-stale", "stale", "action_required", True, None),
+            ("t-reject", "manually_not_booked", "action_required", True, None),
+            ("t-changed", "unknown", "changed_slot_review", True, "proposed_changed_slot"),
+            ("t-presumed", "unknown", "presumed_unscheduled", False, "presumed_unscheduled"),
+            ("t-unknown", "not_checkable", "unknown", False, "not_checkable"),
+        ]
+        tournaments = []
+        bookings = []
+        for index, (tid, status, operational, attention, assessment) in enumerate(cases):
+            tournaments.append(
+                {
+                    "id": tid,
+                    "date": f"2025-10-{index + 5:02d}",
+                    "arena": "Arena A",
+                    "age_group": "U10",
+                    "host_club": "A",
+                    "teams": [
+                        {"club": "A", "label": "A1", "age_group": "U10"},
+                        {"club": "B", "label": "B1", "age_group": "U10"},
+                    ],
+                    "games": [{"home": "A1", "away": "B1", "parallel_slot": 0, "round_number": 1}],
+                    "start_time": "10:00",
+                }
+            )
+            row = {
+                "tournament_id": tid,
+                "status": status,
+                "operational_state": operational,
+                "needs_attention": attention,
+            }
+            if assessment:
+                row["booking_assessment_classification"] = assessment
+            bookings.append(row)
+
+        plan_dict = {
+            "start_date": "2025-10-01",
+            "end_date": "2025-12-01",
+            "tournaments": tournaments,
+        }
+        out_path = tmp_path / "season_plan.html"
+        HtmlExporter().export(
+            season_plan_from_dict(plan_dict),
+            out_path,
+            age_groups=["U10"],
+            pipeline_meta={"booking_status": {"tournaments": bookings}},
+        )
+        html = out_path.read_text(encoding="utf-8")
+        cards = {row["id"]: row for row in _embedded_tournaments(html)}
+        items = _heatmap_items_by_id(html)
+
+        assert set(items) == set(cards)
+        for tid, item in items.items():
+            card = cards[tid]
+            assert item["operational_state"] == card["obs"], tid
+            assert item["booking_status"] == card["bs"], tid
+            assert item["needs_attention"] == card["ba"], tid
+        # A manual email-only confirmation is booked/locked, not a weaker
+        # heatmap "manually_booked" state.
+        assert items["t-manual"]["operational_state"] == "booked"
+        assert items["t-manual"]["booking_status"] == "manually_booked"
+        assert items["t-reject"]["operational_state"] == "action_required"
+
+    def test_heatmap_renders_operational_states_and_escapes_text(self):
+        """Run the shipped heatmap renderer against a minimal DOM stub.
+
+        Dynamic age-group/club text must reach the HTML sink escaped, and the
+        emitted classes must be the shared operational states.
+        """
+
+        hostile = '<img src=x onerror=alert(1)>'
+        tournaments = [
+            {"id": "t1", "obs": "booked", "bs": "manually_booked", "ba": False},
+            {"id": "t2", "obs": "action_required", "bs": "stale", "ba": True},
+        ]
+        heatmap = {
+            "2025-W40": {
+                "Holmen": [
+                    {
+                        "age_group": hostile,
+                        "tournament_id": "t1",
+                        "operational_state": "booked",
+                        "booking_status": "manually_booked",
+                        "needs_attention": False,
+                    },
+                    {
+                        "age_group": "U12",
+                        "tournament_id": "t2",
+                        "operational_state": "action_required",
+                        "booking_status": "stale",
+                        "needs_attention": True,
+                    },
+                ]
+            }
+        }
+        colors = {
+            "dark": {"Holmen": {"bg": "#111111", "text": "#ffffff"}},
+            "light": {"Holmen": {"bg": "#eeeeee", "text": "#111111"}},
+        }
+        rendered = _render_heatmap(
+            tournaments, heatmap, clubs=["Holmen"], weeks=["2025-W40"], colors=colors
+        )
+        assert "&lt;img src=x onerror=alert(1)&gt;" in rendered
+        assert "<img" not in rendered
+        assert "heatmap-booking-booked" in rendered
+        assert "heatmap-booking-action_required" in rendered
+        assert "BOOKET · LÅST" in rendered
+        assert "MÅ RE-BEKREFTES" in rendered
+        assert "må følges opp" in rendered
+
+    def test_heatmap_rejects_invalid_club_colors(self):
+        """Club colours are CSS, not HTML: constrain them to the hex format."""
+
+        tournaments = [{"id": "t1", "obs": "booked", "bs": "manually_booked", "ba": False}]
+        heatmap = {
+            "2025-W40": {
+                "Holmen": [
+                    {
+                        "age_group": "U10",
+                        "tournament_id": "t1",
+                        "operational_state": "booked",
+                        "booking_status": "manually_booked",
+                        "needs_attention": False,
+                    }
+                ]
+            }
+        }
+        colors = {
+            "dark": {
+                "Holmen": {
+                    "bg": "#zzzzzz",
+                    "text": "red; background-image:url(javascript:alert(1))",
+                }
+            },
+            "light": {"Holmen": {"bg": "#eeeeee", "text": "#111111"}},
+        }
+        rendered = _render_heatmap(
+            tournaments, heatmap, clubs=["Holmen"], weeks=["2025-W40"], colors=colors
+        )
+        assert "#zzzzzz" not in rendered
+        assert "javascript:alert" not in rendered
+        assert "background-image" not in rendered
+        # Invalid values fall back to the theme default colours.
+        assert "#2a2a2a" in rendered
+        assert "#999" in rendered
 
     def test_schedule_booking_provenance_and_negative_evidence_states(self, tmp_path):
         def _tournament(tid, age_group, start_time):
@@ -455,15 +733,9 @@ class TestBookingStatusRendering:
         if node is None:
             pytest.fail("node is required to execute the shipped template fallback")
 
-        source = (
-            Path(__file__).resolve().parents[1]
-            / "tournament_scheduler"
-            / "html"
-            / "templates"
-            / "script_schedule.js"
-        ).read_text(encoding="utf-8")
+        source = _SHARED_TEMPLATE.read_text(encoding="utf-8")
         match = re.search(r"function operationalStateOf\(t\) \{.*?\n\}", source, re.S)
-        assert match, "operationalStateOf must exist in the shipped schedule template"
+        assert match, "operationalStateOf must exist in the shipped shared template"
 
         cases = [
             # Accepted confirmation wins over retained provisional metadata.
@@ -494,16 +766,10 @@ class TestBookingStatusRendering:
         if node is None:
             pytest.fail("node is required to execute the shipped template fallback")
 
-        source = (
-            Path(__file__).resolve().parents[1]
-            / "tournament_scheduler"
-            / "html"
-            / "templates"
-            / "script_schedule.js"
-        ).read_text(encoding="utf-8")
-        start = source.index("function operationalStateOf")
+        source = _SCHEDULE_TEMPLATE.read_text(encoding="utf-8")
+        start = source.index("function bookingAuthorityLabel")
         end = source.index("\nfunction render()", start)
-        script = source[start:end] + """
+        script = _shared_operational_helpers_js() + source[start:end] + """
 var item = {
   obs: 'action_required',
   bs: 'manually_not_booked',
@@ -538,16 +804,10 @@ console.log(buildBookingDetails(item));
         if node is None:
             pytest.fail("node is required to execute the shipped template fallback")
 
-        source = (
-            Path(__file__).resolve().parents[1]
-            / "tournament_scheduler"
-            / "html"
-            / "templates"
-            / "script_schedule.js"
-        ).read_text(encoding="utf-8")
-        start = source.index("function operationalStateOf")
+        source = _SCHEDULE_TEMPLATE.read_text(encoding="utf-8")
+        start = source.index("function bookingAuthorityLabel")
         end = source.index("\nfunction render()", start)
-        script = source[start:end] + """
+        script = _shared_operational_helpers_js() + source[start:end] + """
 var item = {
   obs: 'action_required',
   bs: 'manually_not_booked',

@@ -245,7 +245,18 @@ def compute_heatmap_data(
             {
                 "age_group": str(getattr(t, "age_group", "")),
                 "tournament_id": str(getattr(t, "id", "")),
+                # The heatmap's primary cell state is the exact same frozen
+                # operational state the tournament card badge renders from
+                # (``operational_state`` -> card ``obs``). It must never be the
+                # raw detailed booking status, which can be a weaker or
+                # contradictory provenance signal (e.g. ``manually_booked`` on
+                # an operationally ``booked`` slot).
+                "operational_state": str(booking.get("operational_state") or ""),
+                # Detailed provenance and the attention flag stay available as
+                # secondary drill-down evidence, never as a competing primary
+                # heatmap/legend state.
                 "booking_status": str(booking.get("status") or "unknown"),
+                "needs_attention": bool(booking.get("needs_attention")),
             }
         )
         all_host_clubs.add(host)

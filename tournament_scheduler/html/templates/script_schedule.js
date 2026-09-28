@@ -166,39 +166,6 @@ function buildMatchHTML(matches, byes) {
   }).join('');
 }
 
-// One operational booking state per tournament. The detailed status/authority/
-// follow-up evidence lives in the expandable booking details instead of
-// competing top-level badges, so operators get one clear state at a glance.
-function operationalStateOf(t) {
-  if (t.obs) return t.obs;
-  // Accepted confirmation wins over retained provisional metadata, matching
-  // the canonical owner. Legacy/hand-built payloads may omit obs entirely.
-  if (t.bs === 'confirmed_booked' || t.bs === 'manually_booked') return 'booked';
-  if (t.mb || t.rhc) return 'action_required';
-  if (t.bs === 'confirmed_not_booked' || t.bs === 'manually_not_booked' || t.bs === 'stale') return 'action_required';
-  if (t.bac === 'proposed_changed_slot') return 'changed_slot_review';
-  if (t.bac === 'presumed_unscheduled') return 'presumed_unscheduled';
-  if (t.bac === 'not_checkable' || t.bac === 'unmatched') return 'unknown';
-  if (t.bs) return 'not_booked';
-  return '';
-}
-
-function operationalStateLabel(t, state) {
-  if (state === 'booked') return 'BOOKET · LÅST';
-  if (state === 'changed_slot_review') return 'ENDRET TID · MÅ VURDERES';
-  if (state === 'presumed_unscheduled') return 'TROLIG IKKE SATT OPP';
-  if (state === 'unknown') return 'UKJENT BOOKING';
-  if (state === 'action_required') {
-    // An explicit rejection or an invalidated confirmation needs a rebooking,
-    // not the generic manual-placement wording.
-    if (t.bs === 'manually_not_booked' || t.bs === 'confirmed_not_booked') return 'AVVIST · MÅ BOOKES PÅ NYTT';
-    if (t.bs === 'stale') return 'MÅ RE-BEKREFTES';
-    return (t.rhc && !t.mb) ? 'KREVER VERTSSBEKREFTELSE' : 'MÅ BOOKES MANUELT';
-  }
-  if (state === 'not_booked') return 'IKKE BEKREFTET';
-  return '';
-}
-
 function bookingAuthorityLabel(authority) {
   var labels = {
     manual_club_confirmation: 'manuell klubbekreftelse',
@@ -206,35 +173,6 @@ function bookingAuthorityLabel(authority) {
     calendar_event_association: 'kalendermatch'
   };
   return labels[authority] || authority;
-}
-
-function bookingStatusLabel(status) {
-  var labels = {
-    confirmed_booked: 'BOOKET BEKREFTET',
-    manually_booked: 'BOOKET (MANUELT BEKREFTET)',
-    confirmed_not_booked: 'IKKE BOOKET',
-    manually_not_booked: 'IKKE BOOKET (MANUELT AVVIST)',
-    unknown: 'IKKE KONTROLLERT',
-    not_checkable: 'IKKE KONTROLLERBAR',
-    ambiguous: 'UKLAR BOOKING',
-    proposed_changed_slot: 'FORESLÅTT ENDRET TID',
-    presumed_unscheduled: 'TROLIG IKKE SATT OPP',
-    unmatched: 'INGEN PLAUSIBEL KALENDERMATCH',
-    stale: 'BOOKINGGRUNNLAG UTDATERT'
-  };
-  return labels[status] || status;
-}
-
-// Escape every dynamic value before it reaches an innerHTML sink. The season
-// plan embeds club/host/manual/calendar text, so this is the one shared HTML
-// encoder for the booking-details block.
-function escapeHtml(value) {
-  return String(value === undefined || value === null ? '' : value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function manualQueueReasonLabel(code) {
