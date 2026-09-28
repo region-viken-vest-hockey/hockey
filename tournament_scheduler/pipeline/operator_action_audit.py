@@ -199,79 +199,49 @@ def execute_submit_audit_result(*, work_dir: str, result: dict[str, Any]) -> "Ca
     )
 
 
-def current_hard_violations(work_dir: str) -> list[str]:
-    """Independently re-verify the plan the current export actually
-    represents against the final hard verifier, mirroring
-    ``cli.pipeline_orchestrator.hard_verification_gate._baseline_hard_violations_for_plan``
-    without importing across the pipeline/cli layering boundary — a harness
-    ``PASS`` audit result must never be able to override an actual
-    deterministic hard failure.
-
-    Prefers the EXPORT checkpoint's own ``reviewed_plan`` (the exact plan
-    Stage 4 serialized for the export fingerprint being published) over the
-    Stage 3 PLANNING checkpoint. A canonical `season export` writes only the
-    EXPORT stage, so PLANNING can still hold an older, unrelated run's plan
-    (for example one predating a later canonical repair or the holiday-date
-    migration) -- checking it here would report false hard violations against
-    a plan that was never published (issue #398) and would let a stale one
-    silently reintroduce a fixed hard-violation date/roster into the gate.
-    """
-    from .state import PipelineState, StageName
-
-    state = PipelineState(work_dir)
-    export_checkpoint = state.read_stage(StageName.EXPORT)
-    reviewed_plan = (
-        export_checkpoint.get("reviewed_plan") if isinstance(export_checkpoint, dict) else None
-    )
-    if isinstance(reviewed_plan, dict) and reviewed_plan.get("tournaments") is not None:
-        plan = reviewed_plan
-    else:
-        planning_checkpoint = state.read_stage(StageName.PLANNING)
-        plan = planning_checkpoint.get("plan") if isinstance(planning_checkpoint, dict) else None
-    if not isinstance(plan, dict):
-        return []
-    try:
-        from ..final_verification import verify_final_candidate
-        from ..planning_contract import extract_candidate
-
-        candidate = extract_candidate(plan)
-    except (ValueError, KeyError):
-        return []
-    problem = None
-    try:
-        from .stage1_config import load_effective_config
-        from .stage4_export_verification import _build_export_verification_problem
-
-        state = PipelineState(work_dir)
-        effective_config = load_effective_config(state) or {}
-        problem = _build_export_verification_problem(effective_config, state)
-    except Exception:
-        problem = None
-    try:
-        result = verify_final_candidate(candidate, problem)
-    except Exception:
-        return []
-    if result.get("ok", True):
-        return []
-    return [f"{v.get('code')}: {v.get('message')}" for v in (result.get("violations") or [])]
-
-
 def apply_publish_audit_gate(
     *,
     work_dir: str,
     bundle_result: "CapabilityResult",
     with_collision_warning: "Callable[[CapabilityResult], CapabilityResult]",
 ) -> "CapabilityResult | None":
-    """Apply deterministic verification, audit freshness and review gates."""
+    """Apply deterministic verification, audit freshness and review gates.
+
+    The hard-verification step is delegated to
+    :mod:`.publish_hard_verification`, which re-verifies the reviewed export
+    against the *provenance-bound* problem it was accepted with. It fails
+    closed, so a missing/stale/inconsistent checkpoint is never mistaken for a
+    zero-violation pass.
+    """
     from .audit_result import audit_is_fresh, is_blocking_status
     from .capability_result import CapabilityResult
+    from .publish_hard_verification import (
+        current_hard_verification,
+        hard_verification_evidence,
+        hard_verification_problems,
+    )
 
-    hard_violations = current_hard_violations(work_dir)
-    if hard_violations:
+    hard_verification = current_hard_verification(work_dir)
+    if hard_verification.get("error") or not hard_verification.get("ok"):
+        if hard_verification.get("error"):
+            summary = (
+                "Publisering blokkert: eksporten kunne ikke hard-verifiseres mot den "
+                "proveniensbundne revisjonen den ble akseptert med."
+            )
+            suggested_actions = [
+                "Kjør 'rvv-miniputt season export' på gjeldende kanoniske revisjon og "
+                "prøv publisering på nytt; ikke publiser en eksport uten komplett "
+                "verification-context.",
+            ]
+        else:
+            summary = "Publisering blokkert: planen feiler deterministisk hard verifisering."
+            suggested_actions = []
         return with_collision_warning(CapabilityResult.blocked(
-            "Publisering blokkert: planen feiler deterministisk hard verifisering.",
+            summary,
             capability="pages_publish",
-            problems=hard_violations,
+            problems=hard_verification_problems(hard_verification),
+            evidence=hard_verification_evidence(hard_verification),
+            suggested_actions=suggested_actions,
             artifacts=list(bundle_result.artifacts),
         ))
 

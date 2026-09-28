@@ -291,7 +291,9 @@ class TestPublishPagesExecutor:
         """Arena collisions no longer block publishing: they surface as a warning
         and live in the manual-schedule view for manual hall booking."""
         _init_repo(tmp_path)
-        _write_export(tmp_path)
+        # The planning projection is written first so the reviewed export that
+        # follows is the current, non-stale handoff (a canonical `season
+        # export` writes only EXPORT and leaves the planning projection alone).
         PipelineState(tmp_path).write_stage(
             StageName.PLANNING,
             {
@@ -313,6 +315,7 @@ class TestPublishPagesExecutor:
             },
             status=StageStatus.DONE,
         )
+        _write_export(tmp_path)
 
         action = DEFAULT_REGISTRY.build(
             "publish_pages", work_dir=str(tmp_path), repo_dir=str(tmp_path), push=False, confirm_public=True
@@ -439,20 +442,82 @@ def _passing_audit_result(*, export_fingerprint: str, run_id: str = "") -> dict:
     }
 
 
-def _write_export(work_dir, *, content: str = "<h1>plan</h1>") -> None:
-    import hashlib
+def _reviewed_plan() -> dict:
+    """A base-valid three-team round robin for publish-path fixtures."""
+    return {
+        "schema_version": 1,
+        "source": {"planner": "test"},
+        "tournaments": [
+            {
+                "id": "t1",
+                "date": "2026-01-05",
+                "arena": "Jar Isforum",
+                "age_group": "U10",
+                "host_club": "Jar",
+                "teams": [
+                    {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
+                    {"club": "Skien", "label": "Skien 1", "age_group": "U10"},
+                    {"club": "Skien", "label": "Skien 2", "age_group": "U10"},
+                ],
+                "games": [
+                    {"home": "Jar 1", "away": "Skien 1", "parallel_slot": 0, "round_number": 1},
+                    {"home": "Jar 1", "away": "Skien 2", "parallel_slot": 0, "round_number": 2},
+                    {"home": "Skien 1", "away": "Skien 2", "parallel_slot": 0, "round_number": 3},
+                ],
+            }
+        ],
+    }
 
+
+def _reviewed_problem(plan: dict) -> dict:
+    teams = []
+    seen: set[tuple] = set()
+    for tournament in plan.get("tournaments") or []:
+        for team in tournament.get("teams") or []:
+            key = (team.get("club"), team.get("label"), team.get("age_group"))
+            if key in seen:
+                continue
+            seen.add(key)
+            teams.append(dict(team))
+    return {"teams": teams, "ice_time_minutes": {"U10": 120}, "parallel_games": {"U10": 2}}
+
+
+def _write_export(work_dir, *, content: str = "<h1>plan</h1>") -> None:
+    """Write a provenance-bound reviewed export plus a fresh PASS audit.
+
+    The publish gate re-verifies the export against its own bound verification
+    context, so every publish-path fixture must carry one. ``content`` still
+    varies the public bundle HTML so approval/bundle-fingerprint tests keep
+    their meaning; the export fingerprint is the reviewed candidate's.
+    """
     from tournament_scheduler.pipeline.audit_result import write_audit_result
+    from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+    from tournament_scheduler.pipeline.run_manifest import RunManifest
+    from tournament_scheduler.pipeline.verification_context import build_verification_context
+    from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
 
     export_dir = work_dir / "export"
     export_dir.mkdir(exist_ok=True)
     (export_dir / "season_plan.html").write_text(content, encoding="utf-8")
-    export_fingerprint = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    plan = _reviewed_plan()
+    candidate = extract_candidate({"plan": plan})
+    problem = _reviewed_problem(plan)
+    verify_result = verify_candidate(candidate, problem)
+    export_fingerprint = stable_payload_sha256(candidate.get("tournaments", []))
+    verification_context = build_verification_context(
+        run_id=RunManifest(work_dir).read().get("run_id"),
+        candidate=candidate,
+        problem=problem,
+        verify_result=verify_result,
+    )
     PipelineState(work_dir).write_stage(
         StageName.EXPORT,
         {
             "output_files": {"html": str(export_dir / "season_plan.html")},
             "export_fingerprint": export_fingerprint,
+            "verify_result": verify_result,
+            "verification_context": verification_context,
+            "reviewed_plan": dict(candidate),
         },
         status=StageStatus.DONE,
     )

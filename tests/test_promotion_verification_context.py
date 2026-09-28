@@ -25,7 +25,7 @@ from tournament_scheduler.pipeline.verification_context import (
     VerificationContextError,
     resolve_promotion_verification_context,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
 from tournament_scheduler.season_state import (
     SeasonStateError,
     decisions_path,
@@ -448,3 +448,68 @@ def test_season_promote_cli_refuses_stale_handoff(tmp_path, capsys):
     assert "verification context belongs to run" in capsys.readouterr().out
     assert not schedule_path("2026-2027", root=root).exists()
     assert not decisions_path("2026-2027", root=root).exists()
+
+
+def test_canonical_findings_and_publish_preflight_agree_on_bound_hard_rules(tmp_path, capsys):
+    """`season findings`, canonical export and the publish preflight must all
+    resolve hard verification through the export's provenance-bound problem.
+
+    The preflight additionally applies the final/export-eligibility rules that
+    the planning contract (and therefore `season findings`) intentionally does
+    not run; those extra blocks are asserted to be final-only rather than a
+    second, divergent policy.
+    """
+    from tournament_scheduler.cli.rvv_cli import main
+    from tournament_scheduler.pipeline.publish_hard_verification import (
+        current_hard_verification,
+    )
+    from tournament_scheduler.pipeline.verification_context import (
+        resolve_publish_verification_context,
+    )
+    from tournament_scheduler.season_maintenance import list_findings
+
+    work_dir, root, _state, _plan, _result = _stage_odd_team_export(tmp_path)
+    assert main(["season", "promote", "--work-dir", str(work_dir), "--root", str(root)]) == 0
+    capsys.readouterr()
+    assert main([
+        "season",
+        "export",
+        "--season",
+        "2026-2027",
+        "--work-dir",
+        str(work_dir),
+        "--root",
+        str(root),
+        "--export-dir",
+        str(tmp_path / "canonical-export"),
+        "--flat",
+        "--json",
+    ]) == 0
+    capsys.readouterr()
+
+    findings = list_findings("2026-2027", root=str(root))
+    preflight = current_hard_verification(str(work_dir))
+    bound = resolve_publish_verification_context(work_dir=str(work_dir))
+    common = verify_candidate(extract_candidate({"plan": bound["reviewed_plan"]}), bound["problem"])
+
+    # The common (planning-contract) hard rules agree across both paths.
+    assert findings["verification_ok"] is True
+    assert common["ok"] is True
+    assert preflight["verifiable"] is True
+    assert preflight["canonical_revision"] == findings["revision"]
+
+    # Any additional preflight block is a final/export-eligibility rule, not a
+    # second interpretation of the common rules.
+    final_only_codes = {
+        "round_robin_missing_pair",
+        "round_robin_duplicate_pair",
+        "team_double_booked_in_round",
+        "parallel_capacity_exceeded",
+        "game_integrity_ambiguous_participants",
+        "invalid_game_record",
+        "tournament_under_minimum",
+        "configured_round_count_mismatch",
+        "avoidable_same_club_matchup",
+    }
+    common_codes = {v.get("code") for v in common.get("violations") or []}
+    assert {v.get("code") for v in preflight.get("violations") or []} - common_codes <= final_only_codes
