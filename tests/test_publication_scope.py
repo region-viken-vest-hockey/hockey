@@ -231,6 +231,79 @@ class TestHeldAffectedTournaments:
         assert result["held"][0]["tournament_id"] == "t1"
         assert result["held"][0]["code"] == "changed_interval_without_accepted_booking"
 
+    def test_reactivated_cancelled_tournament_requires_booking(self, tmp_path):
+        published = {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "tournaments": [
+                _tournament("t1", date="2026-10-11", start_time="10:00", host_club="A"),
+                _tournament("t2", date="2026-11-15", start_time="10:00", host_club="B", cancelled=True),
+            ],
+        }
+        # Reactivating a previously published cancellation changes only the
+        # ``cancelled`` flag; the interval is unchanged, so it must still prove
+        # an accepted booking for the exact interval.
+        current = {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "tournaments": [
+                _tournament("t1", date="2026-10-11", start_time="10:00", host_club="A"),
+                _tournament("t2", date="2026-11-15", start_time="10:00", host_club="B", cancelled=False),
+            ],
+        }
+        problem = _write_season(tmp_path, plan=current, published_plan=published)
+
+        result = _scope(tmp_path, reviewed_plan=current, problem=problem)
+
+        assert result["status"] == STATUS_HELD, result
+        assert result["delta"]["interval_changed_tournament_ids"] == ["t2"]
+        assert result["held"][0]["tournament_id"] == "t2"
+        assert result["held"][0]["code"] == "changed_interval_without_accepted_booking"
+
+    def test_active_cancellation_keeps_published_acceptance(self, tmp_path):
+        published = {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "tournaments": [
+                _tournament("t1", date="2026-10-11", start_time="10:00", host_club="A"),
+                _tournament("t2", date="2026-11-15", start_time="10:00", host_club="B"),
+            ],
+        }
+        current = {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "tournaments": [
+                _tournament("t1", date="2026-10-11", start_time="10:00", host_club="A"),
+                _tournament("t2", date="2026-11-15", start_time="10:00", host_club="B", cancelled=True),
+            ],
+        }
+        problem = _write_season(tmp_path, plan=current, published_plan=published)
+
+        result = _scope(tmp_path, reviewed_plan=current, problem=problem)
+
+        assert result["status"] == STATUS_ELIGIBLE, result
+
+    def test_missing_hosting_evidence_is_not_checkable(self, tmp_path):
+        plan = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A")]}
+        _write_season(tmp_path, plan=plan, published_plan=plan)
+        decisions = CanonicalSeasonStore(tmp_path).load(_SEASON).decisions
+
+        # A valid occupancy contract but no registered teams: the hosting
+        # responsibility check cannot be evaluated, so the assessment fails
+        # closed to the full audit gate instead of sliding through to ELIGIBLE.
+        result = evaluate_publication_scope(
+            reviewed_plan=plan,
+            problem={"ice_time_minutes": {"U10": 120}},
+            decisions=decisions,
+            season=_SEASON,
+            season_root=tmp_path,
+        )
+
+        assert result["status"] == STATUS_NOT_CHECKABLE, result
+        assert any(
+            reason["code"] == "hosting_evidence_unavailable" for reason in result["reasons"]
+        )
+
     def test_added_tournament_without_booking_is_held(self, tmp_path):
         published = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A")]}
         current = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A"), _tournament("t2", date="2026-11-15", start_time="10:00", host_club="B")]}

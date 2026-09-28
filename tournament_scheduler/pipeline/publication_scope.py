@@ -57,10 +57,22 @@ CODE_NO_CANONICAL_SEASON = "no_canonical_season"
 CODE_BOOKING_EVIDENCE_UNAVAILABLE = "booking_evidence_unavailable"
 CODE_HOSTING_EVIDENCE_UNAVAILABLE = "hosting_evidence_unavailable"
 
-#: Placement/occupied-interval fields whose change requires fresh accepted
-#: booking evidence. A roster- or guest-only change keeps the published
-#: interval, which the published baseline already accepted.
-_INTERVAL_FIELDS = ("date", "start_time", "arena", "host_club", "duration_minutes", "end_time")
+#: Placement/occupied-interval and cancellation fields whose change requires
+#: fresh accepted booking evidence. A roster- or guest-only change keeps the
+#: published interval, which the published baseline already accepted. A
+#: ``cancelled`` transition is included on purpose: reactivating a previously
+#: published cancellation (``cancelled: true -> false``) has to prove an
+#: accepted booking for the interval, while an active -> cancelled transition
+#: is handled as a deliberate public-entry removal.
+_INTERVAL_FIELDS = (
+    "date",
+    "start_time",
+    "arena",
+    "host_club",
+    "duration_minutes",
+    "end_time",
+    "cancelled",
+)
 
 _OPERATIONAL_BOOKED = "booked"
 
@@ -296,6 +308,19 @@ def evaluate_publication_scope(
             result,
             CODE_HOSTING_EVIDENCE_UNAVAILABLE,
             f"hosting-responsibility evidence could not be computed: {type(exc).__name__}: {exc}",
+        )
+        return result
+    if transfer_findings is None:
+        # The normalized problem/teams are unavailable, so the change cannot be
+        # proven free of an unauthorized hosting-responsibility transfer. Fail
+        # closed to the existing audit gate instead of treating ``None`` as no
+        # findings (which would fall through to ELIGIBLE).
+        _add_reason(
+            result,
+            CODE_HOSTING_EVIDENCE_UNAVAILABLE,
+            "hosting-responsibility evidence is unavailable (missing normalized "
+            "problem/teams), so the change cannot be proven free of an unauthorized "
+            "hosting-responsibility transfer",
         )
         return result
     if transfer_findings:
