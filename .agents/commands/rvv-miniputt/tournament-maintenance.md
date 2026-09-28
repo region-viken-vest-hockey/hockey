@@ -1,0 +1,21 @@
+# Tournament maintenance (lazy-loaded)
+
+Load for adding, moving, postponing, cancelling, repairing or changing a tournament roster. Read the relevant sections of `season.md` for the actual canonical command contract; this file orchestrates, never substitutes for repository validation. For calendar/booking claims also load `booking-management.md`; for distribution trade-offs load `schedule-quality.md`.
+
+## Common workflow
+Establish lifecycle, canonical revision, tournament identity, approvals/locks, protections, constraints, accepted booking evidence and publication state. Assign a stable request id. Determine whether the operator requests investigation, a proposed change or execution. Preserve previous accepted intent. Use repository dry-runs, findings, revision-bound repair options and bounded search to compare complete candidates before writing. Prefer one atomic final mutation, then verify, refresh findings, export and audit as appropriate. Never infer permission to unapprove, accept regressions, reopen planning or publish.
+
+## Move or postpone
+Translate club feedback into the narrowest supported scoped constraint before searching. Host/arena unavailability is not team unavailability or a global date ban. If that scope is unsupported, report the gap and do not claim it is enforced. Compare time changes, dates across the permitted season (including both sides of Christmas), and legal coupled repairs; evaluate exact-interval booking evidence, all affected teams, spacing, temporal balance, hosting and churn. A first hard-valid date is not sufficient. For approved tournaments follow the explicit unapproval and reapproval authority in `season.md`; reapprove only on accepted confirmation.
+
+## Cancel
+Distinguish cancellation from postponement. Inspect booking and publication status, the reason and affected roster, participant appearance deficits, host obligation and downstream tournaments. Preview the cancellation and feasible replacement/reassignment alternatives; never silently remove accepted commitments. Apply only through supported canonical cancel/batch operations and explicit narrow regression acceptance when actually authorized. Preserve cancellation provenance and verify every affected team.
+
+## Add or materialize
+Distinguish a new tournament obligation from an existing unplaced obligation. Check authoritative registrations, host responsibility, age eligibility, capacity, calendar evidence, participation targets, spacing and other tournaments. Prefer repository `unplaced_tournament_placement` findings and revision-bound materialization options when applicable. Never hand-create a tournament in canonical JSON or infer booking from a free calendar slot. If there is no supported canonical creation path, report the capability gap.
+
+## Change roster
+Differentiate one-tournament replacement, true two-tournament swap, removal without replacement, season/age-group withdrawal, guest-place change and registration-set change. Use the matching dry-run in `season.md`; evaluate consequences for every displaced and added team. Never cross age groups or treat the displaced team as free capacity. Use atomic batch for coupled changes; explicit acceptance is required for named material regressions. A team rename uses the identity correction path, not roster replacement.
+
+## Repair
+Inspect fresh findings, direct options and bounded search; preserve valid placements when only roster is defective. Use the repository's verified option, operational-acceptability and consequence gates. Search exhaustion is not infeasibility. Do not mutate the season through temporary moves merely to expose another option.
