@@ -1,14 +1,16 @@
-"""Publish-gate integration for tournament-scoped publication eligibility
-(issue #541).
+"""Publish-gate integration for tournament-scoped publication eligibility.
 
 The deterministic publish preflight must consume the typed publication-scope
-result: an incremental republish whose exact last-publication delta is
-eligible is not blocked by unrelated full-season planning debt, while a held
-changed interval or a missing/stale audit still blocks.
+result: an incremental republish whose exact last-publication delta is eligible
+is not blocked by unrelated full-season planning debt. An unaccepted interval
+publishes as a proposal awaiting confirmation, while a placement the host
+explicitly rejected and a missing/stale audit still blocks.
 """
 
 from __future__ import annotations
 
+import json
+import os
 import subprocess
 
 from tournament_scheduler.calendar_bookings import new_manual_assertion_record
@@ -87,7 +89,14 @@ def _problem() -> dict:
     return {"teams": _teams(), "ice_time_minutes": {"U10": 120}, "parallel_games": {"U10": 2}}
 
 
-def _write_canonical(root, *, plan: dict, published_plan: dict, booked_t2: bool) -> None:
+def _write_canonical(
+    root,
+    *,
+    plan: dict,
+    published_plan: dict,
+    booked_t2: bool,
+    rejected_t2: bool = False,
+) -> None:
     schedule = {
         "schema_version": SEASON_STATE_SCHEMA_VERSION,
         "season": _SEASON,
@@ -138,12 +147,71 @@ def _write_canonical(root, *, plan: dict, published_plan: dict, booked_t2: bool)
                 source_revision="rev-published",
             )
         ]
+    if rejected_t2:
+        t2 = next(t for t in plan["tournaments"] if t["id"] == "t2")
+        decisions["manual_booking_assertions"] = [
+            new_manual_assertion_record(
+                tournament=t2,
+                booking_status="not-booked",
+                problem=_problem(),
+                actor="tester",
+                note="club rejected the slot",
+                reference="email-2026-09-21",
+                source_scope="tournament",
+                stated_interval=None,
+                asserted_at="2026-09-21T00:00:00+00:00",
+                source_revision="rev-published",
+            )
+        ]
     CanonicalSeasonStore(root / "season").write(
         CanonicalSeasonSnapshot(season=_SEASON, schedule=schedule, decisions=decisions)
     )
 
 
-def _write_reviewed_export(work_dir, *, plan: dict) -> str:
+def _public_tournaments_html(work_dir, plan: dict, *, mislabelled_ids: set[str] | None = None) -> str:
+    """Render the exported HTML's machine payload from the canonical booking report.
+
+    Mirrors the real exporter closely enough for the publish preflight's
+    public-presentation contract to read ``obs``/``bs`` per tournament.
+    ``mislabelled_ids`` deliberately forces the ``booked`` operational state
+    for a regression test.
+    """
+
+    from tournament_scheduler.season_state import booking_status_report
+
+    rows: dict[str, dict] = {}
+    root = os.environ.get("RVV_CANONICAL_SEASON_ROOT")
+    if root:
+        try:
+            report = booking_status_report(season=_SEASON, root=root)
+            rows = {
+                str(row.get("tournament_id")): row for row in report.get("tournaments") or []
+            }
+        except Exception:  # noqa: BLE001 - the HTML payload is a fixture, not the subject
+            rows = {}
+    mislabelled_ids = mislabelled_ids or set()
+    entries = []
+    for tournament in plan["tournaments"]:
+        tournament_id = str(tournament["id"])
+        row = rows.get(tournament_id) or {}
+        entries.append(
+            {
+                "id": tournament_id,
+                "d": str(tournament["date"]),
+                "a": str(tournament["arena"]),
+                "g": str(tournament["age_group"]),
+                "h": str(tournament["host_club"]),
+                "ts": str(tournament["start_time"]),
+                "bs": str(row.get("status") or "unknown"),
+                "obs": "booked" if tournament_id in mislabelled_ids else str(row.get("operational_state") or "not_booked"),
+            }
+        )
+    return "const TOURNAMENTS = " + json.dumps(entries) + ";"
+
+
+def _write_reviewed_export(
+    work_dir, *, plan: dict, mislabelled_ids: set[str] | None = None
+) -> str:
     candidate = extract_candidate({"plan": plan})
     problem = _problem()
     verify_result = verify_candidate(candidate, problem)
@@ -156,7 +224,10 @@ def _write_reviewed_export(work_dir, *, plan: dict) -> str:
     )
     export_dir = work_dir / "export"
     export_dir.mkdir(exist_ok=True)
-    (export_dir / "season_plan.html").write_text("<h1>plan</h1>", encoding="utf-8")
+    html = "<html><body>\n" + _public_tournaments_html(
+        work_dir, plan, mislabelled_ids=mislabelled_ids
+    ) + "\n</body></html>"
+    (export_dir / "season_plan.html").write_text(html, encoding="utf-8")
     PipelineState(work_dir).write_stage(
         StageName.EXPORT,
         {
@@ -230,11 +301,27 @@ def test_eligible_incremental_correction_is_not_blocked_by_full_season_audit_fai
     assert _evaluate(tmp_path, tmp_path) is None
 
 
-def test_changed_interval_without_accepted_booking_is_blocked(tmp_path, monkeypatch):
+def test_changed_interval_without_accepted_booking_publishes_as_proposal(tmp_path, monkeypatch):
     _init_repo(tmp_path)
     published = _plan()
     current = _plan(t2_date="2026-03-05", t2_start="12:00")
     _write_canonical(tmp_path, plan=current, published_plan=published, booked_t2=False)
+    monkeypatch.setenv("RVV_CANONICAL_SEASON_ROOT", str(tmp_path / "season"))
+    fingerprint = _write_reviewed_export(tmp_path, plan=current)
+    # A full-season FAIL is planning debt: the unaccepted interval is still
+    # publishable as a clearly labelled proposal awaiting confirmation.
+    _write_audit(tmp_path, status="FAIL", export_fingerprint=fingerprint)
+
+    assert _evaluate(tmp_path, tmp_path) is None
+
+
+def test_changed_interval_with_explicit_rejection_is_blocked(tmp_path, monkeypatch):
+    _init_repo(tmp_path)
+    published = _plan()
+    current = _plan(t2_date="2026-03-05", t2_start="12:00")
+    _write_canonical(
+        tmp_path, plan=current, published_plan=published, booked_t2=False, rejected_t2=True
+    )
     monkeypatch.setenv("RVV_CANONICAL_SEASON_ROOT", str(tmp_path / "season"))
     fingerprint = _write_reviewed_export(tmp_path, plan=current)
     _write_audit(tmp_path, status="PASS", export_fingerprint=fingerprint)
@@ -244,6 +331,28 @@ def test_changed_interval_without_accepted_booking_is_blocked(tmp_path, monkeypa
     assert result is not None
     assert result.status == "blocked"
     assert any("t2" in problem for problem in result.problems)
+
+
+def test_mislabelled_proposed_placement_is_blocked(tmp_path, monkeypatch):
+    """A proposed interval rendered as booked must never publish.
+
+    The publication scope is ELIGIBLE, but the exported HTML deliberately shows
+    the proposal with a ``booked`` operational state; the preflight must fail
+    closed on that public-presentation mismatch.
+    """
+    _init_repo(tmp_path)
+    published = _plan()
+    current = _plan(t2_date="2026-03-05", t2_start="12:00")
+    _write_canonical(tmp_path, plan=current, published_plan=published, booked_t2=False)
+    monkeypatch.setenv("RVV_CANONICAL_SEASON_ROOT", str(tmp_path / "season"))
+    fingerprint = _write_reviewed_export(tmp_path, plan=current, mislabelled_ids={"t2"})
+    _write_audit(tmp_path, status="PASS", export_fingerprint=fingerprint)
+
+    result = _evaluate(tmp_path, tmp_path)
+
+    assert result is not None
+    assert result.status == "blocked"
+    assert any("t2" in problem and "html" in problem for problem in result.problems)
 
 
 def test_no_canonical_season_falls_back_to_full_audit_gate(tmp_path):

@@ -262,11 +262,15 @@ def _blocked_for_publication_scope(
     reasons = list(scope.get("reasons") or [])
     problems = [str(reason.get("message") or reason.get("code")) for reason in reasons]
     held_ids = sorted({str(entry.get("tournament_id") or "") for entry in scope.get("held") or []})
+    booked_ids = sorted(str(item) for item in scope.get("booked_tournament_ids") or [])
+    proposed_ids = sorted(str(item) for item in scope.get("proposed_tournament_ids") or [])
     evidence = [
         f"publication_scope_status={status}",
         f"publication_scope_export_fingerprint={scope.get('export_fingerprint')}",
         f"publication_scope_canonical_revision={scope.get('canonical_revision')}",
         f"publication_scope_held_tournament_ids={','.join(held_ids)}",
+        f"publication_scope_booked_tournament_ids={','.join(booked_ids)}",
+        f"publication_scope_proposed_tournament_ids={','.join(proposed_ids)}",
     ]
     if status == STATUS_BLOCKED:
         summary = (
@@ -275,8 +279,9 @@ def _blocked_for_publication_scope(
         )
     else:
         summary = (
-            "Publisering holdt tilbake: ett eller flere endrede eller nye turneringer "
-            "mangler godkjent, kildenbundet booking for sin eksakte publiserte periode."
+            "Publisering holdt tilbake: en eller flere turneringer har bookingbevis "
+            "som motsier den offentlige plasseringen, eller en tidligere publisert "
+            "oppføring forsvant uten kanonisk avlysning."
         )
     return with_collision_warning(
         CapabilityResult.blocked(
@@ -285,8 +290,102 @@ def _blocked_for_publication_scope(
             problems=problems,
             evidence=evidence,
             suggested_actions=[
-                "Bekreft bookingen for den eksakte perioden med en kildenbundet "
-                "kalenderassosiasjon eller en manuell bookingbekreftelse, og eksporter på nytt.",
+                "Løs den navngitte turneringen: flytt/planlegg den på nytt eller korriger "
+                "bookingbeviset, og eksporter på nytt. En plassering uten bookingbevis "
+                "publiseres som forslag/vil bekreftes, ikke som booket.",
+            ],
+            artifacts=list(bundle_result.artifacts),
+        )
+    )
+
+
+def _resolve_export_dir_for_presentation(*, work_dir: str, bound_export_dir: Any) -> str:
+    """Resolve the public projection the presentation check must read.
+
+    Prefer the sanitized ``public_bundle`` that is actually published; fall back
+    to the source export directory (the gate is also callable without a built
+    bundle).
+    """
+
+    from pathlib import Path
+
+    bundle = Path(work_dir) / "public_bundle"
+    if (bundle / "season_plan.html").exists():
+        return str(bundle)
+    if bound_export_dir:
+        return str(bound_export_dir)
+
+    from .state import PipelineState, StageName
+
+    data = PipelineState(work_dir).read_stage(StageName.EXPORT) or {}
+    html_path = str(((data.get("output_files") or {}).get("html") or ""))
+    return str(Path(html_path).parent) if html_path else ""
+
+
+def _blocked_for_proposed_presentation(
+    *,
+    work_dir: str,
+    scope: dict[str, Any],
+    bundle_result: "CapabilityResult",
+    with_collision_warning: "Callable[[CapabilityResult], CapabilityResult]",
+) -> "CapabilityResult | None":
+    """Fail closed when a proposed placement is publicly presented as booked.
+
+    The publication scope's ``proposed`` classification is only safe when the
+    exact exported artifacts label those tournaments as awaiting confirmation.
+    An exporter regression that renders a proposal with a ``booked`` badge (or
+    with no booking badge at all) would otherwise silently tell host clubs the
+    ice is reserved, so the presentation contract is verified against the bytes
+    of the export before an ``ELIGIBLE`` scope is allowed to publish.
+    """
+
+    from .capability_result import CapabilityResult
+    from .export_parity.presentation import STATUS_PASS, verify_proposed_presentation
+    from .publication_scope import STATUS_ELIGIBLE
+
+    if scope.get("status") != STATUS_ELIGIBLE:
+        return None
+    proposed_ids = [str(item) for item in scope.get("proposed_tournament_ids") or []]
+    if not proposed_ids:
+        return None
+
+    from .verification_context import resolve_publish_verification_context
+
+    try:
+        bound = resolve_publish_verification_context(work_dir=work_dir)
+    except Exception:  # noqa: BLE001 - the scope resolved; treat a failure here as unsafe
+        bound = {}
+    export_dir = _resolve_export_dir_for_presentation(
+        work_dir=work_dir, bound_export_dir=bound.get("export_dir")
+    )
+    report = verify_proposed_presentation(
+        export_dir=export_dir, proposed_tournament_ids=proposed_ids
+    )
+    if report.get("status") == STATUS_PASS:
+        return None
+
+    problems = [
+        f"{problem.get('artifact')}:{problem.get('tournament_id') or '-'}: {problem.get('message')}"
+        for problem in report.get("problems") or []
+    ]
+    evidence = [
+        f"proposed_presentation_status={report.get('status')}",
+        "proposed_presentation_checked=" + ",".join(report.get("checked_tournament_ids") or []),
+    ]
+    for name, artifact in (report.get("artifacts") or {}).items():
+        if isinstance(artifact, dict):
+            evidence.append(f"proposed_presentation_{name}_sha256={artifact.get('sha256')}")
+    return with_collision_warning(
+        CapabilityResult.blocked(
+            "Publisering blokkert: en foreslått plassering presenteres ikke entydig som "
+            "avventer bekreftelse i den eksporterte offentlige visningen.",
+            capability="pages_publish",
+            problems=problems,
+            evidence=evidence,
+            suggested_actions=[
+                "Regenerer eksporten fra gjeldende kanoniske revisjon slik at foreslåtte "
+                "turneringer vises som 'ikke bekreftet'/'må re-bekreftes' i HTML/XLSX, "
+                "ikke som booket.",
             ],
             artifacts=list(bundle_result.artifacts),
         )
@@ -309,11 +408,14 @@ def apply_publish_audit_gate(
     zero-violation pass.
 
     Publication eligibility is *tournament-scoped*: an incremental republish is
-    gated on the exact last-publication delta (accepted booking for each changed
-    interval, identity traceability, no silent hosting transfer), while the
-    full-season semantic audit's planning debt remains visible as diagnostic
-    rather than as a global blocker. A missing/stale audit still blocks, and an
-    unresolved (``NOT_CHECKABLE``) scope falls back to the full audit gate.
+    gated on the exact last-publication delta (identity traceability, no silent
+    hosting transfer, no unexplained removal, and no placement whose own
+    booking evidence rejects/contradicts it), while the full-season semantic
+    audit's planning debt remains visible as diagnostic rather than as a global
+    blocker. A missing accepted booking is not itself a blocker: the placement
+    publishes as a clearly labelled proposal awaiting host confirmation. A
+    missing/stale audit still blocks, and an unresolved (``NOT_CHECKABLE``)
+    scope falls back to the full audit gate.
     """
     from .audit_result import audit_is_fresh, is_blocking_status
     from .capability_result import CapabilityResult
@@ -370,9 +472,19 @@ def apply_publish_audit_gate(
 
     scope = _resolve_publication_scope(work_dir=work_dir, repo_dir=repo_dir)
     if scope is not None and scope.get("status") == STATUS_ELIGIBLE:
+        presentation_block = _blocked_for_proposed_presentation(
+            work_dir=work_dir,
+            scope=scope,
+            bundle_result=bundle_result,
+            with_collision_warning=with_collision_warning,
+        )
+        if presentation_block is not None:
+            return presentation_block
         # Full-season planning debt is retained as diagnostic (the audit result
         # and the assessment reasons stay on record); it no longer blocks an
-        # incremental republish whose exact delta is fully eligible.
+        # incremental republish whose exact delta is fully eligible, and every
+        # proposed placement is confirmed to be publicly labelled as awaiting
+        # confirmation rather than booked.
         return None
     if scope is not None:
         blocked = _blocked_for_publication_scope(

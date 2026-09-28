@@ -25,6 +25,7 @@ from .records import (
     ArtifactProjection,
     TournamentRecord,
 )
+from .presentation import verify_proposed_presentation
 from .verify import verify_export_parity, write_parity_report
 
 __all__ = [
@@ -35,5 +36,6 @@ __all__ = [
     "STATUS_PASS",
     "TournamentRecord",
     "verify_export_parity",
+    "verify_proposed_presentation",
     "write_parity_report",
 ]

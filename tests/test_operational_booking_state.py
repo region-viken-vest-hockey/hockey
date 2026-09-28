@@ -283,3 +283,44 @@ class TestManualBookingQueue:
             problem,
         )
         assert report["tournaments"][0]["manual_work"]["proposed_alternatives"] == []
+
+
+class TestBookingConflictSignal:
+    """A typed contradiction flag, not a re-parsed follow-up string.
+
+    Publication scope holds a placement only when its own evidence actively
+    contradicts it, so the booking projection exposes that contradiction
+    explicitly instead of leaving each consumer to match reason strings.
+    """
+
+    def test_manual_confirmation_contradicted_by_calendar_sets_conflict(self):
+        tournament = _tournament("t1")
+        problem = _problem()
+        assertion = _manual_assertion(tournament, problem)
+        record = new_booking_evidence_record(
+            tournament=tournament,
+            status=BOOKING_CONFIRMED_NOT_BOOKED,
+            problem=problem,
+            actor="calendar",
+            note="the slot is taken by a non-RVV activity",
+            checked_at="2026-09-02T00:00:00+00:00",
+            source_revision="rev-2",
+            reason="explicit_host_rejection",
+        )
+        report = _report(
+            {"tournaments": [tournament]},
+            {
+                "manual_booking_assertions": [assertion],
+                TOURNAMENT_BOOKING_EVIDENCE_KEY: [record],
+            },
+            problem,
+        )
+        row = report["tournaments"][0]
+        assert row["status"] == BOOKING_MANUALLY_BOOKED
+        assert row["conflict"] is True
+        assert report["counts"]["conflicts"] == 1
+
+    def test_row_without_contradiction_has_no_conflict(self):
+        tournament = _tournament("t1")
+        report = _report({"tournaments": [tournament]}, {}, _problem())
+        assert report["tournaments"][0]["conflict"] is False

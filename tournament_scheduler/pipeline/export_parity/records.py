@@ -187,7 +187,12 @@ class TournamentRecord:
     cancellation_reason: str = ""
     approval_status: str = ""
     locked: bool = False
+    # The raw detailed booking status an artifact carries. The HTML also
+    # carries the frozen operational state (``obs``) that drives its single
+    # top-level badge; both stay available so the public-presentation contract
+    # can prove a proposed placement is never shown as booked.
     booking_status: str = ""
+    operational_state: str = ""
     booking_needs_attention: bool = False
 
     def field(self, name: str) -> Any:

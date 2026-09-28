@@ -14,11 +14,20 @@ the semantic audit context) consume:
 * which tournaments the current export adds, removes or changes relative to
   that baseline (the complete last-publication delta);
 * which of those changed/new tournaments have accepted, source-backed booking
-  evidence for their exact published interval;
+  evidence for their exact published interval, which are publishable proposals
+  awaiting host confirmation, and which have evidence that actively contradicts
+  the placement;
 * whether the change silently transferred hosting responsibility to a club
   that does not owe it; and
 * the full-season planning debt, retained explicitly as *diagnostic* rather
   than silently dropped.
+
+Publication distinguishes **placement**, **booking evidence** and
+**publication**. Publishing a proposed placement never asserts the ice is
+booked: an interval without accepted evidence is publishable only as a clearly
+labelled proposal/awaiting-confirmation entry, while an interval whose own
+evidence rejects or contradicts it is held. Accepted booking evidence stays
+mandatory for the ``booked`` projection.
 
 It never invents booking authority or a new verdict from prose. It reuses the
 canonical booking evidence owner (:mod:`tournament_scheduler.calendar_bookings`)
@@ -42,13 +51,23 @@ STATUS_HELD = "HELD"
 STATUS_BLOCKED = "BLOCKED"
 STATUS_NOT_CHECKABLE = "NOT_CHECKABLE"
 
+#: Per-affected-tournament public booking disposition. ``booked`` means an
+#: accepted, source-backed confirmation exists for the exact public interval;
+#: ``proposed`` means the placement is publishable as an awaiting-confirmation
+#: proposal; ``contradicted`` means the tournament's own booking evidence
+#: actively rejects or conflicts with the placement, so even a proposal would
+#: misrepresent the host and the placement is held.
+DISPOSITION_BOOKED = "booked"
+DISPOSITION_PROPOSED = "proposed"
+DISPOSITION_CONTRADICTED = "contradicted"
+
 # Blocking (global safety) reasons.
 CODE_PROJECTION_SCHEMA_ERROR = "projection_schema_error"
 CODE_UNAUTHORIZED_HOSTING_TRANSFER = "unauthorized_hosting_responsibility_transfer"
 
 # Held (affected-tournament) reasons.
-CODE_ADDED_WITHOUT_BOOKING = "added_tournament_without_accepted_booking"
-CODE_CHANGED_INTERVAL_WITHOUT_BOOKING = "changed_interval_without_accepted_booking"
+CODE_ADDED_TOURNAMENT_CONTRADICTED = "added_tournament_contradicted_booking_evidence"
+CODE_CHANGED_INTERVAL_CONTRADICTED = "changed_interval_contradicted_booking_evidence"
 CODE_UNEXPLAINED_REMOVAL = "unexplained_public_entry_removal"
 
 # Not-checkable reasons (fail closed to the existing semantic-audit gate).
@@ -76,6 +95,13 @@ _INTERVAL_FIELDS = (
 
 _OPERATIONAL_BOOKED = "booked"
 
+#: Detailed booking statuses whose own evidence rejects the placement. These
+#: are authoritative negatives (an explicit source/operator rejection), not the
+#: absence-only observations the booking projection already downgrades to
+#: ambiguity. They stay authoritative even when there is no manual authority to
+#: conflict with.
+_CONTRADICTING_BOOKING_STATUSES = frozenset({"confirmed_not_booked", "manually_not_booked"})
+
 
 def _empty_result(
     *,
@@ -100,6 +126,8 @@ def _empty_result(
             "summary": {},
         },
         "eligible_tournament_ids": [],
+        "booked_tournament_ids": [],
+        "proposed_tournament_ids": [],
         "held": [],
         "blocking": [],
         "diagnostic": {"full_season_reasons": []},
@@ -160,6 +188,51 @@ def _has_accepted_booking(row: Mapping[str, Any] | None) -> bool:
     return str(row.get("operational_state") or "") == _OPERATIONAL_BOOKED
 
 
+def _publication_disposition(row: Mapping[str, Any] | None) -> str:
+    """Classify how one affected tournament projects into the public plan.
+
+    ``booked`` requires an accepted, source-backed confirmation for the exact
+    public interval. A missing calendar event, resolved ambiguity or a
+    confirmation invalidated by a slot change is only a ``proposed`` placement
+    awaiting host confirmation. Evidence that actively rejects or contradicts
+    the placement (an explicit host rejection, or a club authority the
+    independent calendar directly contradicts) is ``contradicted`` and must
+    never be published, not even as a proposal.
+    """
+
+    if not isinstance(row, Mapping):
+        return DISPOSITION_PROPOSED
+    if bool(row.get("conflict")):
+        return DISPOSITION_CONTRADICTED
+    if _has_accepted_booking(row):
+        return DISPOSITION_BOOKED
+    if str(row.get("status") or "") in _CONTRADICTING_BOOKING_STATUSES:
+        return DISPOSITION_CONTRADICTED
+    return DISPOSITION_PROPOSED
+
+
+def _contradiction_entry(
+    tournament_id: str,
+    code: str,
+    *,
+    row: Mapping[str, Any] | None,
+    change: str,
+) -> dict[str, Any]:
+    row = row if isinstance(row, Mapping) else {}
+    return {
+        "tournament_id": tournament_id,
+        "code": code,
+        "message": (
+            f"{change} tournament {tournament_id} has booking evidence that contradicts "
+            "its public placement; the placement cannot be published, not even as a "
+            "proposal awaiting confirmation"
+        ),
+        "booking_status": str(row.get("status") or ""),
+        "operational_state": str(row.get("operational_state") or ""),
+        "stale_reasons": list(row.get("stale_reasons") or []),
+    }
+
+
 def _hosting_transfer_findings(
     *,
     published_projection: Mapping[str, Mapping[str, Any]],
@@ -199,13 +272,17 @@ def evaluate_publication_scope(
     The result is one of:
 
     ``ELIGIBLE``
-        Every added/changed tournament in the last-publication delta has
-        accepted source-backed booking evidence for its exact published
-        interval, no tournament vanished unexplained, and hosting
-        responsibility did not silently move.
+        Every added/changed tournament in the last-publication delta is either
+        backed by accepted source-backed booking evidence for its exact
+        published interval (``booked_tournament_ids``) or a clearly labelled
+        proposal awaiting host confirmation (``proposed_tournament_ids``); no
+        tournament vanished unexplained, and hosting responsibility did not
+        silently move. Publishing never asserts a proposed interval is booked.
     ``HELD``
-        One or more affected tournaments need explicit resolution. Genuine
-        contradictions are held per tournament, never silently published.
+        One or more affected tournaments need explicit resolution: booking
+        evidence that actively rejects/contradicts the placement, or a
+        published entry that vanished without a canonical cancellation.
+        Genuine contradictions are held per tournament, never published as-is.
     ``BLOCKED``
         A global safety defect (projection schema inconsistency or an
         unauthorized hosting-responsibility transfer).
@@ -338,53 +415,50 @@ def evaluate_publication_scope(
 
     held: list[dict[str, Any]] = []
     eligible_ids: list[str] = []
+    booked_ids: list[str] = []
+    proposed_ids: list[str] = []
 
-    changed_ids = set(result["delta"]["changed_tournament_ids"])
     for tournament_id in result["delta"]["added_tournament_ids"]:
         row = booking_rows.get(tournament_id)
-        if _has_accepted_booking(row):
-            eligible_ids.append(tournament_id)
-        else:
+        disposition = _publication_disposition(row)
+        if disposition == DISPOSITION_CONTRADICTED:
             held.append(
-                {
-                    "tournament_id": tournament_id,
-                    "code": CODE_ADDED_WITHOUT_BOOKING,
-                    "message": (
-                        f"new tournament {tournament_id} has no accepted source-backed "
-                        "booking for its published interval"
-                    ),
-                    "booking_status": str((row or {}).get("status") or ""),
-                    "operational_state": str((row or {}).get("operational_state") or ""),
-                    "stale_reasons": list((row or {}).get("stale_reasons") or []),
-                }
+                _contradiction_entry(
+                    tournament_id,
+                    CODE_ADDED_TOURNAMENT_CONTRADICTED,
+                    row=row,
+                    change="new",
+                )
             )
+        elif disposition == DISPOSITION_BOOKED:
+            booked_ids.append(tournament_id)
+        else:
+            proposed_ids.append(tournament_id)
 
     interval_changed_ids = set(result["delta"]["interval_changed_tournament_ids"])
     current_by_id = {str(entry.get("id") or ""): entry for entry in current_projection.values()}
     for tournament_id in sorted(interval_changed_ids):
         current_entry = current_by_id.get(tournament_id) or {}
         # A cancellation (or a cancelled tournament whose interval changed) is
-        # a deliberate public-entry removal, not an unaccepted booking.
+        # a deliberate public-entry removal, not a booking claim.
         if bool(current_entry.get("cancelled")):
             eligible_ids.append(tournament_id)
             continue
         row = booking_rows.get(tournament_id)
-        if _has_accepted_booking(row):
-            eligible_ids.append(tournament_id)
-        else:
+        disposition = _publication_disposition(row)
+        if disposition == DISPOSITION_CONTRADICTED:
             held.append(
-                {
-                    "tournament_id": tournament_id,
-                    "code": CODE_CHANGED_INTERVAL_WITHOUT_BOOKING,
-                    "message": (
-                        f"tournament {tournament_id} interval changed without accepted "
-                        "source-backed booking evidence for the new published interval"
-                    ),
-                    "booking_status": str((row or {}).get("status") or ""),
-                    "operational_state": str((row or {}).get("operational_state") or ""),
-                    "stale_reasons": list((row or {}).get("stale_reasons") or []),
-                }
+                _contradiction_entry(
+                    tournament_id,
+                    CODE_CHANGED_INTERVAL_CONTRADICTED,
+                    row=row,
+                    change="changed-interval",
+                )
             )
+        elif disposition == DISPOSITION_BOOKED:
+            booked_ids.append(tournament_id)
+        else:
+            proposed_ids.append(tournament_id)
 
     # A roster- or guest-only change keeps the published interval the baseline
     # already accepted; it stays public without a new booking check.
@@ -403,7 +477,14 @@ def evaluate_publication_scope(
             }
         )
 
-    result["eligible_tournament_ids"] = sorted(set(eligible_ids) - {h["tournament_id"] for h in held})
+    held_ids = {entry["tournament_id"] for entry in held}
+    booked_ids = sorted(set(booked_ids) - held_ids)
+    proposed_ids = sorted(set(proposed_ids) - held_ids)
+    result["booked_tournament_ids"] = booked_ids
+    result["proposed_tournament_ids"] = proposed_ids
+    result["eligible_tournament_ids"] = sorted(
+        (set(booked_ids) | set(proposed_ids) | set(eligible_ids)) - held_ids
+    )
     result["held"] = held
     if held:
         result["status"] = STATUS_HELD
