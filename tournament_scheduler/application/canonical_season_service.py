@@ -53,6 +53,7 @@ from .canonical_season import (
     candidates as _candidates,
     config_reconciliation as _config_reconciliation,
     constraints as _constraints,
+    export_freshness as _export_freshness,
     guest_slots as _guest_slots,
     history as _history,
     ice_time as _ice_time,
@@ -101,12 +102,14 @@ class CanonicalSeasonService:
         *,
         require_absent: bool = False,
         extra_evidence: Mapping[str, bytes] | None = None,
+        expected_revision: str | None = None,
     ) -> CanonicalSeasonSnapshot:
         return _lifecycle._commit(
             self,
             snapshot=snapshot,
             require_absent=require_absent,
             extra_evidence=extra_evidence,
+            expected_revision=expected_revision,
         )
 
     def _commit_history_only(self, snapshot: CanonicalSeasonSnapshot) -> CanonicalSeasonSnapshot:
@@ -182,6 +185,24 @@ class CanonicalSeasonService:
         dry_run: bool = False,
     ) -> dict[str, Any]:
         return _config_reconciliation.reconcile_config(self, season=season, input_path=input_path, actor=actor, note=note, dry_run=dry_run)
+
+    def mark_export_fresh(
+        self,
+        *,
+        season: str,
+        expected_revision: str,
+        export_dir: str | os.PathLike[str] | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        return _export_freshness.mark_export_fresh(
+            self,
+            season=season,
+            expected_revision=expected_revision,
+            export_dir=str(export_dir) if export_dir is not None else None,
+            actor=actor,
+            note=note,
+        )
 
     def _assert_published_sealed_reconciliation(
         self,

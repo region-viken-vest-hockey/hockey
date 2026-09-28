@@ -1509,28 +1509,75 @@ def _cmd_season(args: argparse.Namespace) -> int:
             # lifecycle uses it to avoid ever routing a promoted-season audit back
             # into an unrelated Stage 3 candidate (issue #397).
             result["is_canonical_season_export"] = True
-            from ..pipeline.state import StageName, StageStatus
-            state.write_stage(StageName.EXPORT, result, status=StageStatus.DONE)
-            _write_canonical_export_evidence(schedule, result)
-            # Mark audit-required explicitly rather than relying only on lazy
-            # export-fingerprint reconciliation: a re-export of unchanged
-            # canonical state produces the same content fingerprint, which
-            # would otherwise leave a workflow recorded before this export
-            # (e.g. one predating the canonical-season scoping above) stale
-            # and un-rescoped forever.
-            from ..application.audit_lifecycle import mark_audit_required
+            # A successful export covers the revision it was generated from, so
+            # clear the one-way "fresh export required" latch that a calendar
+            # refresh or config reconciliation set. The clearing is revision-
+            # bound: if canonical state advanced while this export ran, the
+            # newer state's freshness requirement survives and publication
+            # keeps refusing the now-stale artifact.
+            from ..season_state import mark_export_fresh
 
-            mark_audit_required(args.work_dir)
+            result["export_freshness"] = mark_export_fresh(
+                season=args.season,
+                root=args.root,
+                expected_revision=str(result.get("canonical_revision") or ""),
+                export_dir=result.get("export_dir") or args.export_dir,
+                note="canonical export",
+            )
+            # A stale result means canonical state advanced after the exported
+            # snapshot (or the freshness marker could not be cleared). The
+            # artifacts are still written and retained for diagnosis, but the
+            # export is not publishable, so the stage is FAILED and the command
+            # exits nonzero instead of advancing as a clean success.
+            result["stale_export"] = not bool(
+                result["export_freshness"].get("cleared")
+            )
+            stale_export = bool(result["stale_export"])
+            if stale_export:
+                result["errors"] = [
+                    *(result.get("errors") or []),
+                    "stale_export: "
+                    + str(
+                        result["export_freshness"].get("reason")
+                        or "canonical state changed during export"
+                    ),
+                ]
+            from ..pipeline.state import StageName, StageStatus
+            state.write_stage(
+                StageName.EXPORT,
+                result,
+                status=StageStatus.FAILED if stale_export else StageStatus.DONE,
+            )
+            _write_canonical_export_evidence(schedule, result)
+            if not stale_export:
+                # Mark audit-required explicitly rather than relying only on lazy
+                # export-fingerprint reconciliation: a re-export of unchanged
+                # canonical state produces the same content fingerprint, which
+                # would otherwise leave a workflow recorded before this export
+                # (e.g. one predating the canonical-season scoping above) stale
+                # and un-rescoped forever.
+                from ..application.audit_lifecycle import mark_audit_required
+
+                mark_audit_required(args.work_dir)
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
             else:
-                _console.print(
-                    f"[green]✓[/green] Exported canonical season {args.season} "
-                    f"revision {result.get('canonical_revision')}"
-                )
+                if stale_export:
+                    _console.print(
+                        f"[yellow]⚠[/yellow] Exported canonical season {args.season} "
+                        f"revision {result.get('canonical_revision')}, but the canonical "
+                        "state advanced during the export "
+                        f"({result['export_freshness'].get('reason')}). This artifact is "
+                        "NOT publishable; re-export from the current revision."
+                    )
+                else:
+                    _console.print(
+                        f"[green]✓[/green] Exported canonical season {args.season} "
+                        f"revision {result.get('canonical_revision')}"
+                    )
                 for label, path in result.get("output_files", {}).items():
                     _console.print(f"  {label}: {path}")
-            return 0
+            return 1 if stale_export else 0
 
         if args.season_command == "status":
             schedule = load_schedule(args.season, root=args.root)
