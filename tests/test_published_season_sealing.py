@@ -1359,13 +1359,20 @@ def test_sealed_confirm_calendar_booking_batch_replays_mixed_override_history(
     must equal that replayed chain instead of failing as phantom drift.
     """
 
-    from tournament_scheduler.calendar_bookings import iter_events
+    from tournament_scheduler.calendar_bookings import (
+        BOOKING_CONFIRMED_BOOKED,
+        CALENDAR_BOOKING_ASSOCIATIONS_KEY,
+        TOURNAMENT_BOOKING_EVIDENCE_KEY,
+        iter_events,
+    )
     from tournament_scheduler.canonical_ice_time_overrides import active_overrides
 
     root = tmp_path / "season"
     tournaments = [
         _tournament("rvv-0001", "2026-10-11", "10:00", "Alpha Arena", "Alpha"),
-        _tournament("rvv-0002", "2026-10-18", "10:00", "Alpha Arena", "Alpha"),
+        # Planned start differs from the verified host start; the retime added
+        # below is the earlier corrective move from the incident.
+        _tournament("rvv-0002", "2026-10-18", "12:00", "Alpha Arena", "Alpha"),
     ]
     problem = _problem({"tournaments": tournaments})
     problem["clubs"] = {"Alpha": "Alpha Arena"}
@@ -1403,18 +1410,45 @@ def test_sealed_confirm_calendar_booking_batch_replays_mixed_override_history(
         actor="tester",
     )
 
+    def override_map() -> dict[str, int]:
+        decisions = service.load("2026-2027").decisions
+        active = active_overrides(decisions)
+        assert active == replayed_occupancy_overrides(decisions["history"]), (
+            "active override map must equal the recorded set/clear chain"
+        )
+        return active
+
+    # Earliest transition: no override at all.
+    assert override_map() == {}
+
+    # A prior corrective retime aligns the canonical start with the host's
+    # verified interval before the booking is formally bound; the confirmation
+    # must preserve it.
+    service.move_tournament(
+        season="2026-2027",
+        tournament_id="rvv-0002",
+        start_time="10:00",
+        actor="tester",
+        request_id="retime:rvv-0002",
+    )
+    assert override_map() == {}
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+
     # The rvv-0002 shape: set, supersede and clear before the match is bound.
     service.set_ice_time_minutes(
         season="2026-2027", tournament_id="rvv-0002", minutes=130,
         request_id="host:first", note="host window", actor="tester",
     )
+    assert override_map() == {"rvv-0002": 130}
     service.set_ice_time_minutes(
         season="2026-2027", tournament_id="rvv-0002", minutes=140,
         request_id="host:second", note="host revised window", actor="tester",
     )
+    assert override_map() == {"rvv-0002": 140}
     assert service.clear_ice_time_minutes(
         season="2026-2027", tournament_id="rvv-0002", note="window reverted", actor="tester",
     )["changed"] is True
+    assert override_map() == {}
     assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
 
     events = {str(event["calendar_event"]): event for event in iter_events(problem)}
@@ -1435,10 +1469,42 @@ def test_sealed_confirm_calendar_booking_batch_replays_mixed_override_history(
     for result in results.values():
         assert result["ice_time_override"]["minutes"] == 80
         assert result["interval_alignment"]["changed"] is True
-    decisions = service.load("2026-2027").decisions
-    active = active_overrides(decisions)
-    assert active == replayed_occupancy_overrides(decisions["history"])
-    assert active == {"rvv-0001": 80, "rvv-0002": 80}
+
+    # Reload persisted state: the confirmation must leave a durable
+    # confirmed-booked evidence record and active association per tournament.
+    loaded = service.load("2026-2027")
+    decisions = loaded.decisions
+    assert active_overrides(decisions) == replayed_occupancy_overrides(decisions["history"])
+    assert active_overrides(decisions) == {"rvv-0001": 80, "rvv-0002": 80}
+    evidence = {
+        str(record.get("tournament_id")): record
+        for record in decisions.get(TOURNAMENT_BOOKING_EVIDENCE_KEY) or []
+    }
+    associations = {
+        str(record.get("tournament_id")): record
+        for record in decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []
+        if record.get("status", "active") == "active"
+    }
+    for tournament_id, event_name in (
+        ("rvv-0001", "JU10 Serierunde 11"),
+        ("rvv-0002", "JU10 Serierunde 18"),
+    ):
+        fingerprint = str(events[event_name]["fingerprint"])
+        assert evidence[tournament_id]["status"] == BOOKING_CONFIRMED_BOOKED
+        assert str(evidence[tournament_id]["event_fingerprint"]) == fingerprint
+        assert str(associations[tournament_id]["event_fingerprint"]) == fingerprint
+
+    # The earlier retime is preserved: both sit at their verified starts.
+    persisted = {str(t["id"]): t for t in loaded.schedule["plan"]["tournaments"]}
+    assert persisted["rvv-0001"]["start_time"] == "10:00"
+    assert persisted["rvv-0002"]["start_time"] == "10:00"
+
+    # Export/projection parity: the effective projection uses the
+    # decision-backed booked durations, not the age-group default.
+    effective = effective_projection_from_canonical_schedule(loaded.schedule, decisions)
+    for tournament_id in ("rvv-0001", "rvv-0002"):
+        assert effective[tournament_id]["duration_minutes"] == 80
+        assert effective[tournament_id]["end_time"] == "11:20"
     assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
 
 

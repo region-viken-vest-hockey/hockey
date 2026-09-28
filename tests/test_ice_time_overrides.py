@@ -281,6 +281,18 @@ def test_set_clear_supersede_reset_chain_replays_to_active_map(tmp_path):
 
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _problem()
+
+    def replay_map() -> dict[str, int]:
+        decisions = load_decisions("2026-2027", root=root)
+        active = active_overrides(decisions)
+        assert active == replayed_occupancy_overrides(decisions.get("history") or []), (
+            "active override map must equal the recorded set/clear chain"
+        )
+        return active
+
+    # No override: an empty active map must replay to an empty chain.
+    assert replay_map() == {}
+
     first = set_ice_time_minutes(
         season="2026-2027",
         root=root,
@@ -290,6 +302,8 @@ def test_set_clear_supersede_reset_chain_replays_to_active_map(tmp_path):
         note="host confirmed 60",
         problem=problem,
     )
+    assert replay_map() == {"t1": 60}
+
     superseded = set_ice_time_minutes(
         season="2026-2027",
         root=root,
@@ -299,9 +313,13 @@ def test_set_clear_supersede_reset_chain_replays_to_active_map(tmp_path):
         note="host revised to 70",
         problem=problem,
     )
+    assert replay_map() == {"t1": 70}
+
     cleared = clear_ice_time_minutes(
         season="2026-2027", root=root, tournament_id="t1", note="window reverted"
     )
+    assert replay_map() == {}
+
     reset = set_ice_time_minutes(
         season="2026-2027",
         root=root,
@@ -311,13 +329,10 @@ def test_set_clear_supersede_reset_chain_replays_to_active_map(tmp_path):
         note="host confirmed 80",
         problem=problem,
     )
+    assert replay_map() == {"t1": 80}
 
     assert superseded["previous_override"]["id"] == first["override"]["id"]
     assert cleared["changed"] is True
-    decisions = load_decisions("2026-2027", root=root)
-    active = active_overrides(decisions)
-    recorded = replayed_occupancy_overrides(decisions["history"])
-    assert active == recorded == {"t1": 80}
     assert reset["override"]["minutes"] == 80
 
 
