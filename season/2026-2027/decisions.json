@@ -944,7 +944,7 @@
       }
     }
   ],
-  "canonical_state_revision": "1b059e8a414393385f61ede58abf93261527c41c99750df16b545e7acc842b6a",
+  "canonical_state_revision": "83e0155a8dcb6388fd1f72becad57fff4074c8aad33a9012bde03c1968edae7a",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -5206,6 +5206,25 @@
       },
       "tournament_id": "mp_unplaced_placement_U11_2026_10_18_1",
       "value": "16:30"
+    }
+  ],
+  "club_booking_source_assertions": [
+    {
+      "asserted_at": "2026-09-28T05:52:22.156720+00:00",
+      "asserted_by": "niclasl",
+      "authority": "manual_club_confirmation_interpretation",
+      "host_club": "Holmen",
+      "id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "note": "Original Holmen club-provided Tildelt/Endret tid list for 21 hosted tournaments; recorded as evidence for issue #487",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source_document": "changes_and_confirmations/2026-27/Holmen.xlsx",
+      "source_fingerprint": "ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "1b059e8a414393385f61ede58abf93261527c41c99750df16b545e7acc842b6a",
+      "source_scope": "club_wide",
+      "source_version": "2026-09-25 (commit f99f8ddc, feedback from ice calendar bookers)",
+      "status": "active",
+      "supersedes": null
     }
   ],
   "created_at": "2026-09-18T19:44:06.643372+00:00",
@@ -32565,6 +32584,607 @@
       "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
       "tournament_fingerprint": "33c5742d0fe7ac88207aea6d09bc91a7ca900bbf410ee51890654e49a020f42a",
       "tournament_id": "rvv-0177"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:52:22.156720+00:00",
+      "details": {
+        "club": "Holmen",
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+        "source_document": "changes_and_confirmations/2026-27/Holmen.xlsx",
+        "source_fingerprint": "ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+        "source_version": "2026-09-25 (commit f99f8ddc, feedback from ice calendar bookers)",
+        "supersedes": ""
+      },
+      "event": "set_club_booking_source",
+      "note": "Original Holmen club-provided Tildelt/Endret tid list for 21 hosted tournaments; recorded as evidence for issue #487",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:09.179602+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-02-06",
+          "duration_minutes": "140",
+          "end_time": "15:50",
+          "round_count": "5",
+          "start_time": "13:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "140",
+          "end": "15:50",
+          "start": "13:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U10 2027-02-06: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0131"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:13.490899+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-02-14",
+          "duration_minutes": "140",
+          "end_time": "15:20",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "140",
+          "end": "15:20",
+          "start": "13:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U11 2027-02-14: club Endret tid 13:00-15:20 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0145"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:17.880508+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-01-09",
+          "duration_minutes": "140",
+          "end_time": "15:50",
+          "round_count": "5",
+          "start_time": "13:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "140",
+          "end": "15:50",
+          "start": "13:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U10 2027-01-09: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0093"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:22.249383+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-01-17",
+          "duration_minutes": "100",
+          "end_time": "14:40",
+          "round_count": "3",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "100",
+          "end": "14:40",
+          "start": "13:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U12 2027-01-17: club Endret tid 13:00-14:40 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0110"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:26.605873+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2026-11-07",
+          "duration_minutes": "140",
+          "end_time": "15:50",
+          "round_count": "5",
+          "start_time": "13:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "140",
+          "end": "15:50",
+          "start": "13:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U11 2026-11-07: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0039"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:30.892886+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2026-11-01",
+          "duration_minutes": "140",
+          "end_time": "15:50",
+          "round_count": "5",
+          "start_time": "13:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "140",
+          "end": "15:50",
+          "start": "13:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U11 2026-11-01: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0035"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:35.201496+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2026-11-21",
+          "duration_minutes": "140",
+          "end_time": "15:50",
+          "round_count": "5",
+          "start_time": "13:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "140",
+          "end": "15:50",
+          "start": "13:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U10 2026-11-21: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0055"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:39.519892+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2027-01-16",
+          "duration_minutes": "155",
+          "end_time": "15:35",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "155",
+          "end": "15:35",
+          "start": "13:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U9 2027-01-16: club Endret tid 13:00-15:35 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0107"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:43.813551+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-03-06",
+          "duration_minutes": "140",
+          "end_time": "15:50",
+          "round_count": "5",
+          "start_time": "13:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "140",
+          "end": "15:50",
+          "start": "13:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U10 2027-03-06: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0171"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:48.163536+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U8",
+          "date": "2027-03-07",
+          "duration_minutes": "155",
+          "end_time": "15:35",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "155",
+          "end": "15:35",
+          "start": "13:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U8 2027-03-07: club Endret tid 13:00-15:35 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0177"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:52.552260+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-11-29",
+          "duration_minutes": "100",
+          "end_time": "13:40",
+          "round_count": "3",
+          "start_time": "12:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "100",
+          "end": "13:40",
+          "start": "12:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U12 2026-11-29: club Endret tid 12:00-13:40 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0071"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:53:56.881508+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2026-11-14",
+          "duration_minutes": "155",
+          "end_time": "17:35",
+          "round_count": "5",
+          "start_time": "15:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "155",
+          "end": "17:35",
+          "start": "15:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U9 2026-11-14: club Endret tid 15:00-17:35 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0082"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:54:01.267464+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2026-10-18",
+          "duration_minutes": "140",
+          "end_time": "14:50",
+          "round_count": "5",
+          "start_time": "12:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "140",
+          "end": "14:50",
+          "start": "12:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U10 2026-10-18: club Endret tid 12:30-14:50 matches canonical interval exactly",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0021"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:54:22.273192+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2026-10-11",
+          "duration_minutes": "155",
+          "end_time": "15:05",
+          "round_count": "5",
+          "start_time": "12:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "170",
+          "end": "15:20",
+          "start": "12:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U9 2026-10-11: club Endret tid 12:30-15:20 vs canonical 12:30-15:05; duration discrepancy, canonical occupancy unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0011"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:54:26.597105+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-10-18",
+          "duration_minutes": "100",
+          "end_time": "16:40",
+          "round_count": "3",
+          "start_time": "15:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "16:50",
+          "start": "15:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U12 2026-10-18: club Endret tid 15:00-16:50 vs canonical 15:00-16:40; duration discrepancy, canonical occupancy unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0028"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:55:44.263591+00:00",
+      "details": {
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 170,
+        "override_id": "ice-time-override:787c9e6cb786cbea",
+        "reference": "Holmen calendar event Kamp 2026-10-11 12:30-15:20 (fingerprint 1c5d2fe3...); corroborated by changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "request_id": "holmen-calendar-2026-10-11-U9",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Host calendar and club-supplied Excel independently confirm occupied window is 12:30-15:20 (170 min), not canonical 12:30-15:05 (155 min)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0011"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:55:44.692954+00:00",
+      "details": {
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 110,
+        "override_id": "ice-time-override:8590683066d27ff9",
+        "reference": "Holmen calendar event Kamp 2026-10-18 15:00-16:50 (fingerprint from calendar-booking-candidates); corroborated by changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "request_id": "holmen-calendar-2026-10-18-U12",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Host calendar and club-supplied Excel independently confirm occupied window is 15:00-16:50 (110 min), not canonical 15:00-16:40 (100 min)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0028"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:58:29.455441+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-10-10",
+          "duration_minutes": "60",
+          "end_time": "15:00",
+          "round_count": "3",
+          "start_time": "14:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "50",
+          "end": "14:50",
+          "start": "14:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U12 2026-10-10 14:00 slot: club Endret tid 14:00-14:50; mapping/duration already accepted via ice-time-override host-confirmation:holmen:2026-27-changes (2026-09-27)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T05:58:34.055765+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-10-10",
+          "duration_minutes": "60",
+          "end_time": "14:00",
+          "round_count": "3",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "14:50",
+          "start": "13:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Holmen U12 2026-10-10 13:00 slot: club Endret tid 13:00-14:50; mapping/duration already accepted via ice-time-override host-confirmation:holmen:2026-27-changes (2026-09-27)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0004"
     }
   ],
   "holiday_date_exceptions": [
@@ -32740,6 +33360,36 @@
       "request_id": "frisk-asker:2026-09-27-calendar-match",
       "status": "active",
       "tournament_id": "rvv-0070",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U9",
+      "created_at": "2026-09-28T05:55:44.263591+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 155,
+      "id": "ice-time-override:787c9e6cb786cbea",
+      "minimum_minutes": 120,
+      "minutes": 170,
+      "note": "Host calendar and club-supplied Excel independently confirm occupied window is 12:30-15:20 (170 min), not canonical 12:30-15:05 (155 min)",
+      "reference": "Holmen calendar event Kamp 2026-10-11 12:30-15:20 (fingerprint 1c5d2fe3...); corroborated by changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "request_id": "holmen-calendar-2026-10-11-U9",
+      "status": "active",
+      "tournament_id": "rvv-0011",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "created_at": "2026-09-28T05:55:44.692954+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:8590683066d27ff9",
+      "minimum_minutes": 60,
+      "minutes": 110,
+      "note": "Host calendar and club-supplied Excel independently confirm occupied window is 15:00-16:50 (110 min), not canonical 15:00-16:40 (100 min)",
+      "reference": "Holmen calendar event Kamp 2026-10-18 15:00-16:50 (fingerprint from calendar-booking-candidates); corroborated by changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "request_id": "holmen-calendar-2026-10-18-U12",
+      "status": "active",
+      "tournament_id": "rvv-0028",
       "type": "tournament_ice_time_override"
     }
   ],
@@ -33360,6 +34010,720 @@
         "start_time": "12:30"
       },
       "tournament_id": "rvv-0183"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:09.179602+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2027-02-06",
+        "duration_minutes": "140",
+        "end_time": "15:50",
+        "round_count": "5",
+        "start_time": "13:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-02-06",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0131:2026-09-28T05:53:09.179602+00:00",
+      "note": "Holmen U10 2027-02-06: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "3ab63edc83c635f3e43f7761196b4b13db95240a7739676006826e806d7d7d25",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "140",
+        "end": "15:50",
+        "start": "13:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2027-02-06",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0131"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:13.490899+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2027-02-14",
+        "duration_minutes": "140",
+        "end_time": "15:20",
+        "round_count": "5",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-02-14",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0145:2026-09-28T05:53:13.490899+00:00",
+      "note": "Holmen U11 2027-02-14: club Endret tid 13:00-15:20 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "fa3108636025cc2a943274ad8a041665e08fc270687f6e7ef3d5e9c6424a21c0",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "140",
+        "end": "15:20",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Holmen ishall",
+        "date": "2027-02-14",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0145"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:17.880508+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2027-01-09",
+        "duration_minutes": "140",
+        "end_time": "15:50",
+        "round_count": "5",
+        "start_time": "13:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-09",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0093:2026-09-28T05:53:17.880508+00:00",
+      "note": "Holmen U10 2027-01-09: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "2ec5d2e8a88e6e212464867f2588421a7d2194271a62f6d07c7e792da0470c90",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "140",
+        "end": "15:50",
+        "start": "13:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2027-01-09",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0093"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:22.249383+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-01-17",
+        "duration_minutes": "100",
+        "end_time": "14:40",
+        "round_count": "3",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-17",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0110:2026-09-28T05:53:22.249383+00:00",
+      "note": "Holmen U12 2027-01-17: club Endret tid 13:00-14:40 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "03a12a539434c6d5229c8ab2d0517045ce1704f29589d6c1db6ac89f606e71dd",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "100",
+        "end": "14:40",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2027-01-17",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0110"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:26.605873+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2026-11-07",
+        "duration_minutes": "140",
+        "end_time": "15:50",
+        "round_count": "5",
+        "start_time": "13:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-07",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0039:2026-09-28T05:53:26.605873+00:00",
+      "note": "Holmen U11 2026-11-07: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "f1357100b63bb67d74dbf843055949f0decd11a871c9a731f405e8d3141fd576",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "140",
+        "end": "15:50",
+        "start": "13:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Holmen ishall",
+        "date": "2026-11-07",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0039"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:30.892886+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2026-11-01",
+        "duration_minutes": "140",
+        "end_time": "15:50",
+        "round_count": "5",
+        "start_time": "13:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-01",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0035:2026-09-28T05:53:30.892886+00:00",
+      "note": "Holmen U11 2026-11-01: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "a3a2221e569a5b1ef96fbf9a0166a7396bba14976a262ca44025a22dd2dcb4ce",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "140",
+        "end": "15:50",
+        "start": "13:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Holmen ishall",
+        "date": "2026-11-01",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0035"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:35.201496+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2026-11-21",
+        "duration_minutes": "140",
+        "end_time": "15:50",
+        "round_count": "5",
+        "start_time": "13:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-21",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0055:2026-09-28T05:53:35.201496+00:00",
+      "note": "Holmen U10 2026-11-21: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "5f7e264c6955809b063d84d449290b16f30048a991b7e933c766c528b88c8578",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "140",
+        "end": "15:50",
+        "start": "13:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2026-11-21",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0055"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:39.519892+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2027-01-16",
+        "duration_minutes": "155",
+        "end_time": "15:35",
+        "round_count": "5",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-16",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0107:2026-09-28T05:53:39.519892+00:00",
+      "note": "Holmen U9 2027-01-16: club Endret tid 13:00-15:35 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "0ba2db89e3443c8c7168b98e96a1eaceef567bdbb6c967f3c7f9f5c98019daaa",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "155",
+        "end": "15:35",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2027-01-16",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0107"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:43.813551+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2027-03-06",
+        "duration_minutes": "140",
+        "end_time": "15:50",
+        "round_count": "5",
+        "start_time": "13:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-06",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0171:2026-09-28T05:53:43.813551+00:00",
+      "note": "Holmen U10 2027-03-06: club Endret tid 13:30-15:50 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "b4c0f9cd96bbc9cac56f8f0ca38e42e58e055887c77425ed19a04cc5c49e114b",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "140",
+        "end": "15:50",
+        "start": "13:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2027-03-06",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0171"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:48.163536+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U8",
+        "date": "2027-03-07",
+        "duration_minutes": "155",
+        "end_time": "15:35",
+        "round_count": "5",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-07",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0177:2026-09-28T05:53:48.163536+00:00",
+      "note": "Holmen U8 2027-03-07: club Endret tid 13:00-15:35 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "312f573434f1eb320596e4626b4d40d8f1a602d671b3c6340af4b7960d7e65c5",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "155",
+        "end": "15:35",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Holmen ishall",
+        "date": "2027-03-07",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0177"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:52.552260+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-11-29",
+        "duration_minutes": "100",
+        "end_time": "13:40",
+        "round_count": "3",
+        "start_time": "12:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-29",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0071:2026-09-28T05:53:52.552260+00:00",
+      "note": "Holmen U12 2026-11-29: club Endret tid 12:00-13:40 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "8f7e21a3c47efaf25aef4de38eb1deeedc209633ee1502d5a70b4c5d99957031",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "100",
+        "end": "13:40",
+        "start": "12:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-11-29",
+        "host_club": "Holmen",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0071"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:53:56.881508+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2026-11-14",
+        "duration_minutes": "155",
+        "end_time": "17:35",
+        "round_count": "5",
+        "start_time": "15:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-14",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0082:2026-09-28T05:53:56.881508+00:00",
+      "note": "Holmen U9 2026-11-14: club Endret tid 15:00-17:35 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "98b49bf37aef77bfe51753f81160ac6ee58a0470c94cc2c041b544e1e4fe1948",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "155",
+        "end": "17:35",
+        "start": "15:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2026-11-14",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0082"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:54:01.267464+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2026-10-18",
+        "duration_minutes": "140",
+        "end_time": "14:50",
+        "round_count": "5",
+        "start_time": "12:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-18",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0021:2026-09-28T05:54:01.267464+00:00",
+      "note": "Holmen U10 2026-10-18: club Endret tid 12:30-14:50 matches canonical interval exactly",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "ffd342e5ddc059eae32828fbe4e67a581c32e43c07633c22b2af19567c716ba0",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "140",
+        "end": "14:50",
+        "start": "12:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2026-10-18",
+        "host_club": "Holmen",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0021"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:54:22.273192+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2026-10-11",
+        "duration_minutes": "155",
+        "end_time": "15:05",
+        "round_count": "5",
+        "start_time": "12:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-11",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0011:2026-09-28T05:54:22.273192+00:00",
+      "note": "Holmen U9 2026-10-11: club Endret tid 12:30-15:20 vs canonical 12:30-15:05; duration discrepancy, canonical occupancy unchanged",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "8da4eb0979b3331c270d6d9ba6fee4645881fb5fac7d774b623318fb49d35d2b",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "170",
+        "end": "15:20",
+        "start": "12:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2026-10-11",
+        "host_club": "Holmen",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0011"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:54:26.597105+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-10-18",
+        "duration_minutes": "100",
+        "end_time": "16:40",
+        "round_count": "3",
+        "start_time": "15:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-18",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0028:2026-09-28T05:54:26.597105+00:00",
+      "note": "Holmen U12 2026-10-18: club Endret tid 15:00-16:50 vs canonical 15:00-16:40; duration discrepancy, canonical occupancy unchanged",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "73a544e80efda1e7bb946420187d42e7bf5d6ea27618445a538831a3c781eba6",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "16:50",
+        "start": "15:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-18",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0028"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:58:29.455441+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-10-10",
+        "duration_minutes": "60",
+        "end_time": "15:00",
+        "round_count": "3",
+        "start_time": "14:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-10",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0003:2026-09-28T05:58:29.455441+00:00",
+      "note": "Holmen U12 2026-10-10 14:00 slot: club Endret tid 14:00-14:50; mapping/duration already accepted via ice-time-override host-confirmation:holmen:2026-27-changes (2026-09-27)",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "d6a11359c5f964abc0d3a535e3e2d1c4a46fd78b673eab5db86ee4dadf56fe6e",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "50",
+        "end": "14:50",
+        "start": "14:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-09-28T05:58:34.055765+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-10-10",
+        "duration_minutes": "60",
+        "end_time": "14:00",
+        "round_count": "3",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-10",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0004:2026-09-28T05:58:34.055765+00:00",
+      "note": "Holmen U12 2026-10-10 13:00 slot: club Endret tid 13:00-14:50; mapping/duration already accepted via ice-time-override host-confirmation:holmen:2026-27-changes (2026-09-27)",
+      "reference": "changes_and_confirmations/2026-27/Holmen.xlsx@f99f8ddc",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Holmen:ece1a2c43913198ea85e661b7f27b2d725abe10f08d3857287e9d3ceee33dc40",
+      "source_revision": "dcad4219859b8baa76ee2f36224d5cb3769143ef15e88527c04ad47bea2fa914",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "14:50",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0004"
     }
   ],
   "participation_withdrawals": [
@@ -41028,5 +42392,5 @@
       "tournament_id": "rvv-0168"
     }
   ],
-  "updated_at": "2026-09-27T19:28:25.417169+00:00"
+  "updated_at": "2026-09-28T05:58:34.055765+00:00"
 }
