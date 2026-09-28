@@ -653,9 +653,10 @@ def _calendar_trust_rule(plan: SeasonPlan) -> dict[str, Any]:
             "fullstendige kalenderen) eller «source_review_required» (skrapingen lyktes, men "
             "kildens dekning eller hendelsesform er mistenkelig eller ufullstendig). En klubb "
             "med «untrusted», «unknown» eller «source_review_required» status beholder "
-            "sin fulle andel av vertskapsansvaret, men enhver turnering den er vertskap for må "
-            "planlegges manuelt i «Må planlegges manuelt» inntil et fullstendig, autentisert "
-            "kalendersøk er bevist pålitelig."
+            "sin fulle andel av vertskapsansvaret, og kilden kan ikke brukes til å bevise "
+            "ledig/ikke-booket istid før et fullstendig, autentisert kalendersøk er pålitelig. "
+            "Autentiske observerte hendelser fra en delvis kilde kan likevel fremmes som "
+            "positive bookingkandidater som krever eksplisitt tilknytning til en turnering."
         ),
         "configured_value": "Kun «known» godkjennes automatisk",
         "status": status,

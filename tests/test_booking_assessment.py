@@ -63,7 +63,7 @@ def _promote(tmp_path, tournaments):
     return root
 
 
-def _problem(events, *, status="known", complete=False, club="A", observed_window=None):
+def _problem(events, *, status="known", complete=False, club="A", observed_window=None, integrity=None, coverage_proven=False):
     problem = {
         "start_date": "2026-09-01",
         "end_date": "2027-04-30",
@@ -75,13 +75,13 @@ def _problem(events, *, status="known", complete=False, club="A", observed_windo
         "club_calendar_status": {club: status},
         "club_busy_intervals": {club: events},
     }
-    if complete:
+    if complete or integrity is not None:
         start, end = observed_window or ("2026-09-01", "2027-04-30")
-        problem["club_source_integrity"] = {club: "complete"}
-        problem["club_coverage_proven"] = {club: True}
+        problem["club_source_integrity"] = {club: integrity or "complete"}
+        problem["club_coverage_proven"] = {club: True if complete else bool(coverage_proven)}
         problem["club_source_integrity_details"] = {
             club: {
-                "fingerprint": f"{club}-complete",
+                "fingerprint": f"{club}-{integrity or 'complete'}",
                 "requested_start": "2026-09-01",
                 "requested_end": "2027-04-30",
                 "observed_start": start,
@@ -615,19 +615,47 @@ def test_booking_assessment_cli_is_read_only_and_structured(tmp_path, capsys):
     assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "pending_review"
 
 
-def test_source_review_required_fails_closed_to_not_checkable(tmp_path):
-    """A completed-but-untrustworthy source must not yield a positive proposal."""
+def test_source_review_required_partial_event_is_positive_candidate_not_negative_evidence(tmp_path):
+    """Partial navigation blocks absence claims but not authentic observed events."""
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
     result = _assess(
         root,
-        _problem([_event("2026-09-12", "10:00", "12:00")], status="source_review_required"),
+        _problem(
+            [_event("2026-09-12", "10:00", "12:00")],
+            status="source_review_required",
+            integrity="partial",
+        ),
     )
 
-    assert _tournament_row(result, "t1")["classification"] == "not_checkable"
+    row = _tournament_row(result, "t1")
+    assert row["classification"] == "proposed_unchanged"
+    assert row["calendar_source_checkable"] is False
+    assert row["source_positive_evidence_usable"] is True
+    assert row["evidence_reason"] == "event_evidence_usable"
+    assert row["candidates"][0]["actionable"] is True
     source = result["sources"]["A"]
     assert source["source_trust"] == "source_review_required"
     assert source["source_review_required"] is True
     assert source["trusted_for_negative_claim"] is False
+    assert source["event_evidence_usable"] is True
+
+
+def test_source_review_required_partial_without_matching_event_stays_unresolved(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    result = _assess(
+        root,
+        _problem(
+            [_event("2026-09-20", "10:00", "12:00")],
+            status="source_review_required",
+            integrity="partial",
+        ),
+    )
+
+    row = _tournament_row(result, "t1")
+    assert row["classification"] == "unmatched"
+    assert row["evidence_reason"] == "source_coverage_unproven"
+    assert "negative_evidence" not in row
+    assert result["sources"]["A"]["trusted_for_negative_claim"] is False
 
 
 def test_source_integrity_and_coverage_are_reported_per_club(tmp_path):

@@ -438,38 +438,21 @@ def test_confirm_calendar_booking_accepts_host_confirmed_shorter_window(tmp_path
     )
     event_fp = candidates["booking_candidates"][0]["calendar_event"]["fingerprint"]
 
-    # Canonical 100-minute window runs to 15:40, which the event does not cover.
-    with pytest.raises(SeasonStateError) as excinfo:
-        confirm_calendar_booking(
-            season="2026-2027",
-            root=root,
-            event_fingerprint=event_fp,
-            tournament_id="t1",
-            actor="booker",
-            note="host calendar event",
-            problem=problem,
-        )
-    assert "interval_mismatch" in str(excinfo.value)
-
-    set_ice_time_minutes(
-        season="2026-2027",
-        root=root,
-        tournament_id="t1",
-        minutes=60,
-        request_id="host:confirmed-60",
-        note="host confirmed a 60-minute window",
-        problem=problem,
-    )
+    # Canonical 100-minute window runs to 15:40, but accepting the authoritative
+    # event updates the canonical booking interval before validation instead of
+    # forcing a separate manual override workflow.
     confirmed = confirm_calendar_booking(
         season="2026-2027",
         root=root,
         event_fingerprint=event_fp,
         tournament_id="t1",
         actor="booker",
-        note="host confirmed a 60-minute window matching the calendar event",
+        note="host calendar event",
         problem=problem,
     )
-    assert confirmed["association"]["tournament_interval"]["duration_minutes"] == "60"
+    assert confirmed["association"]["tournament_interval"]["duration_minutes"] == "90"
+    assert confirmed["association"]["tournament_interval"]["start_time"] == "13:30"
+    assert confirmed["ice_time_override"]["minutes"] == 90
 
 
 def test_override_report_lists_active_and_released(tmp_path):

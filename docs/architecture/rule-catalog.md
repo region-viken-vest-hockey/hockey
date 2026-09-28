@@ -165,7 +165,7 @@ candidate regresses a higher-priority operational obligation.
 | `season_quality_baseline` | An operator may accept the current set and severity of non-hard findings as the season's regression reference. The baseline records stable finding ids and measurements (never aggregate counts alone), so later maintenance classifies fresh findings as known/improved/resolved/regressed/new. It never suppresses hard verification failures and never changes the schedule. | `tournament_scheduler.season_baseline` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_season_baseline.py` |
 | `operator_banned_date` | The operator may ban a global date as unusable for every tournament; the ban is durable policy, not a one-off. | `tournament_scheduler.canonical_banned_dates` | — | `tests/test_canonical_banned_dates.py` |
 | `operator_holiday_date_exception` | The operator may allow one date that is excluded only by the derived holiday/date policy; the exception does not override explicit banned dates. | `tournament_scheduler.canonical_holiday_exceptions` | — | `tests/test_holiday_date_policy.py` |
-| `operator_ice_time_override` | The operator may bind a host-confirmed per-tournament occupied duration that differs from the age-group default. The override is explicit, revision-bound and may not go below the actual-round format minimum or the governing booking floor, so canonical occupancy is never narrowed silently. | `tournament_scheduler.canonical_ice_time_overrides` | — | `tests/test_ice_time_overrides.py` |
+| `operator_ice_time_override` | The operator may bind a host-confirmed per-tournament occupied duration that differs from the age-group default. Direct manual overrides are explicit, revision-bound and may not go below the actual-round format minimum or governing booking floor. An accepted authoritative calendar association may also bind the source event's exact interval first and surface any format/governing feasibility concern separately. | `tournament_scheduler.canonical_ice_time_overrides` | — | `tests/test_ice_time_overrides.py` |
 
 ## Fact / evidence semantics
 
@@ -1016,7 +1016,7 @@ candidate regresses a higher-priority operational obligation.
 ### `operator_ice_time_override`
 
 `Operator decision` · status `active` · operator-waivable: yes  
-**Meaning:** The operator may bind a host-confirmed per-tournament occupied duration that differs from the age-group default. The override is explicit, revision-bound and may not go below the actual-round format minimum or the governing booking floor, so canonical occupancy is never narrowed silently.  
+**Meaning:** The operator may bind a host-confirmed per-tournament occupied duration that differs from the age-group default. Direct manual overrides are explicit, revision-bound and may not go below the actual-round format minimum or governing booking floor. An accepted authoritative calendar association may also bind the source event's exact interval first and surface any format/governing feasibility concern separately.  
 **Canonical owner:** `tournament_scheduler.canonical_ice_time_overrides`  
 **Input / fact source:** canonical decisions.json ice_time_minutes_overrides  
 **Verifier / measurement:** —  
