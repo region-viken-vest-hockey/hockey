@@ -97,6 +97,7 @@ def _read_payload(payload: list[Any]) -> list[TournamentRecord]:
                 approval_status=normalize_text(item.get("ap")),
                 locked=bool(item.get("apl", False)),
                 booking_status=normalize_text(item.get("bs")),
+                operational_state=normalize_text(item.get("obs")),
                 booking_needs_attention=bool(item.get("ba", False)),
             )
         )
