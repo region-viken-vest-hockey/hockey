@@ -340,21 +340,30 @@ def manual_assertion_stale_reasons(
     return sorted(set(reasons))
 
 
-def validate_stated_interval(start: str | None, end: str | None) -> dict[str, str]:
+def validate_stated_interval(
+    start: str | None,
+    end: str | None,
+    date: str | None = None,
+) -> dict[str, str]:
     """Validate and normalize an optional source-stated booking window.
 
     Rejects malformed, zero-length and reversed windows. Overnight windows are
     deliberately not supported: ``end`` must be strictly after ``start`` on the
-    same local date. A stated window that is longer or shorter than the
-    canonical occupancy is allowed (it becomes an explicit follow-up), but it
-    must be a real, positive interval so no silent zero-duration evidence is
-    persisted.
+    same local date. A stated window that is longer or shorter than the age-group
+    planning default is accepted as the authoritative booked interval by the
+    canonical mutation path; independent feasibility warnings report any floor
+    deviation.
     """
 
-    if not start and not end:
+    if not start and not end and not date:
         return {}
     if not (start and end):
         raise ValueError("A stated source interval requires both --stated-start and --stated-end")
+    if date:
+        try:
+            datetime.fromisoformat(str(date))
+        except ValueError as exc:
+            raise ValueError(f"Invalid stated date: {date!r}; expected YYYY-MM-DD") from exc
     start_minutes = _parse_hhmm(start)
     end_minutes = _parse_hhmm(end)
     if start_minutes is None:
@@ -366,7 +375,10 @@ def validate_stated_interval(start: str | None, end: str | None) -> dict[str, st
             f"Invalid stated interval {start}-{end}: end must be after start on the same day; "
             "overnight intervals are not supported"
         )
-    return {"start": str(start), "end": str(end)}
+    row = {"start": str(start), "end": str(end)}
+    if date:
+        row["date"] = str(date)
+    return row
 
 
 def _normalized_stated_interval(stated_interval: Mapping[str, Any] | None) -> dict[str, str]:

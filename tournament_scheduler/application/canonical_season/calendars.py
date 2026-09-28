@@ -1128,12 +1128,88 @@ def reconcile_calendar_bookings(
     return result
 
 
-def _event_duration_minutes(event: Mapping[str, Any]) -> int | None:
-    interval = _event_interval(event)
-    if not interval:
-        return None
-    duration = interval[1] - interval[0]
-    return duration if duration > 0 else None
+def _align_tournament_to_authoritative_interval(
+    *,
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+    tournament_id: str,
+    interval: Mapping[str, Any],
+    actor: str,
+    note: str,
+    now: str,
+    problem: Mapping[str, Any] | None,
+    authority: str,
+    request_id: str,
+    reference: str,
+    accepted_key: str,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any] | None]:
+    """Return schedule/decisions aligned to an accepted authoritative interval."""
+
+    updated_schedule = copy.deepcopy(dict(schedule))
+    updated_plan = updated_schedule.setdefault("plan", {})
+    tournaments = updated_plan.setdefault("tournaments", [])
+    target = next((t for t in tournaments if str(t.get("id") or "") == tournament_id), None)
+    if target is None:
+        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+    before = dict(target)
+    interval_date = str(interval.get("date") or "")
+    interval_start = str(interval.get("start") or interval.get("start_time") or "")
+    interval_end = str(interval.get("end") or interval.get("end_time") or "")
+    parsed = _event_interval({"start": interval_start, "end": interval_end})
+    if not interval_date or not interval_start or not interval_end or parsed is None or parsed[1] <= parsed[0]:
+        raise SeasonStateError("Authoritative booking interval has an invalid date/start/end interval")
+    interval_minutes = parsed[1] - parsed[0]
+
+    target["date"] = interval_date
+    target["start_time"] = interval_start
+
+    updated_decisions = dict(decisions)
+    override_record: dict[str, Any] | None = None
+    existing_override = override_for_tournament(decisions, tournament_id)
+    existing_minutes = int(existing_override.get("minutes") or 0) if existing_override else None
+    if existing_minutes != interval_minutes:
+        normalized = validate_ice_time_override(
+            {
+                "tournament_id": tournament_id,
+                "minutes": interval_minutes,
+                "request_id": request_id,
+                "note": note,
+                "reference": reference,
+            }
+        )
+        age_group = str(target.get("age_group") or "")
+        # Source-authoritative booked intervals are recorded exactly. Planning
+        # floors remain visible as independent feasibility warnings instead of
+        # stretching real ice time to the default occupancy.
+        default_minutes = ((problem or {}).get("ice_time_minutes") or {}).get(age_group)
+        override_record = _record_override_decision(
+            updated_decisions,
+            normalized=normalized,
+            tournament_id=tournament_id,
+            age_group=age_group,
+            default_minutes=default_minutes,
+            minimum_minutes=_minimum_override_minutes(target, problem),
+            existing=existing_override,
+            actor=actor,
+            now=now,
+            note=note,
+            authority=authority,
+        )
+
+    alignment = {
+        "previous_interval": tournament_occupancy_interval_facts(before, problem),
+        accepted_key: {
+            "date": interval_date,
+            "start_time": interval_start,
+            "duration_minutes": interval_minutes,
+            "end_time": interval_end,
+        },
+        "changed": before.get("date") != target.get("date")
+        or before.get("start_time") != target.get("start_time")
+        or override_record is not None,
+    }
+    updated_decisions["schedule_fingerprint"] = schedule_fingerprint(updated_plan)
+    return updated_schedule, updated_decisions, target, alignment, override_record
 
 
 def _align_tournament_to_calendar_event(
@@ -1147,83 +1223,22 @@ def _align_tournament_to_calendar_event(
     now: str,
     problem: Mapping[str, Any] | None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any] | None]:
-    """Return schedule/decisions aligned to an accepted authoritative event.
+    """Return schedule/decisions aligned to an accepted authoritative event."""
 
-    Matching a booking is an identity decision.  Once accepted, the source
-    calendar's date/start/end becomes the booked canonical interval before the
-    association is validated; the old planned interval is retained in the
-    returned audit payload rather than used as a coverage threshold.
-    """
-
-    updated_schedule = copy.deepcopy(dict(schedule))
-    updated_plan = updated_schedule.setdefault("plan", {})
-    tournaments = updated_plan.setdefault("tournaments", [])
-    target = next((t for t in tournaments if str(t.get("id") or "") == tournament_id), None)
-    if target is None:
-        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
-    before = dict(target)
-    event_date = str(event.get("date") or "")
-    event_start = str(event.get("start") or "")
-    event_minutes = _event_duration_minutes(event)
-    if not event_date or not event_start or event_minutes is None:
-        raise SeasonStateError("Calendar booking event has an invalid date/start/end interval")
-
-    target["date"] = event_date
-    target["start_time"] = event_start
-
-    updated_decisions = dict(decisions)
-    override_record: dict[str, Any] | None = None
-    existing_override = override_for_tournament(decisions, tournament_id)
-    existing_minutes = int(existing_override.get("minutes") or 0) if existing_override else None
-    if existing_minutes != event_minutes:
-        normalized = validate_ice_time_override(
-            {
-                "tournament_id": tournament_id,
-                "minutes": event_minutes,
-                "request_id": f"calendar-booking:{str(event.get('fingerprint') or event_fingerprint(event))}",
-                "note": note,
-                "reference": str(event.get("calendar_event") or event.get("title") or "calendar event"),
-            }
-        )
-        age_group = str(target.get("age_group") or "")
-        # The event-authoritative interval is the booked occupancy even when it
-        # is shorter than an age-group planning minimum. The override is written
-        # through the same canonical decision owner as the operator command so
-        # the active map keeps a replayable provenance chain; the floor is
-        # recorded for independent follow-up visibility instead of enforced.
-        default_minutes = ((problem or {}).get("ice_time_minutes") or {}).get(age_group)
-        override_record = _record_override_decision(
-            updated_decisions,
-            normalized=normalized,
-            tournament_id=tournament_id,
-            age_group=age_group,
-            default_minutes=default_minutes,
-            minimum_minutes=_minimum_override_minutes(target, problem),
-            existing=existing_override,
-            actor=actor,
-            now=now,
-            note=note,
-            authority="calendar_event_association",
-        )
-
-    alignment = {
-        # The prior effective occupied interval (date/start/duration/end),
-        # resolved through the same override-aware owner as every duration
-        # consumer, so a shortened authoritative booking keeps the original
-        # complete interval in audit/replay evidence.
-        "previous_interval": tournament_occupancy_interval_facts(before, problem),
-        "accepted_calendar_interval": {
-            "date": event_date,
-            "start_time": event_start,
-            "duration_minutes": event_minutes,
-            "end_time": str(event.get("end") or ""),
-        },
-        "changed": before.get("date") != target.get("date")
-        or before.get("start_time") != target.get("start_time")
-        or override_record is not None,
-    }
-    updated_decisions["schedule_fingerprint"] = schedule_fingerprint(updated_plan)
-    return updated_schedule, updated_decisions, target, alignment, override_record
+    return _align_tournament_to_authoritative_interval(
+        schedule=schedule,
+        decisions=decisions,
+        tournament_id=tournament_id,
+        interval={"date": event.get("date"), "start": event.get("start"), "end": event.get("end")},
+        actor=actor,
+        note=note,
+        now=now,
+        problem=problem,
+        authority="calendar_event_association",
+        request_id=f"calendar-booking:{str(event.get('fingerprint') or event_fingerprint(event))}",
+        reference=str(event.get("calendar_event") or event.get("title") or "calendar event"),
+        accepted_key="accepted_calendar_interval",
+    )
 
 
 def confirm_calendar_booking(
@@ -1493,6 +1508,7 @@ def set_manual_booking_assertion(
     reference: str = "",
     source_scope: str = "tournament",
     source_assertion_id: str | None = None,
+    stated_date: str | None = None,
     stated_start: str | None = None,
     stated_end: str | None = None,
     expected_revision: str | None = None,
@@ -1528,7 +1544,7 @@ def set_manual_booking_assertion(
         )
     linked_source_id = str(source_assertion_id or "").strip() or None
     try:
-        stated_interval = validate_stated_interval(stated_start, stated_end) or None
+        stated_interval = validate_stated_interval(stated_start, stated_end, stated_date) or None
     except ValueError as exc:
         raise SeasonStateError(str(exc)) from exc
 
@@ -1572,14 +1588,57 @@ def set_manual_booking_assertion(
             "or rationale (--note)"
         )
     resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
+    now = _now_iso()
+    resolved_actor = _operator_identity(actor)
+    source_interval_alignment: dict[str, Any] | None = None
+    override_record: dict[str, Any] | None = None
+    booking_feasibility_warnings: list[dict[str, Any]] = []
+    if booking_status == "booked" and stated_interval:
+        interval_date = str(stated_interval.get("date") or tournament.get("date") or "")
+        request_payload = {
+            "source_assertion_id": linked_source_id or "",
+            "reference": reference or "",
+            "date": interval_date,
+            "start": stated_interval.get("start"),
+            "end": stated_interval.get("end"),
+        }
+        updated_schedule, updated_decisions_for_interval, aligned_tournament, source_interval_alignment, override_record = _align_tournament_to_authoritative_interval(
+            schedule=schedule,
+            decisions=decisions,
+            tournament_id=tournament_id,
+            interval={**dict(stated_interval), "date": interval_date},
+            actor=resolved_actor,
+            note=note,
+            now=now,
+            problem=resolved_problem,
+            authority="manual_club_confirmation_interval",
+            request_id=f"manual-booking:{tournament_id}:{stable_payload_sha256(request_payload)}",
+            reference=reference or note or "manual booking assertion",
+            accepted_key="accepted_source_interval",
+        )
+        verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, updated_decisions_for_interval)
+        verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
+        hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
+        booking_feasibility_warnings = [
+            blocker
+            for blocker in hard_blockers
+            if str(blocker.get("code") or "") in {"ice_time_playing_minimum", "ice_time_governing_minimum"}
+        ]
+        blockers = [blocker for blocker in hard_blockers if blocker not in booking_feasibility_warnings] + unresolved_blockers
+        if blockers:
+            messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
+            raise SeasonStateError(f"Refusing to record booking assertion for {tournament_id}: {messages}")
+        schedule = updated_schedule
+        decisions = updated_decisions_for_interval
+        plan = schedule["plan"]
+        resolved_problem = verification_problem
+        tournament = aligned_tournament
     existing = manual_assertion_for_tournament(decisions, tournament_id)
     existing_stale_reasons = (
         manual_assertion_stale_reasons(existing, problem=resolved_problem, tournament=tournament)
         if existing is not None
         else []
     )
-    now = _now_iso()
-    resolved_actor = _operator_identity(actor)
     candidate = new_manual_assertion_record(
         tournament=tournament,
         booking_status=booking_status,
@@ -1655,6 +1714,9 @@ def set_manual_booking_assertion(
             "stated_interval": candidate["stated_interval"],
             "supersedes": candidate.get("supersedes") or "",
             "reconfirms_stale_reasons": candidate.get("reconfirms_stale_reasons") or [],
+            "interval_alignment": source_interval_alignment,
+            "ice_time_override_id": (override_record or {}).get("id") or "",
+            "booking_feasibility_warnings": booking_feasibility_warnings,
         },
     )
     result: dict[str, Any] = {
@@ -1666,6 +1728,9 @@ def set_manual_booking_assertion(
         "assertion": candidate,
         "previous_assertion": existing,
         "canonical_state_revision": current_revision,
+        "interval_alignment": source_interval_alignment,
+        "ice_time_override": override_record,
+        "booking_feasibility_warnings": booking_feasibility_warnings,
     }
     result["booking_status"] = _booking_status_report(
         problem=resolved_problem,
@@ -1674,7 +1739,10 @@ def set_manual_booking_assertion(
     )
     if dry_run:
         return result
-    committed = service._commit(snapshot.with_decisions(updated))
+    updated_snapshot = snapshot.with_schedule(schedule).with_decisions(updated)
+    if source_interval_alignment is not None:
+        service._assert_published_sealed_reconciliation(updated_snapshot, action="set_manual_booking_assertion")
+    committed = service._commit(updated_snapshot)
     committed_problem = _resolve_plan_problem(committed.schedule, problem, committed.decisions)
     result["canonical_state_revision"] = canonical_state_revision(committed.schedule, committed.decisions)
     result["booking_status"] = _booking_status_report(
