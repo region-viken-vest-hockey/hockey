@@ -8,7 +8,7 @@ Read `audit-publication.md` and the publication and semantic-audit sections in `
 
 - `.pipeline/stage4_export.json` must reference a usable export in its `data.output_files` map;
 - `data.errors` must be empty;
-- the current export must satisfy the repository's semantic-audit gate (`PASS`, or an explicitly operator-approved `REVIEW_REQUIRED` where the repository permits it);
+- the current export must satisfy the repository's publication gate: deterministic hard verification, artifact parity/freshness, and a fresh semantic audit. A full-season semantic `FAIL`/`REVIEW_REQUIRED` is planning debt retained as diagnostic; publication eligibility for the exact delta is decided by the deterministic tournament-scoped result (`ELIGIBLE` publishes, `HELD`/`BLOCKED` names the affected tournament, `NOT_CHECKABLE` falls back to the full semantic-audit gate where `PASS` or an explicitly operator-approved `REVIEW_REQUIRED` is required);
 - the current export must satisfy the XLSX/HTML artifact-parity + canonical freshness preflight (`export_parity.json` status `PASS`). A `FAIL` or `NOT_CHECKABLE` pair is refused; regenerate the projection from current canonical state instead of publishing it. Inspect an existing pair read-only with `scripts/rvv-miniputt export-parity --export-dir <dir> [--json]`;
 - hard verification and public-bundle sanitization remain mandatory;
 - when a promoted canonical season exists, the export being audited/published must represent the intended current canonical season revision/decision state. If `season move`, `season apply`, `season approve`, `season unapprove` or another canonical mutation happened after the current export, regenerate with `scripts/rvv-miniputt season export --season <season>` and audit that fresh projection before publishing.
@@ -27,7 +27,7 @@ python3 -m tournament_scheduler.cli.rvv_cli operator publish --confirm-public
 
 `--confirm-public` confirms the public-publication action only. It must not bypass hard verification, audit requirements, sanitization, or reachability checks.
 
-If publication fails because the semantic audit is missing/stale, use the canonical audit flow from the shared RVV skill (`operator audit-context` for the bounded overview, `operator audit-evidence --item/--tournament/--club/--category` to pull exact supporting detail, then harness judgment + `operator audit-submit`, or the documented headless `operator audit-run` path when appropriate) and retry only after the gate is satisfied.
+If publication fails because the semantic audit is missing/stale or the tournament-scoped scope is `HELD`/`BLOCKED`, use the canonical audit flow from the shared RVV skill (`operator audit-context` for the bounded overview, `operator audit-evidence --item/--tournament/--club/--category` to pull exact supporting detail, then harness judgment + `operator audit-submit`, or the documented headless `operator audit-run` path when appropriate) and resolve the named affected tournament's booking/correction before retrying. Unrelated full-season planning debt does not require a fake audit verdict; never reclassify a retained `FAIL` or hand-edit the audit artifact to make publication possible.
 
 On failure, report the repository error and any pending operator questions. Do not improvise around a blocking gate.
 

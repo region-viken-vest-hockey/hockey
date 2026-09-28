@@ -199,11 +199,106 @@ def execute_submit_audit_result(*, work_dir: str, result: dict[str, Any]) -> "Ca
     )
 
 
+def _resolve_publication_scope(
+    *, work_dir: str, repo_dir: str
+) -> dict[str, Any] | None:
+    """Resolve the tournament-scoped publication eligibility for the export.
+
+    Returns ``None`` when the provenance-bound reviewed export cannot be
+    resolved (the caller then preserves the full semantic-audit gate). The
+    assessment itself never raises into the gate: a resolution or evidence
+    failure is reported as ``NOT_CHECKABLE`` so publication falls back to the
+    existing audit semantics rather than being silently allowed.
+    """
+    import os
+    from pathlib import Path
+
+    from .publication_scope import resolve_publication_scope
+    from .verification_context import resolve_publish_verification_context
+
+    try:
+        bound = resolve_publish_verification_context(work_dir=work_dir)
+    except Exception:  # noqa: BLE001 - preserve existing gate semantics
+        return None
+
+    season_root = os.environ.get("RVV_CANONICAL_SEASON_ROOT") or str(
+        Path(repo_dir) / "season"
+    )
+    return resolve_publication_scope(
+        reviewed_plan=bound.get("reviewed_plan") or {},
+        problem=bound.get("problem"),
+        season=bound.get("canonical_season"),
+        season_root=season_root,
+        export_fingerprint=bound.get("export_fingerprint"),
+        canonical_revision=bound.get("canonical_revision"),
+    )
+
+
+def _blocked_for_publication_scope(
+    *,
+    scope: dict[str, Any],
+    bundle_result: "CapabilityResult",
+    with_collision_warning: "Callable[[CapabilityResult], CapabilityResult]",
+) -> "CapabilityResult | None":
+    """Block a HELD/BLOCKED tournament-scoped publication result.
+
+    An ``ELIGIBLE`` or ``NOT_CHECKABLE`` assessment returns ``None`` so the
+    caller applies the existing semantic-audit gate instead.
+    """
+    from .capability_result import CapabilityResult
+    from .publication_scope import (
+        STATUS_BLOCKED,
+        STATUS_ELIGIBLE,
+        STATUS_HELD,
+        STATUS_NOT_CHECKABLE,
+    )
+
+    status = scope.get("status")
+    if status in (STATUS_ELIGIBLE, STATUS_NOT_CHECKABLE):
+        return None
+    if status not in (STATUS_BLOCKED, STATUS_HELD):
+        return None
+
+    reasons = list(scope.get("reasons") or [])
+    problems = [str(reason.get("message") or reason.get("code")) for reason in reasons]
+    held_ids = sorted({str(entry.get("tournament_id") or "") for entry in scope.get("held") or []})
+    evidence = [
+        f"publication_scope_status={status}",
+        f"publication_scope_export_fingerprint={scope.get('export_fingerprint')}",
+        f"publication_scope_canonical_revision={scope.get('canonical_revision')}",
+        f"publication_scope_held_tournament_ids={','.join(held_ids)}",
+    ]
+    if status == STATUS_BLOCKED:
+        summary = (
+            "Publisering blokkert av global publiseringssikkerhet: publiseringsomfanget "
+            "kan ikke forsvares for gjeldende kanoniske revisjon."
+        )
+    else:
+        summary = (
+            "Publisering holdt tilbake: ett eller flere endrede eller nye turneringer "
+            "mangler godkjent, kildenbundet booking for sin eksakte publiserte periode."
+        )
+    return with_collision_warning(
+        CapabilityResult.blocked(
+            summary,
+            capability="pages_publish",
+            problems=problems,
+            evidence=evidence,
+            suggested_actions=[
+                "Bekreft bookingen for den eksakte perioden med en kildenbundet "
+                "kalenderassosiasjon eller en manuell bookingbekreftelse, og eksporter på nytt.",
+            ],
+            artifacts=list(bundle_result.artifacts),
+        )
+    )
+
+
 def apply_publish_audit_gate(
     *,
     work_dir: str,
     bundle_result: "CapabilityResult",
     with_collision_warning: "Callable[[CapabilityResult], CapabilityResult]",
+    repo_dir: str = ".",
 ) -> "CapabilityResult | None":
     """Apply deterministic verification, audit freshness and review gates.
 
@@ -212,9 +307,17 @@ def apply_publish_audit_gate(
     against the *provenance-bound* problem it was accepted with. It fails
     closed, so a missing/stale/inconsistent checkpoint is never mistaken for a
     zero-violation pass.
+
+    Publication eligibility is *tournament-scoped*: an incremental republish is
+    gated on the exact last-publication delta (accepted booking for each changed
+    interval, identity traceability, no silent hosting transfer), while the
+    full-season semantic audit's planning debt remains visible as diagnostic
+    rather than as a global blocker. A missing/stale audit still blocks, and an
+    unresolved (``NOT_CHECKABLE``) scope falls back to the full audit gate.
     """
     from .audit_result import audit_is_fresh, is_blocking_status
     from .capability_result import CapabilityResult
+    from .publication_scope import STATUS_ELIGIBLE
     from .publish_hard_verification import (
         current_hard_verification,
         hard_verification_evidence,
@@ -247,16 +350,44 @@ def apply_publish_audit_gate(
 
     audit_fresh, audit_result_payload = audit_is_fresh(work_dir)
     audit_status = (audit_result_payload or {}).get("status") if audit_fresh else None
-    if not audit_fresh or is_blocking_status(audit_status):
+    if not audit_fresh:
         reason = (
             "Ingen revisjon funnet for denne eksporten."
             if audit_result_payload is None
             else "Revisjonsresultatet er foreldet (matcher ikke gjeldende eksport/kjøring)."
-            if not audit_fresh
-            else f"Semantisk revisjon feilet eller er ufullstendig (status={audit_status})."
         )
         return with_collision_warning(CapabilityResult.blocked(
-            f"Semantisk revisjon mangler, er foreldet, eller feilet — publisering krever et "
+            f"Semantisk revisjon mangler eller er foreldet — publisering krever et "
+            f"gyldig revisjonsresultat for denne eksporten. {reason}",
+            capability="pages_publish",
+            problems=[reason],
+            suggested_actions=[
+                "Kjør 'rvv-miniputt operator audit-context' og 'operator audit-submit' "
+                "(interaktiv harness), eller 'operator audit-run --backend <navn>' (headless).",
+            ],
+            artifacts=list(bundle_result.artifacts),
+        ))
+
+    scope = _resolve_publication_scope(work_dir=work_dir, repo_dir=repo_dir)
+    if scope is not None and scope.get("status") == STATUS_ELIGIBLE:
+        # Full-season planning debt is retained as diagnostic (the audit result
+        # and the assessment reasons stay on record); it no longer blocks an
+        # incremental republish whose exact delta is fully eligible.
+        return None
+    if scope is not None:
+        blocked = _blocked_for_publication_scope(
+            scope=scope,
+            bundle_result=bundle_result,
+            with_collision_warning=with_collision_warning,
+        )
+        if blocked is not None:
+            return blocked
+
+    # NOT_CHECKABLE or unresolved scope: preserve the existing semantic gate.
+    if is_blocking_status(audit_status):
+        reason = f"Semantisk revisjon feilet eller er ufullstendig (status={audit_status})."
+        return with_collision_warning(CapabilityResult.blocked(
+            f"Semantisk revisjon feilet eller er ufullstendig — publisering krever et "
             f"gyldig revisjonsresultat. {reason}",
             capability="pages_publish",
             problems=[reason],

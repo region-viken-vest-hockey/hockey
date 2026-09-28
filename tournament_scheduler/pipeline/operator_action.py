@@ -738,7 +738,7 @@ def _execute_publish_pages(
         _is_routine_public_asset(path) for path in routine_asset_changes
     )
     if not skip_season_audit:
-        if (blocked := _apply_publish_audit_gate(work_dir=work_dir, bundle_result=bundle_result, with_collision_warning=_with_collision_warning)) is not None:
+        if (blocked := _apply_publish_audit_gate(work_dir=work_dir, repo_dir=repo_dir, bundle_result=bundle_result, with_collision_warning=_with_collision_warning)) is not None:
             _emit_publication_trace(
                 work_dir,
                 run_id,

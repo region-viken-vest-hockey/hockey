@@ -498,6 +498,8 @@ The repository persists the exact submitted assessment in fingerprint-bound `sem
 
 A harness `FAIL` or `REVIEW_REQUIRED` may occur even when deterministic checks pass. It can never override a deterministic hard `FAIL`; an incomplete audit is never `PASS`.
 
+**Publication eligibility is tournament-scoped, not season-scoped.** A whole-season `FAIL`/`REVIEW_REQUIRED` (unresolved JU8 shapes, unplaced hosting obligations, participation shortfalls) is planning debt: it is preserved as diagnostic and is not by itself a global publication blocker. The deterministic publish preflight computes a separate, typed publication-scope result for the exact export by comparing the current public projection to the authoritative last-published baseline. It requires accepted, source-backed booking evidence for every added or interval-changed tournament, stable identity traceability, no unexplained public-entry removal and no unauthorized hosting-responsibility transfer; hard verification, canonical reconciliation and export parity/freshness stay global blockers. An `ELIGIBLE` scope therefore publishes an incremental correction without season-wide completeness approval; a `HELD`/`BLOCKED` scope names the affected tournament and must never be overridden by prompt rewording, a hand-edited audit artifact or synthetic approval.
+
 ## Operator waivers for hard planning rules
 
 Structural invariants such as corrupt serialization, invalid tournament identity or malformed data are never waivable. Explicitly classified hard planning rules may only be waived by an authorized operator for a precise scope.

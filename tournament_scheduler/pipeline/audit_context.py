@@ -948,6 +948,42 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
         plan_dict=plan_dict,
     )
 
+    # Tournament-scoped publication eligibility: the same
+    # deterministic contract the publish preflight consumes, exposed here so
+    # the harness sees that unrelated full-season planning debt is diagnostic
+    # for an incremental republish. A non-canonical export has no published
+    # baseline and resolves to NOT_CHECKABLE, which is not an audit failure.
+    publication_scope: dict[str, Any] | None = None
+    canonical_season = (
+        export_checkpoint.get("canonical_season") if isinstance(export_checkpoint, dict) else None
+    )
+    if canonical_season and isinstance(plan_dict, dict):
+        from ..canonical_baseline import default_season_root
+        from .publication_scope import resolve_publication_scope
+
+        bound_context = (
+            export_checkpoint.get("verification_context")
+            if isinstance(export_checkpoint, dict)
+            else None
+        )
+        bound_problem = bound_context.get("problem") if isinstance(bound_context, dict) else None
+        readiness_reasons = (
+            publication_readiness.get("reasons") if isinstance(publication_readiness, dict) else None
+        )
+        publication_scope = resolve_publication_scope(
+            reviewed_plan=plan_dict,
+            problem=bound_problem,
+            season=str(canonical_season),
+            season_root=default_season_root(),
+            export_fingerprint=export_fingerprint,
+            canonical_revision=(
+                export_checkpoint.get("canonical_revision")
+                if isinstance(export_checkpoint, dict)
+                else None
+            ),
+            full_season_reasons=list(readiness_reasons or []),
+        )
+
     return {
         "run_id": run_id,
         "export_fingerprint": export_fingerprint,
@@ -966,6 +1002,7 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
         "plan_audit_facts": plan_audit_facts,
         "plan_audit_summary": plan_audit_summary,
         "export_consistency_summary": export_consistency_summary,
+        "publication_scope": publication_scope,
         "season_baseline": (evidence_bundle or {}).get("season_baseline"),
     }
 
@@ -1013,6 +1050,8 @@ def build_audit_context(
         "checklist_evidence_guide": _build_checklist_evidence_guide(evidence_overview=evidence_overview),
         "evidence_index": evidence_overview,
     }
+    if raw.get("publication_scope"):
+        context["publication_scope"] = raw["publication_scope"]
     if raw.get("season_baseline"):
         context["season_baseline"] = raw["season_baseline"]
     if workflow is not None:
