@@ -7,9 +7,9 @@
       "category": "regionslagssamling",
       "category_code": "RS",
       "category_label": "Regionslagssamling",
-      "date": "2026-01-05",
+      "date": "2026-01-21",
       "description": null,
-      "location": null,
+      "location": "Frisk Asker",
       "raw_category": null,
       "title": "RS JU16",
       "type": "regionslagssamling",
@@ -455,7 +455,7 @@
       "label": "Ukjent aktivitetstype"
     }
   ],
-  "generated_at": "2026-09-08T11:28:54Z",
+  "generated_at": "2026-09-21T12:28:31Z",
   "schema_version": 2,
   "validation_warnings": [
     {
