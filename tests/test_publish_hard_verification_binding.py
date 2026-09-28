@@ -27,7 +27,11 @@ from tournament_scheduler.pipeline.state import PipelineState, StageName, StageS
 from tournament_scheduler.pipeline.stage4_export_verification import (
     _build_export_verification_problem,
 )
-from tournament_scheduler.pipeline.verification_context import build_verification_context
+from tournament_scheduler.pipeline.verification_context import (
+    VerificationContextError,
+    build_verification_context,
+    resolve_publish_verification_context,
+)
 from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
 
 
@@ -308,6 +312,64 @@ class TestBoundWithdrawalAndRenameOverlays:
 
 
 class TestPreflightFailsClosed:
+    def _write_valid_bound_export(self, tmp_path) -> None:
+        teams = [
+            _team("Jar", "Jar 1", "U10"),
+            _team("Skien", "Skien 1", "U10"),
+            _team("Skien", "Skien 2", "U10"),
+        ]
+        _write_bound_export(
+            tmp_path,
+            plan=_plan(_tournament(teams)),
+            problem={
+                "teams": teams,
+                "ice_time_minutes": {"U10": 120},
+                "parallel_games": {"U10": 2},
+            },
+        )
+
+    def test_malformed_schema_version_fails_closed(self, tmp_path):
+        """A corrupt (non-numeric) schema_version must be a typed failure, not
+        an uncaught ValueError/TypeError from int()."""
+        import pytest
+
+        _init_repo(tmp_path)
+        self._write_valid_bound_export(tmp_path)
+        checkpoint = PipelineState(tmp_path).read_stage(StageName.EXPORT)
+        checkpoint["verification_context"]["schema_version"] = "not-a-number"
+        PipelineState(tmp_path).write_stage(
+            StageName.EXPORT, checkpoint, status=StageStatus.DONE
+        )
+
+        with pytest.raises(VerificationContextError):
+            resolve_publish_verification_context(work_dir=str(tmp_path))
+
+        report = current_hard_verification(str(tmp_path))
+        assert report["verifiable"] is False
+        assert "invalid verification-context schema_version" in report["error"]
+        assert current_hard_violations(str(tmp_path)) == [report["error"]]
+
+        result = _publish(tmp_path)
+        assert result.status == "blocked"
+        assert any("invalid verification-context schema_version" in p for p in result.problems)
+
+    def test_unsupported_schema_version_fails_closed(self, tmp_path):
+        import pytest
+
+        _init_repo(tmp_path)
+        self._write_valid_bound_export(tmp_path)
+        checkpoint = PipelineState(tmp_path).read_stage(StageName.EXPORT)
+        checkpoint["verification_context"]["schema_version"] = 999
+        PipelineState(tmp_path).write_stage(
+            StageName.EXPORT, checkpoint, status=StageStatus.DONE
+        )
+
+        with pytest.raises(VerificationContextError):
+            resolve_publish_verification_context(work_dir=str(tmp_path))
+        report = current_hard_verification(str(tmp_path))
+        assert report["verifiable"] is False
+        assert "unsupported verification-context schema_version=999" in report["error"]
+
     def test_missing_verification_context_blocks_with_actionable_error(self, tmp_path):
         _init_repo(tmp_path)
         export_dir = tmp_path / "export"

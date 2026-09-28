@@ -116,7 +116,13 @@ def _resolve_reviewed_export_context(
             "the Stage 4 export carries no verification-context provenance; "
             "refusing to fall back to context-free verification."
         )
-    context_schema = int(context.get("schema_version", 0) or 0)
+    raw_schema = context.get("schema_version")
+    if raw_schema is None:
+        raw_schema = 0
+    try:
+        context_schema = int(raw_schema)
+    except (TypeError, ValueError):
+        raise _fail(f"invalid verification-context schema_version={raw_schema!r}.") from None
     if context_schema != VERIFICATION_CONTEXT_SCHEMA_VERSION:
         raise _fail(f"unsupported verification-context schema_version={context_schema!r}.")
 

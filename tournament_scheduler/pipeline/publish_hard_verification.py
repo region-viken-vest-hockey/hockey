@@ -64,6 +64,12 @@ def current_hard_verification(work_dir: str) -> dict[str, Any]:
     except VerificationContextError as exc:
         report["error"] = str(exc)
         return report
+    except Exception as exc:  # noqa: BLE001 - a malformed checkpoint must fail closed, not crash
+        report["error"] = (
+            "the reviewed export verification context could not be resolved: "
+            f"{type(exc).__name__}: {exc}"
+        )
+        return report
 
     report.update(
         {
