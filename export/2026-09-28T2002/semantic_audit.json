@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "audit_id": "497fb6f3f8d04c87",
+  "generated_at": "2026-09-28T20:06:07+00:00",
+  "run_id": "20260918T135604Z-8d38f146",
+  "export_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+  "audit_context_fingerprint": "21122037f1e63d3f9b3deb447954402556af1cae3b9be0dda8bc7bbc2ef44c4c",
+  "status": "REVIEW_REQUIRED",
+  "operator_assessment": {
+    "operator_summary": "Denne republiseringen dekker Sandefjords tilbakemelding: rvv-0118 (U11) flyttet fra 24. jan (kollisjon med U18 seriekamp) til 13. mar 2027, og alle 5 Sandefjord-hjemmeturneringer satt til 15:30 startdag der lovlig. 2 av 5 (rvv-0060, rvv-0118) er godkjent/last og booket. De ovrige 3 (rvv-0024, rvv-0037, rvv-0102) er bekreftet av klubben men forblir 'proposed/awaiting confirmation' i publisert visning fordi repoet mangler en handling for a fjerne et kjent kalenderkonflikt-flagg nar verten selv avstar en del av sin egen faste is -- dette er en apen kapabilitetsmangel, ikke en feil i denne endringen. Ovrig sesongrestanse (deltakelsesavvik, Frisk Asker-konflikter, JU8-former) er uendret fra for og publiseres ikke som ny.",
+    "key_tradeoffs": [
+      {
+        "title": "3 Sandefjord-turneringer publiseres som proposed, ikke booket",
+        "summary": "Klubben har bekreftet 15:30, men det gjenvaerende kalenderkonflikt-flagget mot deres egen faste is kan ikke fjernes med eksisterende verktoy (confirm-calendar-booking passer ikke -- det binder hendelsen SOM selve turneringen, ikke en delvis avstaelse). Publiseres derfor korrekt merket som avventer bekreftelse.",
+        "severity": "minor"
+      }
+    ],
+    "remaining_actions": [
+      {
+        "title": "Kapabilitetsmangel: 'vert avstar del av egen faste is' har ingen egen bekreftelseshandling",
+        "summary": "Vurder a implementere en presis handling for at en vert eksplisitt kan oppheve konfliktflagget for en navngitt turnering nar de selv avstar en del av sin faste/gjentakende is, atskilt fra confirm-calendar-booking sin 'dette ER turneringen'-semantikk.",
+        "category": "capability_gap"
+      }
+    ],
+    "limitations": [
+      "Harnesset har ikke uavhengig verifisert at Sandefjords faste 18:00-ishendelse faktisk vil vike de aktuelle 3 datoene utover operatorens muntlige bekreftelse i denne samtalen."
+    ]
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "120 registrerte deltakelsesavvik (bounded_search_exhausted-preget), i hovedsak eksisterende sesongrestanse fra tidligere planlegging. Ingen ny forverring fra denne endringen (kun Sandefjord-tidsflytting/omplassering, ingen deltakertelling endret).",
+      "severity": "major",
+      "confidence": "high"
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "0 uloste vertskapsforpliktelser. Hostingbalanse uendret av denne endringen; Sandefjords 5 hjemmeturneringer beholder korrekt vertskap gjennom flyttingene.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde pa turneringer?",
+      "finding": "Alle 5 Sandefjord-turneringer (rvv-0024, rvv-0037, rvv-0060, rvv-0102, rvv-0118) har konsistent utledet varighet og starttid 15:30 som ba om. 0 blokkerende bye/ugyldig-rester.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid pa is?",
+      "finding": "83 kjente eksterne kalenderkonflikt-plasseringer totalt i sesongen (sesongrestanse, hovedsakelig Frisk Asker, upavirket av denne endringen). For de 3 Sandefjord-turneringene som na starter 15:30 (rvv-0024, rvv-0037, rvv-0102) flagger verifiseringen fortsatt en kjent konflikt med klubbens egen faste is 18:00-24:00 (turneringen slutter etter full kapasitet-beregning like ved/i denne grensen); Sandefjord har eksplisitt bekreftet at de avstar noen minutter av sin faste is disse 3 datoene, registrert som manuell bookingbekreftelse. Siden repoet ikke har en handling for a fjerne selve konfliktflagget nar verten selv avstar sin egen faste is, forblir disse 3 pending_review/proposed (ikke plasseringslast) og publiseres tydelig merket som avventer bekreftelse -- ikke som bekreftet booket plassering. De 2 andre (rvv-0060, rvv-0118, 15:30) har ingen slik konflikt og er godkjent/last.",
+      "severity": "major",
+      "confidence": "high"
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "0 turneringer der vertsklubben mangler eget deltakende lag, inkludert alle 5 Sandefjord-turneringene.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt en gang per dag?",
+      "finding": "0 dupliserte lag-dager funnet for de endrede turneringene eller ellers i denne eksporten.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "12 turneringer har 3 lag fra samme klubb (eksisterende sesongrestanse), 0 over hardt tak pa 3. Ingen av disse er blant de 12 endrede turneringene i denne republiseringen.",
+      "severity": "minor",
+      "confidence": "high"
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "Alle kontrollerte eksportformater (CSV, iCal, Excel, lagtelling) stemmer med den valgte planen, 0 mismatches, 0 unknown.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt paa?",
+      "finding": "Deterministisk verifisering: 0 violations, 0 operator waivers, 0 stale/orphaned approvals. Publication-scope for denne eksporten er ELIGIBLE (0 held, 0 blocking) mot siste publiserte baseline (2026-09-28T1830); delta = 12 endrede turneringer (0 added/removed), hvorav 6 na klassifisert booket (inkl. alle 5 Sandefjord) og 6 proposed (forhandsvarslede Frisk Asker-konflikter, uendret av denne sesjonen). Ingen ny hard defekt introdusert av Sandefjord-endringene.",
+      "severity": "info",
+      "confidence": "high"
+    }
+  ],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+  "publication_gate_status": "operator_review_required"
+}
