@@ -944,7 +944,7 @@
       }
     }
   ],
-  "canonical_state_revision": "83e0155a8dcb6388fd1f72becad57fff4074c8aad33a9012bde03c1968edae7a",
+  "canonical_state_revision": "a8f842cf1ecde229d020b26ea4072b0b2f5ba811251204ad473c3a5e93b50316",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -33185,6 +33185,108 @@
       "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
       "tournament_fingerprint": null,
       "tournament_id": "rvv-0004"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T06:11:49.544063+00:00",
+      "details": {
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 120,
+        "override_id": "ice-time-override:6c2dab4395d55bcc",
+        "reference": "Kongsberg Outlook webkalender (https://kongsberghallen.no/webkalender/ishall/), live-scraped 2026-09-28, event 'KIF ishockey - Miniputt (U12)' 2027-03-07 10:00-12:00",
+        "request_id": "kongsberg-live-calendar-2027-03-07-U12",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Host's own calendar entry for this tournament (self-titled Miniputt U12) shows 10:00-12:00 (120 min), not canonical 10:00-11:40 (100 min); confirmed live per issue #492",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0176"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T06:11:50.005302+00:00",
+      "details": {
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 120,
+        "override_id": "ice-time-override:c06a2c8f3cdef737",
+        "reference": "Kongsberg Outlook webkalender (https://kongsberghallen.no/webkalender/ishall/), live-scraped 2026-09-28, event 'KIF Ishockey - Miniputt (U12)' 2027-03-14 12:30-14:30",
+        "request_id": "kongsberg-live-calendar-2027-03-14-U12",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Host's own calendar entry for this tournament (self-titled Miniputt U12) shows 12:30-14:30 (120 min), not canonical 12:30-14:10 (100 min); confirmed live per issue #492",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0162"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T06:12:14.164681+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-03-07",
+          "duration_minutes": "120",
+          "end_time": "12:00",
+          "round_count": "3",
+          "start_time": "10:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "Kongsberg Outlook webkalender, live-scraped 2026-09-28, event 'KIF ishockey - Miniputt (U12)' 2027-03-07 10:00-12:00",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "120",
+          "end": "12:00",
+          "start": "10:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Host's own self-titled calendar entry confirms this tournament is booked 10:00-12:00; live-scraped per issue #492",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0176"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T06:12:18.466150+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-03-14",
+          "duration_minutes": "120",
+          "end_time": "14:30",
+          "round_count": "3",
+          "start_time": "12:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "Kongsberg Outlook webkalender, live-scraped 2026-09-28, event 'KIF Ishockey - Miniputt (U12)' 2027-03-14 12:30-14:30",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "120",
+          "end": "14:30",
+          "start": "12:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Host's own self-titled calendar entry confirms this tournament is booked 12:30-14:30; live-scraped per issue #492",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "31d3743424e5f6aff0d3db373c90664d5e32e5ffa6f829c0c7b652a8851118ca",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0162"
     }
   ],
   "holiday_date_exceptions": [
@@ -33390,6 +33492,36 @@
       "request_id": "holmen-calendar-2026-10-18-U12",
       "status": "active",
       "tournament_id": "rvv-0028",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "created_at": "2026-09-28T06:11:49.544063+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:6c2dab4395d55bcc",
+      "minimum_minutes": 60,
+      "minutes": 120,
+      "note": "Host's own calendar entry for this tournament (self-titled Miniputt U12) shows 10:00-12:00 (120 min), not canonical 10:00-11:40 (100 min); confirmed live per issue #492",
+      "reference": "Kongsberg Outlook webkalender (https://kongsberghallen.no/webkalender/ishall/), live-scraped 2026-09-28, event 'KIF ishockey - Miniputt (U12)' 2027-03-07 10:00-12:00",
+      "request_id": "kongsberg-live-calendar-2027-03-07-U12",
+      "status": "active",
+      "tournament_id": "rvv-0176",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "created_at": "2026-09-28T06:11:50.005302+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:c06a2c8f3cdef737",
+      "minimum_minutes": 60,
+      "minutes": 120,
+      "note": "Host's own calendar entry for this tournament (self-titled Miniputt U12) shows 12:30-14:30 (120 min), not canonical 12:30-14:10 (100 min); confirmed live per issue #492",
+      "reference": "Kongsberg Outlook webkalender (https://kongsberghallen.no/webkalender/ishall/), live-scraped 2026-09-28, event 'KIF Ishockey - Miniputt (U12)' 2027-03-14 12:30-14:30",
+      "request_id": "kongsberg-live-calendar-2027-03-14-U12",
+      "status": "active",
+      "tournament_id": "rvv-0162",
       "type": "tournament_ice_time_override"
     }
   ],
@@ -34724,6 +34856,90 @@
         "start_time": "13:00"
       },
       "tournament_id": "rvv-0004"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "asserted_at": "2026-09-28T06:12:14.164681+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-03-07",
+        "duration_minutes": "120",
+        "end_time": "12:00",
+        "round_count": "3",
+        "start_time": "10:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-07",
+      "host_club": "Kongsberg",
+      "id": "manual_booking:rvv-0176:2026-09-28T06:12:14.164681+00:00",
+      "note": "Host's own self-titled calendar entry confirms this tournament is booked 10:00-12:00; live-scraped per issue #492",
+      "reference": "Kongsberg Outlook webkalender, live-scraped 2026-09-28, event 'KIF ishockey - Miniputt (U12)' 2027-03-07 10:00-12:00",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "5973b78f25fce6938309747cb94685429667ef9b1389e606c3bd019891882d82",
+      "source_scope": "tournament",
+      "start_time": "10:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "120",
+        "end": "12:00",
+        "start": "10:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-07",
+        "host_club": "Kongsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0176"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "asserted_at": "2026-09-28T06:12:18.466150+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-03-14",
+        "duration_minutes": "120",
+        "end_time": "14:30",
+        "round_count": "3",
+        "start_time": "12:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-14",
+      "host_club": "Kongsberg",
+      "id": "manual_booking:rvv-0162:2026-09-28T06:12:18.466150+00:00",
+      "note": "Host's own self-titled calendar entry confirms this tournament is booked 12:30-14:30; live-scraped per issue #492",
+      "reference": "Kongsberg Outlook webkalender, live-scraped 2026-09-28, event 'KIF Ishockey - Miniputt (U12)' 2027-03-14 12:30-14:30",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "3e0891623c245d8162fedee193c06fa7d6bfcfa22aa7eafc3aa4c6a2e9c4749f",
+      "source_scope": "tournament",
+      "start_time": "12:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "120",
+        "end": "14:30",
+        "start": "12:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-14",
+        "host_club": "Kongsberg",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0162"
     }
   ],
   "participation_withdrawals": [
@@ -42392,5 +42608,5 @@
       "tournament_id": "rvv-0168"
     }
   ],
-  "updated_at": "2026-09-28T05:58:34.055765+00:00"
+  "updated_at": "2026-09-28T06:12:18.466150+00:00"
 }
