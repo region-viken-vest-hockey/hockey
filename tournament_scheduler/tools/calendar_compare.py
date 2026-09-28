@@ -38,7 +38,7 @@ FIDELITY_REPORT_DIR = "compare"
 # Day-of-week names for reporting
 _DAY_NAMES_NB = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
 
-# Sources that cannot be compared deterministically (require the Pi ScraperAgent)
+# Sources that cannot be compared deterministically (require a browser-capable harness)
 _NON_DETERMINISTIC_ENGINES = {"bookup_spa", "forumbooking"}
 
 
@@ -63,7 +63,7 @@ def _source_fidelity(
     warnings: list[str] = []
 
     if agent_required:
-        warnings.append("Krever Pi ScraperAgent for autentisert skraping — "
+        warnings.append("Krever browser-aktivert harness for autentisert skraping — "
                         "kjør rvv-miniputt run for full kalenderdata")
 
     if error:

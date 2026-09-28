@@ -1,7 +1,7 @@
 """Per-club scraper strategies that describe how to navigate each calendar system.
 
-Each :class:`ScraperStrategy` tells the Pi-driven ScraperAgent how to interact
-with a particular club's calendar site — what kind of page it is, what
+Each :class:`ScraperStrategy` tells a browser-capable recovery harness how to
+interact with a particular club's calendar site — what kind of page it is, what
 navigation patterns to expect, and whether there's a simple deterministic
 fallback (iframes, date params, iCal feed).
 
@@ -9,10 +9,10 @@ Strategies are organised by **calendar engine** since clubs using the same
 platform family usually share navigation patterns or API shapes (for example,
 Sportello's public GraphQL endpoint) even though their URLs differ.
 
-The ScraperAgent in the extension:
+A browser-capable harness:
   1. Looks up the strategy for the current source
-  2. Launches the Python browserWorker
-  3. Uses Pi's model to evaluate page content and decide the next action
+  2. Launches the Python browser worker
+  3. Uses its model to evaluate page content and decide the next action
   4. Uses the strategy hints to guide the LLM
 
 Sources with ``direct_ical`` or ``direct_iframe`` strategies can fall back to
@@ -208,7 +208,7 @@ def requires_credentials(strategy: ScraperStrategy) -> bool:
 
 
 def needs_llm_agent(strategy: ScraperStrategy) -> bool:
-    """Whether this strategy requires the Pi-driven LLM agent to scrape."""
+    """Whether this strategy requires a browser/LLM-assisted harness to scrape."""
     return not has_direct_scraper(strategy)
 
 
@@ -246,7 +246,7 @@ def get_deterministic_scraper_type(strategy: ScraperStrategy) -> str | None:
 def strategy_to_dict(strategy: ScraperStrategy) -> dict[str, Any]:
     """Serialize a :class:`ScraperStrategy` to a JSON-safe dict.
 
-    Includes ``initial_navigation`` steps for the Pi ScraperAgent.
+    Includes ``initial_navigation`` steps for a browser-capable recovery harness.
     """
     return {
         "engine": strategy.engine.value,
@@ -281,7 +281,7 @@ def list_strategies() -> dict[str, dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# CLI entry point — dumps strategy JSON for the Pi ScraperAgent
+# CLI entry point — dumps strategy JSON for a browser-capable recovery harness
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":  # pragma: no cover
@@ -290,7 +290,7 @@ if __name__ == "__main__":  # pragma: no cover
     import sys
 
     parser = argparse.ArgumentParser(
-        description="Eksporter scraper-strategi som JSON for Pi ScraperAgent"
+        description="Eksporter scraper-strategi som JSON for et browser-aktivert harness"
     )
     parser.add_argument(
         "--name", type=str, default="",

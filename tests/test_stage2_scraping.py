@@ -527,7 +527,7 @@ class TestUnifiedCache:
 
     def test_fresh_z_suffixed_timestamp_skips_scraping(self, tmp_path):
         """Cache entries written with a 'Z'-suffixed (tz-aware) timestamp,
-        as the extension's ScraperAgent does, must still be recognized as
+        as a browser-capable recovery harness does, must still be recognized as
         fresh by is_stale()."""
         work_dir = tmp_path / "pipeline"
         state = PipelineState(work_dir)

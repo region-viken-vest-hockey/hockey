@@ -278,7 +278,7 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         source="https://baerumishall.no/kalender/",
         skip=False,
         note=(
-            "StyledCalendar JS widget -- needs ScraperAgent (Pi-driven browser). "
+            "StyledCalendar JS widget -- needs a browser-capable harness. "
             "Currently blocked in deterministic scraping (0 events)."
         ),
     ),
