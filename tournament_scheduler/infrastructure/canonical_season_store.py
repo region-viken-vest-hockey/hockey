@@ -38,6 +38,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterator, Mapping
 
+from tournament_scheduler.canonical_state import canonical_state_revision
+
 try:  # pragma: no cover - platform dependent
     import fcntl
 except ImportError:  # pragma: no cover - Windows
@@ -69,6 +71,26 @@ class CanonicalCommitDurabilityError(SeasonStateError):
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.committed = True
+
+
+class CanonicalRevisionConflictError(SeasonStateError):
+    """The on-disk canonical revision differs from the caller's expected one.
+
+    Raised by an expected-revision (compare-and-swap) write when another writer
+    committed a semantic change between the caller's read and this write. The
+    write is refused without touching disk, so the newer state and any freshness
+    requirement it armed are preserved.
+    """
+
+    def __init__(self, *, expected_revision: str, current_revision: str) -> None:
+        super().__init__(
+            "Refusing canonical write: the on-disk revision "
+            f"{current_revision or '<none>'} does not match the expected revision "
+            f"{expected_revision or '<none>'}"
+        )
+        self.expected_revision = expected_revision
+        self.current_revision = current_revision
+        self.conflict = True
 
 
 def season_dir(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> Path:
@@ -385,6 +407,7 @@ def _write_season_state_atomic(
     require_absent: bool,
     export_context: dict[str, Any] | None = None,
     extra_evidence: Mapping[str, bytes] | None = None,
+    expected_revision: str | None = None,
 ) -> None:
     """Install the canonical season-state files under the swap/recovery lock.
 
@@ -403,6 +426,7 @@ def _write_season_state_atomic(
             require_absent=require_absent,
             export_context=export_context,
             extra_evidence=extra_evidence,
+            expected_revision=expected_revision,
         )
 
 
@@ -414,6 +438,7 @@ def _write_season_state_locked(
     require_absent: bool,
     export_context: dict[str, Any] | None = None,
     extra_evidence: Mapping[str, bytes] | None = None,
+    expected_revision: str | None = None,
 ) -> None:
     """Install the canonical season-state files as one crash-durable boundary.
 
@@ -441,6 +466,26 @@ def _write_season_state_locked(
     backup = parent / f".{season_directory.name}.backup"
     try:
         _recover_interrupted_swap(season_directory, backup)
+
+        if expected_revision is not None:
+            # The compare-and-swap check must run inside the write lock so a
+            # concurrent refresh/reconciliation between the caller's read and
+            # this write cannot be silently overwritten (which would clear a
+            # freshness latch it just armed).
+            current_decisions = _load_decisions_unlocked(
+                season_directory.name, root=season_directory.parent
+            )
+            current_schedule = _load_schedule_unlocked(
+                season_directory.name, root=season_directory.parent
+            )
+            current_revision = canonical_state_revision(
+                current_schedule, current_decisions
+            )
+            if str(current_revision or "") != str(expected_revision or ""):
+                raise CanonicalRevisionConflictError(
+                    expected_revision=str(expected_revision or ""),
+                    current_revision=str(current_revision or ""),
+                )
 
         (staging / "schedule.json").write_bytes(_json_bytes(schedule_payload))
         (staging / "decisions.json").write_bytes(_json_bytes(decisions_payload))
@@ -595,6 +640,7 @@ class CanonicalSeasonStore:
         *,
         require_absent: bool = False,
         extra_evidence: Mapping[str, bytes] | None = None,
+        expected_revision: str | None = None,
     ) -> None:
         _write_season_state_atomic(
             self.directory(snapshot.season),
@@ -603,11 +649,13 @@ class CanonicalSeasonStore:
             require_absent=require_absent,
             export_context=snapshot.export_context,
             extra_evidence=extra_evidence,
+            expected_revision=expected_revision,
         )
 
 
 __all__ = [
     "CanonicalCommitDurabilityError",
+    "CanonicalRevisionConflictError",
     "CanonicalSeasonSnapshot",
     "CanonicalSeasonStore",
     "DECISIONS_SCHEMA_VERSION",

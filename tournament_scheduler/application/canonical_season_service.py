@@ -102,12 +102,14 @@ class CanonicalSeasonService:
         *,
         require_absent: bool = False,
         extra_evidence: Mapping[str, bytes] | None = None,
+        expected_revision: str | None = None,
     ) -> CanonicalSeasonSnapshot:
         return _lifecycle._commit(
             self,
             snapshot=snapshot,
             require_absent=require_absent,
             extra_evidence=extra_evidence,
+            expected_revision=expected_revision,
         )
 
     def _commit_history_only(self, snapshot: CanonicalSeasonSnapshot) -> CanonicalSeasonSnapshot:

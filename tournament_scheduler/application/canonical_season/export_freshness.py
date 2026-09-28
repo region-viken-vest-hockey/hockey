@@ -6,11 +6,12 @@ predates the change. That marker must be a one-way signal only until a fresh
 export actually covers the new state; otherwise publication stays blocked
 forever no matter how many times the season is re-exported.
 
-This module owns the revision-bound clearing: it only clears the latch when the
-canonical state still matches the revision the export was generated from. If a
-later mutation committed while the export was running, that mutation's freshness
-requirement must survive, so the call is a no-op and the publish preflight keeps
-refusing the now-stale artifact.
+This module owns the revision-bound clearing. It re-checks the revision at the
+commit boundary through the store's expected-revision compare-and-swap, so a
+concurrent refresh/reconciliation that commits between the read and the write
+keeps its newer freshness requirement instead of being silently overwritten.
+The call is then a no-op and the publish preflight keeps refusing the now-stale
+artifact.
 """
 
 from __future__ import annotations
@@ -19,6 +20,9 @@ import copy
 from typing import Any
 
 from tournament_scheduler.canonical_state import canonical_state_revision
+from tournament_scheduler.infrastructure.canonical_season_store import (
+    CanonicalRevisionConflictError,
+)
 
 from .shared import _append_decision_history, _now_iso, _operator_identity
 
@@ -100,9 +104,21 @@ def mark_export_fresh(
         },
     )
 
-    committed = service._commit(
-        snapshot.with_schedule(updated_schedule).with_decisions(updated)
-    )
+    try:
+        committed = service._commit(
+            snapshot.with_schedule(updated_schedule).with_decisions(updated),
+            expected_revision=current_revision,
+        )
+    except CanonicalRevisionConflictError as exc:
+        # A concurrent refresh/reconciliation committed between our read and
+        # this write and armed a newer freshness requirement; leave it intact.
+        return {
+            "season": season,
+            "cleared": False,
+            "reason": "canonical_state_changed_during_commit",
+            "exported_canonical_revision": exported_revision,
+            "canonical_state_revision": exc.current_revision or current_revision,
+        }
     return {
         "season": season,
         "cleared": True,

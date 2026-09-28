@@ -1509,9 +1509,6 @@ def _cmd_season(args: argparse.Namespace) -> int:
             # lifecycle uses it to avoid ever routing a promoted-season audit back
             # into an unrelated Stage 3 candidate (issue #397).
             result["is_canonical_season_export"] = True
-            from ..pipeline.state import StageName, StageStatus
-            state.write_stage(StageName.EXPORT, result, status=StageStatus.DONE)
-            _write_canonical_export_evidence(schedule, result)
             # A successful export covers the revision it was generated from, so
             # clear the one-way "fresh export required" latch that a calendar
             # refresh or config reconciliation set. The clearing is revision-
@@ -1527,6 +1524,16 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 export_dir=result.get("export_dir") or args.export_dir,
                 note="canonical export",
             )
+            # A stale result means canonical state advanced after the exported
+            # snapshot (or the freshness marker could not be cleared). The
+            # artifacts are still recorded, but this export is not publishable
+            # and must not be presented as a clean success.
+            result["stale_export"] = not bool(
+                result["export_freshness"].get("cleared")
+            )
+            from ..pipeline.state import StageName, StageStatus
+            state.write_stage(StageName.EXPORT, result, status=StageStatus.DONE)
+            _write_canonical_export_evidence(schedule, result)
             # Mark audit-required explicitly rather than relying only on lazy
             # export-fingerprint reconciliation: a re-export of unchanged
             # canonical state produces the same content fingerprint, which
@@ -1539,10 +1546,19 @@ def _cmd_season(args: argparse.Namespace) -> int:
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
             else:
-                _console.print(
-                    f"[green]✓[/green] Exported canonical season {args.season} "
-                    f"revision {result.get('canonical_revision')}"
-                )
+                if result["stale_export"]:
+                    _console.print(
+                        f"[yellow]⚠[/yellow] Exported canonical season {args.season} "
+                        f"revision {result.get('canonical_revision')}, but the canonical "
+                        "state advanced during the export "
+                        f"({result['export_freshness'].get('reason')}). This artifact is "
+                        "NOT publishable; re-export from the current revision."
+                    )
+                else:
+                    _console.print(
+                        f"[green]✓[/green] Exported canonical season {args.season} "
+                        f"revision {result.get('canonical_revision')}"
+                    )
                 for label, path in result.get("output_files", {}).items():
                     _console.print(f"  {label}: {path}")
             return 0

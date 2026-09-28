@@ -14,6 +14,7 @@ from pathlib import Path
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
 from tournament_scheduler.cli.rvv_cli import main
 from tournament_scheduler.pipeline.export_parity.gate import publish_parity_gate
+from tournament_scheduler.pipeline.state import PipelineState, StageName
 from tournament_scheduler.season_state import (
     add_banned_date,
     canonical_state_revision,
@@ -70,6 +71,9 @@ def test_season_export_clears_fresh_export_latch_and_unblocks_publish(
     assert exported_revision == stale_revision
     assert decisions["export_state"]["requires_fresh_export"] is False
     assert decisions["export_state"]["status"] == "fresh"
+    # Export freshness must not imply that the independent audit requirement or
+    # any approval has been satisfied.
+    assert decisions["export_state"]["requires_fresh_audit"] is True
     schedule = load_schedule(SEASON, root=root)
     promoted_from = schedule["promoted_from"]
     assert "export_stale" not in promoted_from
@@ -135,3 +139,81 @@ def test_mark_export_fresh_is_revision_bound(tmp_path: Path, monkeypatch) -> Non
     assert result["cleared"] is False
     assert result["reason"] == "canonical_state_advanced_after_export"
     assert load_decisions(SEASON, root=root)["export_state"]["requires_fresh_export"] is True
+
+
+def test_mark_export_fresh_cas_preserves_latch_on_interleaving_write(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A writer between the freshness read and its commit must not be overwritten."""
+
+    stale_revision = _stale_after_refresh(tmp_path, monkeypatch)
+    root = tmp_path / "season"
+    service = CanonicalSeasonService(root=root)
+    stale_snapshot = service.load(SEASON)
+
+    # Simulate a concurrent refresh/reconciliation committing after our read.
+    add_banned_date(
+        season=SEASON,
+        date="2027-01-15",
+        request_id="interleaved-write",
+        root=root,
+        note="concurrent state change",
+    )
+    current_revision = canonical_state_revision(
+        load_schedule(SEASON, root=root), load_decisions(SEASON, root=root)
+    )
+    assert current_revision != stale_revision
+
+    # Force the freshness operation to still hold its stale read, so the only
+    # thing preventing a lost update is the store's atomic expected-revision CAS.
+    monkeypatch.setattr(service, "load", lambda season: stale_snapshot)
+    result = service.mark_export_fresh(season=SEASON, expected_revision=stale_revision)
+
+    assert result["cleared"] is False
+    assert result["reason"] == "canonical_state_changed_during_commit"
+    decisions = load_decisions(SEASON, root=root)
+    assert decisions["export_state"]["requires_fresh_export"] is True
+    # The newer canonical revision is still on disk; the stale snapshot did not win.
+    assert decisions["canonical_state_revision"] == current_revision
+
+
+def test_season_export_surfaces_stale_export_when_latch_not_cleared(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """A not-cleared export must warn and flag itself as not publishable."""
+
+    root = _promote(tmp_path)
+    export_dir = tmp_path / "canonical-export"
+
+    import tournament_scheduler.season_state as season_state
+
+    def stale_freshness(*_args, **_kwargs):
+        return {
+            "season": SEASON,
+            "cleared": False,
+            "reason": "canonical_state_changed_during_commit",
+        }
+
+    monkeypatch.setattr(season_state, "mark_export_fresh", stale_freshness)
+    rc = main(
+        [
+            "season",
+            "export",
+            "--season",
+            SEASON,
+            "--work-dir",
+            str(tmp_path / ".pipeline"),
+            "--root",
+            str(root),
+            "--export-dir",
+            str(export_dir),
+            "--flat",
+        ]
+    )
+    assert rc == 0
+    output = capsys.readouterr().out
+    assert "NOT publishable" in output
+
+    stage = PipelineState(tmp_path / ".pipeline").read_stage(StageName.EXPORT)
+    assert stage["stale_export"] is True
+    assert stage["export_freshness"]["cleared"] is False

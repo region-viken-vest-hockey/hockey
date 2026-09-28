@@ -36,6 +36,7 @@ def _commit(
     *,
     require_absent: bool = False,
     extra_evidence: Mapping[str, bytes] | None = None,
+    expected_revision: str | None = None,
 ) -> CanonicalSeasonSnapshot:
     """Persist a snapshot under one fresh canonical-state revision.
 
@@ -46,6 +47,11 @@ def _commit(
     season-relative evidence paths to bytes that must be installed in the same
     atomic swap as the canonical files (for example a content-addressed
     pre-refresh snapshot referenced from the new decisions state).
+
+    ``expected_revision`` turns the write into a compare-and-swap: the store
+    refuses it, without touching disk, when the on-disk revision no longer
+    matches, so a concurrent semantic mutation between the caller's read and
+    this write is never silently overwritten.
     """
 
     decisions = dict(snapshot.decisions)
@@ -61,7 +67,10 @@ def _commit(
     )
     committed = snapshot.with_decisions(decisions)
     service.store.write(
-        committed, require_absent=require_absent, extra_evidence=extra_evidence
+        committed,
+        require_absent=require_absent,
+        extra_evidence=extra_evidence,
+        expected_revision=expected_revision,
     )
     return committed
 
