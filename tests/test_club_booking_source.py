@@ -32,6 +32,7 @@ from tournament_scheduler.season_state import (
     set_manual_booking_assertion,
 )
 from tests.test_approval_lifecycle import (
+    _export_html_with_booking_report,
     _host_a_problem,
     _promote,
     _teams,
@@ -282,6 +283,12 @@ def test_real_overlapping_source_intervals_are_recorded_with_blocking_follow_up(
     t2 = next(item for item in sources["sources"][0]["tournaments"] if item["tournament_id"] == "t2")
     assert "arena_interval_conflict" in t2["interval_follow_up"]
 
+    from tournament_scheduler.final_verification import verify_final_candidate
+
+    publication_gate = verify_final_candidate(load_schedule("2026-2027", root=root)["plan"], problem)
+    assert publication_gate["publication_readiness"]["status"] == "INVALID"
+    assert "arena_interval_conflict" in {item["code"] for item in publication_gate["violations"]}
+
 
 def test_adjacent_booked_source_intervals_use_actual_duration_for_conflicts(tmp_path):
     t2_teams = [
@@ -353,7 +360,7 @@ def test_reconfirming_prior_assertion_supersedes_and_retry_is_idempotent(tmp_pat
     assert retry["idempotent"] is True
 
 
-def test_matching_default_interval_does_not_create_redundant_override(tmp_path):
+def test_matching_default_manual_interval_is_frozen_against_later_default_drift(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _host_a_problem([])
     source = _source_set(root)["source"]
@@ -364,9 +371,21 @@ def test_matching_default_interval_does_not_create_redundant_override(tmp_path):
         stated_start="10:00",
         stated_end="12:00",
     )
-    assert result["interval_alignment"]["changed"] is False
-    assert result["ice_time_override"] is None
-    assert "ice_time_minutes_overrides" not in load_decisions("2026-2027", root=root)
+
+    assert result["interval_alignment"]["changed"] is True
+    assert result["ice_time_override"]["minutes"] == 120
+    assert load_decisions("2026-2027", root=root)["ice_time_minutes_overrides"][0]["minutes"] == 120
+
+    drifted_problem = {**problem, "ice_time_minutes": {"U10": 150}}
+    row = next(
+        row
+        for row in booking_status_report(season="2026-2027", root=root, problem=drifted_problem)["tournaments"]
+        if row["tournament_id"] == "t1"
+    )
+    assert row["canonical_interval"]["end_time"] == "12:00"
+
+    html = _export_html_with_booking_report(root, drifted_problem, tmp_path)
+    assert '"bci": {"d": "2026-09-12", "s": "10:00", "e": "12:00"}' in html
 
 
 def test_existing_matching_override_keeps_source_provenance_without_new_override(tmp_path):

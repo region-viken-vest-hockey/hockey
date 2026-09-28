@@ -1621,6 +1621,7 @@ def set_manual_booking_assertion(
             request_id=f"manual-booking:{tournament_id}:{stable_payload_sha256(request_payload)}",
             reference=reference or note or "manual booking assertion",
             accepted_key="accepted_source_interval",
+            freeze_default_equal_interval=True,
         )
         verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, updated_decisions_for_interval)
         verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
