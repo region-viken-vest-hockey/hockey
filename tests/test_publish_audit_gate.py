@@ -8,9 +8,12 @@ from __future__ import annotations
 import subprocess
 
 from tournament_scheduler.pipeline.audit_result import write_audit_result
+from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.pipeline.operator_action import DEFAULT_REGISTRY
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+from tournament_scheduler.pipeline.verification_context import build_verification_context
+from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
 
 
 def _init_repo(repo_dir) -> None:
@@ -22,15 +25,99 @@ def _init_repo(repo_dir) -> None:
     subprocess.run(["git", "-C", str(repo_dir), "commit", "-q", "-m", "init"], check=True)
 
 
-def _write_export(work_dir, *, fingerprint: str = "fp-1") -> None:
+def _minimal_plan(marker: str = "a") -> dict:
+    """A base-valid three-team round robin, unique per *marker*.
+
+    Three registered teams means the round-robin shape is legal and no game
+    integration defect is present, so the plan passes both the planning
+    contract Stage 4 stores and the stricter final verifier the publish gate
+    applies.
+    """
+    teams = [
+        {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
+        {"club": "Skien", "label": "Skien 1", "age_group": "U10"},
+        {"club": "Skien", "label": "Skien 2", "age_group": "U10"},
+    ]
+    games = [
+        {"home": "Jar 1", "away": "Skien 1", "parallel_slot": 0, "round_number": 1},
+        {"home": "Jar 1", "away": "Skien 2", "parallel_slot": 0, "round_number": 2},
+        {"home": "Skien 1", "away": "Skien 2", "parallel_slot": 0, "round_number": 3},
+    ]
+    return {
+        "schema_version": 1,
+        "source": {"planner": "test"},
+        "tournaments": [
+            {
+                "id": f"t1-{marker}",
+                "date": "2026-01-05",
+                "arena": "Jar Isforum",
+                "age_group": "U10",
+                "host_club": "Jar",
+                "teams": teams,
+                "games": games,
+            }
+        ],
+    }
+
+
+def _bound_problem(plan: dict, **overrides) -> dict:
+    """A minimal but real normalized problem for *plan*'s own roster."""
+    teams = []
+    seen: set[tuple] = set()
+    for tournament in plan.get("tournaments") or []:
+        for team in tournament.get("teams") or []:
+            key = (team.get("club"), team.get("label"), team.get("age_group"))
+            if key in seen:
+                continue
+            seen.add(key)
+            teams.append(dict(team))
+    problem = {
+        "teams": teams,
+        "ice_time_minutes": {"U10": 120},
+        "parallel_games": {"U10": 2},
+    }
+    problem.update(overrides)
+    return problem
+
+
+def _write_export(work_dir, *, plan: dict | None = None, marker: str = "a", problem: dict | None = None) -> str:
+    """Write a provenance-bound, reviewed Stage 4 export checkpoint.
+
+    Mirrors what Stage 4 itself writes: the export's own ``verify_result`` uses
+    the planning-contract verifier, while the publish gate layers the stricter
+    final verifier on top of the same bound problem. Returns the export
+    fingerprint.
+    """
+    plan = plan if plan is not None else _minimal_plan(marker)
+    candidate = extract_candidate({"plan": plan})
+    resolved_problem = problem if problem is not None else _bound_problem(plan)
+    verify_result = verify_candidate(candidate, resolved_problem)
+    fingerprint = stable_payload_sha256(candidate.get("tournaments", []))
+    verification_context = build_verification_context(
+        run_id=RunManifest(work_dir).read().get("run_id"),
+        candidate=candidate,
+        problem=resolved_problem,
+        verify_result=verify_result,
+    )
     export_dir = work_dir / "export"
     export_dir.mkdir(exist_ok=True)
     (export_dir / "season_plan.html").write_text("<h1>plan</h1>", encoding="utf-8")
     PipelineState(work_dir).write_stage(
         StageName.EXPORT,
-        {"output_files": {"html": str(export_dir / "season_plan.html")}, "export_fingerprint": fingerprint},
+        {
+            "output_files": {"html": str(export_dir / "season_plan.html")},
+            "export_fingerprint": fingerprint,
+            "verify_result": verify_result,
+            "verification_context": verification_context,
+            "reviewed_plan": dict(candidate),
+        },
         status=StageStatus.DONE,
     )
+    return fingerprint
+
+
+def _current_export_fingerprint(work_dir) -> str:
+    return str(PipelineState(work_dir).read_stage(StageName.EXPORT).get("export_fingerprint"))
 
 
 def _audit_findings() -> list[dict]:
@@ -49,10 +136,12 @@ def _audit_findings() -> list[dict]:
 
 
 def _write_audit_without_audit_id(
-    work_dir, *, status: str, export_fingerprint: str = "fp-1", run_id: str = ""
+    work_dir, *, status: str, export_fingerprint: str | None = None, run_id: str = ""
 ) -> dict:
     """Persist a REVIEW_REQUIRED audit the way a harness that omits
     ``audit_id`` would submit it; ``write_audit_result`` must derive one."""
+    if export_fingerprint is None:
+        export_fingerprint = _current_export_fingerprint(work_dir)
     payload = _golden_result(status=status, export_fingerprint=export_fingerprint, run_id=run_id)
     del payload["audit_id"]
     errors = write_audit_result(work_dir, payload)
@@ -60,7 +149,7 @@ def _write_audit_without_audit_id(
     return payload
 
 
-def _golden_result(*, status: str, export_fingerprint: str = "fp-1", run_id: str = "") -> dict:
+def _golden_result(*, status: str, export_fingerprint: str, run_id: str = "") -> dict:
     return {
         "schema_version": 1,
         "audit_id": f"audit-{status.lower()}",
@@ -80,7 +169,9 @@ def _golden_result(*, status: str, export_fingerprint: str = "fp-1", run_id: str
     }
 
 
-def _write_audit(work_dir, *, status: str, export_fingerprint: str = "fp-1", run_id: str = "") -> dict:
+def _write_audit(work_dir, *, status: str, export_fingerprint: str | None = None, run_id: str = "") -> dict:
+    if export_fingerprint is None:
+        export_fingerprint = _current_export_fingerprint(work_dir)
     payload = _golden_result(status=status, export_fingerprint=export_fingerprint, run_id=run_id)
     errors = write_audit_result(work_dir, payload)
     assert not errors, errors
@@ -130,62 +221,25 @@ class TestNoAuditResult:
 class TestDeterministicHardFailTakesPrecedence:
     def test_hard_violation_blocks_even_with_a_passing_audit(self, tmp_path):
         _init_repo(tmp_path)
-        _write_export(tmp_path)
+        # A plan the planning contract accepts but the stricter export/final
+        # verifier rejects: three teams with one required round-robin pair
+        # missing. The export's own verify_result stays base-valid, so the
+        # final-only defect can only be caught by the publish gate.
+        _write_export(tmp_path, plan=_final_only_invalid_plan())
         _write_audit(tmp_path, status="PASS")
-
-        # A plan with a duplicate-participation-style hard violation: the
-        # same team playing twice on the same date within one tournament.
-        PipelineState(tmp_path).write_stage(
-            StageName.PLANNING,
-            {
-                "plan": {
-                    "schema_version": 1,
-                    "source": {"planner": "test"},
-                    "tournaments": [
-                        {
-                            "id": "t1",
-                            "date": "2026-01-05",
-                            "arena": "Jar Isforum",
-                            "age_group": "U10",
-                            "host_club": "Jar",
-                            "teams": [{"club": "Jar", "label": "Jar 1", "age_group": "U10"}],
-                            "games": [
-                                {"home": "Jar 1", "away": "Jar 1", "parallel_slot": 0, "round_number": 1}
-                            ],
-                        }
-                    ],
-                }
-            },
-            status=StageStatus.DONE,
-        )
 
         result = _publish(tmp_path)
         assert result.status == "blocked"
         assert "hard verifisering" in result.summary.lower()
+        assert any("round_robin_missing_pair" in problem for problem in result.problems)
 
 
-def _hard_invalid_plan() -> dict:
-    """A plan with a duplicate-participation-style hard violation: the same
-    team playing itself/twice on the same date within one tournament."""
-    return {
-        "schema_version": 1,
-        "source": {"planner": "test"},
-        "tournaments": [
-            {
-                "id": "t1",
-                "date": "2026-01-05",
-                "arena": "Jar Isforum",
-                "age_group": "U10",
-                "host_club": "Jar",
-                "teams": [{"club": "Jar", "label": "Jar 1", "age_group": "U10"}],
-                "games": [{"home": "Jar 1", "away": "Jar 1", "parallel_slot": 0, "round_number": 1}],
-            }
-        ],
-    }
+def _final_only_invalid_plan() -> dict:
+    """A base-valid three-team round robin with one required pair missing.
 
-
-def _hard_valid_plan() -> dict:
-    """A minimal, hard-valid plan: two distinct teams, one legal game."""
+    ``verify_candidate`` (the planning contract Stage 4 stores) accepts the
+    3-team bye shape; only the final/export verifier checks game completeness.
+    """
     return {
         "schema_version": 1,
         "source": {"planner": "test"},
@@ -198,9 +252,13 @@ def _hard_valid_plan() -> dict:
                 "host_club": "Jar",
                 "teams": [
                     {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
-                    {"club": "Skien", "label": "Skien", "age_group": "U10"},
+                    {"club": "Skien", "label": "Skien 1", "age_group": "U10"},
+                    {"club": "Skien", "label": "Skien 2", "age_group": "U10"},
                 ],
-                "games": [{"home": "Jar 1", "away": "Skien", "parallel_slot": 0, "round_number": 1}],
+                "games": [
+                    {"home": "Jar 1", "away": "Skien 1", "parallel_slot": 0, "round_number": 1},
+                    {"home": "Jar 1", "away": "Skien 2", "parallel_slot": 0, "round_number": 2},
+                ],
             }
         ],
     }
@@ -213,31 +271,24 @@ class TestPublishGateReadsTheExportedPlanNotStalePlanning:
 
     def test_stale_planning_checkpoint_never_blocks_a_hard_valid_export(self, tmp_path):
         _init_repo(tmp_path)
+        # A stale, unrelated PLANNING checkpoint left behind by an earlier,
+        # different run is hard-invalid...
+        PipelineState(tmp_path).write_stage(
+            StageName.PLANNING, {"plan": _final_only_invalid_plan()}, status=StageStatus.DONE
+        )
+        # ...but the reviewed EXPORT checkpoint is hard-valid and is what the
+        # gate must verify (a canonical `season export` writes only EXPORT).
         _write_export(tmp_path)
         _write_audit(tmp_path, status="PASS")
-
-        # The EXPORT checkpoint's own reviewed_plan is hard-valid...
-        export_checkpoint = PipelineState(tmp_path).read_stage(StageName.EXPORT)
-        export_checkpoint["reviewed_plan"] = _hard_valid_plan()
-        PipelineState(tmp_path).write_stage(StageName.EXPORT, export_checkpoint, status=StageStatus.DONE)
-
-        # ...but a stale, unrelated PLANNING checkpoint is hard-invalid.
-        PipelineState(tmp_path).write_stage(
-            StageName.PLANNING, {"plan": _hard_invalid_plan()}, status=StageStatus.DONE
-        )
 
         result = _publish(tmp_path)
 
-        assert result.status != "blocked" or "hard verifisering" not in result.summary.lower()
+        assert result.status == "ok", result.summary
 
     def test_hard_invalid_reviewed_plan_still_blocks(self, tmp_path):
         _init_repo(tmp_path)
-        _write_export(tmp_path)
+        _write_export(tmp_path, plan=_final_only_invalid_plan())
         _write_audit(tmp_path, status="PASS")
-
-        export_checkpoint = PipelineState(tmp_path).read_stage(StageName.EXPORT)
-        export_checkpoint["reviewed_plan"] = _hard_invalid_plan()
-        PipelineState(tmp_path).write_stage(StageName.EXPORT, export_checkpoint, status=StageStatus.DONE)
 
         result = _publish(tmp_path)
 
@@ -271,11 +322,12 @@ class TestIncompleteAuditNeverBecomesPass:
 class TestStaleAuditRejected:
     def test_audit_for_a_different_export_fingerprint_is_rejected(self, tmp_path):
         _init_repo(tmp_path)
-        _write_export(tmp_path, fingerprint="fp-old")
-        _write_audit(tmp_path, status="PASS", export_fingerprint="fp-old")
+        old_fingerprint = _write_export(tmp_path, marker="old")
+        _write_audit(tmp_path, status="PASS", export_fingerprint=old_fingerprint)
 
         # Export regenerated -> new fingerprint invalidates the old audit.
-        _write_export(tmp_path, fingerprint="fp-new")
+        new_fingerprint = _write_export(tmp_path, marker="new")
+        assert new_fingerprint != old_fingerprint
 
         result = _publish(tmp_path)
 
@@ -359,8 +411,8 @@ class TestReviewRequiredApprovalScopedToExport:
         """An earlier export's approved REVIEW_REQUIRED question must never
         satisfy the gate for a later, unrelated export whose findings differ."""
         _init_repo(tmp_path)
-        _write_export(tmp_path, fingerprint="fp-sept14")
-        _write_audit_without_audit_id(tmp_path, status="REVIEW_REQUIRED", export_fingerprint="fp-sept14")
+        _write_export(tmp_path, marker="sept14")
+        _write_audit_without_audit_id(tmp_path, status="REVIEW_REQUIRED")
         _publish(tmp_path)
         first_question = next(
             q for q in RunManifest(tmp_path).all_questions() if q["type"] == "audit_review"
@@ -369,8 +421,8 @@ class TestReviewRequiredApprovalScopedToExport:
 
         # A materially different later export: its own REVIEW_REQUIRED audit
         # must raise a fresh question rather than reuse the older approval.
-        _write_export(tmp_path, fingerprint="fp-sept16")
-        _write_audit_without_audit_id(tmp_path, status="REVIEW_REQUIRED", export_fingerprint="fp-sept16")
+        _write_export(tmp_path, marker="sept16")
+        _write_audit_without_audit_id(tmp_path, status="REVIEW_REQUIRED")
         result = _publish(tmp_path)
 
         assert result.status == "blocked"
